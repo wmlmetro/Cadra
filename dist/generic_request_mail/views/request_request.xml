@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_request_search">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_search"/>
+        <field name="arch" type="xml">
+            <group name="group_group_by" position="before">
+                <separator/>
+                <filter name="filter_mail_source_requests"
+                        string="Received by mail"
+                        domain="[('mail_source_id', '!=', False)]"/>
+            </group>
+            <group name="group_group_by" position="inside">
+                <filter name="filter_group_by_mail_source"
+                        string="Mail Source"
+                        context="{'group_by': 'mail_source_id'}"/>
+            </group>
+        </field>
+    </record>
+    <record model="ir.ui.view" id="view_request_request_form">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="sheet//notebook//page[@name='page_other']//group[@name='group_info_left']" position="inside">
+                <field name="mail_source_id"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

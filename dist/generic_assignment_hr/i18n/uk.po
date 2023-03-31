@@ -1,0 +1,143 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_assignment_hr
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 12.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-09-16 11:43+0000\n"
+"PO-Revision-Date: 2022-01-25 13:01+0000\n"
+"Last-Translator: Валерия <valittle@ukr.net>\n"
+"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-14-0/generic_assignment_hr/uk/>\n"
+"Language: uk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields.selection,name:generic_assignment_hr.selection__generic_assign_policy_rule__assign_department_sort_direction__asc
+msgid "Ascending"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields,field_description:generic_assignment_hr.field_generic_assign_policy_rule__assign_department_choice_condition_ids
+msgid "Assign Department Choice Condition"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields,field_description:generic_assignment_hr.field_generic_assign_policy_rule__assign_department_choice_type
+msgid "Assign Department Choice Type"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields,field_description:generic_assignment_hr.field_generic_assign_policy_rule__assign_department_sort_direction
+msgid "Assign Department Sort Direction"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields,field_description:generic_assignment_hr.field_generic_assign_policy_rule__assign_department_sort_field_id
+msgid "Assign Department Sort Field"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model,name:generic_assignment_hr.model_generic_assign_policy_rule
+msgid "Assignment Policy Rule"
+msgstr "Правило політики призначення"
+
+#. module: generic_assignment_hr
+#: model_terms:ir.ui.view,arch_db:generic_assignment_hr.view_generic_assign_policy_rule_hr_form
+msgid "Choice conditions"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model_terms:ir.ui.view,arch_db:generic_assignment_hr.view_generic_assign_policy_rule_hr_form
+msgid "Choice type"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields,field_description:generic_assignment_hr.field_generic_assign_policy_rule__assign_department_id
+msgid "Department"
+msgstr "Відділ"
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields.selection,name:generic_assignment_hr.selection__generic_assign_policy_rule__assign_type__department_employee
+msgid "Department Employee"
+msgstr "Працівник відділу"
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields.selection,name:generic_assignment_hr.selection__generic_assign_policy_rule__assign_type__department_manager
+msgid "Department Manager"
+msgstr "керівник відділу"
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields.selection,name:generic_assignment_hr.selection__generic_assign_policy_rule__assign_department_sort_direction__desc
+msgid "Descending"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields.selection,name:generic_assignment_hr.selection__generic_assign_policy_rule__assign_department_choice_type__first
+msgid "First"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields,field_description:generic_assignment_hr.field_generic_assign_policy_rule__assign_department_job_id
+msgid "Job"
+msgstr "Посада"
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields.selection,name:generic_assignment_hr.selection__generic_assign_policy_rule__assign_department_choice_type__random
+msgid "Random"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model_terms:ir.ui.view,arch_db:generic_assignment_hr.view_generic_assign_policy_rule_hr_form
+msgid "Sort direction"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model_terms:ir.ui.view,arch_db:generic_assignment_hr.view_generic_assign_policy_rule_hr_form
+msgid "Sort field"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields,field_description:generic_assignment_hr.field_generic_assign_policy_rule__assign_type
+msgid "Type"
+msgstr "Тип"
+
+#~ msgid "Display Name"
+#~ msgstr "Відображуване ім’я"
+
+#~ msgid "ID"
+#~ msgstr "ID"
+
+#~ msgid "Last Modified on"
+#~ msgstr "Остання модифікація"
+
+#~ msgid "Policy"
+#~ msgstr "Політика"
+
+#~ msgid "Python expression"
+#~ msgstr "Python-вираз"
+
+#~ msgid "Related policy"
+#~ msgstr "Пов'язана політика"
+
+#~ msgid "Team Leader"
+#~ msgstr "Лідер команди"
+
+#~ msgid "Team Member"
+#~ msgstr "Учасник команди"
+
+#~ msgid "Team Task Manager"
+#~ msgstr "Менеджер завдань команди"
+
+#~ msgid "User"
+#~ msgstr "Користувач"
+
+#~ msgid "User field"
+#~ msgstr "Поле користувача"

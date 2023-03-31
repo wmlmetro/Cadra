@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="request.mail.source" id="demo_request_mail_source">
+        <field name="name">Demo Requests</field>
+        <field name="request_creation_template_id" ref="demo_request_creation_template1"/>
+        <field name="alias_name">demo-requests</field>
+        <field name="alias_contact">everyone</field>
+    </record>
+</odoo>

@@ -1,0 +1,189 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_action_project
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:19+0000\n"
+"PO-Revision-Date: 2023-03-07 12:45+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_action_project/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_action_project
+#: model_terms:ir.ui.view,arch_db:generic_request_action_project.view_request_event_action_form
+msgid ""
+"<code>Project.search([('partner_id', '=', request.partner_id."
+"commercial_partner_id.id)], limit=1)</code>"
+msgstr ""
+"<code>Project.search([('partner_id', '=', request.partner_id."
+"commercial_partner_id.id)], limit=1)</code>"
+
+#. module: generic_request_action_project
+#: model_terms:ir.ui.view,arch_db:generic_request_action_project.view_request_event_action_form
+msgid ""
+"<code>[('partner_id',\n"
+"                        '=', request.partner_id.commercial_partner_id.id)]</"
+"code>"
+msgstr ""
+"<code>[('partner_id',\n"
+"                        '=', request.partner_id.commercial_partner_id."
+"id)]</code>"
+
+#. module: generic_request_action_project
+#: model:ir.model.fields,field_description:generic_request_action_project.field_request_event_action__task_project_compute_type
+msgid "Compute project as"
+msgstr "Projeyi şu şekilde hesapla"
+
+#. module: generic_request_action_project
+#: model:ir.model.fields.selection,name:generic_request_action_project.selection__request_event_action__task_project_compute_type__domain
+msgid "Domain"
+msgstr "Alan Adı"
+
+#. module: generic_request_action_project
+#: model:ir.model.fields.selection,name:generic_request_action_project.selection__request_event_action__task_project_compute_type__fixed
+msgid "Fixed"
+msgstr "düzeltildi"
+
+#. module: generic_request_action_project
+#: model:ir.model.fields.selection,name:generic_request_action_project.selection__request_event_action__task_project_compute_type__request
+msgid "From request"
+msgstr "istekten"
+
+#. module: generic_request_action_project
+#: model_terms:ir.ui.view,arch_db:generic_request_action_project.view_request_event_action_form
+msgid ""
+"Project.search([('partner_id', '=', request.partner_id."
+"commercial_partner_id)], limit=1).id)"
+msgstr ""
+"Project.search([('partner_id', '=', request.partner_id."
+"commercial_partner_id)], limit=1).id)"
+
+#. module: generic_request_action_project
+#: model:ir.model.fields.selection,name:generic_request_action_project.selection__request_event_action__task_project_compute_type__python-expression
+msgid "Python expression"
+msgstr "Python ifadesi"
+
+#. module: generic_request_action_project
+#: model:ir.model,name:generic_request_action_project.model_request_event_action
+msgid "Request Event Action"
+msgstr "Etkinlik İşlemi İste"
+
+#. module: generic_request_action_project
+#: model:ir.model.fields.selection,name:generic_request_action_project.selection__request_event_action__task_assign_type__request-user
+msgid "Request's assignee"
+msgstr "Talebin atanan kimsesi"
+
+#. module: generic_request_action_project
+#: model:ir.model.fields.selection,name:generic_request_action_project.selection__request_event_action__act_type__task
+#: model_terms:ir.ui.view,arch_db:generic_request_action_project.view_request_event_action_form
+msgid "Task"
+msgstr "Görev"
+
+#. module: generic_request_action_project
+#: model:ir.model.fields,field_description:generic_request_action_project.field_request_event_action__task_assign_type
+msgid "Task Assign Type"
+msgstr "Görev Atama Türü"
+
+#. module: generic_request_action_project
+#: model:ir.model.fields,field_description:generic_request_action_project.field_request_event_action__task_description
+msgid "Task Description"
+msgstr "Görev Tanımı"
+
+#. module: generic_request_action_project
+#: model:ir.model.fields,field_description:generic_request_action_project.field_request_event_action__task_project_id
+msgid "Task Project"
+msgstr "Görev Projesi"
+
+#. module: generic_request_action_project
+#: model:ir.model.fields,field_description:generic_request_action_project.field_request_event_action__task_project_domain
+msgid "Task Project Domain"
+msgstr "Görev Proje Alan Adı"
+
+#. module: generic_request_action_project
+#: model:ir.model.fields,field_description:generic_request_action_project.field_request_event_action__task_project_py_expression
+msgid "Task Project Py Expression"
+msgstr "Görev Projesi Py İfadesi"
+
+#. module: generic_request_action_project
+#: model:ir.model.fields,field_description:generic_request_action_project.field_request_event_action__task_stage_id
+msgid "Task Stage"
+msgstr "Görev Aşaması"
+
+#. module: generic_request_action_project
+#: model:ir.model.fields,field_description:generic_request_action_project.field_request_event_action__task_title
+msgid "Task Title"
+msgstr "Görev Başlığı"
+
+#. module: generic_request_action_project
+#: model:ir.model.fields,field_description:generic_request_action_project.field_request_event_action__task_use_request_deadline
+msgid "Task Use Request Deadline"
+msgstr "Görev Kullanımı İsteği Son Tarihi"
+
+#. module: generic_request_action_project
+#: model:ir.model.fields,field_description:generic_request_action_project.field_request_event_action__task_user_id
+msgid "Task User"
+msgstr "Görev Kullanıcısı"
+
+#. module: generic_request_action_project
+#: model_terms:request.request,help_html:generic_request_action_project.demo_request_with_task_3
+msgid ""
+"This is demo request type to demonstrate automatic actions and triggers on "
+"routes.\n"
+"            That automatic triggers will be triggered when related task "
+"changes its stage."
+msgstr ""
+"Bu, rotalardaki otomatik eylemleri ve tetikleyicileri göstermek için demo "
+"istek türüdür.\n"
+"             Bu otomatik tetikleyiciler, ilgili görev aşama değiştirdiğinde "
+"tetiklenecektir."
+
+#. module: generic_request_action_project
+#: model:ir.model.fields,field_description:generic_request_action_project.field_request_event_action__act_type
+msgid "Type"
+msgstr "Tür"
+
+#. module: generic_request_action_project
+#: model_terms:ir.ui.view,arch_db:generic_request_action_project.view_request_event_action_form
+msgid ""
+"Type here python expression that have to be evaluated to domain. For example:"
+msgstr ""
+"Alan adına değerlendirilmesi gereken python ifadesini buraya yazın. Örneğin:"
+
+#. module: generic_request_action_project
+#: model_terms:ir.ui.view,arch_db:generic_request_action_project.view_request_event_action_form
+msgid ""
+"Type here python expression that have to be evaluated to record (record of "
+"the project). For example:"
+msgstr ""
+"Kaydetmek için değerlendirilmesi gereken python ifadesini buraya yazın ("
+"projenin kaydı). Örneğin:"
+
+#. module: generic_request_action_project
+#: model:ir.model.fields.selection,name:generic_request_action_project.selection__request_event_action__task_assign_type__user
+msgid "User"
+msgstr "Kullanıcı"
+
+#. module: generic_request_action_project
+#: model_terms:ir.ui.view,arch_db:generic_request_action_project.view_request_event_action_form
+msgid "User request's deadline"
+msgstr "Kullanıcı isteğinin son tarihi"
+
+#. module: generic_request_action_project
+#: model:ir.model.fields,help:generic_request_action_project.field_request_event_action__task_description
+#: model:ir.model.fields,help:generic_request_action_project.field_request_event_action__task_title
+msgid "You can use jinja2 placeholders in this field"
+msgstr "Bu alanda jinja2 yer tutucularını kullanabilirsiniz"
+
+#. module: generic_request_action_project
+#: model_terms:ir.ui.view,arch_db:generic_request_action_project.view_request_event_action_form
+msgid "[('partner_id', '=', request.partner_id.commercial_partner_id)]"
+msgstr "[('partner_id', '=', request.partner_id.commercial_partner_id)]"

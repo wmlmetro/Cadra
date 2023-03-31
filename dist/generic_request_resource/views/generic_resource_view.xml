@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="inherited_view_generic_resource_form_inherit_request_resource">
+        <field name="model">generic.resource</field>
+        <field name="inherit_id" ref="generic_resource.generic_resource_view_form_base"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button class="oe_stat_button" type="object"
+                        name="action_view_resource_requests"
+                        icon="fa-comments-o">
+                    <div class="o_stat_info">
+                        <span class="o_stat_value">
+                            <field name="resource_request_open_count" class="oe_inline"/>
+                            <span class="oe_form_field oe_inline">/</span>
+                            <field name="resource_request_count" class="oe_inline"/>
+                        </span>
+                        <span class="o_stat_text">Requests</span>
+                    </div>
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>

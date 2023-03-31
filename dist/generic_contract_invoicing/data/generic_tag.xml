@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="generic.tag" id="generic_contract_tag_error_invoice_generation">
+        <field name="name">Cannot generate invoice</field>
+        <field name="category_id" ref="generic_contract.generic_tag_category_contract_error"/>
+        <field name="color" eval="9"/>
+        <field name="code">cannot-generate-invoice</field>
+        <field name="model_id" ref="generic_contract.generic_tag_model_generic_contract"/>
+    </record>
+</odoo>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo noupdate="1">
+    <!-- Demo request type with survey-->
+    <record id="request_type_with_survey" model="request.type">
+        <field name="name">Request with survey</field>
+        <field name="code">request_with_survey</field>
+        <field name="category_ids" eval="[(4, ref('generic_request.request_category_demo_general'), 0)]"/>
+        <field name="help_html">
+            This is demo request type to demonstrate automatic actions.
+            When request moves from New to Survey Sent, survey is sent using auto-action.
+        </field>
+    </record>
+
+    <!-- Stages -->
+    <record id="request_stage_type_with_survey_new" model="request.stage">
+        <field name="sequence" eval="1"/>
+        <field name="name">New</field>
+        <field name="code">new</field>
+        <field name="request_type_id" ref="request_type_with_survey"/>
+    </record>
+    <record id="request_stage_type_with_survey_in_progress" model="request.stage">
+        <field name="sequence" eval="2"/>
+        <field name="name">In Progress</field>
+        <field name="code">in_progress</field>
+        <field name="request_type_id" ref="request_type_with_survey"/>
+    </record>
+    <record id="request_stage_type_with_survey_survey_sent" model="request.stage">
+        <field name="sequence" eval="3"/>
+        <field name="name">Survey Sent</field>
+        <field name="code">survey_sent</field>
+        <field name="request_type_id" ref="request_type_with_survey"/>
+    </record>
+    <record id="request_stage_type_with_survey_done" model="request.stage">
+        <field name="sequence" eval="5"/>
+        <field name="name">Done</field>
+        <field name="code">done</field>
+        <field name="request_type_id" ref="request_type_with_survey"/>
+    </record>
+
+    <!-- Routes -->
+    <record id="request_stage_type_with_survey_new_to_in_progress"
+            model="request.stage.route">
+        <field name="name">New to In Progress</field>
+        <field name="stage_from_id" ref="request_stage_type_with_survey_new"/>
+        <field name="stage_to_id" ref="request_stage_type_with_survey_in_progress"/>
+        <field name="request_type_id" ref="request_type_with_survey"/>
+    </record>
+    <record id="request_stage_type_with_survey_new_to_survey_sent"
+            model="request.stage.route">
+        <field name="name">New to Survey Sent</field>
+        <field name="stage_from_id" ref="request_stage_type_with_survey_new"/>
+        <field name="stage_to_id" ref="request_stage_type_with_survey_survey_sent"/>
+        <field name="request_type_id" ref="request_type_with_survey"/>
+    </record>
+    <record id="request_stage_type_with_survey_survey_sent_to_in_progress"
+            model="request.stage.route">
+        <field name="name">Survey Sent to In Progress</field>
+        <field name="stage_from_id" ref="request_stage_type_with_survey_survey_sent"/>
+        <field name="stage_to_id" ref="request_stage_type_with_survey_in_progress"/>
+        <field name="request_type_id" ref="request_type_with_survey"/>
+    </record>
+    <record id="request_stage_type_with_survey_in_progress_to_done"
+            model="request.stage.route">
+        <field name="name">In Progress to Done</field>
+        <field name="stage_from_id" ref="request_stage_type_with_survey_in_progress"/>
+        <field name="stage_to_id" ref="request_stage_type_with_survey_done"/>
+        <field name="request_type_id" ref="request_type_with_survey"/>
+    </record>
+</odoo>

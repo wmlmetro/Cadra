@@ -1,0 +1,86 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_assignment
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 13.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-07-27 15:56+0000\n"
+"PO-Revision-Date: 2020-07-27 15:56+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy.rule,name:generic_request_assignment.request_rule_assign_eval
+msgid "Assign admin by python-expression"
+msgstr ""
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy.rule,name:generic_request_assignment.request_rule_assign_user_demo_portal
+msgid "Assign demo portal user"
+msgstr ""
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy.rule,name:generic_request_assignment.request_rule_assign_user_demo
+msgid "Assign demo user"
+msgstr ""
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy.rule,description:generic_request_assignment.request_rule_assign_user_field
+msgid ""
+"Assign user by field \"created_by\" of the request. Type of policy: \"User "
+"field\"."
+msgstr ""
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy.rule,name:generic_request_assignment.request_rule_assign_user_field
+msgid "Assign user from field 'created_by'"
+msgstr ""
+
+#. module: generic_request_assignment
+#: model:ir.actions.act_window,name:generic_request_assignment.action_request_assignment_policy
+#: model:ir.ui.menu,name:generic_request_assignment.menu_assignment_policies
+msgid "Assignment Policies"
+msgstr ""
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy.rule,name:generic_request_assignment.request_rule_assign_policy
+msgid "Call other assign policy"
+msgstr ""
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy,name:generic_request_assignment.request_example_assign_policy_policy
+msgid "Demo assign policy"
+msgstr ""
+
+#. module: generic_request_assignment
+#: model:ir.model,name:generic_request_assignment.model_generic_wizard_assign
+msgid "Generic Wizard: Assign"
+msgstr ""
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy,description:generic_request_assignment.request_example_assign_policy_policy
+msgid "Just assign to demo portal user."
+msgstr ""
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy.model,name:generic_request_assignment.request_assign_policy_model
+#: model:ir.model,name:generic_request_assignment.model_request_request
+msgid "Request"
+msgstr ""
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy,name:generic_request_assignment.request_example_assign_policy
+msgid "Test Assign Policy"
+msgstr ""
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy,description:generic_request_assignment.request_example_assign_policy
+msgid "This is demo assign policy that is used in automatic tests"
+msgstr ""

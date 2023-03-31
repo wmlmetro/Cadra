@@ -1,0 +1,155 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_action_priority
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 13.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-07-27 15:49+0000\n"
+"PO-Revision-Date: 2022-01-25 13:01+0000\n"
+"Last-Translator: Валерия <valittle@ukr.net>\n"
+"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-14-0/generic_request_action_priority/uk/>\n"
+"Language: uk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields,field_description:generic_request_action_priority.field_request_event_action__act_priority_impact
+msgid "Act Priority Impact"
+msgstr ""
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields,field_description:generic_request_action_priority.field_request_event_action__act_priority_impact_modifier
+msgid "Act Priority Impact Modifier"
+msgstr ""
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields,field_description:generic_request_action_priority.field_request_event_action__act_priority_priority
+msgid "Act Priority Priority"
+msgstr ""
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields,field_description:generic_request_action_priority.field_request_event_action__act_priority_priority_modifier
+msgid "Act Priority Priority Modifier"
+msgstr ""
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields,field_description:generic_request_action_priority.field_request_event_action__act_priority_type
+msgid "Act Priority Type"
+msgstr ""
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields,field_description:generic_request_action_priority.field_request_event_action__act_priority_urgency
+msgid "Act Priority Urgency"
+msgstr ""
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields,field_description:generic_request_action_priority.field_request_event_action__act_priority_urgency_modifier
+msgid "Act Priority Urgency Modifier"
+msgstr ""
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields,field_description:generic_request_action_priority.field_request_event_action__act_priority_is_priority_complex
+msgid "Complex Priority"
+msgstr "Комплексний пріоритет"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_priority__5
+msgid "Critical"
+msgstr "Критичний"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_type__decrease
+msgid "Decrease Priority"
+msgstr ""
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_priority__1
+msgid "For Information"
+msgstr "Для інформації"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_impact__3
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_priority__4
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_urgency__3
+msgid "High"
+msgstr "Високий"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_type__increase
+msgid "Increase Priority"
+msgstr ""
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_impact__1
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_priority__2
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_urgency__1
+msgid "Low"
+msgstr "Низький"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_impact__2
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_priority__3
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_urgency__2
+msgid "Medium"
+msgstr "Середній"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_impact__0
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_priority__0
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_urgency__0
+msgid "Not set"
+msgstr "Не встановлено"
+
+#. module: generic_request_action_priority
+#: model_terms:ir.ui.view,arch_db:generic_request_action_priority.view_request_event_action_form_priority
+msgid "Priority"
+msgstr "Пріоритет"
+
+#. module: generic_request_action_priority
+#: model:ir.model,name:generic_request_action_priority.model_request_event_action
+msgid "Request Event Action"
+msgstr ""
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_type__set
+msgid "Set Priority"
+msgstr ""
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_type__set_priority
+msgid "Set priority"
+msgstr ""
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields,field_description:generic_request_action_priority.field_request_event_action__act_type
+msgid "Type"
+msgstr "Тип"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields,help:generic_request_action_priority.field_request_event_action__act_priority_is_priority_complex
+#, fuzzy
+msgid ""
+"When creating request, users select Impact and Urgency of request. Priority "
+"will be automatically computed depending on these parameters"
+msgstr ""
+"Створюючи запит, користувачі вибирають Вплив та Терміновість запиту. "
+"Пріоритет буде автоматично обчислений залежно від цих параметрів"
+
+#~ msgid "Display Name"
+#~ msgstr "Відображуване ім’я"
+
+#~ msgid "ID"
+#~ msgstr "ID"
+
+#~ msgid "Last Modified on"
+#~ msgstr "Остання модифікація"
+
+#~ msgid "Very Low"
+#~ msgstr "Дуже низький"

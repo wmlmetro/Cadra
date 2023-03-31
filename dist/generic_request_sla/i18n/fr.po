@@ -1,0 +1,1350 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_sla
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 13.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-07-27 16:01+0000\n"
+"PO-Revision-Date: 2023-01-19 17:43+0000\n"
+"Last-Translator: François LAGARDE <f.lagarde@groupe-alliance.com>\n"
+"Language-Team: French <http://weblate.crnd.pro/projects/bureaucrat-itsm-15-0/"
+"generic_request_sla/fr/>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_sla
+#: model:request.type,description:generic_request_sla.request_type_sla_complex
+msgid ""
+"\n"
+"            Request type to demonstrate complex SLA configuration:\n"
+"            - Reaction time 2h using working time \"47 Hours/Week (Mon - "
+"Sun)\"\n"
+"            - Resolution time is 8h using working time \"40 Hours/Week\"\n"
+"            - Resolution time for requests with category \"Support\" is 8h "
+"using working time \"42 Hours/Week (Mon - Sat)\"\n"
+"        "
+msgstr ""
+
+#. module: generic_request_sla
+#: model:request.type,description:generic_request_sla.request_type_sla_2
+msgid ""
+"\n"
+"            Simple request to demonstrate (and test) the SLA computation "
+"type\n"
+"            Least Date and Worst Status.\n"
+"        "
+msgstr ""
+
+#. module: generic_request_sla
+#: model:request.type,description:generic_request_sla.request_type_sla_conditions
+msgid ""
+"\n"
+"            Simple request to demonstrate (and test) the SLA rule "
+"conditions.\n"
+"        "
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__assigned
+msgid ""
+"1) None - SLA Rule will be active at this stage(s) regardless of assignment\n"
+"2) Yes - SLA Rule will activate at this stage(s) if responsible person is "
+"assigned\n"
+"3) No - SLA Rule will be active if no responsible person is assigned"
+msgstr ""
+"1) Aucun - La règle sera active indépendamment de son affectation\n"
+"2) Oui - La règle s'activera uniquement si le responsable est affecté\n"
+"3) Non - La règle sera active si le responsable n'est pas affecté"
+
+#. module: generic_request_sla
+#: model:request.sla.rule,name:generic_request_sla.request_sla_rule_2h_unassigned
+msgid "2H Unassigned"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:request.sla.rule,name:generic_request_sla.request_sla_rule_4h_assigned
+msgid "4H Assigned"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:request.sla.rule,name:generic_request_sla.request_sla_rule_8h_in_draft
+msgid "8H in Draft"
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.iherited_view_request_request_kanban_inherit_request_sla
+msgid "<i class=\"text-danger fa fa-bell mr4\" title=\"SLA Failed\"/>"
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.iherited_view_request_request_kanban_inherit_request_sla
+msgid "<i class=\"text-success fa fa-bell-o\" title=\"SLA OK\"/>"
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.iherited_view_request_request_kanban_inherit_request_sla
+msgid ""
+"<i class=\"text-warning font-weight-bold fa fa-bell-o\" title=\"SLA "
+"Approaching limit date\"/>"
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid ""
+"<i>Request Categories</i>: specify request categories. For requests of these "
+"categories, time limits of the new line will be used. If no category is "
+"selected, this condition applies to requests of any category."
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__compute_time__absolute
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule__compute_time__absolute
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule_line__compute_time__absolute
+msgid "Absolute time"
+msgstr "Temps absolu"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_needaction
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_needaction
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_needaction
+msgid "Action Needed"
+msgstr "Action nécessaire"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__active
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__active
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__active
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__active
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_search
+msgid "Active"
+msgstr "Actif"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_type_from_request_sla_rule_form
+msgid ""
+"An active SLA Rule with the highest position in the list on the SLA Rules "
+"page. Position determines by the Sequence on the Rule form. The lower the "
+"sequence number, the higher the position."
+msgstr ""
+
+#. module: generic_request_sla
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_condition_analysis
+msgid "Analysis"
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_type_view_form
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_search
+msgid "Archived"
+msgstr "Archivé"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__assigned
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__assigned
+#: model:request.sla.rule.type,name:generic_request_sla.request_sla_rule_type_assigned
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_search
+msgid "Assigned"
+msgstr "Affecté"
+
+#. module: generic_request_sla
+#: model:request.sla.rule,name:generic_request_sla.request_sla_rule_assignment_time_2h
+msgid "Assignment time 2 hours"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_attachment_count
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_attachment_count
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_attachment_count
+msgid "Attachment Count"
+msgstr "Nb PJ"
+
+#. module: generic_request_sla
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_2_cancelled
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_complex_cancelled
+msgid "Cancelled"
+msgstr ""
+
+#. module: generic_request_sla
+#: code:addons/generic_request_sla/models/request_sla_rule_line.py:0
+#, python-format
+msgid ""
+"Cannot set compute time to Working time, because request SLA Rule Line '%s' "
+"have no configured Working time!"
+msgstr ""
+
+#. module: generic_request_sla
+#: code:addons/generic_request_sla/models/request_sla_rule.py:0
+#, python-format
+msgid ""
+"Cannot set compute time to Working time, because request SLA rule '%s' have "
+"no configured Working time!"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__request_category_id
+msgid "Category"
+msgstr "Catégorie"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__request_category_id
+msgid "Category of request"
+msgstr "Catégorie du ticket"
+
+#. module: generic_request_sla
+#: model_terms:ir.actions.act_window,help:generic_request_sla.action_request_sla_rule_type_view
+msgid "Click to create a new SLA Rule Type."
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.actions.act_window,help:generic_request_sla.generic_request_sla_rule_action
+msgid "Click to create a new SLA rule."
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__code
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__code
+msgid "Code"
+msgstr "Code"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_type_view_form
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid "Code..."
+msgstr "Code..."
+
+#. module: generic_request_sla
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_2_completed
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_complex_completed
+msgid "Completed"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__compute_time
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__compute_time
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__compute_time
+msgid "Compute Time"
+msgstr "Temps comptabilisé"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_search
+msgid "Compute time"
+msgstr "Temps comptabilisé"
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_type__sla_compute_type__conditional
+msgid "Conditional"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__condition_ids
+msgid "Conditions"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__sequence
+msgid "Conditions with smaller value in this field will be checked first"
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_condition_view_tree
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_type_from_request_sla_rule_form
+msgid "Conditions..."
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_type_from_request_sla_rule_form
+msgid "Configure SLA Rules"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__date
+msgid "Created"
+msgstr "Créé"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__create_uid
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__create_uid
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__create_uid
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__create_uid
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__create_uid
+msgid "Created by"
+msgstr "Créé par"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__create_date
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__create_date
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__create_date
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__create_date
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__create_date
+msgid "Created on"
+msgstr "Créé le"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
+msgid "Date"
+msgstr "Date"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
+msgid "Deadline"
+msgstr "Date limite"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.message_request_sla_failed
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.message_request_sla_warning
+msgid "Dear"
+msgstr "Cher"
+
+#. module: generic_request_sla
+#: model:request.sla.rule.type,name:generic_request_sla.request_sla_rule_type_default
+msgid "Default"
+msgstr "Défaut"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__description
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__description
+msgid "Description"
+msgstr "Description"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_condition_view_form
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_type_view_form
+msgid "Description..."
+msgstr "Description..."
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__display_name
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__display_name
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__display_name
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__display_name
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__display_name
+msgid "Display Name"
+msgstr "Nom affiché"
+
+#. module: generic_request_sla
+#: model_terms:ir.actions.act_window,help:generic_request_sla.action_request_sla_rule_type_view
+#: model_terms:ir.actions.act_window,help:generic_request_sla.generic_request_sla_rule_action
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid "Documentation"
+msgstr "Documentation"
+
+#. module: generic_request_sla
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_condition_done
+msgid "Done"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:request.sla.rule.type,name:generic_request_sla.request_sla_rule_type_draft
+msgid "Draft"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:generic.condition,description:generic_request_sla.condition_request_has_no_tag_on_site_fix
+msgid "Evaluates to False if request has tag On Site Fix."
+msgstr ""
+
+#. module: generic_request_sla
+#: model:generic.condition,description:generic_request_sla.condition_request_has_tag_on_site_fix
+msgid "Evaluates to True if request has tag On Site Fix."
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_event__sla_state__failed
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_request__sla_state__failed
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__sla_state__failed
+msgid "Failed"
+msgstr "Hors délai"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_follower_ids
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_follower_ids
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_follower_ids
+msgid "Followers"
+msgstr "Abonnés"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_partner_ids
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_partner_ids
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_partner_ids
+msgid "Followers (Partners)"
+msgstr "Abonnés (Clients)"
+
+#. module: generic_request_sla
+#: model:ir.actions.server,name:generic_request_sla.ir_cron_request_sla_update_state_ir_actions_server
+#: model:ir.cron,cron_name:generic_request_sla.ir_cron_request_sla_update_state
+#: model:ir.cron,name:generic_request_sla.ir_cron_request_sla_update_state
+msgid "Generic Request SLA: Update SLA State"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_event__sla_rule_type_id
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__sla_rule_type_id
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__sla_rule_type_id
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__sla_rule_type_id
+msgid ""
+"Global type of SLA Rule\n"
+"It is used to group SLA Rules (e.g. for reporting)"
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_search
+msgid "Group By..."
+msgstr "Grouper par..."
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__has_message
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__has_message
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__has_message
+msgid "Has Message"
+msgstr "Avec un message"
+
+#. module: generic_request_sla
+#: model:generic.condition,name:generic_request_sla.condition_request_has_no_tag_on_site_fix
+msgid "Has No Tag On Site Fix"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:generic.condition,name:generic_request_sla.condition_request_has_tag_on_site_fix
+msgid "Has Tag On Site Fix"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__message_needaction
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__message_unread
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__message_needaction
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__message_unread
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__message_needaction
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__message_unread
+msgid "If checked, new messages require your attention."
+msgstr "Si coché, nouveaux messages à vérifier."
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__message_has_error
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__message_has_sms_error
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__message_has_error
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__message_has_sms_error
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__message_has_error
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__message_has_sms_error
+msgid "If checked, some messages have a delivery error."
+msgstr "Si coché, des messages n'ont pas été envoyés."
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid "If not checked any box, kanban state will be ingored in SLA Rule"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__kanban_state_blocked
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__kanban_state_blocked
+msgid "If selected, the rule is active when kanban state is \"Blocked\""
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__kanban_state_normal
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__kanban_state_normal
+msgid "If selected, the rule is active when kanban state is \"In Progress\""
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__kanban_state_done
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__kanban_state_done
+msgid ""
+"If selected, the rule is active when kanban state is \"Ready for next stage\""
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
+msgid ""
+"If you want to get instance of this rule in mail templates or other places,\n"
+"                         then you can call "
+"<code>get_sla_control_by_code('code')</code> method of request.\n"
+"                         For example, in mail template it could look like: "
+"<code>${ object.get_sla_control_by_code('sla-resolution-time') }</code>."
+msgstr ""
+
+#. module: generic_request_sla
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_2_in_progress
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_complex_in_progress
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_tree
+msgid "In Progress"
+msgstr "En cours"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_is_follower
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_is_follower
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_is_follower
+msgid "Is Follower"
+msgstr "Suivi"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__kanban_state_normal
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__kanban_state_normal
+msgid "Kanban State In Progress"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__kanban_state_blocked
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__kanban_state_blocked
+msgid "Kanban State Paused"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__kanban_state_done
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__kanban_state_done
+msgid "Kanban State Ready"
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid "Kanban state time record settings"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control____last_update
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule____last_update
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition____last_update
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line____last_update
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type____last_update
+msgid "Last Modified on"
+msgstr "Dernière modification le"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__write_uid
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__write_uid
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__write_uid
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__write_uid
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__write_uid
+msgid "Last Updated by"
+msgstr "Dernière mise à jour par"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__write_date
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__write_date
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__write_date
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__write_date
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__write_date
+msgid "Last Updated on"
+msgstr "Dernière mise à jour le"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__user_id
+msgid "Last user responsible for this SLA control line"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_type__sla_compute_type__least_date_worst_status
+msgid "Least Date Worst Status"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__limit_date
+msgid "Limit Date"
+msgstr "Date cible"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__limit_time
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__limit_time
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__limit_time
+msgid "Limit Time"
+msgstr "Heure cible"
+
+#. module: generic_request_sla
+#: model:ir.model.constraint,message:generic_request_sla.constraint_request_sla_rule_check_limit_time_gt_warn_time
+msgid "Limit time must be greater than Warn time"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.constraint,message:generic_request_sla.constraint_request_sla_rule_check_limit_time_gt_0
+msgid "Limit time must be greater that zero"
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
+msgid "Limits"
+msgstr "Limites"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_main_attachment_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_main_attachment_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_main_attachment_id
+msgid "Main Attachment"
+msgstr "PJ principale"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__sla_main_rule_id
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_type__sla_compute_type__main_sla_rule
+msgid "Main SLA Rule"
+msgstr "Règle SLA principale"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_has_error
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_has_error
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_has_error
+msgid "Message Delivery error"
+msgstr "Erreur d'envoi de message"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_ids
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_ids
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_ids
+msgid "Messages"
+msgstr "Messages"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__name
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__name
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__name
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_tree
+msgid "Name"
+msgstr "Nom"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_condition_view_form
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_type_view_form
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid "Name..."
+msgstr "Nom..."
+
+#. module: generic_request_sla
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_2_new
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_complex_new
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_condition_new
+msgid "New"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__assigned__no
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule__assigned__no
+msgid "No"
+msgstr "Non"
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__assigned__none
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule__assigned__none
+msgid "None"
+msgstr "Aucun"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_needaction_counter
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_needaction_counter
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_needaction_counter
+msgid "Number of Actions"
+msgstr "Nb d'actions"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_has_error_counter
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_has_error_counter
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_has_error_counter
+msgid "Number of errors"
+msgstr "Nb d'erreurs"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__message_needaction_counter
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__message_needaction_counter
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__message_needaction_counter
+msgid "Number of messages which requires an action"
+msgstr "Nb de messages à vérifier"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__message_has_error_counter
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__message_has_error_counter
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__message_has_error_counter
+msgid "Number of messages with delivery error"
+msgstr "Nb de messages en erreur"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__message_unread_counter
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__message_unread_counter
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__message_unread_counter
+msgid "Number of unread messages"
+msgstr "Nb de messages non lus"
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_event__sla_state__ok
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_request__sla_state__ok
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__sla_state__ok
+msgid "Ok"
+msgstr "Ok"
+
+#. module: generic_request_sla
+#: model:generic.tag,name:generic_request_sla.tag_on_site_fix
+#: model:request.sla.rule.condition,name:generic_request_sla.sla_rule_condition_on_site_fix
+msgid "On Site Fix"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_condition_on_site_fix
+msgid "On Site Fix (Optional step)"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:request.sla.rule,name:generic_request_sla.request_sla_rule_on_site_fix
+msgid "On Site Fix Time"
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_tree
+msgid "Paused"
+msgstr "Gelé"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid "Please, save this rule, to be able to edit its rule lines!"
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid "Point the field name to see a tooltip. Or read the"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:request.sla.rule.type,name:generic_request_sla.request_sla_rule_type_reaction_time
+msgid "Reaction Time"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:request.sla.rule,name:generic_request_sla.request_sla_rule_reaction_time_2h
+msgid "Reaction time 2 hours"
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_tree
+msgid "Ready"
+msgstr "Prêt"
+
+#. module: generic_request_sla
+#: model:request.sla.rule.condition,name:generic_request_sla.sla_rule_condition_remoute_fix
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_condition_remote_fix
+msgid "Remote Fix"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model,name:generic_request_sla.model_request_request
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__request_id
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.message_request_sla_failed
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.message_request_sla_warning
+msgid "Request"
+msgstr "Ticket"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__category_ids
+msgid "Request Categories"
+msgstr "Catégories"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__request_channel_ids
+msgid "Request Channels"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model,name:generic_request_sla.model_request_event
+msgid "Request Event"
+msgstr "Evénement"
+
+#. module: generic_request_sla
+#: model:ir.model,name:generic_request_sla.model_request_sla_control
+msgid "Request SLA Control"
+msgstr "Contrôle SLA"
+
+#. module: generic_request_sla
+#: model:ir.model,name:generic_request_sla.model_request_sla_rule_line
+msgid "Request SLA Rule Line"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model,name:generic_request_sla.model_request_sla_rule
+msgid "Request SLA rule"
+msgstr "Règle"
+
+#. module: generic_request_sla
+#: model:ir.model,name:generic_request_sla.model_request_sla_rule_condition
+msgid "Request SLA rule Condition"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model,name:generic_request_sla.model_request_sla_rule_type
+msgid "Request SLA rule type"
+msgstr "Type de règle"
+
+#. module: generic_request_sla
+#: model:ir.actions.act_window,name:generic_request_sla.generic_request_sla_rule_action
+#: model:ir.ui.menu,name:generic_request_sla.menu_request_sla_rule
+msgid "Request SLA rules"
+msgstr "Types de règle"
+
+#. module: generic_request_sla
+#: model:ir.model,name:generic_request_sla.model_request_type
+msgid "Request Type"
+msgstr "Type"
+
+#. module: generic_request_sla
+#: model:ir.model.constraint,message:generic_request_sla.constraint_request_sla_control_request_rule_uniq
+msgid "Request and SLA Rule must be unique for each SLA Control line."
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
+msgid "Request category"
+msgstr "Catégorie"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__request_type_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__request_type_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__request_type_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__request_type_id
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_search
+msgid "Request type"
+msgstr "Type"
+
+#. module: generic_request_sla
+#: code:addons/generic_request_sla/models/request_type.py:0
+#, python-format
+msgid ""
+"Request type '%s' must have Working time, because it have SLA rules or at "
+"least one from SLA rule lines that depend on Working time!"
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid "Request type..."
+msgstr "Type..."
+
+#. module: generic_request_sla
+#: model:request.sla.rule.type,name:generic_request_sla.request_sla_rule_type_resolution_time
+msgid "Resolution Time"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:request.sla.rule,name:generic_request_sla.request_sla_rule_resolution_time_8h
+msgid "Resolution time 8 hours"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__user_id
+msgid "Responsible User"
+msgstr "Responsable"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
+msgid "Rule"
+msgstr "Règle"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid ""
+"Rule lines below allow you to indicate special cases for this rule. In each "
+"line you can specify conditions (these conditions may vary depending on the "
+"installed addons). If all of the specified conditions in the line are met, "
+"this rule will use its time limits instead of timers of the general rule. If "
+"there are more than one line in the list, the first line that satisfies the "
+"condition (starting from the top of the list) will be active."
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_type_view_form
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid "Rules"
+msgstr "Règles"
+
+#. module: generic_request_sla
+#: model:ir.ui.menu,name:generic_request_sla.menu_request_configuration_sla
+msgid "SLA"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.actions.act_window,name:generic_request_sla.action_request_sla_control_view
+#: model:ir.ui.menu,name:generic_request_sla.menu_request_sla_control
+msgid "SLA Control"
+msgstr "Contrôle SLA"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_request__sla_control_ids
+msgid "SLA Controls"
+msgstr "Contrôles SLA"
+
+#. module: generic_request_sla
+#: model:generic.system.event.type,name:generic_request_sla.event_type_sla_failed
+msgid "SLA Failed"
+msgstr "Hors délai"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.iherited_view_request_request_kanban_inherit_request_sla
+msgid "SLA Limit Date"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_request__sla_limit_date
+msgid "SLA Limit date"
+msgstr "Date cible"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_request_sla_form
+msgid "SLA Log"
+msgstr "Suivi SLA"
+
+#. module: generic_request_sla
+#: model:request.type,name:generic_request_sla.request_type_sla_complex
+msgid "SLA Request (Complex)"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:request.type,name:generic_request_sla.request_type_sla_conditions
+msgid "SLA Request (Conditions)"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:request.type,name:generic_request_sla.request_type_sla_2
+msgid "SLA Request (least date)"
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_request_sla_form
+msgid "SLA Responsible"
+msgstr "Responsable"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_request__sla_user_id
+msgid "SLA Responsible User"
+msgstr "Responsable"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_rule_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__sla_rule_id
+msgid "SLA Rule"
+msgstr "Règle"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_rule_code
+msgid "SLA Rule Code"
+msgstr "Code règle"
+
+#. module: generic_request_sla
+#: model:ir.actions.act_window,name:generic_request_sla.action_request_sla_rule_condition_view
+#: model:ir.ui.menu,name:generic_request_sla.menu_request_sla_rule_condition
+msgid "SLA Rule Condition"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__sla_rule_condition_ids
+msgid "SLA Rule Conditions"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.actions.act_window,name:generic_request_sla.action_request_sla_rule_type_view
+#: model:ir.ui.menu,name:generic_request_sla.menu_request_sla_rule_type
+msgid "SLA Rule Type"
+msgstr "Type de règle"
+
+#. module: generic_request_sla
+#: model_terms:ir.actions.act_window,help:generic_request_sla.action_request_sla_rule_type_view
+msgid ""
+"SLA Rule Type is a global type of SLA Rules. It is used to group\n"
+"                these rules (Examples: Draft, Assigned, Unassigned, etc.).\n"
+"                It can also be used to group records in SLA Reports."
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.constraint,message:generic_request_sla.constraint_request_sla_rule_name_uniq
+msgid "SLA Rule code must be unique for each request type"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_event__sla_rule_type_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_rule_type_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__sla_rule_type_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__sla_rule_type_id
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_search
+msgid "SLA Rule type"
+msgstr "Type de règle"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__sla_rule_ids
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__sla_rule_ids
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_type_view_tree
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.request_type_view_dashboard
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_type_from_request_sla_rule_form
+msgid "SLA Rules"
+msgstr "Règles"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_request__sla_state
+msgid "SLA State"
+msgstr "Statut SLA"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_type_from_request_sla_rule_form
+msgid "SLA Warn"
+msgstr "Alerte SLA"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_request__sla_warn_date
+msgid "SLA Warn date"
+msgstr "Date alerte SLA"
+
+#. module: generic_request_sla
+#: model:generic.system.event.type,name:generic_request_sla.event_type_sla_warning
+msgid "SLA Warning"
+msgstr "Alerte SLA"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.iherited_view_request_request_kanban_inherit_request_sla
+msgid "SLA Warning Date"
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.actions.act_window,help:generic_request_sla.action_request_sla_rule_type_view
+msgid ""
+"SLA configures for each type of request. On the form of a request type,\n"
+"                click the <b>SLA Rules</b> button and create appropriate "
+"rules.<br>\n"
+"                More info about SLA setup can be read in the"
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_type_from_request_sla_rule_form
+msgid "SLA limit"
+msgstr "Date cible"
+
+#. module: generic_request_sla
+#: model_terms:ir.actions.act_window,help:generic_request_sla.generic_request_sla_rule_action
+msgid ""
+"SLA rules define time limits for each stage to complete.\n"
+"                You can create several rules for one request type.<br>\n"
+"                After SLA Rules are set, you can see status of the SLA\n"
+"                on requests of this type from the kanban view or by opening\n"
+"                request form -&gt; SLA tab.<br>\n"
+"                View more about SLA setup in the"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_has_sms_error
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_has_sms_error
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_has_sms_error
+msgid "SMS Delivery error"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__send_default_notification_sla_limit
+msgid "Send Default Notification Sla Limit"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__send_default_notification_sla_warn
+msgid "Send Default Notification Sla Warn"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__sequence
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__sequence
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__sequence
+msgid "Sequence"
+msgstr "Séquence"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__sequence
+msgid ""
+"Sequence determines position of this rule in the list on the SLA Rules "
+"page.\n"
+"The lower the sequence, the higher the position.\n"
+"The first active SLA Rule in the list will be the Main SLA Rule for this "
+"type of request."
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_active
+msgid "Sla Active"
+msgstr "SLA active"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_active_date
+msgid "Sla Active Date"
+msgstr "Date cible"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__sla_compute_type
+msgid "Sla Compute Type"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_event__sla_control_line_id
+msgid "Sla Control Line"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__sla_limit_notification_show_request_text
+msgid "Sla Limit Notification Show Request Text"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__sla_limit_notification_show_response_text
+msgid "Sla Limit Notification Show Response Text"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_log_ids
+msgid "Sla Log"
+msgstr "Suivi SLA"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_log_count
+msgid "Sla Log Count"
+msgstr "Nb suivis SLA"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_event__sla_rule_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__sla_rule_id
+msgid "Sla Rule"
+msgstr "Règle"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__sla_rule_count
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__sla_rule_count
+msgid "Sla Rule Count"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_event__sla_state
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_state
+msgid "Sla State"
+msgstr "Statut SLA"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__sla_warn_notification_show_request_text
+msgid "Sla Warn Notification Show Request Text"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__sla_warn_notification_show_response_text
+msgid "Sla Warn Notification Show Response Text"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:request.sla.rule,name:generic_request_sla.request_sla_rule_solution_time_8h2
+msgid "Solution time 8 hours"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__rule_line_ids
+msgid "Specific Rules"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__condition_ids
+#: model:ir.model.fields,help:generic_request_sla.field_request_type__sla_rule_condition_ids
+msgid ""
+"Specify generic conditions to decide whether the activity can be executed."
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__request_stage_ids
+msgid "Stages"
+msgstr "Etats"
+
+#. module: generic_request_sla
+#: model:request.sla.rule,name:generic_request_sla.request_sla_rule_standart_fix_time_remoute
+msgid "Standart Fix Time"
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
+msgid "State"
+msgstr "Etat"
+
+#. module: generic_request_sla
+#: model:request.sla.rule.type,name:generic_request_sla.request_sla_rule_type_testing_time
+msgid "Testing Time"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:request.sla.rule,name:generic_request_sla.request_sla_rule_testing_time_72h
+msgid "Testing time 72 hours"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__request_stage_ids
+msgid "This SLA Rule will be active on selected stages"
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_type_from_request_sla_rule_form
+msgid "This field determines the way to compute SLA fields on request."
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
+msgid "Time Spent"
+msgstr "Temps utilisé"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_request_sla_form
+msgid "Time Tracked"
+msgstr "Temps suivi"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__warn_time
+msgid "Time before the warning shows up"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__compute_time
+msgid ""
+"Time calculating method\n"
+"If \"Working time\" is selected, it must be configured: Request Type Form -> "
+"SLA Tab"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_type__sla_main_rule_id
+msgid ""
+"To change, just move required SLA rule to the top of the list on the SLA "
+"Rules page. Or specify the lowest Sequence on the Rule form."
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__total_time
+msgid "Total Time"
+msgstr "Temps total"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__limit_time
+msgid "Total time after which SLA will Fail"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__total_time
+msgid "Total time request was in state described by SLA rule"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__request_type_id
+msgid "Type of request"
+msgstr "Type de ticket"
+
+#. module: generic_request_sla
+#: model:request.sla.rule.type,name:generic_request_sla.request_sla_rule_type_unassigned
+msgid "Unassigned"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_unread
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_unread
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_unread
+msgid "Unread Messages"
+msgstr "Messages non lus"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_unread_counter
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_unread_counter
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_unread_counter
+msgid "Unread Messages Counter"
+msgstr "Nb messages non lus"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_request_sla_form
+msgid "View SLA Log used to compute this rule"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__warn_date
+msgid "Warn Date"
+msgstr "Date d'alerte"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__warn_time
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__warn_time
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__warn_time
+msgid "Warn Time"
+msgstr "Heure d'alerte"
+
+#. module: generic_request_sla
+#: model:ir.model.constraint,message:generic_request_sla.constraint_request_sla_rule_check_warn_time_gte_0
+msgid "Warn time must be greater or equal zero"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_event__sla_state__warning
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_request__sla_state__warning
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__sla_state__warning
+msgid "Warning"
+msgstr "Alerte"
+
+#. module: generic_request_sla
+#: code:addons/generic_request_sla/models/request_request.py:0
+#, python-format
+msgid "Warning! Your request %s reached SLA Limit date!"
+msgstr "Attention la date de SLA est atteinte pour le ticket %s !"
+
+#. module: generic_request_sla
+#: code:addons/generic_request_sla/models/request_request.py:0
+#, python-format
+msgid "Warning! Your request %s reached SLA Warning date!"
+msgstr "Attention la date d'alerte de SLA est atteinte pour le ticket %s !"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__website_message_ids
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__website_message_ids
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__website_message_ids
+msgid "Website Messages"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__website_message_ids
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__website_message_ids
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__website_message_ids
+msgid "Website communication history"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__calendar_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__sla_calendar_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__sla_calendar_id
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__compute_time__calendar
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule__compute_time__calendar
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule_line__compute_time__calendar
+msgid "Working time"
+msgstr "Temps de travail"
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__assigned__yes
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule__assigned__yes
+msgid "Yes"
+msgstr "Oui"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.message_request_sla_failed
+msgid ""
+"assigned to you have reached SLA Limit date. Please, take actions to "
+"complete it as fast as possible."
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.message_request_sla_warning
+msgid ""
+"assigned to you have reached SLA Warning date. Please, take actions to "
+"complete it befor SLA Limit date ("
+msgstr ""

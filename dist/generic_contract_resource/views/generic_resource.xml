@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="generic_resource_view_form" model="ir.ui.view">
+        <field name="model">generic.resource</field>
+        <field name="inherit_id" ref="generic_resource.generic_resource_view_form_base"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button class="oe_stat_button"
+                        type="object"
+                        name="action_show_resource_contracts"
+                        icon="fa-file-text-o">
+                    <field string="Contracts"
+                           name="resource_contract_count"
+                           widget="statinfo"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+
+

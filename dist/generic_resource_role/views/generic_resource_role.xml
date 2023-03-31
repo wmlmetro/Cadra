@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Top-level menu -->
+    <menuitem id="menu_generic_resource_roles_root"
+              name="Roles"
+              parent="generic_resource.menu_generic_resource_config_root" />
+
+    <record id="generic_resource_role_view_search" model="ir.ui.view">
+        <field name="name">generic.resource.role.search</field>
+        <field name="model">generic.resource.role</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="role_code"/>
+                <field name="role_type_id"/>
+                <field name="resource_type_id"/>
+
+                <separator/>
+                <filter name="filter_can_write"
+                        string="Can Write"
+                        domain="[('can_write', '=', True)]"/>
+                <filter name="filter_can_unlink"
+                        string="Can Unlink"
+                        domain="[('can_unlink', '=', True)]"/>
+                <filter name="filter_can_manage_roles"
+                        string="Can Manage Roles"
+                        domain="[('can_manage_roles', '=', True)]"/>
+                <separator/>
+                <group name="group_group_by" string="Group by">
+                    <filter name="filter_group_by_role_type"
+                            string="Role Type" context="{'group_by': 'role_type_id'}"/>
+                    <filter name="filter_group_by_role_type"
+                            string="Resource Type" context="{'group_by': 'resource_type_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="generic_resource_role_view_tree" model="ir.ui.view">
+        <field name="name">generic.resource.role.tree</field>
+        <field name="model">generic.resource.role</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="display_name" string="Name"/>
+                <field name="role_type_id"/>
+                <field name="resource_type_id"/>
+                <field name="active" invisible="1"/>
+                <field name="can_write"/>
+                <field name="can_unlink"/>
+                <field name="can_manage_roles"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="generic_resource_role_view_form" model="ir.ui.view">
+        <field name="name">generic.resource.role.form</field>
+        <field name="model">generic.resource.role</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button"
+                                type="object"
+                                name="action_show_role_links"
+                                icon="fa-user">
+                            <field string="Role links" name="role_link_count" widget="statinfo"/>
+                        </button>
+                        <button class="oe_stat_button"
+                                type="object"
+                                name="action_show_sub_roles"
+                                icon="fa-sitemap">
+                            <field string="Subroles" name="sub_role_count" widget="statinfo"/>
+                        </button>
+                    </div>
+                    <field name="active" invisible="1"/>
+                    <widget name="web_ribbon" title="Archived"
+                            bg_color="bg-danger"
+                            attrs="{'invisible': [('active', '=', True)]}"/>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="role_type_id"
+                                   readonly="context.get('default_role_type_id', False)"/>
+                            <field name="resource_type_id"
+                                   readonly="context.get('default_resource_type_id', False)"/>
+                            <field name="role_code"/>
+                            <field name="ir_model_data_id" groups="base.group_no_one"/>
+                            <field name="resource_permission_ids"
+                                   domain="[('resource_type_id', '=', resource_type_id)]"
+                                   options="{'no_edit': true, 'no_create': true}"
+                                   widget="many2many_tags"/>
+                        </group>
+                        <group>
+                            <field name="can_write"/>
+                            <field name="can_unlink"/>
+                            <field name="can_manage_roles"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="generic_resource_role_action_view" model="ir.actions.act_window">
+        <field name="name">Roles</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">generic.resource.role</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_generic_resource_roles"
+              action="generic_resource_role_action_view"
+              parent="menu_generic_resource_roles_root"
+              sequence="20"/>
+</odoo>

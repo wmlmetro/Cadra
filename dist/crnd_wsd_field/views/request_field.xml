@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_field_form">
+        <field name="model">request.field</field>
+        <field name="inherit_id" ref="generic_request_field.view_request_field_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='sequence']" position="before">
+                <field name="position"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

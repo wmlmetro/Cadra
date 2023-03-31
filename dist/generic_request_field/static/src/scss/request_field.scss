@@ -1,0 +1,15 @@
+.o_request_fields {
+    width: 100%;
+
+    .request_field_label {
+        margin: 2px;
+        font-weight: bold;
+    }
+
+    input {
+        &.request_field_value {
+            width: 100%;
+            margin: 0 2px;
+        }
+    }
+}

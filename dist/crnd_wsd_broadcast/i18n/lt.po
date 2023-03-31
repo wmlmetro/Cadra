@@ -1,0 +1,159 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* crnd_wsd_broadcast
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 14.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-06-22 16:10+0000\n"
+"PO-Revision-Date: 2021-06-22 16:10+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__active
+msgid "Active"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_broadcast.view_broadcast_message_form
+msgid "Archived"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_website__broadcast_message_ids
+msgid "Broadcast Message"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.actions.act_window,name:crnd_wsd_broadcast.action_broadcast_message
+msgid "Broadcast Messages"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.ui.menu,name:crnd_wsd_broadcast.crnd_wsd_broadcast_message
+#: model:ir.ui.menu,name:crnd_wsd_broadcast.system_broadcast_message
+msgid "Broadcast messages"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__create_uid
+msgid "Created by"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__create_date
+msgid "Created on"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields.selection,name:crnd_wsd_broadcast.selection__crnd_wsd_broadcast_message__message_style__alert-danger
+msgid "Danger"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields.selection,name:crnd_wsd_broadcast.selection__crnd_wsd_broadcast_message__message_style__alert-dark
+msgid "Dark"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__date_beg
+msgid "Date Beg"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__date_end
+msgid "Date End"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__display_name
+msgid "Display Name"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__id
+msgid "ID"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields.selection,name:crnd_wsd_broadcast.selection__crnd_wsd_broadcast_message__message_style__alert-info
+msgid "Info"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message____last_update
+msgid "Last Modified on"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__write_uid
+msgid "Last Updated by"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__write_date
+msgid "Last Updated on"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields.selection,name:crnd_wsd_broadcast.selection__crnd_wsd_broadcast_message__message_style__alert-light
+msgid "Light"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__message_style
+msgid "Message Style"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__message_text
+msgid "Message Text"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__name
+msgid "Name"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_broadcast.view_broadcast_message_form
+msgid "Name..."
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields.selection,name:crnd_wsd_broadcast.selection__crnd_wsd_broadcast_message__message_style__alert-primary
+msgid "Primary"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields.selection,name:crnd_wsd_broadcast.selection__crnd_wsd_broadcast_message__message_style__alert-secondary
+msgid "Secondary"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields.selection,name:crnd_wsd_broadcast.selection__crnd_wsd_broadcast_message__message_style__alert-success
+msgid "Success"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields.selection,name:crnd_wsd_broadcast.selection__crnd_wsd_broadcast_message__message_style__alert-warning
+msgid "Warning"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model,name:crnd_wsd_broadcast.model_website
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__website_ids
+msgid "Website"
+msgstr ""
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model,name:crnd_wsd_broadcast.model_crnd_wsd_broadcast_message
+msgid "Website Broadcast Message"
+msgstr ""

@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo noupdate="1">
+    <!-- Project -->
+    <record id="project_technical_support" model="project.project">
+        <field name="name">Technical Product Support</field>
+        <field name="type_ids" eval="[(4, ref('project.project_stage_0')),
+            (4, ref('project.project_stage_1'))]"/>
+    </record>
+    <record id="project_functional_support" model="project.project">
+        <field name="name">Functional Product Support</field>
+        <field name="type_ids" eval="[(4, ref('project.project_stage_0')),
+            (4, ref('project.project_stage_1'))]"/>
+    </record>
+
+
+    <!-- Request -->
+    <record id="demo_request_with_complex_task" model="request.request">
+        <field name="type_id" ref="generic_request_project.request_type_with_task"/>
+        <field name="request_text"><![CDATA[
+            <p>Hello,</p>
+            
+            <p>Please, help me to configre SLA in my system by following rules:<br/>
+            - We have 3 service levels: Gold, Silver and Bronze<br/>
+            - Each partner have related resources (for example VPSes)<br/>
+            - Each resource for each partner could have different service level<br/>
+            </p>
+
+            <p>For example, partner have two VPSes: Production and Dev.<br/>
+            Obviously they could have different service levels.<br/>
+            Let's assume that Production machine has Gold Service level.<br/>
+            And Dev server has Bronze service levels.<br/></p>
+
+            <p>Gold service level means 24/7 support.<br/>
+            Bronze means Mon - Fri, 8-17 support hours.<br/></p>
+
+            <p>Thanks</p>
+        ]]></field>
+    </record>
+
+    <!-- Task 'Analyse-->
+    <record id="project_task_analyse_sla_per_resource" model="project.task">
+        <field name="project_id" ref="project_functional_support"/>
+        <field name="name">Analyse request (SLA per resource)</field>
+        <field name="stage_id" ref="project.project_stage_0"/>
+        <field name="request_id" ref="demo_request_with_complex_task"/>
+    </record>
+    <record id="working_hours_analyse" model="account.analytic.line">
+        <field name="name">Requirements analysis and specification</field>
+        <field name="user_id" ref='base.user_root'/>
+        <field name="date" eval="(DateTime.now() + relativedelta(days=-1)).strftime('%Y-%m-%d')"/>
+        <field name="unit_amount">2.00</field>
+        <field name="project_id" ref="project_functional_support"/>
+        <field name="task_id" ref="project_task_analyse_sla_per_resource"/>
+        <field name="amount">-60.00</field>
+    </record>
+
+    <!-- Task Update Docs -->
+    <record id="project_task_update_docs" model="project.task">
+        <field name="project_id" ref="project_functional_support"/>
+        <field name="name">Update documentation for "SLA per resource" feature</field>
+        <field name="stage_id" ref="project.project_stage_0"/>
+        <field name="request_id" ref="demo_request_with_complex_task"/>
+    </record>
+    <record id="working_hours_update_docs" model="account.analytic.line">
+        <field name="name">Added description of 'SLA per resource' feature to product documentation</field>
+        <field name="user_id" ref='base.user_root'/>
+        <field name="date" eval="(DateTime.now() + relativedelta(days=-1)).strftime('%Y-%m-%d')"/>
+        <field name="unit_amount">4.00</field>
+        <field name="project_id" ref="project_functional_support"/>
+        <field name="task_id" ref="project_task_update_docs"/>
+        <field name="amount">-120.00</field>
+    </record>
+
+
+    <!-- Task Development -->
+    <record id="project_task_development" model="project.task">
+        <field name="project_id" ref="project_functional_support"/>
+        <field name="name">Develop 'SLA per resource' feature</field>
+        <field name="stage_id" ref="project.project_stage_0"/>
+        <field name="request_id" ref="demo_request_with_complex_task"/>
+    </record>
+    <record id="working_hours_task_development" model="account.analytic.line">
+        <field name="name">Creating tasks for technical team</field>
+        <field name="user_id" ref='base.user_root'/>
+        <field name="date" eval="(DateTime.now() + relativedelta(days=-1)).strftime('%Y-%m-%d')"/>
+        <field name="unit_amount">1.00</field>
+        <field name="project_id" ref="project_functional_support"/>
+        <field name="task_id" ref="project_task_development"/>
+        <field name="amount">-30.00</field>
+    </record>
+
+
+    <!-- Task development MVP -->
+    <record id="project_task_technical_development" model="project.task">
+        <field name="project_id" ref="project_technical_support"/>
+        <field name="name">Develop 'SLA per resource' feature</field>
+        <field name="stage_id" ref="project.project_stage_0"/>
+        <field name="parent_id" ref="project_task_development"/>
+    </record>
+    <record id="working_hours_task_development_basic_models" model="account.analytic.line">
+        <field name="name">Create basic models and UI</field>
+        <field name="user_id" ref='base.user_root'/>
+        <field name="date" eval="DateTime.now().strftime('%Y-%m-%d')"/>
+        <field name="unit_amount">1.00</field>
+        <field name="project_id" ref="project_technical_support"/>
+        <field name="task_id" ref="project_task_technical_development"/>
+        <field name="amount">-30.00</field>
+    </record>
+    <record id="working_hours_task_development_add_logic" model="account.analytic.line">
+        <field name="name">Added logic. Everything seems to be working.</field>
+        <field name="user_id" ref='base.user_root'/>
+        <field name="date" eval="DateTime.now().strftime('%Y-%m-%d')"/>
+        <field name="unit_amount">4.00</field>
+        <field name="project_id" ref="project_technical_support"/>
+        <field name="task_id" ref="project_task_technical_development"/>
+        <field name="amount">-120.00</field>
+    </record>
+    <record id="working_hours_task_development_testing" model="account.analytic.line">
+        <field name="name">Testing, minor fixes.</field>
+        <field name="user_id" ref='base.user_root'/>
+        <field name="date" eval="DateTime.now().strftime('%Y-%m-%d')"/>
+        <field name="unit_amount">1.00</field>
+        <field name="project_id" ref="project_technical_support"/>
+        <field name="task_id" ref="project_task_technical_development"/>
+        <field name="amount">-30.00</field>
+    </record>
+
+    <!-- Task add automated tests -->
+    <record id="project_task_technical_auto_tests" model="project.task">
+        <field name="project_id" ref="project_technical_support"/>
+        <field name="name">Add automated tests for 'SLA per resource' feature</field>
+        <field name="stage_id" ref="project.project_stage_0"/>
+        <field name="parent_id" ref="project_task_development"/>
+    </record>
+    <record id="working_hours_task_development_automated_tests" model="account.analytic.line">
+        <field name="name">Added automated tests, fixed few bugs.</field>
+        <field name="user_id" ref='base.user_root'/>
+        <field name="date" eval="(DateTime.now() + relativedelta(days=+1)).strftime('%Y-%m-%d')"/>
+        <field name="unit_amount">3.00</field>
+        <field name="project_id" ref="project_technical_support"/>
+        <field name="task_id" ref="project_task_technical_auto_tests"/>
+        <field name="amount">-90.00</field>
+    </record>
+</odoo>

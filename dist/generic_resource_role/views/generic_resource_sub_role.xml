@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="generic_resource_sub_role_view_search" model="ir.ui.view">
+        <field name="model">generic.resource.sub.role</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="master_role_id"/>
+                <field name="sub_role_id"/>
+                <field name="sub_type_id"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="generic_resource_sub_role_view_tree" model="ir.ui.view">
+        <field name="model">generic.resource.sub.role</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="master_type_id"/>
+                <field name="master_role_id"/>
+                <field name="sub_type_id"/>
+                <field name="sub_role_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="generic_resource_sub_role_view_form" model="ir.ui.view">
+        <field name="model">generic.resource.sub.role</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button"
+                                type="object"
+                                name="action_view_sub_role_links"
+                                icon="fa-sitemap">
+                            <field string="SubRole links"
+                                   name="sub_role_link_count"
+                                   widget="statinfo"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Name..." nolabel="1"/></h1>
+                    </div>
+                    <group>
+                        <group name="group_master_role">
+                            <field name="master_type_id"/>
+                            <field name="master_model_id" invisible="1"/>
+                            <field name="master_model" invisible="1"/>
+                            <field name="master_role_id"
+                                   options="{'no_create': true}"
+                                   readonly="context.get('default_master_role_id', False)"/>
+                        </group>
+                        <group name="group_sub_role">
+                            <field name="sub_type_id"
+                                   options="{'no_create': true}"
+                                   domain="[('model_id.field_id.relation', '=', master_model)]"/>
+                            <field name="sub_model_id"/>
+                            <field name="sub_role_id"
+                                   domain="[('resource_type_id', '=', sub_type_id)]"/>
+                            <field name="sub_field_id"
+                                   options="{'no_create': true}"
+                                   domain="[('model_id', '=', sub_model_id),('ttype', 'in', ('many2one', 'one2many', 'many2many')),('relation', '=', master_model)]"/>
+                        </group>
+                        <field name="description" colspan="4"
+                               placeholder="Description"/>
+                    </group>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_generic_resource_sub_role_view" model="ir.actions.act_window">
+        <field name="name">Subroles</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">generic.resource.sub.role</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="request_type_view_dashboard" model="ir.ui.view">
+        <field name="model">request.type</field>
+        <field name="inherit_id" ref="generic_request.request_type_view_dashboard"/>
+        <field name="arch" type="xml">
+            <xpath expr="//kanban/field[@name='route_count']" position="after">
+                <field name="action_count"/>
+            </xpath>
+            <xpath expr="//kanban/templates//div[hasclass('o_buttons')]" position="inside">
+                <a name="action_show_request_actions"
+                    type="object" title="Actions">
+                    <span class="fa fa-play"/>
+                    <span><t t-esc="record.action_count.raw_value"/></span>
+                </a>
+            </xpath>
+        </field>
+    </record>
+    <record model="ir.ui.view" id="view_request_type_form">
+        <field name="model">request.type</field>
+        <field name="inherit_id" ref="generic_request.view_request_type_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button class="oe_stat_button"
+                        type="object"
+                        name="action_show_request_actions"
+                        icon="fa-play">
+                    <field string="Actions" name="action_count" widget="statinfo"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>

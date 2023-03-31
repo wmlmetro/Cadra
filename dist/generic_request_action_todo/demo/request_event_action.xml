@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Action add Generic Todo on Create -->
+    <record id="request_event_action_add_todos_on_create"
+            model="request.event.action">
+        <field name="name">Generate ToDo list to install Helpdesk Lite</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_system_event.system_event_record_created'))]"/>
+        <field name="request_type_id" ref="generic_request_action.request_type_action"/>
+        <field name="act_type">generic-todo</field>
+        <field name="generic_todo_action">add-to-end</field>
+        <field name="generic_todo_template_id" ref="generic_request_todo.generic_todo_template_crnd_deploy"/>
+    </record>
+
+    <!-- Action add Generic Todo on Close -->
+    <record id="request_event_action_add_todos_on_close"
+            model="request.event.action">
+        <field name="name">Clear ToDo list when request closed</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_request.request_event_type_closed'))]"/>
+        <field name="request_type_id" ref="generic_request_action.request_type_action"/>
+        <field name="act_type">generic-todo</field>
+        <field name="generic_todo_action">clean</field>
+    </record>
+
+</odoo>

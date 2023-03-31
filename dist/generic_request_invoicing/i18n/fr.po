@@ -1,0 +1,349 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_invoicing
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 13.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-07-27 16:01+0000\n"
+"PO-Revision-Date: 2023-01-19 17:43+0000\n"
+"Last-Translator: François LAGARDE <f.lagarde@groupe-alliance.com>\n"
+"Language-Team: French <http://weblate.crnd.pro/projects/bureaucrat-itsm-15-0/"
+"generic_request_invoicing/fr/>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_invoicing
+#: model:res.groups,comment:generic_request_invoicing.group_request_user_invoicing
+msgid ""
+"\n"
+"            Request user (Invoicing) can read and write request invoice "
+"lines.\n"
+"            If you need at allow for such user to see generated invoices, "
+"then\n"
+"            you have to add also accounting groups for such user.\n"
+"        "
+msgstr ""
+
+#. module: generic_request_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_request_form
+msgid ""
+"<span class=\"field-icon fa fa-money oe_inline\" title=\"Total Amount\"/>"
+msgstr ""
+"<span class=\"field-icon fa fa-money oe_inline\" title=\"Montant total\"/>"
+
+#. module: generic_request_invoicing
+#: code:addons/generic_request_invoicing/models/request_request.py:0
+#, python-format
+msgid "Cannot generate invoice unless partner selected!"
+msgstr "Merci de sélectionner le client pour créer la facture !"
+
+#. module: generic_request_invoicing
+#: code:addons/generic_request_invoicing/models/request_timesheet_line.py:0
+#, python-format
+msgid ""
+"Cannot make line unbillable if it is already included in invoice "
+"%(invoice)s[%(invoice_id)d]"
+msgstr ""
+
+#. module: generic_request_invoicing
+#: model:ir.model,name:generic_request_invoicing.model_res_company
+msgid "Companies"
+msgstr "Sociétés"
+
+#. module: generic_request_invoicing
+#: model:ir.model,name:generic_request_invoicing.model_res_config_settings
+msgid "Config Settings"
+msgstr "Paramètres de configuration"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,help:generic_request_invoicing.field_request_request__request_to_invoice_line_ids
+msgid ""
+"Contains list of request invoice lines that are not present in any active "
+"invoice"
+msgstr ""
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__create_uid
+msgid "Created by"
+msgstr "Créé par"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__create_date
+msgid "Created on"
+msgstr "Créé le"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__currency_id
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_request__currency_id
+msgid "Currency"
+msgstr "Devise"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_type__default_timetracking_product_id
+msgid "Default Timetracking Product"
+msgstr "Produit de facturation"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__description
+msgid "Description"
+msgstr "Description"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__display_name
+msgid "Display Name"
+msgstr "Nom affiché"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_request__enable_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_timesheet_line__enable_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_type__enable_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_wizard_stop_work__enable_invoicing
+msgid "Enable Invoicing"
+msgstr "Activer la facturation"
+
+#. module: generic_request_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_request_form
+msgid "Generate invoice"
+msgstr "Facturer"
+
+#. module: generic_request_invoicing
+#: model:product.product,uom_name:generic_request_invoicing.product_timetracking
+#: model:product.template,uom_name:generic_request_invoicing.product_timetracking_product_template
+msgid "Hours"
+msgstr ""
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,help:generic_request_invoicing.field_request_invoice_line__is_invoiced
+msgid "Indicates whether this line is present in active invoice."
+msgstr "Indique que la ligne est dans la facture."
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_request__invoice_ids
+msgid "Invoice"
+msgstr "Facture"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_request__invoice_count
+msgid "Invoice Count"
+msgstr "Nb Factures"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__invoice_line_id
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__invoice_line_ids
+msgid "Invoice Line"
+msgstr "Ligne"
+
+#. module: generic_request_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_request_form
+msgid "Invoices"
+msgstr "Factures"
+
+#. module: generic_request_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_request_form
+msgid "Invoicing"
+msgstr "Facturation"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_timesheet_line__is_billable
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_wizard_stop_work__is_billable
+msgid "Is Billable"
+msgstr "Facturable"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__is_invoiced
+msgid "Is Invoiced"
+msgstr "Facturé"
+
+#. module: generic_request_invoicing
+#: model:ir.model,name:generic_request_invoicing.model_account_move
+msgid "Journal Entry"
+msgstr "Entrée de journal"
+
+#. module: generic_request_invoicing
+#: model:ir.model,name:generic_request_invoicing.model_account_move_line
+msgid "Journal Item"
+msgstr "Ligne de journal"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line____last_update
+msgid "Last Modified on"
+msgstr "Dernière modification le"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__write_uid
+msgid "Last Updated by"
+msgstr "Dernière mise à jour par"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__write_date
+msgid "Last Updated on"
+msgstr "Dernière mise à jour le"
+
+#. module: generic_request_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_request_form
+msgid "Make all billable"
+msgstr "Rendre facturable"
+
+#. module: generic_request_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_request_form
+msgid "Make all not billable"
+msgstr "Rendre non facturable"
+
+#. module: generic_request_invoicing
+#: code:addons/generic_request_invoicing/models/request_request.py:0
+#, python-format
+msgid "Nothing to invoice"
+msgstr "Rien à facturer"
+
+#. module: generic_request_invoicing
+#: code:addons/generic_request_invoicing/models/request_request.py:0
+#, python-format
+msgid "Please define an accounting sales journal for this company."
+msgstr ""
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__price_subtotal
+msgid "Price Subtotal"
+msgstr "Sous-total"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_request__price_total
+msgid "Price Total"
+msgstr "Coût total"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__price_unit
+msgid "Price Unit"
+msgstr "Prix unitaire"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_request__pricelist_id
+msgid "Pricelist"
+msgstr "Liste de prix"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__product_id
+msgid "Product"
+msgstr "Produit"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__quantity
+msgid "Quantity"
+msgstr "Quantité"
+
+#. module: generic_request_invoicing
+#: model:ir.model,name:generic_request_invoicing.model_request_request
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_account_bank_statement_line__request_id
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_account_move__request_id
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_account_payment__request_id
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__request_id
+msgid "Request"
+msgstr "Ticket"
+
+#. module: generic_request_invoicing
+#: model:ir.model,name:generic_request_invoicing.model_request_invoice_line
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_account_move_line__request_invoice_line_id
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_request__request_invoice_line_ids
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_timesheet_line__request_invoice_line_id
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_timesheet_line__request_invoice_line_ids
+msgid "Request Invoice Line"
+msgstr "Ligne de facture"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_res_config_settings__request_invoice_line_description_tmpl
+msgid "Request Invoice Line Description Template"
+msgstr ""
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_res_company__request_invoice_line_description_tmpl
+msgid "Request Invoice Line Description Tmpl"
+msgstr ""
+
+#. module: generic_request_invoicing
+#: model:ir.model,name:generic_request_invoicing.model_request_timesheet_line
+msgid "Request Timesheet Line"
+msgstr "Demander une ligne de feuille de temps"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_request__request_to_invoice_line_ids
+msgid "Request To Invoice Line"
+msgstr "Ticket vers ligne de facture"
+
+#. module: generic_request_invoicing
+#: model:ir.model,name:generic_request_invoicing.model_request_type
+msgid "Request Type"
+msgstr "Type"
+
+#. module: generic_request_invoicing
+#: model:ir.model,name:generic_request_invoicing.model_request_wizard_stop_work
+msgid "Request Wizard: Stop Work"
+msgstr "Assistant de demande : Arrêter le travail"
+
+#. module: generic_request_invoicing
+#: model:res.groups,name:generic_request_invoicing.group_request_user_invoicing
+msgid "Request user (Invoicing)"
+msgstr ""
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,help:generic_request_invoicing.field_request_timesheet_line__request_invoice_line_ids
+msgid "Technical field to keep reference to related request invoice line"
+msgstr ""
+
+#. module: generic_request_invoicing
+#: model:product.product,name:generic_request_invoicing.product_timetracking
+#: model:product.template,name:generic_request_invoicing.product_timetracking_product_template
+msgid "Time Tracking"
+msgstr ""
+
+#. module: generic_request_invoicing
+#: model:product.product,description_sale:generic_request_invoicing.product_timetracking
+#: model:product.template,description_sale:generic_request_invoicing.product_timetracking_product_template
+msgid "Time tracked on requests"
+msgstr ""
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__timesheet_line_id
+msgid "Timesheet Line"
+msgstr "Ligne de feuille de temps"
+
+#. module: generic_request_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_invoice_line_tree
+#: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_request_form
+msgid "Total"
+msgstr "Total"
+
+#. module: generic_request_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_request_form
+msgid "Total Amount"
+msgstr "Montant total"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__uom_id
+msgid "Unit of Measure"
+msgstr "Unité de mesure"
+
+#. module: generic_request_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_request_form
+msgid "UoM"
+msgstr "Unité"
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,help:generic_request_invoicing.field_res_config_settings__request_invoice_line_description_tmpl
+msgid "You can use jinja2 placeholders in this field"
+msgstr ""
+
+#. module: generic_request_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_invoice_line_form
+msgid "description"
+msgstr "description"

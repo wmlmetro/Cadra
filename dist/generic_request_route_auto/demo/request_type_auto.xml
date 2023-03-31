@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- demo data for requests with routes auto-triggered -->
+    <record id="request_type_auto" model="request.type">
+        <field name="name">Request Auto Trigger</field>
+        <field name="code">auto-trigger</field>
+        <field name="category_ids" eval="[(4, ref('generic_request.request_category_demo_general'), 0)]"/>
+        <field name="help_html">
+            this is demo request to demonstrate automatic triggers on routes.
+            That automatic triggers will be triggered on any write on request
+            or creation of request.
+        </field>
+    </record>
+
+    <!-- cron request type stages -->
+    <record id="request_stage_type_auto_draft" model="request.stage">
+        <field name="sequence" eval="1"/>
+        <field name="name">Draft</field>
+        <field name="code">draft</field>
+        <field name="request_type_id" ref="request_type_auto"/>
+    </record>
+    <record id="request_stage_type_auto_sent" model="request.stage">
+        <field name="sequence" eval="2"/>
+        <field name="name">Sent</field>
+        <field name="code">sent</field>
+        <field name="request_type_id" ref="request_type_auto"/>
+    </record>
+    <record id="request_stage_type_auto_confirmed" model="request.stage">
+        <field name="sequence" eval="3"/>
+        <field name="name">Confirmed</field>
+        <field name="code">confirmed</field>
+        <field name="closed" eval="True"/>
+        <field name="request_type_id" ref="request_type_auto"/>
+    </record>
+    <record id="request_stage_type_auto_rejected" model="request.stage">
+        <field name="sequence" eval="4"/>
+        <field name="name">Rejected</field>
+        <field name="code">rejected</field>
+        <field name="closed" eval="True"/>
+        <field name="request_type_id" ref="request_type_auto"/>
+    </record>
+
+    <!-- Conditions for this request -->
+    <record id="condition_request_text_is_send_on_create" model="generic.condition">
+        <field name="name">Request text is "send on create"</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">eval</field>
+        <field name="condition_eval">obj.request_text == '&lt;p&gt;send on create&lt;/p&gt;'</field>
+    </record>
+    <record id="condition_request_text_is_reject_me" model="generic.condition">
+        <field name="name">Request text is "reject_me"</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">eval</field>
+        <field name="condition_eval">obj.request_text == '&lt;p&gt;reject me&lt;/p&gt;'</field>
+    </record>
+    <record id="condition_event_request_text_is_confirm_me" model="generic.condition">
+        <field name="name">New request text is "confirm me"</field>
+        <field name="model_id" ref="generic_request.model_request_event"/>
+        <field name="type">eval</field>
+        <field name="condition_eval">obj.new_text == '&lt;p&gt;confirm me&lt;/p&gt;'</field>
+    </record>
+
+    <!-- auto request type routes -->
+    <record id="request_stage_route_type_auto_draft_to_sent"
+            model="request.stage.route">
+        <field name="sequence" eval="5"/>
+        <field name="name">Send</field>
+        <field name="stage_from_id" ref="request_stage_type_auto_draft"/>
+        <field name="stage_to_id" ref="request_stage_type_auto_sent"/>
+        <field name="request_type_id" ref="request_type_auto"/>
+    </record>
+    <record id="request_stage_route_type_auto_sent_confirmed"
+            model="request.stage.route">
+        <field name="sequence" eval="10"/>
+        <field name="name">Confirm</field>
+        <field name="stage_from_id" ref="request_stage_type_auto_sent"/>
+        <field name="stage_to_id" ref="request_stage_type_auto_confirmed"/>
+        <field name="request_type_id" ref="request_type_auto"/>
+    </record>
+    <record id="request_stage_route_type_auto_sent_rejected"
+            model="request.stage.route">
+        <field name="sequence" eval="15"/>
+        <field name="name">Reject</field>
+        <field name="stage_from_id" ref="request_stage_type_auto_sent"/>
+        <field name="stage_to_id" ref="request_stage_type_auto_rejected"/>
+        <field name="request_type_id" ref="request_type_auto"/>
+    </record>
+
+
+    <!-- Triggers for routes-->
+    <record id="request_stage_route_trigger_auto_draft_to_sent"
+            model="request.stage.route.trigger">
+        <field name="name">Send on create</field>
+        <field name="route_id" ref="generic_request_route_auto.request_stage_route_type_auto_draft_to_sent"/>
+        <field name="trigger">event</field>
+        <field name="event_type_ids"
+               eval="[(4, ref('generic_system_event.system_event_record_created'))]"/>
+        <field name="condition_ids"
+               eval="[(4, ref('generic_request_route_auto.condition_request_text_is_send_on_create'))]"/>
+    </record>
+    <record id="request_stage_route_trigger_auto_sent_confirmed"
+            model="request.stage.route.trigger">
+        <field name="name">Confirm on write</field>
+        <field name="route_id" ref="generic_request_route_auto.request_stage_route_type_auto_sent_confirmed"/>
+        <field name="trigger">auto_on_write</field>
+        <field name="trigger_on_write_field_ids" eval="[(4, ref('generic_request.field_request_request__request_text'))]"/>
+        <field name="condition_ids"
+               eval="[(4, ref('generic_request_condition.condition_request_text_is_confirm_me'))]"/>
+    </record>
+    <record id="request_stage_route_trigger_auto_sent_reject"
+            model="request.stage.route.trigger">
+        <field name="name">Reject on write</field>
+        <field name="route_id" ref="generic_request_route_auto.request_stage_route_type_auto_sent_rejected"/>
+        <field name="trigger">auto_on_write</field>
+        <field name="trigger_on_write_field_ids" eval="[(4, ref('generic_request.field_request_request__request_text'))]"/>
+        <field name="condition_ids"
+               eval="[(4, ref('generic_request_route_auto.condition_request_text_is_reject_me'))]"/>
+    </record>
+</odoo>

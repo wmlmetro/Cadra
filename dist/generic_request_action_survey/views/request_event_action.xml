@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="view_request_event_action_form" model="ir.ui.view">
+        <field name="name">view.request.event.action.form.survey</field>
+        <field name="model">request.event.action</field>
+        <field name="inherit_id" ref="generic_request_action.view_request_event_action_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook[@name='notebook_action']" position="inside">
+                <page name="page_action_survey"
+                    string="Survey"
+                    attrs="{'invisible': [('act_type', '!=', 'survey')]}">
+                    <group name="survey">
+                        <field name="survey_template_id"
+                               attrs="{'required': [('act_type', '=', 'survey')]}"/>
+                        <field name="survey_send_author"/>
+                        <field name="survey_send_creator"/>
+                        <field name="survey_send_assignee"/>
+                        <field name="survey_send_others"/>
+                        <field name="survey_partner_ids"
+                               attrs="{'invisible': [('survey_send_others', '=', False)]}"
+                               widget="many2many_tags_email"
+                               placeholder="Add existing contacts..."/>
+                        <field name="survey_email_template_id"
+                               string="Email Template"
+                               attrs="{'required': [('act_type', '=', 'survey')]}"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

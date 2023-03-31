@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="request_type_view_dashboard" model="ir.ui.view">
+        <field name="model">request.type</field>
+        <field name="inherit_id" ref="generic_request.request_type_view_dashboard"/>
+        <field name="arch" type="xml">
+            <xpath expr="//kanban/field[@name='route_count']" position="after">
+                <field name="sla_rule_count"/>
+            </xpath>
+            <xpath expr="//kanban/templates//div[hasclass('o_buttons')]" position="inside">
+                <a name="action_show_request_sla_rules"
+                    type="object" title="SLA Rules">
+                    <span class="fa fa-list"/>
+                    <span><t t-esc="record.sla_rule_count.raw_value"/></span>
+                </a>
+            </xpath>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_type_from_request_sla_rule_form">
+        <field name="model">request.type</field>
+        <field name="inherit_id" ref="generic_request.view_request_type_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet/div[@name='button_box']" position="inside">
+                <button name="action_show_request_sla_rules"
+                        type="object"
+                        class="oe_stat_button" icon="fa-list">
+                    <field string="SLA Rules" name="sla_rule_count" widget="statinfo"/>
+                </button>
+            </xpath>
+            <xpath expr="//notebook/page[@name='page_sla']//group[@name='group_sla_left']"
+                   position="inside">
+            </xpath>
+            <xpath expr="//notebook/page[@name='page_sla']//group[@name='group_sla_right']"
+                   position="inside">
+                <label for="sla_compute_type"/>
+                <div class="o_row" style="min-width: 100%">
+                    <field name="sla_compute_type"/>
+                    <button name="action_show_request_sla_rules"
+                            type="object"
+                            class="btn-link btn-sm"
+                            icon="fa-gear"
+                            title="Configure SLA Rules"
+                            aria-label="Configure SLA Rules"/>
+                </div>
+                <p colspan="2">
+                    This field determines the way to compute SLA fields on request.
+                </p>
+                <div attrs="{'invisible': [('sla_compute_type', '=', 'conditional')]}">
+                    <field name="sla_main_rule_id"/>
+                    <p colspan="2">
+                        An active SLA Rule with the highest position in the list on the SLA Rules page. Position determines by the Sequence on the Rule form. The lower the sequence number, the higher the position.
+                    </p>
+                </div>
+            </xpath>
+            <xpath expr="//notebook/page[@name='page_sla']//group[@name='group_sla_root']"
+                   position="after">
+                <label for="sla_rule_condition_ids"
+                       attrs="{'invisible': [('sla_compute_type', '!=', 'conditional')]}"/>
+                <field name="sla_rule_condition_ids"
+                       attrs="{'invisible': [('sla_compute_type', '!=', 'conditional')]}"
+                       nolabel="1"
+                       mode="tree">
+                    <tree editable="bottom">
+                        <field name="name"/>
+                        <field name="sla_rule_id"/>
+                        <field name="sequence"/>
+                        <field name="condition_ids"
+                               widget="many2many_tags"
+                               domain="[('model_id.model', '=', 'request.request')]"
+                               context="{'default_based_on': 'request.request'}"
+                               placeholder="Conditions..."
+                               options="{'color_field': 'color'}"/>
+                        <field name="active"/>
+                    </tree>
+                </field>
+            </xpath>
+            <xpath expr="//table[@name='table-notification-settings']/tbody" position="inside">
+                <tr>
+                    <td class="text-left">SLA Warn</td>
+                    <td><field name="send_default_notification_sla_warn" style="width: 25%"/></td>
+                    <td><field name="sla_warn_notification_show_request_text"/></td>
+                    <td><field name="sla_warn_notification_show_response_text"/></td>
+                </tr>
+                <tr>
+                    <td class="text-left">SLA limit</td>
+                    <td><field name="send_default_notification_sla_limit" style="width: 25%"/></td>
+                    <td><field name="sla_limit_notification_show_request_text"/></td>
+                    <td><field name="sla_limit_notification_show_response_text"/></td>
+                </tr>
+            </xpath>
+        </field>
+    </record>
+</odoo>

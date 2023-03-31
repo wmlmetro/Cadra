@@ -1,0 +1,208 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_team
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_request_form
+msgid "<i class=\"fa fa-users mr4\" title=\"Team\"/>"
+msgstr ""
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_request_kanban
+msgid "<span class=\"fa fa-users\" title=\"Team\"/>"
+msgstr ""
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.message_request_assigned_team__assignee
+msgid "<strong>Request text:</strong>"
+msgstr ""
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.message_request_assigned_team__assignee
+msgid "<strong>Response text:</strong>"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.actions.act_window,name:generic_request_team.action_request_team_wizard_assign
+msgid "Assign team or user"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_generic_team_member__assigned_request_closed_count
+msgid "Assigned Closed Requests"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_generic_team_member__assigned_request_open_count
+msgid "Assigned Open Requests To User"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_generic_team_member__assigned_request_count
+msgid "Assigned Requests Count"
+msgstr ""
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_type_form_request_team_form
+msgid "Assigned Team"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_request_type__assigned_team_notification_show_request_text
+msgid "Assigned Team Notification Show Request Text"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_request_type__assigned_team_notification_show_response_text
+msgid "Assigned Team Notification Show Response Text"
+msgstr ""
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_team_request_request_search
+msgid "Assigned to my team"
+msgstr ""
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.message_request_assigned_team__assignee
+msgid "Dear"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model,name:generic_request_team.model_generic_team
+msgid "Generic Team"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model,name:generic_request_team.model_generic_team_member
+msgid "Generic team member"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_request_event__new_team_id
+msgid "New Team"
+msgstr ""
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_request_kanban
+msgid "No team assigned"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_request_event__old_team_id
+msgid "Old Team"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model,name:generic_request_team.model_request_request
+msgid "Request"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_generic_team__request_count
+msgid "Request Count"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model,name:generic_request_team.model_request_event
+msgid "Request Event"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_request_timesheet_report__request_team_id
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_timesheet_report_search
+msgid "Request Team"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model,name:generic_request_team.model_request_timesheet_report
+msgid "Request Timesheet Report"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model,name:generic_request_team.model_request_type
+msgid "Request Type"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model,name:generic_request_team.model_request_wizard_assign
+msgid "Request Wizard: Assign"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_generic_team__request_ids
+#: model_terms:ir.ui.view,arch_db:generic_request_team.generic_team_form_inherited
+msgid "Requests"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_request_type__send_default_assigned_team_notification
+msgid "Send Default Assigned Team Notification"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_request_request__team_id
+#: model:ir.model.fields,field_description:generic_request_team.field_request_wizard_assign__team_id
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_request_kanban
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_request_searchpanel
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_team_request_request_search
+msgid "Team"
+msgstr ""
+
+#. module: generic_request_team
+#: model:generic.system.event.type,name:generic_request_team.request_event_type_team_assigned
+msgid "Team Assigned"
+msgstr ""
+
+#. module: generic_request_team
+#: model:generic.system.event.type,name:generic_request_team.request_event_type_team_changed
+msgid "Team Reassigned"
+msgstr ""
+
+#. module: generic_request_team
+#: model:generic.system.event.type,name:generic_request_team.request_event_type_team_unassigned
+msgid "Team Unassigned"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model.fields,help:generic_request_team.field_request_request__team_id
+msgid "Team responsible for next action on this request."
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_request_wizard_assign__user_id
+msgid "User"
+msgstr ""
+
+#. module: generic_request_team
+#: code:addons/generic_request_team/models/request_request.py:0
+#: code:addons/generic_request_team/wizard/request_wizard_assign.py:0
+#, python-format
+msgid "User '%(user)s' is not a member of team '%(team)s'."
+msgstr ""
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.message_request_assigned_team__assignee
+msgid "You can assign it to yourself"
+msgstr ""
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.message_request_assigned_team__assignee
+msgid "Your team has received a new request"
+msgstr ""
+
+#. module: generic_request_team
+#: code:addons/generic_request_team/models/request_request.py:0
+#, python-format
+msgid "Your team has received a new request %s!"
+msgstr ""

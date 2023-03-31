@@ -1,0 +1,2 @@
+- Added fields `Request Service`, `Request Category`, `Request Type` on Task page *Other*
+- Added submenu *Tasks* in *Requests* menu for tasks, related to requests

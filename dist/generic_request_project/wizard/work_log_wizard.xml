@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="request_wizard_work_log_form_view" model="ir.ui.view">
+       <field name="name">work.log.wizard.form</field>
+       <field name="model">work.log.wizard</field>
+       <field name="arch" type="xml">
+           <form>
+               <sheet>
+                    <group>
+                        <field name="request_id" invisible="1"/>
+                        <field name="project_id" invisible="1"/>
+                        <field name="task_id"
+                               domain="[('request_id', '=', request_id),('project_id.allow_timesheets', '=', True)]"
+                               required="1"/>
+                    </group>
+                       <field name="timesheet_ids" nolabel="1"
+                              context="{'default_project_id': project_id}"
+                              attrs="{'invisible': [('task_id', '=', False)]}">
+                           <tree editable="bottom">
+                            <field name="date"/>
+                            <field name="user_id" invisible="1"/>
+                            <field name="employee_id" required="1"/>
+                            <field name="name"/>
+                            <field name="unit_amount" string="Duration" widget="float_time"/>
+                            <field name="project_id" invisible="1"/>
+                            <field name="company_id" invisible="1"/>
+                           </tree>
+                       </field>
+               </sheet>
+               <footer>
+                   <button string="Save" name="do_save" class="btn-primary" type="object"/>
+                   <button string="Cancel" special="cancel"/>
+               </footer>
+           </form>
+       </field>
+   </record>
+   <record id="action_wizard_work_log" model="ir.actions.act_window">
+       <field name="res_model">work.log.wizard</field>
+       <field name="name">Edit work log</field>
+       <field name="view_mode">form</field>
+       <field name="target">new</field>
+   </record>
+</odoo>

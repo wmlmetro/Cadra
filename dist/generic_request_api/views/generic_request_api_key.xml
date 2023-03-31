@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="request_api_key_tree" model="ir.ui.view">
+        <field name="model">request.api.key</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="api_endpoint_id"/>
+                <field name="use_sudo"/>
+                <field name="sudo_user_id"/>
+                <field name="create_date"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="request_api_key_form" model="ir.ui.view">
+        <field name="model">request.api.key</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Name"/></h1>
+                    </div>
+                    <group>
+                        <group name="group_left">
+                            <field name="api_endpoint_id"/>
+                        </group>
+                        <group name="group_right">
+                            <field name="use_sudo"/>
+                            <field name="sudo_user_id"
+                                   password="True"
+                                   attrs="{'invisible': [('use_sudo', '=', False)]}"/>
+                            <field name="create_date"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="request_api_key_search" model="ir.ui.view">
+        <field name="model">request.api.key</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="api_endpoint_id"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_request_api_key_view" model="ir.actions.act_window">
+        <field name="name">API Endpoint Key</field>
+        <field name="res_model">request.api.key</field>
+        <field name="view_mode">search,tree,form</field>
+    </record>
+
+</odoo>

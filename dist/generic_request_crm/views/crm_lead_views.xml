@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="crm_kanban_view">
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_case_kanban_view_leads"/>
+        <field name="groups_id"
+               eval="[(4, ref('generic_request.group_request_user'))]"/>
+        <field name="arch" type="xml">
+            <field name="activity_ids" position="after">
+                <field name="request_count"/>
+            </field>
+            <xpath expr="//div[hasclass('oe_kanban_bottom_left')]" position="inside">
+                <span t-if="record.request_count.value>0"
+                      title="Requests"
+                      class="badge-pill badge-primary">
+                    <i class="fa fa-fw fa-comments-o"/>
+                    <t t-esc="record.request_count.value"/>
+                </span>
+            </xpath>
+        </field>
+    </record>
+    <record model="ir.ui.view" id="view_request_leads">
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form/header/button[last()]" position="after">
+                <button name="action_create_request"
+                        string="Create request"
+                        type="object"
+                        class="btn-info"/>
+            </xpath>
+            <xpath expr="//button[@name='action_schedule_meeting']" position="after">
+                <button class="oe_stat_button"
+                        type="object"
+                        name="action_view_related_requests"
+                        icon="fa-comments-o">
+                    <div class="o_stat_info">
+                        <field name="request_count" class="o_stat_value"/>
+                        <span class="o_stat_text"
+                                attrs="{'invisible': [('request_count', '&lt;', 2)]}"> Requests</span>
+                        <span class="o_stat_text"
+                                attrs="{'invisible': [('request_count', '&gt;', 1)]}"> Request</span>
+                    </div>
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>

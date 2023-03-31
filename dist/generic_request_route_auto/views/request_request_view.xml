@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_request_form">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_form"/>
+        <field name="arch" type="xml">
+            <group name="group_tech_links" position="inside">
+                <button name="action_show_trigger_events"
+                        type="object"
+                        groups="generic_request.group_request_manager"
+                        class="oe_link"
+                        icon="fa-bell-o">
+                    <field string="Trigger events"
+                           name="trigger_event_count"
+                           widget="statinfo"/>
+                </button>
+            </group>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,1 @@
+- Fixed bug with multiple *Not Selected* option in *Resource Type* selection field

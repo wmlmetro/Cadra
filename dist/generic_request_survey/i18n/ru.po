@@ -1,0 +1,748 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_survey
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 12.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-09-16 11:52+0000\n"
+"PO-Revision-Date: 2020-07-28 12:23+0000\n"
+"Last-Translator: Ostap Yakovenko <ceo@crnd.pro>\n"
+"Language-Team: Russian <http://weblate.crnd.pro/projects/bureaucrat-itsm-13/"
+"generic_request_survey/ru/>\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 3.10.3\n"
+
+#. module: generic_request_survey
+#: model:mail.template,body_html:generic_request_survey.email_template_survey
+msgid ""
+"\n"
+"            \n"
+"<p>Hello,</p>\n"
+"<p>We are conducting a survey, and your response would be appreciated.</p>\n"
+"<p><a style=\"margin-left: 85px; padding:5px 10px; border-radius: 3px; "
+"background-color:#875A7B; text-align:center; text-decoration:none; color:"
+"#F7FBFD;\" target=\"_blank\" href=\"__URL__\">Please, click here to start "
+"survey</a></p>\n"
+"<p>Thanks for your participation!</p>\n"
+"            \n"
+"        "
+msgstr ""
+"\n"
+"            \n"
+"<p>Добрый день,</p>\n"
+"<p>Мы проводим опрос, ваши ответы будут очень полезны.</p>\n"
+"<p><a style=\"margin-left: 85px; padding:5px 10px; border-radius: 3px; "
+"background-color:#875A7B; text-align:center; text-decoration:none; color:"
+"#F7FBFD;\" target=\"_blank\" href=\"__URL__\">Нажмите для начала опроса</a></"
+"p>\n"
+"<p>Спасибо за ваше участие!</p>\n"
+"            \n"
+"        "
+
+#. module: generic_request_survey
+#: model:survey.question,description:generic_request_survey.bug_classification
+#: model:survey.question,description:generic_request_survey.bug_priority
+#: model:survey.question,description:generic_request_survey.configuration
+#: model:survey.question,description:generic_request_survey.environment
+msgid "<p></p>"
+msgstr ""
+
+#. module: generic_request_survey
+#: model:survey.survey,description:generic_request_survey.request_bug_form
+#: model:survey.survey,description:generic_request_survey.request_environment
+msgid "<p>This survey should take less than two minutes.</p>"
+msgstr ""
+
+#. module: generic_request_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.view_request_request_kanban
+msgid "<span title=\"Answers\" class=\"fa fa-list-alt mr4\"/>"
+msgstr ""
+
+#. module: generic_request_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
+msgid "Add existing contacts..."
+msgstr ""
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_request__answer_count
+msgid "Answer Count"
+msgstr ""
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_request__answer_ids
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_type__survey_answer_ids
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.view_request_request_survey_answer
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.view_request_type_survey_answer
+msgid "Answers"
+msgstr "Ответы"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.environment_4
+msgid "Application"
+msgstr "Приложение"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.environment_5
+msgid "Application Version"
+msgstr "Версия приложения"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__attachment_ids
+msgid "Attachments"
+msgstr "Вложения"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.configuration_1
+msgid "CPU"
+msgstr "CPU"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.bug_classification_4
+msgid "Can you intentionally repeat this error / bug?"
+msgstr "Можете ли вы специально повторить эту ошибку / баг?"
+
+#. module: generic_request_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
+msgid "Cancel"
+msgstr "Отменить"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.configuration
+msgid "Configuration"
+msgstr "Конфигурация"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__body
+msgid "Contents"
+msgstr "Содержание"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__create_uid
+msgid "Created by"
+msgstr "Создано"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__create_date
+msgid "Created on"
+msgstr "Создан"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__display_name
+msgid "Display Name"
+msgstr "Отображаемое название"
+
+#. module: generic_request_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
+msgid "Email template..."
+msgstr "Шаблон эл.письма..."
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.environment
+#: model:survey.survey,title:generic_request_survey.request_environment
+msgid "Environment"
+msgstr "Среда"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.bug_classification
+msgid "Error / Bug Classification"
+msgstr "Классификация ошибки / бага"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.bug_priority
+msgid "Error / Bug Priority"
+msgstr "Приоритет ошибки / бага"
+
+#. module: generic_request_survey
+#: model:survey.survey,title:generic_request_survey.request_bug_form
+msgid "Error / Bug Survey"
+msgstr "Опрос: Ошибка / Баг"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.configuration_2
+msgid "GPU"
+msgstr "GPU"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.configuration_4
+msgid "HDD"
+msgstr "HDD"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.bug_priority_3_choice_2
+msgid "High"
+msgstr "Высокая"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.bug_priority_3
+msgid "How would you rate priority of resolving this error / bug?"
+msgstr "Как вы оцениваете приоритет решения данной ошибки / бага?"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.environment_3
+msgid "IP"
+msgstr "IP"
+
+#. module: generic_request_survey
+#: model:survey.question,comments_message:generic_request_survey.bug_classification
+#: model:survey.question,comments_message:generic_request_survey.bug_classification_1
+#: model:survey.question,comments_message:generic_request_survey.bug_classification_2
+#: model:survey.question,comments_message:generic_request_survey.bug_classification_3
+#: model:survey.question,comments_message:generic_request_survey.bug_classification_4
+#: model:survey.question,comments_message:generic_request_survey.bug_classification_5
+#: model:survey.question,comments_message:generic_request_survey.bug_priority
+#: model:survey.question,comments_message:generic_request_survey.bug_priority_1
+#: model:survey.question,comments_message:generic_request_survey.bug_priority_2
+#: model:survey.question,comments_message:generic_request_survey.bug_priority_3
+#: model:survey.question,comments_message:generic_request_survey.configuration
+#: model:survey.question,comments_message:generic_request_survey.configuration_1
+#: model:survey.question,comments_message:generic_request_survey.configuration_2
+#: model:survey.question,comments_message:generic_request_survey.configuration_3
+#: model:survey.question,comments_message:generic_request_survey.configuration_4
+#: model:survey.question,comments_message:generic_request_survey.environment
+#: model:survey.question,comments_message:generic_request_survey.environment_1
+#: model:survey.question,comments_message:generic_request_survey.environment_2
+#: model:survey.question,comments_message:generic_request_survey.environment_3
+#: model:survey.question,comments_message:generic_request_survey.environment_4
+#: model:survey.question,comments_message:generic_request_survey.environment_5
+msgid "If other, please specify:"
+msgstr ""
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.bug_classification_1
+msgid "In what application this error / bug appears?"
+msgstr "В каком приложении появляется эта ошибка / баг?"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__is_author_creator
+msgid "Is Author Creator"
+msgstr ""
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.bug_classification_2
+msgid "Is there an error message? Specify it."
+msgstr "Есть ли там сообщение об ошибке? Укажите его."
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.bug_priority_2
+msgid "Is this error / bug interfere with other employees work?"
+msgstr "Влияет ли эта ошибка / баг на работу других сотрудников?"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.bug_priority_1_choice_1
+msgid "It doesn't affect my work"
+msgstr "Не влияет на мою работу"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.bug_priority_1_choice_2
+msgid "It partially interferes with my work"
+msgstr "Частично мешает моей работе"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey____last_update
+msgid "Last Modified on"
+msgstr "Последнее изменение"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__write_uid
+msgid "Last Updated by"
+msgstr "Последний раз обновил"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__write_date
+msgid "Last Updated on"
+msgstr "Последнее обновление"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.environment_1_choice_3
+msgid "Linux"
+msgstr "Linux"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.bug_priority_3_choice_4
+msgid "Low"
+msgstr "Низкий"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.environment_1_choice_2
+msgid "MacOS"
+msgstr "MacOS"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.bug_priority_3_choice_3
+msgid "Medium"
+msgstr "средний"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.configuration_3
+msgid "Memory"
+msgstr "Память"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.bug_priority_1_choice_3
+msgid "My work is completely stopped"
+msgstr "Моя работа польностью остановлена"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.environment_2
+msgid "OS Version"
+msgstr "Версия ОС"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__partner_ids
+msgid "Partners"
+msgstr "Партнёры"
+
+#. module: generic_request_survey
+#: code:addons/generic_request_survey/wizard/request_send_survey.py:0
+#, python-format
+msgid ""
+"Please add '__URL__' to email content,                 it will automaticaly "
+"be converted into survey url."
+msgstr ""
+"Пожалуйста добавте '__URL__' в тело письма,                 оно будет "
+"автоматически заменено ссылкой на опрос."
+
+#. module: generic_request_survey
+#: code:addons/generic_request_survey/wizard/request_send_survey.py:0
+#, python-format
+msgid "Please select at least one recipient."
+msgstr "Пожалуйста выберите хотя бы одного получателя."
+
+#. module: generic_request_survey
+#: model:ir.model,name:generic_request_survey.model_request_request
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__request_id
+#: model:ir.model.fields,field_description:generic_request_survey.field_survey_user_input__request_id
+msgid "Request"
+msgstr "Запрос"
+
+#. module: generic_request_survey
+#: model:ir.model,name:generic_request_survey.model_request_event
+msgid "Request Event"
+msgstr "Событие запроса"
+
+#. module: generic_request_survey
+#: model:ir.model,name:generic_request_survey.model_request_type
+#: model:ir.model.fields,field_description:generic_request_survey.field_survey_user_input__request_type_id
+msgid "Request Type"
+msgstr ""
+
+#. module: generic_request_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
+msgid "Send"
+msgstr "Отправить"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__send_assignee
+msgid "Send Assignee"
+msgstr "Назначенный"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__send_author
+msgid "Send Author"
+msgstr "Автор"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__send_creator
+msgid "Send Creator"
+msgstr "Создатель запроса"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__send_others
+msgid "Send Others"
+msgstr "Другие адресаты"
+
+#. module: generic_request_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.view_request_request_survey_answer
+msgid "Send Survey"
+msgstr "Отправить опрос"
+
+#. module: generic_request_survey
+#: model:ir.actions.act_window,name:generic_request_survey.request_request_send_survey_action
+msgid "Send survey"
+msgstr "Отправить опрос"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.environment_1
+msgid "Specify Your OS"
+msgstr "Укажите вашу ОС"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.bug_classification_5
+msgid "Specify steps to repeat this error / bug intentionally."
+msgstr "Укажите шаги для умышленного повторения этой ошибки."
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.bug_priority_1
+msgid "Specify the impact of this error / bug on your work"
+msgstr "Укажите влияние этой ошибки на вашу работу"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__subject
+msgid "Subject"
+msgstr "Тема"
+
+#. module: generic_request_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
+msgid "Subject..."
+msgstr "Тема"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_event__survey_id
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
+msgid "Survey"
+msgstr "Опрос"
+
+#. module: generic_request_survey
+#: model:mail.template,name:generic_request_survey.email_template_survey
+msgid "Survey - Send by Email"
+msgstr ""
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_type__survey_answer_count
+msgid "Survey Answer Count"
+msgstr ""
+
+#. module: generic_request_survey
+#: model:generic.system.event.type,name:generic_request_survey.request_event_type_survey_answer_received
+msgid "Survey Answer Received"
+msgstr "Получен ответ на опрос"
+
+#. module: generic_request_survey
+#: model:generic.system.event.type,name:generic_request_survey.request_event_type_survey_completed
+msgid "Survey Completed"
+msgstr "Опрос завершен"
+
+#. module: generic_request_survey
+#: model:generic.system.event.type,name:generic_request_survey.request_event_type_survey_sent
+msgid "Survey Sent"
+msgstr "Опрос отправлен"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__survey_template_id
+msgid "Survey Template"
+msgstr "Шаблон опроса"
+
+#. module: generic_request_survey
+#: model:ir.model,name:generic_request_survey.model_survey_user_input
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_event__survey_user_input_id
+msgid "Survey User Input"
+msgstr "Опрос пользователей ввод"
+
+#. module: generic_request_survey
+#: model:mail.template,subject:generic_request_survey.email_template_survey
+msgid "Survey for {{object.name}}"
+msgstr ""
+
+#. module: generic_request_survey
+#: model:survey.question,validation_error_msg:generic_request_survey.bug_classification
+#: model:survey.question,validation_error_msg:generic_request_survey.bug_classification_1
+#: model:survey.question,validation_error_msg:generic_request_survey.bug_classification_2
+#: model:survey.question,validation_error_msg:generic_request_survey.bug_classification_3
+#: model:survey.question,validation_error_msg:generic_request_survey.bug_classification_4
+#: model:survey.question,validation_error_msg:generic_request_survey.bug_classification_5
+#: model:survey.question,validation_error_msg:generic_request_survey.bug_priority
+#: model:survey.question,validation_error_msg:generic_request_survey.bug_priority_1
+#: model:survey.question,validation_error_msg:generic_request_survey.bug_priority_2
+#: model:survey.question,validation_error_msg:generic_request_survey.bug_priority_3
+#: model:survey.question,validation_error_msg:generic_request_survey.configuration
+#: model:survey.question,validation_error_msg:generic_request_survey.configuration_1
+#: model:survey.question,validation_error_msg:generic_request_survey.configuration_2
+#: model:survey.question,validation_error_msg:generic_request_survey.configuration_3
+#: model:survey.question,validation_error_msg:generic_request_survey.configuration_4
+#: model:survey.question,validation_error_msg:generic_request_survey.environment
+#: model:survey.question,validation_error_msg:generic_request_survey.environment_1
+#: model:survey.question,validation_error_msg:generic_request_survey.environment_2
+#: model:survey.question,validation_error_msg:generic_request_survey.environment_3
+#: model:survey.question,validation_error_msg:generic_request_survey.environment_4
+#: model:survey.question,validation_error_msg:generic_request_survey.environment_5
+msgid "The answer you entered is not valid."
+msgstr ""
+
+#. module: generic_request_survey
+#: model:survey.question,constr_error_msg:generic_request_survey.bug_classification
+#: model:survey.question,constr_error_msg:generic_request_survey.bug_classification_1
+#: model:survey.question,constr_error_msg:generic_request_survey.bug_classification_2
+#: model:survey.question,constr_error_msg:generic_request_survey.bug_classification_3
+#: model:survey.question,constr_error_msg:generic_request_survey.bug_classification_4
+#: model:survey.question,constr_error_msg:generic_request_survey.bug_classification_5
+#: model:survey.question,constr_error_msg:generic_request_survey.bug_priority
+#: model:survey.question,constr_error_msg:generic_request_survey.bug_priority_1
+#: model:survey.question,constr_error_msg:generic_request_survey.bug_priority_2
+#: model:survey.question,constr_error_msg:generic_request_survey.bug_priority_3
+#: model:survey.question,constr_error_msg:generic_request_survey.configuration
+#: model:survey.question,constr_error_msg:generic_request_survey.configuration_1
+#: model:survey.question,constr_error_msg:generic_request_survey.configuration_2
+#: model:survey.question,constr_error_msg:generic_request_survey.configuration_3
+#: model:survey.question,constr_error_msg:generic_request_survey.configuration_4
+#: model:survey.question,constr_error_msg:generic_request_survey.environment
+#: model:survey.question,constr_error_msg:generic_request_survey.environment_1
+#: model:survey.question,constr_error_msg:generic_request_survey.environment_2
+#: model:survey.question,constr_error_msg:generic_request_survey.environment_3
+#: model:survey.question,constr_error_msg:generic_request_survey.environment_4
+#: model:survey.question,constr_error_msg:generic_request_survey.environment_5
+msgid "This question requires an answer."
+msgstr ""
+
+#. module: generic_request_survey
+#: model:ir.model.fields,help:generic_request_survey.field_survey_user_input__request_type_id
+msgid "Type of request"
+msgstr ""
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__template_id
+msgid "Use template"
+msgstr "Использовать шаблон"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.bug_priority_3_choice_1
+msgid "Very High"
+msgstr "Очень высокий"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.bug_priority_3_choice_5
+msgid "Very Low"
+msgstr "Очень низкий"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.bug_classification_3
+msgid "When did this error / bug appeared for the first time?"
+msgstr "Когда эта ошибка появилась впервые?"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.environment_1_choice_1
+msgid "Windows"
+msgstr "Windows"
+
+#. module: generic_request_survey
+#: model:ir.model,name:generic_request_survey.model_request_send_survey
+msgid "Wizard: Send Request Survey"
+msgstr ""
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.bug_classification_4_choice_2
+#: model:survey.question.answer,value:generic_request_survey.bug_priority_2_choice_2
+msgid "no"
+msgstr "нет"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.bug_classification_4_choice_1
+#: model:survey.question.answer,value:generic_request_survey.bug_priority_2_choice_1
+msgid "yes"
+msgstr "да"
+
+#~ msgid "Active domain"
+#~ msgstr "Активный домен"
+
+#~ msgid "Author"
+#~ msgstr "Автор"
+
+#~ msgid ""
+#~ "Author of the message. If not set, email_from may hold an email address "
+#~ "that did not match any partner."
+#~ msgstr ""
+#~ "Автор сообщения. Если не установлен, email_from может содержать адрес "
+#~ "почты, который не соответствует ни одному партнеру."
+
+#~ msgid "Composition mode"
+#~ msgstr "Режим составления"
+
+#~ msgid "Delete Emails"
+#~ msgstr "Удалить письма"
+
+#~ msgid "Delete Message Copy"
+#~ msgstr "Удалить копию сообщения"
+
+#~ msgid ""
+#~ "Do not keep a copy of the email in the document communication history "
+#~ "(mass mailing only)"
+#~ msgstr ""
+#~ "Не хранить копию сообщения в истории обсуждения документа (только для "
+#~ "массовых рассылок)"
+
+#~ msgid ""
+#~ "Email address of the sender. This field is set when no matching partner "
+#~ "is found and replaces the author_id field in the chatter."
+#~ msgstr ""
+#~ "Email отправителя. Это поле устанавливается, если партнер неопределен, и "
+#~ "заменяет поле author_id в чате."
+
+#~ msgid "From"
+#~ msgstr "От"
+
+#~ msgid "Initial thread message."
+#~ msgstr "Первое сообщение цепочки."
+
+#~ msgid "Log an Internal Note"
+#~ msgstr "Внести внутреннюю заметку"
+
+#~ msgid "Mail Activity Type"
+#~ msgstr "Тип деятельности"
+
+#~ msgid "Message Record Name"
+#~ msgstr "Название записи сообщения"
+
+#~ msgid ""
+#~ "Message type: email for email message, notification for system message, "
+#~ "comment for other messages such as user replies"
+#~ msgstr ""
+#~ "Тип сообщения: эл. почта - для эл. почты, уведомление - для системных "
+#~ "сообщений, комментарий - для остальных сообщений таких как сообщения "
+#~ "пользователя"
+
+#~ msgid "Name get of the related document."
+#~ msgstr "Название связанного документа."
+
+#~ msgid "Notify followers"
+#~ msgstr "Уведомить подписчиков"
+
+#~ msgid "Notify followers of the document (mass post only)"
+#~ msgstr "Уведомить подписчиков документа (только массовая рассылка)"
+
+#~ msgid "Outgoing mail server"
+#~ msgstr "Сервер исходящей почты"
+
+#~ msgid "Parent Message"
+#~ msgstr "Родительское сообщение"
+
+#~ msgid "Related Document ID"
+#~ msgstr "ID связанного документа"
+
+#~ msgid "Related Document Model"
+#~ msgstr "Модель связанного документа"
+
+#~ msgid ""
+#~ "Reply email address. Setting the reply_to bypasses the automatic thread "
+#~ "creation."
+#~ msgstr ""
+#~ "Адрес электронной почты для ответа. Настройка reply_to пропускает "
+#~ "автоматическое создание цепочки."
+
+#~ msgid "Subtype"
+#~ msgstr "Подтип"
+
+#~ msgid "Type"
+#~ msgstr "Тип"
+
+#~ msgid "Use active domain"
+#~ msgstr "Использовать активный домен"
+
+#~ msgid "Whether the message is an internal note (comment mode only)"
+#~ msgstr ""
+#~ "Если сообщения является внутренней заметкой (только в режиме комментариев)"
+
+#~ msgid ""
+#~ "Answers do not go in the original document discussion thread. This has an "
+#~ "impact on the generated message-id."
+#~ msgstr ""
+#~ "Ответы не входят в исходную ветку обсуждения документа. Это влияет на "
+#~ "сгенерированный id сообщения."
+
+#~ msgid "No threading for answers"
+#~ msgstr "Никакой обработки для ответов"
+
+#~ msgid "Reply-To"
+#~ msgstr "Адрес ответа"
+
+#~ msgid "Delete sent emails (mass mailing only)"
+#~ msgstr "Удалить отправленные письма (только для массовой рассылки)"
+
+#~ msgid "This survey should take less than two minutes."
+#~ msgstr "Этот опрос не должен занять больше 2 минут."
+
+#~ msgid "Accepted"
+#~ msgstr "Принято"
+
+#~ msgid ""
+#~ "Attachments are linked to a document through model / res_id and to the "
+#~ "message through this field."
+#~ msgstr ""
+#~ "Вложения связаны с документом через модель / res_id и к сообщению через "
+#~ "это поле."
+
+#~ msgid "Author's avatar"
+#~ msgstr "Аватар автора"
+
+#~ msgid "Channels"
+#~ msgstr "Каналы"
+
+#~ msgid "Child Messages"
+#~ msgstr "Детские сообщения"
+
+#~ msgid "Comment"
+#~ msgstr "Комментарий"
+
+#~ msgid "Current user has a starred notification linked to this message"
+#~ msgstr ""
+#~ "Текущий пользователь имеет отмеченное уведомление, связанное с этим "
+#~ "сообщением "
+
+#~ msgid "Date"
+#~ msgstr "Дата"
+
+#~ msgid "Email"
+#~ msgstr "Эл. адрес"
+
+#~ msgid "Favorited By"
+#~ msgstr "Понравилось"
+
+#~ msgid "Has error"
+#~ msgstr "Имеет ошибку"
+
+#~ msgid "Message unique identifier"
+#~ msgstr "Уникальный идентификатор сообщения"
+
+#~ msgid "Message-Id"
+#~ msgstr "ID сообщения"
+
+#~ msgid "Need Action"
+#~ msgstr "Требует действия"
+
+#~ msgid "Notifications"
+#~ msgstr "Уведомления"
+
+#~ msgid "Partners with Need Action"
+#~ msgstr "Партнеры, требующие вниманя"
+
+#~ msgid "Rejected"
+#~ msgstr "Отклонить"
+
+#~ msgid "Requests"
+#~ msgstr "Запросы"
+
+#~ msgid ""
+#~ "Small-sized image of this contact. It is automatically resized as a "
+#~ "64x64px image, with aspect ratio preserved. Use this field anywhere a "
+#~ "small image is required."
+#~ msgstr ""
+#~ "Маленькое изображение контакта. Автоматически преобразуется в изображение "
+#~ "64x64px, с сохранением пропорций. Используйте это поле там, где требуется "
+#~ "маленькое изображение."
+
+#~ msgid "Starred"
+#~ msgstr "Отмеченные"
+
+#~ msgid "System notification"
+#~ msgstr "Системное уведомление"
+
+#~ msgid ""
+#~ "Tracked values are stored in a separate model. This field allow to "
+#~ "reconstruct the tracking and to generate statistics on the model."
+#~ msgstr ""
+#~ "Отслеживаемые значения сохраняются в отдельной модели. Это поле позволяет "
+#~ "реконструировать отслеживания и создавать данные статистики модели."
+
+#~ msgid "Tracking values"
+#~ msgstr "История изменений"

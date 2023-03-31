@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="generic_resource_form_view_timesheet" model="ir.ui.view">
+        <field name="model">generic.resource</field>
+        <field name="inherit_id" ref="generic_resource.generic_resource_view_form_base"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button class="oe_stat_button"
+                        type="object"
+                        name="action_view_resource_timesheet"
+                        icon="fa-list">
+                    <field string="Timesheet" name="timesheet_line_count" widget="statinfo"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="request_type_sla_2" model="request.type">
+        <field name="name">SLA Request (least date)</field>
+        <field name="code">sla-request-least-date</field>
+        <field name="sla_compute_type">least_date_worst_status</field>
+        <field name="color">rgba(210,210,210,0.88)</field>
+        <field name="description">
+            Simple request to demonstrate (and test) the SLA computation type
+            Least Date and Worst Status.
+        </field>
+    </record>
+
+    <!-- Stages -->
+    <record id="request_stage_type_sla_2_new" model="request.stage">
+        <field name="sequence" eval="1"/>
+        <field name="name">New</field>
+        <field name="code">new</field>
+        <field name="type_id" ref="generic_request.request_stage_type_draft"/>
+        <field name="request_type_id" ref="request_type_sla_2"/>
+    </record>
+    <record id="request_stage_type_sla_2_in_progress" model="request.stage">
+        <field name="sequence" eval="2"/>
+        <field name="name">In Progress</field>
+        <field name="code">in-progress</field>
+        <field name="type_id" ref="generic_request.request_stage_type_progress"/>
+        <field name="request_type_id" ref="request_type_sla_2"/>
+    </record>
+    <record id="request_stage_type_sla_2_completed" model="request.stage">
+        <field name="sequence" eval="3"/>
+        <field name="name">Completed</field>
+        <field name="code">completed</field>
+        <field name="closed" eval="True"/>
+        <field name="type_id" ref="generic_request.request_stage_type_closed_ok"/>
+        <field name="request_type_id" ref="request_type_sla_2"/>
+    </record>
+    <record id="request_stage_type_sla_2_cancelled" model="request.stage">
+        <field name="sequence" eval="4"/>
+        <field name="name">Cancelled</field>
+        <field name="code">cancelled</field>
+        <field name="closed" eval="True"/>
+        <field name="type_id" ref="generic_request.request_stage_type_closed_fail"/>
+        <field name="request_type_id" ref="request_type_sla_2"/>
+    </record>
+
+    <!-- Routes -->
+    <record id="request_stage_route_type_sla_2_new_to_in_progress"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_sla_2_new"/>
+        <field name="stage_to_id" ref="request_stage_type_sla_2_in_progress"/>
+        <field name="request_type_id" ref="request_type_sla_2"/>
+    </record>
+    <record id="request_stage_route_type_sla_2_in_progress_completed"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_sla_2_in_progress"/>
+        <field name="stage_to_id" ref="request_stage_type_sla_2_completed"/>
+        <field name="request_type_id" ref="request_type_sla_2"/>
+    </record>
+    <record id="request_stage_route_type_sla_2_in_progress_cancelled"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_sla_2_in_progress"/>
+        <field name="stage_to_id" ref="request_stage_type_sla_2_cancelled"/>
+        <field name="request_type_id" ref="request_type_sla_2"/>
+    </record>
+    <record id="request_stage_route_type_sla_2_cancelled_new"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_sla_2_cancelled"/>
+        <field name="stage_to_id" ref="request_stage_type_sla_2_new"/>
+        <field name="request_type_id" ref="request_type_sla_2"/>
+    </record>
+
+    <!-- SLA Rules -->
+    <record id="request_sla_rule_assignment_time_2h" model="request.sla.rule">
+        <field name="name">Assignment time 2 hours</field>
+        <field name="code">demo-assignment-time-2h</field>
+        <field name="sla_rule_type_id" ref="request_sla_rule_type_assigned"/>
+        <field name="request_type_id" ref="request_type_sla_2"/>
+        <field name="request_stage_ids" eval="[(4, ref('generic_request_sla.request_stage_type_sla_2_new'))]"/>
+        <field name="warn_time" eval="1"/>
+        <field name="limit_time" eval="2"/>
+        <field name="sequence" eval="10"/>
+        <field name="compute_time">absolute</field>
+    </record>
+    <record id="request_sla_rule_solution_time_8h2" model="request.sla.rule">
+        <field name="name">Solution time 8 hours</field>
+        <field name="code">demo-solution-time-8h</field>
+        <field name="sla_rule_type_id" ref="request_sla_rule_type_resolution_time"/>
+        <field name="request_type_id" ref="request_type_sla_2"/>
+        <field name="request_stage_ids" eval="[(4, ref('generic_request_sla.request_stage_type_sla_2_in_progress'))]"/>
+        <field name="warn_time" eval="7"/>
+        <field name="limit_time" eval="8"/>
+        <field name="sequence" eval="5"/>
+        <field name="assigned">yes</field>
+        <field name="compute_time">absolute</field>
+    </record>
+    <record id="request_sla_rule_testing_time_72h" model="request.sla.rule">
+        <field name="name">Testing time 72 hours</field>
+        <field name="code">testing-time-72h</field>
+        <field name="sla_rule_type_id" ref="request_sla_rule_type_testing_time"/>
+        <field name="request_type_id" ref="request_type_sla_2"/>
+        <field name="request_stage_ids" eval="[(4, ref('generic_request_sla.request_stage_type_sla_2_in_progress'))]"/>
+        <field name="warn_time" eval="48"/>
+        <field name="limit_time" eval="72"/>
+        <field name="sequence" eval="1"/>
+        <field name="assigned">yes</field>
+        <field name="compute_time">absolute</field>
+    </record>
+</odoo>

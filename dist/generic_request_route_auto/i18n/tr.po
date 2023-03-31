@@ -1,0 +1,601 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_route_auto
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:15+0000\n"
+"PO-Revision-Date: 2023-03-07 12:45+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-15-0/generic_request_route_auto/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_route_auto
+#: model_terms:ir.ui.view,arch_db:generic_request_route_auto.view_request_stage_trigger_event_form
+msgid "-&gt;"
+msgstr "-&gt;"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_needaction
+msgid "Action Needed"
+msgstr "İhtiyaç duyulan eylem"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__active
+msgid "Active"
+msgstr "Aktif"
+
+#. module: generic_request_route_auto
+#: model_terms:ir.ui.view,arch_db:generic_request_route_auto.view_request_stage_trigger_form
+msgid "Archived"
+msgstr "arşivlendi"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_attachment_count
+msgid "Attachment Count"
+msgstr "Ek Sayısı"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route__auto_only
+#: model_terms:ir.ui.view,arch_db:generic_request_route_auto.view_request_stage_route_search
+msgid "Auto Only"
+msgstr "Sadece Otomatik"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route__auto_only
+msgid "Auto-only route. Requests could be moved by this route only by triggers"
+msgstr ""
+"Yalnızca otomatik rota. İstekler bu yolla yalnızca tetikleyiciler tarafından "
+"taşınabilir"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields.selection,name:generic_request_route_auto.selection__request_stage_route_trigger__trigger__auto_on_write
+msgid "Auto: On write"
+msgstr "Otomatik: Yazarken"
+
+#. module: generic_request_route_auto
+#: code:addons/generic_request_route_auto/models/request_stage_route_trigger_event.py:0
+#, python-format
+msgid "Cannot retry this trigger event! Request has already changed its state!"
+msgstr ""
+"Bu tetikleyici olay yeniden denenemez! İstek zaten durumunu değiştirdi!"
+
+#. module: generic_request_route_auto
+#: code:addons/generic_request_route_auto/models/request_stage_route_trigger_event.py:0
+#, python-format
+msgid "Cannot retry this trigger event! This event was successful!"
+msgstr "Bu tetikleyici olay yeniden denenemez! Bu etkinlik başarılı oldu!"
+
+#. module: generic_request_route_auto
+#: model:request.stage.route,name:generic_request_route_auto.request_stage_route_type_auto_sent_confirmed
+msgid "Confirm"
+msgstr "Onayla"
+
+#. module: generic_request_route_auto
+#: model:request.stage.route.trigger,name:generic_request_route_auto.request_stage_route_trigger_auto_sent_confirmed
+msgid "Confirm on write"
+msgstr "Yazıldığında onayla"
+
+#. module: generic_request_route_auto
+#: model:request.stage,name:generic_request_route_auto.request_stage_type_auto_confirmed
+#: model:request.stage,name:generic_request_route_auto.request_stage_type_cron_confirmed
+msgid "Confirmed"
+msgstr "Onaylandı"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__create_uid
+msgid "Created by"
+msgstr "Tarafından yaratıldı"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__create_date
+msgid "Created on"
+msgstr "oluşturuldu"
+
+#. module: generic_request_route_auto
+#: model:request.stage.route.trigger,name:generic_request_route_auto.request_stage_route_trigger_cron_sent_confirmed
+msgid "Cron hourly"
+msgstr "Saatlik Cron"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields.selection,name:generic_request_route_auto.selection__request_stage_route_trigger__trigger__cron_daily
+msgid "Cron: Daily"
+msgstr "Cron: Günlük"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields.selection,name:generic_request_route_auto.selection__request_stage_route_trigger__trigger__cron_hourly
+msgid "Cron: Hourly"
+msgstr "Cron: Saatlik"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__date
+msgid "Date"
+msgstr "Tarih"
+
+#. module: generic_request_route_auto
+#: code:addons/generic_request_route_auto/models/request_stage_route_trigger.py:0
+#, python-format
+msgid "Denied by request event conditions conditions"
+msgstr "olay koşulları koşulları isteği tarafından reddedildi"
+
+#. module: generic_request_route_auto
+#: code:addons/generic_request_route_auto/models/request_stage_route_trigger.py:0
+#, python-format
+msgid "Denied by trigger conditions"
+msgstr "Tetikleme koşulları tarafından reddedildi"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__display_name
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__display_name
+msgid "Display Name"
+msgstr "Ekran adı"
+
+#. module: generic_request_route_auto
+#: model:request.stage,name:generic_request_route_auto.request_stage_type_auto_draft
+#: model:request.stage,name:generic_request_route_auto.request_stage_type_cron_draft
+msgid "Draft"
+msgstr "Taslak"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__dummy_request_type_id
+msgid "Dummy Request Type"
+msgstr "Sahte İstek Türü"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__dummy_request_type_id
+msgid ""
+"Dummy technical field to handle UI route restriction when opening from "
+"request type form view"
+msgstr ""
+"İstek tipi form görünümünden açılırken UI yolu kısıtlamasını işlemek için "
+"sahte teknik alan"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__error
+msgid "Error"
+msgstr "hata"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger_event__error
+msgid "Error description"
+msgstr "Hata Tanımı"
+
+#. module: generic_request_route_auto
+#: model_terms:ir.ui.view,arch_db:generic_request_route_auto.view_request_stage_trigger_event_search
+msgid "Errors"
+msgstr "hatalar"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields.selection,name:generic_request_route_auto.selection__request_stage_route_trigger__trigger__event
+msgid "Event"
+msgstr "Olay"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__event_condition_ids
+msgid "Event Conditions"
+msgstr "Etkinlik Koşulları"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__event_type_ids
+msgid "Event Type"
+msgstr "Etkinlik tipi"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_follower_ids
+msgid "Followers"
+msgstr "Takipçiler"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_partner_ids
+msgid "Followers (Partners)"
+msgstr "Takipçiler (Ortaklar)"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__route_stage_from_id
+msgid "From"
+msgstr ""
+
+#. module: generic_request_route_auto
+#: model:ir.actions.server,name:generic_request_route_auto.ir_cron_request_auto_route_daily_ir_actions_server
+#: model:ir.cron,cron_name:generic_request_route_auto.ir_cron_request_auto_route_daily
+#: model:ir.cron,name:generic_request_route_auto.ir_cron_request_auto_route_daily
+msgid "Generic Request auto route daily scheduler"
+msgstr "Genel İstek otomatik rota günlük planlayıcı"
+
+#. module: generic_request_route_auto
+#: model:ir.actions.server,name:generic_request_route_auto.ir_cron_request_auto_route_hourly_ir_actions_server
+#: model:ir.cron,cron_name:generic_request_route_auto.ir_cron_request_auto_route_hourly
+#: model:ir.cron,name:generic_request_route_auto.ir_cron_request_auto_route_hourly
+msgid "Generic Request auto route hourly scheduler"
+msgstr "Genel İstek otomatik rota saatlik planlayıcı"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__has_message
+msgid "Has Message"
+msgstr "Mesaj Var"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__id
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__message_needaction
+#: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__message_unread
+msgid "If checked, new messages require your attention."
+msgstr "Kontrol edilirse, yeni iletilerle ilgilenmeniz gerekir."
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__message_has_error
+#: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__message_has_sms_error
+msgid "If checked, some messages have a delivery error."
+msgstr "Kontrol edilirse, bazı iletilerde teslim hatası vardır."
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_is_follower
+msgid "Is Follower"
+msgstr "takipçidir"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__is_stage_from
+msgid "Is Stage From"
+msgstr "Başlangıç Aşaması"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger____last_update
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event____last_update
+msgid "Last Modified on"
+msgstr "Son Değiştirme Tarihi"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__write_uid
+msgid "Last Updated by"
+msgstr "Son Güncelleyen"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__write_date
+msgid "Last Updated on"
+msgstr "Son güncelleme tarihi"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_main_attachment_id
+msgid "Main Attachment"
+msgstr "Ana Eklenti"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__message
+msgid "Message"
+msgstr "Mesaj"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_has_error
+msgid "Message Delivery error"
+msgstr "Mesaj Teslim hatası"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_ids
+msgid "Messages"
+msgstr "Mesajlar"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__name
+#: model_terms:ir.ui.view,arch_db:generic_request_route_auto.view_request_stage_trigger_form
+msgid "Name"
+msgstr "İsim"
+
+#. module: generic_request_route_auto
+#: model:generic.condition,name:generic_request_route_auto.condition_event_request_text_is_confirm_me
+msgid "New request text is \"confirm me\""
+msgstr "Yeni istek metni \"onayla beni\""
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_needaction_counter
+msgid "Number of Actions"
+msgstr "Eylem Sayısı"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_has_error_counter
+msgid "Number of errors"
+msgstr "hata sayısı"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__message_needaction_counter
+msgid "Number of messages which requires an action"
+msgstr "İşlem gerektiren mesaj sayısı"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__message_has_error_counter
+msgid "Number of messages with delivery error"
+msgstr "Teslimat hatası olan mesaj sayısı"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__message_unread_counter
+msgid "Number of unread messages"
+msgstr "Okunmamış mesaj sayısı"
+
+#. module: generic_request_route_auto
+#: model:request.stage.route,name:generic_request_route_auto.request_stage_route_type_auto_sent_rejected
+msgid "Reject"
+msgstr "Reddetmek"
+
+#. module: generic_request_route_auto
+#: model:request.stage.route.trigger,name:generic_request_route_auto.request_stage_route_trigger_auto_sent_reject
+msgid "Reject on write"
+msgstr "Yazıldığında reddet"
+
+#. module: generic_request_route_auto
+#: model:request.stage,name:generic_request_route_auto.request_stage_type_auto_rejected
+#: model:request.stage,name:generic_request_route_auto.request_stage_type_cron_rejected
+msgid "Rejected"
+msgstr "Reddedildi"
+
+#. module: generic_request_route_auto
+#: model:ir.model,name:generic_request_route_auto.model_request_request
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__request_id
+msgid "Request"
+msgstr "İstek"
+
+#. module: generic_request_route_auto
+#: model:request.type,name:generic_request_route_auto.request_type_auto
+msgid "Request Auto Trigger"
+msgstr "Otomatik Tetikleme İste"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__request_event_id
+msgid "Request Event"
+msgstr "Etkinlik İste"
+
+#. module: generic_request_route_auto
+#: model:ir.model,name:generic_request_route_auto.model_request_stage_route
+msgid "Request Stage Route"
+msgstr "İstek Aşaması Rotası"
+
+#. module: generic_request_route_auto
+#: model:ir.model,name:generic_request_route_auto.model_request_stage_route_trigger
+msgid "Request Stage Route Trigger"
+msgstr "İstek Aşaması Rota Tetikleyicisi"
+
+#. module: generic_request_route_auto
+#: model:ir.model,name:generic_request_route_auto.model_request_stage_route_trigger_event
+msgid "Request Stage Route Trigger Event"
+msgstr "İstek Aşaması Rota Tetikleme Olayı"
+
+#. module: generic_request_route_auto
+#: model:ir.model,name:generic_request_route_auto.model_request_type
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__request_type_id
+msgid "Request Type"
+msgstr "İstek Türü"
+
+#. module: generic_request_route_auto
+#: model:ir.model,name:generic_request_route_auto.model_request_wizard_close
+msgid "Request Wizard: Close"
+msgstr "İstek Sihirbazı: Kapat"
+
+#. module: generic_request_route_auto
+#: model:generic.condition,name:generic_request_route_auto.condition_request_text_is_auto_send
+msgid "Request text is \"auto send\""
+msgstr "İstek metni \"otomatik gönder\""
+
+#. module: generic_request_route_auto
+#: model:generic.condition,name:generic_request_route_auto.condition_request_text_is_reject_me
+msgid "Request text is \"reject_me\""
+msgstr "İstek metni \"reject_me\""
+
+#. module: generic_request_route_auto
+#: model:generic.condition,name:generic_request_route_auto.condition_request_text_is_send_on_create
+msgid "Request text is \"send on create\""
+msgstr "İstek metni \"oluşturulduğunda gönder\""
+
+#. module: generic_request_route_auto
+#: model_terms:ir.ui.view,arch_db:generic_request_route_auto.view_request_stage_trigger_event_form
+msgid "Retry trigger"
+msgstr "Tetiği yeniden dene"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__route_id
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__route_id
+msgid "Route"
+msgstr "Rota"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__route_sequence
+msgid "Route Priority"
+msgstr "Rota Önceliği"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_type__route_trigger_ids
+msgid "Route Trigger"
+msgstr "Rota Tetikleyici"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_type__route_trigger_count
+msgid "Route Trigger Count"
+msgstr "Rota Tetikleyici Sayısı"
+
+#. module: generic_request_route_auto
+#: model_terms:ir.ui.view,arch_db:generic_request_route_auto.view_request_type_form
+msgid "Route Triggers"
+msgstr "Rota Tetikleyicileri"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_has_sms_error
+msgid "SMS Delivery error"
+msgstr "SMS Teslimat hatası"
+
+#. module: generic_request_route_auto
+#: model:request.stage.route,name:generic_request_route_auto.request_stage_route_type_auto_draft_to_sent
+msgid "Send"
+msgstr "Gönder"
+
+#. module: generic_request_route_auto
+#: model:request.stage.route.trigger,name:generic_request_route_auto.request_stage_route_trigger_auto_draft_to_sent
+msgid "Send on create"
+msgstr "oluşturulduğunda gönder"
+
+#. module: generic_request_route_auto
+#: model:request.stage,name:generic_request_route_auto.request_stage_type_auto_sent
+#: model:request.stage,name:generic_request_route_auto.request_stage_type_cron_sent
+msgid "Sent"
+msgstr "Gönderildi"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__sequence
+msgid "Sequence"
+msgstr "Sıra"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__route_stage_from_id
+msgid "Source stage of related route."
+msgstr ""
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__success
+msgid "Success"
+msgstr "Başarı"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__condition_ids
+msgid "This conditions will be checked before triggering request move"
+msgstr ""
+"Bu koşullar, istek taşıma işlemi tetiklenmeden önce kontrol edilecektir"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__event_condition_ids
+msgid "This conditions will chack request event before triggering request move"
+msgstr ""
+"Bu koşullar, istek hareketini tetiklemeden önce istek olayını kontrol "
+"edilecektir"
+
+#. module: generic_request_route_auto
+#: code:addons/generic_request_route_auto/models/request_stage_route.py:0
+#, python-format
+msgid "This route (%s) is auto-only, thus could not be triggered manually."
+msgstr ""
+"Bu rota (%s) yalnızca otomatiktir, bu nedenle manuel olarak tetiklenemez."
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__trigger
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__trigger_id
+msgid "Trigger"
+msgstr "Tetikle"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__condition_ids
+msgid "Trigger Conditions"
+msgstr "Tetikleme Koşulları"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route__trigger_count
+msgid "Trigger Count"
+msgstr "Tetikleme Sayıları"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_request__trigger_event_ids
+msgid "Trigger Event"
+msgstr "Tetikleyici olay"
+
+#. module: generic_request_route_auto
+#: model:ir.actions.act_window,name:generic_request_route_auto.action_request_stage_route_trigger_events
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_request__trigger_event_count
+msgid "Trigger Events"
+msgstr "Tetikleyici olaylar"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__sudo_enable
+msgid "Trigger as superuser"
+msgstr "Süper kullanıcı olarak tetikle"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__sudo_user_id
+msgid "Trigger as user"
+msgstr "Kullanıcı olarak tetikle"
+
+#. module: generic_request_route_auto
+#: model_terms:ir.ui.view,arch_db:generic_request_route_auto.view_request_request_form
+msgid "Trigger events"
+msgstr "Tetikleyici olaylar"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__trigger_on_write_field_ids
+msgid "Trigger on write (fields)"
+msgstr "Yazarken tetikle (alanlar)"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__sudo_enable
+msgid ""
+"Trigger this route as superuser. Note that this is not applied to trigger "
+"conditions. If you need to check conditions as superuser, then that "
+"conditions should be marked as 'sudo'."
+msgstr ""
+"Bu rotayı süper kullanıcı olarak tetikleyin. Bunun tetikleme koşullarına "
+"uygulanmadığını unutmayın. Koşulları süper kullanıcı olarak kontrol etmeniz "
+"gerekiyorsa, bu koşullar 'sudo' olarak işaretlenmelidir."
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__sudo_user_id
+msgid "Trigger this route as user"
+msgstr "Bu rotayı kullanıcı olarak tetikle"
+
+#. module: generic_request_route_auto
+#: model:ir.actions.act_window,name:generic_request_route_auto.action_request_stage_route_triggers
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route__trigger_ids
+#: model_terms:ir.ui.view,arch_db:generic_request_route_auto.view_request_stage_route_trigger_form
+#: model_terms:ir.ui.view,arch_db:generic_request_route_auto.view_request_stage_route_trigger_tree
+msgid "Triggers"
+msgstr "Tetikleyiciler"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__trigger
+msgid "Try to move requests by this route on trigger condition"
+msgstr "Tetikleme durumunda istekleri bu rotadan taşımayı deneyin"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_unread
+msgid "Unread Messages"
+msgstr "Okunmamış Mesajlar"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_unread_counter
+msgid "Unread Messages Counter"
+msgstr "Okunmamış Mesaj Sayacı"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__user_id
+msgid "User"
+msgstr "Kullanıcı"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__website_message_ids
+msgid "Website Messages"
+msgstr "Web Sitesi Mesajları"
+
+#. module: generic_request_route_auto
+#: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__website_message_ids
+msgid "Website communication history"
+msgstr "Web sitesi iletişim geçmişi"
+
+#. module: generic_request_route_auto
+#: model:request.type,name:generic_request_route_auto.request_type_cron
+msgid "cron Request"
+msgstr "cron isteği"
+
+#. module: generic_request_route_auto
+#: model_terms:request.type,help_html:generic_request_route_auto.request_type_auto
+msgid ""
+"this is demo request to demonstrate automatic triggers on routes.\n"
+"            That automatic triggers will be triggered on any write on "
+"request\n"
+"            or creation of request."
+msgstr ""
+"bu, rotalarda otomatik tetikleyicileri göstermek için bir demo isteğidir.\n"
+"             Bu otomatik tetikleyiciler, herhangi bir istek üzerine yazma "
+"veya istek oluşturma sırasında tetiklenecektir."

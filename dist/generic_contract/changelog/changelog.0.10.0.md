@@ -1,0 +1,2 @@
+- Added action button to create contract directly from contract template
+- Fixed bug with unexpectedly closed (by scheduler) contracts that have no end date

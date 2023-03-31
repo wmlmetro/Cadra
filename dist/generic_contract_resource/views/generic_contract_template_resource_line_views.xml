@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_generic_contract_template_resource_line_form" model="ir.ui.view">
+        <field name="model">generic.contract.template.resource.line</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <group name="contract_info_group">
+                        <field name="contract_template_id"/>
+                    </group>
+                    <group name="resource_info_group">
+                        <field name="resource_res_model" invisible="1"/>
+                        <field name="resource_type_id"
+                               options="{'no_create': true, 'no_quick_create': true}"/>
+                        <field name="resource_res_id"
+                               widget="generic_m2o"
+                               model_field="resource_res_model"
+                               class="oe_left"
+                               attrs="{'invisible': [('resource_res_model', '=', False)]}"/>
+                    </group>
+                </group>
+            </form>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="generic_resource_type_view_from" model="ir.ui.view">
+        <field name="model">generic.resource.type</field>
+        <field name="inherit_id" ref="generic_resource.generic_resource_type_view_from"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet//group[@name='group_left']" position="inside">
+                <field name="model" invisible="1"/>
+                <field name="search_by_field_id"
+                       domain="[('model', '=', model)]"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

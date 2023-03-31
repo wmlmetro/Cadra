@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_generic_assign_policy_rule_hr_form">
+        <field name="name">view.generic.assign.policy.rule.hr.form</field>
+        <field name="model">generic.assign.policy.rule</field>
+        <field name="inherit_id" ref="generic_assignment.view_generic_assign_policy_rule_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet//group[@name='group_rule_related_policy']"
+                   position="after">
+                <group name="group_rule_department_employee" colspan="4"
+                       attrs="{'invisible': [('assign_type', 'not in', ('department_manager', 'department_employee'))]}">
+                    <field name="assign_department_id"
+                           options="{'no_quick_create': True}"
+                           attrs="{'required': [('assign_type', 'in', ('department_manager', 'department_employee'))]}"/>
+                    <field name="assign_department_job_id"
+                           options="{'no_quick_create': True}"
+                           attrs="{'invisible': [('assign_type', '!=', 'department_employee')]}"
+                           domain="[('department_id', '=', assign_department_id)]"/>
+                    <field name="assign_department_choice_type"
+                           string="Choice type"
+                           attrs="{'required': [('assign_type', '=', 'department_employee')],
+                                   'invisible': [('assign_type', '!=', 'department_employee')]}"/>
+                    <field name="assign_department_choice_condition_ids"
+                           string="Choice conditions"
+                           widget="many2many_tags"
+                           domain="[('model_id', '=', 'hr.employee')]"
+                           attrs="{'invisible': [('assign_type', '!=', 'department_employee')]}"
+                           context="{'default_based_on': 'hr.employee'}"/>
+                    <field name="assign_department_sort_field_id"
+                           string="Sort field"
+                           attrs="{'invisible': [('assign_type', '!=', 'department_employee')]}"/>
+                    <field name="assign_department_sort_direction"
+                           string="Sort direction"
+                           attrs="{'invisible': [('assign_type', '!=', 'department_employee')]}"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

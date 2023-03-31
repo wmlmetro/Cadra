@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="request_sla_log_view_tree">
+        <field name="name">request.sla.log.view.tree</field>
+        <field name="model">request.sla.log</field>
+        <field name="arch" type="xml">
+            <tree create='false' edit='false'>
+                <field name="date_prev"/>
+                <field name="date"/>
+                <field name="request_type_id"/>
+                <field name="stage_id"/>
+                <field name="stage_type_id"/>
+                <field name="assignee_id"/>
+                <field name="user_id"/>
+                <field name="kanban_state"/>
+                <field name="time_spent_total" widget="float_time"/>
+                <field name="time_spent_calendar" widget="float_time"/>
+                <field name="calendar_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="request_sla_log_view_search">
+        <field name="name">request.sla.log.view.search</field>
+        <field name="model">request.sla.log</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="request_id"/>
+                <field name="request_type_id"/>
+                <field name="stage_id"/>
+                <field name="stage_type_id"/>
+                <field name="assignee_id"/>
+                <field name="user_id"/>
+                <field name="kanban_state"/>
+
+                <group name="group_group_by" expand="0" string="Group By...">
+                     <filter name="group_by_request" string="Request" context="{'group_by': 'request_id'}"/>
+                     <filter name="group_by_request_type" string="Request Type" context="{'group_by': 'request_type_id'}"/>
+                     <filter name="group_by_stage" string="Stage" context="{'group_by': 'stage_id'}"/>
+                     <filter name="group_by_stage_type" string="Stage Type" context="{'group_by': 'stage_type_id'}"/>
+                     <filter name="group_by_assignee" string="Assignee" context="{'group_by': 'assignee_id'}"/>
+                     <filter name="kanban_state" string="Kanban State" context="{'group_by': 'kanban_state'}"/>
+                     <filter name="group_by_user" string="User" context="{'group_by': 'user_id'}"/>
+                     <filter name="group_by_date" string="Date" context="{'group_by': 'date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="request_sla_log_view_pivot">
+        <field name="name">request.sla.log.view.pivot</field>
+        <field name="model">request.sla.log</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="date" type="col"/>
+                <field name="request_type_id" type="row"/>
+                <field name="stage_type_id" type="row"/>
+                <field name="time_spent_total" type="measure" widget="float_time"/>
+                <field name="time_spent_calendar" type="measure" widget="float_time"/>
+            </pivot>
+        </field>
+    </record>
+    <record model="ir.ui.view" id="request_sla_log_view_graph">
+        <field name="name">request.sla.log.view.graph</field>
+        <field name="model">request.sla.log</field>
+        <field name="arch" type="xml">
+            <graph>
+                <field name="request_type_id"/>
+                <field name="stage_type_id"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_request_sla_log_view" model="ir.actions.act_window">
+      <field name="name">SLA Log</field>
+      <field name="res_model">request.sla.log</field>
+      <field name="view_mode">pivot,graph,tree</field>
+    </record>
+
+    <!-- This action could be used to show log lines related to some object -->
+    <record id="action_request_sla_log_view__tree_first" model="ir.actions.act_window">
+        <field name="name">SLA Log</field>
+        <field name="res_model">request.sla.log</field>
+        <field name="view_mode">tree,pivot,graph</field>
+    </record>
+
+    <menuitem name="SLA Log" id="menu_request_sla_log"
+              parent="generic_request.menu_request_report"
+              action="action_request_sla_log_view"/>
+</odoo>

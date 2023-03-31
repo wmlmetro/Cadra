@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="demo_mail_template_request_created" model="mail.template">
+        <field name="name">Request Created</field>
+        <field name="subject">New {{object.sudo().type_id.display_name}} created: {{object.display_name}}</field>
+        <field name="email_from">{{(user.company_id.email and '&quot;%s&quot; &lt;%s&gt;' % (user.company_id.name, user.company_id.email) or '')}}</field>
+        <field name="partner_to">{{object.author_id.id}}</field>
+        <field name="lang">{{object.author_id.lang}}</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="auto_delete" eval="True"/>
+        <field name="body_html"><![CDATA[
+<p>
+    Dear <t t-out="object.author_id.name or ''"></t>,
+</p>
+<p>
+    Thanks for creating request <strong><a t-attf-href="{{ object.get_mail_url() }}" target="_blank"><t t-out="object.name"></t></a></strong>.
+</p>
+<p>
+    You can track <a t-attf-href="{{ object.get_mail_url() }}" target="_blank">here</a> progress of your request.
+</p>]]></field>
+    </record>
+</odoo>

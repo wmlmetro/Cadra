@@ -1,0 +1,428 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_condition
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 12.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-09-16 11:53+0000\n"
+"PO-Revision-Date: 2022-02-17 13:03+0000\n"
+"Last-Translator: Валерия <valittle@ukr.net>\n"
+"Language-Team: Russian <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-14-0/generic_request_condition/ru/>\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_condition
+#: model:ir.model.fields.selection,name:generic_request_condition.selection__request_stage_route__condition_operator__and
+msgid "AND"
+msgstr ""
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_assigned
+msgid "Assigned"
+msgstr "Назначен"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_assigned_to_current_user
+msgid "Assigned to current user"
+msgstr "Назначен текущему пользователю"
+
+#. module: generic_request_condition
+#: model:ir.model.fields,field_description:generic_request_condition.field_request_type__change_assignee_condition_ids
+msgid "Can change assignee"
+msgstr "Можно изменить назначенного"
+
+#. module: generic_request_condition
+#: model:ir.model.fields,field_description:generic_request_condition.field_request_type__change_author_condition_ids
+msgid "Can change author"
+msgstr ""
+
+#. module: generic_request_condition
+#: model:ir.model.fields,field_description:generic_request_condition.field_request_type__change_category_condition_ids
+msgid "Can change category"
+msgstr "Можно изменить категорию"
+
+#. module: generic_request_condition
+#: model:ir.model.fields,field_description:generic_request_condition.field_request_type__change_deadline_condition_ids
+msgid "Can change deadline"
+msgstr ""
+
+#. module: generic_request_condition
+#: model:ir.model.fields,field_description:generic_request_condition.field_request_type__change_request_text_condition_ids
+msgid "Can change request text"
+msgstr "Можно изменить текст запроса"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_category_is_not_set
+msgid "Category is not set"
+msgstr "Категория не установлена"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_category_is_set
+msgid "Category is set"
+msgstr "Категория установлена"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_category_is_not_set
+msgid "Check if request category is not set"
+msgstr "Проверяет не установлена ли категория запроса"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_category_is_set
+msgid "Check if request category is set"
+msgstr "Проверяет установлена ли категория запроса"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_not_assigned_or_assigned_to_current_user
+msgid "Check if request has no assignee or assigned to current user"
+msgstr "Проверяет не назначен ли запрос или назначен текущему пользователю"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_partner_is_not_set
+msgid "Check if request have no related partner"
+msgstr "Проверяет не имеет ли запрос связанного партнера"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_have_no_response_text
+msgid "Check if request have no response text"
+msgstr "Проверяет нет ли в запорсе текста ответа"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_partner_is_set
+msgid "Check if request have related partner"
+msgstr "Проверяет имеет ли запрос связанного партнера"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_have_response_text
+msgid "Check if request have response text"
+msgstr "Проверяет есть ли в запорсе текст ответа"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_assigned_to_current_user
+msgid "Check if request is assigned to current user"
+msgstr "Проверяет назначен ли запрос текущему пользователю"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_assigned
+msgid "Check if request is assigned to somebody"
+msgstr "Проверяет назначен ли запрос кому-либо"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_closed
+msgid "Check if request is closed"
+msgstr "Проверяет закрыт ли запрос"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_created_by_current_user
+msgid "Check if request is created by current user"
+msgstr "Проверяет создан ли был запрос текущим пользователем"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_not_assigned_to_current_user
+msgid "Check if request is not assigned to current user"
+msgstr "Проверяет не назначен ли запрос текущему пользователю"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_not_assigned
+msgid "Check if request is not assigned yet"
+msgstr "Проверяет не назначен ли еще запрос"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_not_created_by_current_user
+msgid "Check if request is not created by current user"
+msgstr "Проверяет не создан ли запрос текущим пользователем"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_open
+msgid "Check if request is open"
+msgstr "Проверяет открыт ли запрос"
+
+#. module: generic_request_condition
+#: model:ir.model.fields,field_description:generic_request_condition.field_request_stage_route__condition_operator
+msgid "Condition Operator"
+msgstr ""
+
+#. module: generic_request_condition
+#: model:request.type,name:generic_request_condition.request_type_conditional
+msgid "Conditional Request"
+msgstr "Условный запрос"
+
+#. module: generic_request_condition
+#: model:ir.model.fields,field_description:generic_request_condition.field_request_stage_route__condition_ids
+#: model_terms:ir.ui.view,arch_db:generic_request_condition.view_request_stage_route_form
+msgid "Conditions"
+msgstr "Условия"
+
+#. module: generic_request_condition
+#: model:request.stage,name:generic_request_condition.request_stage_type_conditional_confirmed
+msgid "Confirmed"
+msgstr "Подтверждено"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_created_by_current_user
+msgid "Created by current user"
+msgstr "Создан текущим пользователем"
+
+#. module: generic_request_condition
+#: model:request.stage,name:generic_request_condition.request_stage_type_conditional_draft
+msgid "Draft"
+msgstr "Черновик"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_in_start_stage
+msgid "Evaluates to True if request is in start stage."
+msgstr "Вычисляется как True если запрос находится на начальной стадии."
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_not_in_start_stage
+msgid "Evaluates to True if request is not in start stage."
+msgstr "Вычисляется как True если запрос не на начальной стадии."
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_closed_fail
+msgid "Evaluates to True if request is on stage with type Closed (Fail)."
+msgstr "Вычисляется как True если запрос стадии Closed (Fail)."
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_closed_ok
+msgid "Evaluates to True if request is on stage with type Closed (OK)."
+msgstr "Вычисляется как True если запрос на стадии Closed (OK)."
+
+#. module: generic_request_condition
+#: model:ir.actions.act_window,name:generic_request_condition.generic_request_condition_action
+#: model:ir.ui.menu,name:generic_request_condition.menu_request_conditions
+msgid "Generic Conditions"
+msgstr "Универсальные условия"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_has_not_mail_activity_for_assignee
+#: model:generic.condition,name:generic_request_condition.condition_request_has_not_mail_activity_for_assignee
+msgid "Has NOT mail activity for assignee"
+msgstr ""
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_has_mail_activity_for_assignee
+#: model:generic.condition,name:generic_request_condition.condition_request_has_mail_activity_for_assignee
+msgid "Has mail activity for assignee"
+msgstr ""
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_have_no_response_text
+msgid "Have no response text"
+msgstr "Не имеет текста ответа"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_have_response_text
+msgid "Have response text"
+msgstr "Имеет текст ответа"
+
+#. module: generic_request_condition
+#: model:request.category,name:generic_request_condition.request_category_demo_install_os
+msgid "Install OS"
+msgstr ""
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_closed
+#, fuzzy
+msgid "Is closed"
+msgstr "Закрыт"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_closed_fail
+msgid "Is closed (Fail)"
+msgstr "Закрыт (Провален)"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_closed_ok
+msgid "Is closed (OK)"
+msgstr "Закрыт (OK)"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_in_start_stage
+msgid "Is in start stage"
+msgstr "Находится на начальном этапе"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_not_in_start_stage
+msgid "Is not in start stage"
+msgstr "Находится не на начальном этапе"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_open
+msgid "Is open"
+msgstr "Открыто"
+
+#. module: generic_request_condition
+#: model:ir.model.fields,help:generic_request_condition.field_request_stage_route__condition_ids
+msgid ""
+"List here conditions that request shouds satisfy to be able to use this route"
+msgstr ""
+"Перечислите тут условия, которые должен выполнить запрос для перемещения по "
+"этому маршруту"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_not_assigned
+msgid "Not assigned"
+msgstr "Не назначен"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_not_assigned_or_assigned_to_current_user
+msgid "Not assigned or assigned to current user"
+msgstr "Не назначен или назначен текущему пользователю"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_not_assigned_to_current_user
+msgid "Not assigned to current user"
+msgstr "Не назначен текущему пользователю"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_not_created_by_current_user
+msgid "Not created by current user"
+msgstr "Не создан текущим пользователем"
+
+#. module: generic_request_condition
+#: model:ir.model.fields.selection,name:generic_request_condition.selection__request_stage_route__condition_operator__or
+msgid "OR"
+msgstr ""
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_partner_is_not_set
+msgid "Partner is not set"
+msgstr "Партнер не установлен"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_partner_is_set
+msgid "Partner is set"
+msgstr "Партнер установлен"
+
+#. module: generic_request_condition
+#: model:request.stage,name:generic_request_condition.request_stage_type_conditional_rejected
+msgid "Rejected"
+msgstr "Отклонен"
+
+#. module: generic_request_condition
+#: model:ir.model,name:generic_request_condition.model_request_request
+msgid "Request"
+msgstr "Запрос"
+
+#. module: generic_request_condition
+#: model:ir.model,name:generic_request_condition.model_request_stage_route
+msgid "Request Stage Route"
+msgstr "Маршрут этапов запроса"
+
+#. module: generic_request_condition
+#: model:ir.model,name:generic_request_condition.model_request_type
+msgid "Request Type"
+msgstr "Тип запроса"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.install_os
+msgid "Request for OS installing"
+msgstr ""
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.install_os
+msgid "Request for install OS"
+msgstr ""
+
+#. module: generic_request_condition
+#: model:request.category,description:generic_request_condition.request_category_demo_install_os
+msgid "Request for installing OS"
+msgstr ""
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.setup_workplace
+#: model:generic.condition,name:generic_request_condition.setup_workplace
+#: model:request.category,description:generic_request_condition.request_category_demo_setup_workplace
+msgid "Request for set up workplace"
+msgstr ""
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.demo_condition_request_stage_is_draft
+msgid "Request stage is Draft"
+msgstr "Этап запроса - Черновик"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.demo_condition_request_stage_is_sent
+msgid "Request stage is Sent"
+msgstr "Этап запроса - Отправлен"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_text_is_change_author
+msgid "Request text is \"change author\""
+msgstr ""
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_text_is_confirm_me
+msgid "Request text is \"confirm me\""
+msgstr "Текст запроса: \"confirm me\""
+
+#. module: generic_request_condition
+#: model:request.stage,name:generic_request_condition.request_stage_type_conditional_sent
+msgid "Sent"
+msgstr "Отправлен"
+
+#. module: generic_request_condition
+#: model:request.category,name:generic_request_condition.request_category_demo_setup_workplace
+msgid "Set up workplace"
+msgstr ""
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.demo_condition_request_stage_is_draft_or_sent
+msgid "Stage is Draft or Sent"
+msgstr "Этап Черновик или Отправлен"
+
+#. module: generic_request_condition
+#: model_terms:request.request,help_html:generic_request_condition.request_conditional_demo_1
+#: model_terms:request.type,help_html:generic_request_condition.request_type_conditional
+msgid "This is conditional request type with conditional routes:"
+msgstr "Это условный тип запроса с условными маршрутами:"
+
+#. module: generic_request_condition
+#: code:addons/generic_request_condition/models/request_stage_route.py:0
+#, python-format
+msgid ""
+"This stage change '%(route)s' restricted by route conditions.\n"
+"Request: %(request)s\n"
+"Request Type: %(request_type)s\n"
+"Request Category: %(request_category)s\n"
+msgstr ""
+
+#. module: generic_request_condition
+#: model_terms:request.request,help_html:generic_request_condition.request_conditional_demo_1
+#: model_terms:request.type,help_html:generic_request_condition.request_type_conditional
+msgid "draft -&gt; sent -&gt; confirmed"
+msgstr "черновик -&gt; отправлено -&gt; подтверждено"
+
+#. module: generic_request_condition
+#: model_terms:request.request,help_html:generic_request_condition.request_conditional_demo_1
+#: model_terms:request.type,help_html:generic_request_condition.request_type_conditional
+msgid "draft -&gt; sent -&gt; rejected"
+msgstr "черновик -&gt; отправлено -&gt; отклонено"
+
+#~ msgid ""
+#~ "This stage change '%s' restricted by route conditions.\n"
+#~ "Request: %s\n"
+#~ "Request Type: %s\n"
+#~ "Request Category: %s\n"
+#~ msgstr ""
+#~ "Эта смена этапа '%s' ограничена условиями маршрута.\n"
+#~ "Запрос: %s\n"
+#~ "Тип запроса: %s\n"
+#~ "Категория запроса: %s\n"
+
+#~ msgid "Change assignee conditions"
+#~ msgstr "Условия смены назначенного"
+
+#~ msgid "Change category conditions"
+#~ msgstr "Условия изменения категории запроса"
+
+#~ msgid "Change request text conditions"
+#~ msgstr "Условия изменения текста запроса"

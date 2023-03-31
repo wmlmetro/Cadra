@@ -1,0 +1,75 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_sla_priority
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:16+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_sla_priority/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_sla_priority
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_priority.generic_request_sla_priority_rule_view_form
+msgid ""
+"<i>Priority</i>: select a priority. For requests of the selected priority, "
+"the current rule line will be active. If no priority is selected, this rule "
+"applies to requests of any priority."
+msgstr ""
+"<i>Öncelik</i>: bir öncelik seçin. Seçilen önceliğe sahip istekler için "
+"geçerli kural satırı etkin olacaktır. Öncelik seçilmezse, bu kural herhangi "
+"bir önceliğe sahip istekler için geçerlidir."
+
+#. module: generic_request_sla_priority
+#: model:ir.model.fields.selection,name:generic_request_sla_priority.selection__request_sla_rule_line__priority__5
+msgid "Critical"
+msgstr "Kritik"
+
+#. module: generic_request_sla_priority
+#: model:ir.model.fields.selection,name:generic_request_sla_priority.selection__request_sla_rule_line__priority__1
+msgid "For Information"
+msgstr "Bilgi için"
+
+#. module: generic_request_sla_priority
+#: model:ir.model.fields.selection,name:generic_request_sla_priority.selection__request_sla_rule_line__priority__4
+msgid "High"
+msgstr "Yüksek"
+
+#. module: generic_request_sla_priority
+#: model:ir.model.fields.selection,name:generic_request_sla_priority.selection__request_sla_rule_line__priority__2
+msgid "Low"
+msgstr "Düşük"
+
+#. module: generic_request_sla_priority
+#: model:ir.model.fields.selection,name:generic_request_sla_priority.selection__request_sla_rule_line__priority__3
+msgid "Medium"
+msgstr "Orta"
+
+#. module: generic_request_sla_priority
+#: model:ir.model.fields.selection,name:generic_request_sla_priority.selection__request_sla_rule_line__priority__0
+msgid "Not set"
+msgstr "ayarlanmadı"
+
+#. module: generic_request_sla_priority
+#: model:ir.model.fields,field_description:generic_request_sla_priority.field_request_sla_rule_line__priority
+msgid "Priority"
+msgstr "Öncelik"
+
+#. module: generic_request_sla_priority
+#: model:ir.model,name:generic_request_sla_priority.model_request_request
+msgid "Request"
+msgstr "İstek"
+
+#. module: generic_request_sla_priority
+#: model:ir.model,name:generic_request_sla_priority.model_request_sla_rule_line
+msgid "Request SLA Rule Line"
+msgstr "SLA Kural Satırı İste"

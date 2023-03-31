@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <!-- Request categories samples -->
+    <record id="request_category_demo_install_os" model="request.category">
+        <field name="name">Install OS</field>
+        <field name="code">install_os</field>
+        <field name="parent_id" ref="generic_request.request_category_demo_technical"/>
+        <field name="description">Request for installing OS</field>
+    </record>
+    <record id="request_category_demo_setup_workplace" model="request.category">
+        <field name="name">Set up workplace</field>
+        <field name="code">setup_workplace</field>
+        <field name="parent_id" ref="generic_request.request_category_demo_technical"/>
+        <field name="description">Request for set up workplace</field>
+    </record>
+</odoo>

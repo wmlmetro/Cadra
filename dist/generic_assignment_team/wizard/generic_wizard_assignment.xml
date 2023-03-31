@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="generic_team_wizard_assign_form_view">
+        <field name="model">generic.wizard.assign</field>
+        <field name="inherit_id" ref="generic_assignment.generic_assign_wizard_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/group/field[@name='assign_user_id']" position="before">
+                <field name="assign_team_leader_id" invisible="1"/>
+                <field name="assign_team_task_manager_id" invisible="1"/>
+                <field name="assign_team_id"
+                       attrs="{'invisible': [('assign_type', '!=', 'team')],
+                               'required': [('assign_type', '=', 'team')]}"
+                       options="{'create': false, 'create_edit': false}"/>
+                <field name="assign_team_user_id"
+                       attrs="{'invisible': [('assign_type', '!=', 'team')]}"
+                       options="{'create': false, 'create_edit': false}"
+                       domain="[
+                            '|',
+                            ('generic_team_ids', '=', assign_team_id),
+                            ('id', 'in', [assign_team_leader_id, assign_team_task_manager_id])
+                       ]"/>
+
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_timetracking" model="product.product">
+        <field name="name">Time Tracking</field>
+        <field name="categ_id" ref="product.product_category_3"/>
+        <field name="standard_price">20</field>
+        <field name="list_price" eval="41.34"/>
+        <field name="type">service</field>
+        <field name="uom_id" ref="uom.product_uom_hour"/>
+        <field name="uom_po_id" ref="uom.product_uom_hour"/>
+        <field name="description_sale">Time tracked on requests</field>
+        <field name="default_code">REQTIMETRACK</field>
+    </record>
+</odoo>

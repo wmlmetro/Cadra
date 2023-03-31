@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+     <record id="generic_todo_template_line_view_tree_general" model="ir.ui.view">
+        <field name="model">generic.todo.template.line</field>
+        <field name="mode">primary</field>
+        <field name="priority" eval="150"/>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="todo_type_id"/>
+                <field name="todo_template_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="generic_todo_template_line_view_tree_editable" model="ir.ui.view">
+        <field name="model">generic.todo.template.line</field>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <tree editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="todo_type_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="generic_todo_template_line_view_form" model="ir.ui.view">
+        <field name="model">generic.todo.template.line</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                    </div>
+                    <div name="div_title" class="oe_title">
+                        <h1 name="h1_title">
+                            <field name="name" string="Name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <field name="sequence"/>
+                        <field name="todo_type_id"/>
+                        <field name="todo_template_id"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="generic_todo_template_line_action" model="ir.actions.act_window">
+        <field name="name">Todo Template Lines</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">generic.todo.template.line</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record id="generic_todo_template_line_action_view_tree"
+            model="ir.actions.act_window.view">
+        <field eval="5" name="sequence"/>
+        <field name="view_mode">tree</field>
+        <field name="view_id"  ref="generic_todo_template_line_view_tree_general"/>
+        <field name="act_window_id" ref="generic_todo_template_line_action"/>
+    </record>
+
+</odoo>

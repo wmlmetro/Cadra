@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="inherited_view_request_request_form_inherit_request_sla_log">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_form"/>
+        <field name="arch" type="xml">
+            <group name="group_tech_links" position="inside">
+                <button class="oe_link"
+                        type="object"
+                        name="action_show_related_sla_log_lines"
+                        icon="fa-book">
+                    <field string="SLA Log lines" name="sla_log_count" widget="statinfo"/>
+                </button>
+            </group>
+            <xpath expr="//form/sheet/notebook/page[@name='page_help']" position="before">
+                <page string="SLA" name="page_sla">
+                    <group name="group_sla_main">
+                        <group name="group_sla_left">
+                        </group>
+                        <group name="group_sla_right">
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

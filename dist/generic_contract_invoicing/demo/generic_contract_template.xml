@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="generic_contract.contract_template_demo_basic_support" model="generic.contract.template">
+        <field name="journal_id" ref="generic_contract_invoicing.generic_contract_sales_journal"/>
+        <field name="recurring_invoices" eval="True"/>
+        <field name="recurring_type">monthly-last-day</field>
+        <field name="recurring_period">1</field>
+        <field name="currency_id" ref="base.USD"/>
+        <field name="pricelist_id" ref="product.list0"/>
+    </record>
+</odoo>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_service_request_request_kanban">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="//kanban/field[@name='message_needaction_counter']" position="after">
+                <field name="request_messaging_state"/>
+                <field name="request_messaging_state_highlight"/>
+            </xpath>
+
+            <xpath expr="//div[@name='right_info_stage']" position="before">
+                <div t-if="record.request_messaging_state.raw_value"
+                     name="right_info_messaging_status"
+                     t-attf-class="o_header_messaging_status {{ record.request_messaging_state_highlight.raw_value and 'o_msg_status_highlighted' or ''}}">
+                    <field name="request_messaging_state"/>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_service_request_request_tree">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//tree/field[@name='stage_id']" position="before">
+                <field name="request_messaging_date" optional="show"/>
+                <field name="request_messaging_state_highlight" invisible='True'/>
+                <field name="request_messaging_state"
+                       options='{"bg_color": "lightgrey: request_messaging_state != False; red: request_messaging_state_highlight == True"}'
+                       optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

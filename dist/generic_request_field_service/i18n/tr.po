@@ -1,0 +1,75 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_field_service
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:22+0000\n"
+"PO-Revision-Date: 2023-02-28 17:32+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_field_service/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_field_service
+#: model:ir.model,name:generic_request_field_service.model_request_request
+msgid "Request"
+msgstr "İstek"
+
+#. module: generic_request_field_service
+#: model:ir.model,name:generic_request_field_service.model_request_field
+msgid "Request Field"
+msgstr "Talep Alanı"
+
+#. module: generic_request_field_service
+#: model:ir.model.fields,field_description:generic_request_field_service.field_request_field__service_ids
+msgid "Request Services"
+msgstr "Hizmet talep et"
+
+#. module: generic_request_field_service
+#: model:ir.model,name:generic_request_field_service.model_request_type
+msgid "Request Type"
+msgstr "İstek Türü"
+
+#. module: generic_request_field_service
+#: model:ir.model,name:generic_request_field_service.model_request_wizard_close
+msgid "Request Wizard: Close"
+msgstr "İstek Sihirbazı: Kapat"
+
+#. module: generic_request_field_service
+#: model_terms:ir.ui.view,arch_db:generic_request_field_service.view_request_field_service_form
+msgid "Service"
+msgstr "Servis"
+
+#. module: generic_request_field_service
+#: model_terms:ir.ui.view,arch_db:generic_request_field_service.view_request_field_service_form
+#: model_terms:ir.ui.view,arch_db:generic_request_field_service.view_request_field_service_tree
+msgid "Services"
+msgstr "Hizmetler"
+
+#. module: generic_request_field_service
+#: code:addons/generic_request_field_service/models/request_field.py:0
+#, python-format
+msgid ""
+"The request services %(services)s used in the '%(field)s' field do not "
+"belong to the services allowed for the request type '%(request_type)s'."
+msgstr ""
+"'%(field)s' alanında kullanılan %(services)s istek hizmetleri, "
+"'%(request_type)s' istek türü için izin verilen hizmetlere ait değil."
+
+#. module: generic_request_field_service
+#: code:addons/generic_request_field_service/models/request_type.py:0
+#, python-format
+msgid ""
+"The request services %(services)s used in the request fields do not belong "
+"to the services allowed for the request type '%(request_type)s'."
+msgstr ""
+"İstek alanlarında kullanılan istek hizmetleri %(services)s, '%(request_type)"
+"s' istek türü için izin verilen hizmetlere ait değil."

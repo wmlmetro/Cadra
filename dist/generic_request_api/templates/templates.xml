@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <template id="request_api_help_main" name="Request API Help Main">
+        <t t-call="website.layout">
+            <div class="oe_structure">
+                <div class="container">
+                    <t t-call="generic_request_api.rest_api_help_main"/>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="rest_api_help_main" name="Rest API Help">
+        <div name="generic_request_api">
+            <div name="generic_request_api_description">
+                <h2>Generic Request API</h2>
+                <p>
+                    Create and edit requests through the Generic Request API.
+                </p>
+            </div>
+            <div name="generic_request_api_data">
+                <ul class="list-group">
+                    <li class="list-group-item">
+                        <div name="post_request">
+                            <h3>Post Request</h3>
+                            <t t-out="endpoint.api_help_post_request_urls()"/>
+                            <p>Create request</p>
+                            <h4><a data-toggle="collapse" href="#post_example_request">Example Request</a></h4>
+                            <div id="post_example_request" class="panel-collapse collapse">
+                                <h6>Headers</h6>
+                                <table class="table table-bordered col-md-6">
+                                    <thead>
+                                        <tr>
+                                            <th>Key</th>
+                                            <th>Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Content-Type</td>
+                                            <td>application/json</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <h6>Json Body</h6>
+                                <pre><t t-out="endpoint.api_help_post_request_json()"/></pre>
+                            </div>
+                            <h4><a data-toggle="collapse" href="#post_example_response">Example Response</a></h4>
+                            <div id="post_example_response" class="panel-collapse collapse">
+                                <h6>Headers</h6>
+                                <table class="table table-bordered col-md-6">
+                                    <thead>
+                                        <tr>
+                                            <th>Key</th>
+                                            <th>Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Content-Type</td>
+                                            <td>application/json</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <h6>Json Body</h6>
+                                <pre><t t-out="endpoint.api_help_post_response_json()"/></pre>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="list-group-item">
+                        <div name="get_request">
+                            <h3>Get Request</h3>
+                            <t t-out="endpoint.api_help_get_request_urls()"/>
+                            <p>
+                                Get request by the url`s.
+                            </p>
+                            <h4><a data-toggle="collapse" href="#get_example_request">Example Request</a></h4>
+                            <div id="get_example_request" class="panel-collapse collapse">
+                                <h6>Headers</h6>
+                                <table class="table table-bordered col-md-6">
+                                    <thead>
+                                        <tr>
+                                            <th>Key</th>
+                                            <th>Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Content-Type</td>
+                                            <td>application/json</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <h4><a data-toggle="collapse" href="#get_example_response">Example Response</a></h4>
+                            <div id="get_example_response" class="panel-collapse collapse">
+                                <h6>Headers</h6>
+                                <table class="table table-bordered col-md-6">
+                                    <thead>
+                                        <tr>
+                                            <th>Key</th>
+                                            <th>Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Content-Type</td>
+                                            <td>application/json</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <h6>Json Body</h6>
+                                <pre><t t-out="endpoint.api_help_get_response_json()"/></pre>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="list-group-item">
+                        <div name="put_request">
+                            <h3>Put Request</h3>
+                            <t t-out="endpoint.api_help_put_request_urls()"/>
+                            <p>
+                                Change parameters of request by url`s.
+                            </p>
+                            <h4><a data-toggle="collapse" href="#put_example_request">Example Request</a></h4>
+                            <div id="put_example_request" class="panel-collapse collapse">
+                                <h6>Headers</h6>
+                                <table class="table table-bordered col-md-6">
+                                    <thead>
+                                        <tr>
+                                            <th>Key</th>
+                                            <th>Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Content-Type</td>
+                                            <td>application/json</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <h6>Json Body</h6>
+                                <pre><t t-out="endpoint.api_help_put_request_json()"/></pre>
+                            </div>
+                            <h4><a data-toggle="collapse" href="#put_example_response">Example Response</a></h4>
+                            <div id="put_example_response" class="panel-collapse collapse">
+                                <h6>Headers</h6>
+                                <table class="table table-bordered col-md-6">
+                                    <thead>
+                                        <tr>
+                                            <th>Key</th>
+                                            <th>Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Content-Type</td>
+                                            <td>application/json</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <h6>Json Body</h6>
+                                <pre><t t-out="endpoint.api_help_put_response_json()"/></pre>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </template>
+
+</odoo>

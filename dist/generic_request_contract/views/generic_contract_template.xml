@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_generic_contract_template_form">
+        <field name="model">generic.contract.template</field>
+        <field name="inherit_id" ref="generic_contract.view_generic_contract_template_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form//page[@name='page_services']/field[@name='service_contract_line_ids']/tree/field[@name='service_id']"
+                   position="after">
+                 <field name="request_category_ids"
+                        domain="[('service_ids.id', '=', service_id)]"
+                        widget="many2many_tags"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

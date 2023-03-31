@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!--Demo request -->
+    <record id="demo_crnd_wsd_project_request_with_task" model="request.request">
+        <field name="type_id" ref="generic_request_project.request_type_with_task"/>
+        <field name="request_text">This is demo request with task</field>
+        <field name="created_by_id" ref="crnd_wsd.user_demo_service_desk_website"/>
+    </record>
+
+    <function model="project.project"
+              name="write">
+        <value model="project.project"
+               search="[('id', '=', ref('generic_request_project.request_with_task_project_1'))]"/>
+        <value eval="{'privacy_visibility': 'portal', 'partner_id': ref('crnd_wsd.user_demo_service_desk_website_res_partner')}"/>
+    </function>
+
+    <!-- Demo Task -->
+    <record id="crnd_wsd_project_request_with_task_task_1" model="project.task">
+        <field name="project_id" ref="generic_request_project.request_with_task_project_1"/>
+        <field name="name">Demo task related to request</field>
+        <field name="stage_id" ref="project.project_stage_0"/>
+        <field name="request_id" ref="demo_crnd_wsd_project_request_with_task"/>
+
+    </record>
+</odoo>

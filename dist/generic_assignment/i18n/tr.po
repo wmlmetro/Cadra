@@ -1,0 +1,997 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_assignment
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:20+0000\n"
+"PO-Revision-Date: 2023-03-07 12:45+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_assignment/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_assignment
+#: model:res.groups,comment:generic_assignment.group_generic_assignment_policy_manager
+msgid ""
+"\n"
+"            Full access to assignment policies\n"
+"        "
+msgstr ""
+"\n"
+"            Atama ilkelerine tam erişim\n"
+"        "
+
+#. module: generic_assignment
+#: model:res.groups,comment:generic_assignment.group_generic_assignment_policy_user
+msgid ""
+"\n"
+"            Read only access to assignment policies, but have access to "
+"policy menu items\n"
+"        "
+msgstr ""
+"\n"
+"            Atama ilkelerine salt okunur erişim, ancak ilke menüsü öğelerine "
+"erişim\n"
+"        "
+
+#. module: generic_assignment
+#: model:res.groups,comment:generic_assignment.group_generic_assignment_policy_user_implicit
+msgid ""
+"\n"
+"            Read only access to assignment policies, no access to menu "
+"items\n"
+"        "
+msgstr ""
+"\n"
+"            Atama ilkelerine salt okunur erişim, menü öğelerine erişim yok\n"
+"        "
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__access_ids
+msgid "Access"
+msgstr "Erişim"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__act_assign_id
+msgid "Action Assign"
+msgstr "Eylem Ataması"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_needaction
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_needaction
+msgid "Action Needed"
+msgstr "İhtiyaç duyulan eylem"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_ir_actions_server__state
+#: model:ir.model.fields,field_description:generic_assignment.field_ir_cron__state
+msgid "Action To Do"
+msgstr "Yapılacak İşlem"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__active
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__active
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_search
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_search
+msgid "Active"
+msgstr "Aktif"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_form
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_search
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_search
+msgid "Archived"
+msgstr "arşivlendi"
+
+#. module: generic_assignment
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_related_policy_sort_direction__asc
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_user_field_sort_direction__asc
+msgid "Ascending"
+msgstr "artan"
+
+#. module: generic_assignment
+#: model:ir.actions.act_window,name:generic_assignment.action_assignment_wizard_assign
+#: model_terms:ir.ui.view,arch_db:generic_assignment.generic_assign_wizard_form
+msgid "Assign"
+msgstr "Ata"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.generic_assign_policy_test_wizard_form
+msgid "Assign Debug Log"
+msgstr "Hata Ayıklama Kaydı Ata"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_eval
+msgid "Assign Eval"
+msgstr "Değerlendirme Ata"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__assign_model_id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__assign_model_id
+msgid "Assign Model"
+msgstr "Model Ata"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__assign_policy_ids
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_policy_id
+#: model:ir.model.fields,field_description:generic_assignment.field_ir_actions_server__assign_policy_id
+#: model:ir.model.fields,field_description:generic_assignment.field_ir_cron__assign_policy_id
+msgid "Assign Policy"
+msgstr "Atama Politikası"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_id
+msgid "Assign Related Policy"
+msgstr "İlgili Politika Ata"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_choice_condition_ids
+msgid "Assign Related Policy Choice Condition"
+msgstr "İlgili Politika Seçimi Koşulunu Ata"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_field_id
+msgid "Assign Related Policy Field"
+msgstr "İlgili İlke Alanını Ata"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_sort_direction
+msgid "Assign Related Policy Sort Direction"
+msgstr "İlgili İlke Sıralama Yönünü Ata"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_sort_field_id
+msgid "Assign Related Policy Sort Field"
+msgstr "İlgili İlke Sıralama Alanını Ata"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_user_id
+msgid "Assign User"
+msgstr "Kullanıcı Ata"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__assign_user_field_id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__assign_user_field_id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_user_field_id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__assign_user_field_id
+msgid "Assign User Field"
+msgstr "Kullanıcı Alanı Ata"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_user_field_choice_condition_ids
+msgid "Assign User Field Choice Condition"
+msgstr "Kullanıcı Alanı Seçim Koşulu Ata"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_user_field_choice_type
+msgid "Assign User Field Choice Type"
+msgstr "Kullanıcı Alanı Seçim Türünü Ata"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_user_field_sort_direction
+msgid "Assign User Field Sort Direction"
+msgstr "Kullanıcı Alanı Sıralama Yönü Ata"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_user_field_sort_field_id
+msgid "Assign User Field Sort Field"
+msgstr "Kullanıcı Alanı Sıralama Yönü Ata"
+
+#. module: generic_assignment
+#: model:ir.model.fields.selection,name:generic_assignment.selection__ir_actions_server__state__assign_by_policy
+msgid "Assign by Policy"
+msgstr "Atama Politikası"
+
+#. module: generic_assignment
+#: code:addons/generic_assignment/wizard/generic_wizard_assignment.py:0
+#, python-format
+msgid ""
+"Assign model (%(assign_model)s) must be equal to policy's assign model "
+"%(policy_model)s"
+msgstr ""
+"Atama modeli (%(assign_model)s), politikanın atama modeli %(policy_model)s "
+"ile eşit olmalıdır"
+
+#. module: generic_assignment
+#: code:addons/generic_assignment/wizard/generic_wizard_assignment.py:0
+#, python-format
+msgid ""
+"Assign object's model (%(obj_model)s) must be equal to policy's assign model "
+"%(policy_model)s"
+msgstr ""
+"Nesnenin atama modeli (%(obj_model)s), politikanın atama modeli "
+"%(policy_model)s ile eşit olmalıdır"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_server_action_form_assign
+msgid "Assign policy"
+msgstr "Atama Politikası"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_search
+msgid "Assign type"
+msgstr "Atama Türü"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__assignment_model_ids
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_resource_type__assignment_model_ids
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_system_event_source__assignment_model_ids
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_tag_model__assignment_model_ids
+#: model:ir.model.fields,field_description:generic_assignment.field_ir_model__assignment_model_ids
+msgid "Assignment Model"
+msgstr "Atama Modeli"
+
+#. module: generic_assignment
+#: model:ir.model,name:generic_assignment.model_generic_assign_policy
+msgid "Assignment Policy"
+msgstr "Atama Politikası"
+
+#. module: generic_assignment
+#: model:ir.model,name:generic_assignment.model_generic_assign_policy_model
+msgid "Assignment Policy Model"
+msgstr "Atama Politikası Modeli"
+
+#. module: generic_assignment
+#: model:ir.ui.menu,name:generic_assignment.policy_models
+msgid "Assignment Policy Models"
+msgstr "Atama Politikası Modelleri"
+
+#. module: generic_assignment
+#: model:ir.model,name:generic_assignment.model_generic_assign_policy_rule
+msgid "Assignment Policy Rule"
+msgstr "Atama Politikası Kuralı"
+
+#. module: generic_assignment
+#: model:ir.ui.menu,name:generic_assignment.assignment_policies
+msgid "Assignment policies"
+msgstr "Atama Politikaları"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_attachment_count
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_attachment_count
+msgid "Attachment Count"
+msgstr "Ek Sayısı"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.generic_assign_wizard_form
+msgid "Cancel"
+msgstr "İptal etmek"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+msgid "Choice conditions"
+msgstr "Seçim koşulları"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_choice_type
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+msgid "Choice type"
+msgstr "Seçim türleri"
+
+#. module: generic_assignment
+#: code:addons/generic_assignment/wizard/generic_wizard_assignment.py:0
+#, python-format
+msgid "Closing this activity because assignee was unsubscribed!"
+msgstr "Atanan kişinin aboneliği iptal edildiği için bu etkinlik kapatılıyor!"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__assign_comment
+msgid "Comment"
+msgstr "Yorum"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.generic_assign_wizard_form
+msgid "Comment..."
+msgstr "Yorum..."
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__condition_ids
+msgid "Condition"
+msgstr "Şart"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+msgid "Conditions..."
+msgstr "Şartlar..."
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__act_assign_id
+msgid "Context action that allows to assign multiple objects from list view"
+msgstr "Liste görünümünden birden fazla nesne atamaya izin veren bağlam eylemi"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__count
+msgid "Count (Incl. Archived)"
+msgstr "Sayım (Arşivlenenler Dahil)"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__create_uid
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__create_uid
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__create_uid
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__create_uid
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__create_uid
+msgid "Created by"
+msgstr "Tarafından yaratıldı"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__create_date
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__create_date
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__create_date
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__create_date
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__create_date
+msgid "Created on"
+msgstr "oluşturuldu"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__debug_log
+msgid "Debug Log"
+msgstr "Hata ayıklama kaydı"
+
+#. module: generic_assignment
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_related_policy_sort_direction__desc
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_user_field_sort_direction__desc
+msgid "Descending"
+msgstr "Azalan"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__description
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__description
+msgid "Description"
+msgstr "Tanım"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+msgid "Description ..."
+msgstr "Tanım..."
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_form
+msgid "Description of policy..."
+msgstr "Politikanın açıklaması..."
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__display_name
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__display_name
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__display_name
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__display_name
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__display_name
+msgid "Display Name"
+msgstr "Ekran adı"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__enable_act_assign
+msgid "Enable context assign"
+msgstr "Bağlam atamayı etkinleştir"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+msgid "Field"
+msgstr "Alan"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_field_type
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_user_field_type
+msgid "Field Type"
+msgstr "Alan türü"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_field_id
+msgid "Field that points to record to run related policy."
+msgstr "İlgili politikayı çalıştırmak için kayda işaret eden alan."
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__assign_user_field_id
+msgid "Field to get user from."
+msgstr "Kullanıcının alınacağı alan."
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__field_id
+msgid "Fields"
+msgstr "Alanlar"
+
+#. module: generic_assignment
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_related_policy_choice_type__first
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_user_field_choice_type__first
+msgid "First"
+msgstr "Birinci"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_follower_ids
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_follower_ids
+msgid "Followers"
+msgstr "Takipçiler"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_partner_ids
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_partner_ids
+msgid "Followers (Partners)"
+msgstr "Takipçiler (Ortaklar)"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_field_model_id
+msgid "For relationship fields, the technical name of the target model"
+msgstr "İlişki alanları için hedef modelin teknik adı"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__resource_type_id
+msgid "Generic Resource Type"
+msgstr "Genel Kaynak Türü"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__resource_type_ids
+msgid "Generic Resource Types"
+msgstr "Genel Kaynak Türleri"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__system_event_source_id
+msgid "Generic System Event Source"
+msgstr "Genel Sistem Olay Kaynağı"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__system_event_source_ids
+msgid "Generic System Event Sources"
+msgstr "Genel Sistem Olay Kaynakları"
+
+#. module: generic_assignment
+#: model:ir.model,name:generic_assignment.model_generic_wizard_assign
+msgid "Generic Wizard: Assign"
+msgstr "Genel Sihirbaz: Ata"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_search
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_search
+msgid "Group By"
+msgstr "Gruplandır"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__has_message
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__has_message
+msgid "Has Message"
+msgstr "Mesaj Var"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_test_assign_policy__res_id
+msgid "ID of object to test assign policy on"
+msgstr "Atama politikasının test edileceği nesnenin ID'si"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy__message_needaction
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy__message_unread
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__message_needaction
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__message_unread
+msgid "If checked, new messages require your attention."
+msgstr "Kontrol edilirse, yeni iletilerle ilgilenmeniz gerekir."
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy__message_has_error
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__message_has_error
+msgid "If checked, some messages have a delivery error."
+msgstr "Kontrol edilirse, bazı iletilerde teslim hatası vardır."
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__modules
+msgid "In Apps"
+msgstr "Uygulamalarda"
+
+#. module: generic_assignment
+#: code:addons/generic_assignment/models/generic_assign_policy_model.py:0
+#, python-format
+msgid "Incorrect combination of assign_user_field_id and model_id."
+msgstr "yanlış assign_user_field_id ve model_id kombinasyonu."
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__info
+msgid "Information"
+msgstr "Bilgi"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__inherited_model_ids
+msgid "Inherited models"
+msgstr "Miras alınan modeller"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_is_follower
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_is_follower
+msgid "Is Follower"
+msgstr "takipçidir"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__is_generic_resource
+msgid "Is Generic Resource"
+msgstr "Genel Kaynaktır"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy____last_update
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model____last_update
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule____last_update
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy____last_update
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign____last_update
+msgid "Last Modified on"
+msgstr "Son Değiştirme Tarihi"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__write_uid
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__write_uid
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__write_uid
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__write_uid
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__write_uid
+msgid "Last Updated by"
+msgstr "Son Güncelleyen"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__write_date
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__write_date
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__write_date
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__write_date
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__write_date
+msgid "Last Updated on"
+msgstr "Son güncelleme tarihi"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__modules
+msgid "List of modules in which the object is defined or inherited"
+msgstr "Nesnenin tanımlandığı veya devralındığı modüllerin listesi"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__is_mail_activity
+msgid "Mail Activity"
+msgstr "Mail Etkinliği"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__is_mail_blacklist
+msgid "Mail Blacklist"
+msgstr "Mail Kara Listesi"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__is_mail_thread
+msgid "Mail Thread"
+msgstr "Mail Konusu"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_main_attachment_id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_main_attachment_id
+msgid "Main Attachment"
+msgstr "Ana Eklenti"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_has_error
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_has_error
+msgid "Message Delivery error"
+msgstr "Mesaj Teslim hatası"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_ids
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_ids
+msgid "Messages"
+msgstr "Mesajlar"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__model_id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__model
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__model_name
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__assign_model
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_search
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_search
+msgid "Model"
+msgstr "Model"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__name
+msgid "Model Description"
+msgstr "model tanımı"
+
+#. module: generic_assignment
+#: model:ir.model,name:generic_assignment.model_ir_model
+msgid "Models"
+msgstr "Modeller"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__name
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__name
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_search
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_search
+msgid "Name"
+msgstr "İsim"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_form
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+msgid "Name..."
+msgstr "İsim..."
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_needaction_counter
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_needaction_counter
+msgid "Number of Actions"
+msgstr "Eylem Sayısı"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_has_error_counter
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_has_error_counter
+msgid "Number of errors"
+msgstr "hata sayısı"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy__message_needaction_counter
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__message_needaction_counter
+msgid "Number of messages which requires an action"
+msgstr "İşlem gerektiren mesaj sayısı"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy__message_has_error_counter
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__message_has_error_counter
+msgid "Number of messages with delivery error"
+msgstr "Teslimat hatası olan mesaj sayısı"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy__message_unread_counter
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__message_unread_counter
+msgid "Number of unread messages"
+msgstr "Okunmamış mesaj sayısı"
+
+#. module: generic_assignment
+#: code:addons/generic_assignment/wizard/test_assign_policy.py:0
+#, python-format
+msgid "Object (model: %(model)s; id: %(res_id)s) not found"
+msgstr "Nesne (model: %(model)s; id: %(res_id)s) bulunamadı"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__res_id
+msgid "Object ID"
+msgstr "Nesne ID"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__res_model
+msgid "Object Model"
+msgstr "Nesne Modeli"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__model_id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__model_id
+msgid "Odoo Model"
+msgstr "Odoo Modeli"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__order
+msgid "Order"
+msgstr "Sipariş"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_form
+msgid "Please, save this policy, to be able to edit its rules!"
+msgstr "Kurallarını düzenleyebilmek için lütfen bu politikayı kaydedin!"
+
+#. module: generic_assignment
+#: model:ir.actions.act_window,name:generic_assignment.action_assign_policy
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__assign_policy_count
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_model_form
+msgid "Policies"
+msgstr "politikalar"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__policy_id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__assign_policy_id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__assign_policy_id
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_type__policy
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_wizard_assign__assign_type__policy
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_search
+msgid "Policy"
+msgstr "Politika"
+
+#. module: generic_assignment
+#: model:res.groups,name:generic_assignment.group_generic_assignment_policy_manager
+msgid "Policy Manager"
+msgstr "politika yöneticisi"
+
+#. module: generic_assignment
+#: model:ir.actions.act_window,name:generic_assignment.action_assign_policy_model
+msgid "Policy Models"
+msgstr "Politika Modelleri"
+
+#. module: generic_assignment
+#: model:res.groups,name:generic_assignment.group_generic_assignment_policy_user
+msgid "Policy User"
+msgstr "Politika Kullanıcısı"
+
+#. module: generic_assignment
+#: model:res.groups,name:generic_assignment.group_generic_assignment_policy_user_implicit
+msgid "Policy user implicit"
+msgstr "üstü kapalı politika kullanıcısı"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__sequence
+msgid "Priority"
+msgstr "Öncelik"
+
+#. module: generic_assignment
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_type__eval
+msgid "Python expression"
+msgstr "Python ifadesi"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__assign_eval
+msgid ""
+"Python expression that evaluates to False or dict with keys:\n"
+"         user_id. If False is returned, than next rule in chain\n"
+"          will be triggered.\n"
+"           For example: '{\"user_id\": record.create_uid}' or 'False'"
+msgstr ""
+"Anahtarlarla False veya dict olarak değerlendirilen Python ifadesi:\n"
+"          Kullanıcı kimliği. False döndürülürse, zincirdeki bir sonraki "
+"kuraldan sonra\n"
+"           tetiklenecek.\n"
+"            Örneğin: \"{\"user_id\": record.create_uid}\" veya \"False\""
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.generic_assign_policy_test_wizard_form
+msgid "Quit"
+msgstr "Çıkış yapmak"
+
+#. module: generic_assignment
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_related_policy_choice_type__random
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_user_field_choice_type__random
+msgid "Random"
+msgstr "Rastgele"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__rule_ids
+msgid "Record Rules"
+msgstr "Kayıt Kuralları"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_field_model_id
+msgid "Related Model"
+msgstr "İlgili Model"
+
+#. module: generic_assignment
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_type__related_policy
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+msgid "Related policy"
+msgstr "İlgili politika"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__result_convert
+msgid "Result Convert"
+msgstr "Sonuç Dönüştür"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__result_get
+msgid "Result Get"
+msgstr "Sonuç Al"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__result_user_id
+msgid "Result User"
+msgstr "Sonuç Kullanıcısı"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__rule_ids
+msgid "Rule"
+msgstr "Kural"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__rule_count
+msgid "Rule Count"
+msgstr "Kural Sayısı"
+
+#. module: generic_assignment
+#: model:ir.actions.act_window,name:generic_assignment.action_assign_policy_rule
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_form
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_tree
+msgid "Rules"
+msgstr "Kurallar"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__rule_not_unique
+msgid "Rules priority is not unique"
+msgstr "Kural önceliği benzersiz değil"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__order
+msgid ""
+"SQL expression for ordering records in the model; e.g. \"x_sequence asc, id "
+"desc\""
+msgstr ""
+"Modeldeki kayıtları sıralamak için SQL ifadesi; Örneğin. \"x_sequence artan, "
+"id azalan\""
+
+#. module: generic_assignment
+#: model:ir.model,name:generic_assignment.model_ir_actions_server
+msgid "Server Action"
+msgstr "Sunucu İşlemi"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+msgid "Sort direction"
+msgstr "Sıralama Yönü"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+msgid "Sort field"
+msgstr "Alanı sırala"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__sequence
+msgid ""
+"Specify here priority for this assignment rule. Rules with less priority "
+"will be executed first. "
+msgstr ""
+"Bu atama kuralı için önceliği burada belirtin. Daha az önceliğe sahip "
+"kurallar önce yürütülür. "
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.generic_assign_policy_test_wizard_form
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_form
+msgid "Test"
+msgstr "Test"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__test_as_user_id
+msgid "Test As User"
+msgstr "Kullanıcı Olarak Test Et"
+
+#. module: generic_assignment
+#: model:ir.actions.act_window,name:generic_assignment.action_generic_assign_policy_test_wizard_view
+#: model_terms:ir.ui.view,arch_db:generic_assignment.generic_assign_policy_test_wizard_form
+msgid "Test Assign Policy"
+msgstr "Test Atama Politikası"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__inherited_model_ids
+msgid "The list of models that extends the current model."
+msgstr "Şuanki modeli genişleten modellerin listesi."
+
+#. module: generic_assignment
+#: model:ir.model.constraint,message:generic_assignment.constraint_generic_assign_policy_model_model_unique
+msgid "The model for the assignment policy must be unique."
+msgstr "Atama politikası modeli benzersiz olmalıdır."
+
+#. module: generic_assignment
+#: code:addons/generic_assignment/models/generic_assign_policy.py:0
+#, python-format
+msgid ""
+"This policy cannot be used to set assignee, because policy model is not "
+"configured, but it could be used to compute assign data based on model: %s"
+msgstr ""
+"Bu ilke, ilke modeli yapılandırılmadığı için atanan kişiyi ayarlamak için "
+"kullanılamaz, ancak modele göre atama verilerini hesaplamak için "
+"kullanılabilir: %s"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__count
+msgid "Total number of records in this model"
+msgstr "Bu modeldeki toplam kayıt sayısı"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__transient
+msgid "Transient Model"
+msgstr "Geçici Model"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__state
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_type
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__assign_type
+msgid "Type"
+msgstr "Tür"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_ir_actions_server__state
+#: model:ir.model.fields,help:generic_assignment.field_ir_cron__state
+msgid ""
+"Type of server action. The following values are available:\n"
+"- 'Execute Python Code': a block of python code that will be executed\n"
+"- 'Create': create a new record with new values\n"
+"- 'Update a Record': update the values of a record\n"
+"- 'Execute several actions': define an action that triggers several other "
+"server actions\n"
+"- 'Send Email': automatically send an email (Discuss)\n"
+"- 'Add Followers': add followers to a record (Discuss)\n"
+"- 'Create Next Activity': create an activity (Discuss)"
+msgstr ""
+"Sunucu eylemi türü. Aşağıdaki değerler mevcuttur:\n"
+"- 'Python Kodunu Yürüt': yürütülecek bir python kodu bloğu\n"
+"- 'Oluştur': yeni değerlerle yeni bir kayıt oluşturun\n"
+"- 'Bir Kaydı Güncelle': bir kaydın değerlerini güncelleyin\n"
+"- 'Birkaç eylem yürütün': diğer birkaç sunucu eylemini tetikleyen bir eylem "
+"tanımlayın\n"
+"- 'E-posta Gönder': otomatik olarak bir e-posta gönderin (Tartış)\n"
+"- 'Takipçi Ekle': bir kayda takipçi ekleyin (Tartış)\n"
+"- 'Sonraki Etkinlik Oluştur': bir etkinlik oluşturun (Tartış)"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_unread
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_unread
+msgid "Unread Messages"
+msgstr "Okunmamış Mesajlar"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_unread_counter
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_unread_counter
+msgid "Unread Messages Counter"
+msgstr "Okunmamış Mesaj Sayacı"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__unsubscribe_prev_assignee
+msgid "Unsubscribe previously subscribed"
+msgstr "Daha önce abone olunan abonelikten çık"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__assign_user_id
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_type__user
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_wizard_assign__assign_type__user
+msgid "User"
+msgstr "Kullanıcı"
+
+#. module: generic_assignment
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_type__user_field
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+msgid "User field"
+msgstr "Kullanıcı Alanı"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__assign_user_id
+msgid "User to be assigned to this request."
+msgstr "Bu isteğe atanacak kullanıcı."
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__view_ids
+msgid "Views"
+msgstr "Görüntülemeler"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_form
+msgid ""
+"Warning: more that one rule of this policy have same sequence! This may lead "
+"to undefined order of rules execution!"
+msgstr ""
+"Uyarı: Bu politikanın birden fazla kuralı aynı sıralamaya sahiptir! Bu, "
+"tanımsız kural yürütme sırasına yol açabilir!"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__is_generic_resource
+msgid "Whether this model is Generic Resource."
+msgstr "Bu modelin Genel Kaynak olup olmadığı."
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__is_mail_activity
+msgid "Whether this model supports activities."
+msgstr "Bu modelin etkinlikleri destekleyip desteklemediği."
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__is_mail_blacklist
+msgid "Whether this model supports blacklist."
+msgstr "Bu modelin kara listeyi destekleyip desteklemediği."
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__is_mail_thread
+msgid "Whether this model supports messages and notifications."
+msgstr "Bu modelin mesajları ve bildirimleri destekleyip desteklemediği."
+
+#. module: generic_assignment
+#: model:ir.model,name:generic_assignment.model_generic_assign_policy_test_assign_policy
+msgid "Wizard: Test generic assign policy"
+msgstr "Sihirbaz: Genel atama ilkesini test edin"
+
+#. module: generic_assignment
+#: code:addons/generic_assignment/wizard/generic_wizard_assignment.py:0
+#, python-format
+msgid "Wrong assign type selected"
+msgstr "Yanlış atama türü seçildi"

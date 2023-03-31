@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+    <t t-extend="mail.widget.Thread.Message">
+        <t t-jquery='i[class="fa fa-check o_thread_icon o_thread_message_needaction"]' t-operation="after">
+            <i t-if="!message.isLinkedToDocumentThread() and message.getType() === 'email'"
+               class="fa fa-bullhorn o_thread_icon o_thread_message_request"
+               t-att-data-message-id="message.getID()" title="Create Request" role="img" aria-label="Create Request"/>
+        </t>
+    </t>
+</template>

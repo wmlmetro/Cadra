@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Make default service website published -->
+    <record id="generic_service.generic_service_default" model="generic.service">
+        <field name="website_published" eval="True"/>
+        <field name="category_ids" eval="[(4, ref('crnd_wsd.request_category_demo_website_support')),(4, ref('crnd_wsd.request_category_demo_website_tech'))]"/>
+    </record>
+
+    <!-- Link request types to default service -->
+    <record id="crnd_service_desk.request_type_incident" model="request.type">
+        <field name="service_ids" eval="[(4, ref('generic_service.generic_service_default'))]"/>
+    </record>
+</odoo>

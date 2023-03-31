@@ -1,0 +1,101 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_assignment
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 12.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-09-16 11:45+0000\n"
+"PO-Revision-Date: 2022-01-25 13:01+0000\n"
+"Last-Translator: Валерия <valittle@ukr.net>\n"
+"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-14-0/generic_request_assignment/uk/>\n"
+"Language: uk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy.rule,name:generic_request_assignment.request_rule_assign_eval
+msgid "Assign admin by python-expression"
+msgstr "Призначити користувача через python-вираз"
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy.rule,name:generic_request_assignment.request_rule_assign_user_demo_portal
+msgid "Assign demo portal user"
+msgstr "Призначити демо-користувача порталу"
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy.rule,name:generic_request_assignment.request_rule_assign_user_demo
+msgid "Assign demo user"
+msgstr "Призначити демо-користувача"
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy.rule,description:generic_request_assignment.request_rule_assign_user_field
+msgid ""
+"Assign user by field \"created_by\" of the request. Type of policy: \"User "
+"field\"."
+msgstr ""
+"Призначити користувача з поля запиту \"created_by\". Тип політики "
+"призначення: \"Поле користувача\"."
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy.rule,name:generic_request_assignment.request_rule_assign_user_field
+msgid "Assign user from field 'created_by'"
+msgstr "Призначити користувача з поля 'created_by'"
+
+#. module: generic_request_assignment
+#: model:ir.actions.act_window,name:generic_request_assignment.action_request_assignment_policy
+#: model:ir.ui.menu,name:generic_request_assignment.menu_assignment_policies
+msgid "Assignment Policies"
+msgstr ""
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy.rule,name:generic_request_assignment.request_rule_assign_policy
+msgid "Call other assign policy"
+msgstr "Викликати іншу політику призначення"
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy,name:generic_request_assignment.request_example_assign_policy_policy
+msgid "Demo assign policy"
+msgstr "Демо політика призначення"
+
+#. module: generic_request_assignment
+#: model:ir.model,name:generic_request_assignment.model_generic_wizard_assign
+msgid "Generic Wizard: Assign"
+msgstr ""
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy,description:generic_request_assignment.request_example_assign_policy_policy
+msgid "Just assign to demo portal user."
+msgstr "Просто призначити демо-користувачу портала."
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy.model,name:generic_request_assignment.request_assign_policy_model
+#: model:ir.model,name:generic_request_assignment.model_request_request
+msgid "Request"
+msgstr "Запит"
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy,name:generic_request_assignment.request_example_assign_policy
+msgid "Test Assign Policy"
+msgstr "Тестова політика призначень"
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy,description:generic_request_assignment.request_example_assign_policy
+msgid "This is demo assign policy that is used in automatic tests"
+msgstr ""
+"Це політика призначень (демо) яка використовується в автоматичних тестах"
+
+#~ msgid "Display Name"
+#~ msgstr "Відображуване ім’я"
+
+#~ msgid "ID"
+#~ msgstr "ID"
+
+#~ msgid "Last Modified on"
+#~ msgstr "Остання модифікація"

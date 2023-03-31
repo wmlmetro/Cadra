@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <template id="priority_bar">
+        <div class="priority_bar">
+            <t t-if="request_priority_list">
+                <t t-set="max_priority" t-value="len(request_priority_list) - 1"/>
+                <t t-foreach="request_priority_list" t-as="priority">
+                    <t t-set="priority_inv" t-value="request_priority_list[max_priority - int(priority[0])]"/>
+                    <input type="radio"
+                           t-attf-id="priority_#{priority_inv[0]}"
+                           t-attf-aria-label="{{priority_inv[1]}}"
+                           t-att-checked="true if req.priority==priority_inv[0] else false"
+                           disabled="true"/>
+                    <label t-att-class="'d-none' if priority[0]==str(max_priority) else ''"
+                           t-attf-for="priority_#{priority_inv[0]}">
+                        <i class="fa fa-star-o"></i>
+                    </label>
+                </t>
+            </t>
+        </div>
+    </template>
+
+    <template id="wsd_requests_new_request_data_priority"
+              inherit_id="crnd_wsd.wsd_requests_new_request_data"
+              name="Request Priority"
+              customize_show="True"
+              active="True">
+        <xpath expr="//section[@id='request-body']" position="before">
+            <div id="request-data-priority"
+                 t-att-data-complex="req_type.complex_priority"
+                 class="col-sm-12 mt-1">
+                <label class="m-0">Priority</label>
+                 <t t-if="req_type.selection_priority_view  == 'star'">
+                     <div id="star_priority_group"
+                          class="star_priority_group">
+                         <t t-if="req_type.complex_priority">
+                             <div>
+                                <div class="priority_group_container">
+                                    <label class="label_icon">
+                                        <i class="fa fa-star-half-o"
+                                           title="Impact"></i>
+                                    </label>
+                                    <div id="impact_priority_group"
+                                         class="priority_group">
+                                        <t t-foreach="request_impact_priority_list" t-as="priority">
+                                            <t t-if="priority[0]=='0'">
+                                                <input class="d-none"
+                                                       type="radio"
+                                                       name="request_impact_priority"
+                                                       t-attf-id="impact_priority_#{priority[0]}"
+                                                       t-attf-value="{{priority[0]}}"
+                                                       t-attf-aria-label="{{priority[1]}}"
+                                                       checked="true"/>
+                                            </t>
+                                            <t t-else="">
+                                                <input class="d-none"
+                                                       type="radio"
+                                                       name="request_impact_priority"
+                                                       t-attf-id="impact_priority_#{priority[0]}"
+                                                       t-attf-value="{{priority[0]}}"
+                                                       t-attf-aria-label="{{priority[1]}}"/>
+                                                <label class=""
+                                                       t-attf-for="impact_priority_#{priority[0]}"
+                                                       t-attf-value="{{priority[0]}}">
+                                                    <i class="fa fa-star-o"></i>
+                                                </label>
+                                            </t>
+                                        </t>
+                                    </div>
+                                </div>
+
+                                 <div class="priority_group_container">
+                                    <label class="label_icon">
+                                        <i class="fa fa-clock-o"
+                                           title="Urgency"></i>
+                                    </label>
+                                 <div id="urgency_priority_group"
+                                      class="priority_group">
+                                     <t t-foreach="request_urgency_priority_list" t-as="priority">
+                                         <t t-if="priority[0]=='0'">
+                                             <input class="d-none"
+                                                    type="radio"
+                                                    name="request_urgency_priority"
+                                                    t-attf-id="urgency_priority_#{priority[0]}"
+                                                    t-attf-value="{{priority[0]}}"
+                                                    t-attf-aria-label="{{priority[1]}}"
+                                                    checked="true"/>
+                                         </t>
+                                         <t t-else="">
+                                             <input class="d-none"
+                                                    type="radio"
+                                                    name="request_urgency_priority"
+                                                    t-attf-id="urgency_priority_#{priority[0]}"
+                                                    t-attf-value="{{priority[0]}}"
+                                                    t-attf-aria-label="{{priority[1]}}"/>
+                                             <label class=""
+                                                    t-attf-for="urgency_priority_#{priority[0]}">
+                                                 <i class="fa fa-star-o"></i>
+                                             </label>
+                                         </t>
+                                     </t>
+                                 </div>
+                             </div>
+                             </div>
+                             <div class="arrow_right">
+                                 <i class="fa fa-arrow-right"
+                                    title="Priority"></i>
+                             </div>
+                         </t>
+
+                         <div class="priority_group_container ">
+                         <div>
+                             <div id="priority_group" class="priority_group">
+                                 <t t-foreach="request_priority_list" t-as="priority">
+                                     <t t-if="priority[0]=='0'">
+                                         <input class="d-none"
+                                                type="radio"
+                                                name="request_priority"
+                                                t-attf-id="priority_#{priority[0]}"
+                                                t-attf-value="{{priority[0]}}"
+                                                t-attf-aria-label="{{priority[1]}}"
+                                                checked="true"/>
+                                     </t>
+                                     <t t-else="">
+                                         <input class="d-none"
+                                                type="radio"
+                                                name="request_priority"
+                                                t-attf-id="priority_#{priority[0]}"
+                                                t-attf-value="{{priority[0]}}"
+                                                t-attf-aria-label="{{priority[1]}}"/>
+                                         <label class=""
+                                                t-attf-for="priority_#{priority[0]}">
+                                             <i class="fa fa-star-o"></i>
+                                         </label>
+                                     </t>
+                                 </t>
+                             </div>
+                         </div>
+                         </div>
+                   </div>
+                 </t>
+
+                <t t-elif="req_type.selection_priority_view  == 'selection'">
+                    <t t-if="req_type.complex_priority">
+                        <div class="form-group col-sm-5 col-md-4 col-lg-3 col-xl-2 mt-1 mb-2 p-0 selection_container">
+                            <label class="label_icon">
+                                <i class="fa fa-star-half-o"
+                                   title="Impact"></i>
+                            </label>
+                            <select name="request_impact_priority"
+                                     id="request_impact_priority"
+                                     class="form-control form-control-sm"
+                                     placeholder="Priority...">
+                                <t t-foreach="request_impact_priority_list" t-as="priority">
+                                    <option t-att-value="priority[0]"
+                                            t-esc="priority[1]"/>
+                                </t>
+                            </select>
+                        </div>
+                        <div class="form-group col-sm-5 col-md-4 col-lg-3 col-xl-2 mb-2 p-0 selection_container">
+                            <label class="label_icon">
+                                <i class="fa fa-clock-o"
+                                   title="Urgency"></i>
+                            </label>
+                            <select name="request_urgency_priority"
+                                     id="request_urgency_priority"
+                                     class="form-control form-control-sm"
+                                     placeholder="Priority...">
+                                <t t-foreach="request_urgency_priority_list" t-as="priority">
+                                    <option t-att-value="priority[0]"
+                                            t-esc="priority[1]"/>
+                                </t>
+                            </select>
+                        </div>
+                        <input type="text" name="request_priority" id="request_priority" value="0" class="d-none"/>
+                    </t>
+                    <t t-else="">
+                        <div class="form-group col-sm-5 col-md-4 col-lg-3 col-xl-2 mt-1 p-0">
+                            <select name="request_priority"
+                                    id="request_priority"
+                                    class="form-control form-control-sm"
+                                    placeholder="Priority...">
+                                <t t-foreach="request_priority_list" t-as="priority">
+                                    <option t-att-value="priority[0]"
+                                            t-esc="priority[1]"/>
+                                </t>
+                            </select>
+                        </div>
+                    </t>
+                </t>
+            </div>
+        </xpath>
+    </template>
+
+    <template id="wsd_request_table_request_data_priority"
+              inherit_id="crnd_wsd.wsd_request_table"
+              name="Request Priority"
+              customize_show="True"
+              active="True">
+        <xpath expr="//div[hasclass('request_top')]" position="after">
+            <t t-call="crnd_wsd.priority_bar"/>
+        </xpath>
+    </template>
+
+    <template id="wsd_request_table_request_data_congrat_priority"
+              inherit_id="crnd_wsd.wsd_requests_new_congratulation"
+              name="Request Priority"
+              customize_show="True"
+              active="True">
+        <xpath expr="//div[hasclass('request_top')]" position="after">
+            <t t-call="crnd_wsd.priority_bar"/>
+        </xpath>
+    </template>
+
+    <template id="wsd_request_page_request_data_priority"
+              inherit_id="crnd_wsd.wsd_request_body"
+              name="Request Priority"
+              customize_show="True"
+              active="True">
+        <xpath expr="//h3[@id='request-top-head']" position="after">
+            <h3 style="margin: 0;">
+                <t t-call="crnd_wsd.priority_bar"/>
+            </h3>
+        </xpath>
+    </template>
+</odoo>

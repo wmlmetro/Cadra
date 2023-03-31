@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_stage_trigger_tree">
+        <field name="model">request.stage.route.trigger</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="route_id"/>
+                <field name="trigger"/>
+                <field name="event_type_ids" widget="many2many_tags"/>
+                <field name="condition_ids"
+                       widget="many2many_tags"
+                       domain="[('model_id.model', '=', 'request.request')]"
+                       context="{'default_based_on': 'request.request'}"/>
+                <field name="event_condition_ids"
+                       widget="many2many_tags"
+                       domain="[('model_id.model', '=', 'request.event')]"
+                       context="{'default_based_on': 'request.event'}"/>
+                <field name="sudo_enable"/>
+                <field name="sudo_user_id"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_stage_trigger_form">
+        <field name="model">request.stage.route.trigger</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <field name="active" invisible="1"/>
+                    <widget name="web_ribbon" title="Archived"
+                            bg_color="bg-danger"
+                            attrs="{'invisible': [('active', '=', True)]}"/>
+                    <div name="title" class="oe_title request_title">
+                        <h1>
+                            <field name="name" placeholder="Name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="dummy_request_type_id" invisible="1"/>
+                            <field name="route_id"
+                                   readonly="context.get('default_route_id')"/>
+                            <field name="trigger"/>
+                            <field name="event_type_ids"
+                                   widget="many2many_tags"
+                                   domain="['|',('event_source_id', '=', False),('event_source_model_name', '=', 'request.request')]"
+                                   options="{'no_create': true, 'no_quick_create': true}"
+                                   attrs="{'invisible': [('trigger', '!=', 'event')], 'required': [('trigger', '=', 'event')]}"/>
+                        </group>
+                        <group>
+                            <field name="sequence"/>
+                            <field name="sudo_enable"/>
+                            <field name="sudo_user_id" attrs="{'invisible': [('sudo_enable', '=', False)]}"/>
+                        </group>
+                        <group colspan="4">
+                            <field name="condition_ids"
+                                   domain="[('model_id.model', '=', 'request.request')]"
+                                   context="{'default_based_on': 'request.request'}"
+                                   options="{'no_quick_create': True, 'open': True}"
+                                   widget="many2many_tags"/>
+                            <field name="event_condition_ids"
+                                   attrs="{'invisible': [('trigger', '!=', 'event')]}"
+                                   domain="[('model_id.model', '=', 'request.event')]"
+                                   widget="many2many_tags"
+                                   context="{'default_based_on': 'request.event'}"
+                                   options="{'no_quick_create': True, 'open': True}"/>
+                            <field name="trigger_on_write_field_ids"
+                                   attrs="{'invisible': [('trigger', '!=', 'auto_on_write')]}"
+                                   widget="many2many_tags"/>
+                        </group>
+                    </group>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_request_stage_route_triggers"
+            model="ir.actions.act_window">
+        <field name="name">Triggers</field>
+        <field name="res_model">request.stage.route.trigger</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

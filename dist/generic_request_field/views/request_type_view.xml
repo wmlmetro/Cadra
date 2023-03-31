@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_request_type_fields" model="ir.actions.act_window">
+        <field name="name">Fields</field>
+        <field name="res_model">request.field</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('request_type_id', '=', active_id)]</field>
+        <field name="context">{'default_request_type_id': active_id}</field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_type_form">
+        <field name="model">request.type</field>
+        <field name="inherit_id" ref="generic_request.view_request_type_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='%(generic_request.action_request_type_stages)d']" position="after">
+                        <button name="%(action_request_type_fields)d"
+                                type="action"
+                                class="oe_stat_button" icon="fa-qrcode">
+                            <field string="Fields" name="field_count"
+                                   widget="statinfo"/>
+                        </button>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="request_type_field_view_dashboard" model="ir.ui.view">
+        <field name="model">request.type</field>
+        <field name="inherit_id" ref="generic_request.request_type_view_dashboard"/>
+        <field name="arch" type="xml">
+            <xpath expr="//kanban/field[@name='route_count']" position="after">
+                <field name="field_count"/>
+            </xpath>
+            <xpath expr="//div[hasclass('o_buttons')]" position="inside">
+                <a name="%(action_request_type_fields)d"
+                    type="action" title="Fields">
+                    <span class="fa fa-lg fa-qrcode"/>
+                    <span><t t-esc="record.field_count.raw_value"/></span>
+                </a>
+
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

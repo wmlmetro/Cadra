@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_generic_resource_role_type_view_relatd_roles" model="ir.actions.act_window">
+        <field name="name">Related roles</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">generic.resource.role</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('role_type_id', '=', active_id)]</field>
+        <field name="context">{'default_role_type_id': active_id}</field>
+    </record>
+
+    <record id="generic_resource_role_type_view_tree" model="ir.ui.view">
+        <field name="name">generic.resource.role.type.tree</field>
+        <field name="model">generic.resource.role.type</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="role_count"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="generic_resource_role_type_view_form" model="ir.ui.view">
+        <field name="name">generic.resource.role.type.form</field>
+        <field name="model">generic.resource.role.type</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button"
+                                type="action"
+                                name="%(generic_resource_role.action_generic_resource_role_type_view_relatd_roles)d"
+                                icon="fa-users">
+                            <field string="Roles" name="role_count" widget="statinfo"/>
+                        </button>
+                    </div>
+                    <field name="active" invisible="1"/>
+                    <widget name="web_ribbon" title="Archived"
+                            bg_color="bg-danger"
+                            attrs="{'invisible': [('active', '=', True)]}"/>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Name..."/>
+                        </h1>
+                        <h2>
+                            <field name="code" placeholder="Code..."/>
+                        </h2>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="generic_resource_role_type_action_view" model="ir.actions.act_window">
+        <field name="name">Roles Types</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">generic.resource.role.type</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_generic_resource_role_types"
+              action="generic_resource_role_type_action_view"
+              parent="menu_generic_resource_roles_root"
+              sequence="20"/>
+</odoo>
+

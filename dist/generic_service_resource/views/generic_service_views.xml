@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Extended tree view for generic.service -->
+    <record id="inherited_generic_service_view_tree_inherit_service_resource" model="ir.ui.view">
+        <field name="name">generic.service.tree.service.resource</field>
+        <field name="model">generic.service</field>
+        <field name="inherit_id" ref="generic_service.generic_service_view_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//tree" position="inside">
+                <field name="resource_count"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Extended form view for generic.service -->
+    <record id="inherited_generic_service_view_form_inherit_service_resource" model="ir.ui.view">
+        <field name="name">generic.service.form.generic.service.resource</field>
+        <field name="model">generic.service</field>
+        <field name="inherit_id" ref="generic_service.generic_service_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button class="oe_stat_button"
+                        type="object"
+                        name="action_show_service_resources"
+                        icon="fa-th-large">
+                    <field string="Resources" name="resource_count" widget="statinfo"/>
+                </button>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="Resources">
+                    <field name="resource_ids" options="{'no_create': True}">
+                        <tree>
+                            <field name="display_name"/>
+                            <field name="res_type_id"/>
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Extended kanban view for generic.service -->
+    <record id="view_resource_generic_service_kanban" model="ir.ui.view">
+        <field name="name">view.resource.generic.service.kanban</field>
+        <field name="model">generic.service</field>
+        <field name="inherit_id" ref="generic_service.view_generic_service_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="//templates" position="before">
+                <field name="resource_count"/>
+            </xpath>
+            <xpath expr="//div[hasclass('o_service_dashboard_kanban_boxes')]" position="inside">
+                <div class="o_service_dashboard_kanban_box" title="Resources">
+                    <a name="action_show_service_resources"
+                        type="object" title="Resources">
+                        <span class="o_value fa fa-cubes">
+                            <span class="ml8"><t t-esc="record.resource_count.value"/></span>
+                        </span>
+                    </a>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

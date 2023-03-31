@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo noupdate="1">
+    <!-- Demo send survey action -->
+    <record id="demo_send_survey_action" model="request.event.action">
+        <field name="name">Send Survey Action</field>
+        <field name="act_type">survey</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_request.request_event_type_stage_changed'))]"/>
+        <field name="request_type_id" ref="request_type_with_survey"/>
+        <field name="route_id" ref="generic_request_action_survey.request_stage_type_with_survey_new_to_survey_sent"/>
+        <field name="survey_template_id" ref="generic_request_survey.request_bug_form"/>
+        <field name="survey_send_author" eval="True"/>
+        <field name="survey_email_template_id" ref="generic_request_survey.email_template_survey"/>
+    </record>
+    <!--Demo request -->
+    <record id="demo_request_with_survey" model="request.request">
+        <field name="type_id" ref="request_type_with_survey"/>
+        <field name="request_text">This is demo request that will automatically send survey</field>
+    </record>
+
+</odoo>

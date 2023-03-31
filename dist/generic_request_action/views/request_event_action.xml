@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_event_action_search">
+        <field name="model">request.event.action</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+
+                <separator/>
+                <field name="request_type_id"/>
+                <field name="route_id"/>
+
+                <separator/>
+                <filter name="filter_archived"
+                        string="Archived"
+                        domain="[('active', '=', False)]"/>
+                <separator/>
+
+                <filter name="filter_global"
+                        string="Global"
+                        domain="[('request_type_id', '=', False)]"/>
+                <filter name="filter_type_specific"
+                        string="Type specific"
+                        domain="['&amp;', ('request_type_id', '!=', False),
+                                 ('route_id', '=', False)]"/>
+               <filter name="filter_route_specific"
+                        string="Route specific"
+                        domain="['&amp;', ('request_type_id', '!=', False),
+                                 ('route_id', '!=', False)]"/>
+
+                <group name="group_group_by">
+                    <filter string="Request Type"
+                            name="group_by_request_type"
+                            context="{'group_by': 'request_type_id'}"/>
+                    <filter string="Route"
+                            name="group_by_route"
+                            context="{'group_by': 'route_id'}"/>
+                    <filter string="Type"
+                            name="group_by_act_type"
+                            context="{'group_by': 'act_type'}"/>
+                    <filter string="Sudo"
+                            name="group_by_act_sudo"
+                            context="{'group_by': 'act_sudo'}"/>
+                    <filter string="Sudo user"
+                            name="group_by_act_sudo_user"
+                            context="{'group_by': 'act_sudo_user_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_event_action_tree">
+        <field name="model">request.event.action</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="event_type_ids"
+                       widget="many2many_tags"/>
+                <field name="request_type_id"/>
+                <field name="route_id"/>
+                <field name="condition_ids"
+                       domain="[('model_id.model', '=', 'request.request')]"
+                       widget="many2many_tags"
+                       context="{'default_based_on': 'request.request'}"/>
+                <field name="event_condition_ids"
+                       domain="[('model_id.model', '=', 'request.event')]"
+                       widget="many2many_tags"
+                       context="{'default_based_on': 'request.event'}"/>
+                <field name="act_type"/>
+                <field name="act_sudo"/>
+                <field name="act_sudo_user_id"/>
+                <field name="active" invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_event_action_form">
+        <field name="model">request.event.action</field>
+        <field name="arch" type="xml">
+            <form>
+                <field name="helper_request_model_id" invisible="1"/>
+                <sheet>
+                    <field name="active" invisible="1"/>
+                    <widget name="web_ribbon" title="Archived"
+                            bg_color="bg-danger"
+                            attrs="{'invisible': [('active', '=', True)]}"/>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Name"/>
+                        </h1>
+                    </div>
+                    <group name="group_root">
+                        <group name="group_info">
+                            <field name="event_type_ids"
+                                   widget="many2many_tags"
+                                   placeholder="Events..."
+                                   domain="['|',('event_source_id', '=', False),('event_source_model_name', '=', 'request.request')]"
+                                   options="{'no_create': true, 'no_quick_create': true}"/>
+                            <field name="request_type_id" readonly="context.get('default_request_type_id', False)"/>
+                            <field name="route_id"
+                                   placeholder="Route"
+                                   readonly="context.get('default_route_id', False)"
+                                   domain="[('request_type_id', '=', request_type_id)]"
+                                   options="{'no_create': true, 'no_quick_create': true}"/>
+                            <field name="condition_ids"
+                                   domain="[('model_id.model', '=', 'request.request')]"
+                                   widget="many2many_tags"
+                                   context="{'default_based_on': 'request.request'}"
+                                   options="{'no_quick_create': True, 'open': True}"/>
+                            <field name="event_condition_ids"
+                                   domain="[('model_id.model', '=', 'request.event')]"
+                                   widget="many2many_tags"
+                                   context="{'default_based_on': 'request.event'}"
+                                   options="{'no_quick_create': True, 'open': True}"/>
+                            <field name="act_type"/>
+                        </group>
+                        <group name="group_sudo">
+                            <field name="act_sudo"/>
+                            <field name="act_sudo_user_id"
+                                   attrs="{'invisible': [('act_sudo', '=', False)]}"/>
+                            <p colspan="2">You can use <a href="http://jinja.pocoo.org/" target="_blank">jinja2</a> placeholders in action fields. For example, use {{request.name}} template to specify the name of the current request in the Summary field of Scheduled Activity. For more info, read the <a href="https://crnd.pro/doc-bureaucrat-itsm/11.0/en/Generic_Request_Actions_admin_eng/" target="_blank">documentation</a>.</p>
+                        </group>
+                    </group>
+                    <notebook name="notebook_action">
+                        <page name="page_action_server"
+                              string="Server Action"
+                              attrs="{'invisible': [('act_type', '!=', 'server_action')]}">
+                            <group>
+                                <group name="group_action_server">
+                                    <field name="action_id"
+                                           attrs="{'required': [('act_type', '=', 'server_action')]}"
+                                           context="{'default_model_id': helper_request_model_id, 'default_name': name}"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page name="page_action_send_email"
+                              string="Send Email"
+                              attrs="{'invisible': [('act_type', '!=', 'send_email')]}">
+                            <group>
+                                <group name="group_action_send_email">
+                                    <field name="send_email_template_id"
+                                           attrs="{'required': [('act_type', '=', 'send_email')]}"
+                                           context="{'default_model_id': helper_request_model_id, 'default_name': name}"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page name="page_action_assign"
+                              string="Assign"
+                              attrs="{'invisible': [('act_type', '!=', 'assign')]}">
+                            <group>
+                                <group name="group_action_assign_type">
+                                    <field name="assign_type" attrs="{'required': [('act_type', '=', 'assign')]}"/>
+                                    <field name="unsubscribe_prev_assignee"/>
+                                </group>
+                                <group name="group_action_assign">
+                                    <field name="assign_user_id"
+                                           attrs="{'required': [('act_type', '=', 'assign'),
+                                           ('assign_type', '=', 'user')],
+                                           'invisible': [('assign_type', '!=', 'user')]}"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page name="page_action_subscribe"
+                              string="Subscribe"
+                              attrs="{'invisible': [('act_type', '!=', 'subscribe')]}">
+                            <group>
+                                <group name="group_action_subscribe">
+                                    <field name="subscribe_partner_ids" widget="many2many_tags"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page name="page_action_mail_activity"
+                              string="Schedule Activity"
+                              attrs="{'invisible': [('act_type', '!=', 'mail_activity')]}">
+                            <group>
+                                <group name="group_action_mail_activity_left">
+                                    <field name="mail_activity_activity_type_id" attrs="{'required': [('act_type', '=', 'mail_activity')]}" />
+                                    <field name="mail_activity_summary"
+                                           placeholder="Summary..."/>
+                                    <label for="mail_activity_date_delta_value"/>
+                                    <div class="o_row">
+                                        <field name="mail_activity_date_delta_value"
+                                               class="oe_inline"
+                                               attrs="{'required': [('act_type', '=', 'mail_activity')]}"/>
+                                        <field name="mail_activity_date_delta_uom"
+                                               class="oe_inline"
+                                               attrs="{'required': [('act_type', '=', 'mail_activity')]}"/>
+                                    </div>
+                                </group>
+                                <group name="group_action_mail_activity_right">
+                                    <field name="mail_activity_assign_type"
+                                           string="Assign Type"
+                                           attrs="{'required': [('act_type', '=', 'mail_activity')]}"/>
+                                    <field name="mail_activity_user_id"
+                                           attrs="{'invisible': [('mail_activity_assign_type', '!=', 'user')], 'required': [('act_type', '=', 'mail_activity'), ('mail_activity_assign_type', '=', 'user')]}"/>
+                                    <field name="mail_activity_user_field_id"
+                                           attrs="{'invisible': [('mail_activity_assign_type', '!=', 'field')], 'required': [('act_type', '=', 'mail_activity'), ('mail_activity_assign_type', '=', 'field')]}"
+                                           options="{'no_create': True}"/>
+                                </group>
+                                <field name="mail_activity_note"
+                                       placeholder="Note..."/>
+                            </group>
+                        </page>
+                        <page name="page_action_kanban_state"
+                              string="Kanban state"
+                              attrs="{'invisible': [('act_type', '!=', 'kanban_state')]}">
+                            <group>
+                                <group name="group_action_send_email">
+                                    <field name="kanban_state" required="True"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page name="page_action_validate"
+                              string="Validate"
+                              attrs="{'invisible': [('act_type', '!=', 'validate')]}">
+                            <group name="group_action_validate" colspan="4">
+                                <field name="validate_condition_ids"
+                                       domain="[('model_id.model', '=', 'request.request')]"
+                                       widget="many2many_tags"
+                                       context="{'default_based_on': 'request.request'}"
+                                       options="{'no_quick_create': True, 'open': True}"
+                                       attrs="{'required': [('act_type', '=', 'validate')]}"/>
+                                <field name="validate_error_msg"
+                                       attrs="{'required': [('act_type', '=', 'validate')]}"/>
+                            </group>
+                        </page>
+                    </notebook>
+
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_request_event_actions" model="ir.actions.act_window">
+        <field name="name">Actions</field>
+        <field name="res_model">request.event.action</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{}</field>
+        <field name="domain">[('request_type_id', '!=', False)]</field>
+    </record>
+
+    <record id="action_request_event_global_actions" model="ir.actions.act_window">
+        <field name="name">Actions</field>
+        <field name="res_model">request.event.action</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{"search_default_filter_global":1}</field>
+        <field name="domain">[]</field>
+    </record>
+    <menuitem id="menu_request_event_action_global_view"
+              parent="generic_request.menu_configuration_rules"
+              action="action_request_event_global_actions"/>
+</odoo>

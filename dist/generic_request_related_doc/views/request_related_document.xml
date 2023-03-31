@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record model="ir.ui.view" id="view_request_related_document_tree">
+        <field name="name">view.request.related.document.tree</field>
+        <field name="model">request.related.document</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="doc_type_id"/>
+                <field name="display_name" string="Name"/>
+                <field name="request_id"/>
+                <field name="create_date" readonly="1" string="Linked on"/>
+                <field name="create_uid" readonly="1" string="Linked by"/>
+                <field name="comment"/>
+                <button name="action_open_document_object"
+                        type="object"
+                        string="Open Document"
+                        icon="fa-external-link"/>
+            </tree>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_related_document_form">
+        <field name="name">view.request.related.document.form</field>
+        <field name="model">request.related.document</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_document_object"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-external-link"
+                                string="Open Doc">
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="display_name"
+                                   default_focus="1"
+                                   placeholder="Name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="request_type_id"/>
+                            <field name="request_id"/>
+                        </group>
+                        <group>
+                            <field name="doc_type_id"
+                                   options="{'no_create': true,
+                                             'no_quick_create': true,
+                                             'no_create_edit': true}"/>
+                            <field name="doc_model" invisible="1"/>
+                            <field name="doc_id"
+                                   widget="generic_m2o"
+                                   model_field="doc_model"
+                                   attrs="{'invisible': ['|',
+                                                        ('request_id', '=', False),
+                                                        ('doc_type_id', '=', False)]}"/>
+                        </group>
+                        <group colspan="4" col="4">
+                            <field name="create_date" readonly="1" string="Linked on"/>
+                            <field name="create_uid" readonly="1" string="Linked by"/>
+                        </group>
+                        <field name="comment"
+                               colspan="4"
+                               placeholder="Comment..."/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+</odoo>

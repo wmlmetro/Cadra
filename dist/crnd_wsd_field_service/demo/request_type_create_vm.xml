@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="generic_request_field.request_type_field" model="request.type">
+        <field name="service_ids" eval="[(4, ref('generic_service.generic_service_default'))]"/>
+    </record>
+</odoo>

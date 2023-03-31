@@ -1,0 +1,147 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_action_survey
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:22+0000\n"
+"PO-Revision-Date: 2023-02-28 17:32+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_action_survey/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_action_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_action_survey.view_request_event_action_form
+msgid "Add existing contacts..."
+msgstr "Mevcut kişileri ekle..."
+
+#. module: generic_request_action_survey
+#: model:request.stage,name:generic_request_action_survey.request_stage_type_with_survey_done
+msgid "Done"
+msgstr "Tamamlandı"
+
+#. module: generic_request_action_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_action_survey.view_request_event_action_form
+msgid "Email Template"
+msgstr "E-posta şablonu"
+
+#. module: generic_request_action_survey
+#: model:request.stage,name:generic_request_action_survey.request_stage_type_with_survey_in_progress
+msgid "In Progress"
+msgstr "Devam etmekte"
+
+#. module: generic_request_action_survey
+#: model:request.stage.route,name:generic_request_action_survey.request_stage_type_with_survey_in_progress_to_done
+msgid "In Progress to Done"
+msgstr "Devam Ediyor'dan Bitti'ye"
+
+#. module: generic_request_action_survey
+#: model:request.stage,name:generic_request_action_survey.request_stage_type_with_survey_new
+msgid "New"
+msgstr "Yeni"
+
+#. module: generic_request_action_survey
+#: model:request.stage.route,name:generic_request_action_survey.request_stage_type_with_survey_new_to_in_progress
+msgid "New to In Progress"
+msgstr "Yeniden Devam edilmekteye"
+
+#. module: generic_request_action_survey
+#: model:request.stage.route,name:generic_request_action_survey.request_stage_type_with_survey_new_to_survey_sent
+msgid "New to Survey Sent"
+msgstr "Gönderilen Ankete Yeni"
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_partner_ids
+msgid "Partners"
+msgstr "Ortaklar"
+
+#. module: generic_request_action_survey
+#: code:addons/generic_request_action_survey/models/request_event_action.py:0
+#, python-format
+msgid ""
+"Please add '__URL__' to email content,                     it will "
+"automaticaly be converted into survey URL."
+msgstr ""
+"Lütfen e-posta içeriğine  '__URL__' ekleyin, otomatik olarak anket URL'sine "
+"dönüştürülecektir."
+
+#. module: generic_request_action_survey
+#: model:ir.model,name:generic_request_action_survey.model_request_event_action
+msgid "Request Event Action"
+msgstr "Etkinlik İşlemi İste"
+
+#. module: generic_request_action_survey
+#: model:request.type,name:generic_request_action_survey.request_type_with_survey
+msgid "Request with survey"
+msgstr "anket ile istek"
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields.selection,name:generic_request_action_survey.selection__request_event_action__act_type__survey
+#: model_terms:ir.ui.view,arch_db:generic_request_action_survey.view_request_event_action_form
+msgid "Survey"
+msgstr "Anket"
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_email_template_id
+msgid "Survey Email Template"
+msgstr "Anket E-posta Şablonu"
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_send_assignee
+msgid "Survey Send Assignee"
+msgstr "Anket Gönderme Görevlisi"
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_send_author
+msgid "Survey Send Author"
+msgstr "Anket Gönder Yazar"
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_send_creator
+msgid "Survey Send Creator"
+msgstr "Anket Gönder Yaratıcı"
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_send_others
+msgid "Survey Send Others"
+msgstr "Anket Gönder Diğerleri"
+
+#. module: generic_request_action_survey
+#: model:request.stage,name:generic_request_action_survey.request_stage_type_with_survey_survey_sent
+msgid "Survey Sent"
+msgstr "Anket Gönderildi"
+
+#. module: generic_request_action_survey
+#: model:request.stage.route,name:generic_request_action_survey.request_stage_type_with_survey_survey_sent_to_in_progress
+msgid "Survey Sent to In Progress"
+msgstr "Anket Gönderildi Devam Ediyor'a"
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_template_id
+msgid "Survey Template"
+msgstr "Anket Şablonu"
+
+#. module: generic_request_action_survey
+#: model_terms:request.request,help_html:generic_request_action_survey.demo_request_with_survey
+#: model_terms:request.type,help_html:generic_request_action_survey.request_type_with_survey
+msgid ""
+"This is demo request type to demonstrate automatic actions.\n"
+"            When request moves from New to Survey Sent, survey is sent using "
+"auto-action."
+msgstr ""
+"Bu, otomatik eylemleri göstermek için demo istek türüdür.\n"
+"             İstek, Yeni'den Anket Gönderildi'ye taşındığında, anket "
+"otomatik işlem kullanılarak gönderilir."
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__act_type
+msgid "Type"
+msgstr "Tür"

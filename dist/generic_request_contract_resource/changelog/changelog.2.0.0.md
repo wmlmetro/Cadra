@@ -1,0 +1,1 @@
+Merge `generic_request_contract_resource_service` module into `generic_request_contract_resource`.

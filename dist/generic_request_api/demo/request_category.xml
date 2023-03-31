@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="test_api_request_category" model="request.category">
+        <field name="name">API Category</field>
+        <field name="code">demo-general-api</field>
+        <field name="parent_id" ref="generic_request.request_category_demo_general"/>
+    </record>
+</odoo>
+
+

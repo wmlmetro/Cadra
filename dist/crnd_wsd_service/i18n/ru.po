@@ -1,0 +1,100 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* crnd_wsd_service
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 12.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-12-06 14:01+0000\n"
+"PO-Revision-Date: 2019-12-06 16:22+0200\n"
+"Last-Translator: <>\n"
+"Language-Team: \n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: \n"
+"X-Generator: Poedit 2.2.4\n"
+
+#. module: crnd_wsd_service
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.request_service_short_info
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_request
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_request_new_selection_box_service
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_request_table
+msgid "<span class=\"fa fa-square-o mr4\" title=\"Service\"/>"
+msgstr "<span class=\"fa fa-square-o mr4\" title=\"Сервис\"/>"
+
+#. module: crnd_wsd_service
+#: model:ir.model,name:crnd_wsd_service.model_generic_service
+msgid "Generic Service"
+msgstr "Универсальный сервис"
+
+#. module: crnd_wsd_service
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_requests_new_select_service
+msgid "Select service"
+msgstr "Выберите сервис"
+
+#. module: crnd_wsd_service
+#: code:addons/crnd_wsd_service/controllers/main.py:0
+#, python-format
+msgid "Selected request type require service!"
+msgstr "Выбранный тип запроса требует выбрать сервис!"
+
+#. module: crnd_wsd_service
+#: code:addons/crnd_wsd_service/controllers/main.py:0
+#, python-format
+msgid "Selected service and request type are incompatible!"
+msgstr "Выбранные сервис и тип запроса несовместимы!"
+
+#. module: crnd_wsd_service
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.request_service_short_info
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_request
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_request_new_selection_box_service
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_request_table
+msgid "Service"
+msgstr "Сервис"
+
+#. module: crnd_wsd_service
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_requests_new_progress
+msgid ""
+"Service\n"
+"                <span/>"
+msgstr ""
+"Сервис\n"
+"                <span/>"
+
+#. module: crnd_wsd_service
+#: model:ir.model.fields,field_description:crnd_wsd_service.field_generic_service__website_published
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.generic_service_view_search
+msgid "Visible in Website"
+msgstr "Видимый на сайте"
+
+#. module: crnd_wsd_service
+#: model:ir.model.fields,field_description:crnd_wsd_service.field_generic_service__website_ids
+msgid "Website"
+msgstr ""
+
+#~ msgid "Cancel"
+#~ msgstr "Отменить"
+
+#~ msgid "Description"
+#~ msgstr "Описание"
+
+#~ msgid "Next"
+#~ msgstr "Далее"
+
+#~ msgid "Please,"
+#~ msgstr "Пожалуйста,"
+
+#~ msgid "Sign In"
+#~ msgstr "Авторизируйтесь"
+
+#~ msgid "Sign Up"
+#~ msgstr "Зарегистрируйтесь"
+
+#~ msgid "or"
+#~ msgstr "или"
+
+#~ msgid "to be able to view and create requests."
+#~ msgstr "чтобы просматривать и создавать запросы."

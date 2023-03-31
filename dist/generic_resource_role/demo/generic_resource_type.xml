@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="generic_resource.generic_resource_type_default" model="generic.resource.type">
+        <field name="creator_role_id" ref="generic_resource_simple_role_admin"/>
+    </record>
+</odoo>

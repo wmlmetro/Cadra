@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_request_canned_response_tree" model="ir.ui.view">
+        <field name="model">mail.shortcode</field>
+        <field name="arch" type="xml">
+            <tree editable="bottom">
+                <field name="source"/>
+                <field name="substitution"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="request_canned_response_action" model="ir.actions.act_window">
+        <field name="name">Canned Responses</field>
+        <field name="res_model">mail.shortcode</field>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="view_request_canned_response_tree"/>
+        <field name="domain">[]</field>
+    </record>
+
+    <menuitem name="Canned Responses"
+              id="menu_configuration_requests_shortcode"
+              parent="generic_request.menu_configuration_mails"
+              action="request_canned_response_action"
+              groups="generic_request.group_request_manager"
+              sequence="15"/>
+
+</odoo>

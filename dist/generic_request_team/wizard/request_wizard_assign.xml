@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="request_team_wizard_assign_form_view">
+        <field name="model">request.wizard.assign</field>
+        <field name="inherit_id" ref="generic_request.request_wizard_assign_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet/group/field[@name='user_id']" position="attributes">
+                <attribute name="attrs">{'required': [('team_id', '=', False)]}</attribute>
+            </xpath>
+            <xpath expr="//form/sheet/group/field[@name='user_id']" position="before">
+                <field name="team_id"/>
+            </xpath>
+        </field>
+    </record>
+
+   <record id="action_request_team_wizard_assign" model="ir.actions.act_window">
+       <field name="res_model">request.wizard.assign</field>
+       <field name="name">Assign team or user</field>
+       <field name="view_mode">form</field>
+       <field name="target">new</field>
+   </record>
+</odoo>

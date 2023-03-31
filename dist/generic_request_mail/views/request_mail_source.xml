@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_mail_source_tree">
+        <field name="name">view.request.mail.source.tree</field>
+        <field name="model">request.mail.source</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="request_creation_template_id"/>
+                <field name="alias_name"/>
+                <field name="alias_domain"/>
+                <field name="request_count" string="Requests"/>
+            </tree>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_mail_source_form">
+        <field name="name">view.request.mail.source.form</field>
+        <field name="model">request.mail.source</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" type="object"
+                                name="action_view_requests"
+                                icon="fa-comments-o">
+                            <div class="o_stat_info">
+                                <span class="o_stat_value">
+                                    <field name="request_open_count"
+                                           class="oe_inline"
+                                           title="Open Requests"/>
+                                    <span class="oe_form_field oe_inline">/</span>
+                                    <field name="request_count"
+                                           class="oe_inline"
+                                           title="All Requests"/>
+                                </span>
+                                <span class="o_stat_text">Requests</span>
+                            </div>
+                        </button>
+                    </div>
+                    <div name="title" class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Name"/>
+                        </h1>
+                    </div>
+                    <notebook>
+                        <page name="general" string="General">
+                            <group>
+                                <group>
+                                    <field name="request_creation_template_id"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page name="emails" string="Emails">
+                            <group name="group_alias" attrs="{'invisible': [('alias_domain', '=', False)]}">
+                                <label for="alias_name" string="Email Alias"/>
+                                <div name="alias_def">
+                                    <field name="alias_id" class="oe_read_only oe_inline"
+                                        string="Email Alias" required="0"/>
+                                    <div class="oe_edit_only oe_inline" name="edit_alias" style="display: inline;" >
+                                        <field name="alias_name" class="oe_inline"/>@<field name="alias_domain" class="oe_inline" readonly="1"/>
+                                    </div>
+                                </div>
+                                <field name="alias_contact" class="oe_inline"
+                                        string="Accept Emails From"/>
+                            </group>
+                            <group name="group_system"
+                                   groups="base.group_no_one"
+                                   attrs="{'invisible': [('alias_domain', '=', False)]}">
+                                <field name="alias_defaults" readonly="1"/>
+                            </group>
+                            <div class="alert alert-warning"
+                                 role="alert"
+                                 attrs="{'invisible': [('alias_domain', '!=', False)]}">
+                                <h4 class="alert-heading" role="alert">Alias Domain is not configured!</h4>
+                                <p>In order to be able to configure mail sources, you have to configure Alias Domain. To do this, you have to follow steps below:</p>
+                                <ol>
+                                    <li>Navigate to <span><button name="base_setup.action_general_configuration" type="action" string="Settings/General Settings" class="p-0 btn-link"></button> </span></li>
+                                    <li>Find section Discuss</li>
+                                    <li>Set checkbox External Email Servers</li>
+                                    <li>Fill your company's email domain in Alias Domain field</li>
+                                    <li>Configure your Incoming and Outgoing mail server</li>
+                                </ol>
+                                <p>Steps above are required to configure mailing in Odoo, and after that steps completed, you will be able to configure mail sources.</p>
+                            </div>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_request_mail_source_kanban" model="ir.ui.view">
+        <field name="model">request.mail.source</field>
+        <field name="arch" type="xml">
+            <kanban class="oe_background_grey o_request_dashboard_kanban">
+                <field name="name"/>
+                <field name="request_creation_template_id"/>
+                <field name="request_open_count"/>
+                <field name="request_closed_count"/>
+
+                <templates>
+                     <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click o_request_dashboard_kanban">
+                            <div class="o_request_dashboard_kanban_main">
+                                <div class="o_request_dashboard_content">
+                                    <div class="o_kanban_primary_left">
+                                        <div class="o_primary">
+                                            <span> <t t-esc="record.name.value"/></span>
+                                        </div>
+                                        <div class="text-muted">
+                                            <span> <t t-esc="record.request_creation_template_id.value"/></span>
+                                        </div>
+                                        <div class="o_buttons">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="o_request_dashboard_kanban_boxes">
+                                <div class="o_request_dashboard_kanban_box" title="Open requests">
+                                    <a name="action_show_open_requests" type="object">
+                                        <span class="o_value"><t t-esc="record.request_open_count.value"/></span>
+                                    </a>
+                                </div>
+                                <div class="o_request_dashboard_kanban_box" title="Closed requests">
+                                    <a name="action_show_closed_requests" type="object">
+                                        <span class="o_value"><t t-esc="record.request_closed_count.raw_value"/></span>
+                                    </a>
+                                </div>
+
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+
+    </record>
+
+
+    <record model="ir.actions.act_window" id="action_request_mail_source_window">
+        <field name="name">Mail Sources</field>
+        <field name="res_model">request.mail.source</field>
+        <field name="view_mode">kanban,tree,form</field>
+    </record>
+
+    <menuitem id="menu_request_mail_source_view"
+              parent="generic_request.menu_configuration_mails"
+              action="action_request_mail_source_window"
+              groups="generic_request.group_request_manager"/>
+
+</odoo>

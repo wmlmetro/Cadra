@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Request Error / Bug -->
+    <record model="survey.survey" id="request_bug_form">
+        <field name="title">Error / Bug Survey</field>
+        <field name="access_mode">public</field>
+        <field name="users_can_go_back" eval="True" />
+        <field name="description">&lt;p&gt;This survey should take less than two minutes.&lt;/p&gt;</field>
+    </record>
+    <!-- Page 1 -->
+    <record model="survey.question" id="bug_classification">
+        <field name="title">Error / Bug Classification</field>
+        <field name="survey_id" ref="request_bug_form" />
+        <field name="sequence">1</field>
+        <field name="description">&lt;p&gt;&lt;/p&gt;</field>
+        <field name="is_page" eval="True"/>
+    </record>
+    <record model="survey.question" id="bug_classification_1">
+        <field name="page_id" ref="bug_classification" />
+        <field name="survey_id" ref="request_bug_form" />
+        <field name="sequence">2</field>
+        <field name="title">In what application this error / bug appears?</field>
+        <field name="question_type">char_box</field>
+        <field name="constr_mandatory" eval="False" />
+    </record>
+    <record model="survey.question" id="bug_classification_2">
+        <field name="page_id" ref="bug_classification" />
+        <field name="survey_id" ref="request_bug_form" />
+        <field name="sequence">3</field>
+        <field name="title">Is there an error message? Specify it.</field>
+        <field name="question_type">text_box</field>
+        <field name="constr_mandatory" eval="False" />
+    </record>
+    <record model="survey.question" id="bug_classification_3">
+        <field name="page_id" ref="bug_classification" />
+        <field name="survey_id" ref="request_bug_form" />
+        <field name="sequence">4</field>
+        <field name="title">When did this error / bug appeared for the first time?</field>
+        <field name="question_type">date</field>
+        <field name="constr_mandatory" eval="False" />
+    </record>
+    <record model="survey.question" id="bug_classification_4">
+        <field name="page_id" ref="bug_classification" />
+        <field name="survey_id" ref="request_bug_form" />
+        <field name="sequence">5</field>
+        <field name="title">Can you intentionally repeat this error / bug?</field>
+        <field name="question_type">simple_choice</field>
+        <field name="constr_mandatory" eval="False" />
+    </record>
+            <record model="survey.question.answer" id="bug_classification_4_choice_1">
+                <field name="question_id" ref="bug_classification_4"/>
+                <field name="sequence">1</field>
+                <field name="value">yes</field>
+            </record>
+            <record model="survey.question.answer" id="bug_classification_4_choice_2">
+                <field name="question_id" ref="bug_classification_4"/>
+                <field name="sequence">2</field>
+                <field name="value">no</field>
+            </record>
+    <record model="survey.question" id="bug_classification_5">
+        <field name="page_id" ref="bug_classification" />
+        <field name="survey_id" ref="request_bug_form" />
+        <field name="sequence">6</field>
+        <field name="title">Specify steps to repeat this error / bug intentionally.</field>
+        <field name="question_type">text_box</field>
+        <field name="constr_mandatory" eval="False" />
+    </record>
+
+    <!-- Page 2 -->
+    <record model="survey.question" id="bug_priority">
+        <field name="title">Error / Bug Priority</field>
+        <field name="survey_id" ref="request_bug_form" />
+        <field name="sequence">10</field>
+        <field name="description">&lt;p&gt;&lt;/p&gt;</field>
+        <field name="is_page" eval="True"/>
+    </record>
+    <record model="survey.question" id="bug_priority_1">
+        <field name="survey_id" ref="request_bug_form" />
+        <field name="sequence">11</field>
+        <field name="title">Specify the impact of this error / bug on your work</field>
+        <field name="question_type">simple_choice</field>
+        <field name="constr_mandatory" eval="False" />
+    </record>
+            <record model="survey.question.answer" id="bug_priority_1_choice_1">
+                <field name="question_id" ref="bug_priority_1"/>
+                <field name="sequence">1</field>
+                <field name="value">It doesn't affect my work</field>
+            </record>
+            <record model="survey.question.answer" id="bug_priority_1_choice_2">
+                <field name="question_id" ref="bug_priority_1"/>
+                <field name="sequence">2</field>
+                <field name="value">It partially interferes with my work</field>
+            </record>
+            <record model="survey.question.answer" id="bug_priority_1_choice_3">
+                <field name="question_id" ref="bug_priority_1"/>
+                <field name="sequence">3</field>
+                <field name="value">My work is completely stopped</field>
+            </record>
+    <record model="survey.question" id="bug_priority_2">
+        <field name="survey_id" ref="request_bug_form" />
+        <field name="sequence">12</field>
+        <field name="title">Is this error / bug interfere with other employees work?</field>
+        <field name="question_type">simple_choice</field>
+        <field name="constr_mandatory" eval="False" />
+    </record>
+            <record model="survey.question.answer" id="bug_priority_2_choice_1">
+                <field name="question_id" ref="bug_priority_2"/>
+                <field name="sequence">1</field>
+                <field name="value">yes</field>
+            </record>
+            <record model="survey.question.answer" id="bug_priority_2_choice_2">
+                <field name="question_id" ref="bug_priority_2"/>
+                <field name="sequence">2</field>
+                <field name="value">no</field>
+            </record>
+    <record model="survey.question" id="bug_priority_3">
+        <field name="survey_id" ref="request_bug_form" />
+        <field name="sequence">13</field>
+        <field name="title">How would you rate priority of resolving this error / bug?</field>
+        <field name="question_type">simple_choice</field>
+        <field name="constr_mandatory" eval="False" />
+    </record>
+            <record model="survey.question.answer" id="bug_priority_3_choice_1">
+                <field name="question_id" ref="bug_priority_3"/>
+                <field name="sequence">1</field>
+                <field name="value">Very High</field>
+            </record>
+            <record model="survey.question.answer" id="bug_priority_3_choice_2">
+                <field name="question_id" ref="bug_priority_3"/>
+                <field name="sequence">2</field>
+                <field name="value">High</field>
+            </record>
+            <record model="survey.question.answer" id="bug_priority_3_choice_3">
+                <field name="question_id" ref="bug_priority_3"/>
+                <field name="sequence">3</field>
+                <field name="value">Medium</field>
+            </record>
+            <record model="survey.question.answer" id="bug_priority_3_choice_4">
+                <field name="question_id" ref="bug_priority_3"/>
+                <field name="sequence">4</field>
+                <field name="value">Low</field>
+            </record>
+            <record model="survey.question.answer" id="bug_priority_3_choice_5">
+                <field name="question_id" ref="bug_priority_3"/>
+                <field name="sequence">5</field>
+                <field name="value">Very Low</field>
+            </record>
+
+    <!-- Environment -->
+    <record model="survey.survey" id="request_environment">
+        <field name="title">Environment</field>
+        <field name="access_mode">public</field>
+        <field name="users_can_go_back" eval="True" />
+        <field name="description">&lt;p&gt;This survey should take less than two minutes.&lt;/p&gt;</field>
+    </record>
+    <!-- Page 1 -->
+    <record model="survey.question" id="environment">
+        <field name="title">Environment</field>
+        <field name="survey_id" ref="request_environment" />
+        <field name="sequence">1</field>
+        <field name="description">&lt;p&gt;&lt;/p&gt;</field>
+        <field name="is_page" eval="True"/>
+    </record>
+    <record model="survey.question" id="environment_1">
+        <field name="survey_id" ref="request_environment" />
+        <field name="sequence">2</field>
+        <field name="title">Specify Your OS</field>
+        <field name="question_type">simple_choice</field>
+        <field name="constr_mandatory" eval="True" />
+    </record>
+            <record model="survey.question.answer" id="environment_1_choice_1">
+                <field name="question_id" ref="environment_1"/>
+                <field name="sequence">1</field>
+                <field name="value">Windows</field>
+            </record>
+            <record model="survey.question.answer" id="environment_1_choice_2">
+                <field name="question_id" ref="environment_1"/>
+                <field name="sequence">2</field>
+                <field name="value">MacOS</field>
+            </record>
+            <record model="survey.question.answer" id="environment_1_choice_3">
+                <field name="question_id" ref="environment_1"/>
+                <field name="sequence">3</field>
+                <field name="value">Linux</field>
+            </record>
+    <record model="survey.question" id="environment_2">
+        <field name="survey_id" ref="request_environment" />
+        <field name="sequence">3</field>
+        <field name="title">OS Version</field>
+        <field name="question_type">char_box</field>
+        <field name="constr_mandatory" eval="False" />
+    </record>
+    <record model="survey.question" id="environment_3">
+        <field name="survey_id" ref="request_environment" />
+        <field name="sequence">4</field>
+        <field name="title">IP</field>
+        <field name="question_type">char_box</field>
+        <field name="constr_mandatory" eval="False" />
+    </record>
+    <record model="survey.question" id="environment_4">
+        <field name="survey_id" ref="request_environment" />
+        <field name="sequence">5</field>
+        <field name="title">Application</field>
+        <field name="question_type">char_box</field>
+        <field name="constr_mandatory" eval="False" />
+    </record>
+    <record model="survey.question" id="environment_5">
+        <field name="survey_id" ref="request_environment" />
+        <field name="sequence">6</field>
+        <field name="title">Application Version</field>
+        <field name="question_type">char_box</field>
+        <field name="constr_mandatory" eval="False" />
+    </record>
+
+    <!-- Page 2 -->
+    <record model="survey.question" id="configuration">
+        <field name="title">Configuration</field>
+        <field name="survey_id" ref="request_environment" />
+        <field name="sequence">10</field>
+        <field name="description">&lt;p&gt;&lt;/p&gt;</field>
+        <field name="is_page" eval="True"/>
+    </record>
+    <record model="survey.question" id="configuration_1">
+        <field name="survey_id" ref="request_environment" />
+        <field name="sequence">11</field>
+        <field name="title">CPU</field>
+        <field name="question_type">char_box</field>
+        <field name="constr_mandatory" eval="False" />
+    </record>
+    <record model="survey.question" id="configuration_2">
+        <field name="survey_id" ref="request_environment" />
+        <field name="sequence">12</field>
+        <field name="title">GPU</field>
+        <field name="question_type">char_box</field>
+        <field name="constr_mandatory" eval="False" />
+    </record>
+    <record model="survey.question" id="configuration_3">
+        <field name="survey_id" ref="request_environment" />
+        <field name="sequence">13</field>
+        <field name="title">Memory</field>
+        <field name="question_type">char_box</field>
+        <field name="constr_mandatory" eval="False" />
+    </record>
+    <record model="survey.question" id="configuration_4">
+        <field name="survey_id" ref="request_environment" />
+        <field name="sequence">14</field>
+        <field name="title">HDD</field>
+        <field name="question_type">char_box</field>
+        <field name="constr_mandatory" eval="False" />
+    </record>
+
+</odoo>

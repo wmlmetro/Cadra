@@ -1,0 +1,63 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_crm
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 13.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-07-27 16:01+0000\n"
+"PO-Revision-Date: 2023-01-06 12:31+0000\n"
+"Last-Translator: François LAGARDE <f.lagarde@groupe-alliance.com>\n"
+"Language-Team: French <http://weblate.crnd.pro/projects/bureaucrat-itsm-15-0/"
+"generic_request_crm/fr/>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_crm
+#: model_terms:ir.ui.view,arch_db:generic_request_crm.view_request_leads
+msgid ""
+"<span class=\"o_stat_text\" attrs=\"{'invisible': [('request_count', '&lt;', "
+"2)]}\"> Requests</span>\n"
+"                        <span class=\"o_stat_text\" attrs=\"{'invisible': "
+"[('request_count', '&gt;', 1)]}\"> Request</span>"
+msgstr ""
+
+#. module: generic_request_crm
+#: model_terms:ir.ui.view,arch_db:generic_request_crm.view_request_leads
+msgid "Create request"
+msgstr ""
+
+#. module: generic_request_crm
+#: model:ir.model.fields,field_description:generic_request_crm.field_request_request__crm_lead_id
+msgid "Lead"
+msgstr ""
+
+#. module: generic_request_crm
+#: model:ir.model,name:generic_request_crm.model_crm_lead
+msgid "Lead/Opportunity"
+msgstr ""
+
+#. module: generic_request_crm
+#: model:ir.model.fields,field_description:generic_request_crm.field_crm_lead__request_ids
+msgid "Related requests"
+msgstr ""
+
+#. module: generic_request_crm
+#: model:ir.model,name:generic_request_crm.model_request_request
+msgid "Request"
+msgstr "Ticket"
+
+#. module: generic_request_crm
+#: model:ir.model.fields,field_description:generic_request_crm.field_crm_lead__request_count
+msgid "Request Count"
+msgstr "Nb Tickets"
+
+#. module: generic_request_crm
+#: model_terms:ir.ui.view,arch_db:generic_request_crm.crm_kanban_view
+msgid "Requests"
+msgstr "Tickets"

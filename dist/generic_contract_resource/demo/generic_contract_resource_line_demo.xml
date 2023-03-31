@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="0">
+    <!--Customer-->
+    <record id="basic_support_guest_book" model="generic.contract.resource.line">
+        <field name="contract_id" ref="generic_contract.contract_basic_support"/>
+        <field name="resource_id" ref="generic_contract_resource.simple_resource_guest_book_generic_resource"/>
+    </record>
+
+    <record id="basic_development_guest_book" model="generic.contract.resource.line">
+        <field name="contract_id" ref="generic_contract.contract_basic_support_initial_stage"/>
+        <field name="resource_id" ref="generic_contract_resource.simple_resource_guest_book_generic_resource"/>
+    </record>
+
+    <record id="basic_hosting_guest_book" model="generic.contract.resource.line">
+        <field name="contract_id" ref="generic_contract.contract_basic_support_final_stage"/>
+        <field name="resource_id" ref="generic_contract_resource.simple_resource_guest_book_generic_resource"/>
+    </record>
+
+    <!--Supplier-->
+    <record id="basic_purchase_for_notebook" model="generic.contract.resource.line">
+        <field name="contract_id" ref="generic_contract.contract_basic_provider_initial_stage_1_2"/>
+        <field name="resource_id" ref="generic_resource.simple_resource_notebook_1_generic_resource"/>
+    </record>
+
+    <record id="basic_purchase_and_installation_for_notebook" model="generic.contract.resource.line">
+        <field name="contract_id" ref="generic_contract.contract_basic_provider_initial_stage_1"/>
+        <field name="resource_id" ref="generic_resource.simple_resource_notebook_1_generic_resource"/>
+    </record>
+
+    <record id="basic_installation_for_notebook" model="generic.contract.resource.line">
+        <field name="contract_id" ref="generic_contract.contract_basic_provider_initial_stage_1_1"/>
+        <field name="resource_id" ref="generic_resource.simple_resource_notebook_1_generic_resource"/>
+    </record>
+
+    <record id="basic_provider_for_notebook" model="generic.contract.resource.line">
+        <field name="contract_id" ref="generic_contract.contract_basic_provider"/>
+        <field name="resource_id" ref="generic_resource.simple_resource_notebook_1_generic_resource"/>
+    </record>
+
+    <!-- Simple customer contract -->
+    <record id="simple_contract_resource_notebook_4" model="generic.contract.resource.line">
+        <field name="contract_id" ref="generic_contract.generic_contract_simple_customer_contract"/>
+        <field name="resource_id" ref="generic_resource.simple_resource_notebook_4_generic_resource"/>
+    </record>
+
+</odoo>

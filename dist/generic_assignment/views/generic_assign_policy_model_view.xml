@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record model="ir.ui.view" id="view_generic_assign_policy_model_tree">
+        <field name="name">generic.assign.policy.model.tree.view</field>
+        <field name="model">generic.assign.policy.model</field>
+        <field name="arch" type="xml">
+            <tree create="false" edit="false" delete="false">
+                <field name="display_name"/>
+                <field name="model_id"/>
+                <field name="assign_user_field_id"/>
+                <field name="assign_policy_count"/>
+            </tree>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_generic_assign_policy_model_form">
+        <field name="name">generic.assign.policy.model.form.view</field>
+        <field name="model">generic.assign.policy.model</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false" delete="false">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_assign_policy_view"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-handshake-o">
+                            <field string="Policies" name="assign_policy_count"
+                                   widget="statinfo"/>
+                        </button>
+                    </div>
+                    <div name="title" class="oe_title request_title">
+                        <h1>
+                            <field name="display_name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="model_id" options="{'no_quick_create': True}"/>
+                            <field name="assign_user_field_id"
+                                   attrs="{'invisible': [('model_id', '=', False)]}"
+                                   domain="[
+                               ('model_id', '=', model_id),
+                               ('ttype', '=', 'many2one'),
+                               ('relation', '=', 'res.users')]"/>
+                        </group>
+                        <group>
+                            <field name="enable_act_assign"
+                                   widget="boolean_toggle"/>
+                            <field name="act_assign_id"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_generic_assign_policy_model_search">
+        <field name="name">generic.assign.policy.model.search.view</field>
+        <field name="model">generic.assign.policy.model</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="model_id"/>
+            </search>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="action_assign_policy_model">
+        <field name="name">Policy Models</field>
+        <field name="res_model">generic.assign.policy.model</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem name="Assignment Policy Models"
+              id="policy_models"
+              parent="generic_rule.menu_generic_rule_configuration"
+              action="action_assign_policy_model"/>
+
+</odoo>

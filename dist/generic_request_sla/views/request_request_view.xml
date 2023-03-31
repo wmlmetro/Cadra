@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_request_sla_form">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_form"/>
+        <field name="arch" type="xml">
+            <group name="group_sla_left" position="inside">
+                <field name="sla_user_id" string="SLA Responsible"/>
+                <field name="sla_state"/>
+            </group>
+            <group name="group_sla_right" position="inside">
+                <field name="sla_warn_date"/>
+                <field name="sla_limit_date"/>
+            </group>
+            <group name="group_sla_main" position="after">
+                <field name="sla_control_ids" nolabel="1" mode="tree">
+                    <tree create="false" delete="false" edit="false">
+                        <field name="sla_log_count" invisible="1"/>
+                        <field name="sla_rule_id"/>
+                        <field name="sla_active"/>
+                        <field name="sla_state"/>
+                        <field name="compute_time"/>
+                        <field name="calendar_id"
+                               attrs="{'invisible': [('compute_time', '!=', 'calendar')]}"/>
+                        <field name="user_id"/>
+                        <field name="warn_date"/>
+                        <field name="limit_date"/>
+
+                        <field name="total_time"
+                               widget="float_time"
+                               string="Time Tracked"/>
+                        <button class="oe_link"
+                                type="object"
+                                name="action_show_related_sla_log_lines"
+                                help="View SLA Log used to compute this rule"
+                                string="SLA Log"
+                                attrs="{'invisible': [('sla_log_count', '=', False)]}"
+                                icon="fa-search-plus">
+                        </button>
+                    </tree>
+                </field>
+            </group>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_request_sla_tree">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_tree"/>
+        <field name="arch" type="xml">
+            <field name="stage_id" position="after">
+                <field name="sla_state"
+                       options="{&quot;bg_color&quot;: &quot;yellow:sla_state == 'warning'; lightcoral:sla_state == 'failed'; lightgreen:sla_state == 'ok'&quot;}"
+                       optional="show"/>
+                <field name="sla_warn_date"
+                       options="{&quot;bg_color&quot;: &quot;yellow:sla_state == 'warning'; lightcoral:sla_state == 'failed'&quot;}"
+                       optional="show"/>
+                <field name="sla_limit_date"
+                       options="{&quot;bg_color&quot;: &quot;lightcoral:sla_state == 'failed'&quot;}"
+                       optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- Inherit Kanban view -->
+    <record id="iherited_view_request_request_kanban_inherit_request_sla" model="ir.ui.view">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field" position="after">
+                <field name="sla_state"/>
+            </xpath>
+            <xpath expr="//div[@name='request_kanban_info_right']" position="inside">
+                <div t-if="record.sla_state.value" class="o_item">
+                    <t t-if="record.sla_state.raw_value == 'ok'">
+                        <i class="text-success fa fa-bell-o" title="SLA OK"/>
+                        <span class="text-muted" title="SLA Warning Date">
+                            <field name="sla_warn_date"/>
+                        </span>
+                    </t>
+                    <t t-if="record.sla_state.raw_value == 'warning'">
+                        <i class="text-warning font-weight-bold fa fa-bell-o"
+                           title="SLA Approaching limit date"/>
+                        <span class="text-muted" title="SLA Limit Date">
+                            <field name="sla_limit_date"/>
+                        </span>
+                    </t>
+                    <t t-if="record.sla_state.raw_value == 'failed'">
+                        <i class="text-danger fa fa-bell mr4"
+                           title="SLA Failed"/>
+                        <span class="text-danger" title="SLA Limit Date">
+                            <field name="sla_limit_date"/>
+                        </span>
+                    </t>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>

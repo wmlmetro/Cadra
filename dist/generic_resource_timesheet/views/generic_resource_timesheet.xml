@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem name="Timesheet"
+              id="generic_resource_timesheet_menu"
+              parent="generic_resource.menu_generic_resource_toplevel"
+              sequence="30"/>
+    <menuitem name="Timesheet"
+              id="generic_resource_timesheet_config_menu"
+              parent="generic_resource.menu_generic_resource_config_root"
+              sequence="30"/>
+</odoo>

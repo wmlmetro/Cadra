@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<odoo noupdate="1">
+    <!-- All answers -->
+    <record model="survey.user_input" id="ui1">
+        <field name="survey_id" ref="generic_request_survey.request_bug_form"/>
+        <field name="state">done</field>
+    </record>
+    <record model="survey.user_input" id="ui2">
+        <field name="survey_id" ref="generic_request_survey.request_bug_form"/>
+        <field name="state">done</field>
+    </record>
+    <record model="survey.user_input" id="ui3">
+        <field name="survey_id" ref="generic_request_survey.request_bug_form"/>
+        <field name="state">in_progress</field>
+    </record>
+    <record model="survey.user_input" id="ui4">
+        <field name="survey_id" ref="generic_request_survey.request_environment"/>
+        <field name="state">done</field>
+    </record>
+    <record model="survey.user_input" id="ui5">
+        <field name="survey_id" ref="generic_request_survey.request_environment"/>
+        <field name="state">done</field>
+    </record>
+</odoo>

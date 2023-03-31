@@ -1,0 +1,39 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_action_team
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:17+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_action_team/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_action_team
+#: model:ir.model.fields,field_description:generic_request_action_team.field_request_event_action__assign_type
+msgid "Assign Type"
+msgstr "Atama Türü"
+
+#. module: generic_request_action_team
+#: model:ir.model.fields,field_description:generic_request_action_team.field_request_event_action__assign_team_id
+msgid "Assign to Team"
+msgstr "Ekibe Ata"
+
+#. module: generic_request_action_team
+#: model:ir.model,name:generic_request_action_team.model_request_event_action
+msgid "Request Event Action"
+msgstr "Etkinlik İşlemi İste"
+
+#. module: generic_request_action_team
+#: model:ir.model.fields.selection,name:generic_request_action_team.selection__request_event_action__assign_type__team
+msgid "Team"
+msgstr "Takım"

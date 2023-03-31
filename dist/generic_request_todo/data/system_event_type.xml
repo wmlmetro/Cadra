@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="request_event_type__todo_completed" model="generic.system.event.type">
+        <field name="name">ToDo Completed</field>
+        <field name="code">request-todo-completed</field>
+        <field name="event_category_id" ref="generic_request.system_event_category_request_events"/>
+        <field name="event_source_id" ref="generic_request.system_event_source__request_request"/>
+    </record>
+
+    <record id="request_event_type__todo_cancelled" model="generic.system.event.type">
+        <field name="name">ToDo Cancelled</field>
+        <field name="code">request-todo-cancelled</field>
+        <field name="event_category_id" ref="generic_request.system_event_category_request_events"/>
+        <field name="event_source_id" ref="generic_request.system_event_source__request_request"/>
+    </record>
+
+    <record id="request_event_type__all_todo_completed" model="generic.system.event.type">
+        <field name="name">All ToDo Completed</field>
+        <field name="code">request-all-todo-completed</field>
+        <field name="event_category_id" ref="generic_request.system_event_category_request_events"/>
+        <field name="event_source_id" ref="generic_request.system_event_source__request_request"/>
+    </record>
+</odoo>

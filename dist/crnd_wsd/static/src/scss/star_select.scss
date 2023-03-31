@@ -1,0 +1,71 @@
+$request_priority_star_color: #ffa500;
+
+.priority_bar {
+    display: inline-flex;
+    flex-flow: row-reverse;
+
+    label {
+        margin: 0;
+        color: $request_priority_star_color;
+
+        i {
+            padding-right: 1px;
+        }
+    }
+
+    input {
+        display: none;
+
+        &:checked ~ label i {
+            &::before {
+                display: none;
+            }
+
+            &::after {
+                content: '\f005';
+            }
+        }
+    }
+}
+
+.selection_container {
+    display: flex;
+
+    label {
+        font-size: 1.3em;
+        margin: 0;
+        margin-right: 0.4rem;
+    }
+}
+
+.star_priority_group {
+    display: flex;
+    align-items: center;
+
+    .priority_group_container {
+        .label_icon {
+            font-size: 1.5em;
+            margin: 0;
+            margin-right: 0.4rem;
+        }
+
+        .priority_group {
+            display: inline-block;
+
+            input {
+                display: none;
+            }
+
+            label {
+                font-size: 1.5em;
+                color: $request_priority_star_color;
+                cursor: pointer;
+                margin: 0;
+            }
+        }
+    }
+
+    .arrow_right {
+        padding: 0 1rem;
+    }
+}

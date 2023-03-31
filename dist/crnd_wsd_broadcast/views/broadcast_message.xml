@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record model="ir.ui.view" id="view_broadcast_message_tree">
+        <field name="name">crnd.wsd.broadcast.message.tree</field>
+        <field name="model">crnd.wsd.broadcast.message</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="message_style"/>
+                <field name="date_beg"/>
+                <field name="date_end"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_broadcast_message_form">
+        <field name="name">crnd.wsd.broadcast.message.form</field>
+        <field name="model">crnd.wsd.broadcast.message</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <field name="active" invisible="1"/>
+                    <widget name="web_ribbon" title="Archived"
+                            bg_color="bg-danger"
+                            attrs="{'invisible': [('active', '=', True)]}"/>
+                    <div name="title" class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Name..."/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="website_ids" widget="many2many_tags"/>
+                            <field name="message_style"/>
+                        </group>
+                        <group>
+                            <field name="date_beg"/>
+                            <field name="date_end"/>
+                        </group>
+                    </group>
+                    <field name="message_text"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="action_broadcast_message">
+        <field name="name">Broadcast Messages</field>
+        <field name="res_model">crnd.wsd.broadcast.message</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- Show menu in System settings -->
+    <menuitem name="Broadcast messages"
+              id="system_broadcast_message"
+              parent="base.menu_custom"
+              groups="base.group_no_one"
+              action="action_broadcast_message"
+              sequence="100"
+    />
+
+    <!-- Show menu in Requests / Configuration -->
+    <menuitem name="Broadcast messages"
+              id="crnd_wsd_broadcast_message"
+              parent="generic_request.menu_configuration_other"
+              action="action_broadcast_message"
+              sequence="100"
+    />
+</odoo>

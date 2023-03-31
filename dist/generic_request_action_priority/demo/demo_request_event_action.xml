@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Demo action -->
+    <record id="demo_complex_priority_action" model="request.event.action">
+        <field name="name">Increase complex priority</field>
+        <field name="act_type">set_priority</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_request.request_event_type_stage_changed'))]"/>
+        <field name="request_type_id" ref="generic_request.request_type_with_complex_priority"/>
+        <field name="route_id" ref="generic_request.request_type_with_complex_priority_new_to_in_progress"/>
+        <field name="act_priority_type">increase</field>
+        <field name="act_priority_impact_modifier" eval="1"/>
+        <field name="act_priority_urgency_modifier" eval="1"/>
+    </record>
+
+    <record id="demo_priority_action" model="request.event.action">
+        <field name="name">Increase priority</field>
+        <field name="act_type">set_priority</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_request.request_event_type_assigned'))]"/>
+        <field name="request_type_id" ref="generic_request.request_type_simple"/>
+        <field name="act_priority_type">decrease</field>
+        <field name="act_priority_priority_modifier" eval="1"/>
+    </record>
+</odoo>

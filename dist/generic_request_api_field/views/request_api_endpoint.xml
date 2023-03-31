@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+     <record id="request_api_endpoint_fields_form" model="ir.ui.view">
+        <field name="name">request.api.endpoint.fields</field>
+        <field name="model">request.api.endpoint</field>
+        <field name="inherit_id" ref="generic_request_api.request_api_endpoint_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Field Map"
+                      attrs="{'invisible': [('type', '=', 'rest')]}">
+                    <field name="field_map_ids" nolabel="1" mode="tree">
+                        <tree editable="bottom">
+                            <field name="field_id" domain="[('request_type_id', '=', parent.request_type_id)]"/>
+                            <field name="data_field"/>
+                            <field name="default_value"/>
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+     </record>
+
+</odoo>

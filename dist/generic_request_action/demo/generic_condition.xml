@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="condition_request_text_is_do_assign" model="generic.condition">
+        <field name="name">Request text is "do assign"</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">eval</field>
+        <field name="condition_eval">obj.request_text == '&lt;p&gt;do assign&lt;/p&gt;'</field>
+    </record>
+    <record id="condition_event_request_text_is_do_assign" model="generic.condition">
+        <field name="name">Request text is "do assign"</field>
+        <field name="model_id" ref="generic_request.model_request_event"/>
+        <field name="type">related_conditions</field>
+        <field name="condition_rel_field_id"
+               ref="generic_request.field_request_event__request_id"/>
+        <field name="condition_rel_record_operator">match</field>
+        <field name="condition_rel_conditions_operator">and</field>
+        <field name="condition_rel_conditions"
+               eval="[(6, 0, [ref('generic_request_action.condition_request_text_is_do_assign')])]"/>
+    </record>
+    <record id="condition_request_text_is_valid" model="generic.condition">
+        <field name="name">Request text is "valid"</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">eval</field>
+        <field name="condition_eval">obj.request_text == '&lt;p&gt;valid&lt;/p&gt;'</field>
+    </record>
+</odoo>
+
+

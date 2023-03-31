@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Requests menu structure -->
+    <menuitem name="Requests"
+              id="menu_request_root"
+              web_icon="generic_request,static/description/icon.png"/>
+
+    <menuitem name="Requests"
+              id="menu_request"
+              parent="menu_request_root"
+              sequence="20"/>
+
+    <menuitem name="Reports"
+              id="menu_request_report"
+              parent="menu_request_root"
+              groups="group_request_manager"
+              sequence="40"/>
+
+    <menuitem name="Configuration"
+              id="menu_configuration"
+              parent="menu_request_root"
+              groups="group_request_manager"
+              sequence="60"/>
+
+    <menuitem name="Requests"
+              id="menu_configuration_requests"
+              parent="menu_configuration"
+              sequence="20"/>
+
+    <menuitem name="Mails"
+              id="menu_configuration_mails"
+              parent="menu_configuration"
+              sequence="25"/>
+
+    <menuitem name="Rules"
+              id="menu_configuration_rules"
+              parent="menu_configuration"
+              sequence="30"
+              groups="base.group_system"/>
+
+    <menuitem name="Other"
+              id="menu_configuration_other"
+              parent="menu_configuration"
+              sequence="40"/>
+</odoo>

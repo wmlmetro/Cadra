@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Condition to test if request can be confirmed -->
+    <record id="condition_request_text_is_confirm_me" model="generic.condition">
+        <field name="name">Request text is "confirm me"</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">eval</field>
+        <field name="condition_eval">obj.request_text == '&lt;p&gt;confirm me&lt;/p&gt;'</field>
+    </record>
+    <record id="condition_request_text_is_change_author" model="generic.condition">
+        <field name="name">Request text is "change author"</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">eval</field>
+        <field name="condition_eval">obj.request_text == '&lt;p&gt;change author&lt;/p&gt;'</field>
+    </record>
+    <record id="demo_condition_request_stage_is_draft" model="generic.condition">
+        <field name="name">Request stage is Draft</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">related_field</field>
+        <field name="condition_related_field_field_id"
+               ref="generic_request.field_request_request__stage_type_id"/>
+        <field name="condition_related_field_operator">contains</field>
+        <field name="condition_related_field_value_id" ref="generic_request.request_stage_type_draft"/>
+    </record>
+    <record id="demo_condition_request_stage_is_sent" model="generic.condition">
+        <field name="name">Request stage is Sent</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">related_field</field>
+        <field name="condition_related_field_field_id"
+               ref="generic_request.field_request_request__stage_type_id"/>
+        <field name="condition_related_field_operator">contains</field>
+        <field name="condition_related_field_value_id" ref="generic_request.request_stage_type_sent"/>
+    </record>
+    <record id="demo_condition_request_stage_is_draft_or_sent" model="generic.condition">
+        <field name="name">Stage is Draft or Sent</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">condition_group</field>
+        <field name="condition_condition_ids_operator">or</field>
+        <field name="condition_condition_ids"
+               eval="[(6, 0, [ref('generic_request_condition.demo_condition_request_stage_is_sent'), ref('generic_request_condition.demo_condition_request_stage_is_draft')])]"/>
+    </record>
+    <record id="install_os" model="generic.condition">
+        <field name="name">Request for install OS</field>
+        <field name="description">Request for OS installing</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">related_field</field>
+        <field name="condition_related_field_field_id"
+               ref="generic_request.field_request_request__category_id"/>
+        <field name="condition_related_field_operator">contains</field>
+        <field name="condition_related_field_value_id" ref="generic_request_condition.request_category_demo_install_os"/>
+    </record>
+    <record id="setup_workplace" model="generic.condition">
+        <field name="name">Request for set up workplace</field>
+        <field name="description">Request for set up workplace</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">related_field</field>
+        <field name="condition_related_field_field_id"
+               ref="generic_request.field_request_request__category_id"/>
+        <field name="condition_related_field_operator">contains</field>
+        <field name="condition_related_field_value_id" ref="generic_request_condition.request_category_demo_setup_workplace"/>
+    </record>
+</odoo>

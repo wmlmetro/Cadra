@@ -1,0 +1,2 @@
+- Added ability to use request's project for task created by automated action
+- Added ability to automatically assign task created by automated action to request's assignee

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="crnd_wsd_broadcast" inherit_id="website.layout"
+              name="Display Broadcast Messages"
+              customize_show="True"
+              active="True">
+        <xpath expr="//header" position="inside">
+            <div t-if="website.broadcast_message_ids" class="container text-center">
+                <t t-foreach="website.broadcast_message_ids" t-as="rec">
+                    <div t-attf-class="alert {{rec.message_style}} mt16 mb16">
+
+                        <t t-out="rec.message_text"/>
+
+                    </div>
+                </t>
+            </div>
+        </xpath>
+
+    </template>
+</odoo>

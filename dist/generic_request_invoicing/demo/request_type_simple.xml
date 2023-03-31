@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="generic_request.request_type_simple" model="request.type">
+        <field name="enable_invoicing" eval="True"/>
+        <field name="default_timetracking_product_id"
+               ref="generic_request_invoicing.product_timetracking"/>
+    </record>
+</odoo>

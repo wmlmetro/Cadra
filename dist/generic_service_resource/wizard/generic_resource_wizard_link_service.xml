@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="generic_resource_wizard_link_service_form_view" model="ir.ui.view">
+        <field name="name">generic.resource.wizard.link.service.form</field>
+        <field name="model">generic.resource.wizard.link.service</field>
+        <field name="arch" type="xml">
+            <form>
+                <field name="resource_type_id" invisible="1"/>
+                <sheet>
+                    <div name="group_warning_single_type"
+                            attrs="{'invisible': [('resource_type_id', '!=', False)]}"
+                            colspan="4"
+                            class="alert alert-danger"
+                            role="alert">
+                        This action could be applied only for resources of same type.
+                        Please, select only resources of single resource type!
+                    </div>
+                    <group>
+                        <field name="service_ids" widget="many2many_tags"/>
+                        <field name="action"/>
+                        <field name="resource_ids" widget="many2many_tags"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button string="Link" name="do_link" class="btn-primary" type="object"/>
+                    <button string="Cancel" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_resource_open_wizard_link_service" model="ir.actions.act_window">
+        <field name="res_model">generic.resource.wizard.link.service</field>
+        <field name="binding_model_id" ref="generic_resource.model_generic_resource"/>
+        <field name="name">Link Services</field>
+        <field name="target">new</field>
+        <field name="view_mode">form</field>
+        <field name="context">{}</field>
+    </record>
+</odoo>

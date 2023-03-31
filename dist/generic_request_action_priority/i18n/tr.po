@@ -1,0 +1,141 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_action_priority
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:17+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_action_priority/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields,field_description:generic_request_action_priority.field_request_event_action__act_priority_impact
+msgid "Act Priority Impact"
+msgstr "Eylem Önceliği Etkisi"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields,field_description:generic_request_action_priority.field_request_event_action__act_priority_impact_modifier
+msgid "Act Priority Impact Modifier"
+msgstr "Hareket Önceliği Etki Değiştirici"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields,field_description:generic_request_action_priority.field_request_event_action__act_priority_priority
+msgid "Act Priority Priority"
+msgstr "Eylem Önceliği Öncelik"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields,field_description:generic_request_action_priority.field_request_event_action__act_priority_priority_modifier
+msgid "Act Priority Priority Modifier"
+msgstr "Hareket Önceliği Öncelik Değiştirici"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields,field_description:generic_request_action_priority.field_request_event_action__act_priority_type
+msgid "Act Priority Type"
+msgstr "Hareket Önceliği Türü"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields,field_description:generic_request_action_priority.field_request_event_action__act_priority_urgency
+msgid "Act Priority Urgency"
+msgstr "Eylem Öncelik Aciliyeti"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields,field_description:generic_request_action_priority.field_request_event_action__act_priority_urgency_modifier
+msgid "Act Priority Urgency Modifier"
+msgstr "Hareket Önceliği Aciliyet Değiştirici"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields,field_description:generic_request_action_priority.field_request_event_action__act_priority_is_priority_complex
+msgid "Complex Priority"
+msgstr "Karmaşık Öncelik"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_priority__5
+msgid "Critical"
+msgstr "Kritik"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_type__decrease
+msgid "Decrease Priority"
+msgstr "Önceliği Azalt"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_priority__1
+msgid "For Information"
+msgstr "Bilgi için"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_impact__3
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_priority__4
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_urgency__3
+msgid "High"
+msgstr "Yüksek"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_type__increase
+msgid "Increase Priority"
+msgstr "Önceliği Artırma"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_impact__1
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_priority__2
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_urgency__1
+msgid "Low"
+msgstr "Düşük"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_impact__2
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_priority__3
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_urgency__2
+msgid "Medium"
+msgstr "Orta"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_impact__0
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_priority__0
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_urgency__0
+msgid "Not set"
+msgstr "ayarlanmadı"
+
+#. module: generic_request_action_priority
+#: model_terms:ir.ui.view,arch_db:generic_request_action_priority.view_request_event_action_form_priority
+msgid "Priority"
+msgstr "Öncelik"
+
+#. module: generic_request_action_priority
+#: model:ir.model,name:generic_request_action_priority.model_request_event_action
+msgid "Request Event Action"
+msgstr "Etkinlik İşlemi İste"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_priority_type__set
+msgid "Set Priority"
+msgstr "Öncelik Belirle"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields.selection,name:generic_request_action_priority.selection__request_event_action__act_type__set_priority
+msgid "Set priority"
+msgstr "öncelik Belirle"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields,field_description:generic_request_action_priority.field_request_event_action__act_type
+msgid "Type"
+msgstr "Tür"
+
+#. module: generic_request_action_priority
+#: model:ir.model.fields,help:generic_request_action_priority.field_request_event_action__act_priority_is_priority_complex
+msgid ""
+"When creating request, users select Impact and Urgency of request. Priority "
+"will be automatically computed depending on these parameters"
+msgstr ""
+"Talep oluştururken, kullanıcılar talebin Etkisini ve Aciliyetini seçer. "
+"Öncelik, bu parametrelere bağlı olarak otomatik olarak hesaplanacaktır"

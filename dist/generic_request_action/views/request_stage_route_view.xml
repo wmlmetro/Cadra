@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_stage_route_tree">
+        <field name="name">view.request.stage.route.tree</field>
+        <field name="model">request.stage.route</field>
+        <field name="inherit_id" ref="generic_request.view_request_stage_route_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//tree/field[@name='close']" position="after">
+                <field string="Actions" name="action_count"/>
+                <button name="action_show_request_actions"
+                        type="object"
+                        title="Actions"
+                        aria-label="Actions"
+                        icon="fa-play"/>
+            </xpath>
+
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_stage_route_form">
+        <field name="name">view.request.stage.route.form</field>
+        <field name="model">request.stage.route</field>
+        <field name="inherit_id" ref="generic_request.view_request_stage_route_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet/div[@name='button_box']" position="inside">
+                <button name="action_show_request_actions"
+                        type="object"
+                        class="oe_stat_button" icon="fa-play">
+                            <field string="Actions" name="action_count"
+                                   widget="statinfo"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>

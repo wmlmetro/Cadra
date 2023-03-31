@@ -1,0 +1,114 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* crnd_wsd_service
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 12.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-12-06 13:24+0000\n"
+"PO-Revision-Date: 2022-01-25 13:01+0000\n"
+"Last-Translator: Валерия <valittle@ukr.net>\n"
+"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-14-0/crnd_wsd_service/uk/>\n"
+"Language: uk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: crnd_wsd_service
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.request_service_short_info
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_request
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_request_new_selection_box_service
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_request_table
+msgid "<span class=\"fa fa-square-o mr4\" title=\"Service\"/>"
+msgstr "<span class=\"fa fa-square-o mr4\" title=\"Сервіс\"/>"
+
+#. module: crnd_wsd_service
+#: model:ir.model,name:crnd_wsd_service.model_generic_service
+msgid "Generic Service"
+msgstr "Універсальний сервіс"
+
+#. module: crnd_wsd_service
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_requests_new_select_service
+msgid "Select service"
+msgstr "Оберіть сервіс"
+
+#. module: crnd_wsd_service
+#: code:addons/crnd_wsd_service/controllers/main.py:0
+#, python-format
+msgid "Selected request type require service!"
+msgstr "Обраний тип запиту вимагає вибрати сервіс!"
+
+#. module: crnd_wsd_service
+#: code:addons/crnd_wsd_service/controllers/main.py:0
+#, python-format
+msgid "Selected service and request type are incompatible!"
+msgstr "Обрані сервіс та тип запиту не сумісні!"
+
+#. module: crnd_wsd_service
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.request_service_short_info
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_request
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_request_new_selection_box_service
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_request_table
+msgid "Service"
+msgstr "Сервіс"
+
+#. module: crnd_wsd_service
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_requests_new_progress
+msgid ""
+"Service\n"
+"                <span/>"
+msgstr ""
+"Сервіс\n"
+"                <span/>"
+
+#. module: crnd_wsd_service
+#: model:ir.model.fields,field_description:crnd_wsd_service.field_generic_service__website_published
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.generic_service_view_search
+msgid "Visible in Website"
+msgstr "Видимий на сайті"
+
+#. module: crnd_wsd_service
+#: model:ir.model.fields,field_description:crnd_wsd_service.field_generic_service__website_ids
+msgid "Website"
+msgstr "Веб-сайт"
+
+#~ msgid "Display Name"
+#~ msgstr "Відображуване ім’я"
+
+#~ msgid "ID"
+#~ msgstr "ID"
+
+#~ msgid "Last Modified on"
+#~ msgstr "Остання модифікація"
+
+#~ msgid "Access"
+#~ msgstr "Доступ"
+
+#~ msgid "Cancel"
+#~ msgstr "Скасувати"
+
+#~ msgid "Description"
+#~ msgstr "Опис"
+
+#~ msgid "Next"
+#~ msgstr "Наступний"
+
+#~ msgid "Please,"
+#~ msgstr "Будь ласка,"
+
+#~ msgid "Sign In"
+#~ msgstr "Авторизуйтесь"
+
+#~ msgid "Sign Up"
+#~ msgstr "Зареєструйтесь"
+
+#~ msgid "or"
+#~ msgstr "або"
+
+#~ msgid "to be able to view and create requests."
+#~ msgstr "щоб мати змогу переглядати та створювати запити."

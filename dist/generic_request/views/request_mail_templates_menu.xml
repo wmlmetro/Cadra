@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record model="ir.actions.act_window" id="action_email_template_request">
+        <field name="name">Mail templates</field>
+        <field name="res_model">mail.template</field>
+        <field name="view_mode">form,tree</field>
+        <field name="view_id" ref="mail.email_template_tree"/>
+        <field name="search_view_id" ref="mail.view_email_template_search"/>
+        <field name="domain">[('model_id.model', '=', 'request.request')]</field>
+        <field name="context">{'default_model': 'request.request'}</field>
+    </record>
+
+    <menuitem name="Mail templates"
+              id="menu_settings_requests_mail_templates"
+              parent="menu_configuration_mails"
+              action="action_email_template_request"
+              sequence="10"/>
+</odoo>

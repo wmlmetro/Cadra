@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="request_request_type_simple_demo_1" model="request.request">
+        <field name="request_text"><![CDATA[
+            <h1>I have found new bug in your software</h1>
+
+            <p>Contact me for more details.</p>
+        ]]></field>
+        <field name="type_id" ref="generic_request.request_type_simple"/>
+        <field name="author_id" ref="base.res_partner_2"/>
+        <field name="category_id" ref="generic_request.request_category_demo_technical"/>
+        <field name="mail_source_id" ref="demo_request_mail_source"/>
+    </record>
+
+</odoo>

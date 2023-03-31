@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="demo_service_consulting_bureaucrat" model="product.product">
+        <field name="name">BUREAUCRAT Consulting</field>
+        <field name="categ_id" ref="product.product_category_3"/>
+        <field name="standard_price">40</field>
+        <field name="list_price">90</field>
+        <field name="type">service</field>
+        <field name="is_create_request" eval="True"/>
+        <field name="request_text_template">New request created from SO ({{sale_order.name}}): {{sale_order_line.name}}</field>
+        <field name="request_delivered_stage_type_ids" eval="[(6, 0, [ref('generic_request.request_stage_type_closed_ok')])]"/>
+        <field name="request_creation_template_id" ref="demo_request_creation_template"/>
+        <field name="description">Consulting related to Bureaucrat Product.</field>
+        <field name="default_code">CONSULTING_BUREAUCRAT</field>
+    </record>
+</odoo>

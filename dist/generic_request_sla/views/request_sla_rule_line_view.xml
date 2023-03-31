@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="generic_request_sla_rule_line_view_tree" model="ir.ui.view">
+        <field name="name">request.sla.rule.line.tree</field>
+        <field name="model">request.sla.rule.line</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="sequence" widget="handle"/>
+                <field name="request_type_id"/>
+                <field name="sla_rule_id"/>
+                <field name="category_ids" widget="many2many_tags" options="{'open': True}"/>
+                <field name="request_channel_ids" widget="many2many_tags"/>
+                <field name="compute_time"/>
+                <field name="sla_calendar_id"
+                       attrs="{'invisible': [('compute_time', '!=', 'calendar')]}"/>
+                <field name="warn_time" widget="float_time"/>
+                <field name="limit_time" widget="float_time"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="generic_request_sla_rule_line_view_form" model="ir.ui.view">
+        <field name="name">request.sla.rule.line.form</field>
+        <field name="model">request.sla.rule.line</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <group name="group_left">
+                        <field name="sequence"/>
+                        <field name="request_type_id"/>
+                        <field name="sla_rule_id"/>
+                        <field name="category_ids" widget="many2many_tags" options="{'open': True}"/>
+                        <field name="request_channel_ids" widget="many2many_tags"/>
+                    </group>
+                    <group name="group_right">
+                        <field name="compute_time"/>
+                        <field name="sla_calendar_id"
+                               attrs="{'invisible': [('compute_time', '!=', 'calendar')]}"/>
+                        <field name="warn_time" widget="float_time"/>
+                        <field name="limit_time" widget="float_time"/>
+                    </group>
+                </group>
+            </form>
+        </field>
+    </record>
+</odoo>

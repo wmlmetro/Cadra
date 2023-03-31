@@ -1,0 +1,216 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_team
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:16+0000\n"
+"PO-Revision-Date: 2023-03-07 12:45+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-15-0/generic_request_team/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_request_form
+msgid "<i class=\"fa fa-users mr4\" title=\"Team\"/>"
+msgstr "<i class=\"fa fa-users mr4\" title=\"Team\"/>"
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_request_kanban
+msgid "<span class=\"fa fa-users\" title=\"Team\"/>"
+msgstr "<span class=\"fa fa-users\" title=\"Takım\"/>"
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.message_request_assigned_team__assignee
+msgid "<strong>Request text:</strong>"
+msgstr "<strong>İstek metni:</strong>"
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.message_request_assigned_team__assignee
+msgid "<strong>Response text:</strong>"
+msgstr "<strong>Yanıt metni:</strong>"
+
+#. module: generic_request_team
+#: model:ir.actions.act_window,name:generic_request_team.action_request_team_wizard_assign
+msgid "Assign team or user"
+msgstr "Takım veya kullanıcı atayın"
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_generic_team_member__assigned_request_closed_count
+msgid "Assigned Closed Requests"
+msgstr "Atanmış Kapalı İstekler"
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_generic_team_member__assigned_request_open_count
+msgid "Assigned Open Requests To User"
+msgstr "Açık İstekler Kullanıcıya Atandı"
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_generic_team_member__assigned_request_count
+msgid "Assigned Requests Count"
+msgstr "Atanan İstek Sayısı"
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_type_form_request_team_form
+msgid "Assigned Team"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_request_type__assigned_team_notification_show_request_text
+msgid "Assigned Team Notification Show Request Text"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_request_type__assigned_team_notification_show_response_text
+msgid "Assigned Team Notification Show Response Text"
+msgstr ""
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_team_request_request_search
+msgid "Assigned to my team"
+msgstr "ekibime atandı"
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.message_request_assigned_team__assignee
+msgid "Dear"
+msgstr "Sayın"
+
+#. module: generic_request_team
+#: model:ir.model,name:generic_request_team.model_generic_team
+msgid "Generic Team"
+msgstr "Genel Takım"
+
+#. module: generic_request_team
+#: model:ir.model,name:generic_request_team.model_generic_team_member
+msgid "Generic team member"
+msgstr "Genel ekip üyesi"
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_request_event__new_team_id
+msgid "New Team"
+msgstr "Yeni Takım"
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_request_kanban
+msgid "No team assigned"
+msgstr "Takım atanmadı"
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_request_event__old_team_id
+msgid "Old Team"
+msgstr "Eski Takım"
+
+#. module: generic_request_team
+#: model:ir.model,name:generic_request_team.model_request_request
+msgid "Request"
+msgstr "İstek"
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_generic_team__request_count
+msgid "Request Count"
+msgstr "Talep Sayısı"
+
+#. module: generic_request_team
+#: model:ir.model,name:generic_request_team.model_request_event
+msgid "Request Event"
+msgstr "Etkinlik İste"
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_request_timesheet_report__request_team_id
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_timesheet_report_search
+msgid "Request Team"
+msgstr "Ekip İste"
+
+#. module: generic_request_team
+#: model:ir.model,name:generic_request_team.model_request_timesheet_report
+msgid "Request Timesheet Report"
+msgstr "Zaman Çizelgesi Raporu İste"
+
+#. module: generic_request_team
+#: model:ir.model,name:generic_request_team.model_request_type
+msgid "Request Type"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model,name:generic_request_team.model_request_wizard_assign
+msgid "Request Wizard: Assign"
+msgstr "İstek Sihirbazı: Ata"
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_generic_team__request_ids
+#: model_terms:ir.ui.view,arch_db:generic_request_team.generic_team_form_inherited
+msgid "Requests"
+msgstr "İstekler"
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_request_type__send_default_assigned_team_notification
+msgid "Send Default Assigned Team Notification"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_request_request__team_id
+#: model:ir.model.fields,field_description:generic_request_team.field_request_wizard_assign__team_id
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_request_kanban
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_request_searchpanel
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_team_request_request_search
+msgid "Team"
+msgstr "Takım"
+
+#. module: generic_request_team
+#: model:generic.system.event.type,name:generic_request_team.request_event_type_team_assigned
+msgid "Team Assigned"
+msgstr "Takım Atandı"
+
+#. module: generic_request_team
+#: model:generic.system.event.type,name:generic_request_team.request_event_type_team_changed
+msgid "Team Reassigned"
+msgstr "Takım Yeniden Atandı"
+
+#. module: generic_request_team
+#: model:generic.system.event.type,name:generic_request_team.request_event_type_team_unassigned
+msgid "Team Unassigned"
+msgstr "Takım Atanmadı"
+
+#. module: generic_request_team
+#: model:ir.model.fields,help:generic_request_team.field_request_request__team_id
+msgid "Team responsible for next action on this request."
+msgstr "Bu taleple ilgili bir sonraki işlemden sorumlu ekip."
+
+#. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_request_wizard_assign__user_id
+msgid "User"
+msgstr "Kullanıcı"
+
+#. module: generic_request_team
+#: code:addons/generic_request_team/models/request_request.py:0
+#: code:addons/generic_request_team/wizard/request_wizard_assign.py:0
+#, python-format
+msgid "User '%(user)s' is not a member of team '%(team)s'."
+msgstr "Kullanıcı '%(user)s', '%(team)s' ekibinin bir üyesi değil."
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.message_request_assigned_team__assignee
+msgid "You can assign it to yourself"
+msgstr "kendinize atayabilirsiniz"
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.message_request_assigned_team__assignee
+msgid "Your team has received a new request"
+msgstr "Ekibiniz yeni bir talep aldı"
+
+#. module: generic_request_team
+#: code:addons/generic_request_team/models/request_request.py:0
+#, python-format
+msgid "Your team has received a new request %s!"
+msgstr "Ekibiniz yeni bir talep aldı %s!"
+
+#~ msgid "Assigned to team"
+#~ msgstr "ekibe atandı"

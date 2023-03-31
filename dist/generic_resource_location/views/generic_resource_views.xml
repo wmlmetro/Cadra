@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="inherited_generic_resource_view_form_inheritgeneric_resource_location" model="ir.ui.view">
+        <field name="model">generic.resource</field>
+        <field name="inherit_id" ref="generic_resource.generic_resource_view_form_base"/>
+        <field name="priority" eval="15"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='page_resource_info']" position="before">
+                <page string="Location" name="page_location"
+                      attrs="{'invisible': [('resource_use_generic_locations', '=', False)]}">
+                    <field name="resource_use_generic_locations" invisible="1"/>
+                    <group name="group_location_root">
+                        <group name="group_address_address">
+                            <field name="placed_on_location_id"/>
+                            <label for="street" string="Address"/>
+                            <div class="o_address_format">
+                                <field name="street"
+                                       class="o_address_street"
+                                       placeholder="Street..."/>
+                                <field name="street2"
+                                       class="o_address_street"
+                                       placeholder="Street 2..."/>
+                                <field name="city"
+                                       class="o_address_city"
+                                       placeholder="City"/>
+                                <field name="state_id"
+                                       class="o_address_state"
+                                       placeholder="State"
+                                       domain="[('country_id', '=', country_id)]"
+                                       options='{"no_open": True}'/>
+                                <field name="zip"
+                                       class="o_address_zip"
+                                       placeholder="ZIP"/>
+                                <field name="country_id"
+                                       class="o_address_country"
+                                       placeholder="Country"
+                                       options='{"no_open": True, "no_create": True}'/>
+                            </div>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+    
+    <record id="inherited_generic_resource_view_tree_inheritgeneric_resource_location" model="ir.ui.view">
+        <field name="model">generic.resource</field>
+        <field name="inherit_id" ref="generic_resource.generic_resource_view_tree"/>
+        <field name="arch" type="xml">
+          <xpath expr="//tree//field[@name='display_name']" position="after">
+            <field name="placed_on_location_id"/>
+          </xpath>
+        </field>
+    </record>
+    
+    <!--Define search view generic.resource-->
+    <record model="ir.ui.view" id="generic_resource_search_view">
+        <field name="model">generic.resource</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="placed_on_location_id" operator='child_of'/>
+            </search>
+        </field>
+    </record>
+</odoo>

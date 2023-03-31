@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--customer-->
+    <record id="generic_contract.contract_basic_support" model="generic.contract">
+        <field name="journal_id" ref="generic_contract_invoicing.generic_contract_sales_journal"/>
+        <field name="recurring_invoices" eval="True"/>
+        <field name="recurring_type">monthly-last-day</field>
+        <field name="recurring_period">1</field>
+        <field name="currency_id" ref="base.USD"/>
+        <field name="pricelist_id" ref="product.list0"/>
+    </record>
+
+    <record id="generic_contract.contract_basic_support_initial_stage" model="generic.contract">
+        <field name="journal_id" ref="generic_contract_invoicing.generic_contract_sales_journal"/>
+    </record>
+
+    <record id="generic_contract.contract_basic_support_final_stage" model="generic.contract">
+        <field name="journal_id" ref="generic_contract_invoicing.generic_contract_sales_journal"/>
+    </record>
+
+    <!--supplier-->
+    <record id="generic_contract.contract_basic_provider" model="generic.contract">
+        <field name="journal_id" ref="generic_contract_invoicing.generic_contract_expenses_journal"/>
+    </record>
+
+    <record id="generic_contract.contract_basic_provider_initial_stage_1" model="generic.contract">
+        <field name="journal_id" ref="generic_contract_invoicing.generic_contract_expenses_journal"/>
+    </record>
+
+    <record id="generic_contract.contract_basic_provider_initial_stage_1_1" model="generic.contract">
+        <field name="journal_id" ref="generic_contract_invoicing.generic_contract_expenses_journal"/>
+    </record>
+
+    <record id="generic_contract.contract_basic_provider_initial_stage_1_2" model="generic.contract">
+        <field name="journal_id" ref="generic_contract_invoicing.generic_contract_expenses_journal"/>
+    </record>
+
+    <record id="generic_contract.contract_basic_provider_final_stage" model="generic.contract">
+        <field name="journal_id" ref="generic_contract_invoicing.generic_contract_expenses_journal"/>
+    </record>
+
+</odoo>

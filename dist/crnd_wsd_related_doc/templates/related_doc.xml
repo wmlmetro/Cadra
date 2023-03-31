@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+
+    <template id="wsd_request_table_related_docs"
+              inherit_id="crnd_wsd.wsd_request_table"
+              name="Display related documents">
+
+        <xpath expr="//table[hasclass('wsd_requests_table')]//span[hasclass('request-shortcuts')]"
+               position="inside">
+            <a t-if="req.related_doc_ids"
+               t-attf-href="/requests/request/{{ req.id }}"
+               title="Related documents"
+               class="fa fa-folder"/>
+        </xpath>
+
+    </template>
+
+    <template id="wsd_requests_related_request"
+              inherit_id="crnd_wsd.wsd_request_body"
+              name="Display Related Documents"
+              customize_show="True"
+              active="True">
+        <xpath expr="//div[@id='request-body-response']" position="after">
+            <t t-if="req.related_doc_ids">
+                <div id="request-body-related-doc" class="col-md-12">
+                    <h4 class="wsd_request header-separator">
+                        <span class="wsd_request header-bg-filler">Related documents</span>
+                        <span class="header-separator-splitter"/>
+                    </h4>
+                    <table class="table mt16 wsd_requests_table wsd_requests_table_subrequest">
+                        <tbody>
+                            <t t-foreach="req.related_doc_ids" t-as="rel_doc">
+                                <tr>
+                                    <td class="wsd_request">
+                                        <div class="request_content">
+                                            <div class="ml16">
+                                                <span t-field="rel_doc.doc_type_id" title="Type"/>
+                                            </div>
+                                            <div>
+                                                <t t-if="rel_doc.get_website_url()">
+                                                    <a t-attf-href="{{ rel_doc.get_website_url() }}">
+                                                        <span t-field="rel_doc.display_name"/></a>
+                                                </t>
+                                                <t t-else="">
+                                                    <span t-field="rel_doc.display_name"/>
+                                                </t>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+        </xpath>
+
+    </template>
+
+</odoo>

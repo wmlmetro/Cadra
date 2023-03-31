@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="0">
+    <!--Customer-->
+    <record id="basic_support_guest_book_consulting" model="generic.contract.resource.service.line">
+        <field name="contract_resource_line_id" ref="generic_contract_resource.basic_support_guest_book"/>
+        <field name="service_id" ref="generic_service.generic_service_support_consulting"/>
+        <field name="service_level_id" ref="generic_service.generic_service_level_2"/>
+    </record>
+
+    <record id="basic_support_guest_book_development" model="generic.contract.resource.service.line">
+        <field name="contract_resource_line_id" ref="generic_contract_resource.basic_development_guest_book"/>
+        <field name="service_id" ref="generic_service.generic_service_support_development"/>
+        <field name="service_level_id" ref="generic_service.generic_service_level_1"/>
+    </record>
+
+    <record id="basic_support_guest_book_hosting" model="generic.contract.resource.service.line">
+        <field name="contract_resource_line_id" ref="generic_contract_resource.basic_hosting_guest_book"/>
+        <field name="service_id" ref="generic_service.generic_service_support_hosting"/>
+        <field name="service_level_id" ref="generic_service.generic_service_level_2"/>
+    </record>
+
+</odoo>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="related_document_type__res_partner" model="request.related.document.type">
+        <field name="name">Contact</field>
+        <field name="model_id" ref="base.model_res_partner"/>
+    </record>
+</odoo>

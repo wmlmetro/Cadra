@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="request_event_type_resource_changed" model="generic.system.event.type">
+        <field name="name">Resource changed</field>
+        <field name="code">resource-changed</field>
+        <field name="event_category_id" ref="generic_request.system_event_category_request_events"/>
+        <field name="event_source_id" ref="generic_request.system_event_source__request_request"/>
+    </record>
+</odoo>

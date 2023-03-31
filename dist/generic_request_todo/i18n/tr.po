@@ -1,0 +1,59 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_todo
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:17+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_todo/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_todo
+#: model_terms:ir.ui.view,arch_db:generic_request_todo.view_request_request_form
+msgid "Add Template Todo"
+msgstr "Yapılacak İş Şablonunu Ekle"
+
+#. module: generic_request_todo
+#: model:generic.system.event.type,name:generic_request_todo.request_event_type__all_todo_completed
+msgid "All ToDo Completed"
+msgstr "Tüm Yapılacaklar Tamamlandı"
+
+#. module: generic_request_todo
+#: model_terms:ir.ui.view,arch_db:generic_request_todo.view_request_request_form
+msgid "Hide Done Todo"
+msgstr "Yapılacak İşleri Gizle"
+
+#. module: generic_request_todo
+#: model:ir.model,name:generic_request_todo.model_request_request
+msgid "Request"
+msgstr "İstek"
+
+#. module: generic_request_todo
+#: model:generic.system.event.type,name:generic_request_todo.request_event_type__todo_cancelled
+msgid "ToDo Cancelled"
+msgstr "Yapılacaklar İptal Edildi"
+
+#. module: generic_request_todo
+#: model:generic.system.event.type,name:generic_request_todo.request_event_type__todo_completed
+msgid "ToDo Completed"
+msgstr "Yapılacaklar Tamamlandı"
+
+#. module: generic_request_todo
+#: model_terms:ir.ui.view,arch_db:generic_request_todo.view_request_request_form
+msgid "Todo"
+msgstr "Yapılacak"
+
+#. module: generic_request_todo
+#: model:ir.model.fields,field_description:generic_request_todo.field_request_request__generic_todo_ids
+msgid "Todos"
+msgstr "Yapılacaklar"

@@ -1,0 +1,9 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_generic_request_api_all,access_generic_request.all,model_request_api_endpoint,,1,0,0,0
+access_generic_request_api_manager,access_generic_request.manager,model_request_api_endpoint,generic_request.group_request_manager,1,1,1,1
+
+access_generic_request_api_key_all,access_generic_request.all,model_request_api_key,,1,0,0,0
+access_generic_request_api_key_manager,access_generic_request.manager,model_request_api_key,generic_request.group_request_manager,1,1,1,1
+access_request_api_wizard_add_access_key,access_wizard_add_access_key,model_request_api_wizard_add_access_key,generic_request.group_request_manager,1,1,1,1
+
+access_request_api_wizard_add_access_key_show,API key result Request API,model_request_api_wizard_add_access_key_show,base.group_user,1,0,1,0

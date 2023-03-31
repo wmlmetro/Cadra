@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="generic_request_field.request_type_field" model="request.type">
+        <field name="website_published" eval="True"/>
+        <field name="category_ids" eval="[(4, ref('crnd_wsd.request_category_demo_website_tech'))]"/>
+        <field name="website_request_text_help">
+            Add here additional notes about VM to create.
+            Possibly mention additional applications that have to be installed on this VM.</field>
+    </record>
+</odoo>

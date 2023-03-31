@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="0">
+    <!--Customer-->
+    <record id="template_basic_support_guest_book" model="generic.contract.template.resource.line">
+        <field name="contract_template_id" ref="generic_contract.contract_template_demo_basic_support"/>
+        <field name="resource_id" ref="generic_contract_resource.simple_resource_guest_book_generic_resource"/>
+    </record>
+
+    <record id="template_basic_development_guest_book" model="generic.contract.template.resource.line">
+        <field name="contract_template_id" ref="generic_contract.contract_template_demo_basic_support_initial_stage"/>
+        <field name="resource_id" ref="generic_contract_resource.simple_resource_guest_book_generic_resource"/>
+    </record>
+
+    <record id="template_basic_hosting_guest_book" model="generic.contract.template.resource.line">
+        <field name="contract_template_id" ref="generic_contract.contract_template_demo_basic_support_final_stage"/>
+        <field name="resource_id" ref="generic_contract_resource.simple_resource_guest_book_generic_resource"/>
+    </record>
+
+</odoo>

@@ -1,0 +1,432 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_project
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:19+0000\n"
+"PO-Revision-Date: 2023-03-07 12:45+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_project/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_project_kanban
+msgid "<span class=\"o_label\">Requests</span>"
+msgstr "<span class=\"o_stat_text\">İstekler</span>"
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_request_request_kanban
+msgid "<span title=\"Tasks\" class=\"fa fa-briefcase mr4\"/>"
+msgstr "<span title=\"Tasks\" class=\"fa fa-briefcase mr4\"/>"
+
+#. module: generic_request_project
+#: model:generic.system.event.type,name:generic_request_project.request_event_type_task_all_tasks_closed
+msgid "All tasks closed"
+msgstr "Tüm görevler kapatıldı"
+
+#. module: generic_request_project
+#: model:ir.model,name:generic_request_project.model_account_analytic_line
+msgid "Analytic Line"
+msgstr "Analitik Hat"
+
+#. module: generic_request_project
+#: model:project.task,legend_blocked:generic_request_project.project_task_analyse_sla_per_resource
+#: model:project.task,legend_blocked:generic_request_project.project_task_development
+#: model:project.task,legend_blocked:generic_request_project.project_task_technical_auto_tests
+#: model:project.task,legend_blocked:generic_request_project.project_task_technical_development
+#: model:project.task,legend_blocked:generic_request_project.project_task_update_docs
+#: model:project.task,legend_blocked:generic_request_project.request_with_task_task_1
+#: model:project.task,legend_blocked:generic_request_project.request_with_task_task_2
+msgid "Blocked"
+msgstr "Engellendi"
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.request_wizard_work_log_form_view
+msgid "Cancel"
+msgstr "İptal etmek"
+
+#. module: generic_request_project
+#: model:ir.model.fields,help:generic_request_project.field_project_task__request_category_id
+msgid "Category of request"
+msgstr "İstek kategorisi"
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_generic_request_project_task_request_request
+msgid "Create Task"
+msgstr "Görev Oluştur"
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_generic_request_project_task_request_request
+msgid "Create new task"
+msgstr "yeni görev oluştur"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__create_uid
+msgid "Created by"
+msgstr "Tarafından yaratıldı"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__create_date
+msgid "Created on"
+msgstr "oluşturuldu"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__display_name
+msgid "Display Name"
+msgstr "Ekran adı"
+
+#. module: generic_request_project
+#: model:request.stage,name:generic_request_project.request_stage_type_with_task_done
+msgid "Done"
+msgstr "Tamamlandı"
+
+#. module: generic_request_project
+#: model:request.stage,name:generic_request_project.request_stage_type_with_task_draft
+msgid "Draft"
+msgstr "Taslak"
+
+#. module: generic_request_project
+#: model:request.stage.route,name:generic_request_project.request_stage_type_with_task_draft_to_new
+msgid "Draft to New"
+msgstr "Taslaktan Yeniye"
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.request_wizard_work_log_form_view
+msgid "Duration"
+msgstr "Süre"
+
+#. module: generic_request_project
+#: model:ir.actions.act_window,name:generic_request_project.action_wizard_work_log
+msgid "Edit work log"
+msgstr "iş kaydını düzenle"
+
+#. module: generic_request_project
+#: model:project.project,name:generic_request_project.project_functional_support
+msgid "Functional Product Support"
+msgstr "Fonksiyonel Ürün Desteği"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_request_project
+#: model:project.task,legend_normal:generic_request_project.project_task_analyse_sla_per_resource
+#: model:project.task,legend_normal:generic_request_project.project_task_development
+#: model:project.task,legend_normal:generic_request_project.project_task_technical_auto_tests
+#: model:project.task,legend_normal:generic_request_project.project_task_technical_development
+#: model:project.task,legend_normal:generic_request_project.project_task_update_docs
+#: model:project.task,legend_normal:generic_request_project.request_with_task_task_1
+#: model:project.task,legend_normal:generic_request_project.request_with_task_task_2
+msgid "In Progress"
+msgstr "Devam etmekte"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard____last_update
+msgid "Last Modified on"
+msgstr "Son Değiştirme Tarihi"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__write_uid
+msgid "Last Updated by"
+msgstr "Son Güncelleyen"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__write_date
+msgid "Last Updated on"
+msgstr "Son güncelleme tarihi"
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_generic_request_project_task_request_request
+msgid "Log your work"
+msgstr "Çalışmanızı günlüğe kaydedin"
+
+#. module: generic_request_project
+#: model:request.stage,name:generic_request_project.request_stage_type_with_task_new
+msgid "New"
+msgstr "Yeni"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_event__new_project_id
+msgid "New Project"
+msgstr "Yeni Proje"
+
+#. module: generic_request_project
+#: model:request.stage.route,name:generic_request_project.request_stage_type_with_task_new_to_done
+msgid "New to Done"
+msgstr "Yeniden Tamamlandıya"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_event__old_project_id
+msgid "Old Project"
+msgstr "Eski Proje"
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_task_form2
+msgid "Other"
+msgstr "Diğer"
+
+#. module: generic_request_project
+#: model:ir.model,name:generic_request_project.model_project_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_request__project_id
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__project_id
+#: model_terms:ir.ui.view,arch_db:generic_request_project.request_type_form_inherit
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_request_request_searchpanel
+msgid "Project"
+msgstr "Proje"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_request__project_task_count
+msgid "Project Task Count"
+msgstr "Proje görevi sayısı"
+
+#. module: generic_request_project
+#: model:generic.system.event.category,name:generic_request_project.system_event_category_request_project_task_events
+msgid "Project Task Events"
+msgstr "Proje Görevi Etkinlikleri"
+
+#. module: generic_request_project
+#: model:generic.system.event.type,name:generic_request_project.request_event_type_project_changed
+msgid "Project changed"
+msgstr "Proje değişti"
+
+#. module: generic_request_project
+#: model:project.task,legend_done:generic_request_project.project_task_analyse_sla_per_resource
+#: model:project.task,legend_done:generic_request_project.project_task_development
+#: model:project.task,legend_done:generic_request_project.project_task_technical_auto_tests
+#: model:project.task,legend_done:generic_request_project.project_task_technical_development
+#: model:project.task,legend_done:generic_request_project.project_task_update_docs
+#: model:project.task,legend_done:generic_request_project.request_with_task_task_1
+#: model:project.task,legend_done:generic_request_project.request_with_task_task_2
+msgid "Ready"
+msgstr "Hazır"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_account_analytic_line__req_timesheet_line_id
+msgid "Req Timesheet Line"
+msgstr "Talep Zaman Çizelgesi Satırı"
+
+#. module: generic_request_project
+#: model:ir.model,name:generic_request_project.model_request_request
+#: model:ir.model.fields,field_description:generic_request_project.field_account_analytic_line__request_id
+#: model:ir.model.fields,field_description:generic_request_project.field_project_task__request_id
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__request_id
+msgid "Request"
+msgstr "İstek"
+
+#. module: generic_request_project
+#: code:addons/generic_request_project/models/request_request.py:0
+#, python-format
+msgid "Request %s"
+msgstr "İstekler %s"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_project_task__request_category_id
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_task_search_form
+msgid "Request Category"
+msgstr "İstek Kategorisi"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_project_project__request_count
+msgid "Request Count"
+msgstr "Talep Sayısı"
+
+#. module: generic_request_project
+#: model:ir.model,name:generic_request_project.model_request_event
+msgid "Request Event"
+msgstr "Etkinlik İste"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_project_task__request_service_id
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_task_search_form
+msgid "Request Service"
+msgstr "Hizmet talep et"
+
+#. module: generic_request_project
+#: model:ir.actions.act_window,name:generic_request_project.action_show_request_tasks
+#: model:ir.ui.menu,name:generic_request_project.menu_request_tasks_all
+msgid "Request Tasks"
+msgstr "Görev İste"
+
+#. module: generic_request_project
+#: model:ir.model,name:generic_request_project.model_request_timesheet_line
+msgid "Request Timesheet Line"
+msgstr "Talep Zaman Çizelgesi Satırı"
+
+#. module: generic_request_project
+#: model:ir.model,name:generic_request_project.model_request_type
+#: model:ir.model.fields,field_description:generic_request_project.field_project_task__request_type_id
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_task_search_form
+msgid "Request Type"
+msgstr "İstek Türü"
+
+#. module: generic_request_project
+#: model:ir.model,name:generic_request_project.model_work_log_wizard
+msgid "Request Wizard: Work Log"
+msgstr "İstek Sihirbazı: Çalışma Kaydı"
+
+#. module: generic_request_project
+#: model:ir.model.fields,help:generic_request_project.field_project_task__request_id
+msgid "Request this task is related to"
+msgstr "Bu görevin ilgili olduğunu iste"
+
+#. module: generic_request_project
+#: model:request.type,name:generic_request_project.request_type_with_task
+msgid "Request with task"
+msgstr "görev ile istek"
+
+#. module: generic_request_project
+#: model:project.project,name:generic_request_project.request_with_task_project_1
+msgid "Request-related tasks"
+msgstr "İstekle ilgili görevler"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_project_project__request_ids
+#: model_terms:ir.ui.view,arch_db:generic_request_project.edit_project
+msgid "Requests"
+msgstr "İstekler"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_project_task__request_ids
+msgid "Requests (Deprecated)"
+msgstr "İstekler (Kullanımdan Kaldırıldı)"
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.request_wizard_work_log_form_view
+msgid "Save"
+msgstr "Kaydet"
+
+#. module: generic_request_project
+#: model:ir.model.fields,help:generic_request_project.field_project_task__request_service_id
+msgid "Service of request"
+msgstr "İstek hizmeti"
+
+#. module: generic_request_project
+#: model:generic.system.event.source,name:generic_request_project.system_event_source__project_task
+#: model:ir.model,name:generic_request_project.model_project_task
+#: model:ir.model.fields,field_description:generic_request_project.field_request_event__task_id
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__task_id
+msgid "Task"
+msgstr "Görev"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_event__task_new_stage_id
+msgid "Task New Stage"
+msgstr "Görev Yeni Aşama"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_event__task_old_stage_id
+msgid "Task Old Stage"
+msgstr "Görev Eski Aşama"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_request__project_task_timesheet_ids
+msgid "Task Timesheets"
+msgstr "Görev Zaman Çizelgeleri"
+
+#. module: generic_request_project
+#: model:generic.system.event.type,name:generic_request_project.request_event_type_task_closed
+msgid "Task closed"
+msgstr "Görev kapatıldı"
+
+#. module: generic_request_project
+#: model:generic.system.event.type,name:generic_request_project.request_event_type_task_stage_changed
+msgid "Task stage changed"
+msgstr "Görev aşaması değişti"
+
+#. module: generic_request_project
+#: model:ir.actions.act_window,name:generic_request_project.action_request_project_task
+#: model:ir.model.fields,field_description:generic_request_project.field_request_request__project_task_ids
+#: model:ir.ui.menu,name:generic_request_project.menu_request_tasks
+#: model:project.project,label_tasks:generic_request_project.project_functional_support
+#: model:project.project,label_tasks:generic_request_project.project_technical_support
+#: model:project.project,label_tasks:generic_request_project.request_with_task_project_1
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_generic_request_project_task_request_request
+msgid "Tasks"
+msgstr "Görevler"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_request__project_task_recursive_ids
+msgid "Tasks (Recursive)"
+msgstr "Görevler (Yinelemeli)"
+
+#. module: generic_request_project
+#: model:project.project,name:generic_request_project.project_technical_support
+msgid "Technical Product Support"
+msgstr "Teknik Ürün Desteği"
+
+#. module: generic_request_project
+#: model:ir.model.fields,help:generic_request_project.field_project_task__request_ids
+msgid ""
+"This field is deprecated! Do not use it. If you still need it, then contact "
+"us (CR&D)"
+msgstr ""
+"Bu alan kullanımdan kaldırıldı! Bunu kullanma. Hâlâ ihtiyacınız varsa, "
+"bizimle iletişime geçin (CR&D)"
+
+#. module: generic_request_project
+#: model_terms:request.request,help_html:generic_request_project.demo_request_with_complex_task
+#: model_terms:request.request,help_html:generic_request_project.demo_request_with_task
+#: model_terms:request.type,help_html:generic_request_project.request_type_with_task
+msgid ""
+"This is demo request type to demonstrate automatic actions and triggers on "
+"routes.\n"
+"            That automatic triggers will be triggered when related task "
+"changes its stage."
+msgstr ""
+"Bu, rotalardaki otomatik eylemleri ve tetikleyicileri göstermek için demo "
+"istek türüdür.\n"
+"             Bu otomatik tetikleyiciler, ilgili görev aşama değiştirdiğinde "
+"tetiklenecektir."
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__timesheet_ids
+msgid "Timesheets"
+msgstr "Zaman Çizelgeleri"
+
+#. module: generic_request_project
+#: model:ir.model.fields,help:generic_request_project.field_project_task__request_type_id
+msgid "Type of request"
+msgstr "İstek tipi"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_request__use_subtasks
+#: model:ir.model.fields,field_description:generic_request_project.field_request_type__use_subtasks
+#: model_terms:ir.ui.view,arch_db:generic_request_project.request_type_form_inherit
+msgid "Use Subtasks"
+msgstr "Alt Görevleri Kullan"
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_request__use_worklog
+#: model:ir.model.fields,field_description:generic_request_project.field_request_type__use_worklog
+#: model_terms:ir.ui.view,arch_db:generic_request_project.request_type_form_inherit
+msgid "Use Worklog"
+msgstr "Worklog'u kullan"
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_generic_request_project_task_request_request
+msgid "Work Log"
+msgstr "Çalışma Kaydı"
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_generic_request_project_task_request_request
+msgid ""
+"You have to create task for this timesheet to be able to log working time "
+"spent on that task."
+msgstr ""
+"Bu görev için harcanan çalışma süresini günlüğe kaydedebilmek için bu zaman "
+"çizelgesi için görev oluşturmalısınız."
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_generic_request_project_task_request_request
+msgid "or"
+msgstr "yada"

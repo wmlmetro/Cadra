@@ -1,0 +1,88 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_sla_priority
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 12.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-09-16 11:43+0000\n"
+"PO-Revision-Date: 2022-01-25 13:01+0000\n"
+"Last-Translator: Валерия <valittle@ukr.net>\n"
+"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-14-0/generic_request_sla_priority/uk/>\n"
+"Language: uk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_sla_priority
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_priority.generic_request_sla_priority_rule_view_form
+msgid ""
+"<i>Priority</i>: select a priority. For requests of the selected priority, "
+"the current rule line will be active. If no priority is selected, this rule "
+"applies to requests of any priority."
+msgstr ""
+"<i>Пріоритет</i>: виберіть пріоритет запитів, для яких буде активна дана "
+"лінія. Якщо пріоритет не обрано, ця лінія може застосовуватись для запитів з "
+"будь-яким пріоритетом."
+
+#. module: generic_request_sla_priority
+#: model:ir.model.fields.selection,name:generic_request_sla_priority.selection__request_sla_rule_line__priority__5
+msgid "Critical"
+msgstr "Критичний"
+
+#. module: generic_request_sla_priority
+#: model:ir.model.fields.selection,name:generic_request_sla_priority.selection__request_sla_rule_line__priority__1
+msgid "For Information"
+msgstr "Для інформації"
+
+#. module: generic_request_sla_priority
+#: model:ir.model.fields.selection,name:generic_request_sla_priority.selection__request_sla_rule_line__priority__4
+msgid "High"
+msgstr "Високий"
+
+#. module: generic_request_sla_priority
+#: model:ir.model.fields.selection,name:generic_request_sla_priority.selection__request_sla_rule_line__priority__2
+msgid "Low"
+msgstr "Низький"
+
+#. module: generic_request_sla_priority
+#: model:ir.model.fields.selection,name:generic_request_sla_priority.selection__request_sla_rule_line__priority__3
+msgid "Medium"
+msgstr "Середній"
+
+#. module: generic_request_sla_priority
+#: model:ir.model.fields.selection,name:generic_request_sla_priority.selection__request_sla_rule_line__priority__0
+msgid "Not set"
+msgstr "Не встановлено"
+
+#. module: generic_request_sla_priority
+#: model:ir.model.fields,field_description:generic_request_sla_priority.field_request_sla_rule_line__priority
+msgid "Priority"
+msgstr "Пріоритет"
+
+#. module: generic_request_sla_priority
+#: model:ir.model,name:generic_request_sla_priority.model_request_request
+msgid "Request"
+msgstr "Запит"
+
+#. module: generic_request_sla_priority
+#: model:ir.model,name:generic_request_sla_priority.model_request_sla_rule_line
+msgid "Request SLA Rule Line"
+msgstr "Лінії правила SLA запиту"
+
+#~ msgid "Display Name"
+#~ msgstr "Відображуване ім’я"
+
+#~ msgid "ID"
+#~ msgstr "ID"
+
+#~ msgid "Last Modified on"
+#~ msgstr "Остання модифікація"
+
+#~ msgid "Very Low"
+#~ msgstr "Дуже низький"

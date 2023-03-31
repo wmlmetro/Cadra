@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Add tag categories to Incident request type -->
+    <record id="crnd_wsd.request_type_generic" model="request.type">
+        <field name="tag_category_ids" eval="[(4, ref('generic_request.tag_category_severity')), (4, ref('generic_request.tag_category_priority')), (4, ref('generic_request.tag_category_platform'))]"/>
+    </record>
+</odoo>
+

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_event_action_form">
+        <field name="name">view.request.event.action.hr.form</field>
+        <field name="model">request.event.action</field>
+        <field name="inherit_id" ref="generic_request_action.view_request_event_action_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form//notebook[@name='notebook_action']//group[@name='group_action_subscribe']"
+                   position="inside">
+                <field name="subscribe_department_ids" widget="many2many_tags"/>
+            </xpath>
+            <xpath expr="//form//notebook[@name='notebook_action']//group[@name='group_action_assign']"
+                   position="inside">
+                <field name="assign_department_id"
+                       attrs="{'required': [('act_type', '=', 'assign'), ('assign_type', 'in', ('department_manager', 'department_employee'))], 'invisible': [('assign_type', 'not in', ('department_manager', 'department_employee'))]}"/>
+                <field name="assign_department_job_id"
+                       attrs="{'invisible': [('assign_type', '!=', 'department_employee')]}"
+                       domain="[('department_id', '=', assign_department_id)]"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+
+
+

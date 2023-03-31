@@ -1,0 +1,68 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* crnd_service_desk
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:18+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/crnd_service_desk/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: crnd_service_desk
+#: model:request.stage,name:crnd_service_desk.request_stage_type_incident_classification
+#: model:request.stage.route,name:crnd_service_desk.request_stage_route_type_incident_new_to_classification
+msgid "Classification"
+msgstr "Sınıflandırma"
+
+#. module: crnd_service_desk
+#: model:request.stage,name:crnd_service_desk.request_stage_type_incident_done
+#: model:request.stage.route,name:crnd_service_desk.request_stage_route_type_incident_progress_to_done
+msgid "Done"
+msgstr "Tamamlandı"
+
+#. module: crnd_service_desk
+#: model:request.stage,name:crnd_service_desk.request_stage_type_incident_draft
+msgid "Draft"
+msgstr "Taslak"
+
+#. module: crnd_service_desk
+#: model:request.type,name:crnd_service_desk.request_type_incident
+msgid "Incident"
+msgstr "Kaza"
+
+#. module: crnd_service_desk
+#: model:request.stage,name:crnd_service_desk.request_stage_type_incident_new
+#: model:request.stage.route,name:crnd_service_desk.request_stage_route_type_incident_draft_to_new
+msgid "New"
+msgstr "Yeni"
+
+#. module: crnd_service_desk
+#: model:request.stage,name:crnd_service_desk.request_stage_type_incident_progress
+#: model:request.stage.route,name:crnd_service_desk.request_stage_route_type_incident_classification_to_progress
+msgid "Progress"
+msgstr "İlerleme"
+
+#. module: crnd_service_desk
+#: model:request.stage.route,name:crnd_service_desk.request_stage_route_type_incident_classification_to_rejected
+msgid "Reject"
+msgstr "Reddetmek"
+
+#. module: crnd_service_desk
+#: model:request.stage,name:crnd_service_desk.request_stage_type_incident_rejected
+msgid "Rejected"
+msgstr "Reddedildi"
+
+#. module: crnd_service_desk
+#: model_terms:request.type,help_html:crnd_service_desk.request_type_incident
+msgid "This is the type of incident request."
+msgstr "Bu olay talebi türüdür."

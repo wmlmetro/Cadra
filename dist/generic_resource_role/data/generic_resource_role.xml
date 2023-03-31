@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id='generic_resource_role_type_follower' model='generic.resource.role.type'>
+        <field name='name'>Follower</field>
+        <field name='code'>follower</field>
+    </record>
+    <record id='generic_resource_role_type_user' model='generic.resource.role.type'>
+        <field name='name'>User</field>
+        <field name='code'>user</field>
+    </record>
+    <record id='generic_resource_role_type_admin' model='generic.resource.role.type'>
+        <field name='name'>Administrator</field>
+        <field name='code'>administrator</field>
+    </record>
+    <record id='generic_resource_role_type_other' model='generic.resource.role.type'>
+        <field name='name'>Other</field>
+        <field name='code'>other</field>
+    </record>
+    <record id='generic_resource_role_type_owner' model='generic.resource.role.type'>
+        <field name='name'>Owner</field>
+        <field name='code'>owner</field>
+    </record>
+</odoo>

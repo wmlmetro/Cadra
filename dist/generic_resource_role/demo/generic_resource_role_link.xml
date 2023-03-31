@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <record id="generic_resource_simple_computer_1_role_link_demo_user" model="generic.resource.role.link">
+        <field name="resource_id" ref="generic_resource.simple_resource_computer_1_generic_resource"/>
+        <field name="role_id" ref="generic_resource_simple_role_user"/>
+        <field name="partner_id" ref="base.partner_demo"/>
+    </record>
+
+    <record id="generic_resource_simple_notebook_5_role_link_demo_user" model="generic.resource.role.link">
+        <field name="resource_id" ref="generic_resource.simple_resource_notebook_5_generic_resource"/>
+        <field name="role_id" ref="generic_resource_simple_role_user"/>
+        <field name="partner_id" ref="base.partner_demo"/>
+    </record>
+
+    <record id="generic_resource_simple_laser_printer_2_role_link_demo_user" model="generic.resource.role.link">
+        <field name="resource_id" ref="generic_resource.simple_resource_laserprinter_2_generic_resource"/>
+        <field name="role_id" ref="generic_resource_simple_role_user"/>
+        <field name="partner_id" ref="base.partner_demo"/>
+    </record>
+
+    <record id="generic_resource_simple_inkprinter_3_role_link_demo_user" model="generic.resource.role.link">
+        <field name="resource_id" ref="generic_resource.simple_resource_inkprinter_3_generic_resource"/>
+        <field name="role_id" ref="generic_resource_simple_role_user"/>
+        <field name="partner_id" ref="base.partner_demo"/>
+    </record>
+
+    <record id="generic_resource_simple_notebook_6_role_link_demo_user" model="generic.resource.role.link">
+        <field name="resource_id" ref="generic_resource.simple_resource_notebook_6_generic_resource"/>
+        <field name="role_id" ref="generic_resource_simple_role_user"/>
+        <field name="partner_id" ref="base.partner_demo"/>
+    </record>
+
+    <record id="generic_resource_simple_inkprinter_5_role_link_demo_user" model="generic.resource.role.link">
+        <field name="resource_id" ref="generic_resource.simple_resource_inkprinter_5_generic_resource"/>
+        <field name="role_id" ref="generic_resource_simple_role_admin"/>
+        <field name="partner_id" ref="base.partner_demo"/>
+    </record>
+
+</odoo>

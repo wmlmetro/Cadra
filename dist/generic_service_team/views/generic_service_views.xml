@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_service_team_generic_service_form">
+        <field name="name">view.service.team.generic.service.form</field>
+        <field name="model">generic.service</field>
+        <field name="inherit_id" ref="generic_service.generic_service_view_form"/>
+        <field name="arch" type="xml">
+            <field name="change_manager_id" position="after">
+                <field name="team_id"/>
+            </field>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Request Type Fields-->
+    <record id="request_type_field" model="request.type">
+        <field name="name">Create VM</field>
+        <field name="code">create_vm</field>
+        <field name="help_html"><![CDATA[
+            Fill <i>Data</i> tab below with desired machine configuration
+        ]]></field>
+        <field name="category_ids" eval="[(4, ref('generic_request.request_category_demo_technical_configuration'), 0)]"/>
+    </record>
+
+    <!-- fields request type stages -->
+    <record id="request_stage_type_field_new" model="request.stage">
+        <field name="sequence" eval="1"/>
+        <field name="name">New</field>
+        <field name="code">new</field>
+        <field name="request_type_id" ref="request_type_field"/>
+        <field name="type_id" ref="generic_request.request_stage_type_draft"/>
+        <field name="help_html"><![CDATA[
+            To close this request, just click 'Closed' stage in statusbar!
+        ]]></field>
+    </record>
+
+    <record id="request_stage_type_field_closed" model="request.stage">
+        <field name="sequence" eval="2"/>
+        <field name="name">Created</field>
+        <field name="code">created</field>
+        <field name="closed" eval="True"/>
+        <field name="request_type_id" ref="request_type_field"/>
+        <field name="type_id" ref="generic_request.request_stage_type_closed_ok"/>
+    </record>
+
+    <record id="request_stage_type_field_rejected" model="request.stage">
+        <field name="sequence" eval="3"/>
+        <field name="name">Rejected</field>
+        <field name="code">rejected</field>
+        <field name="closed" eval="True"/>
+        <field name="request_type_id" ref="request_type_field"/>
+        <field name="type_id" ref="generic_request.request_stage_type_closed_fail"/>
+    </record>
+
+    <!-- fields request type routes -->
+    <record id="request_stage_route_type_field_new_to_closed"
+            model="request.stage.route">
+        <field name="name">Create</field>
+        <field name="stage_from_id" ref="request_stage_type_field_new"/>
+        <field name="stage_to_id" ref="request_stage_type_field_closed"/>
+        <field name="request_type_id" ref="request_type_field"/>
+    </record>
+
+    <record id="request_stage_route_type_field_new_to_rejected"
+            model="request.stage.route">
+        <field name="name">Reject</field>
+        <field name="stage_from_id" ref="request_stage_type_field_new"/>
+        <field name="stage_to_id" ref="request_stage_type_field_rejected"/>
+        <field name="request_type_id" ref="request_type_field"/>
+        <field name="reopen_as_type_ids" eval="[(4, ref('generic_request_field.request_type__create_lxc'), 0)]"/>
+        <field name="button_style">danger</field>
+    </record>
+
+    <!-- fields request type field -->
+    <record id="request_stage_field_memory" model="request.field">
+        <field name="name">Memory</field>
+        <field name="code">memory</field>
+        <field name="mandatory" eval="True"/>
+        <field name="default">4 GB</field>
+        <field name="request_type_id" ref="request_type_field"/>
+        <field name="position">before</field>
+        <field name="sequence" eval="6"/>
+        <field name="field_help">Place here exepcted number of GigaBytes of memory to allocated for this VM</field>
+    </record>
+
+    <record id="request_stage_field_cpu" model="request.field">
+        <field name="name">CPU</field>
+        <field name="code">cpu</field>
+        <field name="mandatory" eval="True"/>
+        <field name="request_type_id" ref="request_type_field"/>
+        <field name="position">before</field>
+        <field name="sequence" eval="3"/>
+        <field name="field_placeholder"># of CPU Cores</field>
+        <field name="field_help">Place here number of CPU cores to allocate for this VM</field>
+    </record>
+
+    <record id="request_stage_field_hdd" model="request.field">
+        <field name="name">HDD</field>
+        <field name="code">hdd</field>
+        <field name="default">30 GB</field>
+        <field name="mandatory" eval="True"/>
+        <field name="request_type_id" ref="request_type_field"/>
+        <field name="position">before</field>
+        <field name="sequence" eval="9"/>
+    </record>
+
+    <record id="request_stage_field_os" model="request.field">
+        <field name="name">OS</field>
+        <field name="code">os</field>
+        <field name="request_type_id" ref="request_type_field"/>
+        <field name="position">before</field>
+        <field name="sequence" eval="12"/>
+    </record>
+
+    <record id="request_stage_field_comment" model="request.field">
+        <field name="name">Comment</field>
+        <field name="code">comment</field>
+        <field name="request_type_id" ref="request_type_field"/>
+        <field name="grid_classes">col-md-4</field>
+        <field name="position">after</field>
+        <field name="sequence" eval="8"/>
+    </record>
+
+    <!-- Request Request -->
+    <record id="request_request_type_field_new_vm" model="request.request">
+        <field name="request_text"><![CDATA[
+        <p>Please, create new machine with following configuration as fast as possible!</p>
+
+        <p>Desired IP: <pre>14.123.11.42</pre></p>
+        ]]></field>
+        <field name="type_id" ref="request_type_field"/>
+        <field name="category_id" ref="generic_request.request_category_demo_technical_configuration"/>
+        <field name="created_by_id" ref="generic_request.user_demo_request"/>
+        <field name="request_field_values_json">{
+            "cpu": "2",
+            "memory": "4 GB",
+            "os": "ubuntu",
+            "hdd": "10 GB"
+        }</field>
+    </record>
+
+</odoo>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="contract_template_basic_support_invoice_consulting"
+            model="generic.contract.template.invoice.line">
+        <field name="contract_template_id" ref="generic_contract.contract_template_demo_basic_support"/>
+        <field name="product_id" ref="product_consulting"/>
+        <field name="name">Bureaucrat Consulting</field>
+        <field name="quantity">50</field>
+        <field name="uom_id" ref="uom.product_uom_hour"/>
+        <field name="price_type">fixed</field>
+        <field name="price_fixed" eval="42.78"/>
+    </record>
+</odoo>
+

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_event_action_form">
+        <field name="name">view.request.event.action.subrequest.form</field>
+        <field name="model">request.event.action</field>
+        <field name="inherit_id" ref="generic_request_action.view_request_event_action_form"/>
+        <field name="arch" type="xml">
+            <field name="subrequest_category_id" position="after">
+                <field name="subrequest_assign_policy_id"
+                       domain="[('model_id.model', '=', 'request.request')]"
+                       context="{'default_model': 'request.request'}"/>
+            </field>
+        </field>
+    </record>
+</odoo>

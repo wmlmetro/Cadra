@@ -1,0 +1,2 @@
+- Show role fields on resource only for role manager (for especific resource) or for Resource Manager group
+- Make resource_visibility editable only for role manager or resource manager

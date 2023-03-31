@@ -1,0 +1,105 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* crnd_wsd_legal
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 13.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-07-27 15:53+0000\n"
+"PO-Revision-Date: 2020-07-27 15:53+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: crnd_wsd_legal
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_legal.wsd_legal_requests_new_request_data
+msgid "Accept"
+msgstr ""
+
+#. module: crnd_wsd_legal
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_legal.wsd_legal_requests_new_request_data
+msgid "Accept terms and conditions"
+msgstr ""
+
+#. module: crnd_wsd_legal
+#: model:ir.model,name:crnd_wsd_legal.model_res_company
+msgid "Companies"
+msgstr ""
+
+#. module: crnd_wsd_legal
+#: model:ir.model,name:crnd_wsd_legal.model_res_config_settings
+msgid "Config Settings"
+msgstr ""
+
+#. module: crnd_wsd_legal
+#: model:ir.model.fields.selection,name:crnd_wsd_legal.selection__request_type__require_terms_and_conditions__global
+msgid "Global Default"
+msgstr ""
+
+#. module: crnd_wsd_legal
+#: code:addons/crnd_wsd_legal/controllers/main.py:0
+#, python-format
+msgid "It is required to accept terms and conditions to continue!"
+msgstr ""
+
+#. module: crnd_wsd_legal
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_legal.view_request_type_form
+msgid "Legal settings"
+msgstr ""
+
+#. module: crnd_wsd_legal
+#: model:ir.model.fields.selection,name:crnd_wsd_legal.selection__request_type__require_terms_and_conditions__no
+#: model:ir.model.fields.selection,name:crnd_wsd_legal.selection__res_company__request_require_terms_and_conditions__no
+msgid "No"
+msgstr ""
+
+#. module: crnd_wsd_legal
+#: model:ir.model.fields,field_description:crnd_wsd_legal.field_res_company__request_require_terms_and_conditions
+msgid "Request Require Terms And Conditions"
+msgstr ""
+
+#. module: crnd_wsd_legal
+#: model:ir.model.fields,field_description:crnd_wsd_legal.field_res_company__request_terms_and_conditions_url
+msgid "Request Terms And Conditions Url"
+msgstr ""
+
+#. module: crnd_wsd_legal
+#: model:ir.model,name:crnd_wsd_legal.model_request_type
+msgid "Request Type"
+msgstr ""
+
+#. module: crnd_wsd_legal
+#: model:ir.model.fields,field_description:crnd_wsd_legal.field_request_type__require_terms_and_conditions
+msgid "Require Terms And Conditions"
+msgstr ""
+
+#. module: crnd_wsd_legal
+#: model:ir.model.fields,field_description:crnd_wsd_legal.field_res_config_settings__request_require_terms_and_conditions
+msgid "Require Terms and Conditions"
+msgstr ""
+
+#. module: crnd_wsd_legal
+#: model:ir.model.fields,field_description:crnd_wsd_legal.field_request_type__terms_and_conditions_url
+msgid "Terms And Conditions Url"
+msgstr ""
+
+#. module: crnd_wsd_legal
+#: model:ir.model.fields,field_description:crnd_wsd_legal.field_res_config_settings__request_terms_and_conditions_url
+msgid "Terms and Conditions URL"
+msgstr ""
+
+#. module: crnd_wsd_legal
+#: model:ir.model.fields.selection,name:crnd_wsd_legal.selection__request_type__require_terms_and_conditions__yes
+#: model:ir.model.fields.selection,name:crnd_wsd_legal.selection__res_company__request_require_terms_and_conditions__yes
+msgid "Yes"
+msgstr ""
+
+#. module: crnd_wsd_legal
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_legal.wsd_legal_requests_new_request_data
+msgid "terms and conditions"
+msgstr ""

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="generic_request_assignment_project__project_project" model="generic.assign.policy.model">
+        <field name="model_id" ref="project.model_project_project"/>
+        <field name="assign_user_field_id" ref="project.field_project_project__user_id"/>
+    </record>
+    <record id="generic_request_assignment_project__project_task" model="generic.assign.policy.model">
+        <field name="model_id" ref="project.model_project_task"/>
+        <field name="assign_user_field_id" ref="project.field_project_task__user_ids"/>
+    </record>
+</odoo>

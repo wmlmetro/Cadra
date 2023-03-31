@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_generic_contract_form">
+        <field name="model">generic.contract</field>
+        <field name="inherit_id" ref="generic_contract.view_generic_contract_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form//div[@name='button_box']" position="inside">
+                <button class="oe_stat_button" type="object"
+                        name="action_generic_contract_account_invoice"
+                        groups="account.group_account_invoice"
+                        icon="fa-book">
+                    <field string="Invoices"
+                           name="account_invoice_count"
+                           widget="statinfo"/>
+                </button>
+            </xpath>
+            <xpath expr="//group[@name='group_contract_main_right']" position="inside">
+                <label for="recurring_invoices"
+                       groups="account.group_account_invoice"/>
+                <div groups="account.group_account_invoice">
+                    <field name="recurring_invoices"
+                            class="oe_inlone"/>
+                    <button name="action_recurring_create_invoices"
+                            type="object"
+                            attrs="{'invisible': ['|', ('recurring_invoices', '=', False),('state', '!=', 'active')]}"
+                            class="oe_link"
+                            string="Run scheduler"
+                            title="Run scheduler"
+                            aria-label="Run scheduler"/>
+                </div>
+            </xpath>
+            <xpath expr="//form//notebook/page[@name='page_other']" position="before">
+                <page name="recurring_invoices_page"
+                      groups="account.group_account_invoice"
+                      attrs="{'invisible': [('recurring_invoices', '=', False)]}"
+                      string="Recurring Invoices">
+                    <group name="group_recurring_invoices_info">
+                        <group>
+                            <field name="payer_id"/>
+                            <field name="journal_type" invisible="1"/>
+                            <field name="journal_id"
+                                   domain="[('type', '=', journal_type)]"/>
+                            <field name="pricelist_id"/>
+                            <field name="currency_id" attrs="{'required': [('recurring_invoices', '=', True)]}"/>
+                        </group>
+                        <group>
+                            <label for="recurring_period"/>
+                            <div>
+                                <field name="recurring_period"
+                                       class="oe_inline"
+                                       attrs="{'required': [('recurring_invoices', '=', True)]}"/>
+                                <field name="recurring_type"
+                                       class="oe_inline"
+                                       attrs="{'required': [('recurring_invoices', '=', True)]}"/>
+                            </div>
+                            <field name="recurring_invoicing_type"
+                                   string="Invoicing Type"
+                                   attrs="{'required': [('recurring_invoices', '=', True)]}"/>
+                            <field name="recurring_next_date"
+                                   attrs="{'required': [('recurring_invoices', '=', True)]}"/>
+                            <field name="payment_term_id"/>
+                            <field name="recurring_invoices_offset_date"/>
+                        </group>
+                        <group>
+                            <field name="auto_accept"/>
+                            <field name="auto_send"/>
+                            <field name="auto_send_template_id"
+                                       class="oe_inline"
+                                       domain="[('model_id.model', '=', 'account.invoice')]"
+                                       attrs="{'required': [('auto_send', '=', True)],
+                                               'invisible': [('auto_send', '=', False)]}"/>
+                            <field name="email_from"
+                                       attrs="{'required': [('auto_send', '=', True)],
+                                               'invisible': [('auto_send', '=', False)]}"/>
+                            <field name="recipient_ids"
+                                   widget="many2many_tags"
+                                       attrs="{'invisible': [('auto_send', '=', False)]}"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page name="recurring_invoices_lines_page" string="Invoice Lines">
+                            <group name="group_invoice_lines">
+                                <field name="recurring_invoice_line_ids"
+                                       nolabel="1"
+                                       widget="section_and_note_one2many"
+                                       mode="tree,form"
+                                       context="{'default_contract_id': id}">
+                                    <tree>
+                                        <control>
+                                            <create string="Add a line"/>
+                                            <create string="Add a section"
+                                                    context="{'default_display_type': 'line_section'}"/>
+                                            <create string="Add a note"
+                                                    context="{'default_display_type': 'line_note'}"/>
+
+                                            <!-- Logical blocks -->
+                                            <create string="Add a FOR"
+                                                    context="{'default_display_type': 'line_section', 'default_name': '%>CODE->FOR(&quot;expr&quot;, &quot;varname&quot;)'}"/>
+                                            <create string="Add a IF"
+                                                    context="{'default_display_type': 'line_section', 'default_name': '%>CODE->IF(&quot;expr&quot;)'}"/>
+                                            <create string="Add a ELIF"
+                                                    context="{'default_display_type': 'line_section', 'default_name': '%>CODE->ELIF(&quot;expr&quot;)'}"/>
+                                            <create string="Add a ELSE"
+                                                    context="{'default_display_type': 'line_section', 'default_name': '%>CODE->ELSE()'}"/>
+                                            <create string="Add a END"
+                                                    context="{'default_display_type': 'line_section', 'default_name': '%>END'}"/>
+                                        </control>
+                                        <field name="currency_id" invisible="1"/>
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="product_id" attrs="{'required': [('display_type', '=', False)]}"/>
+                                        <field name="name"
+                                               widget="section_and_note_text"/>
+                                        <field name="display_type" invisible="1"/>
+                                        <field name="quantity"/>
+                                        <field name="uom_id"
+                                               attrs="{'required': [('display_type', '=', False)]}"
+                                               groups="uom.group_uom"/>
+                                        <field name="price_display"/>
+                                    </tree>
+                                    <form>
+                                        <field name="currency_id" invisible="1"/>
+                                        <field name="display_type" invisible="1"/>
+                                        <group>
+                                            <group attrs="{'invisible': [('display_type', '!=', False)]}">
+                                                <field name="sequence"/>
+                                                <field name="product_id"/>
+                                                <field name="quantity"/>
+                                                <field name="uom_id" groups="uom.group_uom"/>
+                                            </group>
+                                            <group attrs="{'invisible': [('display_type', '!=', False)]}">
+                                                <field name="price_type"/>
+                                                <field name="price_fixed"
+                                                       attrs="{'invisible': [('price_type', '!=', 'fixed')], 'required': [('price_type', '==', 'fixed')]}"/>
+                                                <field name="price_pricelist"
+                                                       attrs="{'invisible': [('price_type', '!=', 'pricelist')]}"/>
+                                                <field name="price_py_expr"
+                                                       attrs="{'invisible': [('price_type', '!=', 'py_expr')], 'required': [('price_type', '==', 'py_expr')]}"/>
+                                                <field name="price_er_employee_expr"
+                                                       attrs="{'invisible': [('price_type', '!=', 'employee_rate')], 'required': [('price_type', '==', 'employee_rate')]}"/>
+                                                <field name="price_er_default_rate" widget="monetary"
+                                                       attrs="{'invisible': [('price_type', '!=', 'employee_rate')], 'required': [('price_type', '==', 'employee_rate')]}"/>
+                                            </group>
+                                            <group colspan="4" string="Description">
+                                                <field name="name" nolabel="1"/>
+                                            </group>
+                                            <group colspan="4">
+                                                <p>You can use following variables in context:
+                                                    <ul>
+                                                        <li><pre>contract</pre> - instance of 'generic.contract' model</li>
+                                                        <li><pre>invoice_date</pre> - datetime.date representing invoice date</li>
+                                                        <li><pre>period_date_start</pre> - datetime.date representing start date of invoicing period</li>
+                                                        <li><pre>period_date_end</pre> - datetime.date representing end date of invoicing period</li>
+                                                        <li><pre>invoice</pre> - account.invoice instance</li>
+                                                        <li><pre>contract.get_resources(model_name, all_lines=False)</pre> - if you have installed "generic_contract_resource" module, then you can use this signature to iterate over resources of specified type (model) related to contract</li>
+                                                        <li><pre>contract.get_employee_rate(employee)</pre> - can use method to get employee rate from field contract_employee_rate_ids for employee.
+                                                            Method gets parameter "employee".
+                                                            It can be instance of "res.user" or "hr.employee" classes or integer (id of record of "hr.employee" class).</li>
+                                                    </ul>
+                                                </p>
+                                            </group>
+                                        </group>
+                                    </form>
+                                </field>
+                            </group>
+                            <group name="group_recurring_invoices_last_err"
+                                   string="Last Error"
+                                   attrs="{'invisible': [('recurring_invoices_last_error', '=', False)]}">
+                                <field name="recurring_invoices_last_error"
+                                       nolabel="1"
+                                       widget="ace"/>
+                            </group>
+                        </page>
+                        <page name="recurring_invoices_employee_rates_page" string="Employee Rates">
+                            <separator/>
+                            <label for="contract_employee_rate_ids"/>
+                            <separator/>
+                            <field name="contract_employee_rate_ids"
+                                   context="{'default_generic_contract_id': active_id}">
+                                <tree editable="top">
+                                    <field name="generic_contract_id" invisible="1"/>
+                                    <field name="employee_id"/>
+                                    <field name="rate" widget="monetary"/>
+                                    <field name="contract_currency_id"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

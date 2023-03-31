@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="generic_team_tag_action" model="ir.actions.act_window">
+        <field name="name">Team tags</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">generic.tag</field>
+        <field name="domain">[('model_id.model', '=', 'generic.team')]</field>
+        <field name="context">{'default_model': 'generic.team'}</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record id="generic_team_member_tag_action" model="ir.actions.act_window">
+        <field name="name">Team member tags</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">generic.tag</field>
+        <field name="domain">[('model_id.model', '=', 'generic.team.member')]</field>
+        <field name="context">{'default_model': 'generic.team.member'}</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem
+        id="menu_generic_team_tag_root"
+        name="Generic Team Tags"
+        parent="generic_tag.menu_generic_tags_root"/>
+
+    <menuitem
+        id="menu_generic_team_tags"
+        name="Team tags"
+        parent="menu_generic_team_tag_root"
+        action="generic_team_tag_action"
+        sequence="1"/>
+    <menuitem
+        id="menu_generic_team_member_tags"
+        name="Team member tags"
+        parent="menu_generic_team_tag_root"
+        action="generic_team_member_tag_action"
+        sequence="2"/>
+
+</odoo>

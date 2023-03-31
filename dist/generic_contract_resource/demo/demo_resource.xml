@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--Categorie-->
+
+    <record id="simple_resource_category_applications"
+            model="generic.resource.simple.category">
+        <field name='name'>Applications</field>
+    </record>
+
+    <!--Simple resource-->
+
+    <record id="simple_resource_guest_book" model="generic.resource.simple">
+        <field name="name">Guest Book Application</field>
+        <field name="category_id" ref="simple_resource_category_applications"/>
+    </record>
+
+</odoo>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_type_form">
+        <field name="model">request.type</field>
+        <field name="inherit_id" ref="generic_request.view_request_type_form"/>
+        <field name="arch" type="xml">
+            <field name="timesheet_activity_ids" position="after">
+                <field name="enable_invoicing"/>
+                <field name="default_timetracking_product_id"
+                       attrs="{'invisible': [('enable_invoicing', '=', False)], 'required': [('enable_invoicing', '=', True)]}"/>
+            </field>
+        </field>
+    </record>
+</odoo>

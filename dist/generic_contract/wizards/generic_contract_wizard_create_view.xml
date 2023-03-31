@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_generic_contract_create_wizard_form" model="ir.ui.view">
+        <field name="model">generic.contract.wizard.create</field>
+        <field name="arch" type="xml">
+            <form string="Create Contract">
+                <group>
+                    <group>
+                        <field name="partner_type"/>
+                        <field name="template_id"
+                               domain="[('partner_type', '=', partner_type)]"/>
+                        <field name="partner_id"
+                               domain="[(partner_type, '=', True)]"/>
+                    </group>
+                    <group>
+                        <field name="date_start"/>
+                        <field name="date_end"/>
+                    </group>
+                </group>
+                <footer>
+                    <button class="oe_button oe_highlight" icon="fa-check"
+                            name="create_contract" string="Create" type="object"/>
+                    <button class="oe_button oe_highlight" special="cancel"
+                            string="Cancel" icon="fa-ban"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_generic_contract_create_wizard" model="ir.actions.act_window">
+        <field name="res_model">generic.contract.wizard.create</field>
+        <field name="name">Create Contract</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_generic_contract_create_wizard_form"/>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem name="New"
+              id="generic_contract_new"
+              sequence="30"
+              parent="generic_contract.generic_contract_contracts"
+              action="action_generic_contract_create_wizard"/>
+</odoo>

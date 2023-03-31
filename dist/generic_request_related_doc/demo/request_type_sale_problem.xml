@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="request_type_sale_problem" model="request.type">
+        <field name="name">Sale problem</field>
+        <field name="code">sale_problem</field>
+        <field name="help_html"><![CDATA[
+             If you have some troubles with sale_orders then use this request type
+
+             It have routes:
+            <ul>
+                <li>draft -> sent -> fixed</li>
+                <li>draft -> sent -> rejected</li>
+            </ul>
+        ]]></field>
+        <field name="category_ids" eval="[(4, ref('generic_request.request_category_demo_technical_configuration'), 0)]"/>
+    </record>
+
+    <!-- sale_problem request type stages -->
+    <record id="request_stage_type_sale_problem_draft" model="request.stage">
+        <field name="sequence" eval="1"/>
+        <field name="name">Draft</field>
+        <field name="code">draft</field>
+        <field name="request_type_id" ref="request_type_sale_problem"/>
+    </record>
+    <record id="request_stage_type_sale_problem_sent" model="request.stage">
+        <field name="sequence" eval="2"/>
+        <field name="name">Sent</field>
+        <field name="code">sent</field>
+        <field name="request_type_id" ref="request_type_sale_problem"/>
+    </record>
+    <record id="request_stage_type_sale_problem_fixed" model="request.stage">
+        <field name="sequence" eval="3"/>
+        <field name="name">Fixed</field>
+        <field name="code">fixed</field>
+        <field name="closed" eval="True"/>
+        <field name="request_type_id" ref="request_type_sale_problem"/>
+    </record>
+    <record id="request_stage_type_sale_problem_rejected" model="request.stage">
+        <field name="sequence" eval="4"/>
+        <field name="name">Rejected</field>
+        <field name="code">rejected</field>
+        <field name="closed" eval="True"/>
+        <field name="request_type_id" ref="request_type_sale_problem"/>
+    </record>
+
+    <!-- sale_problem request type routes -->
+    <record id="request_stage_route_type_sale_problem_draft_to_sent"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_sale_problem_draft"/>
+        <field name="stage_to_id" ref="request_stage_type_sale_problem_sent"/>
+        <field name="request_type_id" ref="request_type_sale_problem"/>
+    </record>
+    <record id="request_stage_route_type_sale_problem_sent_to_fixed"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_sale_problem_sent"/>
+        <field name="stage_to_id" ref="request_stage_type_sale_problem_fixed"/>
+        <field name="request_type_id" ref="request_type_sale_problem"/>
+    </record>
+    <record id="request_stage_route_type_sale_problem_sent_to_rejected"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_sale_problem_sent"/>
+        <field name="stage_to_id" ref="request_stage_type_sale_problem_rejected"/>
+        <field name="request_type_id" ref="request_type_sale_problem"/>
+    </record>
+    <record id="request_stage_route_type_sale_problem_rejected_to_draft"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_sale_problem_rejected"/>
+        <field name="stage_to_id" ref="request_stage_type_sale_problem_draft"/>
+        <field name="request_type_id" ref="request_type_sale_problem"/>
+    </record>
+
+     <!-- Request Request -->
+    <record id="request_request_type_sale_problem_demo_1" model="request.request">
+        <field name="request_text"><![CDATA[
+            <h1>Cannot confirm sale order</h1>
+
+            <p>I can't confirm sale order.
+            It shows me AccessDenied error.</p>
+
+            <p>Please, help me!</p>
+        ]]></field>
+        <field name="type_id" ref="request_type_sale_problem"/>
+        <field name="category_id"
+               ref="generic_request.request_category_demo_technical_configuration"/>
+        <field name="created_by_id" ref="generic_request.user_demo_request"/>
+    </record>
+
+     <!-- Related document -->
+    <record id="request_request_type_sale_problem_demo_1_related_document_1" model="request.related.document">
+        <field name="request_id" ref="request_request_type_sale_problem_demo_1"/>
+        <field name="doc_type_id" ref="related_document_type__res_partner"/>
+        <field name="doc_id" ref="base.res_partner_1"/>
+    </record>
+
+</odoo>

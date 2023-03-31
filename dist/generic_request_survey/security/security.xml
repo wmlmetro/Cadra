@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="rule_request_send_survey" model="ir.rule">
+        <field name="name">Rule for request send survey wizard</field>
+        <field name="model_id" ref="generic_request_survey.model_request_send_survey"/>
+        <field name="domain_force">[
+                ('create_uid', '=', user.id),
+            ]</field>
+        <field eval="1" name="perm_unlink"/>
+        <field eval="1" name="perm_write"/>
+        <field eval="1" name="perm_read"/>
+        <field eval="1" name="perm_create"/>
+    </record>
+</odoo>

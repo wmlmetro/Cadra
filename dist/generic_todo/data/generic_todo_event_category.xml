@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record model="generic.system.event.category" id="system_event_category_generic_todo">
+        <field name="name">Generic Todo Event Category</field>
+        <field name="code">Generic-Todo-event-category</field>
+        <field name="event_source_id" ref="system_event_source_generic_todo"/>
+    </record>
+
+</odoo>

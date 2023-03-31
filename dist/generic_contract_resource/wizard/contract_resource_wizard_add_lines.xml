@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="contract_recource_wizard_add_lines_form_view" model="ir.ui.view">
+        <field name="model">contract.resource.lines.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="contract_id"/>
+                        <group name="resource_info_group" string="Resource Info">
+                            <field name="resource_res_model" invisible="1"/>
+                            <field name="resource_type_id"
+                                   required="1"
+                                   options="{'no_create': true, 'no_quick_create': true}"/>
+                            <field name="resource_res_id"
+                                   required="1"
+                                   widget="generic_m2o"
+                                   class="oe_left"
+                                   model_field="resource_res_model"
+                                   attrs="{'invisible': [('resource_res_model', '=', False)]}"/>
+                        </group>
+                        <group name="datetime" string="Datetime">
+                            <field name="datetime_added" string="Added"/>
+                            <field name="datetime_end" string="End"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page name="resource_service_page" string="Resource SLA">
+                            <field name="resource_service_line_ids"
+                                   context="{'default_resource_type_id': resource_type_id,
+                                     'default_resource_res_model': resource_res_model,
+                                     'default_resource_res_id': resource_res_id,
+                                     'default_contract_resource_line_id': active_id,
+                                     'default_contract_id': contract_id}">
+                                <tree editable="bottom">
+                                    <field name="service_id" required="1"/>
+                                    <field name="service_level_id" groups="generic_service.group_use_service_level"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <footer>
+                    <button string="Add" name="do_add_line" class="btn-primary" type="object"/>
+                    <button string="Cancel" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+   </record>
+
+   <record id="action_contract_resource_lines_wizard" model="ir.actions.act_window">
+       <field name="res_model">contract.resource.lines.wizard</field>
+       <field name="name">Add Resource Lines </field>
+       <field name="view_mode">form</field>
+       <field name="target">new</field>
+   </record>
+
+</odoo>

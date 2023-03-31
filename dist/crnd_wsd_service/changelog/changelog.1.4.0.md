@@ -1,0 +1,1 @@
+- Added extra tooltips for services (on hover on service name)

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_server_action_form_assign">
+        <field name="model">ir.actions.server</field>
+        <field name="inherit_id" ref="base.view_server_action_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Assign policy"
+                      name='page_assign_by_policy'
+                      autofocus="autofocus"
+                      attrs="{'invisible': [('state', '!=', 'assign_by_policy')]}">
+                    <group>
+                        <field name="assign_policy_id"
+                               domain="[('model_id.model', '=', model_name)]"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,221 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_sla_log
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 12.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-09-16 11:54+0000\n"
+"PO-Revision-Date: 2022-02-17 13:03+0000\n"
+"Last-Translator: Валерия <valittle@ukr.net>\n"
+"Language-Team: Russian <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-14-0/generic_request_sla_log/ru/>\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__assignee_id
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
+msgid "Assignee"
+msgstr "Назначеный"
+
+#. module: generic_request_sla_log
+#: model:request.stage,name:generic_request_sla_log.request_stage_type_sla_confirmed
+msgid "Confirmed"
+msgstr "Подтверждено"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__create_uid
+msgid "Created by"
+msgstr "Создан"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__create_date
+msgid "Created on"
+msgstr "Создан"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__date
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
+msgid "Date"
+msgstr "Дата"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__date_prev
+msgid "Date Prev"
+msgstr "Предварительная дата"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__display_name
+msgid "Display Name"
+msgstr "Отображаемое название"
+
+#. module: generic_request_sla_log
+#: model:request.stage,name:generic_request_sla_log.request_stage_type_sla_draft
+msgid "Draft"
+msgstr "Черновик"
+
+#. module: generic_request_sla_log
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
+msgid "Group By..."
+msgstr "Группировать по…"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__kanban_state
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
+msgid "Kanban State"
+msgstr "Состояние канбан"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log____last_update
+msgid "Last Modified on"
+msgstr "Последнее изменение"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__write_uid
+msgid "Last Updated by"
+msgstr "Последний раз обновил"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__write_date
+msgid "Last Updated on"
+msgstr "Последнее обновление"
+
+#. module: generic_request_sla_log
+#: model:request.stage,name:generic_request_sla_log.request_stage_type_sla_rejected
+msgid "Rejected"
+msgstr "Отклонено"
+
+#. module: generic_request_sla_log
+#: model:ir.model,name:generic_request_sla_log.model_request_request
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__request_id
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
+msgid "Request"
+msgstr "Запрос"
+
+#. module: generic_request_sla_log
+#: model:ir.model,name:generic_request_sla_log.model_request_sla_log
+msgid "Request SLA Log"
+msgstr "Журнал SLA запросов"
+
+#. module: generic_request_sla_log
+#: model:ir.model,name:generic_request_sla_log.model_request_type
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
+msgid "Request Type"
+msgstr "Тип запроса"
+
+#. module: generic_request_sla_log
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.inherited_view_request_request_form_inherit_request_sla_log
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.inherited_view_request_type_form_inherit_request_sla_log
+msgid "SLA"
+msgstr "SLA"
+
+#. module: generic_request_sla_log
+#: model:ir.actions.act_window,name:generic_request_sla_log.action_generic_request_type_2_request_sla_log
+#: model:ir.actions.act_window,name:generic_request_sla_log.action_request_sla_log_view
+#: model:ir.actions.act_window,name:generic_request_sla_log.action_request_sla_log_view__tree_first
+#: model:ir.ui.menu,name:generic_request_sla_log.menu_request_sla_log
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.inherited_view_request_type_form_inherit_request_sla_log
+msgid "SLA Log"
+msgstr "SLA Журнал"
+
+#. module: generic_request_sla_log
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.inherited_view_request_request_form_inherit_request_sla_log
+msgid "SLA Log lines"
+msgstr ""
+
+#. module: generic_request_sla_log
+#: model:request.type,name:generic_request_sla_log.request_type_sla
+msgid "SLA Request"
+msgstr "SLA Запрос"
+
+#. module: generic_request_sla_log
+#: model:request.stage,name:generic_request_sla_log.request_stage_type_sla_sent
+msgid "Sent"
+msgstr "Отправлен"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_request__sla_log_ids
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_type__sla_log_ids
+msgid "Sla Log"
+msgstr "Sla Журнал"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_request__sla_log_count
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_type__sla_log_count
+msgid "Sla Log Count"
+msgstr "Sla Журнал (кол-во)"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__stage_id
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
+msgid "Stage"
+msgstr "Этап"
+
+#. module: generic_request_sla_log
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
+msgid "Stage Type"
+msgstr "Тип этапа"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__stage_type_id
+msgid "Stage Types"
+msgstr "Типы этапов"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__time_spent_calendar
+msgid "Time Spent Calendar"
+msgstr "Затраченное время (календарное)"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__time_spent_total
+msgid "Time Spent Total"
+msgstr "Затраченное время (общее)"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__request_type_id
+msgid "Type"
+msgstr "Тип"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,help:generic_request_sla_log.field_request_sla_log__request_type_id
+msgid "Type of request"
+msgstr ""
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__user_id
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
+msgid "User"
+msgstr "Пользователь"
+
+#. module: generic_request_sla_log
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.inherited_view_request_type_form_inherit_request_sla_log
+msgid ""
+"Working hours of your company.\n"
+"                                Required to be set if you select to compute "
+"SLA time as working time\n"
+"                                (in the Compute Time field on the Rule or "
+"Rule Lines view). In Odoo v.12, be sure to specify the appropriate timezone "
+"for your company on the Working Time form."
+msgstr ""
+"График работы вашей компании.\n"
+"                                Его необходимо установить если вы выбрали "
+"вычисление времени SLA как Рабочее время (на форме правила в поле Вычисление "
+"времени)."
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__calendar_id
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_type__sla_calendar_id
+msgid "Working time"
+msgstr "Рабочее время"

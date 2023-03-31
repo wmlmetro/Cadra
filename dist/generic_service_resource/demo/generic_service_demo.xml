@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <function model="generic.resource"
+              name="write">
+        <function model="generic.resource"
+                  name="search"
+                  eval="[[('id', 'in', [ref('generic_resource.simple_resource_notebook_1_generic_resource'),
+                                        ref('generic_resource.simple_resource_notebook_2_generic_resource'),
+                                        ref('generic_resource.simple_resource_notebook_3_generic_resource'),
+                                        ref('generic_resource.simple_resource_notebook_4_generic_resource'),
+                                        ref('generic_resource.simple_resource_notebook_5_generic_resource'),
+                                        ref('generic_resource.simple_resource_notebook_6_generic_resource'),
+                                        ref('generic_resource.simple_resource_notebook_7_generic_resource'),
+                                        ref('generic_resource.simple_resource_computer_1_generic_resource'),
+                                        ref('generic_resource.simple_resource_computer_3_generic_resource'),
+                                        ref('generic_resource.simple_resource_computer_6_generic_resource'),
+                                        ref('generic_resource.simple_resource_computer_7_generic_resource'),
+                                        ref('generic_resource.simple_resource_inkprinter_1_generic_resource'),
+                                        ref('generic_resource.simple_resource_inkprinter_2_generic_resource'),
+                                        ref('generic_resource.simple_resource_inkprinter_4_generic_resource'),
+                                        ref('generic_resource.simple_resource_inkprinter_5_generic_resource'),
+                                        ref('generic_resource.simple_resource_laserprinter_1_generic_resource'),
+                                        ref('generic_resource.simple_resource_laserprinter_4_generic_resource'),
+                                        ref('generic_resource.simple_resource_laserprinter_5_generic_resource')])]]"/>
+        <value eval="{'service_ids': [(4, ref('generic_service.generic_service_rent_notebook'))]}"/>
+    </function>
+    <function model="generic.resource"
+              name="write">
+        <function model="generic.resource"
+                  name="search"
+                  eval="[[('id', 'in', [ref('generic_resource.simple_resource_notebook_5_generic_resource'),
+                                        ref('generic_resource.simple_resource_notebook_6_generic_resource'),
+                                        ref('generic_resource.simple_resource_notebook_7_generic_resource'),
+                                        ref('generic_resource.simple_resource_computer_2_generic_resource'),
+                                        ref('generic_resource.simple_resource_computer_4_generic_resource'),
+                                        ref('generic_resource.simple_resource_computer_7_generic_resource'),
+                                        ref('generic_resource.simple_resource_inkprinter_1_generic_resource'),
+                                        ref('generic_resource.simple_resource_inkprinter_3_generic_resource'),
+                                        ref('generic_resource.simple_resource_inkprinter_4_generic_resource'),
+                                        ref('generic_resource.simple_resource_inkprinter_6_generic_resource'),
+                                        ref('generic_resource.simple_resource_inkprinter_7_generic_resource'),
+                                        ref('generic_resource.simple_resource_laserprinter_2_generic_resource'),
+                                        ref('generic_resource.simple_resource_laserprinter_4_generic_resource'),
+                                        ref('generic_resource.simple_resource_laserprinter_5_generic_resource'),
+                                        ref('generic_resource.simple_resource_laserprinter_7_generic_resource')])]]"/>
+        <value eval="{'service_ids': [(4, ref('generic_service.generic_service_default'))]}"/>
+    </function>
+</odoo>

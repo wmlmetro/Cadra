@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.actions.act_window" id="action_request_assignment_policy">
+        <field name="name">Assignment Policies</field>
+        <field name="res_model">generic.assign.policy</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('model_id.model', '=', 'request.request')]</field>
+        <field name="context">{'default_model': 'request.request'}</field>
+    </record>
+
+    <menuitem id="menu_assignment_policies"
+              parent="generic_request.menu_configuration_rules"
+              action="action_request_assignment_policy"
+              sequence="100"/>
+</odoo>

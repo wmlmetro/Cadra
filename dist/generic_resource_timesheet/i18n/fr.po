@@ -1,0 +1,211 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_resource_timesheet
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 13.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-07-27 15:57+0000\n"
+"PO-Revision-Date: 2023-01-19 17:43+0000\n"
+"Last-Translator: François LAGARDE <f.lagarde@groupe-alliance.com>\n"
+"Language-Team: French <http://weblate.crnd.pro/projects/bureaucrat-itsm-15-0/"
+"generic_resource_timesheet/fr/>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__active
+msgid "Active"
+msgstr "Actif"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__activity_id
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_timesheet_line_view_search
+msgid "Activity"
+msgstr "Activité"
+
+#. module: generic_resource_timesheet
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_timesheet_activity_view_form
+msgid "Activity description..."
+msgstr ""
+
+#. module: generic_resource_timesheet
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_timesheet_activity_view_form
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_timesheet_activity_view_search
+msgid "Archived"
+msgstr "Archivé"
+
+#. module: generic_resource_timesheet
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_timesheet_line_view_calendar
+msgid "Calendar"
+msgstr ""
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__color
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__color
+msgid "Color"
+msgstr "Couleur"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource__timesheet_line_count
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_simple__timesheet_line_count
+msgid "Count of Timesheets"
+msgstr ""
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__create_uid
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__create_uid
+msgid "Created by"
+msgstr "Créé par"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__create_date
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__create_date
+msgid "Created on"
+msgstr "Créé le"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__date_start
+msgid "Date Start"
+msgstr "Date de début"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__date_stop
+msgid "Date Stop"
+msgstr ""
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__description
+msgid "Description"
+msgstr "Description"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__display_name
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__display_name
+msgid "Display Name"
+msgstr "Nom affiché"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__doc_id
+msgid "Document"
+msgstr ""
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,help:generic_resource_timesheet.field_generic_resource_timesheet_line__doc_id
+msgid "Document that have generated this line."
+msgstr ""
+
+#. module: generic_resource_timesheet
+#: model:ir.model,name:generic_resource_timesheet.model_generic_resource
+msgid "Generic Resource"
+msgstr "Produit générique"
+
+#. module: generic_resource_timesheet
+#: model:ir.model,name:generic_resource_timesheet.model_generic_resource_timesheet_activity
+msgid "Generic Resource Timesheet Activity"
+msgstr ""
+
+#. module: generic_resource_timesheet
+#: model:ir.model,name:generic_resource_timesheet.model_generic_resource_timesheet_line
+msgid "Generic Resource Timesheet Line"
+msgstr ""
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__resource_id
+msgid "Generic resource"
+msgstr "Produit générique"
+
+#. module: generic_resource_timesheet
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_timesheet_line_view_search
+msgid "Group by..."
+msgstr "Grouper par..."
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__id
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity____last_update
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line____last_update
+msgid "Last Modified on"
+msgstr "Dernière modification le"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__write_uid
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__write_uid
+msgid "Last Updated by"
+msgstr "Dernière mise à jour par"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__write_date
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__write_date
+msgid "Last Updated on"
+msgstr "Dernière mise à jour le"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__model_id
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__doc_model
+msgid "Model"
+msgstr ""
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__name
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_timesheet_activity_view_form
+msgid "Name"
+msgstr "Nom"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__resource_res_id
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_timesheet_line_view_search
+msgid "Resource"
+msgstr "Produit"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__resource_res_model
+msgid "Resource model"
+msgstr "Modèle de produit"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__resource_type_id
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_timesheet_line_view_search
+msgid "Resource type"
+msgstr "Type de produit"
+
+#. module: generic_resource_timesheet
+#: model:ir.actions.act_window,name:generic_resource_timesheet.generic_resource_timesheet_line_action
+#: model:ir.ui.menu,name:generic_resource_timesheet.generic_resource_timesheet_config_menu
+#: model:ir.ui.menu,name:generic_resource_timesheet.generic_resource_timesheet_line_menu
+#: model:ir.ui.menu,name:generic_resource_timesheet.generic_resource_timesheet_menu
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_form_view_timesheet
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_timesheet_activity_view_form
+msgid "Timesheet"
+msgstr "Feuille de temps"
+
+#. module: generic_resource_timesheet
+#: model:ir.actions.act_window,name:generic_resource_timesheet.generic_resource_timesheet_activity_action
+#: model:ir.ui.menu,name:generic_resource_timesheet.generic_resource_timesheet_activity_menu
+msgid "Timesheet Activity"
+msgstr "Activité"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__timesheet_line_count
+msgid "Timesheet Line Count"
+msgstr ""
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__timesheet_line_ids
+msgid "Timesheet Lines"
+msgstr ""
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource__timesheet_line_ids
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_simple__timesheet_line_ids
+msgid "Timesheets"
+msgstr ""

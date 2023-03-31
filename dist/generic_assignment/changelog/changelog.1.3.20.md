@@ -1,0 +1,2 @@
+- Unify algorithm that choose records from a set
+- Random improvement: use SystemRandom + Shuffle before choice

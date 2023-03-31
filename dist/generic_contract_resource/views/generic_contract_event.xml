@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_generic_contract_event_form" model="ir.ui.view">
+        <field name="model">generic.contract.event</field>
+        <field name="inherit_id" ref="generic_contract.view_generic_contract_event_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='group_data_root']"
+                   position="inside">
+                <group string="Resource Added"
+                       name="group_resource_added"
+                       attrs="{'invisible': [('event_code', '!=', 'contract-resource-added')]}">
+                    <field name="resource_id"/>
+                    <field name="contract_resource_line_id"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

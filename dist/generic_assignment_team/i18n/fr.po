@@ -1,0 +1,145 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_assignment_team
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 13.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-07-27 15:59+0000\n"
+"PO-Revision-Date: 2023-01-06 12:31+0000\n"
+"Last-Translator: François LAGARDE <f.lagarde@groupe-alliance.com>\n"
+"Language-Team: French <http://weblate.crnd.pro/projects/bureaucrat-itsm-15-0/"
+"generic_assignment_team/fr/>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_assignment_team
+#: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_assign_policy_rule__assign_team_sort_direction__asc
+msgid "Ascending"
+msgstr ""
+
+#. module: generic_assignment_team
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_assign_policy_rule__assign_team_choice_condition_ids
+msgid "Assign Team Choice Condition"
+msgstr ""
+
+#. module: generic_assignment_team
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_assign_policy_rule__assign_team_choice_type
+msgid "Assign Team Choice Type"
+msgstr ""
+
+#. module: generic_assignment_team
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_assign_policy__assign_team_field_id
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_assign_policy_model__assign_team_field_id
+msgid "Assign Team Field"
+msgstr ""
+
+#. module: generic_assignment_team
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_assign_policy_rule__assign_team_sort_direction
+msgid "Assign Team Sort Direction"
+msgstr ""
+
+#. module: generic_assignment_team
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_assign_policy_rule__assign_team_sort_field_id
+msgid "Assign Team Sort Field"
+msgstr ""
+
+#. module: generic_assignment_team
+#: model:ir.model,name:generic_assignment_team.model_generic_assign_policy
+msgid "Assignment Policy"
+msgstr ""
+
+#. module: generic_assignment_team
+#: model:ir.model,name:generic_assignment_team.model_generic_assign_policy_model
+msgid "Assignment Policy Model"
+msgstr ""
+
+#. module: generic_assignment_team
+#: model:ir.model,name:generic_assignment_team.model_generic_assign_policy_rule
+msgid "Assignment Policy Rule"
+msgstr ""
+
+#. module: generic_assignment_team
+#: model_terms:ir.ui.view,arch_db:generic_assignment_team.view_generic_assign_policy_rule_team_form
+msgid "Choice conditions"
+msgstr ""
+
+#. module: generic_assignment_team
+#: model_terms:ir.ui.view,arch_db:generic_assignment_team.view_generic_assign_policy_rule_team_form
+msgid "Choice type"
+msgstr ""
+
+#. module: generic_assignment_team
+#: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_assign_policy_rule__assign_team_sort_direction__desc
+msgid "Descending"
+msgstr ""
+
+#. module: generic_assignment_team
+#: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_assign_policy_rule__assign_team_choice_type__first
+msgid "First"
+msgstr ""
+
+#. module: generic_assignment_team
+#: model:ir.model,name:generic_assignment_team.model_generic_wizard_assign
+msgid "Generic Wizard: Assign"
+msgstr ""
+
+#. module: generic_assignment_team
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_wizard_assign__assign_team_leader_id
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_wizard_assign__assign_team_task_manager_id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_assignment_team
+#: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_assign_policy_rule__assign_team_choice_type__random
+msgid "Random"
+msgstr ""
+
+#. module: generic_assignment_team
+#: model_terms:ir.ui.view,arch_db:generic_assignment_team.view_generic_assign_policy_rule_team_form
+msgid "Sort direction"
+msgstr ""
+
+#. module: generic_assignment_team
+#: model_terms:ir.ui.view,arch_db:generic_assignment_team.view_generic_assign_policy_rule_team_form
+msgid "Sort field"
+msgstr ""
+
+#. module: generic_assignment_team
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_assign_policy_rule__assign_team_id
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_wizard_assign__assign_team_id
+#: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_assign_policy_rule__assign_type__team
+#: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_wizard_assign__assign_type__team
+msgid "Team"
+msgstr ""
+
+#. module: generic_assignment_team
+#: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_assign_policy_rule__assign_type__team_leader
+msgid "Team Leader"
+msgstr ""
+
+#. module: generic_assignment_team
+#: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_assign_policy_rule__assign_type__team_member
+msgid "Team Member"
+msgstr ""
+
+#. module: generic_assignment_team
+#: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_assign_policy_rule__assign_type__team_task_manager
+msgid "Team Task Manager"
+msgstr ""
+
+#. module: generic_assignment_team
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_assign_policy_rule__assign_type
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_wizard_assign__assign_type
+msgid "Type"
+msgstr "Type"
+
+#. module: generic_assignment_team
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_wizard_assign__assign_team_user_id
+msgid "User"
+msgstr "Utilisateur"

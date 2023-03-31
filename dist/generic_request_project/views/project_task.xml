@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="view_task_form2" model="ir.ui.view">
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='user_ids']" position="after">
+                <field name="request_id"/>
+            </xpath>
+            <xpath expr="//field[@name='email_cc']" position="after">
+                <field name="request_ids"
+                       groups="base.group_no_one"
+                       widget="many2many_tags"/>
+            </xpath>
+            <xpath expr="//page[@name='extra_info']" position="after">
+                <page name="other_info" string="Other">
+                    <group>
+                        <group>
+                            <field name="request_service_id"
+                                   groups="generic_request.group_request_use_services"/>
+                            <field name="request_category_id"/>
+                            <field name="request_type_id"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_task_tree2" model="ir.ui.view">
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_tree2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='project_id']" position="after">
+                <field name="request_id"/>
+                <field name="request_service_id"
+                       groups="generic_request.group_request_use_services"/>
+                <field name="request_category_id"/>
+                <field name="request_type_id"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_task_search_form" model="ir.ui.view">
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_search_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='display_project_id']" position="after">
+                <field name="request_id"/>
+                <field name="request_service_id"
+                       groups="generic_request.group_request_use_services"/>
+                <field name="request_category_id"/>
+                <field name="request_type_id"/>
+            </xpath>
+            <xpath expr="//filter[@name='project']" position="after">
+                <filter string="Request Service" name="request_service"
+                        context="{'group_by':'request_service_id'}"
+                        groups="generic_request.group_request_use_services"/>
+                <filter string="Request Category" name="request_category"
+                        context="{'group_by':'request_category_id'}"/>
+                <filter string="Request Type" name="request_type"
+                        context="{'group_by':'request_type_id'}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_show_request_tasks" model="ir.actions.act_window">
+            <field name="name">Request Tasks</field>
+            <field name="res_model">project.task</field>
+            <field name="view_mode">kanban,tree,form,calendar,pivot,graph,activity</field>
+            <field name="domain">[('request_id', '!=', False)]</field>
+            <field name="search_view_id" ref="project.view_task_search_form"/>
+        </record>
+
+    <menuitem name="Tasks"
+              id="menu_request_tasks"
+              parent="generic_request.menu_request_root"
+              sequence="30"/>
+
+    <menuitem name="Request Tasks"
+              id="menu_request_tasks_all"
+              parent="menu_request_tasks"
+              action="action_show_request_tasks"
+              sequence="10"/>
+</odoo>

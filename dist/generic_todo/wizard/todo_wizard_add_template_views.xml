@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="generic_todo_wizard_add_template_view_form" model="ir.ui.view">
+        <field name="model">todo.wizard.add.template</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="todo_template_id"/>
+                        </group>
+                        <group>
+                            <button title="Load lines from selected template"
+                                    class="btn-outline-info pull-right"
+                                    type="object"
+                                    name="action_load_template"
+                                    attrs="{'invisible': [('todo_template_id', '=', False)]}">
+                            <i class="fa fa-download mr-1"></i>
+                                Load lines
+                        </button>
+                        </group>
+                    </group>
+                    <field name="edit_mode" invisible="1"/>
+                    <field name="todo_wizard_add_template_line_ids"
+                           mode="tree"
+                           attrs="{'invisible': [('edit_mode', '=', False)]}"/>
+                </sheet>
+                <footer>
+                    <button string="Add Lines"
+                            name="do_add_todo_lines"
+                            class="btn-primary"
+                            attrs="{'invisible': [('edit_mode', '=', False)]}"
+                            type="object"/>
+                    <button string="Rewrite Lines"
+                            name="do_overwrite_todo_lines"
+                            class="btn-primary"
+                            attrs="{'invisible': [('edit_mode', '=', False)]}"
+                            type="object"/>
+                    <button string="Cancel" special="cancel"/>
+                    <button title="Clear all lines from list"
+                            class="btn-outline-danger pull-right"
+                            type="object"
+                            name="action_clear_lines"
+                            attrs="{'invisible': [('edit_mode', '=', False)]}">
+                        <i class="fa fa-trash mr-1"></i>
+                                Clear lines
+                    </button>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_todo_wizard_add_template" model="ir.actions.act_window">
+        <field name="res_model">todo.wizard.add.template</field>
+        <field name="name">Add Todo Lines</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="todo_wizard_add_template_line_tree_editable" model="ir.ui.view">
+        <field name="model">todo.wizard.add.template.line</field>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <tree editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="todo_type_id"/>
+                <field name="to_add" widget="boolean_toggle"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_todo_wizard_add_template_line" model="ir.actions.act_window">
+        <field name="name">Template Lines</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">todo.wizard.add.template.line</field>
+        <field name="view_mode">tree</field>
+    </record>
+
+</odoo>

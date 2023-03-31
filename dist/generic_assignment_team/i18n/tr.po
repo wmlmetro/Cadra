@@ -1,0 +1,145 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_assignment_team
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:16+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_assignment_team/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_assignment_team
+#: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_assign_policy_rule__assign_team_sort_direction__asc
+msgid "Ascending"
+msgstr "artan"
+
+#. module: generic_assignment_team
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_assign_policy_rule__assign_team_choice_condition_ids
+msgid "Assign Team Choice Condition"
+msgstr "Departman Seçim Koşulunu Ata"
+
+#. module: generic_assignment_team
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_assign_policy_rule__assign_team_choice_type
+msgid "Assign Team Choice Type"
+msgstr "Departman Seçim Türünü Ata"
+
+#. module: generic_assignment_team
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_assign_policy__assign_team_field_id
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_assign_policy_model__assign_team_field_id
+msgid "Assign Team Field"
+msgstr "Ekip Alanı Ata"
+
+#. module: generic_assignment_team
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_assign_policy_rule__assign_team_sort_direction
+msgid "Assign Team Sort Direction"
+msgstr "Departman Sıralama Yönü Ata"
+
+#. module: generic_assignment_team
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_assign_policy_rule__assign_team_sort_field_id
+msgid "Assign Team Sort Field"
+msgstr "Ekip Alanı Ata"
+
+#. module: generic_assignment_team
+#: model:ir.model,name:generic_assignment_team.model_generic_assign_policy
+msgid "Assignment Policy"
+msgstr "Atama Politikası"
+
+#. module: generic_assignment_team
+#: model:ir.model,name:generic_assignment_team.model_generic_assign_policy_model
+msgid "Assignment Policy Model"
+msgstr "Atama Politikası Modeli"
+
+#. module: generic_assignment_team
+#: model:ir.model,name:generic_assignment_team.model_generic_assign_policy_rule
+msgid "Assignment Policy Rule"
+msgstr "Atama Politikası Kuralı"
+
+#. module: generic_assignment_team
+#: model_terms:ir.ui.view,arch_db:generic_assignment_team.view_generic_assign_policy_rule_team_form
+msgid "Choice conditions"
+msgstr "Seçim koşulları"
+
+#. module: generic_assignment_team
+#: model_terms:ir.ui.view,arch_db:generic_assignment_team.view_generic_assign_policy_rule_team_form
+msgid "Choice type"
+msgstr "Seçim türleri"
+
+#. module: generic_assignment_team
+#: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_assign_policy_rule__assign_team_sort_direction__desc
+msgid "Descending"
+msgstr "Azalan"
+
+#. module: generic_assignment_team
+#: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_assign_policy_rule__assign_team_choice_type__first
+msgid "First"
+msgstr "Birinci"
+
+#. module: generic_assignment_team
+#: model:ir.model,name:generic_assignment_team.model_generic_wizard_assign
+msgid "Generic Wizard: Assign"
+msgstr "Genel Sihirbaz: Ata"
+
+#. module: generic_assignment_team
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_wizard_assign__assign_team_leader_id
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_wizard_assign__assign_team_task_manager_id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_assignment_team
+#: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_assign_policy_rule__assign_team_choice_type__random
+msgid "Random"
+msgstr "Rastgele"
+
+#. module: generic_assignment_team
+#: model_terms:ir.ui.view,arch_db:generic_assignment_team.view_generic_assign_policy_rule_team_form
+msgid "Sort direction"
+msgstr "Sıralama Yönü"
+
+#. module: generic_assignment_team
+#: model_terms:ir.ui.view,arch_db:generic_assignment_team.view_generic_assign_policy_rule_team_form
+msgid "Sort field"
+msgstr "Alanı sırala"
+
+#. module: generic_assignment_team
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_assign_policy_rule__assign_team_id
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_wizard_assign__assign_team_id
+#: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_assign_policy_rule__assign_type__team
+#: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_wizard_assign__assign_type__team
+msgid "Team"
+msgstr "Takım"
+
+#. module: generic_assignment_team
+#: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_assign_policy_rule__assign_type__team_leader
+msgid "Team Leader"
+msgstr "Takım Lideri"
+
+#. module: generic_assignment_team
+#: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_assign_policy_rule__assign_type__team_member
+msgid "Team Member"
+msgstr "Takım üyesi"
+
+#. module: generic_assignment_team
+#: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_assign_policy_rule__assign_type__team_task_manager
+msgid "Team Task Manager"
+msgstr "Takım Görev Yöneticisi"
+
+#. module: generic_assignment_team
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_assign_policy_rule__assign_type
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_wizard_assign__assign_type
+msgid "Type"
+msgstr "Tür"
+
+#. module: generic_assignment_team
+#: model:ir.model.fields,field_description:generic_assignment_team.field_generic_wizard_assign__assign_team_user_id
+msgid "User"
+msgstr "Kullanıcı"

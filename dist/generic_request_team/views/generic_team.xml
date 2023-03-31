@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="generic_team_form_inherited" model="ir.ui.view">
+        <field name="model">generic.team</field>
+        <field name="inherit_id"
+               ref="generic_team.generic_team_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet//div[hasclass('oe_button_box')]"
+                   position="inside">
+                <button name="action_show_all_requests"
+                        type="object"
+                        class="oe_stat_button" icon="fa-comments-o">
+                    <field string="Requests" name="request_count"
+                           widget="statinfo"/>
+                </button>
+            </xpath>
+
+            <xpath expr="//form//notebook/page[@name='page_team_members']//field[@name='user_id']"
+                   position="after">
+                <field name="assigned_request_count"/>
+                <field name="assigned_request_open_count"/>
+                <field name="assigned_request_closed_count"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

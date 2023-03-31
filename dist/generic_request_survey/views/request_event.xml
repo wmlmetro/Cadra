@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="request_event_view_form" model="ir.ui.view">
+        <field name="model">request.event</field>
+        <field name="inherit_id" ref="generic_request.request_event_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='group_data_root']"
+                   position="inside">
+                <group name="group_event_data_survey_sent"
+                        attrs="{'invisible': [('event_code', '!=', 'survey_sent')]}"
+                        colspan="4">
+                        <group>
+                            <field name="survey_id" colspan="4"/>
+                            <field name="survey_user_input_id" colspan="4"/>
+                        </group>
+                </group>
+                <group name="group_event_data_survey_answer_received"
+                        attrs="{'invisible': [('event_code', '!=', 'survey_answer_received')]}"
+                        colspan="4">
+                        <group>
+                            <field name="survey_id" colspan="4"/>
+                            <field name="survey_user_input_id" colspan="4"/>
+                        </group>
+                </group>
+                <group name="group_event_data_survey_completed"
+                        attrs="{'invisible': [('event_code', '!=', 'survey_completed')]}"
+                        colspan="4">
+                        <group>
+                            <field name="survey_id" colspan="4"/>
+                        </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

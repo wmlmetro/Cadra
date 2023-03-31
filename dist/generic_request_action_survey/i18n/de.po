@@ -1,0 +1,140 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_action_survey
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 13.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-07-27 15:53+0000\n"
+"PO-Revision-Date: 2020-07-27 15:53+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: generic_request_action_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_action_survey.view_request_event_action_form
+msgid "Add existing contacts..."
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model:request.stage,name:generic_request_action_survey.request_stage_type_with_survey_done
+msgid "Done"
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_action_survey.view_request_event_action_form
+msgid "Email Template"
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model:request.stage,name:generic_request_action_survey.request_stage_type_with_survey_in_progress
+msgid "In Progress"
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model:request.stage.route,name:generic_request_action_survey.request_stage_type_with_survey_in_progress_to_done
+msgid "In Progress to Done"
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model:request.stage,name:generic_request_action_survey.request_stage_type_with_survey_new
+msgid "New"
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model:request.stage.route,name:generic_request_action_survey.request_stage_type_with_survey_new_to_in_progress
+msgid "New to In Progress"
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model:request.stage.route,name:generic_request_action_survey.request_stage_type_with_survey_new_to_survey_sent
+msgid "New to Survey Sent"
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_partner_ids
+msgid "Partners"
+msgstr ""
+
+#. module: generic_request_action_survey
+#: code:addons/generic_request_action_survey/models/request_event_action.py:0
+#, python-format
+msgid ""
+"Please add '__URL__' to email content,                     it will "
+"automaticaly be converted into survey URL."
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model:ir.model,name:generic_request_action_survey.model_request_event_action
+msgid "Request Event Action"
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model:request.type,name:generic_request_action_survey.request_type_with_survey
+msgid "Request with survey"
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields.selection,name:generic_request_action_survey.selection__request_event_action__act_type__survey
+#: model_terms:ir.ui.view,arch_db:generic_request_action_survey.view_request_event_action_form
+msgid "Survey"
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_email_template_id
+msgid "Survey Email Template"
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_send_assignee
+msgid "Survey Send Assignee"
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_send_author
+msgid "Survey Send Author"
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_send_creator
+msgid "Survey Send Creator"
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_send_others
+msgid "Survey Send Others"
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model:request.stage,name:generic_request_action_survey.request_stage_type_with_survey_survey_sent
+msgid "Survey Sent"
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model:request.stage.route,name:generic_request_action_survey.request_stage_type_with_survey_survey_sent_to_in_progress
+msgid "Survey Sent to In Progress"
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_template_id
+msgid "Survey Template"
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model_terms:request.request,help_html:generic_request_action_survey.demo_request_with_survey
+#: model_terms:request.type,help_html:generic_request_action_survey.request_type_with_survey
+msgid ""
+"This is demo request type to demonstrate automatic actions.\n"
+"            When request moves from New to Survey Sent, survey is sent using "
+"auto-action."
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__act_type
+msgid "Type"
+msgstr ""

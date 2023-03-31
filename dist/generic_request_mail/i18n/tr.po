@@ -1,0 +1,651 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_mail
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:17+0000\n"
+"PO-Revision-Date: 2023-02-28 17:32+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_mail/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "<span class=\"o_stat_text\">Requests</span>"
+msgstr "<span class=\"o_stat_text\">İstekler</span>"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "<span class=\"oe_form_field oe_inline\">/</span>"
+msgstr "<span class=\"oe_form_field oe_inline\">/</span>"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_defaults
+msgid ""
+"A Python dictionary that will be evaluated to provide default values when "
+"creating new records for this alias."
+msgstr ""
+"Bu alias için yeni kayıtlar oluştururken varsayılan değerleri sağlamak üzere "
+"değerlendirilecek bir Python sözlüğü."
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Accept Emails From"
+msgstr "Gönderen E-postaları Kabul Et"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_needaction
+msgid "Action Needed"
+msgstr "İhtiyaç duyulan eylem"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_id
+msgid "Alias"
+msgstr "Alias"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_contact
+msgid "Alias Contact Security"
+msgstr "Alias Kişi Güvenliği"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Alias Domain is not configured!"
+msgstr "Alias Domain yapılandırılmadı!"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_name
+msgid "Alias Name"
+msgstr "Alias Adı"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_domain
+msgid "Alias domain"
+msgstr "Alias alan adı"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_model_id
+msgid "Aliased Model"
+msgstr "Takma Model"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "All Requests"
+msgstr "Tüm Talepler"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.generic_request_res_config_settings_view_form
+msgid "Attach messages to request thread by subject"
+msgstr "Konuya göre mesaj dizisini istemek için mesaj ekleyin"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_attachment_count
+msgid "Attachment Count"
+msgstr "Ek Sayısı"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_res_company__request_attach_messages_to_request_by_subject
+#: model:ir.model.fields,field_description:generic_request_mail.field_res_config_settings__request_attach_messages_to_request_by_subject
+msgid "Automatically attach messages to request, mentioned in mail subject"
+msgstr "Mail konusunda belirtilen iletileri isteğe otomatik olarak ekle"
+
+#. module: generic_request_mail
+#: model:ir.actions.act_window,name:generic_request_mail.request_canned_response_action
+#: model:ir.ui.menu,name:generic_request_mail.menu_configuration_requests_shortcode
+msgid "Canned Responses"
+msgstr "Hazır Yanıtlar"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_kanban
+msgid "Closed requests"
+msgstr "Kapalı istekler"
+
+#. module: generic_request_mail
+#: model:ir.model,name:generic_request_mail.model_res_company
+msgid "Companies"
+msgstr "şirketler"
+
+#. module: generic_request_mail
+#: model:ir.model,name:generic_request_mail.model_res_config_settings
+msgid "Config Settings"
+msgstr "Yapılandırma Ayarları"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Configure your Incoming and Outgoing mail server"
+msgstr "Gelen ve Giden mail sunucunuzu yapılandırın"
+
+#. module: generic_request_mail
+#. openerp-web
+#: code:addons/generic_request_mail/static/src/xml/extend_thread.xml:0
+#, python-format
+msgid "Create Request"
+msgstr "İstek oluştur"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__create_uid
+msgid "Created by"
+msgstr "Tarafından yaratıldı"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__create_date
+msgid "Created on"
+msgstr "oluşturuldu"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_bounced_content
+msgid "Custom Bounced Message"
+msgstr "Özel Geri Dönen Mesaj"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_defaults
+msgid "Default Values"
+msgstr "Varsayılan değerler"
+
+#. module: generic_request_mail
+#: model:request.mail.source,name:generic_request_mail.demo_request_mail_source
+msgid "Demo Requests"
+msgstr "Demo İstekler"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__display_name
+msgid "Display Name"
+msgstr "Ekran adı"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Email Alias"
+msgstr "E-mail Alias"
+
+#. module: generic_request_mail
+#: model:ir.model,name:generic_request_mail.model_mail_thread
+msgid "Email Thread"
+msgstr "Email Konusu"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Emails"
+msgstr "Email'ler"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Fill your company's email domain in Alias Domain field"
+msgstr "Alias alan adına şirketinizin e-posta alan adını girin"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Find section Discuss"
+msgstr "Tartış bölümünü bul"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_follower_ids
+msgid "Followers"
+msgstr "Takipçiler"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_partner_ids
+msgid "Followers (Partners)"
+msgstr "Takipçiler (Ortaklar)"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "General"
+msgstr "genel"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__has_message
+msgid "Has Message"
+msgstr "Mesaj Var"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_parent_thread_id
+msgid ""
+"ID of the parent record holding the alias (example: project holding the task "
+"creation alias)"
+msgstr ""
+"Alias tutan üst kaydın kimliği (örnek: görev oluşturma alias'ını tutan proje)"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__message_needaction
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__message_unread
+msgid "If checked, new messages require your attention."
+msgstr "Kontrol edilirse, yeni iletilerle ilgilenmeniz gerekir."
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__message_has_error
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__message_has_sms_error
+msgid "If checked, some messages have a delivery error."
+msgstr "Kontrol edilirse, bazı iletilerde teslim hatası vardır."
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_bounced_content
+msgid ""
+"If set, this content will automatically be sent out to unauthorized users "
+"instead of the default message."
+msgstr ""
+"Ayarlanırsa, bu içerik yetkisiz kullanıcılara varsayılan mesaj yerine "
+"otomatik olarak gönderilir."
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.generic_request_res_config_settings_view_form
+msgid ""
+"If the checkbox is checked, incoming messages will\n"
+"                            be automatically attached to existing requests,\n"
+"                            by its names mentioned in message subject."
+msgstr ""
+"Onay kutusu işaretlenirse, gelen mesajlar\n"
+"                             mevcut isteklere otomatik olarak eklenir,\n"
+"                             mesaj konusunda belirtilen isimleriyle."
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid ""
+"In order to be able to configure mail sources, you have to configure Alias "
+"Domain. To do this, you have to follow steps below:"
+msgstr ""
+"Mail kaynaklarını yapılandırabilmek için Alias alan adını yapılandırmanız "
+"gerekir. Bunu yapmak için aşağıdaki adımları izlemelisiniz:"
+
+#. module: generic_request_mail
+#: model:ir.model,name:generic_request_mail.model_fetchmail_server
+msgid "Incoming Mail Server"
+msgstr "Gelen Mail sunucusu"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.generic_request_res_config_settings_view_form
+msgid "Incoming message validators"
+msgstr "Gelen mesaj doğrulayıcıları"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_is_follower
+msgid "Is Follower"
+msgstr "takipçidir"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source____last_update
+msgid "Last Modified on"
+msgstr "Son Değiştirme Tarihi"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__write_uid
+msgid "Last Updated by"
+msgstr "Son Güncelleyen"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__write_date
+msgid "Last Updated on"
+msgstr "Son güncelleme tarihi"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_request__mail_source_id
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_request_search
+msgid "Mail Source"
+msgstr "Mail Kaynağı"
+
+#. module: generic_request_mail
+#: model:ir.actions.act_window,name:generic_request_mail.action_request_mail_source_window
+#: model:ir.ui.menu,name:generic_request_mail.menu_request_mail_source_view
+msgid "Mail Sources"
+msgstr "Mail Kaynakları"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_main_attachment_id
+msgid "Main Attachment"
+msgstr "Ana Eklenti"
+
+#. module: generic_request_mail
+#: model:ir.model,name:generic_request_mail.model_mail_message
+msgid "Message"
+msgstr "Mesaj"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_has_error
+msgid "Message Delivery error"
+msgstr "Mesaj Teslim hatası"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_ids
+msgid "Messages"
+msgstr "Mesajlar"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__name
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Name"
+msgstr "İsim"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Navigate to"
+msgstr "Şu yöne ayarla"
+
+#. module: generic_request_mail
+#: model_terms:request.request,stage_help_html:generic_request_mail.request_request_type_simple_demo_1
+msgid ""
+"Now request is in <i>Draft</i> state.<br>\n"
+"            Please click 'Sent' stage on status bar (right-top corner)\n"
+"            to send it to our team."
+msgstr ""
+"Şimdi istek <i>Taslak</i> durumunda.<br>\n"
+"             Lütfen durum çubuğunda (sağ üst köşe) 'Gönderildi' aşamasını "
+"tıklayın\n"
+"             ekibimize göndermek için."
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_needaction_counter
+msgid "Number of Actions"
+msgstr "Eylem Sayısı"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_has_error_counter
+msgid "Number of errors"
+msgstr "hata sayısı"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__message_needaction_counter
+msgid "Number of messages which requires an action"
+msgstr "İşlem gerektiren mesaj sayısı"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__message_has_error_counter
+msgid "Number of messages with delivery error"
+msgstr "Teslimat hatası olan mesaj sayısı"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__message_unread_counter
+msgid "Number of unread messages"
+msgstr "Okunmamış mesaj sayısı"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Open Requests"
+msgstr "Açık istekler"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_kanban
+msgid "Open requests"
+msgstr "Açık istekler"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_force_thread_id
+msgid ""
+"Optional ID of a thread (record) to which all incoming messages will be "
+"attached, even if they did not reply to it. If set, this will disable the "
+"creation of new records completely."
+msgstr ""
+"Yanıtlamamış olsalar bile tüm gelen iletilerin ekleneceği ileti dizisinin "
+"(kayıt) isteğe bağlı kimliği. Ayarlanırsa, bu, yeni kayıtların "
+"oluşturulmasını tamamen devre dışı bırakır."
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_user_id
+msgid "Owner"
+msgstr "Mal sahibi"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_parent_model_id
+msgid "Parent Model"
+msgstr "Parent Modeli"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_parent_thread_id
+msgid "Parent Record Thread ID"
+msgstr "Parent Kayıt Konu ID'si"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_parent_model_id
+msgid ""
+"Parent model holding the alias. The model holding the alias reference is not "
+"necessarily the model given by alias_model_id (example: project "
+"(parent_model) and task (model))"
+msgstr ""
+"Alias tutan üst model. Alias referansını tutan model, alias_model_id "
+"tarafından verilen model olmayabilir (örnek: proje (parent_model) ve görev "
+"(model))"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_contact
+msgid ""
+"Policy to post a message on the document using the mailgateway.\n"
+"- everyone: everyone can post\n"
+"- partners: only authenticated partners\n"
+"- followers: only followers of the related document or members of following "
+"channels\n"
+msgstr ""
+"mail ağ geçidini kullanarak belgeye mesaj gönderme ilkesi.\n"
+"- herkes: herkes gönderebilir\n"
+"- ortaklar: yalnızca kimliği doğrulanmış ortaklar\n"
+"- takipçiler: sadece ilgili belgenin takipçileri veya aşağıdaki kanalların "
+"üyeleri\n"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_request_search
+msgid "Received by mail"
+msgstr "mail ile alındı"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_force_thread_id
+msgid "Record Thread ID"
+msgstr "Record Thread ID"
+
+#. module: generic_request_mail
+#: model:ir.model,name:generic_request_mail.model_request_request
+msgid "Request"
+msgstr "İstek"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__request_closed_count
+msgid "Request Closed Count"
+msgstr "Kapatılan Sayı İste"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__request_count
+msgid "Request Count"
+msgstr "Talep Sayısı"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_fetchmail_server__request_creation_template_id
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__request_creation_template_id
+msgid "Request Creation Template"
+msgstr "İstek Oluşturma Şablonu"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_res_config_settings__request_default_mail_source_id
+msgid "Request Default Mail Source"
+msgstr "Varsayılan Mail Kaynağı İste"
+
+#. module: generic_request_mail
+#: model:ir.model,name:generic_request_mail.model_request_event
+msgid "Request Event"
+msgstr "Etkinlik İste"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_res_company__request_incoming_mail_validator_ids
+#: model:ir.model.fields,field_description:generic_request_mail.field_res_config_settings__request_incoming_mail_validator_ids
+msgid "Request Incoming Mail Validator"
+msgstr "Gelen Mail Doğrulayıcı İste"
+
+#. module: generic_request_mail
+#: model:ir.model,name:generic_request_mail.model_request_mail_source
+msgid "Request Mail Source"
+msgstr "Mail Kaynağı İste"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__request_open_count
+msgid "Request Open Count"
+msgstr "Açık Sayı İste"
+
+#. module: generic_request_mail
+#: model:ir.model,name:generic_request_mail.model_request_creation_template
+msgid "Request creation template"
+msgstr "İstek Oluşturma Şablonu"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__request_ids
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_tree
+msgid "Requests"
+msgstr "İstekler"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_has_sms_error
+msgid "SMS Delivery error"
+msgstr "SMS Teslimat hatası"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.generic_request_res_config_settings_view_form
+msgid ""
+"Selecting default mail source for requests,\n"
+"                            allows to use address of selected mail source \n"
+"                            as sender address for outgoing mails.\n"
+"                            This way, all notifications and employee "
+"replies\n"
+"                            could be sent from for example support@domain."
+"com\n"
+"                            address, thus masking employee's emails."
+msgstr ""
+"İstekler için varsayılan mail kaynağının seçilmesi,\n"
+"                             seçilen mail kaynağının adresinin "
+"kullanılmasına izin verir\n"
+"                             giden mailler için gönderen adresi olarak.\n"
+"                             Bu şekilde, tüm bildirimler ve çalışan "
+"yanıtları\n"
+"                             örneğin support@domain.com adresinden "
+"gönderilebilir\n"
+"                             adresi, böylece çalışanın e-postalarını "
+"maskeler."
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Set checkbox External Email Servers"
+msgstr "Harici E-posta Sunucuları onay kutusunu ayarla"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Settings/General Settings"
+msgstr "Ayarlar/Genel Ayarlar"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.generic_request_res_config_settings_view_form
+msgid ""
+"Specify here list of conditions to validate incoming message and\n"
+"                            decide whether new request have to be created "
+"from this message or not.\n"
+"                            If all conditions evaluated to True, then new "
+"request will be created,\n"
+"                            otherwise, message will be dropped and no "
+"request will be created."
+msgstr ""
+"Gelen mesajı doğrulamak için koşulların listesini burada belirtin ve\n"
+"                             bu mesajdan yeni talep oluşturulması gerekip "
+"gerekmediğine karar verin.\n"
+"                             Tüm koşullar Doğru olarak değerlendirilirse, "
+"yeni istek oluşturulur,\n"
+"                             aksi takdirde mesaj atılır ve istek "
+"oluşturulmaz."
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid ""
+"Steps above are required to configure mailing in Odoo, and after that steps "
+"completed, you will be able to configure mail sources."
+msgstr ""
+"Odoo'da postalamayı yapılandırmak için yukarıdaki adımlar gereklidir ve bu "
+"adımlar tamamlandıktan sonra mail kaynaklarını yapılandırabileceksiniz."
+
+#. module: generic_request_mail
+#: code:addons/generic_request_mail/tests/test_mail_send.py:0
+#, python-format
+msgid "Test Message"
+msgstr "Deneme mesajı"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_model_id
+msgid ""
+"The model (Odoo Document Kind) to which this alias corresponds. Any incoming "
+"email that does not reply to an existing record will cause the creation of a "
+"new record of this model (e.g. a Project Task)"
+msgstr ""
+"Bu alias'ın karşılık geldiği model (Odoo Document Kind). Mevcut bir kayda "
+"yanıt vermeyen herhangi bir gelen e-posta, bu modelin yeni bir kaydının "
+"oluşturulmasına neden olur (örn. bir Proje Görevi)"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_name
+msgid ""
+"The name of the email alias, e.g. 'jobs' if you want to catch emails for "
+"<jobs@example.odoo.com>"
+msgstr ""
+"E-posta alias'ının adı, ör. <jobs@example.odoo.com> için e-postaları "
+"yakalamak istiyorsanız 'jobs'"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_user_id
+msgid ""
+"The owner of records created upon receiving emails on this alias. If this "
+"field is not set the system will attempt to find the right owner based on "
+"the sender (From) address, or will use the Administrator account if no "
+"system user is found for that address."
+msgstr ""
+"Bu alias ile e-posta alındığında oluşturulan kayıtların sahibi. Bu alan "
+"ayarlanmazsa, sistem gönderici (Kimden) adresine göre hak sahibini bulmaya "
+"çalışır veya o adres için sistem kullanıcısı bulunamazsa Yönetici hesabını "
+"kullanır."
+
+#. module: generic_request_mail
+#: model_terms:request.request,help_html:generic_request_mail.request_request_type_simple_demo_1
+msgid "This is simple request type with simple routes:"
+msgstr "Bu, basit yollara sahip basit bir istek türüdür:"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_unread
+msgid "Unread Messages"
+msgstr "Okunmamış Mesajlar"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_unread_counter
+msgid "Unread Messages Counter"
+msgstr "Okunmamış Mesaj Sayacı"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_res_config_settings__request_default_mail_source_id
+msgid ""
+"Use this mail source for all requests. Enabling this option will enforce "
+"using aliase related to mail source for all requests."
+msgstr ""
+"Tüm istekler için bu mail kaynağını kullanın. Bu seçeneğin "
+"etkinleştirilmesi, tüm istekler için mail kaynağıyla ilgili alias'ın "
+"kullanılmasını zorunlu kılar."
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__website_message_ids
+msgid "Website Messages"
+msgstr "Web Sitesi Mesajları"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__website_message_ids
+msgid "Website communication history"
+msgstr "Web sitesi iletişim geçmişi"
+
+#. module: generic_request_mail
+#: model_terms:request.request,help_html:generic_request_mail.request_request_type_simple_demo_1
+msgid "draft -&gt; sent -&gt; confirmed"
+msgstr "taslak -&gt; gönderildi -&gt; onaylanmış"
+
+#. module: generic_request_mail
+#: model_terms:request.request,help_html:generic_request_mail.request_request_type_simple_demo_1
+msgid "draft -&gt; sent -&gt; rejected"
+msgstr "taslak -&gt; gönderildi -&gt; reddedildi"

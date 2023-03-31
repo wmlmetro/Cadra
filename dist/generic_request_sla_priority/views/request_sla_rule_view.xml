@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="generic_request_sla_priority_rule_view_form" model="ir.ui.view">
+        <field name="name">request.sla.priority.rule.form</field>
+        <field name="model">request.sla.rule</field>
+        <field name="inherit_id" ref="generic_request_sla.generic_request_sla_rule_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='rule_line_ids']/tree/field[@name='category_ids']" position="after">
+                <field name="priority" widget="priority"/>
+            </xpath>
+            <xpath expr="//div[@name='line_description']" position="inside">
+                <p>
+                    <i>Priority</i>: select a priority. For requests of the selected priority, the current rule line will be active. If no priority is selected, this rule applies to requests of any priority.
+                </p>
+            </xpath>
+        </field>
+    </record>
+</odoo>

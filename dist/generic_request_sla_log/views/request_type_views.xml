@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_generic_request_type_2_request_sla_log" model="ir.actions.act_window">
+        <field name="name">SLA Log</field>
+        <field name="res_model">request.sla.log</field>
+        <field name="view_mode">tree,pivot</field>
+        <field name="domain">[('request_type_id', '=', active_id)]</field>
+    </record>
+    <record model="ir.ui.view" id="inherited_view_request_type_form_inherit_request_sla_log">
+        <field name="model">request.type</field>
+        <field name="inherit_id" ref="generic_request.view_request_type_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button class="oe_stat_button"
+                        type="action"
+                        name="%(generic_request_sla_log.action_generic_request_type_2_request_sla_log)d"
+                        icon="fa-file-text">
+                    <field string="SLA Log" name="sla_log_count" widget="statinfo"/>
+                </button>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="SLA" name="page_sla">
+                    <group name="group_sla_root">
+                        <group name="group_sla_left">
+                            <field name="sla_calendar_id"/>
+                            <p colspan="2">
+                                Working hours of your company.
+                                Required to be set if you select to compute SLA time as working time
+                                (in the Compute Time field on the Rule or Rule Lines view). In Odoo v.12, be sure to specify the appropriate timezone for your company on the Working Time form.
+                            </p>
+                        </group>
+                        <group name="group_sla_right">
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_consulting" model="product.product">
+        <field name="name">Consulting</field>
+        <field name="categ_id" ref="product.product_category_3"/>
+        <field name="list_price" eval="42.78"/>
+        <field name="type">service</field>
+        <field name="uom_id" ref="uom.product_uom_hour"/>
+        <field name="uom_po_id" ref="uom.product_uom_hour"/>
+        <field name="description_sale">Consulting Services</field>
+    </record>
+</odoo>

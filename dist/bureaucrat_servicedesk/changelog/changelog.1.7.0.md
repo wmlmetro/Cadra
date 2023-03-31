@@ -1,0 +1,14 @@
+Added alongside with functionality of ***bureaucrat_helpdesk_lite***:
+- `generic_request_calendar`;
+- `generic_request_field_service`;
+- `generic_request_mail`;
+- `generic_request_condition`;
+- `generic_request_condition_service`;
+- `generic_request_related_doc`;
+- `generic_request_related_requests`;
+- `crnd_wsd_related_doc`;
+- `crnd_wsd_related_request`;
+- `crnd_wsd_field`;
+- `crnd_wsd_field_service`;
+- `crnd_wsd_tag`;
+- `bureaucrat_knowledge_rel_docs`

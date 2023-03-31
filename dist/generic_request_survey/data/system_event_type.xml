@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="request_event_type_survey_sent" model="generic.system.event.type">
+        <field name="name">Survey Sent</field>
+        <field name="code">survey_sent</field>
+        <field name="event_category_id" ref="generic_request.system_event_category_request_events"/>
+        <field name="event_source_id" ref="generic_request.system_event_source__request_request"/>
+    </record>
+    <record id="request_event_type_survey_answer_received" model="generic.system.event.type">
+        <field name="name">Survey Answer Received</field>
+        <field name="code">survey_answer_received</field>
+        <field name="event_category_id" ref="generic_request.system_event_category_request_events"/>
+        <field name="event_source_id" ref="generic_request.system_event_source__request_request"/>
+    </record>
+    <record id="request_event_type_survey_completed" model="generic.system.event.type">
+        <field name="name">Survey Completed</field>
+        <field name="code">survey_completed</field>
+        <field name="event_category_id" ref="generic_request.system_event_category_request_events"/>
+        <field name="event_source_id" ref="generic_request.system_event_source__request_request"/>
+    </record>
+
+</odoo>

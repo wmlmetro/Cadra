@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding='UTF-8'?>
+<odoo noupdate="1">
+    <record id="generic_contract_sales_journal" model="account.journal">
+        <field name="name">Contract Customer Invoices</field>
+        <field name="code">GCCIJ</field>
+        <field name="type">sale</field>
+        <field name="refund_sequence" eval="True"/>
+    </record>
+
+    <record id="generic_contract_expenses_journal" model="account.journal">
+        <field name="name">Contract Vendor Bills</field>
+        <field name="code">GCVBJ</field>
+        <field name="type">purchase</field>
+        <field name="refund_sequence" eval="True"/>
+    </record>
+</odoo>

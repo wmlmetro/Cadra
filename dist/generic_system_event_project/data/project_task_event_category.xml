@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="generic.system.event.category" id="system_event_category_project_task">
+        <field name="name">Project Task Event Category</field>
+        <field name="code">project-task-event-category</field>
+        <field name="event_source_id" ref="generic_system_event_project.system_event_source__project_task"/>
+    </record>
+</odoo>

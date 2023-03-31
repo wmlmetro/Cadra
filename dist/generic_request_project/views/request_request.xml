@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="action_request_project_task" model="ir.actions.act_window">
+        <field name="name">Tasks</field>
+        <field name="res_model">project.task</field>
+        <field name="view_mode">tree,form</field>
+        <field name="target">current</field>
+    </record>
+    <record id="view_generic_request_project_task_request_request" model="ir.ui.view">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet/div[@name='button_box']" position="inside">
+                <field name="use_subtasks" invisible="1"/>
+                <button name="action_show_related_tasks"
+                            type="object"
+                            class="oe_stat_button" icon="fa-briefcase"
+                            groups="project.group_project_user"
+                            attrs="{'invisible': ['|', ('project_task_count', '=', 0), ('use_subtasks', '=', False)]}">
+                        <field string="Tasks" name="project_task_count"
+                            widget="statinfo"/>
+                </button>
+                <button name="action_create_task"
+                            type="object"
+                            class="oe_stat_button" icon="fa-briefcase"
+                            groups="project.group_project_user"
+                            string="Create Task"
+                            attrs="{'invisible': ['|', ('project_task_count', '!=', 0), ('use_subtasks', '=', False)]}">
+                </button>
+            </xpath>
+            <xpath expr="//group[@name='group_partner']/div[@name='div_partner']"
+                   position="after">
+                <field name="project_id"
+                       groups="project.group_project_user"/>
+            </xpath>
+            <xpath expr="//notebook//page[@name='page_help']"
+                   position="before">
+                <page string="Work Log"
+                      name="page_work_log"
+                      groups="project.group_project_user"
+                      attrs="{'invisible': ['|', ('use_worklog', '=', False), ('use_subtasks', '=', False)]}">
+                    <field name="use_worklog" invisible="1"/>
+                    <field name="project_task_timesheet_ids" colspan="4" readonly="1"
+                           attrs="{'invisible': [('project_task_count', '=', 0)]}"/>
+                    <group class="mt0">
+                        <group colspan="2" class="mt0">
+                            <div>
+                                <div attrs="{'invisible': [('project_task_count', '!=', 0)]}">
+                                    You have to create task for this timesheet to be able to log working time spent on that task.</div>
+                                <div>
+                                    <span attrs="{'invisible': [('project_task_count', '=', 0)]}">
+                                    <button name="action_request_work_log"
+                                            type="object"
+                                            string="Log your work"
+                                            class="btn-xs oe_link"
+                                            colspan="2"/> or
+                                    </span>
+                                    <button name="action_create_task"
+                                            type="object"
+                                            string="Create new task"
+                                            class="btn-xs oe_link"
+                                            colspan="2"/>
+                                </div>
+                            </div>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_request_request_kanban" model="ir.ui.view">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="//kanban/field[last()]" position="after">
+                <field name="project_task_count"
+                       groups="project.group_project_user"/>
+            </xpath>
+            <xpath expr="//kanban/templates//div[@name='icons_info']" position="inside">
+                <span t-if="record.project_task_count.raw_value"
+                      class="icon"
+                      groups="project.group_project_user">
+                    <span title='Tasks' class='fa fa-briefcase mr4'></span>
+                    <t t-esc="record.project_task_count.raw_value"/>
+                </span>
+            </xpath>
+        </field>
+    </record>
+    <record model="ir.ui.view" id="view_request_request_searchpanel">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_searchpanel"/>
+        <field name="arch" type="xml">
+            <xpath expr="//searchpanel/field[@name='channel_id']" position="after">
+                <field name="project_id" string="Project"/>
+            </xpath>
+        </field>
+    </record>
+    <record model="ir.ui.view" id="view_request_request_search">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <field name="project_id" filter_domain="[('project_id.name', 'ilike', self)]"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

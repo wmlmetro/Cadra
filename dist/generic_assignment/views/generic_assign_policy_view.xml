@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record model="ir.ui.view" id="view_generic_assign_policy_tree">
+        <field name="name">generic.assign.policy.tree.view</field>
+        <field name="model">generic.assign.policy</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="model_id"/>
+                <field name="assign_user_field_id"/>
+                <field name="active"/>
+                <field name="rule_count"/>
+                <button name="action_assign_policy_rule_view"
+                        type="object"
+                        class="oe_stat_button"
+                        aria-label="Rules"
+                        title="Rules"
+                        icon="fa-book"/>
+            </tree>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_generic_assign_policy_form">
+        <field name="name">generic.assign.policy.form.view</field>
+        <field name="model">generic.assign.policy</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <field name="rule_ids" invisible="1"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_show_test_wizard"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-check-circle-o"
+                                string="Test"/>
+                        <button name="action_assign_policy_rule_view"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-book">
+                            <field name="rule_count" string="Rules" widget="statinfo"/>
+                        </button>
+                    </div>
+                    <field name="active" invisible="1"/>
+                    <widget name="web_ribbon" title="Archived"
+                            bg_color="bg-danger"
+                            attrs="{'invisible': [('active', '=', True)]}"/>
+                    <div name="title" class="oe_title request_title">
+                        <h1>
+                            <field name="name" placeholder="Name..."/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="model_id"
+                                   readonly="context.get('default_model', False)"/>
+                        </group>
+                        <group>
+                            <field name="assign_model_id"/>
+                            <field name="assign_user_field_id"/>
+                        </group>
+                    </group>
+                    <field name="rule_not_unique" invisible="1"/>
+                    <group name="warning" attrs="{'invisible': [('rule_not_unique', '=', False)]}">
+                        <div class="alert alert-danger" role="alert">
+                            Warning: more that one rule of this policy have same sequence! This may lead to undefined order of rules execution!
+                        </div>
+                    </group>
+                    <notebook>
+                        <page name="page_rule"
+                              string="Rules">
+                            <group name="warning_new"
+                                   attrs="{'invisible': [('id', '!=', False)]}">
+                                <div class="alert alert-warning" role="alert">
+                                    Please, save this policy, to be able to edit its rules!
+                                </div>
+                            </group>
+                            <field name="rule_ids"
+                                   attrs="{'invisible': [('id', '=', False)]}"
+                                   context="{'default_policy_id': id}"/>
+                        </page>
+                    </notebook>
+                    <field name="description" nolabel="1"
+                           placeholder="Description of policy..."/>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_generic_assign_policy_search">
+        <field name="name">generic.assign.policy.search.view</field>
+        <field name="model">generic.assign.policy</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" string="Name"/>
+                <field name="model_id" string="Model"/>
+
+                <filter name="filter_archived" string="Archived" domain="[('active', '=', False)]"/>
+                <filter name="filter_active" string="Active" domain="[('active','=', True)]"/>
+
+                <group expand="0" string="Group By">
+                    <filter name="group_by_state" string="Active" domain="[]"
+                            context="{'group_by':'active'}"/>
+                    <filter name="group_by_model_id" string="Model" domain="[]"
+                            context="{'group_by':'model_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="action_assign_policy">
+        <field name="name">Policies</field>
+        <field name="res_model">generic.assign.policy</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+</odoo>

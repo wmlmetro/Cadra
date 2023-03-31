@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="generic_team_member_tag_form" model="ir.ui.view">
+        <field name="name">generic.team.member.tag.form</field>
+        <field name="inherit_id" ref="generic_team.generic_team_member_form"/>
+        <field name="model">generic.team.member</field>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='title']/h1" position="after">
+                <h2>
+                    <field name="tag_ids"
+                       options="{'color_field': 'color'}"
+                       widget="many2many_tags"
+                       placeholder="Tags..."
+                       class="oe_inline"
+                       domain="[('model_id.model', '=', 'generic.team.member')]"
+                       context="{'default_model': 'generic.team.member'}"/>
+                </h2>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="generic_team_member_tag_tree" model="ir.ui.view">
+        <field name="name">generic.team.member.tree</field>
+        <field name="inherit_id" ref="generic_team.generic_team_member_tree"/>
+        <field name="model">generic.team.member</field>
+        <field name="arch" type="xml">
+            <field name="user_id" position="after">
+               <field name="tag_ids"
+                       options="{'color_field': 'color'}"
+                       widget="many2many_tags"
+                       placeholder="Tags..."
+                       domain="[('model_id.model', '=', 'generic.team.member')]"
+                       context="{'default_model': 'generic.team.member'}"/>
+            </field>
+        </field>
+    </record>
+
+</odoo>

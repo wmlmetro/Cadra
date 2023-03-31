@@ -1,0 +1,64 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_recent
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:18+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_recent/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_recent
+#: model_terms:ir.ui.view,arch_db:generic_request_recent.ext_res_config_settings_view_form
+msgid "<b class=\"pl-2\">days</b>"
+msgstr "<b class=\"pl-2\">günler</b>"
+
+#. module: generic_request_recent
+#: model:ir.model,name:generic_request_recent.model_res_config_settings
+msgid "Config Settings"
+msgstr "Yapılandırma Ayarları"
+
+#. module: generic_request_recent
+#: model_terms:ir.ui.view,arch_db:generic_request_recent.ext_res_config_settings_view_form
+msgid ""
+"Defines the period from the current date\n"
+"                                for which recent related requests will be "
+"displayed"
+msgstr ""
+"Geçerli tarihten itibaren dönemi tanımlar\n"
+"                                 ilgili son isteklerin görüntüleneceği"
+
+#. module: generic_request_recent
+#: model_terms:ir.ui.view,arch_db:generic_request_recent.ext_request_request_view_form
+msgid "Open"
+msgstr "Açık"
+
+#. module: generic_request_recent
+#: model:ir.model.fields,field_description:generic_request_recent.field_res_config_settings__recent_related_request_period
+msgid "Recent related requests period"
+msgstr "Son ilgili talepler dönemi"
+
+#. module: generic_request_recent
+#: model_terms:ir.ui.view,arch_db:generic_request_recent.ext_request_request_view_form
+msgid "Recent requests"
+msgstr "son istekler"
+
+#. module: generic_request_recent
+#: model:ir.model.fields,field_description:generic_request_recent.field_request_request__recent_related_request_ids
+msgid "Related requests"
+msgstr "İlgili istekler"
+
+#. module: generic_request_recent
+#: model:ir.model,name:generic_request_recent.model_request_request
+msgid "Request"
+msgstr "İstek"

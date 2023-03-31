@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="event_type_sla_failed" model="generic.system.event.type">
+        <field name="name">SLA Failed</field>
+        <field name="code">sla_failed</field>
+        <field name="event_category_id" ref="generic_request.system_event_category_request_events"/>
+        <field name="event_source_id" ref="generic_request.system_event_source__request_request"/>
+    </record>
+    <record id="event_type_sla_warning" model="generic.system.event.type">
+        <field name="name">SLA Warning</field>
+        <field name="code">sla_warning</field>
+        <field name="event_category_id" ref="generic_request.system_event_category_request_events"/>
+        <field name="event_source_id" ref="generic_request.system_event_source__request_request"/>
+    </record>
+</odoo>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="generic_resource_role_link_hr_view_form" model="ir.ui.view">
+        <field name="name">generic.resource.role.link.hr.form</field>
+        <field name="model">generic.resource.role.link</field>
+        <field name="inherit_id" ref="generic_resource_role.generic_resource_role_link_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="employee_id"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

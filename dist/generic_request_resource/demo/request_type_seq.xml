@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <function model="request.type"
+              name="write">
+        <function model="request.type"
+                  name="search"
+                  eval="[[('id', '=', ref('generic_request.request_type_sequence'))]]"/>
+        <value eval="{'resource_type_ids': [(4, ref('generic_resource.generic_resource_type_default'))]}"/>
+    </function>
+</odoo>
+

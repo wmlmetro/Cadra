@@ -1,0 +1,27 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_service_team
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 14.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-06-22 16:10+0000\n"
+"PO-Revision-Date: 2021-06-22 16:10+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: generic_service_team
+#: model:ir.model,name:generic_service_team.model_generic_service
+msgid "Generic Service"
+msgstr ""
+
+#. module: generic_service_team
+#: model:ir.model.fields,field_description:generic_service_team.field_generic_service__team_id
+msgid "Service Team"
+msgstr ""

@@ -1,0 +1,61 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_contract_resource_role
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:20+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_contract_resource_role/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_contract_resource_role
+#: model:generic.resource.role,name:generic_contract_resource_role.generic_contract_resource_role_admin
+msgid "Admin"
+msgstr "Admin"
+
+#. module: generic_contract_resource_role
+#: model:generic.resource.role,name:generic_contract_resource_role.generic_contract_resource_role_simple_role_developer
+#: model:generic.resource.role.type,name:generic_contract_resource_role.generic_resource_role_type_developer
+msgid "Developer"
+msgstr "Geliştirici"
+
+#. module: generic_contract_resource_role
+#: model:ir.model,name:generic_contract_resource_role.model_generic_contract_resource_line
+msgid "Generic Contract Resource Line"
+msgstr "Genel Sözleşme Kaynak Satırı"
+
+#. module: generic_contract_resource_role
+#: model:generic.resource.role,name:generic_contract_resource_role.generic_contract_resource_role_owner
+msgid "Owner"
+msgstr "Mal sahibi"
+
+#. module: generic_contract_resource_role
+#: model_terms:ir.ui.view,arch_db:generic_contract_resource_role.view_generic_contract_resource_line_form
+msgid "Resource Role Links"
+msgstr "Kaynak Rol Bağlantısı"
+
+#. module: generic_contract_resource_role
+#: model:ir.model.fields,field_description:generic_contract_resource_role.field_generic_contract_resource_line__resource_role_link_ids
+msgid "Role Links"
+msgstr "Rol Bağlantıları"
+
+#. module: generic_contract_resource_role
+#: model:ir.model.fields,field_description:generic_contract_resource_role.field_generic_contract_resource_line__resource_role_link_count
+#: model_terms:ir.ui.view,arch_db:generic_contract_resource_role.view_generic_contract_form
+msgid "Roles"
+msgstr "Roller"
+
+#. module: generic_contract_resource_role
+#: model:generic.resource.role,name:generic_contract_resource_role.generic_contract_resource_role_sales_manager
+msgid "Sales Manager"
+msgstr "Satış Müdürü"

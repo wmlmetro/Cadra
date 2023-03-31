@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_field_service_form">
+        <field name="model">request.field</field>
+        <field name="inherit_id" ref="generic_request_field.view_request_field_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='category_ids']"
+                   position="before">
+                <field name="service_ids"
+                       string="Services"
+                       widget="many2many_tags"
+                       domain="[('request_type_ids', '=', request_type_id)]"
+                       options="{'no_create': True, 'no_quick_create': True}"
+                       placeholder="Service"
+                       groups="generic_request.group_request_use_services"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_field_service_tree">
+        <field name="model">request.field</field>
+        <field name="inherit_id"
+               ref="generic_request_field.view_request_field_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='category_ids']" position="before">
+                <field name="service_ids"
+                       widget="many2many_tags"
+                       string="Services"
+                       groups="generic_request.group_request_use_services"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

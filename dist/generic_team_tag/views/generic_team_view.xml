@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="generic_team_tag_tree" model="ir.ui.view">
+        <field name="name">generic.team.tag.tree</field>
+        <field name="inherit_id" ref="generic_team.generic_team_tree"/>
+        <field name="model">generic.team</field>
+        <field name="arch" type="xml">
+            <field name="active" position="after">
+               <field name="tag_ids"
+                       options="{'color_field': 'color'}"
+                       widget="many2many_tags"
+                       placeholder="Tags..."
+                       domain="[('model_id.model', '=', 'generic.team')]"
+                       context="{'default_model': 'generic.team'}"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="generic_team_tag_form" model="ir.ui.view">
+        <field name="name">generic.team.form</field>
+        <field name="inherit_id" ref="generic_team.generic_team_form"/>
+        <field name="model">generic.team</field>
+        <field name="arch" type="xml">
+            <xpath expr="//h1[@name='header_team_name']" position="after">
+                <h3 name="header_tags">
+                    <field name="tag_ids"
+                       options="{'color_field': 'color'}"
+                       widget="many2many_tags"
+                       placeholder="Tags..."
+                       class="oe_inline"
+                       domain="[('model_id.model', '=', 'generic.team')]"
+                       context="{'default_model': 'generic.team'}"/>
+                </h3>
+            </xpath>
+            <xpath expr="//notebook/page[@name='page_team_members']/field[@name='team_member_ids']/tree/field[@name='user_id']" position="after">
+               <field name="tag_ids"
+                       options="{'color_field': 'color'}"
+                       widget="many2many_tags"
+                       placeholder="Tags..."
+                       domain="[('model_id.model', '=', 'generic.team.member')]"
+                       context="{'default_model': 'generic.team.member'}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

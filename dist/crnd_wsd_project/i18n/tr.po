@@ -1,0 +1,76 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* crnd_wsd_project
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:18+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/crnd_wsd_project/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: crnd_wsd_project
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_project.wsd_requests_project
+msgid ""
+"<span class=\"wsd_request header-bg-filler\">Related Tasks</span>\n"
+"                        <span class=\"header-separator-splitter\"/>"
+msgstr ""
+"<span class=\"wsd_request header-bg-filler\">İlgili Görevler</span>\n"
+"                         <span class=\"header-separator-splitter\"/>"
+
+#. module: crnd_wsd_project
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_project.portal_my_task_project
+msgid "<strong>Request:</strong>"
+msgstr "<strong>Talep:</strong>"
+
+#. module: crnd_wsd_project
+#: model:project.task,legend_blocked:crnd_wsd_project.crnd_wsd_project_request_with_task_task_1
+msgid "Blocked"
+msgstr "Engellendi"
+
+#. module: crnd_wsd_project
+#: model:project.task,legend_normal:crnd_wsd_project.crnd_wsd_project_request_with_task_task_1
+msgid "In Progress"
+msgstr "Devam etmekte"
+
+#. module: crnd_wsd_project
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_project.wsd_requests_project
+msgid "Project:"
+msgstr "Proje:"
+
+#. module: crnd_wsd_project
+#: model:project.task,legend_done:crnd_wsd_project.crnd_wsd_project_request_with_task_task_1
+msgid "Ready"
+msgstr "Hazır"
+
+#. module: crnd_wsd_project
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_project.wsd_requests_project
+msgid "Stage"
+msgstr "Aşama"
+
+#. module: crnd_wsd_project
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_project.wsd_requests_project_table
+msgid "Tasks"
+msgstr "Görevler"
+
+#. module: crnd_wsd_project
+#: model_terms:request.request,help_html:crnd_wsd_project.demo_crnd_wsd_project_request_with_task
+msgid ""
+"This is demo request type to demonstrate automatic actions and triggers on "
+"routes.\n"
+"            That automatic triggers will be triggered when related task "
+"changes its stage."
+msgstr ""
+"Bu, rotalardaki otomatik eylemleri ve tetikleyicileri göstermek için demo "
+"istek türüdür.\n"
+"             Bu otomatik tetikleyiciler, ilgili görev aşama değiştirdiğinde "
+"tetiklenecektir."

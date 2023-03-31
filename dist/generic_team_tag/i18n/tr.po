@@ -1,0 +1,172 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_team_tag
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:21+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_team_tag/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_team_tag
+#: model:generic.tag,name:generic_team_tag.tag_team_devops
+msgid "DevOps"
+msgstr "DevOps"
+
+#. module: generic_team_tag
+#: model:ir.model.fields,help:generic_team_tag.field_generic_team__search_tag_id
+#: model:ir.model.fields,help:generic_team_tag.field_generic_team_member__search_tag_id
+msgid "Find all records that contain this tag"
+msgstr "Bu etiketi içeren tüm kayıtları bul"
+
+#. module: generic_team_tag
+#: model:ir.model.fields,help:generic_team_tag.field_generic_team__search_no_tag_id
+#: model:ir.model.fields,help:generic_team_tag.field_generic_team_member__search_no_tag_id
+msgid "Find all records that have no this tag"
+msgstr "Bu etikete sahip olmayan tüm kayıtları bul"
+
+#. module: generic_team_tag
+#: model:generic.tag.model,name:generic_team_tag.generic_tag_generic_team
+#: model:ir.model,name:generic_team_tag.model_generic_team
+msgid "Generic Team"
+msgstr "Genel Takım"
+
+#. module: generic_team_tag
+#: model:ir.ui.menu,name:generic_team_tag.menu_generic_team_tag_root
+msgid "Generic Team Tags"
+msgstr "Genel Takım Etiketleri"
+
+#. module: generic_team_tag
+#: model:generic.tag.model,name:generic_team_tag.generic_tag_generic_team_member
+#: model:ir.model,name:generic_team_tag.model_generic_team_member
+msgid "Generic team member"
+msgstr "Genel ekip üyesi"
+
+#. module: generic_team_tag
+#: model:generic.tag,name:generic_team_tag.tag_skill_git
+msgid "Git"
+msgstr "Git"
+
+#. module: generic_team_tag
+#: model:generic.tag,name:generic_team_tag.tag_skill_js
+#: model:generic.tag,name:generic_team_tag.tag_team_js
+msgid "JS"
+msgstr "JS"
+
+#. module: generic_team_tag
+#: model:generic.tag,name:generic_team_tag.tag_skill_linux
+msgid "Linux"
+msgstr "Linux"
+
+#. module: generic_team_tag
+#: model:generic.tag,name:generic_team_tag.tag_skill_macos
+msgid "MacOS"
+msgstr "MacOS"
+
+#. module: generic_team_tag
+#: model:ir.model.fields,field_description:generic_team_tag.field_generic_team__search_no_tag_id
+#: model:ir.model.fields,field_description:generic_team_tag.field_generic_team_member__search_no_tag_id
+msgid "No tag"
+msgstr "Etiket yok"
+
+#. module: generic_team_tag
+#: model:generic.tag,name:generic_team_tag.tag_skill_odoo
+#: model:generic.tag,name:generic_team_tag.tag_team_odoo
+msgid "Odoo"
+msgstr "Odoo"
+
+#. module: generic_team_tag
+#: model:generic.tag,name:generic_team_tag.tag_role_project_manager
+msgid "Project manager"
+msgstr "Proje yöneticisi"
+
+#. module: generic_team_tag
+#: model:generic.tag,name:generic_team_tag.tag_skill_python
+#: model:generic.tag,name:generic_team_tag.tag_team_python
+msgid "Python"
+msgstr "Python"
+
+#. module: generic_team_tag
+#: model:generic.tag,name:generic_team_tag.tag_role_qa
+msgid "QA tester"
+msgstr "kalite güvence test cihazı"
+
+#. module: generic_team_tag
+#: model:generic.tag,category_name:generic_team_tag.tag_role_engineer
+#: model:generic.tag,category_name:generic_team_tag.tag_role_project_manager
+#: model:generic.tag,category_name:generic_team_tag.tag_role_qa
+#: model:generic.tag,category_name:generic_team_tag.tag_role_tech_support
+#: model:generic.tag.category,name:generic_team_tag.tag_category_role
+msgid "Role"
+msgstr "Rol"
+
+#. module: generic_team_tag
+#: model:generic.tag,category_name:generic_team_tag.tag_skill_git
+#: model:generic.tag,category_name:generic_team_tag.tag_skill_js
+#: model:generic.tag,category_name:generic_team_tag.tag_skill_linux
+#: model:generic.tag,category_name:generic_team_tag.tag_skill_macos
+#: model:generic.tag,category_name:generic_team_tag.tag_skill_odoo
+#: model:generic.tag,category_name:generic_team_tag.tag_skill_python
+#: model:generic.tag,category_name:generic_team_tag.tag_skill_windows
+#: model:generic.tag.category,name:generic_team_tag.tag_category_skill
+msgid "Skill"
+msgstr "Beceri"
+
+#. module: generic_team_tag
+#: model:generic.tag,name:generic_team_tag.tag_role_engineer
+msgid "Software engineer"
+msgstr "Yazılım Mühendisi"
+
+#. module: generic_team_tag
+#: model:ir.model.fields,field_description:generic_team_tag.field_generic_team__search_tag_id
+#: model:ir.model.fields,field_description:generic_team_tag.field_generic_team_member__search_tag_id
+msgid "Tag"
+msgstr "Etiket"
+
+#. module: generic_team_tag
+#: model:ir.model.fields,field_description:generic_team_tag.field_generic_team__tag_ids
+#: model:ir.model.fields,field_description:generic_team_tag.field_generic_team_member__tag_ids
+msgid "Tags"
+msgstr "Etiketler"
+
+#. module: generic_team_tag
+#: model_terms:ir.ui.view,arch_db:generic_team_tag.generic_team_member_tag_form
+#: model_terms:ir.ui.view,arch_db:generic_team_tag.generic_team_member_tag_tree
+#: model_terms:ir.ui.view,arch_db:generic_team_tag.generic_team_tag_form
+#: model_terms:ir.ui.view,arch_db:generic_team_tag.generic_team_tag_tree
+#: model_terms:ir.ui.view,arch_db:generic_team_tag.view_users_form
+msgid "Tags..."
+msgstr "Etiketler..."
+
+#. module: generic_team_tag
+#: model:ir.actions.act_window,name:generic_team_tag.generic_team_member_tag_action
+#: model:ir.ui.menu,name:generic_team_tag.menu_generic_team_member_tags
+msgid "Team member tags"
+msgstr "Ekip üyesi etiketleri"
+
+#. module: generic_team_tag
+#: model:ir.actions.act_window,name:generic_team_tag.generic_team_tag_action
+#: model:ir.ui.menu,name:generic_team_tag.menu_generic_team_tags
+msgid "Team tags"
+msgstr "Ekip etiketleri"
+
+#. module: generic_team_tag
+#: model:generic.tag,name:generic_team_tag.tag_role_tech_support
+#: model:generic.tag,name:generic_team_tag.tag_team_support
+msgid "Technical support"
+msgstr "Teknik Destek"
+
+#. module: generic_team_tag
+#: model:generic.tag,name:generic_team_tag.tag_skill_windows
+msgid "Windows"
+msgstr "Windows"

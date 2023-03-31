@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_event_action_form">
+        <field name="model">request.event.action</field>
+        <field name="inherit_id" ref="generic_request_action.view_request_event_action_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form//notebook[@name='notebook_action']//group[@name='group_action_assign']"
+                   position="inside">
+                <field name="assign_team_id"
+                    attrs="{'required': [('act_type', '=', 'assign'), ('assign_type', '=', 'team')],
+                            'invisible': [('assign_type', '!=', 'team')]}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

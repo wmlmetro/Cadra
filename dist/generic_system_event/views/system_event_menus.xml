@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<!-- Menus -->
+    <menuitem
+        id="generic_system_event_root_menu"
+        name="Generic System Events"
+        parent="base.menu_custom"
+        sequence="1000"/>
+
+    <menuitem
+        id="system_event_menu"
+        name="Events"
+        parent="generic_system_event_root_menu"
+        action="action_generic_system_event"
+        sequence="10"/>
+
+    <menuitem
+        id="system_event_category_menu"
+        name="Event Categories"
+        parent="generic_system_event_root_menu"
+        action="action_generic_system_event_category"
+        sequence="20"/>
+
+    <menuitem
+        id="system_event_source_menu"
+        name="Event Sources"
+        parent="generic_system_event_root_menu"
+        action="action_generic_system_event_source"
+        sequence="30"/>
+
+    <menuitem
+        id="system_event_type_menu"
+        name="Event Types"
+        parent="generic_system_event_root_menu"
+        action="action_generic_system_event_type"
+        sequence="40"/>
+
+</odoo>

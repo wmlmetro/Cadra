@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_condition_request_type_form">
+        <field name="model">request.type</field>
+        <field name="inherit_id" ref="generic_request.view_request_type_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='page_write_control']" position="inside">
+                <group colspan="4" col="2">
+                    <field name="change_request_text_condition_ids"
+                            domain="[('model_id.model', '=', 'request.request')]"
+                            context="{'default_based_on': 'request.request'}"
+                            options="{'no_quick_create': True, 'open': True}"
+                            widget="many2many_tags"/>
+                    <field name="change_assignee_condition_ids"
+                            domain="[('model_id.model', '=', 'request.request')]"
+                            context="{'default_based_on': 'request.request'}"
+                            options="{'no_quick_create': True, 'open': True}"
+                            widget="many2many_tags"/>
+                    <field name="change_author_condition_ids"
+                            domain="[('model_id.model', '=', 'request.request')]"
+                            context="{'default_based_on': 'request.request'}"
+                            options="{'no_quick_create': True, 'open': True}"
+                            widget="many2many_tags"/>
+                    <field name="change_category_condition_ids"
+                            domain="[('model_id.model', '=', 'request.request')]"
+                            context="{'default_based_on': 'request.request'}"
+                            options="{'no_quick_create': True, 'open': True}"
+                            widget="many2many_tags"/>
+                    <field name="change_deadline_condition_ids"
+                            domain="[('model_id.model', '=', 'request.request')]"
+                            context="{'default_based_on': 'request.request'}"
+                            options="{'no_quick_create': True, 'open': True}"
+                            widget="many2many_tags"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

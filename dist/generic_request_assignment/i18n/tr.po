@@ -1,0 +1,90 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_assignment
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:18+0000\n"
+"PO-Revision-Date: 2023-02-28 17:32+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_assignment/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy.rule,name:generic_request_assignment.request_rule_assign_eval
+msgid "Assign admin by python-expression"
+msgstr "Python ifadesiyle yönetici atayın"
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy.rule,name:generic_request_assignment.request_rule_assign_user_demo_portal
+msgid "Assign demo portal user"
+msgstr "Demo portalı kullanıcısı atayın"
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy.rule,name:generic_request_assignment.request_rule_assign_user_demo
+msgid "Assign demo user"
+msgstr "Demo kullanıcı ata"
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy.rule,description:generic_request_assignment.request_rule_assign_user_field
+msgid ""
+"Assign user by field \"created_by\" of the request. Type of policy: \"User "
+"field\"."
+msgstr ""
+"İsteğin \"created_by\" alanına göre kullanıcı atayın. Poliçe türü: "
+"\"Kullanıcı alanı\"."
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy.rule,name:generic_request_assignment.request_rule_assign_user_field
+msgid "Assign user from field 'created_by'"
+msgstr "Kullanıcıyı 'created_by' alanından atayın"
+
+#. module: generic_request_assignment
+#: model:ir.actions.act_window,name:generic_request_assignment.action_request_assignment_policy
+#: model:ir.ui.menu,name:generic_request_assignment.menu_assignment_policies
+msgid "Assignment Policies"
+msgstr "Atama Politikaları"
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy.rule,name:generic_request_assignment.request_rule_assign_policy
+msgid "Call other assign policy"
+msgstr "Diğer atama politikasını ara"
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy,name:generic_request_assignment.request_example_assign_policy_policy
+msgid "Demo assign policy"
+msgstr "Demo atama politikası"
+
+#. module: generic_request_assignment
+#: model:ir.model,name:generic_request_assignment.model_generic_wizard_assign
+msgid "Generic Wizard: Assign"
+msgstr "Genel Sihirbaz: Ata"
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy,description:generic_request_assignment.request_example_assign_policy_policy
+msgid "Just assign to demo portal user."
+msgstr "Sadece demo portalı kullanıcısına atayın."
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy.model,name:generic_request_assignment.request_assign_policy_model
+#: model:ir.model,name:generic_request_assignment.model_request_request
+msgid "Request"
+msgstr "İstek"
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy,name:generic_request_assignment.request_example_assign_policy
+msgid "Test Assign Policy"
+msgstr "Test Atama Politikası"
+
+#. module: generic_request_assignment
+#: model:generic.assign.policy,description:generic_request_assignment.request_example_assign_policy
+msgid "This is demo assign policy that is used in automatic tests"
+msgstr "Bu, otomatik testlerde kullanılan demo atama politikasıdır"

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Generic assign menu structure -->
+    <menuitem name="Assignment policies"
+              id="assignment_policies"
+              parent="generic_rule.menu_generic_rule"
+              groups="group_generic_assignment_policy_user"
+              action="action_assign_policy"/>
+
+</odoo>

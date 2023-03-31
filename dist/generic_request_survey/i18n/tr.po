@@ -1,0 +1,543 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_survey
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:15+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_survey/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_survey
+#: model:mail.template,body_html:generic_request_survey.email_template_survey
+msgid ""
+"\n"
+"            \n"
+"<p>Hello,</p>\n"
+"<p>We are conducting a survey, and your response would be appreciated.</p>\n"
+"<p><a style=\"margin-left: 85px; padding:5px 10px; border-radius: 3px; "
+"background-color:#875A7B; text-align:center; text-decoration:none; color:"
+"#F7FBFD;\" target=\"_blank\" href=\"__URL__\">Please, click here to start "
+"survey</a></p>\n"
+"<p>Thanks for your participation!</p>\n"
+"            \n"
+"        "
+msgstr ""
+"\n"
+"            \n"
+"<p>Merhaba,</p>\n"
+"<p>Bir anket yürütüyoruz ve yanıtınız için teşekkür ederiz.</p>\n"
+"<p><a style=\"margin-left: 85px; padding:5px 10px; border-radius: 3px; "
+"background-color:#875A7B; text-align:center; text-decoration:none; "
+"color:#F7FBFD;\" target=\"_blank\" href=\"__URL__\">Ankete başlamak için "
+"lütfen burayı tıklayın</a></p>\n"
+"<p>Katılımınız için teşekkürler!</p>\n"
+"            \n"
+"        "
+
+#. module: generic_request_survey
+#: model:survey.question,description:generic_request_survey.bug_classification
+#: model:survey.question,description:generic_request_survey.bug_priority
+#: model:survey.question,description:generic_request_survey.configuration
+#: model:survey.question,description:generic_request_survey.environment
+msgid "<p></p>"
+msgstr "<p></p>"
+
+#. module: generic_request_survey
+#: model:survey.survey,description:generic_request_survey.request_bug_form
+#: model:survey.survey,description:generic_request_survey.request_environment
+msgid "<p>This survey should take less than two minutes.</p>"
+msgstr "<p>Bu anket iki dakikadan az sürecektir.</p>"
+
+#. module: generic_request_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.view_request_request_kanban
+msgid "<span title=\"Answers\" class=\"fa fa-list-alt mr4\"/>"
+msgstr "<span title=\"Yanıtlar\" class=\"fa fa-list-alt mr4\"/>"
+
+#. module: generic_request_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
+msgid "Add existing contacts..."
+msgstr "Mevcut kişileri ekle..."
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_request__answer_count
+msgid "Answer Count"
+msgstr "Yanıt Sayısı"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_request__answer_ids
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_type__survey_answer_ids
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.view_request_request_survey_answer
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.view_request_type_survey_answer
+msgid "Answers"
+msgstr "Yanıtlar"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.environment_4
+msgid "Application"
+msgstr "Uygulama"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.environment_5
+msgid "Application Version"
+msgstr "Uygulama Versiyonu"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__attachment_ids
+msgid "Attachments"
+msgstr "Ekler"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.configuration_1
+msgid "CPU"
+msgstr "CPU"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.bug_classification_4
+msgid "Can you intentionally repeat this error / bug?"
+msgstr "Bu hatayı/bug'u kasıtlı olarak tekrarlayabilir misiniz?"
+
+#. module: generic_request_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
+msgid "Cancel"
+msgstr "İptal etmek"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.configuration
+msgid "Configuration"
+msgstr "Konfigürasyon"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__body
+msgid "Contents"
+msgstr "İçerikler"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__create_uid
+msgid "Created by"
+msgstr "Tarafından yaratıldı"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__create_date
+msgid "Created on"
+msgstr "oluşturuldu"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__display_name
+msgid "Display Name"
+msgstr "Ekran adı"
+
+#. module: generic_request_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
+msgid "Email template..."
+msgstr "Email şablonu..."
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.environment
+#: model:survey.survey,title:generic_request_survey.request_environment
+msgid "Environment"
+msgstr "Environment"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.bug_classification
+msgid "Error / Bug Classification"
+msgstr "Hata / Bug Sınıflandırması"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.bug_priority
+msgid "Error / Bug Priority"
+msgstr "Hata / Bug Önceliği"
+
+#. module: generic_request_survey
+#: model:survey.survey,title:generic_request_survey.request_bug_form
+msgid "Error / Bug Survey"
+msgstr "Hata / Bug Anketi"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.configuration_2
+msgid "GPU"
+msgstr "GPU"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.configuration_4
+msgid "HDD"
+msgstr "HDD"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.bug_priority_3_choice_2
+msgid "High"
+msgstr "Yüksek"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.bug_priority_3
+msgid "How would you rate priority of resolving this error / bug?"
+msgstr "Bu hatayı / bug'ı çözme önceliğini nasıl değerlendirirsiniz?"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.environment_3
+msgid "IP"
+msgstr "IP"
+
+#. module: generic_request_survey
+#: model:survey.question,comments_message:generic_request_survey.bug_classification
+#: model:survey.question,comments_message:generic_request_survey.bug_classification_1
+#: model:survey.question,comments_message:generic_request_survey.bug_classification_2
+#: model:survey.question,comments_message:generic_request_survey.bug_classification_3
+#: model:survey.question,comments_message:generic_request_survey.bug_classification_4
+#: model:survey.question,comments_message:generic_request_survey.bug_classification_5
+#: model:survey.question,comments_message:generic_request_survey.bug_priority
+#: model:survey.question,comments_message:generic_request_survey.bug_priority_1
+#: model:survey.question,comments_message:generic_request_survey.bug_priority_2
+#: model:survey.question,comments_message:generic_request_survey.bug_priority_3
+#: model:survey.question,comments_message:generic_request_survey.configuration
+#: model:survey.question,comments_message:generic_request_survey.configuration_1
+#: model:survey.question,comments_message:generic_request_survey.configuration_2
+#: model:survey.question,comments_message:generic_request_survey.configuration_3
+#: model:survey.question,comments_message:generic_request_survey.configuration_4
+#: model:survey.question,comments_message:generic_request_survey.environment
+#: model:survey.question,comments_message:generic_request_survey.environment_1
+#: model:survey.question,comments_message:generic_request_survey.environment_2
+#: model:survey.question,comments_message:generic_request_survey.environment_3
+#: model:survey.question,comments_message:generic_request_survey.environment_4
+#: model:survey.question,comments_message:generic_request_survey.environment_5
+msgid "If other, please specify:"
+msgstr "Diğer ise lütfen belirtiniz:"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.bug_classification_1
+msgid "In what application this error / bug appears?"
+msgstr "Bu hata / bug hangi uygulamada görünüyor?"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__is_author_creator
+msgid "Is Author Creator"
+msgstr "Yazar Yaratıcı mı"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.bug_classification_2
+msgid "Is there an error message? Specify it."
+msgstr "Bir hata mesajı var mı? Belirtin."
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.bug_priority_2
+msgid "Is this error / bug interfere with other employees work?"
+msgstr "Bu hata/bug diğer çalışanların çalışmasına engel oluyor mu?"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.bug_priority_1_choice_1
+msgid "It doesn't affect my work"
+msgstr "işimi etkilemiyor"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.bug_priority_1_choice_2
+msgid "It partially interferes with my work"
+msgstr "İşimi kısmen etkiliyor"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey____last_update
+msgid "Last Modified on"
+msgstr "Son Değiştirme Tarihi"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__write_uid
+msgid "Last Updated by"
+msgstr "Son Güncelleyen"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__write_date
+msgid "Last Updated on"
+msgstr "Son güncelleme tarihi"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.environment_1_choice_3
+msgid "Linux"
+msgstr "Linux"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.bug_priority_3_choice_4
+msgid "Low"
+msgstr "Düşük"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.environment_1_choice_2
+msgid "MacOS"
+msgstr "MacOS"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.bug_priority_3_choice_3
+msgid "Medium"
+msgstr "Orta"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.configuration_3
+msgid "Memory"
+msgstr "Hafıza"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.bug_priority_1_choice_3
+msgid "My work is completely stopped"
+msgstr "işim tamamen durdu"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.environment_2
+msgid "OS Version"
+msgstr "OS Versiyonnu"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__partner_ids
+msgid "Partners"
+msgstr "Ortaklar"
+
+#. module: generic_request_survey
+#: code:addons/generic_request_survey/wizard/request_send_survey.py:0
+#, python-format
+msgid ""
+"Please add '__URL__' to email content,                 it will automaticaly "
+"be converted into survey url."
+msgstr ""
+"Lütfen e-posta içeriğine '__URL__' ekleyin, otomatik olarak anket url'sine "
+"dönüştürülecektir."
+
+#. module: generic_request_survey
+#: code:addons/generic_request_survey/wizard/request_send_survey.py:0
+#, python-format
+msgid "Please select at least one recipient."
+msgstr "Lütfen en az bir alıcı seçin."
+
+#. module: generic_request_survey
+#: model:ir.model,name:generic_request_survey.model_request_request
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__request_id
+#: model:ir.model.fields,field_description:generic_request_survey.field_survey_user_input__request_id
+msgid "Request"
+msgstr "İstek"
+
+#. module: generic_request_survey
+#: model:ir.model,name:generic_request_survey.model_request_event
+msgid "Request Event"
+msgstr "Etkinlik İste"
+
+#. module: generic_request_survey
+#: model:ir.model,name:generic_request_survey.model_request_type
+#: model:ir.model.fields,field_description:generic_request_survey.field_survey_user_input__request_type_id
+msgid "Request Type"
+msgstr "İstek Türü"
+
+#. module: generic_request_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
+msgid "Send"
+msgstr "Gönder"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__send_assignee
+msgid "Send Assignee"
+msgstr "Devralan Kimse Gönder"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__send_author
+msgid "Send Author"
+msgstr "Yazar Gönder"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__send_creator
+msgid "Send Creator"
+msgstr "Yaratıcı Gönder"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__send_others
+msgid "Send Others"
+msgstr "Diğerlerini Gönder"
+
+#. module: generic_request_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.view_request_request_survey_answer
+msgid "Send Survey"
+msgstr "Anket Gönder"
+
+#. module: generic_request_survey
+#: model:ir.actions.act_window,name:generic_request_survey.request_request_send_survey_action
+msgid "Send survey"
+msgstr "anket gönder"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.environment_1
+msgid "Specify Your OS"
+msgstr "İşletim Sisteminizi Belirtin"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.bug_classification_5
+msgid "Specify steps to repeat this error / bug intentionally."
+msgstr "Bu hatayı / bug'ı bilerek tekrarlamak için adımlar belirtin."
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.bug_priority_1
+msgid "Specify the impact of this error / bug on your work"
+msgstr "Bu hatanın / bug'ın işinize etkisini belirtin"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__subject
+msgid "Subject"
+msgstr "Konu"
+
+#. module: generic_request_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
+msgid "Subject..."
+msgstr "Konu..."
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_event__survey_id
+#: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
+msgid "Survey"
+msgstr "Anket"
+
+#. module: generic_request_survey
+#: model:mail.template,name:generic_request_survey.email_template_survey
+msgid "Survey - Send by Email"
+msgstr "Anket - E-posta ile Gönder"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_type__survey_answer_count
+msgid "Survey Answer Count"
+msgstr "Anket Cevap Sayısı"
+
+#. module: generic_request_survey
+#: model:generic.system.event.type,name:generic_request_survey.request_event_type_survey_answer_received
+msgid "Survey Answer Received"
+msgstr "Anket Cevabı Alındı"
+
+#. module: generic_request_survey
+#: model:generic.system.event.type,name:generic_request_survey.request_event_type_survey_completed
+msgid "Survey Completed"
+msgstr "Anket Tamamlandı"
+
+#. module: generic_request_survey
+#: model:generic.system.event.type,name:generic_request_survey.request_event_type_survey_sent
+msgid "Survey Sent"
+msgstr "Anket Gönderildi"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__survey_template_id
+msgid "Survey Template"
+msgstr "Anket Şablonu"
+
+#. module: generic_request_survey
+#: model:ir.model,name:generic_request_survey.model_survey_user_input
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_event__survey_user_input_id
+msgid "Survey User Input"
+msgstr "Anket Kullanıcı Girişi"
+
+#. module: generic_request_survey
+#: model:mail.template,subject:generic_request_survey.email_template_survey
+msgid "Survey for {{object.name}}"
+msgstr "{{object.name}} için anket"
+
+#. module: generic_request_survey
+#: model:survey.question,validation_error_msg:generic_request_survey.bug_classification
+#: model:survey.question,validation_error_msg:generic_request_survey.bug_classification_1
+#: model:survey.question,validation_error_msg:generic_request_survey.bug_classification_2
+#: model:survey.question,validation_error_msg:generic_request_survey.bug_classification_3
+#: model:survey.question,validation_error_msg:generic_request_survey.bug_classification_4
+#: model:survey.question,validation_error_msg:generic_request_survey.bug_classification_5
+#: model:survey.question,validation_error_msg:generic_request_survey.bug_priority
+#: model:survey.question,validation_error_msg:generic_request_survey.bug_priority_1
+#: model:survey.question,validation_error_msg:generic_request_survey.bug_priority_2
+#: model:survey.question,validation_error_msg:generic_request_survey.bug_priority_3
+#: model:survey.question,validation_error_msg:generic_request_survey.configuration
+#: model:survey.question,validation_error_msg:generic_request_survey.configuration_1
+#: model:survey.question,validation_error_msg:generic_request_survey.configuration_2
+#: model:survey.question,validation_error_msg:generic_request_survey.configuration_3
+#: model:survey.question,validation_error_msg:generic_request_survey.configuration_4
+#: model:survey.question,validation_error_msg:generic_request_survey.environment
+#: model:survey.question,validation_error_msg:generic_request_survey.environment_1
+#: model:survey.question,validation_error_msg:generic_request_survey.environment_2
+#: model:survey.question,validation_error_msg:generic_request_survey.environment_3
+#: model:survey.question,validation_error_msg:generic_request_survey.environment_4
+#: model:survey.question,validation_error_msg:generic_request_survey.environment_5
+msgid "The answer you entered is not valid."
+msgstr "Girdiğiniz cevap geçerli değil."
+
+#. module: generic_request_survey
+#: model:survey.question,constr_error_msg:generic_request_survey.bug_classification
+#: model:survey.question,constr_error_msg:generic_request_survey.bug_classification_1
+#: model:survey.question,constr_error_msg:generic_request_survey.bug_classification_2
+#: model:survey.question,constr_error_msg:generic_request_survey.bug_classification_3
+#: model:survey.question,constr_error_msg:generic_request_survey.bug_classification_4
+#: model:survey.question,constr_error_msg:generic_request_survey.bug_classification_5
+#: model:survey.question,constr_error_msg:generic_request_survey.bug_priority
+#: model:survey.question,constr_error_msg:generic_request_survey.bug_priority_1
+#: model:survey.question,constr_error_msg:generic_request_survey.bug_priority_2
+#: model:survey.question,constr_error_msg:generic_request_survey.bug_priority_3
+#: model:survey.question,constr_error_msg:generic_request_survey.configuration
+#: model:survey.question,constr_error_msg:generic_request_survey.configuration_1
+#: model:survey.question,constr_error_msg:generic_request_survey.configuration_2
+#: model:survey.question,constr_error_msg:generic_request_survey.configuration_3
+#: model:survey.question,constr_error_msg:generic_request_survey.configuration_4
+#: model:survey.question,constr_error_msg:generic_request_survey.environment
+#: model:survey.question,constr_error_msg:generic_request_survey.environment_1
+#: model:survey.question,constr_error_msg:generic_request_survey.environment_2
+#: model:survey.question,constr_error_msg:generic_request_survey.environment_3
+#: model:survey.question,constr_error_msg:generic_request_survey.environment_4
+#: model:survey.question,constr_error_msg:generic_request_survey.environment_5
+msgid "This question requires an answer."
+msgstr "Bu soru bir cevap gerektirir."
+
+#. module: generic_request_survey
+#: model:ir.model.fields,help:generic_request_survey.field_survey_user_input__request_type_id
+msgid "Type of request"
+msgstr "İstek tipi"
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__template_id
+msgid "Use template"
+msgstr "Şablon kullan"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.bug_priority_3_choice_1
+msgid "Very High"
+msgstr "Çok yüksek"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.bug_priority_3_choice_5
+msgid "Very Low"
+msgstr "Çok düşük"
+
+#. module: generic_request_survey
+#: model:survey.question,title:generic_request_survey.bug_classification_3
+msgid "When did this error / bug appeared for the first time?"
+msgstr "Bu hata/bug ilk kez ne zaman ortaya çıktı?"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.environment_1_choice_1
+msgid "Windows"
+msgstr "Windows"
+
+#. module: generic_request_survey
+#: model:ir.model,name:generic_request_survey.model_request_send_survey
+msgid "Wizard: Send Request Survey"
+msgstr "Sihirbaz: İstek Anketi Gönder"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.bug_classification_4_choice_2
+#: model:survey.question.answer,value:generic_request_survey.bug_priority_2_choice_2
+msgid "no"
+msgstr "hayır"
+
+#. module: generic_request_survey
+#: model:survey.question.answer,value:generic_request_survey.bug_classification_4_choice_1
+#: model:survey.question.answer,value:generic_request_survey.bug_priority_2_choice_1
+msgid "yes"
+msgstr "evet"

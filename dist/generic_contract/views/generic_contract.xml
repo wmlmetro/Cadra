@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem name="Contract"
+              id="generic_contract_top_menu"
+              groups="generic_contract.group_generic_contract_user_readonly"
+              web_icon="generic_contract,static/description/icon.png"/>
+    <menuitem name="Contracts"
+              id="generic_contract_contracts"
+              sequence="10"
+              parent="generic_contract.generic_contract_top_menu"/>
+    <menuitem name="Configuration"
+              id="generic_contract_configuration"
+              sequence="20"
+              groups="generic_contract.group_generic_contract_manager"
+              parent="generic_contract.generic_contract_top_menu"/>
+</odoo>

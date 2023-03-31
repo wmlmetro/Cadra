@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="generic.system.event.type" id="todo_state_changed_event_type_generic_todo">
+        <field name="name">Generic Todo State Changed</field>
+        <field name="code">generic-todo-state-changed</field>
+        <field name="event_category_id" ref="system_event_category_generic_todo"/>
+        <field name="event_source_id" ref="system_event_source_generic_todo"/>
+    </record>
+
+    <record model="generic.system.event.type" id="todo_cancel_event_type_generic_todo">
+        <field name="name">Generic Todo Canceled</field>
+        <field name="code">generic-todo-canceled</field>
+        <field name="event_category_id" ref="system_event_category_generic_todo"/>
+        <field name="event_source_id" ref="system_event_source_generic_todo"/>
+    </record>
+
+    <record model="generic.system.event.type" id="todo_done_event_type_generic_todo">
+        <field name="name">Generic Todo Completed</field>
+        <field name="code">generic-todo-completed</field>
+        <field name="event_category_id" ref="system_event_category_generic_todo"/>
+        <field name="event_source_id" ref="system_event_source_generic_todo"/>
+    </record>
+</odoo>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Request Type sla-->
+    <record id="request_type_sla" model="request.type">
+        <field name="name">SLA Request</field>
+        <field name="code">sla</field>
+        <field name="category_ids"
+               eval="[
+                   (4, ref('generic_request.request_category_demo_general'), 0),
+                   (4, ref('generic_request.request_category_demo_technical'), 0),
+                   (4, ref('generic_request.request_category_demo_support'), 0)]"/>
+        <field name="color">rgba(118,139,215,0.59)</field>
+    </record>
+
+    <!-- SLA request type stages -->
+    <record id="request_stage_type_sla_draft" model="request.stage">
+        <field name="sequence" eval="1"/>
+        <field name="name">Draft</field>
+        <field name="code">draft</field>
+        <field name="type_id" ref="generic_request.request_stage_type_draft"/>
+        <field name="request_type_id" ref="request_type_sla"/>
+    </record>
+    <record id="request_stage_type_sla_sent" model="request.stage">
+        <field name="sequence" eval="2"/>
+        <field name="name">Sent</field>
+        <field name="code">sent</field>
+        <field name="type_id" ref="generic_request.request_stage_type_sent"/>
+        <field name="request_type_id" ref="request_type_sla"/>
+    </record>
+    <record id="request_stage_type_sla_confirmed" model="request.stage">
+        <field name="sequence" eval="3"/>
+        <field name="name">Confirmed</field>
+        <field name="code">confirmed</field>
+        <field name="closed" eval="True"/>
+        <field name="type_id" ref="generic_request.request_stage_type_closed_ok"/>
+        <field name="request_type_id" ref="request_type_sla"/>
+    </record>
+    <record id="request_stage_type_sla_rejected" model="request.stage">
+        <field name="sequence" eval="4"/>
+        <field name="name">Rejected</field>
+        <field name="code">rejected</field>
+        <field name="closed" eval="True"/>
+        <field name="type_id" ref="generic_request.request_stage_type_closed_fail"/>
+        <field name="request_type_id" ref="request_type_sla"/>
+    </record>
+
+    <!-- SLA request type routes -->
+    <record id="request_stage_route_type_sla_draft_to_sent"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_sla_draft"/>
+        <field name="stage_to_id" ref="request_stage_type_sla_sent"/>
+        <field name="request_type_id" ref="request_type_sla"/>
+    </record>
+    <record id="request_stage_route_type_sla_sent_confirmed"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_sla_sent"/>
+        <field name="stage_to_id" ref="request_stage_type_sla_confirmed"/>
+        <field name="request_type_id" ref="request_type_sla"/>
+    </record>
+    <record id="request_stage_route_type_sla_sent_rejected"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_sla_sent"/>
+        <field name="stage_to_id" ref="request_stage_type_sla_rejected"/>
+        <field name="request_type_id" ref="request_type_sla"/>
+    </record>
+    <record id="request_stage_route_type_sla_rejected_draft"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_sla_rejected"/>
+        <field name="stage_to_id" ref="request_stage_type_sla_draft"/>
+        <field name="request_type_id" ref="request_type_sla"/>
+    </record>
+</odoo>

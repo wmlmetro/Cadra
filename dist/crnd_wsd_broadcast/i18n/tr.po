@@ -1,0 +1,161 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* crnd_wsd_broadcast
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:21+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/crnd_wsd_broadcast/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__active
+msgid "Active"
+msgstr "Aktif"
+
+#. module: crnd_wsd_broadcast
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_broadcast.view_broadcast_message_form
+msgid "Archived"
+msgstr "arşivlendi"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_website__broadcast_message_ids
+msgid "Broadcast Message"
+msgstr "Yayın mesajı"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.actions.act_window,name:crnd_wsd_broadcast.action_broadcast_message
+msgid "Broadcast Messages"
+msgstr "Yayın mesajları"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.ui.menu,name:crnd_wsd_broadcast.crnd_wsd_broadcast_message
+#: model:ir.ui.menu,name:crnd_wsd_broadcast.system_broadcast_message
+msgid "Broadcast messages"
+msgstr "Yayın mesajları"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__create_uid
+msgid "Created by"
+msgstr "Tarafından yaratıldı"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__create_date
+msgid "Created on"
+msgstr "oluşturuldu"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields.selection,name:crnd_wsd_broadcast.selection__crnd_wsd_broadcast_message__message_style__alert-danger
+msgid "Danger"
+msgstr "Tehlike"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields.selection,name:crnd_wsd_broadcast.selection__crnd_wsd_broadcast_message__message_style__alert-dark
+msgid "Dark"
+msgstr "Karanlık"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__date_beg
+msgid "Date Beg"
+msgstr "Tarih Başlangıcı"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__date_end
+msgid "Date End"
+msgstr "Tarih Bitişi"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__display_name
+msgid "Display Name"
+msgstr "Ekran adı"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__id
+msgid "ID"
+msgstr "ID"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields.selection,name:crnd_wsd_broadcast.selection__crnd_wsd_broadcast_message__message_style__alert-info
+msgid "Info"
+msgstr "Bilgi"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message____last_update
+msgid "Last Modified on"
+msgstr "Son Değiştirme Tarihi"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__write_uid
+msgid "Last Updated by"
+msgstr "Son Güncelleyen"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__write_date
+msgid "Last Updated on"
+msgstr "Son güncelleme tarihi"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields.selection,name:crnd_wsd_broadcast.selection__crnd_wsd_broadcast_message__message_style__alert-light
+msgid "Light"
+msgstr "Açık"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__message_style
+msgid "Message Style"
+msgstr "Mesaj Stili"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__message_text
+msgid "Message Text"
+msgstr "Mesaj metni"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__name
+msgid "Name"
+msgstr "İsim"
+
+#. module: crnd_wsd_broadcast
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_broadcast.view_broadcast_message_form
+msgid "Name..."
+msgstr "İsim..."
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields.selection,name:crnd_wsd_broadcast.selection__crnd_wsd_broadcast_message__message_style__alert-primary
+msgid "Primary"
+msgstr "Öncelik"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields.selection,name:crnd_wsd_broadcast.selection__crnd_wsd_broadcast_message__message_style__alert-secondary
+msgid "Secondary"
+msgstr "İkincil"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields.selection,name:crnd_wsd_broadcast.selection__crnd_wsd_broadcast_message__message_style__alert-success
+msgid "Success"
+msgstr "Başarı"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model.fields.selection,name:crnd_wsd_broadcast.selection__crnd_wsd_broadcast_message__message_style__alert-warning
+msgid "Warning"
+msgstr "Uyarı"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model,name:crnd_wsd_broadcast.model_website
+#: model:ir.model.fields,field_description:crnd_wsd_broadcast.field_crnd_wsd_broadcast_message__website_ids
+msgid "Website"
+msgstr "İnternet sitesi"
+
+#. module: crnd_wsd_broadcast
+#: model:ir.model,name:crnd_wsd_broadcast.model_crnd_wsd_broadcast_message
+msgid "Website Broadcast Message"
+msgstr "Web Sitesi Yayın Mesajı"

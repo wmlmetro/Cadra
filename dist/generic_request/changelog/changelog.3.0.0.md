@@ -1,0 +1,2 @@
+- Merged services into the core
+- Services in requests are now optional and could be enabled/disabled in settings.

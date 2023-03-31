@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="generic.system.event.type" id="system_event_record_created">
+        <field name="name">Record created</field>
+        <field name="code">record-created</field>
+        <field name="event_category_id" ref="generic_system_event.system_event_category_basic"/>
+        <field name="event_source_id" eval="False"/>
+    </record>
+    <record model="generic.system.event.type" id="system_event_type__record_archived">
+        <field name="name">Record archived</field>
+        <field name="code">record-archived</field>
+        <field name="event_category_id" ref="generic_system_event.system_event_category_basic"/>
+        <field name="event_source_id" eval="False"/>
+    </record>
+    <record model="generic.system.event.type" id="system_event_type__record_unarchived">
+        <field name="name">Record unarchived</field>
+        <field name="code">record-unarchived</field>
+        <field name="event_category_id" ref="generic_system_event.system_event_category_basic"/>
+        <field name="event_source_id" eval="False"/>
+    </record>
+</odoo>

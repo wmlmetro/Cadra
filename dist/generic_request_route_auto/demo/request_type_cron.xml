@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- demo data for requests with routes triggered by cron-->
+    <record id="request_type_cron" model="request.type">
+        <field name="name">cron Request</field>
+        <field name="code">cron</field>
+        <field name="category_ids" eval="[(4, ref('generic_request.request_category_demo_general'), 0)]"/>
+    </record>
+
+    <!-- cron request type stages -->
+    <record id="request_stage_type_cron_draft" model="request.stage">
+        <field name="sequence" eval="1"/>
+        <field name="name">Draft</field>
+        <field name="code">draft</field>
+        <field name="request_type_id" ref="request_type_cron"/>
+    </record>
+    <record id="request_stage_type_cron_sent" model="request.stage">
+        <field name="sequence" eval="2"/>
+        <field name="name">Sent</field>
+        <field name="code">sent</field>
+        <field name="request_type_id" ref="request_type_cron"/>
+    </record>
+    <record id="request_stage_type_cron_confirmed" model="request.stage">
+        <field name="sequence" eval="3"/>
+        <field name="name">Confirmed</field>
+        <field name="code">confirmed</field>
+        <field name="closed" eval="True"/>
+        <field name="request_type_id" ref="request_type_cron"/>
+    </record>
+    <record id="request_stage_type_cron_rejected" model="request.stage">
+        <field name="sequence" eval="4"/>
+        <field name="name">Rejected</field>
+        <field name="code">rejected</field>
+        <field name="closed" eval="True"/>
+        <field name="request_type_id" ref="request_type_cron"/>
+    </record>
+
+    <!-- Condition to test if request can be sent automaticaly -->
+    <record id="condition_request_text_is_auto_send" model="generic.condition">
+        <field name="name">Request text is "auto send"</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">eval</field>
+        <field name="condition_eval">obj.request_text == '&lt;p&gt;auto send&lt;/p&gt;'</field>
+    </record>
+    <!-- cron request type routes -->
+    <record id="request_stage_route_type_cron_draft_to_sent"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_cron_draft"/>
+        <field name="stage_to_id" ref="request_stage_type_cron_sent"/>
+        <field name="request_type_id" ref="request_type_cron"/>
+    </record>
+    <record id="request_stage_route_type_cron_sent_confirmed"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_cron_sent"/>
+        <field name="stage_to_id" ref="request_stage_type_cron_confirmed"/>
+        <field name="request_type_id" ref="request_type_cron"/>
+    </record>
+    <record id="request_stage_route_type_cron_sent_rejected"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_cron_sent"/>
+        <field name="stage_to_id" ref="request_stage_type_cron_rejected"/>
+        <field name="request_type_id" ref="request_type_cron"/>
+    </record>
+
+    <!-- Triggers for routes-->
+    <record id="request_stage_route_trigger_cron_sent_confirmed"
+            model="request.stage.route.trigger">
+        <field name="name">Cron hourly</field>
+        <field name="route_id" ref="generic_request_route_auto.request_stage_route_type_cron_draft_to_sent"/>
+        <field name="trigger">cron_hourly</field>
+        <field name="condition_ids"
+               eval="[(4, ref('generic_request_route_auto.condition_request_text_is_auto_send'))]"/>
+    </record>
+
+</odoo>

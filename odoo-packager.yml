@@ -2,7 +2,127 @@
 #          This file will be regenerated on next update
 
 
-addons-list: []
+addons-list:
+    - name: base_field_m2m_view
+    - name: bureaucrat_helpdesk_lite
+    - name: bureaucrat_itsm
+    - name: bureaucrat_knowledge
+    - name: bureaucrat_knowledge_rel_docs
+    - name: bureaucrat_knowledge_website
+    - name: bureaucrat_servicedesk
+    - name: bureaucrat_servicedesk_pro
+    - name: bureaucrat_servicedesk_ultimate
+    - name: crnd_service_desk
+    - name: crnd_service_desk_team
+    - name: crnd_web_actions
+    - name: crnd_web_diagram_plus
+    - name: crnd_web_list_popover_widget
+    - name: crnd_web_m2o_info_widget
+    - name: crnd_web_tree_colored_field
+    - name: crnd_wsd
+    - name: crnd_wsd_api
+    - name: crnd_wsd_broadcast
+    - name: crnd_wsd_contract_service
+    - name: crnd_wsd_field
+    - name: crnd_wsd_field_service
+    - name: crnd_wsd_legal
+    - name: crnd_wsd_project
+    - name: crnd_wsd_related_doc
+    - name: crnd_wsd_related_request
+    - name: crnd_wsd_resource
+    - name: crnd_wsd_resource_role
+    - name: crnd_wsd_service
+    - name: crnd_wsd_service_resource
+    - name: crnd_wsd_tag
+    - name: generic_assignment
+    - name: generic_assignment_hr
+    - name: generic_assignment_hr_holidays
+    - name: generic_assignment_project
+    - name: generic_assignment_team
+    - name: generic_assignment_team_hr_holidays
+    - name: generic_condition
+    - name: generic_contract
+    - name: generic_contract_invoicing
+    - name: generic_contract_resource
+    - name: generic_contract_resource_role
+    - name: generic_location
+    - name: generic_m2o
+    - name: generic_mixin
+    - name: generic_request
+    - name: generic_request_action
+    - name: generic_request_action_assignment
+    - name: generic_request_action_hr
+    - name: generic_request_action_invoice
+    - name: generic_request_action_priority
+    - name: generic_request_action_project
+    - name: generic_request_action_subrequest
+    - name: generic_request_action_subrequest_assignment
+    - name: generic_request_action_survey
+    - name: generic_request_action_tag
+    - name: generic_request_action_team
+    - name: generic_request_action_todo
+    - name: generic_request_api
+    - name: generic_request_api_field
+    - name: generic_request_assignment
+    - name: generic_request_assignment_team
+    - name: generic_request_calendar
+    - name: generic_request_condition
+    - name: generic_request_condition_service
+    - name: generic_request_contract
+    - name: generic_request_contract_resource
+    - name: generic_request_crm
+    - name: generic_request_field
+    - name: generic_request_field_service
+    - name: generic_request_hr
+    - name: generic_request_invoicing
+    - name: generic_request_location
+    - name: generic_request_mail
+    - name: generic_request_message_status
+    - name: generic_request_project
+    - name: generic_request_recent
+    - name: generic_request_related_doc
+    - name: generic_request_related_requests
+    - name: generic_request_resource
+    - name: generic_request_route_auto
+    - name: generic_request_sale
+    - name: generic_request_sla
+    - name: generic_request_sla_log
+    - name: generic_request_sla_priority
+    - name: generic_request_sla_service
+    - name: generic_request_sla_team
+    - name: generic_request_survey
+    - name: generic_request_team
+    - name: generic_request_todo
+    - name: generic_resource
+    - name: generic_resource_document
+    - name: generic_resource_location
+    - name: generic_resource_role
+    - name: generic_resource_role_hr
+    - name: generic_resource_timesheet
+    - name: generic_rule
+    - name: generic_service
+    - name: generic_service_resource
+    - name: generic_service_team
+    - name: generic_system_event
+    - name: generic_system_event_mail_events
+    - name: generic_system_event_project
+    - name: generic_tag
+    - name: generic_team
+    - name: generic_team_calendar
+    - name: generic_team_hr
+    - name: generic_team_tag
+    - name: generic_todo
 
-git-sources: []
+git-sources:
+    - crnd: crnd/bureaucrat-automation
+      name: bureaucrat_automation_150
+    - crnd: crnd/bureaucrat-generics
+      name: bureaucrat_generics_98
+    - github: crnd-inc/crnd-web
+      name: crnd_crnd_web_97
+    - github: crnd-inc/generic-addons
+      name: crnd_generic_addons_96
+    - github: crnd-inc/bureaucrat-knowledge
+      name: crnd_inc_bureaucrat_knowledge_158
+
 
