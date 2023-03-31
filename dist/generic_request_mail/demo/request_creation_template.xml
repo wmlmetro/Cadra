@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="demo_request_creation_template1" model="request.creation.template">
+        <field name="name">Type simple category demo technical</field>
+        <field name="request_type_id" ref="generic_request.request_type_simple"/>
+        <field name="request_category_id" ref="generic_request.request_category_demo_technical"/>
+        <field name="request_text">Test request with creation template (1)</field>
+    </record>
+
+    <record id="demo_request_creation_template2" model="request.creation.template">
+        <field name="name">Type access category demo general</field>
+        <field name="request_type_id" ref="generic_request.request_type_access"/>
+        <field name="request_category_id" ref="generic_request.request_category_demo_general"/>
+        <field name="request_text">Test request with creation template (2)</field>
+    </record>
+</odoo>
+

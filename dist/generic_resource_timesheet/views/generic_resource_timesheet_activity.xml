@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--Tree view-->
+    <record id="generic_resource_timesheet_activity_view_tree" model="ir.ui.view">
+        <field name="name">generic.resource.timesheet.activity.tree</field>
+        <field name="model">generic.resource.timesheet.activity</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="model_id"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+    <!-- Form view -->
+    <record id="generic_resource_timesheet_activity_view_form" model="ir.ui.view">
+        <field name="name">generic.resource.timesheet.activity.form</field>
+        <field name="model">generic.resource.timesheet.activity</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_timesheet_lines"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-list">
+                            <field name="timesheet_line_count"
+                                   widget="statinfo"
+                                   string="Timesheet"/>
+                        </button>
+                    </div>
+                    <field name="active" invisible="1"/>
+                    <widget name="web_ribbon" title="Archived"
+                            bg_color="bg-danger"
+                            attrs="{'invisible': [('active', '=', True)]}"/>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Name"/>
+                        </h1>
+                        <group>
+                            <field name="model_id"/>
+                            <field name="color" widget="color"/>
+                        </group>
+                    </div>
+                    <field name="description" placeholder="Activity description..."/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <!-- Search -->
+    <record model="ir.ui.view" id="generic_resource_timesheet_activity_view_search">
+        <field name="name">generic.resource.timesheet.activity.search</field>
+        <field name="model">generic.resource.timesheet.activity</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="model_id"/>
+                <filter name="filter_archived"
+                        string="Archived"
+                        domain="[('active', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+    <!--Action-->
+    <record id="generic_resource_timesheet_activity_action" model="ir.actions.act_window">
+        <field name="name">Timesheet Activity</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">generic.resource.timesheet.activity</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="generic_resource_timesheet_activity_menu"
+              parent="generic_resource_timesheet_config_menu"
+              action="generic_resource_timesheet_activity_action"/>
+
+</odoo>

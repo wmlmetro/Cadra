@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="generic_request_sla_rule_view_form" model="ir.ui.view">
+        <field name="model">request.sla.rule</field>
+        <field name="inherit_id" ref="generic_request_sla.generic_request_sla_rule_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet/field[@name='rule_line_ids']/tree/field[@name='sequence']" position="after">
+                <field name="service_id"
+                       domain="[('request_type_ids', 'in', request_type_id)]"
+                       groups="generic_request.group_request_use_services"/>
+                <field name="service_level_id" groups="generic_service.group_use_service_level"/>
+            </xpath>
+            <xpath expr="//div[@name='line_description']" position="inside">
+                <p groups="generic_request.group_request_use_services">
+                    <i>Service</i>: select a service of requests for which this rule line will be active. If no service is selected, this condition applies to requests of any service.
+                </p>
+                <p groups="generic_service.group_use_service_level">
+                    <i>Service Level</i>: specify service level. This rule line will be active for customers with a selected service level. If no service level is selected, this condition applies to requests of any service level.
+                </p>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="generic_request_sla_rule_line_view_tree" model="ir.ui.view">
+        <field name="model">request.sla.rule.line</field>
+        <field name="inherit_id" ref="generic_request_sla.generic_request_sla_rule_line_view_tree"/>
+        <field name="arch" type="xml">
+            <field name="category_ids" position="before">
+                <field name="service_id"
+                       domain="[('request_type_ids', 'in', request_type_id)]"
+                       groups="generic_request.group_request_use_services"/>
+                <field name="service_level_id"
+                       groups="generic_service.group_use_service_level"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="generic_request_sla_rule_line_view_form" model="ir.ui.view">
+        <field name="model">request.sla.rule.line</field>
+        <field name="inherit_id" ref="generic_request_sla.generic_request_sla_rule_line_view_form"/>
+        <field name="arch" type="xml">
+            <field name="category_ids" position="before">
+                <field name="service_id"
+                       domain="[('request_type_ids', 'in', request_type_id)]"
+                       groups="generic_request.group_request_use_services"/>
+                <field name="service_level_id"
+                       groups="generic_service.group_use_service_level"/>
+            </field>
+        </field>
+    </record>
+</odoo>

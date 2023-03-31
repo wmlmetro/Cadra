@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--<record id="generic_request.group_request_user" model="res.groups">-->
+        <!--<field name="implied_ids"-->
+               <!--eval="[(4, ref('generic_assignment.group_generic_assignment_policy_user_implicit'))]"/>-->
+    <!--</record>-->
+    <function model="res.groups"
+              name="write">
+        <value eval="[ref('generic_request.group_request_user')]"/>
+        <value eval="{'implied_ids': [(4, ref('generic_assignment.group_generic_assignment_policy_user_implicit'))]}"/>
+    </function>
+</odoo>

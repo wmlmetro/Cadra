@@ -1,0 +1,593 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_mail
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 14.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-06-22 16:05+0000\n"
+"PO-Revision-Date: 2021-06-22 16:05+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "<span class=\"o_stat_text\">Requests</span>"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "<span class=\"oe_form_field oe_inline\">/</span>"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_defaults
+msgid ""
+"A Python dictionary that will be evaluated to provide default values when "
+"creating new records for this alias."
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Accept Emails From"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_needaction
+msgid "Action Needed"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_id
+msgid "Alias"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_contact
+msgid "Alias Contact Security"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Alias Domain is not configured!"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_name
+msgid "Alias Name"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_domain
+msgid "Alias domain"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_model_id
+msgid "Aliased Model"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "All Requests"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.generic_request_res_config_settings_view_form
+msgid "Attach messages to request thread by subject"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_attachment_count
+msgid "Attachment Count"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_res_company__request_attach_messages_to_request_by_subject
+#: model:ir.model.fields,field_description:generic_request_mail.field_res_config_settings__request_attach_messages_to_request_by_subject
+msgid "Automatically attach messages to request, mentioned in mail subject"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.actions.act_window,name:generic_request_mail.request_canned_response_action
+#: model:ir.ui.menu,name:generic_request_mail.menu_configuration_requests_shortcode
+msgid "Canned Responses"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_kanban
+msgid "Closed requests"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model,name:generic_request_mail.model_res_company
+msgid "Companies"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model,name:generic_request_mail.model_res_config_settings
+msgid "Config Settings"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Configure your Incoming and Outgoing mail server"
+msgstr ""
+
+#. module: generic_request_mail
+#. openerp-web
+#: code:addons/generic_request_mail/static/src/xml/extend_thread.xml:0
+#, python-format
+msgid "Create Request"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__create_uid
+msgid "Created by"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__create_date
+msgid "Created on"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_bounced_content
+msgid "Custom Bounced Message"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_defaults
+msgid "Default Values"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:request.mail.source,name:generic_request_mail.demo_request_mail_source
+msgid "Demo Requests"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__display_name
+msgid "Display Name"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Email Alias"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model,name:generic_request_mail.model_mail_thread
+msgid "Email Thread"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Emails"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Fill your company's email domain in Alias Domain field"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Find section Discuss"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_follower_ids
+msgid "Followers"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_partner_ids
+msgid "Followers (Partners)"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "General"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__has_message
+msgid "Has Message"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__id
+msgid "ID"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_parent_thread_id
+msgid ""
+"ID of the parent record holding the alias (example: project holding the task "
+"creation alias)"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__message_needaction
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__message_unread
+msgid "If checked, new messages require your attention."
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__message_has_error
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__message_has_sms_error
+msgid "If checked, some messages have a delivery error."
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_bounced_content
+msgid ""
+"If set, this content will automatically be sent out to unauthorized users "
+"instead of the default message."
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.generic_request_res_config_settings_view_form
+msgid ""
+"If the checkbox is checked, incoming messages will\n"
+"                            be automatically attached to existing requests,\n"
+"                            by its names mentioned in message subject."
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid ""
+"In order to be able to configure mail sources, you have to configure Alias "
+"Domain. To do this, you have to follow steps below:"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model,name:generic_request_mail.model_fetchmail_server
+msgid "Incoming Mail Server"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.generic_request_res_config_settings_view_form
+msgid "Incoming message validators"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_is_follower
+msgid "Is Follower"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source____last_update
+msgid "Last Modified on"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__write_uid
+msgid "Last Updated by"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__write_date
+msgid "Last Updated on"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_request__mail_source_id
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_request_search
+msgid "Mail Source"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.actions.act_window,name:generic_request_mail.action_request_mail_source_window
+#: model:ir.ui.menu,name:generic_request_mail.menu_request_mail_source_view
+msgid "Mail Sources"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_main_attachment_id
+msgid "Main Attachment"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model,name:generic_request_mail.model_mail_message
+msgid "Message"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_has_error
+msgid "Message Delivery error"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_ids
+msgid "Messages"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__name
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Name"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Navigate to"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:request.request,stage_help_html:generic_request_mail.request_request_type_simple_demo_1
+msgid ""
+"Now request is in <i>Draft</i> state.<br>\n"
+"            Please click 'Sent' stage on status bar (right-top corner)\n"
+"            to send it to our team."
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_needaction_counter
+msgid "Number of Actions"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_has_error_counter
+msgid "Number of errors"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__message_needaction_counter
+msgid "Number of messages which requires an action"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__message_has_error_counter
+msgid "Number of messages with delivery error"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__message_unread_counter
+msgid "Number of unread messages"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Open Requests"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_kanban
+msgid "Open requests"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_force_thread_id
+msgid ""
+"Optional ID of a thread (record) to which all incoming messages will be "
+"attached, even if they did not reply to it. If set, this will disable the "
+"creation of new records completely."
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_user_id
+msgid "Owner"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_parent_model_id
+msgid "Parent Model"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_parent_thread_id
+msgid "Parent Record Thread ID"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_parent_model_id
+msgid ""
+"Parent model holding the alias. The model holding the alias reference is not "
+"necessarily the model given by alias_model_id (example: project "
+"(parent_model) and task (model))"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_contact
+msgid ""
+"Policy to post a message on the document using the mailgateway.\n"
+"- everyone: everyone can post\n"
+"- partners: only authenticated partners\n"
+"- followers: only followers of the related document or members of following "
+"channels\n"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_request_search
+msgid "Received by mail"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_force_thread_id
+msgid "Record Thread ID"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model,name:generic_request_mail.model_request_request
+msgid "Request"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__request_closed_count
+msgid "Request Closed Count"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__request_count
+msgid "Request Count"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_fetchmail_server__request_creation_template_id
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__request_creation_template_id
+msgid "Request Creation Template"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_res_config_settings__request_default_mail_source_id
+msgid "Request Default Mail Source"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model,name:generic_request_mail.model_request_event
+msgid "Request Event"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_res_company__request_incoming_mail_validator_ids
+#: model:ir.model.fields,field_description:generic_request_mail.field_res_config_settings__request_incoming_mail_validator_ids
+msgid "Request Incoming Mail Validator"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model,name:generic_request_mail.model_request_mail_source
+msgid "Request Mail Source"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__request_open_count
+msgid "Request Open Count"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model,name:generic_request_mail.model_request_creation_template
+msgid "Request creation template"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__request_ids
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_tree
+msgid "Requests"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_has_sms_error
+msgid "SMS Delivery error"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.generic_request_res_config_settings_view_form
+msgid ""
+"Selecting default mail source for requests,\n"
+"                            allows to use address of selected mail source \n"
+"                            as sender address for outgoing mails.\n"
+"                            This way, all notifications and employee "
+"replies\n"
+"                            could be sent from for example support@domain."
+"com\n"
+"                            address, thus masking employee's emails."
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Set checkbox External Email Servers"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Settings/General Settings"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.generic_request_res_config_settings_view_form
+msgid ""
+"Specify here list of conditions to validate incoming message and\n"
+"                            decide whether new request have to be created "
+"from this message or not.\n"
+"                            If all conditions evaluated to True, then new "
+"request will be created,\n"
+"                            otherwise, message will be dropped and no "
+"request will be created."
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid ""
+"Steps above are required to configure mailing in Odoo, and after that steps "
+"completed, you will be able to configure mail sources."
+msgstr ""
+
+#. module: generic_request_mail
+#: code:addons/generic_request_mail/tests/test_mail_send.py:0
+#, python-format
+msgid "Test Message"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_model_id
+msgid ""
+"The model (Odoo Document Kind) to which this alias corresponds. Any incoming "
+"email that does not reply to an existing record will cause the creation of a "
+"new record of this model (e.g. a Project Task)"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_name
+msgid ""
+"The name of the email alias, e.g. 'jobs' if you want to catch emails for "
+"<jobs@example.odoo.com>"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_user_id
+msgid ""
+"The owner of records created upon receiving emails on this alias. If this "
+"field is not set the system will attempt to find the right owner based on "
+"the sender (From) address, or will use the Administrator account if no "
+"system user is found for that address."
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:request.request,help_html:generic_request_mail.request_request_type_simple_demo_1
+msgid "This is simple request type with simple routes:"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_unread
+msgid "Unread Messages"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_unread_counter
+msgid "Unread Messages Counter"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_res_config_settings__request_default_mail_source_id
+msgid ""
+"Use this mail source for all requests. Enabling this option will enforce "
+"using aliase related to mail source for all requests."
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__website_message_ids
+msgid "Website Messages"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__website_message_ids
+msgid "Website communication history"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:request.request,help_html:generic_request_mail.request_request_type_simple_demo_1
+msgid "draft -&gt; sent -&gt; confirmed"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:request.request,help_html:generic_request_mail.request_request_type_simple_demo_1
+msgid "draft -&gt; sent -&gt; rejected"
+msgstr ""

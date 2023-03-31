@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_field_tree">
+        <field name="model">request.field</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="category_ids"
+                       widget="many2many_tags"/>
+                <field name="mandatory"/>
+                <field name="default"/>
+                <field name="active"/>
+             </tree>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_field_form">
+        <field name="model">request.field</field>
+        <field name="arch" type="xml">
+            <form>
+                <field name="request_type_id" invisible="1"/>
+                <sheet>
+                    <field name="active" invisible="1"/>
+                    <widget name="web_ribbon" title="Archived"
+                            bg_color="bg-danger"
+                            attrs="{'invisible': [('active', '=', True)]}"/>
+                    <div class="oe_title">
+                        <h1 name="header_type">
+                            <label for="name" class="oe_edit_only"/>
+                            <field name="name" placeholder="Field name"/>
+                        </h1>
+                    </div>
+                    <separator/>
+                    <group name="group_main">
+                        <group name="group_main_left">
+                            <field name="code" placeholder="Field code"/>
+                            <field name="category_ids"
+                                   string="Categories"
+                                   widget="many2many_tags"
+                                   options="{'no_create': True, 'no_quick_create': True}"
+                                   domain="[('request_type_ids', '=', request_type_id)]"
+                                   placeholder="Category"/>
+                            <field name="mandatory"/>
+                            <field name="default"/>
+                        </group>
+                        <group name="group_main_right">
+                            <field name="sequence"/>
+                            <field name="grid_classes"/>
+                            <field name="field_placeholder"/>
+                            <field name="field_help"/>
+                        </group>
+                    </group>
+                </sheet>
+             </form>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_field_search">
+        <field name="model">request.field</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="category_ids"/>
+
+                <filter name="filter_archived"
+                        string="Archived"
+                        domain="[('active', '=', False)]"/>
+                <filter name="filter_active"
+                        string="Active"
+                        domain="[('active', '=', True)]"/>
+                <separator/>
+            </search>
+        </field>
+    </record>
+</odoo>

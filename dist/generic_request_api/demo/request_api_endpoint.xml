@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="test_api_internal_endpoint" model="request.api.endpoint">
+        <field name="name">Test internal endpoint</field>
+        <field name="slug">test-internal-endpoint</field>
+        <field name="type">internal</field>
+        <field name="request_creation_template_id" ref="test_rct_api_internal_endpoint"/>
+        <field name="on_success">return_req_id</field>
+    </record>
+
+    <record id="test_api_public_endpoint" model="request.api.endpoint">
+        <field name="name">Test public endpoint</field>
+        <field name="slug">test-public-endpoint</field>
+        <field name="type">public</field>
+        <field name="request_creation_template_id" ref="test_rct_api_public_endpoint"/>
+        <field name="on_success">return_req_id</field>
+        <field name="public_sudo_user_id" ref="generic_request.user_demo_request_manager"/>
+    </record>
+
+    <record id="test_redirect_url_internal_endpoint" model="request.api.endpoint">
+        <field name="name">Test redirect url internal endpoint</field>
+        <field name="slug">test-redirect_url-internal-endpoint</field>
+        <field name="type">internal</field>
+        <field name="request_creation_template_id" ref="test_rct_redirect_url_internal_endpoint"/>
+        <field name="on_success">redirect_url</field>
+        <field name="on_success_redirect_url">/mail/view?model=request.request&amp;res_id={request.id}</field>
+    </record>
+
+    <record id="test_rest_api_endpoint" model="request.api.endpoint">
+        <field name="name">Test rest API endpoint</field>
+        <field name="slug">test-rest-api-endpoint</field>
+        <field name="type">rest</field>
+        <field name="request_creation_template_id" ref="test_rct_rest_api_endpoint"/>
+    </record>
+
+    <record id="test_rest_api_endpoint_with_keys" model="request.api.endpoint">
+        <field name="name">Test rest API endpoint (with keys).</field>
+        <field name="slug">test-rest-api-endpoint-with-keys</field>
+        <field name="type">rest</field>
+        <field name="request_creation_template_id" ref="test_rct_rest_api_endpoint"/>
+        <field name="public_sudo_user_id" ref="generic_request.user_demo_request_manager"/>
+    </record>
+
+</odoo>

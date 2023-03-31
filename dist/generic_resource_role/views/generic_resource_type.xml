@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="generic_resource_type_view_form" model="ir.ui.view">
+        <field name="name">generic.resource.type.form</field>
+        <field name="model">generic.resource.type</field>
+        <field name="inherit_id" ref="generic_resource.generic_resource_type_view_from"/>
+        <field name="arch" type="xml">
+            <div name="button_box" position="inside">
+                <button class="oe_stat_button"
+                        type="object"
+                        name="action_show_related_roles"
+                        icon="fa-users"
+                        groups="generic_resource.group_generic_resource_manager">
+                    <field string="Roles" name="role_count" widget="statinfo"/>
+                </button>
+                <button class="oe_stat_button"
+                        type="object"
+                        name="action_show_related_role_links"
+                        icon="fa-user"
+                        groups="generic_resource.group_generic_resource_manager">
+                    <field string="Role links" name="role_link_count" widget="statinfo"/>
+                </button>
+                <button class="oe_stat_button"
+                        type="object"
+                        name="action_show_related_permissions"
+                        icon="fa-lock"
+                        groups="generic_resource.group_generic_resource_manager">
+                    <field string="Permissions" name="resource_permission_count" widget="statinfo"/>
+                </button>
+            </div>
+            <xpath expr="//group[@name='group_left']" position="inside">
+                <field name="resource_act_manage_roles_id"/>
+            </xpath>
+            <xpath expr="//group[@name='group_right']" position="inside">
+                <field name="creator_role_id"
+                       domain="[('resource_type_id', '=', id)]"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_generic_resource_type_kanban" model="ir.ui.view">
+        <field name="model">generic.resource.type</field>
+        <field name="inherit_id" ref="generic_resource.view_generic_resource_type_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="//kanban/field[last()]" position="after">
+                <field name="role_count"/>
+                <field name="role_link_count"/>
+                <field name="resource_permission_count"/>
+            </xpath>
+            <xpath expr="//kanban/templates/t[@t-name='kanban-box']//div[hasclass('o_buttons')]" positon="inside">
+                <a name="action_show_related_roles"
+                   type="object"
+                   title="Roles"
+                   groups="generic_resource.group_generic_resource_manager">
+                    <span class="fa fa-users"/>
+                    <span><t t-esc="record.role_count.raw_value"/></span>
+                </a>
+                <a name="action_show_related_role_links"
+                   type="object"
+                   title="Roles Links"
+                   groups="generic_resource.group_generic_resource_manager">
+                    <span class="fa fa-user"/>
+                    <span><t t-esc="record.role_link_count.raw_value"/></span>
+                </a>
+                <a name="action_show_related_permissions"
+                   type="object"
+                   title="Permissions"
+                   groups="generic_resource.group_generic_resource_manager">
+                    <span class="fa fa-lock"/>
+                    <span><t t-esc="record.resource_permission_count.raw_value"/></span>
+                </a>
+            </xpath>
+        </field>
+    </record>
+</odoo>

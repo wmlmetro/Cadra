@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_generic_contract_employee_rate_tree" model="ir.ui.view">
+        <field name="model">generic.contract.employee.rate</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="generic_contract_id"/>
+                <field name="employee_id"/>
+                <field name="rate" widget="monetary"/>
+                <field name="contract_currency_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_generic_contract_employee_rate_form" model="ir.ui.view">
+        <field name="model">generic.contract.employee.rate</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group name="group_contract_employee_rate_main">
+                        <group name="group_contract_employee_rate_main_left">
+                            <field name="generic_contract_id"/>
+                            <field name="employee_id"/>
+                        </group>
+                        <group name="group_contract_employee_rate_main_right">
+                            <field name="contract_currency_id"/>
+                            <field name="rate" widget="monetary"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+</odoo>

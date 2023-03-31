@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="tag_category_skill" model="generic.tag.category">
+        <field name="model_id" ref="generic_tag_generic_team_member"/>
+        <field name="name">Skill</field>
+        <field name="code">skill</field>
+        <field name="check_xor" eval="True"/>
+    </record>
+
+    <record id="tag_category_role" model="generic.tag.category">
+        <field name="model_id" ref="generic_tag_generic_team_member"/>
+        <field name="name">Role</field>
+        <field name="code">role</field>
+        <field name="check_xor" eval="True"/>
+    </record>
+</odoo>

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="request_type__create_lxc" model="request.type">
+        <field name="name">Create LXC Container</field>
+        <field name="code">type-create-lxc-container</field>
+        <field name="help_html"><![CDATA[
+            Fill <i>Data</i> tab below with desired container configuration
+        ]]></field>
+        <field name="category_ids" eval="[(4, ref('generic_request.request_category_demo_technical_configuration'), 0)]"/>
+    </record>
+
+    <!-- Stages -->
+    <record id="request_stage__create_lxc_new" model="request.stage">
+        <field name="sequence" eval="1"/>
+        <field name="name">New</field>
+        <field name="code">new</field>
+        <field name="request_type_id" ref="request_type__create_lxc"/>
+        <field name="type_id" ref="generic_request.request_stage_type_draft"/>
+    </record>
+
+    <record id="request_stage__create_lxc_closed" model="request.stage">
+        <field name="sequence" eval="2"/>
+        <field name="name">Closed</field>
+        <field name="code">closed</field>
+        <field name="closed" eval="True"/>
+        <field name="request_type_id" ref="request_type__create_lxc"/>
+        <field name="type_id" ref="generic_request.request_stage_type_closed_ok"/>
+    </record>
+
+    <!-- Routes -->
+    <record id="request_route__create_lxc_closed"
+            model="request.stage.route">
+        <field name="name">Closed</field>
+        <field name="stage_from_id" ref="request_stage__create_lxc_new"/>
+        <field name="stage_to_id" ref="request_stage__create_lxc_closed"/>
+        <field name="request_type_id" ref="request_type__create_lxc"/>
+    </record>
+
+    <!-- Fields -->
+    <record id="request__create_lxc_field_cpu" model="request.field">
+        <field name="name">CPU</field>
+        <field name="code">cpu</field>
+        <field name="mandatory" eval="True"/>
+        <field name="request_type_id" ref="request_type__create_lxc"/>
+        <field name="position">before</field>
+        <field name="sequence" eval="3"/>
+        <field name="field_placeholder"># of CPU Cores</field>
+        <field name="field_help">Place here number of CPU cores to allocate for this VM</field>
+    </record>
+
+    <record id="request__create_lxc_field_memory" model="request.field">
+        <field name="name">Memory</field>
+        <field name="code">memory</field>
+        <field name="mandatory" eval="True"/>
+        <field name="request_type_id" ref="request_type__create_lxc"/>
+        <field name="position">before</field>
+        <field name="sequence" eval="4"/>
+        <field name="field_help">Place here exepcted number of GigaBytes of memory to allocated for this VM</field>
+    </record>
+
+    <record id="request__create_lxc_field_hdd" model="request.field">
+        <field name="name">HDD</field>
+        <field name="code">hdd</field>
+        <field name="default">40 GB</field>
+        <field name="mandatory" eval="True"/>
+        <field name="request_type_id" ref="request_type__create_lxc"/>
+        <field name="position">before</field>
+        <field name="sequence" eval="5"/>
+    </record>
+
+    <record id="request__create_lxc_field_priviledged" model="request.field">
+        <field name="name">Priviledged</field>
+        <field name="code">priviledged</field>
+        <field name="request_type_id" ref="request_type__create_lxc"/>
+        <field name="grid_classes">col-md-4</field>
+        <field name="default">Yes</field>
+        <field name="position">after</field>
+        <field name="sequence" eval="8"/>
+    </record>
+
+    <record id="request__create_lxc_field_container_name" model="request.field">
+        <field name="name">Container Name</field>
+        <field name="code">container-name</field>
+        <field name="request_type_id" ref="request_type__create_lxc"/>
+        <field name="grid_classes">col-md-4</field>
+        <field name="position">after</field>
+        <field name="sequence" eval="10"/>
+    </record>
+
+    <record id="request__create_lxc_field_domain_name" model="request.field">
+        <field name="name">Domain Name</field>
+        <field name="code">domain-name</field>
+        <field name="request_type_id" ref="request_type__create_lxc"/>
+        <field name="position">after</field>
+        <field name="sequence" eval="11"/>
+    </record>
+
+    <record id="request__create_lxc_field_expose_port" model="request.field">
+        <field name="name">Expose Port</field>
+        <field name="code">expose-port</field>
+        <field name="request_type_id" ref="request_type__create_lxc"/>
+        <field name="position">after</field>
+        <field name="sequence" eval="12"/>
+    </record>
+
+    <!-- Request Request -->
+    <record id="request_request_type_field_new_lxc_container_1" model="request.request">
+        <field name="request_text"><![CDATA[
+        <p>Please, create new lxc container for me.</p>
+        ]]></field>
+        <field name="type_id" ref="request_type__create_lxc"/>
+        <field name="category_id" ref="generic_request.request_category_demo_technical_configuration"/>
+        <field name="created_by_id" ref="generic_request.user_demo_request"/>
+        <field name="request_field_values_json">{
+            "cpu": "2",
+            "memory": "4 GB",
+            "os": "ubuntu",
+            "hdd": "10 GB",
+            "priviledged": "Yes",
+            "container-name": "odoo-42",
+            "domain-name": "odoo-42.my-domain.int",
+            "expose-port": "8069"
+            }</field>
+    </record>
+
+</odoo>

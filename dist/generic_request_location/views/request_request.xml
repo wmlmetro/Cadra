@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_request_location_form">
+        <field name="model">request.request</field>
+        <field name="inherit_id"
+               ref="generic_request.view_request_request_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='header_deadline']" position="after">
+                <div colspan="2" name="header_location"
+                     class="request-head-info-item">
+                    <span class="field-with-icon">
+                        <span class="field-icon fa fa-map-marker oe_inline"
+                              title="Location"/>
+                        <field name="generic_location_id"
+                               widget="m2o_info"
+                               options="{'info_method': 'helper_m2o_info_data'}"
+                               class="o_field_widget" style="max-width: 98%"/>
+                    </span>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_request_location_tree">
+        <field name="model">request.request</field>
+        <field name="inherit_id"
+               ref="generic_request.view_request_request_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='author_id']"
+                   position="after">
+                <field name="generic_location_id"
+                       optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_request_location_search">
+        <field name="model">request.request</field>
+        <field name="inherit_id"
+               ref="generic_request.view_request_request_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='group_group_by']" position="inside">
+                <filter name="filter_group_by_location"
+                        string="Location"
+                        context="{'group_by': 'generic_location_id'}"/>
+            </xpath>
+            <xpath expr="//field[@name='author_id']" position="after">
+                <field name="generic_location_id"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

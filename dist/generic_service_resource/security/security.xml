@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="generic_resource.group_generic_resource_user" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('generic_service.group_generic_service_user_implicit'))]"/>
+    </record>
+
+    <!-- Access rules for wizards -->
+    <record id="rule_wizard_link_service" model="ir.rule">
+        <field name="name">access for wizard generic resource link service</field>
+        <field name="model_id" ref="generic_service_resource.model_generic_resource_wizard_link_service"/>
+        <field name="domain_force">[
+                ('create_uid', '=', user.id),
+            ]</field>
+        <field eval="1" name="perm_unlink"/>
+        <field eval="1" name="perm_write"/>
+        <field eval="1" name="perm_read"/>
+        <field eval="1" name="perm_create"/>
+    </record>
+
+</odoo>

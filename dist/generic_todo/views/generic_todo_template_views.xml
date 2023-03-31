@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+     <record id="generic_todo_template_view_tree" model="ir.ui.view">
+        <field name="model">generic.todo.template</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="todo_lines_count"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="generic_todo_template_view_form" model="ir.ui.view">
+        <field name="model">generic.todo.template</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button"
+                                type="object"
+                                name="action_show_todo_template_lines"
+                                icon="fa-bars">
+                            <field string="Template Lines"
+                                   name="todo_lines_count"
+                                   widget="statinfo"/>
+                        </button>
+                    </div>
+                    <div name="div_title" class="oe_title">
+                        <h1 name="h1_title">
+                            <field name="name" string="Name"/>
+                        </h1>
+                    </div>
+                    <group name="warning" attrs="{'invisible': [('id', '!=', False)]}">
+                        <div class="alert alert-danger" role="alert">
+                            To be able to add new lines, save the template first!
+                        </div>
+                    </group>
+                    <group colspan="4">
+                        <field name="todo_template_line_ids"
+                               mode="tree"
+                               nolabel="1"
+                               attrs="{'invisible': [('id', '=', False)]}"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="generic_todo_template_action" model="ir.actions.act_window">
+        <field name="name">Todo Templates</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">generic.todo.template</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_generic_todo_template_root"
+        name="Generic Todo Templates"
+        sequence="20"
+        parent="menu_generic_todo_config_root"/>
+
+    <!-- Menus for Generic Todo Templates -->
+    <menuitem id="generic_todo_template_menu_item"
+              parent="menu_generic_todo_template_root" sequence="5"
+              action="generic_todo_template_action"/>
+
+</odoo>

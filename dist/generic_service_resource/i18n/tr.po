@@ -1,0 +1,166 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_service_resource
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:16+0000\n"
+"PO-Revision-Date: 2023-03-07 12:45+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_service_resource/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_service_resource
+#: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__action
+msgid "Action"
+msgstr "İşlem"
+
+#. module: generic_service_resource
+#: model_terms:ir.ui.view,arch_db:generic_service_resource.generic_resource_wizard_link_service_form_view
+msgid "Cancel"
+msgstr "İptal etmek"
+
+#. module: generic_service_resource
+#: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource__service_count
+#: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_simple__service_count
+msgid "Count of services"
+msgstr "hizmet sayısı"
+
+#. module: generic_service_resource
+#: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__create_uid
+msgid "Created by"
+msgstr "Tarafından yaratıldı"
+
+#. module: generic_service_resource
+#: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__create_date
+msgid "Created on"
+msgstr "oluşturuldu"
+
+#. module: generic_service_resource
+#: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_type__default_service_ids
+msgid "Default services"
+msgstr "Varsayılan hizmetler"
+
+#. module: generic_service_resource
+#: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__display_name
+msgid "Display Name"
+msgstr "Ekran adı"
+
+#. module: generic_service_resource
+#: model:ir.model,name:generic_service_resource.model_generic_resource
+msgid "Generic Resource"
+msgstr "Genel Kaynak"
+
+#. module: generic_service_resource
+#: model:ir.model,name:generic_service_resource.model_generic_resource_type
+msgid "Generic Resource Type"
+msgstr "Genel Kaynak Türü"
+
+#. module: generic_service_resource
+#: model:ir.model,name:generic_service_resource.model_generic_service
+msgid "Generic Service"
+msgstr "Genel Servis"
+
+#. module: generic_service_resource
+#: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_service_resource
+#: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service____last_update
+msgid "Last Modified on"
+msgstr "Son Değiştirme Tarihi"
+
+#. module: generic_service_resource
+#: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__write_uid
+msgid "Last Updated by"
+msgstr "Son Güncelleyen"
+
+#. module: generic_service_resource
+#: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__write_date
+msgid "Last Updated on"
+msgstr "Son güncelleme tarihi"
+
+#. module: generic_service_resource
+#: model:ir.model.fields.selection,name:generic_service_resource.selection__generic_resource_wizard_link_service__action__link
+#: model_terms:ir.ui.view,arch_db:generic_service_resource.generic_resource_wizard_link_service_form_view
+msgid "Link"
+msgstr "Bağlantı"
+
+#. module: generic_service_resource
+#: model:ir.actions.act_window,name:generic_service_resource.action_resource_open_wizard_link_service
+msgid "Link Services"
+msgstr "Bağlantı Hizmetleri"
+
+#. module: generic_service_resource
+#: model:ir.model.fields.selection,name:generic_service_resource.selection__generic_resource_wizard_link_service__action__remove
+msgid "Remove"
+msgstr "Kaldırmak"
+
+#. module: generic_service_resource
+#: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__resource_ids
+msgid "Resource"
+msgstr "Kaynak"
+
+#. module: generic_service_resource
+#: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_type__resource_act_link_services_id
+msgid "Resource Act Link Services"
+msgstr "Kaynak Yasası Bağlantı Hizmetleri"
+
+#. module: generic_service_resource
+#: model:ir.model.fields,field_description:generic_service_resource.field_generic_service__resource_count
+msgid "Resource Count"
+msgstr "Kaynak Sayısı"
+
+#. module: generic_service_resource
+#: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__resource_type_id
+msgid "Resource Type"
+msgstr "Kaynak Türü"
+
+#. module: generic_service_resource
+#: model:ir.model,name:generic_service_resource.model_generic_resource_wizard_link_service
+msgid "Resource Wizard: Link Services"
+msgstr "Kaynak Sihirbazı: Bağlantı Hizmetleri"
+
+#. module: generic_service_resource
+#: model:ir.model.fields,field_description:generic_service_resource.field_generic_service__resource_ids
+#: model_terms:ir.ui.view,arch_db:generic_service_resource.inherited_generic_service_view_form_inherit_service_resource
+#: model_terms:ir.ui.view,arch_db:generic_service_resource.view_resource_generic_service_kanban
+msgid "Resources"
+msgstr "Kaynaklar"
+
+#. module: generic_service_resource
+#: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__service_ids
+msgid "Service"
+msgstr "Servis"
+
+#. module: generic_service_resource
+#: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource__service_ids
+#: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_simple__service_ids
+#: model_terms:ir.ui.view,arch_db:generic_service_resource.inherited_generic_resource_view_form_inherit_service_resource
+msgid "Services"
+msgstr "Hizmetler"
+
+#. module: generic_service_resource
+#: model:ir.model.fields.selection,name:generic_service_resource.selection__generic_resource_wizard_link_service__action__set
+msgid "Set"
+msgstr "Ayarlamak"
+
+#. module: generic_service_resource
+#: model_terms:ir.ui.view,arch_db:generic_service_resource.generic_resource_wizard_link_service_form_view
+msgid ""
+"This action could be applied only for resources of same type.\n"
+"                        Please, select only resources of single resource "
+"type!"
+msgstr ""
+"Bu eylem yalnızca aynı türdeki kaynaklar için uygulanabilir.\n"
+"                         Lütfen yalnızca tek kaynak türündeki kaynakları "
+"seçin!"

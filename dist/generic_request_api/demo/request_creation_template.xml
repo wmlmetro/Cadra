@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="test_rct_api_internal_endpoint" model="request.creation.template">
+        <field name="name">API: Test internal endpoint</field>
+        <field name="request_type_id" ref="generic_request_api.test_api_request_type"/>
+        <field name="request_category_id" ref="generic_request_api.test_api_request_category"/>
+        <field name="request_text">Test internal endpoint</field>
+    </record>
+
+    <record id="test_rct_api_public_endpoint" model="request.creation.template">
+        <field name="name">API: Test public endpoint</field>
+        <field name="request_type_id" ref="generic_request_api.test_api_request_type"/>
+        <field name="request_category_id" ref="generic_request_api.test_api_request_category"/>
+        <field name="request_text">Test public endpoint</field>
+    </record>
+
+    <record id="test_rct_methods_api_public_endpoint" model="request.creation.template">
+        <field name="name">API: Test public endpoint (multi method)</field>
+        <field name="request_type_id" ref="generic_request_api.test_api_request_type"/>
+        <field name="request_category_id" ref="generic_request_api.test_api_request_category"/>
+        <field name="request_text">methods test public endpoint</field>
+    </record>
+
+    <record id="test_rct_redirect_url_internal_endpoint" model="request.creation.template">
+        <field name="name">API: Test redirect url internal endpoint</field>
+        <field name="request_type_id" ref="generic_request_api.test_api_request_type"/>
+        <field name="request_category_id" ref="generic_request_api.test_api_request_category"/>
+        <field name="request_text">Test Redirect URL internal endpoint</field>
+    </record>
+
+    <record id="test_rct_rest_api_endpoint" model="request.creation.template">
+        <field name="name">API: Test redirect url internal endpoint</field>
+        <field name="request_type_id" ref="generic_request_api.test_api_request_type"/>
+        <field name="request_category_id" ref="generic_request_api.test_api_request_category"/>
+        <field name="request_text">Test Rest API endpoint</field>
+    </record>
+
+</odoo>
+

@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="generic_request_sla_rule_view_search" model="ir.ui.view">
+        <field name="model">request.sla.rule</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="request_type_id"/>
+
+                <filter name="filter_archived"
+                        string="Archived"
+                        domain="[('active', '=', False)]"/>
+                <filter name="filter_active"
+                        string="Active"
+                        domain="[('active', '=', True)]"/>
+
+                <separator/>
+                <group name="group_group_by" expand="0" string="Group By...">
+                     <filter name="group_by_request_type" string="Request type" context="{'group_by': 'request_type_id'}"/>
+                     <filter name="group_by_sla_rule_type" string="SLA Rule type" context="{'group_by': 'sla_rule_type_id'}"/>
+                     <filter name="group_by_assigned" string="Assigned" context="{'group_by': 'assigned'}"/>
+                     <filter name="group_by_compute_time" string="Compute time" context="{'group_by': 'compute_time'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+
+    <!-- Tree view for generic request sla rule -->
+    <record id="generic_request_sla_rule_view_tree" model="ir.ui.view">
+        <field name="model">request.sla.rule</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="sequence" widget="handle"/>
+                <field name="name" string="Name"/>
+                <field name="code"/>
+                <field name="sla_rule_type_id"/>
+                <field name="request_type_id"/>
+                <field name="request_stage_ids" widget="many2many_tags"/>
+                <field name="assigned"/>
+                <field name="kanban_state_normal" string="In Progress"/>
+                <field name="kanban_state_blocked" string="Paused"/>
+                <field name="kanban_state_done" string="Ready"/>
+                <field name="compute_time"/>
+                <field name="warn_time" widget="float_time"/>
+                <field name="limit_time" widget="float_time"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Form view for request sla rule -->
+    <record id="generic_request_sla_rule_view_form" model="ir.ui.view">
+        <field name="model">request.sla.rule</field>
+        <field name="arch" type="xml">
+            <form string="Rules">
+                <sheet>
+                    <field name="active" invisible="1"/>
+                    <widget name="web_ribbon" title="Archived"
+                            bg_color="bg-danger"
+                            attrs="{'invisible': [('active', '=', True)]}"/>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Name..."/>
+                        </h1>
+                        <h2>
+                            <field name="code" placeholder="Code..."/>
+                        </h2>
+                        <h3>
+                            <field name="request_type_id"
+                                   readonly="context.get('default_request_type')"
+                                   placeholder='Request type...'/>
+                        </h3>
+                    </div>
+                    <div>
+                        <p>
+                            Point the field name to see a tooltip. Or read the
+                            <a href="https://crnd.pro/doc-bureaucrat-itsm/11.0/en/Generic_Request_SLA_admin_eng/"
+                            target="_blank">Documentation</a>.
+                        </p>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="sequence"/>
+                            <field name="sla_rule_type_id"/>
+                            <field name="request_stage_ids"
+                                   widget="many2many_tags"
+                                   options="{'no_create': True, 'no_create_edit': True}"
+                                   domain="[('request_type_id', '=', request_type_id)]"/>
+                            <field name="assigned"/>
+                        </group>
+                        <group>
+                            <field name="compute_time"/>
+                            <field name="warn_time" widget="float_time"/>
+                            <field name="limit_time" widget="float_time"/>
+                            <field name="sla_calendar_id"
+                                   attrs="{'invisible': [('compute_time', '!=', 'calendar')]}"/>
+                        </group>
+                        <group string="">
+                            <p>Kanban state time record settings</p>
+                            <field name="kanban_state_normal"/>
+                            <field name="kanban_state_blocked"/>
+                            <field name="kanban_state_done"/>
+                            <p class="text-muted">If not checked any box, kanban state will be ingored in SLA Rule</p>
+                        </group>
+                    </group>
+                    <div>
+                        <p>
+                            Rule lines below allow you to indicate special cases for this rule. In each line you can specify conditions (these conditions may vary depending on the installed addons). If all of the specified conditions in the line are met, this rule will use its time limits instead of timers of the general rule. If there are more than one line in the list, the first line that satisfies the condition (starting from the top of the list) will be active.
+                        </p>
+                    </div>
+                    <div name="line_description">
+                        <p>
+                            <i>Request Categories</i>: specify request categories. For requests of these categories, time limits of the new line will be used. If no category is selected, this condition applies to requests of any category.
+                        </p>
+                    </div>
+                    <group name="warning_new"
+                           attrs="{'invisible': [('id', '!=', False)]}">
+                        <div class="alert alert-warning" role="alert">
+                            Please, save this rule, to be able to edit its rule lines!
+                        </div>
+                    </group>
+                    <field name="rule_line_ids" mode="tree"
+                           context="{'default_warn_time': warn_time, 'default_limit_time': limit_time, 'default_compute_time': compute_time}">
+                        <tree editable="bottom">
+                            <field name="sequence" widget="handle"/>
+                            <field name="request_type_id" invisible="1"/>
+                            <field name="category_ids" widget="many2many_tags" options="{'open': True}"/>
+                            <field name="request_channel_ids" widget="many2many_tags"/>
+                            <field name="compute_time"/>
+                            <field name="sla_calendar_id"
+                                   attrs="{'invisible': [('compute_time', '!=', 'calendar')]}"/>
+                            <field name="warn_time" widget="float_time"/>
+                            <field name="limit_time" widget="float_time"/>
+                        </tree>
+                    </field>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="generic_request_sla_rule_action" model="ir.actions.act_window">
+        <field name="name">Request SLA rules</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">request.sla.rule</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{}</field>
+        <field name="domain">[]</field>
+        <field name="help" type="html">
+            <p class="oe_view_nocontent_create">
+                Click to create a new SLA rule.
+            </p>
+            <p>
+                SLA rules define time limits for each stage to complete.
+                You can create several rules for one request type.<br/>
+                After SLA Rules are set, you can see status of the SLA
+                on requests of this type from the kanban view or by opening
+                request form -> SLA tab.<br/>
+                View more about SLA setup in the
+                <a href="https://crnd.pro/doc-bureaucrat-itsm/11.0/en/Generic_Request_SLA_admin_eng/"
+                target="_blank">Documentation</a>.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_request_sla_rule"
+              parent="menu_request_configuration_sla"
+              action="generic_request_sla_rule_action"
+              sequence="20"/>
+</odoo>

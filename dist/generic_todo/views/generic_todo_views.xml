@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <menuitem id="menu_generic_todo_toplevel"
+        name="Todos"
+        groups="generic_todo.group_generic_todo_user"/>
+
+    <menuitem id="menu_generic_todo_config_root"
+        name="Configuration"
+        sequence="100"
+        parent="menu_generic_todo_toplevel"/>
+
+    <menuitem id="menu_generic_todo_root"
+        name="Generic Todos"
+        sequence="10"
+        parent="menu_generic_todo_config_root"/>
+
+     <record id="generic_todo_view_tree_general" model="ir.ui.view">
+        <field name="model">generic.todo</field>
+        <field name="mode">primary</field>
+        <field name="priority" eval="150"/>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="date_created"/>
+                <field name="todo_type_id"/>
+                <field name="name"/>
+                <field name="user_id"/>
+                <field name="state"
+                       decoration-danger="state == 'new'"
+                       decoration-info="state == 'in_progress'"
+                       decoration-warning="state == 'paused'"
+                       decoration-muted="state == 'canceled'"
+                       decoration-success="state == 'done'"
+                       attrs="{'invisible': [('id', '=', False)]}"
+                       widget="badge"
+                       optional="show"/>
+                <field name="date_last_action"/>
+                <button title="Start"
+                        class="btn-outline-info"
+                        type="object"
+                        name="action_start_work"
+                        attrs="{'invisible': ['|', ('state', 'not in', ['new', 'paused']), ('id', '=', False)]}"
+                        icon="fa-play"/>
+                <button title="Complete"
+                        class="btn-outline-success"
+                        type="object"
+                        name="action_complete_work"
+                        attrs="{'invisible': ['|', ('state', '!=', 'in_progress'), ('id', '=', False)]}"
+                        icon="fa-check"/>
+                <button title="Pause"
+                        class="btn-outline-warning"
+                        type="object"
+                        name="action_pause_work"
+                        attrs="{'invisible': ['|', ('state', '!=', 'in_progress'), ('id', '=', False)]}"
+                        icon="fa-pause"/>
+                <button title="Cancel"
+                        class="btn-outline-dark"
+                        type="object"
+                        name="action_cancel_work"
+                        attrs="{'invisible': ['|', ('state', '!=', 'in_progress'), ('id', '=', False)]}"
+                        icon="fa-ban"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="generic_todo_view_tree_editable" model="ir.ui.view">
+        <field name="model">generic.todo</field>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <tree editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="date_created"/>
+                <field name="todo_type_id"/>
+                <button title="View todo object"
+                        class="btn-outline-info"
+                        type="object"
+                        name="action_open_todo_object"
+                        icon="fa-external-link"/>
+                <field name="name"/>
+                <field name="user_id"/>
+                <field name="state"
+                       decoration-danger="state == 'new'"
+                       decoration-info="state == 'in_progress'"
+                       decoration-warning="state == 'paused'"
+                       decoration-muted="state == 'canceled'"
+                       decoration-success="state == 'done'"
+                       attrs="{'invisible': [('id', '=', False)]}"
+                       widget="badge"
+                       optional="show"/>
+                <field name="date_last_action"/>
+                <button title="Start"
+                        class="btn-outline-info"
+                        type="object"
+                        name="action_start_work"
+                        attrs="{'invisible': ['|', ('state', 'not in', ['new', 'paused']), ('id', '=', False)]}"
+                        icon="fa-play"/>
+                <button title="Complete"
+                        class="btn-outline-success"
+                        type="object"
+                        name="action_complete_work"
+                        attrs="{'invisible': ['|', ('state', '!=', 'in_progress'), ('id', '=', False)]}"
+                        icon="fa-check"/>
+                <button title="Pause"
+                        class="btn-outline-warning"
+                        type="object"
+                        name="action_pause_work"
+                        attrs="{'invisible': ['|', ('state', '!=', 'in_progress'), ('id', '=', False)]}"
+                        icon="fa-pause"/>
+                <button title="Cancel"
+                        class="btn-outline-dark"
+                        type="object"
+                        name="action_cancel_work"
+                        attrs="{'invisible': ['|', ('state', '!=', 'in_progress'), ('id', '=', False)]}"
+                        icon="fa-ban"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="generic_todo_view_form" model="ir.ui.view">
+        <field name="model">generic.todo</field>
+        <field name="mode">primary</field>
+        <field name="priority" eval="150"/>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button title="Start"
+                            name="action_start_work"
+                            class="btn-outline-info"
+                            type="object"
+                            attrs="{'invisible': ['|', ('state', 'not in', ['new', 'paused']), ('id', '=', False)]}"
+                            icon="fa-play"/>
+                    <button title="Complete"
+                            name="action_complete_work"
+                            class="btn-outline-success"
+                            type="object"
+                            attrs="{'invisible': ['|', ('state', '!=', 'in_progress'), ('id', '=', False)]}"
+                            icon="fa-check"/>
+                    <button title="Pause"
+                            class="btn-outline-warning"
+                            type="object"
+                            name="action_pause_work"
+                            attrs="{'invisible': ['|', ('state', '!=', 'in_progress'), ('id', '=', False)]}"
+                            icon="fa-pause"/>
+                    <button title="Cancel"
+                            class="btn-outline-dark"
+                            type="object"
+                            name="action_cancel_work"
+                            attrs="{'invisible': ['|', ('state', '!=', 'in_progress'), ('id', '=', False)]}"
+                            icon="fa-ban"/>
+                    <field name="state" widget="statusbar"
+                           options="{'clickable': false}"
+                           statusbar_visible=" "
+                           required="0"
+                           attrs="{
+                               'readonly': True,
+                               'invisible' : [('id', '=', False)]
+                           }"/>
+                </header>
+                <sheet>
+                    <field name="active" invisible="1"/>
+                    <widget name="web_ribbon" title="Archived"
+                            bg_color="bg-danger"
+                            attrs="{'invisible': [('active', '=', True)]}"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" type="object"
+                                name="action_show_related_system_events"
+                                groups="base.group_no_one"
+                                icon="fa-cogs">
+                            <field name="generic_event_count" widget="statinfo" string="Events"/>
+                        </button>
+                    </div>
+                    <div name="div_title" class="oe_title">
+                        <h1 name="h1_title">
+                            <field name="name" string="Name"/>
+                        </h1>
+                    </div>
+                    <notebook>
+                        <page name="page_todo_info" string="Todo Info">
+                            <group name="group_todo_info">
+                                <group name="group_todo_info_left">
+                                    <field name="sequence"/>
+                                    <field name="todo_type_id"/>
+                                    <field name="user_id"/>
+                                    <field name="res_model" invisible="1"/>
+                                    <field name="res_id"
+                                           widget="generic_m2o"
+                                           model_field="res_model"/>
+                                </group>
+                                <group name="group_todo_info_right">
+                                    <field name="date_created"/>
+                                    <field name="date_started"/>
+                                    <field name="date_completed"/>
+                                    <field name="date_last_action"/>
+                                </group>
+                                <group name="group_todo_config_implementation"
+                                       groups="generic_todo.group_generic_todo_manager">
+                                    <field name="todo_implementation_model_id"/>
+                                    <field name="todo_implementation_model" invisible="1"/>
+                                    <field name="todo_implementation_res_id"
+                                           widget="generic_m2o"
+                                           model_field="todo_implementation_model"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="generic_todo_action" model="ir.actions.act_window">
+        <field name="name">Todos</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">generic.todo</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record id="generic_todo_action_view_tree"
+            model="ir.actions.act_window.view">
+        <field eval="5" name="sequence"/>
+        <field name="view_mode">tree</field>
+        <field name="view_id"  ref="generic_todo_view_tree_general"/>
+        <field name="act_window_id" ref="generic_todo_action"/>
+    </record>
+
+    <!-- Menus for Generic Todos -->
+    <menuitem id="generic_todo_menu_item"
+              parent="menu_generic_todo_root" sequence="5"
+              action="generic_todo_action"/>
+
+</odoo>

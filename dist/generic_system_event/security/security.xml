@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Look at Odoo code (openepr|odoo)/modules/db.py:create_categories
+         for info about a way module categories are generated.
+         This xmlid is used to avoid duplication of module category -->
+    <record model="ir.module.category" id="base.module_category_generic_system_event">
+        <field name="name">Generic System Event</field>
+        <field name="visible" eval="1" />
+    </record>
+</odoo>

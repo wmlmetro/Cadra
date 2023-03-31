@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_request_event_action_user_implicit,generic_request.event_action user impl,model_request_event_action,generic_request.group_request_user_implicit,1,0,0,0
+access_request_event_action_manager,generic_request.event_action manager,model_request_event_action,generic_request.group_request_manager,1,1,1,1
+

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="0">
+        <record id="ir_cron_request_auto_route_daily" model="ir.cron">
+            <field name="name">Generic Request auto route daily scheduler</field>
+            <field name="state">code</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="numbercall">-1</field>
+            <field name="doall" eval="False"/>
+            <field name="model_id" ref="generic_request_route_auto.model_request_stage_route_trigger"/>
+            <field name="code">model._scheduler_trigger_cron('cron_daily')</field>
+            <field name="active" eval="True" />
+        </record>
+        <record id="ir_cron_request_auto_route_hourly" model="ir.cron">
+            <field name="name">Generic Request auto route hourly scheduler</field>
+            <field name="state">code</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">hours</field>
+            <field name="numbercall">-1</field>
+            <field name="doall" eval="False"/>
+            <field name="model_id" ref="generic_request_route_auto.model_request_stage_route_trigger"/>
+            <field name="code">model._scheduler_trigger_cron('cron_hourly')</field>
+            <field name="active" eval="True" />
+        </record>
+</odoo>

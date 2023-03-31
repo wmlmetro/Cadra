@@ -1,0 +1,20 @@
+{
+    'name': 'Website Service Desk (Service) [Obsolete]',
+    'category': 'Service Desk',
+    'summary': 'Serives support in Website Service Desk',
+    'author': "Center of Research and Development",
+    'website': "https://crnd.pro",
+    'license': 'OPL-1',
+    'version': '15.0.1.17.0',
+    'depends': [
+        'crnd_wsd',
+    ],
+    'data': [],
+    'demo': [],
+    'images': ['static/description/banner.png'],
+    'tags': ['obsolete'],
+    'installable': True,
+    'auto_install': False,
+    'price': 20.0,
+    'currency': 'EUR',
+}

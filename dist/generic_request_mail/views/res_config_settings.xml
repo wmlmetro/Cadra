@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="generic_request_res_config_settings_view_form" model="ir.ui.view">
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="generic_request.generic_request_res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='request_email_settings']" position="inside">
+                <div class="col-xs-12 col-md-6 o_setting_box">
+                    <div class="o_setting_right_pane">
+                        <label for="request_default_mail_source_id"/>
+                        <div>
+                            <field name="request_default_mail_source_id" />
+                        </div>
+                        <div class="text-muted">
+                            Selecting default mail source for requests,
+                            allows to use address of selected mail source 
+                            as sender address for outgoing mails.
+                            This way, all notifications and employee replies
+                            could be sent from for example support@domain.com
+                            address, thus masking employee's emails.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xs-12 col-md-6 o_setting_box">
+                    <div class="o_setting_right_pane">
+                        <label for="request_incoming_mail_validator_ids"
+                               string="Incoming message validators"/>
+                        <div>
+                            <field name="request_incoming_mail_validator_ids"
+                                   widget="many2many_tags"
+                                   domain="[('model_id.model', '=', 'mail.message')]"
+                                   context="{'default_based_on': 'mail.message'}"
+                                   options="{'no_quick_create': True, 'open': True}"/>
+                        </div>
+                        <div class="text-muted">
+                            Specify here list of conditions to validate incoming message and
+                            decide whether new request have to be created from this message or not.
+                            If all conditions evaluated to True, then new request will be created,
+                            otherwise, message will be dropped and no request will be created.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xs-12 col-md-6 o_setting_box">
+                    <div class="o_setting_left_pane">
+                        <field name="request_attach_messages_to_request_by_subject"
+                               string="Attach messages to request thread by subject"/>
+                    </div>
+                    <div class="o_setting_right_pane">
+                        <label for="request_attach_messages_to_request_by_subject"/>
+                        <div class="text-muted">
+                            If the checkbox is checked, incoming messages will
+                            be automatically attached to existing requests,
+                            by its names mentioned in message subject.
+                        </div>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>

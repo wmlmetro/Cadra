@@ -1,0 +1,216 @@
+<section style="max-width: 896px; margin: 0 auto;">
+    <div align="center">
+        <h1 style="color:#875A7B;">Generic System Event</h1>
+    </div>
+    <div align="center">
+    <p>
+        <a href="http://www.gnu.org/licenses/lgpl-3.0-standalone.html"><img alt="License: LGPL-3" src="https://img.shields.io/badge/license-LGPL--3-blue.png"/></a>
+        <a href="https://crnd.pro/"><img alt="CR&amp;D" src="https://img.shields.io/badge/maintainer-CR&amp;D-purple.png" /></a></p>
+    <p><br></p>
+    </div>
+</section>
+
+<section style="margin: 0 auto; max-width: 896px;">
+    <div>
+        <p>
+            This module provides framework that allows to make odoo event-driven. Note, that in this case <i>event</i> means <i>business event</i>.
+        </p>
+
+        <p>
+            With this module, you can easily convert your model to event source,
+            and then handle events from that model in any other place of odoo.
+            With this module you may forget about again and again overriding ``write`` methods.
+        </p>
+        <h4>
+            Why this is needed?
+        </h4>
+        <p>
+            This module allows to step away from infinite overrides of write/create,
+            or overriding other methods to add some logic. Instead, with this framework,
+            you can think in event driven way: just trigger event with all needed data
+            where it is needed. And handle this event in multiple places in multiple modules,
+            in multiple related models.
+        </p>
+
+        <p>
+            For example, you can define event like <i>Invoice Paid</i>, and then handle it
+            on Sale Order, In CRM, or in any other related object. The framework, will
+            automatically call all registered handlers of this event.
+            This way, it is possible to significantly simplify complex logic of handling
+            events.
+        </p>
+
+        <p>
+            Also, because events are stored in database, you always have history
+            of events related to specific record, which could help in debug,
+            or in tracking what is going on in some cases.
+        </p>
+        <h4>
+            How to use
+        </h4>
+        <ol>
+            <li>
+                <b>Create model for events</b>
+
+                <p>
+                    At first, you have to create model to store events produced by your event source.
+                </p>
+                <p>
+                    You can define such model as following:
+                </p>
+                <pre> python
+                    <code>
+                        class MyEvent(models.Model):
+                            _name = 'my.event'
+                            _inherit = 'generic.system.event.data.mixin'
+
+                            # You can add here fields specific to your events.
+                            # For example:
+                            my_param_old = fields.Char()
+                            my_param_new = fields.Char()
+                    </code>
+                </pre>
+            </li>
+            <li>
+                <b>Create event source</b>
+                <p>
+                    You have to inherit your model from ``generic.system.event.source.mixin`` to
+                    to make it event source, capable to generate events.
+                    For example, let's define simple model with one field ``param``,
+                    and trigger event any type this field changed.
+                <pre>python
+                <code>
+                    from odoo.addons.generic_mixin import post_write
+                    from odoo.addons.generic_system_event import on_event
+
+                    class MyEventSource(models.Model):
+                         _name = 'my.event.source'
+                         _inherit = 'generic.system.event.source.mixin'
+
+                         # This is needed to automatically register event source
+                         # Other wise, you will need additionally to define
+                         # event source in XML.
+                         # Automatic event source will be generated with
+                         # xmlid: your_module_name.system_event_source__my_event_source
+                         _generic_system_event_source__auto_create = True
+
+                         # name of data model for events from this event source
+                         _generic_system_event_source__event_data_model = 'my.event'
+
+                         # Next, we can define some data on this model
+                         my_param = fields.Char()
+
+                         # This field will be changed automatically by event handler.
+                         counter = Integer
+
+                         # Let's trigger event
+                         @post_write('my_param')
+                         def _after_my_param_changed_trigger_event(self, changes):
+                             # The line below triggers event
+                             self.trigger_event('my-param-changed', {
+                                 'my_param_old': changes['my_param'].old_val,
+                                 'my_param_new': changes['my_param'].new_val,
+                             })
+
+                         # Next, we can define event handler:
+                         @on_event('my-param-changed')
+                         def _on_my_param_changed(self, event):
+                             self.counter += 1
+                </code>
+            </li>
+            <li>
+                <b>Define event types</b>
+                <p>
+                    Next, we have to define all event types in the XML.
+                </p>
+                <pre>xml
+                    <code>
+                        My Events
+                        my-events
+                        My Param Changed
+                        my-param-changed
+                    </code>
+                </pre>
+            </li>
+            <li>
+                <b>Define views for events</b>
+                <p>
+                    Next we have to define views for event data model
+                    (that model that is used to store events).
+                </p>
+                <pre>xml
+                    <code>
+                        my.event
+                        primary
+                            false
+                            false
+                        my.event
+                        primary
+                    </code>
+                </pre>
+            </li>
+            <li>
+                <b>Add stat-button to show events on your view</b>
+                <p>
+                    If needed, you can add stat-button on your form view of 'my.event.source'
+                    to show related events. All you need is to add following xml snippet.
+                </p>
+                <pre>xml
+                </pre>
+            </li>
+        </ol>
+        <p>
+            Note, that method ``action_show_related_system_events`` already implemented
+            in ``generic.system.event.source.mixin``, thus, this xml-snipped is all you need.
+        </p>
+        <h4>
+            Advanced usage
+        </h4>
+        <p>
+            For advanced usage, look for documentation in the code.
+            Basically, this framework, allows you to handle events triggered
+            in context of one model (for example invoices),
+            in context of another related model (for example sale order).
+        </p>
+        <p>
+            All you need for this, is to specify mapping in XML
+            (see ``generic.system.event.source.handler.map`` model for more info).
+            Also, in this case, you have to apply ``generic.system.event.handler.mixin``
+            to handler model to allow framework to automatically discover handlers.
+        </p>
+    </div>
+</section>
+
+<section align="center" style="max-width: 896px; margin: 0 auto;">
+<div>
+<h2 style="color:#875A7B;">Launch your own ITSM system in 60 seconds:</h2>
+<p>Create your own <a href="https://yodoo.systems/saas/template/bureaucrat-itsm-demo-data-95">Bureaucrat ITSM</a> database
+<a href="https://yodoo.systems"><img alt="yodoo.systems" src="https://img.shields.io/badge/powered%20by-yodoo.systems-00a09d.png"/></a>
+</p> 
+</div>
+</section>
+
+<section align="center" style="max-width: 896px; margin: 0 auto;">
+<div>
+<h2 style="color: #138c33">Maintainer</h2>
+<a href="https://crnd.pro/"><img alt="CR&amp;D" src="https://crnd.pro/web/image/3699/300x140/crnd.png"/></a>
+<div align="center">
+<a class="btn btn-primary mb16" title="Website" href="https://crnd.pro"><i class="fa fa-globe"></i> Website</a>
+<a class="btn btn-primary mb16" title="Contact us" href="mailto:info@crnd.pro"><i class="fa fa-envelope"></i> Contact us</a>
+<a class="btn btn-primary mb16" title="Bug" href="https://crnd.pro/requests"><i class="fa fa-bug"></i> Bug</a>
+<a class="btn btn-primary mb16" title="Requests" href="https://crnd.pro/requests"><i class="fa fa-bullhorn"></i> Requests</a>
+</div>
+<div align="center">
+<a class="btn btn-primary mb16" title="Blog" href="https://crnd.pro/blog"><i class="fa fa-quote-right"></i> Blog</a>
+<a class="btn btn-primary mb16" title="Youtube Channel" href="https://www.youtube.com/channel/UCRSGFeR0NgqflPmzpDjL2tw"><i class="fa fa-youtube-play"></i> Youtube Channel</a>
+<p><br></p>
+</div>
+
+<p>This module is maintained by the <a href="https://crnd.pro/">Center of Research &amp; Development</a>
+company.
+</p>
+<p>
+We can provide you further Odoo Support, Odoo implementation, Odoo customization, Odoo 3rd Party development and integration software, consulting services. Our main goal is to provide the best quality product for you. 
+</p>
+</div>
+</section>

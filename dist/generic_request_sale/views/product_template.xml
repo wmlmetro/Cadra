@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+   <record id="request_sale_product_template_form_view" model="ir.ui.view">
+        <field name="name">product.template.common.form</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form/sheet/notebook" position="inside">
+                <field name="type" invisible="1"/>
+                <page string="Requests" name="requests" attrs="{'invisible': [('type', '!=', 'service')]}">
+                    <group name="request_settings">
+                        <group colspan="4">
+                            <field name="is_create_request"
+                                   string="Create request on SO confirmation?"/>
+                            <field name="request_creation_template_id"
+                                   string="Use request template"
+                                   attrs="{'required':[('is_create_request','==', True)]}"/>
+                            <field name="request_delivered_stage_type_ids"
+                                   string="Delivered stage types"
+                                   widget="many2many_tags"/>
+                        </group>
+                        <label for="request_text_template"/>
+                        <field name="request_text_template"
+                               placeholder="Request for SO {{sale_order.name}}"/>
+                        <p class="oe_edit_only">
+                            Above you can specify <a href="http://jinja.pocoo.org/" target="_blank">jinja2</a> template
+                            for request text for requests created by sale order. You can use following variables there:
+                            <ul>
+                                <li><b>sale_order</b>: record representing sale order</li>
+                                <li><b>sale_order_line</b>: record representing sale order line</li>
+                            </ul>
+                        </p>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+   </record>
+</odoo>

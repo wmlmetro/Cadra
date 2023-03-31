@@ -1,0 +1,75 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* crnd_wsd_service
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 13.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-07-27 15:57+0000\n"
+"PO-Revision-Date: 2023-01-06 12:31+0000\n"
+"Last-Translator: François LAGARDE <f.lagarde@groupe-alliance.com>\n"
+"Language-Team: French <http://weblate.crnd.pro/projects/bureaucrat-itsm-15-0/"
+"crnd_wsd_service/fr/>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: crnd_wsd_service
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.request_service_short_info
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_request
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_request_new_selection_box_service
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_request_table
+msgid "<span class=\"fa fa-square-o mr4\" title=\"Service\"/>"
+msgstr ""
+
+#. module: crnd_wsd_service
+#: model:ir.model,name:crnd_wsd_service.model_generic_service
+msgid "Generic Service"
+msgstr ""
+
+#. module: crnd_wsd_service
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_requests_new_select_service
+msgid "Select service"
+msgstr ""
+
+#. module: crnd_wsd_service
+#: code:addons/crnd_wsd_service/controllers/main.py:0
+#, python-format
+msgid "Selected request type require service!"
+msgstr ""
+
+#. module: crnd_wsd_service
+#: code:addons/crnd_wsd_service/controllers/main.py:0
+#, python-format
+msgid "Selected service and request type are incompatible!"
+msgstr ""
+
+#. module: crnd_wsd_service
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.request_service_short_info
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_request
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_request_new_selection_box_service
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_request_table
+msgid "Service"
+msgstr ""
+
+#. module: crnd_wsd_service
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.wsd_requests_new_progress
+msgid ""
+"Service\n"
+"                <span/>"
+msgstr ""
+
+#. module: crnd_wsd_service
+#: model:ir.model.fields,field_description:crnd_wsd_service.field_generic_service__website_published
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_service.generic_service_view_search
+msgid "Visible in Website"
+msgstr ""
+
+#. module: crnd_wsd_service
+#: model:ir.model.fields,field_description:crnd_wsd_service.field_generic_service__website_ids
+msgid "Website"
+msgstr "Site web"

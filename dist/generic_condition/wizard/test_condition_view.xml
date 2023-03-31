@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="generic_condition_test_wizard_form" model="ir.ui.view">
+        <field name="name">generic.condition.test_condition.form</field>
+        <field name="model">generic.condition.test_condition</field>
+        <field name="arch" type="xml">
+            <form string="Test Condition" class="generic_condition_test_wizard">
+                <field name="res_model" invisible="1"/>
+                <group>
+                    <group string="Test" colspan="4">
+                        <field name="condition_id"
+                               readonly="context.get('default_condition_id')"/>
+                        <field name="res_id"
+                               widget="generic_m2o"
+                               model_field="res_model"
+                               readonly="context.get('default_res_id')"/>
+                        <field name="test_as_user_id"/>
+                    </group>
+                    <group string="Condition Result"
+                           colspan="4"
+                           attrs="{'invisible': [('result', '=', False)]}">
+                        <field name="result" nolabel="1" colspan="2"/>
+                    </group>
+                    <group string="Condition Debug Log"
+                           colspan="4"
+                           attrs="{'invisible': [('debug_log', '=', False)]}">
+                        <field name="debug_log" nolabel="1" colspan="2"/>
+                    </group>
+                </group>
+                <footer>
+                    <button icon="fa-check" name="process" string="Test" type="object"/>
+                    <button icon="fa-ban" special="cancel" string="_Cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_generic_condition_test_wizard_view"
+            model="ir.actions.act_window">
+        <field name="name">Test Condition</field>
+        <field name="context">{'default_condition_id': active_id}</field>
+        <field name="res_model">generic.condition.test_condition</field>
+        <field name="binding_model_id" ref="model_generic_condition"/>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="generic_resource_role_link_view_search" model="ir.ui.view">
+        <field name="name">generic.resource.role.link.search</field>
+        <field name="model">generic.resource.role.link</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="role_id"/>
+                <field name="role_type_id"/>
+                <field name="resource_type_id"/>
+                <field name="resource_id"/>
+                <field name="sub_role_id"/>
+                <separator/>
+
+                <filter name="filter_can_write"
+                        string="Can Write"
+                        domain="[('can_write', '=', True)]"/>
+                <filter name="filter_can_unlink"
+                        string="Can Unlink"
+                        domain="[('can_unlink', '=', True)]"/>
+                <filter name="filter_can_manage_roles"
+                        string="Can Manage Roles"
+                        domain="[('can_manage_roles', '=', True)]"/>
+                <separator/>
+
+                <filter name="filter_roles"
+                        string="Roles"
+                        domain="[('sub_role_id', '!=', False)]"/>
+                <filter name="filter_subroles"
+                        string="Subroles"
+                        domain="[('sub_role_id', '!=', False)]"/>
+                <separator/>
+
+
+                <group name="group_group_by" string="Group by...">
+                    <filter name="filter_group_by_partner"
+                            string="Partner" context="{'group_by': 'partner_id'}"/>
+                    <filter name="filter_group_by_user"
+                            string="User" context="{'group_by': 'user_id'}"/>
+                    <filter name="filter_group_by_role_id"
+                            string="Role" context="{'group_by': 'role_id'}"/>
+                    <filter name="filter_group_by_role_type"
+                            string="Role type" context="{'group_by': 'role_type_id'}"/>
+                    <filter name="filter_group_by_resource_type"
+                            string="Resource type" context="{'group_by': 'resource_type_id'}"/>
+                    <filter name="filter_group_by_resource"
+                            string="Resource" context="{'group_by': 'resource_id'}"/>
+                    <filter name="filter_group_by_subrole"
+                            string="Subrole" context="{'group_by': 'sub_role_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="generic_resource_role_link_view_tree" model="ir.ui.view">
+        <field name="name">generic.resource.role.link.tree</field>
+        <field name="model">generic.resource.role.link</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="role_id"/>
+                <field name="role_type_id"/>
+                <field name="sub_role_id"/>
+                <field name="parent_id"/>
+                <field name="resource_type_id"/>
+                <field name="resource_id"/>
+                <field name="date_start"/>
+                <field name="date_end"/>
+                <field name="active" invisible="1"/>
+                <field name="can_write"/>
+                <field name="can_unlink"/>
+                <field name="can_manage_roles"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="generic_resource_role_link_view_form" model="ir.ui.view">
+        <field name="name">generic.resource.role.link.form</field>
+        <field name="model">generic.resource.role.link</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button"
+                                type="object"
+                                name="action_view_sub_role_links"
+                                icon="fa-sitemap">
+                            <field string="SubRole links" name="child_count" widget="statinfo"/>
+                        </button>
+                    </div>
+                    <field name="active" invisible="1"/>
+                    <widget name="web_ribbon" title="Archived"
+                            bg_color="bg-danger"
+                            attrs="{'invisible': [('active', '=', True)]}"/>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="display_name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="resource_type_id"
+                                   required="1"
+                                   readonly="context.get('default_resource_type_id', False) and context.get('set_readonly_resource')"
+                                   invisible="context.get('default_resource_type_id', False) and context.get('set_invisible_resource')"
+                                   attrs="{'readonly': [('doc_model', '!=', False), ('doc_id', '!=', 0)]}"
+                                   options="{'no_create': true, 'no_quick_create': true}"/>
+                            <field name="view_resource_type_id"
+                                   invisible="not context.get('set_invisible_resource')"/>
+                            <field name="resource_res_model"
+                                   invisible="1"/>
+                            <field name="resource_res_id"
+                                   required="1"
+                                   widget="generic_m2o"
+                                   model_field="resource_res_model"
+                                   readonly="context.get('default_resource_type_id', False) and context.get('set_readonly_resource')"
+                                   invisible="context.get('default_resource_type_id', False) and context.get('set_invisible_resource')"
+                                   attrs="{'invisible': [('resource_res_model', '=', False)],
+                                           'readonly': [('doc_model', '!=', False), ('doc_id', '!=', 0)]}"/>
+                            <field name="view_resource_res_id"
+                                   widget="generic_m2o"
+                                   model_field="resource_res_model"
+                                   invisible="not context.get('set_invisible_resource')"/>
+                            <field name="doc_model"
+                                   invisible="1"/>
+                            <field name="doc_id"
+                                   widget="generic_m2o"
+                                   model_field="doc_model"
+                                   invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="partner_id"
+                                   invisible="context.get('default_partner_id', False) and context.get('set_invisible_partner')"
+                                   attrs="{'readonly': [('doc_model', '!=', False), ('doc_id', '!=', 0)]}"
+                                   options="{'no_create': true, 'no_quick_create': true}"/>
+                            <field name="view_partner_id"
+                                   invisible="not context.get('set_invisible_partner')"/>
+                            <field name="user_id"/>
+                            <field name="role_id"
+                                   options="{'no_quick_create': true}"
+                                   readonly="context.get('default_role_id', False)"
+                                   attrs="{'readonly': [('doc_model', '!=', False), ('doc_id', '!=', 0)]}"
+                                   domain="[('resource_type_id', '=', resource_type_id)]"
+                                   context="{'default_resource_type_id': resource_type_id}"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="parent_id"/>
+                            <field name="sub_role_id"/>
+                        </group>
+                        <group>
+                            <field name="date_start"/>
+                            <field name="date_end"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="can_write"/>
+                            <field name="can_unlink"/>
+                            <field name="can_manage_roles"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="generic_resource_role_link_action_view" model="ir.actions.act_window">
+        <field name="name">Role Links</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">generic.resource.role.link</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_generic_resource_role_links"
+              action="generic_resource_role_link_action_view"
+              parent="menu_generic_resource_roles_root"
+              sequence="20"/>
+</odoo>

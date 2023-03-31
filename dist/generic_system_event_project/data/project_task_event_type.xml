@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<!--    Deadline events-->
+    <record model="generic.system.event.type" id="deadline_changed_event_type_project_task">
+        <field name="name">Deadline changed</field>
+        <field name="code">deadline-changed</field>
+        <field name="event_category_id" ref="generic_system_event_project.system_event_category_project_task"/>
+        <field name="event_source_id" ref="generic_system_event_project.system_event_source__project_task"/>
+    </record>
+
+    <record model="generic.system.event.type" id="deadline_tomorrow_event_type_project_task">
+        <field name="name">Deadline tomorrow</field>
+        <field name="code">deadline-tomorrow</field>
+        <field name="event_category_id" ref="generic_system_event_project.system_event_category_project_task"/>
+        <field name="event_source_id" ref="generic_system_event_project.system_event_source__project_task"/>
+    </record>
+
+    <record model="generic.system.event.type" id="deadline_today_event_type_project_task">
+        <field name="name">Deadline today</field>
+        <field name="code">deadline-today</field>
+        <field name="event_category_id" ref="generic_system_event_project.system_event_category_project_task"/>
+        <field name="event_source_id" ref="generic_system_event_project.system_event_source__project_task"/>
+    </record>
+
+    <record model="generic.system.event.type" id="deadline_overdue_event_type_project_task">
+        <field name="name">Deadline overdue</field>
+        <field name="code">deadline-overdue</field>
+        <field name="event_category_id" ref="generic_system_event_project.system_event_category_project_task"/>
+        <field name="event_source_id" ref="generic_system_event_project.system_event_source__project_task"/>
+    </record>
+
+<!--    Stage events-->
+    <record model="generic.system.event.type" id="stage_changed_event_type_project_task">
+        <field name="name">Stage changed</field>
+        <field name="code">stage-changed</field>
+        <field name="event_category_id" ref="generic_system_event_project.system_event_category_project_task"/>
+        <field name="event_source_id" ref="generic_system_event_project.system_event_source__project_task"/>
+    </record>
+
+</odoo>

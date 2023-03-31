@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+ 
+    <template id="message_request_assigned_team__assignee">
+        <t t-call="generic_request.message_request_notification__template">
+            <p>Dear <t t-esc="partner.display_name"/>,</p>
+            <p>Your team has received a new request <strong><a t-att-href="object.get_mail_url(partner.id)" target="_blank" t-esc="object.display_name"/></strong>.</p>
+            <p>You can assign it to yourself</p>
+        </t>
+        <div id="request-request-response-box" style="padding: 0px; width:600px;">
+            <t t-if="object.sudo().type_id.assigned_team_notification_show_request_text">
+                <div>
+                    <p><strong>Request text:</strong></p>
+                    <t t-out="object.sudo().request_text_sample"/>
+                    <a t-att-href="object.get_mail_url(partner.id)" target="_blank">...</a>
+                </div>
+            </t>
+            <hr/>
+            <t t-if="object.sudo().type_id.assigned_team_notification_show_response_text and object.sudo().response_text">
+                <div>
+                    <p><strong>Response text:</strong></p>
+                    <t t-out="object.sudo().response_text"/>
+                </div>
+            </t>
+            <hr/>
+        </div>
+    </template>
+</odoo>

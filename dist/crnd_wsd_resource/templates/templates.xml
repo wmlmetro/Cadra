@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <template id="wsd_request_info_resource"
+              inherit_id="crnd_wsd.wsd_request_body"
+              name="Display resource"
+              customize_show="True"
+              active="True">
+        <xpath expr="//div[@id='request-head-right']" position="inside">
+            <div t-if="req.resource_type_id">
+                <span class="fa fa-cubes mr4" title="Resource type"/><span t-field="req.resource_type_id.display_name"/>
+            </div>
+            <div t-if="req.resource_id">
+                <span class="fa fa-cube mr4" title="Resource"/><span t-field="req.resource_id.display_name"/>
+            </div>
+        </xpath>
+    </template>
+
+    <template id="wsd_requests_new_request_data_resource"
+              inherit_id="crnd_wsd.wsd_requests_new_request_data"
+              name="Request Resource"
+              customize_show="True"
+              active="True">
+        <xpath expr="//section[@id='request-data']" position="after">
+            <div t-if="request_resource_types" class="oe_structure col-sm-12"/>
+            <div class="row" t-if="request_resource_types"
+                 id="request-data-resource">
+                <div class="col-sm-12">
+                    <label for="resource_id_auto"
+                           class="control-label mb0">
+                        <t t-if="req_type.resource_label" t-esc="req_type.resource_label"/>
+                        <t t-else="">Resource</t>
+                        <t t-if="req_type.resource_required">*</t>
+                    </label>
+                </div>
+                <div class="btn-group-toggle col-sm-12 pt-1 pb-1" data-toggle="buttons">
+                    <t t-foreach="request_resource_types" t-as="resource_type">
+                        <label class="btn btn-outline-info btn-sm">
+                            <input type="checkbox" autocomplete="off"
+                                   t-att-name="'resource_type_%s' % resource_type.id"
+                                   t-att-value="resource_type.id">
+                                <t t-esc="resource_type.name"/>
+                            </input>
+                        </label>
+                    </t>
+                </div>
+                <div id="request-data-resource-autocomplete"
+                     class="ui-widget col-sm-12 pt-1">
+                    <input id="resource_id"
+                           name="resource_id"
+                           t-att-value="resource_id"
+                           type="hidden"/>
+                    <div class="inp input-group-sm">
+                        <div class="input-group-prepend">
+                            <div class="input-group-text">
+                                <span id="check_resource_label"
+                                      data-toggle="tooltip"
+                                      data-placement="bottom"
+                                      class="fa fa-times text-danger"
+                                      title="Result of resource selection."></span>
+                            </div>
+                        </div>
+                        <input id="resource_id_autocomplete"
+                               name="resource_id_autocomplete"
+                               t-att="req_type.get_wsd_resource_field_attrs()"
+                               class="form-control form-control-sm resource_not_defined"/>
+                    </div>
+                    <small class="form-text text-muted ml16"
+                           t-if="req_type.resource_help"
+                           t-esc="req_type.resource_help"/>
+                </div>
+            </div>
+        </xpath>
+    </template>
+</odoo>

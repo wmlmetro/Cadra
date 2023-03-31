@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="generic.system.event.category" id="system_event_category_generic_contract">
+        <field name="name">Generic Contract Events</field>
+        <field name="code">generic-contract-events</field>
+        <field name="event_source_id" ref="system_event_source_generic_contract"/>
+    </record>
+</odoo>

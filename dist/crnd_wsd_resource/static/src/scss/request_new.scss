@@ -1,0 +1,30 @@
+.ui-autocomplete-category {
+    font-weight: bold;
+    padding: 0.2em 0.4em;
+    margin: 0.8em 0 0.2em;
+    line-height: 1.5;
+}
+
+.ui-autocomplete {
+    max-height: 300px;
+    overflow-y: auto;
+
+    /* prevent horizontal scrollbar */
+    overflow-x: hidden;
+}
+
+.item-category-more-info {
+    font-style: italic;
+}
+
+.inp {
+    display: flex;
+
+    span {
+        font-size: 14pt;
+
+        &::after {
+            vertical-align: middle;
+        }
+    }
+}

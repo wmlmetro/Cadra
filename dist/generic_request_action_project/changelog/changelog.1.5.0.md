@@ -1,0 +1,3 @@
+- Add ability compute selection project for task:
+    - by domain
+    -by python expression

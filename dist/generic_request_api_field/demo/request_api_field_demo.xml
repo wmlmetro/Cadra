@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="test_rct_api_internal_endpoint_create_vm" model="request.creation.template">
+        <field name="name">API: test Create VM API</field>
+        <field name="request_type_id" ref="generic_request_field.request_type_field"/>
+        <field name="request_text">create virtual machine</field>
+    </record>
+
+
+    <record id="test_api_internal_endpoint_create_vm" model="request.api.endpoint">
+        <field name="name">test Create VM API</field>
+        <field name="slug">test-create-vm</field>
+        <field name="type">internal</field>
+        <field name="request_creation_template_id" ref="test_rct_api_internal_endpoint_create_vm"/>
+        <field name="on_success">return_req_id</field>
+    </record>
+
+    <record id="test_rest_api_endpoint_create_vm" model="request.api.endpoint">
+        <field name="name">Test rest API endpoint create VM</field>
+        <field name="slug">test-rest-api-endpoint-create-vm</field>
+        <field name="type">rest</field>
+        <field name="request_creation_template_id" ref="test_rct_api_internal_endpoint_create_vm"/>
+    </record>
+
+    <record id="test_api_field_memory" model="request.api.endpoint.field.map">
+        <field name="endpoint_id" ref="test_api_internal_endpoint_create_vm"/>
+        <field name="field_id" ref="generic_request_field.request_stage_field_memory"/>
+        <field name="data_field">test_mem_field</field>
+        <field name="default_value">1GB</field>
+    </record>
+
+    <record id="test_api_field_cpu" model="request.api.endpoint.field.map">
+        <field name="endpoint_id" ref="test_api_internal_endpoint_create_vm"/>
+        <field name="field_id" ref="generic_request_field.request_stage_field_cpu"/>
+        <field name="data_field">test_cpu_field</field>
+    </record>
+
+    <record id="test_api_field_hdd" model="request.api.endpoint.field.map">
+        <field name="endpoint_id" ref="test_api_internal_endpoint_create_vm"/>
+        <field name="field_id" ref="generic_request_field.request_stage_field_hdd"/>
+        <field name="data_field">test_hdd_field</field>
+    </record>
+
+    <record id="test_api_field_os" model="request.api.endpoint.field.map">
+        <field name="endpoint_id" ref="test_api_internal_endpoint_create_vm"/>
+        <field name="field_id" ref="generic_request_field.request_stage_field_os"/>
+        <field name="data_field">test_os_field</field>
+        <field name="default_value">ubuntu</field>
+    </record>
+
+</odoo>

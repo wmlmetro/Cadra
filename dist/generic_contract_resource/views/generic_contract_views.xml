@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_generic_contract_form">
+        <field name="model">generic.contract</field>
+        <field name="inherit_id" ref="generic_contract.view_generic_contract_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form//notebook//page[@name='page_description']"
+                   position="after">
+                <page name="page_resource_lines"
+                      string="Resources">
+                    <button title="Add Resource Lines"
+                            class="btn-outline-info mx-1 mb-3"
+                            type="object"
+                            attrs="{'invisible': [('state', '=', 'closed')]}"
+                            name="action_add_resource_line"
+                            icon="fa-plus"/>
+                    <field name="contract_resource_line_ids"
+                           nolabel="1"
+                           context="{'default_contract_id': active_id}">
+                        <tree>
+                            <field name="resource_res_model" invisible="1"/>
+                            <field name="contract_state" invisible="1"/>
+                            <field name="resource_type_id"
+                                   required="1"
+                                   options="{'no_create': true, 'no_quick_create': true}"/>
+                            <field name="resource_res_id"
+                                   widget="generic_m2o"
+                                   class="oe_left"
+                                   model_field="resource_res_model"
+                                   attrs="{'invisible': [('resource_res_model', '=', False)],
+                                           'required': [('resource_res_model', '!=', False)]}"/>
+                            <field name="resource_service_line_count"/>
+                            <field name="datetime_added" string="Added"/>
+                            <button title="Remove"
+                                    class="btn-outline-dark"
+                                    type="object"
+                                    name="action_remove_resource_line"
+                                    attrs="{'invisible': [('contract_state', '!=', 'draft')]}"
+                                    icon="fa-trash"/>
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

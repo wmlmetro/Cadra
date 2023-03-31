@@ -1,0 +1,677 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_action
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:19+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_action/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_action
+#: model:mail.template,body_html:generic_request_action.demo_mail_template_request_created
+msgid ""
+"\n"
+"<p>\n"
+"    Dear <t t-out=\"object.author_id.name or ''\"></t>,\n"
+"</p>\n"
+"<p>\n"
+"    Thanks for creating request <strong><a t-attf-href=\"{{ object."
+"get_mail_url() }}\" target=\"_blank\"><t t-out=\"object.name\"></t></a></"
+"strong>.\n"
+"</p>\n"
+"<p>\n"
+"    You can track <a t-attf-href=\"{{ object.get_mail_url() }}\" target="
+"\"_blank\">here</a> progress of your request.\n"
+"</p>"
+msgstr ""
+"\n"
+"<p>\n"
+"    Sevgili <t t-out=\"object.author_id.name or ''\"></t>,\n"
+"</p>\n"
+"<p>\n"
+"    İstek oluşturduğunuz için teşekkürler <strong><a t-attf-href=\"{{ object."
+"get_mail_url() }}\" target=\"_blank\"><t t-out=\"object.name\""
+"></t></a></strong>.\n"
+"</p>\n"
+"<p>\n"
+"    İsteğinizin ilerlemesini <a t-attf-href=\"{{ object.get_mail_url() }}\" "
+"target=\"_blank\">buradan</a> takip edebilirsiniz.\n"
+"</p>"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_stage_route__action_count
+#: model:ir.model.fields,field_description:generic_request_action.field_request_type__action_count
+msgid "Action Count"
+msgstr "İşlem Sayısı"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__message_needaction
+msgid "Action Needed"
+msgstr "İhtiyaç duyulan eylem"
+
+#. module: generic_request_action
+#: model:request.type,name:generic_request_action.request_type_action
+msgid "Action Request"
+msgstr "İşlem İsteği"
+
+#. module: generic_request_action
+#: model:ir.actions.act_window,name:generic_request_action.action_request_event_actions
+#: model:ir.actions.act_window,name:generic_request_action.action_request_event_global_actions
+#: model:ir.model.fields,field_description:generic_request_action.field_request_stage_route__action_ids
+#: model:ir.model.fields,field_description:generic_request_action.field_request_type__action_ids
+#: model:ir.ui.menu,name:generic_request_action.menu_request_event_action_global_view
+#: model_terms:ir.ui.view,arch_db:generic_request_action.request_type_view_dashboard
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_stage_route_form
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_stage_route_tree
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_type_form
+msgid "Actions"
+msgstr "İşlemler"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__active
+msgid "Active"
+msgstr "Aktif"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__mail_activity_assign_type
+msgid "Activity Assign Type"
+msgstr "Etkinlik Atama Türü"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__mail_activity_activity_type_id
+msgid "Activity Type"
+msgstr "İşlem Türü"
+
+#. module: generic_request_action
+#: model:ir.actions.server,name:generic_request_action.server_action__add_request_resonse_text
+msgid "Add request response text"
+msgstr "İstek yanıt metni ekle"
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_search
+msgid "Archived"
+msgstr "arşivlendi"
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_type__assign
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "Assign"
+msgstr "Ata"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__assign_type
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "Assign Type"
+msgstr "Atama Türü"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__assign_user_id
+msgid "Assign to"
+msgstr "Ata"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__mail_activity_user_id
+msgid "Assigned to"
+msgstr "Atandı"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__mail_activity_user_field_id
+msgid "Assigned to (Field)"
+msgstr "(Alan)'a atandı"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__message_attachment_count
+msgid "Attachment Count"
+msgstr "Ek Sayısı"
+
+#. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__action_id
+msgid ""
+"Bind server action to run when this route is used.\n"
+"Following extra variables will be available in context:\n"
+"- request: instance of request been moved\n"
+"- request_route: instance of route that is used to move request"
+msgstr ""
+"Bu yol kullanıldığında çalıştırılacak sunucu eylemini bağlayın.\n"
+"Aşağıdaki ekstra değişkenler bağlamda mevcut olacaktır:\n"
+"- istek: istek örneği taşındı\n"
+"- request_route: isteği taşımak için kullanılan yol örneği"
+
+#. module: generic_request_action
+#: code:addons/generic_request_action/models/request_event_action.py:0
+#, python-format
+msgid "Cannot use server action that is not bound to 'request.request' model!"
+msgstr "'request.request' modeline bağlı olmayan sunucu eylemi kullanılamaz!"
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_type__kanban_state
+msgid "Change Kanban state"
+msgstr "Kanban durumunu değiştir"
+
+#. module: generic_request_action
+#: model:request.stage,name:generic_request_action.request_stage_type_action_confirmed
+msgid "Confirmed"
+msgstr "Onaylandı"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__create_uid
+msgid "Created by"
+msgstr "Tarafından yaratıldı"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__create_date
+msgid "Created on"
+msgstr "oluşturuldu"
+
+#. module: generic_request_action
+#: code:addons/generic_request_action/models/request_event_action.py:0
+#, python-format
+msgid ""
+"Creating action with only route_id is not allowed anymore. Now it is "
+"required to specify request_type_id and event_type_ids for action."
+msgstr ""
+"Yalnızca route_id ile eylem oluşturmaya artık izin verilmiyor. Şimdi eylem "
+"için request_type_id ve event_type_ids belirtmek gerekiyor."
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__mail_activity_date_delta_uom__days
+msgid "Days"
+msgstr "Günler"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__mail_activity_date_delta_value
+msgid "Deadline"
+msgstr "Son teslim tarihi"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__mail_activity_date_delta_uom
+msgid "Deadline UoM"
+msgstr "Son teslim tarihi ölçü birimi"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__display_name
+msgid "Display Name"
+msgstr "Ekran adı"
+
+#. module: generic_request_action
+#: model:request.stage,name:generic_request_action.request_stage_type_action_draft
+msgid "Draft"
+msgstr "Taslak"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__send_email_template_id
+msgid "Email Template"
+msgstr "E-posta şablonu"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__event_condition_ids
+msgid "Event Conditions"
+msgstr "Etkinlik Koşulları"
+
+#. module: generic_request_action
+#: code:addons/generic_request_action/models/request_event_action.py:0
+#, python-format
+msgid "Event types are required!"
+msgstr "Etkinlik türleri gereklidir!"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__event_type_ids
+msgid "Events"
+msgstr "Olaylar"
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "Events..."
+msgstr "Olaylar..."
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__mail_activity_assign_type__field
+msgid "Field"
+msgstr "Alan"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__message_follower_ids
+msgid "Followers"
+msgstr "Takipçiler"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__message_partner_ids
+msgid "Followers (Partners)"
+msgstr "Takipçiler (Ortaklar)"
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_search
+msgid "Global"
+msgstr "Küresel"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__has_message
+msgid "Has Message"
+msgstr "Mesaj Var"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__helper_request_model_id
+msgid "Helper: ID of request model"
+msgstr "Yardımcı: istek modelinin ID'si"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__message_needaction
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__message_unread
+msgid "If checked, new messages require your attention."
+msgstr "Kontrol edilirse, yeni iletilerle ilgilenmeniz gerekir."
+
+#. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__message_has_error
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__message_has_sms_error
+msgid "If checked, some messages have a delivery error."
+msgstr "Kontrol edilirse, bazı iletilerde teslim hatası vardır."
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__message_is_follower
+msgid "Is Follower"
+msgstr "takipçidir"
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "Kanban state"
+msgstr "Kanban Durumu"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action____last_update
+msgid "Last Modified on"
+msgstr "Son Değiştirme Tarihi"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__write_uid
+msgid "Last Updated by"
+msgstr "Son Güncelleyen"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__write_date
+msgid "Last Updated on"
+msgstr "Son güncelleme tarihi"
+
+#. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__condition_ids
+msgid "List here conditions that request should satisfy to run this action"
+msgstr ""
+"Bu eylemi çalıştırmak için isteğin karşılaması gereken koşulları burada "
+"listeleyin"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__message_main_attachment_id
+msgid "Main Attachment"
+msgstr "Ana Eklenti"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__message_has_error
+msgid "Message Delivery error"
+msgstr "Mesaj Teslim hatası"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__message_ids
+msgid "Messages"
+msgstr "Mesajlar"
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__mail_activity_date_delta_uom__months
+msgid "Months"
+msgstr "Aylar"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__name
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "Name"
+msgstr "İsim"
+
+#. module: generic_request_action
+#: model:mail.template,subject:generic_request_action.demo_mail_template_request_created
+msgid ""
+"New {{object.sudo().type_id.display_name}} created: {{object.display_name}}"
+msgstr ""
+"Yeni {{object.sudo().type_id.display_name}} oluşturuldu: {{object."
+"display_name}}"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__mail_activity_note
+msgid "Note"
+msgstr "Not"
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "Note..."
+msgstr "Not..."
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__message_needaction_counter
+msgid "Number of Actions"
+msgstr "Eylem Sayısı"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__message_has_error_counter
+msgid "Number of errors"
+msgstr "hata sayısı"
+
+#. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__message_needaction_counter
+msgid "Number of messages which requires an action"
+msgstr "İşlem gerektiren mesaj sayısı"
+
+#. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__message_has_error_counter
+msgid "Number of messages with delivery error"
+msgstr "Teslimat hatası olan mesaj sayısı"
+
+#. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__message_unread_counter
+msgid "Number of unread messages"
+msgstr "Okunmamış mesaj sayısı"
+
+#. module: generic_request_action
+#: model:request.stage,name:generic_request_action.request_stage_type_action_rejected
+msgid "Rejected"
+msgstr "Reddedildi"
+
+#. module: generic_request_action
+#: model:ir.model,name:generic_request_action.model_request_request
+msgid "Request"
+msgstr "İstek"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__condition_ids
+msgid "Request Conditions"
+msgstr "İstek Koşulları"
+
+#. module: generic_request_action
+#: model:mail.template,name:generic_request_action.demo_mail_template_request_created
+msgid "Request Created"
+msgstr "İstek Oluşturuldu"
+
+#. module: generic_request_action
+#: model:ir.model,name:generic_request_action.model_request_event_action
+msgid "Request Event Action"
+msgstr "Etkinlik İşlemi İste"
+
+#. module: generic_request_action
+#: model:ir.model,name:generic_request_action.model_request_stage_route
+msgid "Request Stage Route"
+msgstr "İstek Aşaması Rotası"
+
+#. module: generic_request_action
+#: model:ir.model,name:generic_request_action.model_request_type
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__request_type_id
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_search
+msgid "Request Type"
+msgstr "İstek Türü"
+
+#. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__validate_condition_ids
+msgid "Request is valid if all conditions listed here were evaluated to True."
+msgstr ""
+"İstek, burada listelenen tüm koşullar Doğru olarak değerlendirildiyse "
+"geçerlidir."
+
+#. module: generic_request_action
+#: model:generic.condition,name:generic_request_action.condition_event_request_text_is_do_assign
+#: model:generic.condition,name:generic_request_action.condition_request_text_is_do_assign
+msgid "Request text is \"do assign\""
+msgstr "İstek metni \"atayın\"'dır"
+
+#. module: generic_request_action
+#: model:generic.condition,name:generic_request_action.condition_request_text_is_valid
+msgid "Request text is \"valid\""
+msgstr "İstek metni \"geçerli\"'dir"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__route_id
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_search
+msgid "Route"
+msgstr "Rota"
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_search
+msgid "Route specific"
+msgstr "Rotaya özel"
+
+#. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__act_sudo
+msgid "Run this action as superuser"
+msgstr "superuser olarak bu işlemi çalıştır"
+
+#. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__act_sudo_user_id
+msgid "Run this action as user"
+msgstr "kullanıcı olarak bu işlemi çalıştır"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__message_has_sms_error
+msgid "SMS Delivery error"
+msgstr "SMS Teslimat hatası"
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "Schedule Activity"
+msgstr "Etkinlik Planla"
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_type__mail_activity
+msgid "Schedule activity"
+msgstr "Etkinlik Planla"
+
+#. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__mail_activity_user_field_id
+msgid "Select field to get assignee for activity"
+msgstr "Etkinliğe atanan için alan seç"
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_type__send_email
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "Send Email"
+msgstr "E-posta gönder"
+
+#. module: generic_request_action
+#: model:request.stage,name:generic_request_action.request_stage_type_action_sent
+msgid "Sent"
+msgstr "Gönderildi"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__sequence
+msgid "Sequence"
+msgstr "Sıra"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__action_id
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_type__server_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "Server Action"
+msgstr "Sunucu İşlemi"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__kanban_state
+msgid "State"
+msgstr "Durum"
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_type__subscribe
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "Subscribe"
+msgstr "Abone ol"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__subscribe_partner_ids
+msgid "Subscribe partners"
+msgstr "Abone Ortakları"
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_search
+msgid "Sudo"
+msgstr "Sudo"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__act_sudo
+msgid "Sudo action"
+msgstr "Sudo işlemi"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__act_sudo_user_id
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_search
+msgid "Sudo user"
+msgstr "Sudo Kullanıcı"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__mail_activity_summary
+msgid "Summary"
+msgstr "Özet"
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "Summary..."
+msgstr "Özet..."
+
+#. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__event_type_ids
+msgid "This action will be called to handle selected events."
+msgstr "Bu işlem, seçilen olayları işlemek için çağrılacaktır."
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__act_type
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_search
+msgid "Type"
+msgstr "Tür"
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_search
+msgid "Type specific"
+msgstr "Tipe özgü"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__message_unread
+msgid "Unread Messages"
+msgstr "Okunmamış Mesajlar"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__message_unread_counter
+msgid "Unread Messages Counter"
+msgstr "Okunmamış Mesaj Sayacı"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__unsubscribe_prev_assignee
+msgid "Unsubscribe previous assignee"
+msgstr "Önceki atananın aboneliğini iptal et"
+
+#. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__route_id
+msgid ""
+"Used in case of 'stage-move', 'closed', or 'reopened' events. If set, then "
+"this action will be called only when request moved by this route. If no "
+"route selected, then action will be called when request moved by any route"
+msgstr ""
+"'Aşama taşıma', 'kapalı' veya 'yeniden açılan' olaylarda kullanılır. "
+"Ayarlanırsa, bu eylem yalnızca istek bu yoldan taşındığında çağrılır. Rota "
+"seçilmediyse, istek herhangi bir rota tarafından taşındığında işlem çağrılır"
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__assign_type__user
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__mail_activity_assign_type__user
+msgid "User"
+msgstr "Kullanıcı"
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "Validate"
+msgstr "Doğrula"
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_type__validate
+msgid "Validate Request"
+msgstr "İsteği Doğrula"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__validate_condition_ids
+msgid "Validate with conditions"
+msgstr "Koşullarla doğrula"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__validate_error_msg
+msgid "Validation error message"
+msgstr "hata mesajını doğrula"
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__website_message_ids
+msgid "Website Messages"
+msgstr "Web Sitesi Mesajları"
+
+#. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__website_message_ids
+msgid "Website communication history"
+msgstr "Web sitesi iletişim geçmişi"
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__mail_activity_date_delta_uom__weeks
+msgid "Weeks"
+msgstr "Haftalar"
+
+#. module: generic_request_action
+#: code:addons/generic_request_action/models/request_event_action.py:0
+#, python-format
+msgid "Wrong combination of route and request type!"
+msgstr "Rota ve istek türünün yanlış kombinasyonu!"
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "You can use"
+msgstr "Kullanabilirsin"
+
+#. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__mail_activity_note
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__mail_activity_summary
+msgid "You can use jinja2 placeholders in this field"
+msgstr "Bu alanda jinja2 yer tutucularını kullanabilirsiniz"
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "documentation"
+msgstr "dökümantasyon"
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "jinja2"
+msgstr "jinja2"
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid ""
+"placeholders in action fields. For example, use {{request.name}} template to "
+"specify the name of the current request in the Summary field of Scheduled "
+"Activity. For more info, read the"
+msgstr ""
+"işlem alanlarında yer tutucular. Örneğin, Planlanmış Etkinlik'in Özet "
+"alanında geçerli isteğin adını belirtmek için {{request.name}} şablonunu "
+"kullanın. Daha fazla bilgi için, okuyun"
+
+#. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__sequence
+msgid ""
+"this field is used to determine order, in which actions will be executed. "
+"Actions with lower value in this field will be called first."
+msgstr ""
+"Bu alan, işlemlerin hangi sırayla yürütüleceğini belirlemek için kullanılır. "
+"Bu alanda değeri daha düşük olan işlemler önce çağrılır."

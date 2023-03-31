@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="request_sla_rule_type_draft" model="request.sla.rule.type">
+        <field name="name">Draft</field>
+        <field name="code">draft</field>
+    </record>
+    <record id="request_sla_rule_type_unassigned" model="request.sla.rule.type">
+        <field name="name">Unassigned</field>
+        <field name="code">unassigned</field>
+    </record>
+    <record id="request_sla_rule_type_assigned" model="request.sla.rule.type">
+        <field name="name">Assigned</field>
+        <field name="code">assigned</field>
+    </record>
+
+    <record id="request_sla_rule_type_reaction_time" model="request.sla.rule.type">
+        <field name="name">Reaction Time</field>
+        <field name="code">demo-reaction-time</field>
+    </record>
+    <record id="request_sla_rule_type_resolution_time" model="request.sla.rule.type">
+        <field name="name">Resolution Time</field>
+        <field name="code">demo-resolution-time</field>
+    </record>
+
+    <record id="request_sla_rule_type_testing_time" model="request.sla.rule.type">
+        <field name="name">Testing Time</field>
+        <field name="code">demo-testing-time</field>
+    </record>
+</odoo>

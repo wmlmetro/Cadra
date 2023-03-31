@@ -1,0 +1,3 @@
+- Added ability to specify different Working Time (Calendar) for different SLA rules and rule lines
+- Added demo data to demonstrate such complex configuration
+- Bigfix, recompute SLA when category changes (because there may be rule lines that depend on request category)

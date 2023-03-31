@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="inherited_view_request_request_form_inherit_request_resource">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/field[@name='id']" position="after">
+                <field name="resource_required" invisible="1" readonly="1"/>
+                <field name="resource_invisible" invisible="1" readonly="1"/>
+                <field name="resource_res_model" invisible="1"/>
+            </xpath>
+            <xpath expr="//group[@name='group_author']" position="after">
+                <group name="group_resource" class="mb0 mt0">
+                    <group class="mb0 mt0">
+                        <field name="resource_type_id"
+                            options="{'no_create': true, 'no_quick_create': true}"
+                            attrs="{'required': [('resource_required', '=', True)], 'invisible': [('resource_invisible', '=', True)]}"/>
+                    </group>
+                    <group class="mb0 mt0">
+                        <field name="resource_res_id"
+                               widget="generic_m2o"
+                               model_field="resource_res_model"
+                               attrs="{'invisible': ['|', ('resource_res_model', '=', False), ('resource_invisible', '=', True)], 'required': [('resource_required', '=', True)]}"/>
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,49 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_todo_request
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 14.0\n"
+"Report-Msgid-Bugs-To: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: generic_todo_request
+#: model_terms:ir.ui.view,arch_db:generic_todo_request.view_request_request_form
+msgid "Add Template Todo"
+msgstr ""
+
+#. module: generic_todo_request
+#: model:ir.model.fields,field_description:generic_todo_request.field_request_request__display_name
+msgid "Display Name"
+msgstr ""
+
+#. module: generic_todo_request
+#: model:ir.model.fields,field_description:generic_todo_request.field_request_request__id
+msgid "ID"
+msgstr ""
+
+#. module: generic_todo_request
+#: model:ir.model.fields,field_description:generic_todo_request.field_request_request____last_update
+msgid "Last Modified on"
+msgstr ""
+
+#. module: generic_todo_request
+#: model:ir.model,name:generic_todo_request.model_request_request
+msgid "Request"
+msgstr ""
+
+#. module: generic_todo_request
+#: model_terms:ir.ui.view,arch_db:generic_todo_request.view_request_request_form
+msgid "Todo"
+msgstr ""
+
+#. module: generic_todo_request
+#: model:ir.model.fields,field_description:generic_todo_request.field_request_request__generic_todo_ids
+msgid "Todos"
+msgstr ""

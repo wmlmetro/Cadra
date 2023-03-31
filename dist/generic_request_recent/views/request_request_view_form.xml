@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="ext_request_request_view_form" model="ir.ui.view">
+        <field name="model">request.request</field>
+        <field name="priority" eval="20"/>
+        <field name="inherit_id"
+               ref="generic_request.view_request_request_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Recent requests"
+                      attrs="{'invisible': [('recent_related_request_ids', '&lt;', 1)]}">
+                    <field name="recent_related_request_ids" mode="tree">
+                        <tree>
+                            <field name="id" invisible="1"/>
+                            <field name="date_created"/>
+                            <field name="name"/>
+                            <field name="author_id"/>
+                            <field name="partner_id"/>
+                            <field name="user_id"/>
+                            <field name="service_id"
+                                   groups="generic_request.group_request_use_services"/>
+                            <field name="category_id"/>
+                            <field name="type_id"/>
+                            <field name="request_text_sample"
+                                   widget="dynamic_popover_text"
+                                   options="{'max_width': '350px', 'line_clamp': '3'}"/>
+                            <field name="stage_id"
+                                   options="{'field_bg_color': 'stage_bg_color', 'field_label_color': 'stage_label_color'}"/>
+                            <button string="Open"
+                                    name="action_open_request_form_view"
+                                    icon="fa-external-link" type="object"/>
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,109 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_assignment_hr
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 13.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-07-27 15:58+0000\n"
+"PO-Revision-Date: 2023-01-06 12:31+0000\n"
+"Last-Translator: François LAGARDE <f.lagarde@groupe-alliance.com>\n"
+"Language-Team: French <http://weblate.crnd.pro/projects/bureaucrat-itsm-15-0/"
+"generic_assignment_hr/fr/>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields.selection,name:generic_assignment_hr.selection__generic_assign_policy_rule__assign_department_sort_direction__asc
+msgid "Ascending"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields,field_description:generic_assignment_hr.field_generic_assign_policy_rule__assign_department_choice_condition_ids
+msgid "Assign Department Choice Condition"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields,field_description:generic_assignment_hr.field_generic_assign_policy_rule__assign_department_choice_type
+msgid "Assign Department Choice Type"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields,field_description:generic_assignment_hr.field_generic_assign_policy_rule__assign_department_sort_direction
+msgid "Assign Department Sort Direction"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields,field_description:generic_assignment_hr.field_generic_assign_policy_rule__assign_department_sort_field_id
+msgid "Assign Department Sort Field"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model,name:generic_assignment_hr.model_generic_assign_policy_rule
+msgid "Assignment Policy Rule"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model_terms:ir.ui.view,arch_db:generic_assignment_hr.view_generic_assign_policy_rule_hr_form
+msgid "Choice conditions"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model_terms:ir.ui.view,arch_db:generic_assignment_hr.view_generic_assign_policy_rule_hr_form
+msgid "Choice type"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields,field_description:generic_assignment_hr.field_generic_assign_policy_rule__assign_department_id
+msgid "Department"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields.selection,name:generic_assignment_hr.selection__generic_assign_policy_rule__assign_type__department_employee
+msgid "Department Employee"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields.selection,name:generic_assignment_hr.selection__generic_assign_policy_rule__assign_type__department_manager
+msgid "Department Manager"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields.selection,name:generic_assignment_hr.selection__generic_assign_policy_rule__assign_department_sort_direction__desc
+msgid "Descending"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields.selection,name:generic_assignment_hr.selection__generic_assign_policy_rule__assign_department_choice_type__first
+msgid "First"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields,field_description:generic_assignment_hr.field_generic_assign_policy_rule__assign_department_job_id
+msgid "Job"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields.selection,name:generic_assignment_hr.selection__generic_assign_policy_rule__assign_department_choice_type__random
+msgid "Random"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model_terms:ir.ui.view,arch_db:generic_assignment_hr.view_generic_assign_policy_rule_hr_form
+msgid "Sort direction"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model_terms:ir.ui.view,arch_db:generic_assignment_hr.view_generic_assign_policy_rule_hr_form
+msgid "Sort field"
+msgstr ""
+
+#. module: generic_assignment_hr
+#: model:ir.model.fields,field_description:generic_assignment_hr.field_generic_assign_policy_rule__assign_type
+msgid "Type"
+msgstr "Type"

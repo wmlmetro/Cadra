@@ -1,0 +1,55 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_action_tag
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:19+0000\n"
+"PO-Revision-Date: 2023-02-28 17:32+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_action_tag/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_action_tag
+#: model_terms:ir.ui.view,arch_db:generic_request_action_tag.view_request_event_action_tag_form
+msgid "Add"
+msgstr "Ekle"
+
+#. module: generic_request_action_tag
+#: model_terms:ir.ui.view,arch_db:generic_request_action_tag.view_request_event_action_tag_form
+msgid "Remove"
+msgstr "Kaldırmak"
+
+#. module: generic_request_action_tag
+#: model:ir.model,name:generic_request_action_tag.model_request_event_action
+msgid "Request Event Action"
+msgstr "Etkinlik İşlemi İste"
+
+#. module: generic_request_action_tag
+#: model:ir.model.fields.selection,name:generic_request_action_tag.selection__request_event_action__act_type__tag
+#: model_terms:ir.ui.view,arch_db:generic_request_action_tag.view_request_event_action_tag_form
+msgid "Tag"
+msgstr "Etiket"
+
+#. module: generic_request_action_tag
+#: model:ir.model.fields,field_description:generic_request_action_tag.field_request_event_action__tag_add_tag_ids
+msgid "Tag Add Tag"
+msgstr "Etiket Ekle Etiket"
+
+#. module: generic_request_action_tag
+#: model:ir.model.fields,field_description:generic_request_action_tag.field_request_event_action__tag_remove_tag_ids
+msgid "Tag Remove Tag"
+msgstr "Etiket Kaldır Etiket"
+
+#. module: generic_request_action_tag
+#: model:ir.model.fields,field_description:generic_request_action_tag.field_request_event_action__act_type
+msgid "Type"
+msgstr "Tür"

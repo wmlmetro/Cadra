@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="wsd_requests_fields"
+              inherit_id="crnd_wsd.wsd_request_body"
+              name="Display Fields"
+              customize_show="True"
+              active="True">
+        <xpath expr="//div[@id='request-body-text']" position="after">
+            <div t-if="req.value_ids" id="request-body-fields" class="col-md-12">
+                <h4 class="wsd_request header-separator">
+                    <span class="wsd_request header-bg-filler">Data</span>
+                    <span class="header-separator-splitter"/>
+                </h4>
+                <div class="row">
+                    <t t-foreach="req.value_ids" t-as="value">
+                        <div t-attf-class="{{ value.field_id.grid_classes or 'col-md-4' }}">
+                            <strong t-out="value.field_id.name"/><span class="mr4">:</span>
+                            <span t-out="value.value"/>
+                        </div>
+                    </t>
+
+
+                </div>
+            </div>
+        </xpath>
+    </template>
+
+    <template id="crnd_wsd_field_fields_form_body">
+        <div t-attf-class="{{ request_field.grid_classes or 'col-md-4' }} {{'has-error' if request_field.website_name in validation_errors.keys() else ''}}">
+            <label t-att-for="request_field.website_name"
+                   t-att="{'title': request_field.field_help} if request_field.field_help else {}"
+                   class="control-label mb0">
+                <t t-esc="request_field.name"/>
+                <t t-if="request_field.mandatory">*</t>
+            </label>
+            <input t-att="request_field.get_website_field_attrs()"
+                   t-att-value="request_field_values.get(request_field.website_name, '')"
+                   class="form-control form-control-sm"/>
+            <small class="form-text text-muted mt0 mb4"
+                    t-if="request_field.field_help"
+                    t-esc="request_field.field_help"/>
+        </div>
+    </template>
+
+    <template id="wsd_requests_new_request_data_extra_fields"
+              inherit_id="crnd_wsd.wsd_requests_new_request_data"
+              name="Request Fields"
+              customize_show="True"
+              active="True">
+        <xpath expr="//section[@id='request-body']" position="before">
+            <div class="col-sm-12" t-if="request_fields_has_required">
+                <small class="text-muted">* - required fields</small>
+            </div>
+            <div t-if="request_fields_top" id="request-data-fields-top" class="col-sm-12 row">
+                <t t-foreach="request_fields_top" t-as="request_field">
+                    <t t-call="crnd_wsd_field.crnd_wsd_field_fields_form_body"/>
+                </t>
+            </div>
+            <div t-if="request_fields_top" class="oe_structure col-sm-12"/>
+        </xpath>
+        <xpath expr="//section[@id='request-body']" position="after">
+            <div t-if="request_fields_bottom" id="request-data-fields-bottom" class="col-sm-12 row">
+                <t t-foreach="request_fields_bottom" t-as="request_field">
+                    <t t-call="crnd_wsd_field.crnd_wsd_field_fields_form_body"/>
+                </t>
+            </div>
+            <div t-if="request_fields_bottom" class="oe_structure col-sm-12"/>
+        </xpath>
+    </template>
+
+</odoo>

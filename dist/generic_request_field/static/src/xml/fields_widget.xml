@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+<div t-name="RequestFields.widget.readonly" class="o_request_fields_widget">
+    <div class="row">
+        <t t-foreach="value.fields_order" t-as="field_id">
+            <div t-attf-class="request_field_container {{ value.fields_info[field_id]['grid_classes'] }}">
+                <label class="request_field_label">
+                    <t t-esc="value.fields_info[field_id]['name']"/>:
+                </label>
+                <span class="request_field_value">
+                    <t t-esc="value.fields_info[field_id]['value']"/>
+                </span> 
+            </div>
+        </t>
+    </div>
+</div>
+
+<div t-name="RequestFields.widget.edit" class="o_request_fields_widget">
+    <div class="row">
+        <t t-foreach="value.fields_order" t-as="field_id">
+            <t t-set="field_info" t-value="value.fields_info[field_id]"/>
+            <t t-if="field_info['mandatory']">
+                <t t-set="field_required_class" t-value="'o_required_modifier'"/>
+            </t>
+            <t t-else="">
+                <t t-set="field_required_class" t-value="''"/>
+            </t>
+            <div t-attf-class="request_field_container {{ field_info['grid_classes'] }} {{ field_required_class }}">
+                <label class="request_field_label" t-attf-title="{{ value.fields_info[field_id]['help'] or '' }}">
+                    <t t-esc="value.fields_info[field_id]['name']"/>:
+                </label>
+                <input t-attf-id="request_field_{{field_id}}"
+                       t-attf-name="request_field_{{field_id}}"
+                       t-attf-class="request_field_value o_input"
+                       t-attf-data-field_id="{{field_id}}"
+                       t-att-value="value.fields_info[field_id]['value']"
+                       t-attf-placeholder="{{value.fields_info[field_id]['placeholder'] or ''}}"/>
+            </div>
+        </t>
+    </div>
+</div>
+
+</templates>

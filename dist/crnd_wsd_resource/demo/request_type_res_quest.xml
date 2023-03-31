@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="request_type_resource_question" model="request.type">
+        <field name="name">Resource Question</field>
+        <field name="code">resource_question</field>
+        <field name="description">Generic questions about resources</field>
+        <field name="note_html"><![CDATA[
+            <p align="left" style="color: #BB7733>Do not forget to select resource.</p>
+        ]]></field>
+        <field name="website_published" eval="True"/>
+        <field name="resource_type_ids"
+              eval="[(4, ref('generic_resource.generic_resource_type_default'))]"/>
+        <field name="category_ids" eval="[(4, ref('crnd_wsd.request_category_demo_website_support')), (4, ref('crnd_wsd.request_category_demo_website_general'))]"/>
+    </record>
+
+    <!-- Generic request type stages -->
+    <record id="request_stage_type_resource_question_new" model="request.stage">
+        <field name="sequence" eval="1"/>
+        <field name="name">New</field>
+        <field name="code">new</field>
+        <field name="request_type_id" ref="request_type_resource_question"/>
+    </record>
+    <record id="request_stage_type_resource_question_closed" model="request.stage">
+        <field name="sequence" eval="2"/>
+        <field name="name">Closed</field>
+        <field name="code">closed</field>
+        <field name="closed" eval="True"/>
+        <field name="request_type_id" ref="request_type_resource_question"/>
+    </record>
+
+    <!-- Generic request type routes -->
+    <record id="request_stage_route_type_resource_question_new_to_closed"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_resource_question_new"/>
+        <field name="stage_to_id" ref="request_stage_type_resource_question_closed"/>
+        <field name="request_type_id" ref="request_type_resource_question"/>
+    </record>
+</odoo>

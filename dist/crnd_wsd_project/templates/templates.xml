@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <template id="wsd_requests_project"
+              inherit_id="crnd_wsd.wsd_request_body"
+              name="Display Project tasks"
+              customize_show="True"
+              active="True">
+        <xpath expr="//div[@id='request-body-response']" position="after">
+            <t t-if="request_tasks_grouped">
+                <div id="request-body-project-task" class="col-md-12">
+                    <h4 class="wsd_request header-separator">
+                        <span class="wsd_request header-bg-filler">Related Tasks</span>
+                        <span class="header-separator-splitter"/>
+                    </h4>
+                    <t t-foreach="request_tasks_grouped" t-as="project">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th class="">
+                                        Project: <a t-attf-href="/my/project/{{project.id}}" t-esc="project.name"/>
+                                    </th>
+                                    <th class="">
+                                        Stage
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="request_tasks_grouped[project]" t-as="task">
+                                <tr>
+                                    <td>
+                                       <a t-attf-href="/my/task/{{task.id}}">
+                                           <t t-esc="task.name"/>
+                                       </a>
+                                    </td>
+                                    <td>
+                                       <span class="label label-info"><t t-esc="task.stage_id.name"/></span>
+                                    </td>
+                               </tr>
+                               </t>
+                            </tbody>
+                        </table>
+                    </t>
+                </div>
+            </t>
+        </xpath>
+    </template>
+
+    <template id="wsd_requests_project_table"
+              inherit_id="crnd_wsd.wsd_request_table"
+              name="Display Project tasks"
+              customize_show="True"
+              active="True">
+        <xpath expr="//span[hasclass('request-shortcuts')]" position="inside">
+            <t t-if="req.project_task_ids">
+                <a t-attf-href="/requests/request/{{req.id}}#request-body-project-task"
+                   title="Tasks"
+                   class="fa fa-briefcase mr4">
+                </a>
+            </t>
+        </xpath>
+    </template>
+
+    <template id="portal_my_task_project"
+              inherit_id="project.portal_my_task"
+              name="Display Project tasks"
+              customize_show="True"
+              active="True">
+        <xpath expr="//div[./a[@t-field='task.project_id']]" position="after">
+            <div t-if="task.request_id" class="mb8">
+                <strong>Request:</strong>
+                   <a t-if="not request_access_denied" t-attf-href="/requests/request/{{task.request_id.id}}"><t t-esc="task.sudo().request_id.name"/></a>
+                <span t-if="request_access_denied" t-esc="task.sudo().request_id.name"/>
+            </div>
+        </xpath>
+    </template>
+</odoo>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="wsd_legal_requests_new_request_data"
+              inherit_id="crnd_wsd.wsd_requests_new_request_data">
+        <xpath expr="//form[@id='form_request_text']//div[@id='request-form-footer-controls']"
+               position="before">
+            <div class="col-sm-12 text-center">
+                <t t-if="term_and_conditions_required">
+                    <input id="terms_and_conditions"
+                           name="terms_and_conditions"
+                           type="checkbox">
+                        <label t-if="terms_and_conditions_url"
+                               for="terms_and_conditions"
+                               class="ml8">Accept
+                            <a t-att-href="terms_and_conditions_url" target="_blank">terms and conditions</a>
+                        </label>
+                        <label t-else=""
+                               for="terms_and_conditions"
+                               class="ml8">Accept terms and conditions
+                        </label>
+                    </input>
+                </t>
+            </div>
+        </xpath>
+    </template>
+</odoo>

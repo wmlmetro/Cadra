@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+   <record model="ir.ui.view" id="view_request_event_action_tag_form">
+        <field name="name">view.request.event.action.form</field>
+        <field name="model">request.event.action</field>
+       <field name="inherit_id" ref="generic_request_action.view_request_event_action_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook/page[@name='page_action_mail_activity']" position="after">
+               <page name="page_action_tag"
+                     string="Tag"
+                     attrs="{'invisible': [('act_type', '!=', 'tag')]}">
+                   <group>
+                       <field name="tag_add_tag_ids"
+                              widget="many2many_tags"
+                              string="Add"
+                       />
+                       <field name="tag_remove_tag_ids"
+                              widget="many2many_tags"
+                              string="Remove"
+                       />
+                   </group>
+               </page>
+            </xpath>
+        </field>
+   </record>
+</odoo>

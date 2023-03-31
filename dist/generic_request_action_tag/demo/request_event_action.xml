@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+
+    <!-- Action: add tag on creation -->
+    <record id="request_event_action_add_tag_on_create"
+            model="request.event.action">
+        <field name="name">Add tags when request created</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_system_event.system_event_record_created'))]"/>
+        <field name="request_type_id" ref="generic_request_action.request_type_action"/>
+        <field name="act_type">tag</field>
+        <field name="tag_add_tag_ids" eval="[(4, ref('generic_request.tag_platform_linux')), (4, ref('generic_request.tag_priority_medium'))]"/>
+    </record>
+    <!-- Action: remove tag on stage change -->
+    <record id="request_event_action_remove_tag_on_stage_changed"
+            model="request.event.action">
+        <field name="name">Remove tag when stage changed</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_request.request_event_type_stage_changed'))]"/>
+        <field name="request_type_id" ref="generic_request_action.request_type_action"/>
+        <field name="act_type">tag</field>
+        <field name="tag_remove_tag_ids" eval="[(4, ref('generic_request.tag_priority_medium'))]"/>
+    </record>
+</odoo>

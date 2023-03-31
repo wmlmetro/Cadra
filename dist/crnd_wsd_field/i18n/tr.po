@@ -1,0 +1,63 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* crnd_wsd_field
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:18+0000\n"
+"PO-Revision-Date: 2023-03-07 12:45+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/crnd_wsd_field/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: crnd_wsd_field
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_field.wsd_requests_new_request_data_extra_fields
+msgid "<small class=\"text-muted\">* - required fields</small>"
+msgstr "<small class=\"text-muted\">* - gerekli alanlar</small>"
+
+#. module: crnd_wsd_field
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_field.wsd_requests_fields
+msgid "<span class=\"mr4\">:</span>"
+msgstr "<span class=\"mr4\">:</span>"
+
+#. module: crnd_wsd_field
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_field.wsd_requests_fields
+msgid ""
+"<span class=\"wsd_request header-bg-filler\">Data</span>\n"
+"                    <span class=\"header-separator-splitter\"/>"
+msgstr ""
+"<span class=\"wsd_request header-bg-filler\">Veriler</span>\n"
+"                    <span class=\"header-separator-splitter\"/>"
+
+#. module: crnd_wsd_field
+#: code:addons/crnd_wsd_field/controllers/main.py:0
+#, python-format
+msgid "Fill mandatory field %s!"
+msgstr "%s zorunlu alanını doldurun!"
+
+#. module: crnd_wsd_field
+#: model:ir.model.fields,help:crnd_wsd_field.field_request_field__website_name
+msgid ""
+"Name of field in website form. Based on field code. This is helper field to "
+"simplify code that will process request fields on website."
+msgstr ""
+"Web sitesi formundaki alanın adı. Alan koduna göre. Bu, web sitesindeki "
+"istek alanlarını işleyecek kodu basitleştirmek için yardımcı alandır."
+
+#. module: crnd_wsd_field
+#: model:ir.model,name:crnd_wsd_field.model_request_field
+msgid "Request Field"
+msgstr "Talep Alanı"
+
+#. module: crnd_wsd_field
+#: model:ir.model.fields,field_description:crnd_wsd_field.field_request_field__website_name
+msgid "Website Name"
+msgstr "Web Sitesi Adı"

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--Create sub menu-->
+    <menuitem name="Services"
+              id="menu_request_service"
+              parent="generic_request.menu_configuration_requests"
+              groups="generic_request.group_request_use_services"
+              sequence="1"
+              action="generic_service.generic_service_action"/>
+
+</odoo>

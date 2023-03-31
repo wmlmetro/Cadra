@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_generic_assign_policy_rule_team_hr_holidays_form">
+        <field name="name">view.generic.assign.policy.rule.hr.form</field>
+        <field name="model">generic.assign.policy.rule</field>
+        <field name="inherit_id" ref="generic_assignment_team.view_generic_assign_policy_rule_team_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet//field[@name='assign_team_sort_direction']"
+                   position="after">
+                <field name="assign_team_member_filter_out_leaves"
+                       attrs="{'invisible': [('assign_type', '!=', 'team_member')]}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Enable Use services by default when service desk is installed -->
+    <record id="base.group_user" model="res.groups">
+        <field name="implied_ids"
+               eval="[(4, ref('generic_request.group_request_use_services'))]"/>
+    </record>
+    <record id="base.group_portal" model="res.groups">
+        <field name="implied_ids"
+               eval="[(4, ref('generic_request.group_request_use_services'))]"/>
+    </record>
+    <record id="base.group_public" model="res.groups">
+        <field name="implied_ids"
+               eval="[(4, ref('generic_request.group_request_use_services'))]"/>
+    </record>
+</odoo>

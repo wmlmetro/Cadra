@@ -1,0 +1,211 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_resource_timesheet
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:21+0000\n"
+"PO-Revision-Date: 2023-02-28 17:32+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_resource_timesheet/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__active
+msgid "Active"
+msgstr "Aktif"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__activity_id
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_timesheet_line_view_search
+msgid "Activity"
+msgstr "Aktivite"
+
+#. module: generic_resource_timesheet
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_timesheet_activity_view_form
+msgid "Activity description..."
+msgstr "Etkinlik açıklaması..."
+
+#. module: generic_resource_timesheet
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_timesheet_activity_view_form
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_timesheet_activity_view_search
+msgid "Archived"
+msgstr "arşivlendi"
+
+#. module: generic_resource_timesheet
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_timesheet_line_view_calendar
+msgid "Calendar"
+msgstr "Takvim"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__color
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__color
+msgid "Color"
+msgstr "Renk"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource__timesheet_line_count
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_simple__timesheet_line_count
+msgid "Count of Timesheets"
+msgstr "Zaman Çizelgelerinin Sayısı"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__create_uid
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__create_uid
+msgid "Created by"
+msgstr "Tarafından yaratıldı"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__create_date
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__create_date
+msgid "Created on"
+msgstr "oluşturuldu"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__date_start
+msgid "Date Start"
+msgstr "Başlangıç Tarihi"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__date_stop
+msgid "Date Stop"
+msgstr "Tarih Durdur"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__description
+msgid "Description"
+msgstr "Tanım"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__display_name
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__display_name
+msgid "Display Name"
+msgstr "Ekran adı"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__doc_id
+msgid "Document"
+msgstr "Belge"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,help:generic_resource_timesheet.field_generic_resource_timesheet_line__doc_id
+msgid "Document that have generated this line."
+msgstr "Bu satırı oluşturan belge."
+
+#. module: generic_resource_timesheet
+#: model:ir.model,name:generic_resource_timesheet.model_generic_resource
+msgid "Generic Resource"
+msgstr "Genel Kaynak"
+
+#. module: generic_resource_timesheet
+#: model:ir.model,name:generic_resource_timesheet.model_generic_resource_timesheet_activity
+msgid "Generic Resource Timesheet Activity"
+msgstr "Genel Kaynak Zaman Çizelgesi Etkinliği"
+
+#. module: generic_resource_timesheet
+#: model:ir.model,name:generic_resource_timesheet.model_generic_resource_timesheet_line
+msgid "Generic Resource Timesheet Line"
+msgstr "Genel Kaynak Zaman Çizelgesi Satırı"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__resource_id
+msgid "Generic resource"
+msgstr "Genel Kaynak"
+
+#. module: generic_resource_timesheet
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_timesheet_line_view_search
+msgid "Group by..."
+msgstr "Gruplandır..."
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__id
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity____last_update
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line____last_update
+msgid "Last Modified on"
+msgstr "Son Değiştirme Tarihi"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__write_uid
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__write_uid
+msgid "Last Updated by"
+msgstr "Son Güncelleyen"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__write_date
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__write_date
+msgid "Last Updated on"
+msgstr "Son güncelleme tarihi"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__model_id
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__doc_model
+msgid "Model"
+msgstr "Model"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__name
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_timesheet_activity_view_form
+msgid "Name"
+msgstr "İsim"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__resource_res_id
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_timesheet_line_view_search
+msgid "Resource"
+msgstr "Kaynak"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__resource_res_model
+msgid "Resource model"
+msgstr "Kaynak Modeli"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_line__resource_type_id
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_timesheet_line_view_search
+msgid "Resource type"
+msgstr "Kaynak Türü"
+
+#. module: generic_resource_timesheet
+#: model:ir.actions.act_window,name:generic_resource_timesheet.generic_resource_timesheet_line_action
+#: model:ir.ui.menu,name:generic_resource_timesheet.generic_resource_timesheet_config_menu
+#: model:ir.ui.menu,name:generic_resource_timesheet.generic_resource_timesheet_line_menu
+#: model:ir.ui.menu,name:generic_resource_timesheet.generic_resource_timesheet_menu
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_form_view_timesheet
+#: model_terms:ir.ui.view,arch_db:generic_resource_timesheet.generic_resource_timesheet_activity_view_form
+msgid "Timesheet"
+msgstr "Zaman Çizelgesi"
+
+#. module: generic_resource_timesheet
+#: model:ir.actions.act_window,name:generic_resource_timesheet.generic_resource_timesheet_activity_action
+#: model:ir.ui.menu,name:generic_resource_timesheet.generic_resource_timesheet_activity_menu
+msgid "Timesheet Activity"
+msgstr "Zaman Çizelgesi Etkinliği"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__timesheet_line_count
+msgid "Timesheet Line Count"
+msgstr "Zaman Çizelgesi Satır Sayısı"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_timesheet_activity__timesheet_line_ids
+msgid "Timesheet Lines"
+msgstr "Zaman Çizelgesi Satırları"
+
+#. module: generic_resource_timesheet
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource__timesheet_line_ids
+#: model:ir.model.fields,field_description:generic_resource_timesheet.field_generic_resource_simple__timesheet_line_ids
+msgid "Timesheets"
+msgstr "Zaman Çizelgeleri"

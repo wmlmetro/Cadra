@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="edit_project" model="ir.ui.view">
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.edit_project"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button class="oe_stat_button" name="action_button_show_project_requests" type="object"
+                        icon="fa-comments-o">
+                    <field string="Requests" name="request_count" widget="statinfo"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_project_kanban" model="ir.ui.view">
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.view_project_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='label_tasks']" position="after">
+                <field name="request_count"/>
+            </xpath>
+            <xpath expr="//div[hasclass('o_project_kanban_boxes')]" position="inside">
+                <a class="o_project_kanban_box" name="action_button_show_project_requests" type="object">
+                    <div>
+                        <span class="o_value"><t t-esc="record.request_count.value"/></span>
+                        <span class="o_label">Requests</span>
+                    </div>
+                </a>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_request_form">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form/field[1]" position="after">
+                <field name="value_ids" invisible="1" readonly="1"/>
+                <field name="request_has_fields_top" invisible="1"/>
+                <field name="request_has_fields_bottom" invisible="1"/>
+            </xpath>
+            <xpath expr="//field[@name='request_text']" position="before">
+                <field name="request_fields_json_top"
+                       widget="request_fields"
+                       class="mb0"
+                       attrs="{'invisible': [('request_has_fields_top', '=', False)]}"/>
+                <div class="request-separator request-separator-fields-top mb8 mt0"
+                     name="request_text_separator"
+                     attrs="{'invisible': [('request_has_fields_top', '=', False)]}"/>
+            </xpath>
+            <xpath expr="//field[@name='request_text']" position="after">
+                <div class="request-separator request-separator-fields-bottom mb8 mt0"
+                     name="request_text_separator"
+                     attrs="{'invisible': [('request_has_fields_bottom', '=', False)]}"/>
+                <field name="request_fields_json_bottom"
+                       widget="request_fields"
+                       attrs="{'invisible': [('request_has_fields_bottom', '=', False)]}"/>
+            </xpath>
+        </field>
+    </record>
+    <record model="ir.ui.view" id="view_request_request_search">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_search"/>
+        <field name="arch" type="xml">
+            <search>
+                <field name="value_ids"
+                       string="Field Values"
+                       filter_domain="[('value_ids.value', 'ilike', self)]"/>
+            </search>
+        </field>
+    </record>
+</odoo>

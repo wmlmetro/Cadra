@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_generic_contract_form">
+        <field name="model">generic.contract</field>
+        <field name="inherit_id" ref="generic_contract_resource.view_generic_contract_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form//notebook//page[@name='page_resource_lines']//field[@name='contract_resource_line_ids']/tree//field[@name='resource_res_id']"
+                   position="after">
+                <field name="resource_role_link_count"/>
+                <button class="oe_stat_button"
+                        icon="fa-user"
+                        name="action_view_contract_resource_line_role_links"
+                        type="object"
+                        string="Roles"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

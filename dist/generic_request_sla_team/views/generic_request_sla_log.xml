@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="e_request_sla_log_view_tree">
+        <field name="name">e.request.sla.log.view.tree</field>
+        <field name="inherit_id" ref="generic_request_sla_log.request_sla_log_view_tree"/>
+        <field name="model">request.sla.log</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='assignee_id']" position="after">
+                <field name="team_id"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="1_request_sla_log_view_search">
+        <field name="name">1.request.sla.log.view.search</field>
+        <field name="inherit_id" ref="generic_request_sla_log.request_sla_log_view_search"/>
+        <field name="model">request.sla.log</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='assignee_id']" position="after">
+                <field name="team_id"/>
+            </xpath>
+            <xpath expr="//group[@name='group_group_by']" position="inside">
+                <filter name="group_by_team" string="Team" context="{'group_by': 'team_id'}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

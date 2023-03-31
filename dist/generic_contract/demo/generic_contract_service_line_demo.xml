@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Basic support contract -->
+    <record id="contract_service_line_1" model="generic.contract.service.line">
+        <field name="service_id" ref="generic_service.generic_service_support_consulting"/>
+        <field name="service_level_id" ref="generic_service.generic_service_level_1"/>
+        <field name="contract_id" ref="generic_contract.contract_basic_support"/>
+    </record>
+
+    <!-- Simple support contract -->
+    <record id="simple_contract_service_line_2" model="generic.contract.service.line">
+        <field name="service_id" ref="generic_service.generic_service_support_development"/>
+        <field name="service_level_id" ref="generic_service.generic_service_level_3"/>
+        <field name="contract_id" ref="generic_contract.generic_contract_simple_customer_contract"/>
+    </record>
+
+</odoo>

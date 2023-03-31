@@ -1,0 +1,444 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_related_doc
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:20+0000\n"
+"PO-Revision-Date: 2023-02-28 17:32+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_related_doc/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_related_doc
+#: model_terms:ir.ui.view,arch_db:generic_request_related_doc.iherited_view_request_request_kanban_inherit_request_parent
+msgid "<span title=\"Related documents\" class=\"fa fa-folder mr4\"/>"
+msgstr "<span title=\"Related documents\" class=\"fa fa-folder mr4\"/>"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__access_ids
+msgid "Access"
+msgstr "Erişim"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__request_action_name
+msgid "Action Name"
+msgstr "İşlem Adı"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__active
+msgid "Active"
+msgstr "Aktif"
+
+#. module: generic_request_related_doc
+#: model_terms:ir.ui.view,arch_db:generic_request_related_doc.view_request_related_document_type_form
+msgid "Archived"
+msgstr "arşivlendi"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__assignment_model_ids
+msgid "Assignment Model"
+msgstr "Atama Modeli"
+
+#. module: generic_request_related_doc
+#: model:ir.model.constraint,message:generic_request_related_doc.constraint_request_related_document_doc_unique
+msgid "Can be one unique document!"
+msgstr "Tek bir benzersiz belge olabilir!"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__comment
+msgid "Comment"
+msgstr "Yorum"
+
+#. module: generic_request_related_doc
+#: model_terms:ir.ui.view,arch_db:generic_request_related_doc.view_request_related_document_form
+msgid "Comment..."
+msgstr "Yorum..."
+
+#. module: generic_request_related_doc
+#: model:request.related.document.type,name:generic_request_related_doc.related_document_type__res_partner
+msgid "Contact"
+msgstr "Sözleşme"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__count
+msgid "Count (Incl. Archived)"
+msgstr "Sayım (Arşivlenenler Dahil)"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__create_uid
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__create_uid
+msgid "Created by"
+msgstr "Tarafından yaratıldı"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__create_date
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__create_date
+msgid "Created on"
+msgstr "oluşturuldu"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__display_name
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__display_name
+msgid "Display Name"
+msgstr "Ekran adı"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__doc_id
+msgid "Document"
+msgstr "Belge"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__model_id
+msgid "Document Model"
+msgstr "Belge Modeli"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__doc_type_id
+msgid "Document Type"
+msgstr "Belge Türü"
+
+#. module: generic_request_related_doc
+#: model:ir.actions.act_window,name:generic_request_related_doc.action_doc_in_request
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_request__related_doc_ids
+msgid "Documents"
+msgstr "Belgeler"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_request__related_docs_count
+msgid "Documents Count"
+msgstr "Belge Sayısı"
+
+#. module: generic_request_related_doc
+#: model:request.stage,name:generic_request_related_doc.request_stage_type_sale_problem_draft
+msgid "Draft"
+msgstr "Taslak"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__field_id
+msgid "Fields"
+msgstr "Alanlar"
+
+#. module: generic_request_related_doc
+#: model:request.stage,name:generic_request_related_doc.request_stage_type_sale_problem_fixed
+msgid "Fixed"
+msgstr "düzeltildi"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__resource_type_id
+msgid "Generic Resource Type"
+msgstr "Genel Kaynak Türü"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__resource_type_ids
+msgid "Generic Resource Types"
+msgstr "Genel Kaynak Türleri"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__system_event_source_id
+msgid "Generic System Event Source"
+msgstr "Genel Sistem Olay Kaynağı"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__system_event_source_ids
+msgid "Generic System Event Sources"
+msgstr "Genel Sistem Olay Kaynakları"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__request_action_toggle
+msgid "Has Context Action"
+msgstr "Bağlam İşlemi Var"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__id
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_request_related_doc
+#: model_terms:request.request,help_html:generic_request_related_doc.request_request_type_sale_problem_demo_1
+#: model_terms:request.type,help_html:generic_request_related_doc.request_type_sale_problem
+msgid ""
+"If you have some troubles with sale_orders then use this request type\n"
+"\n"
+"             It have routes:"
+msgstr ""
+"sale_orders ile ilgili bazı sorunlarınız varsa, bu istek türünü kullanın\n"
+"\n"
+"              Rotaları var:"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__modules
+msgid "In Apps"
+msgstr "Uygulamalarda"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__info
+msgid "Information"
+msgstr "Bilgi"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__inherited_model_ids
+msgid "Inherited models"
+msgstr "Miras alınan modeller"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__is_generic_resource
+msgid "Is Generic Resource"
+msgstr "Genel Kaynaktır"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document____last_update
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type____last_update
+msgid "Last Modified on"
+msgstr "Son Değiştirme Tarihi"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__write_uid
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__write_uid
+msgid "Last Updated by"
+msgstr "Son Güncelleyen"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__write_date
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__write_date
+msgid "Last Updated on"
+msgstr "Son güncelleme tarihi"
+
+#. module: generic_request_related_doc
+#: model_terms:ir.ui.view,arch_db:generic_request_related_doc.view_request_related_document_form
+#: model_terms:ir.ui.view,arch_db:generic_request_related_doc.view_request_related_document_tree
+msgid "Linked by"
+msgstr "Bağlayan"
+
+#. module: generic_request_related_doc
+#: model_terms:ir.ui.view,arch_db:generic_request_related_doc.view_request_related_document_form
+#: model_terms:ir.ui.view,arch_db:generic_request_related_doc.view_request_related_document_tree
+msgid "Linked on"
+msgstr "Bağlantılı"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,help:generic_request_related_doc.field_request_related_document_type__modules
+msgid "List of modules in which the object is defined or inherited"
+msgstr "Nesnenin tanımlandığı veya devralındığı modüllerin listesi"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__is_mail_activity
+msgid "Mail Activity"
+msgstr "Mail Etkinliği"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__is_mail_blacklist
+msgid "Mail Blacklist"
+msgstr "Mail Kara Listesi"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__is_mail_thread
+msgid "Mail Thread"
+msgstr "Mail Konusu"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__is_mail_thread_sms
+msgid "Mail Thread SMS"
+msgstr "Mail Konusu SMS'i"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__model_id
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__model
+msgid "Model"
+msgstr "Model"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__doc_model
+msgid "Model Name"
+msgstr "Model Adı"
+
+#. module: generic_request_related_doc
+#: model:ir.model.constraint,message:generic_request_related_doc.constraint_request_related_document_type_model_id_uniq
+msgid "Model must be unique."
+msgstr "Model benzersiz olmalıdır."
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__name
+#: model_terms:ir.ui.view,arch_db:generic_request_related_doc.view_request_related_document_form
+#: model_terms:ir.ui.view,arch_db:generic_request_related_doc.view_request_related_document_tree
+msgid "Name"
+msgstr "İsim"
+
+#. module: generic_request_related_doc
+#: model_terms:ir.ui.view,arch_db:generic_request_related_doc.view_request_related_document_form
+msgid "Open Doc"
+msgstr "Dokümanı Aç"
+
+#. module: generic_request_related_doc
+#: model_terms:ir.ui.view,arch_db:generic_request_related_doc.view_request_related_document_tree
+msgid "Open Document"
+msgstr "Açık Belge"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__order
+msgid "Order"
+msgstr "Sipariş"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__rule_ids
+msgid "Record Rules"
+msgstr "Kayıt Kuralları"
+
+#. module: generic_request_related_doc
+#: model:request.stage,name:generic_request_related_doc.request_stage_type_sale_problem_rejected
+msgid "Rejected"
+msgstr "Reddedildi"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_request__related_doc_search
+msgid "Related Doc Search"
+msgstr "İlgili Doküman Ara"
+
+#. module: generic_request_related_doc
+#: model:ir.actions.act_window,name:generic_request_related_doc.action_request_related_document_type_view
+#: model:ir.ui.menu,name:generic_request_related_doc.menu_request_related_document_type
+msgid "Related Document Types"
+msgstr "İlgili Belge Türleri"
+
+#. module: generic_request_related_doc
+#: model:ir.model,name:generic_request_related_doc.model_request_request
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__request_id
+msgid "Request"
+msgstr "İstek"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__request_action_id
+msgid "Request Action"
+msgstr "İşlem İste"
+
+#. module: generic_request_related_doc
+#: model:ir.model,name:generic_request_related_doc.model_request_related_document
+msgid "Request Related Document"
+msgstr "İlgili Belge İste"
+
+#. module: generic_request_related_doc
+#: model:ir.model,name:generic_request_related_doc.model_request_related_document_type
+msgid "Request Related Document Type"
+msgstr "İlgili Belge Türü İste"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__request_type_id
+msgid "Request Type"
+msgstr "İstek Türü"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,help:generic_request_related_doc.field_request_related_document_type__order
+msgid ""
+"SQL expression for ordering records in the model; e.g. \"x_sequence asc, id "
+"desc\""
+msgstr ""
+"Modeldeki kayıtları sıralamak için SQL ifadesi; Örneğin. \"x_sequence artan, "
+"id azalan\""
+
+#. module: generic_request_related_doc
+#: model:request.type,name:generic_request_related_doc.request_type_sale_problem
+msgid "Sale problem"
+msgstr "satış sorunu"
+
+#. module: generic_request_related_doc
+#: model:request.stage,name:generic_request_related_doc.request_stage_type_sale_problem_sent
+msgid "Sent"
+msgstr "Gönderildi"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,help:generic_request_related_doc.field_request_related_document_type__request_action_toggle
+msgid ""
+"Show/Hide context action to create requests related to document. To see new "
+"context action, please reload the page."
+msgstr ""
+"Belgeyle ilgili istekler oluşturmak için bağlam işlemini Göster/Gizle. Yeni "
+"bağlam işlemini görmek için lütfen sayfayı yeniden yükleyin."
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,help:generic_request_related_doc.field_request_related_document_type__inherited_model_ids
+msgid "The list of models that extends the current model."
+msgstr "Şuanki modeli genişleten modellerin listesi."
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,help:generic_request_related_doc.field_request_related_document_type__count
+msgid "Total number of records in this model"
+msgstr "Bu modeldeki toplam kayıt sayısı"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__transient
+msgid "Transient Model"
+msgstr "Geçici Model"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__state
+msgid "Type"
+msgstr "Tür"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,help:generic_request_related_doc.field_request_related_document__request_type_id
+msgid "Type of request"
+msgstr "İstek tipi"
+
+#. module: generic_request_related_doc
+#: code:addons/generic_request_related_doc/models/request_related_document.py:0
+#, python-format
+msgid "Unknown document"
+msgstr "bilinmeyen belge"
+
+#. module: generic_request_related_doc
+#: code:addons/generic_request_related_doc/models/request_related_document_type.py:0
+#, python-format
+msgid "View / create requests"
+msgstr "İstekleri görüntüle / oluştur"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__view_ids
+msgid "Views"
+msgstr "Görüntülemeler"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,help:generic_request_related_doc.field_request_related_document_type__is_generic_resource
+msgid "Whether this model is Generic Resource."
+msgstr "Bu modelin Genel Kaynak olup olmadığı."
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,help:generic_request_related_doc.field_request_related_document_type__is_mail_activity
+msgid "Whether this model supports activities."
+msgstr "Bu modelin etkinlikleri destekleyip desteklemediği."
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,help:generic_request_related_doc.field_request_related_document_type__is_mail_blacklist
+msgid "Whether this model supports blacklist."
+msgstr "Bu modelin kara listeyi destekleyip desteklemediği."
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,help:generic_request_related_doc.field_request_related_document_type__is_mail_thread_sms
+msgid "Whether this model supports messages and notifications through SMS"
+msgstr ""
+"Bu modelin SMS yoluyla mesajları ve bildirimleri destekleyip desteklemediği"
+
+#. module: generic_request_related_doc
+#: model:ir.model.fields,help:generic_request_related_doc.field_request_related_document_type__is_mail_thread
+msgid "Whether this model supports messages and notifications."
+msgstr "Bu modelin mesajları ve bildirimleri destekleyip desteklemediği."
+
+#. module: generic_request_related_doc
+#: model_terms:request.request,help_html:generic_request_related_doc.request_request_type_sale_problem_demo_1
+#: model_terms:request.type,help_html:generic_request_related_doc.request_type_sale_problem
+msgid "draft -&gt; sent -&gt; fixed"
+msgstr "taslak -&gt; gönderildi -&gt; onaylanmış"
+
+#. module: generic_request_related_doc
+#: model_terms:request.request,help_html:generic_request_related_doc.request_request_type_sale_problem_demo_1
+#: model_terms:request.type,help_html:generic_request_related_doc.request_type_sale_problem
+msgid "draft -&gt; sent -&gt; rejected"
+msgstr "taslak -&gt; gönderildi -&gt; reddedildi"

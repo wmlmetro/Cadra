@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_generic_contract_tree" model="ir.ui.view">
+        <field name="model">generic.contract</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="number"/>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="template_id"/>
+                <field name="partner_type"/>
+                <field name="user_id"/>
+                <field name="date"/>
+                <field name="date_start"/>
+                <field name="date_end"/>
+                <field name="date_closed"/>
+                <field name="state"/>
+                <field name="tag_ids"
+                       widget="many2many_tags"
+                       placeholder="Tags..."
+                       options="{'color_field': 'color'}"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_generic_contract_form" model="ir.ui.view">
+        <field name="model">generic.contract</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_to_draft"
+                        string="To Draft" type="object"
+                        attrs="{'invisible': [('state', '!=', 'pending')]}"/>
+                    <button name="action_to_draft"
+                        string="To Draft" type="object"
+                        attrs="{'invisible': [('state', '!=', 'active')]}"
+                        groups="generic_contract.group_generic_contract_manager"/>
+                    <button name="action_confirm"
+                        string="Confirm" type="object"
+                        class="oe_highlight"
+                        attrs="{'invisible': [('state', '!=', 'draft')]}"/>
+                    <button name="action_close"
+                        string="Close" type="object"
+                        attrs="{'invisible': [('state', '!=', 'active')]}"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" type="object"
+                                groups="base.group_no_one"
+                                name="action_show_related_system_events"
+                                icon="fa-cogs">
+                            <field name="generic_event_count"
+                                   widget="statinfo"
+                                   string="Events"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" default_focus="1" placeholder="Name" />
+                        </h1>
+                        <h2>
+                            <field name="number"
+                                   readonly="1"
+                                   placeholder="Number"/>
+                        </h2>
+                        <h3>
+                            <field name="tag_ids"
+                                   widget="many2many_tags"
+                                   placeholder="Tags..."
+                                   context="{'default_model': 'generic.contract'}"
+                                   options="{'color_field': 'color'}"/>
+                        </h3>
+                    </div>
+                    <group name="main_contract_group">
+                        <group name="group_contract_main_left">
+                            <field name="company_id"
+                                   readonly="1"/>
+                            <field name="partner_id"
+                                   attrs="{'readonly': [('state', '!=', 'draft')]}"
+                                   placeholder="Partner"/>
+                            <field name="partner_type"/>
+                            <field name="ref"/>
+                            <field name="user_id"/>
+                        </group>
+                        <group name="group_contract_main_right">
+                            <field name="date"/>
+                            <field name="date_start"/>
+                            <field name="date_end"/>
+                            <field name="date_closed"
+                                   attrs="{'invisible': [('state', '!=', 'closed')]}"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page name="page_description"
+                              string="Description">
+                            <field name="description" placeholder="Describe the contract..."/>
+                        </page>
+                        <page name="page_service_lines"
+                              string="SLA">
+                            <field name="service_contract_line_ids"
+                                   nolabel="1"
+                                   mode="tree">
+                                <tree editable="bottom">
+                                    <field name="service_id"/>
+                                    <field name="service_level_id" groups="generic_service.group_use_service_level"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page name="page_other" string="Other">
+                            <group>
+                                <group>
+                                    <field name="template_id" readonly="1"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_generic_contract_search">
+        <field name="model">generic.contract</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="number"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="tag_ids"/>
+                <field name="search_tag_id"/>
+                <field name="search_no_tag_id"/>
+
+                <separator/>
+                <filter name="filter_open_contracts"
+                        string="Open"
+                        domain="[('state', '!=', 'closed')]"/>
+                <separator/>
+                <filter name="filter_draft_contract"
+                        string="Drafts"
+                        domain="[('state', '=', 'draft')]"/>
+                <filter name="filter_pending_contract"
+                        string="Pendings"
+                        domain="[('state', '=', 'pending')]"/>
+                <filter name="filter_active_contract"
+                        string="Actives"
+                        domain="[('state', '=', 'active')]"/>
+                <filter name="filter_close_contract"
+                        string="Closed"
+                        domain="[('state', '=', 'closed')]"/>
+                <separator/>
+                <filter name="group_by_partner_type" string="Partner type"
+                            context="{'group_by': 'partner_type'}"/>
+                <filter name="group_by_template" string="Template"
+                            context="{'group_by': 'template_id'}"/>
+                <filter name="group_by_company" string="Company"
+                            context="{'group_by': 'company_id'}"
+                            groups="base.group_multi_company"/>
+                <filter name="group_by_partner" string="Partner"
+                            context="{'group_by': 'partner_id'}"/>
+                <filter name="group_by_user" string="Responsible user"
+                            context="{'group_by': 'user_id'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="generic_contract_action" model="ir.actions.act_window">
+        <field name="name">Generic Contract</field>
+        <field name="res_model">generic.contract</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'search_default_filter_open_contracts': 1}</field>
+    </record>
+
+    <record id="generic_contract_action_customer_contracts" model="ir.actions.act_window">
+        <field name="name">Generic Contract Customer</field>
+        <field name="res_model">generic.contract</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[("partner_type", "=", 'customer')]</field>
+        <field name="context">{
+            'search_default_filter_open_contracts': 1,
+            'default_partner_type': 'customer'}</field>
+    </record>
+
+    <record id="generic_contract_action_supplier_contracts" model="ir.actions.act_window">
+        <field name="name">Generic Contract Supplier</field>
+        <field name="res_model">generic.contract</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[("partner_type", "=", 'supplier')]</field>
+        <field name="context">{
+            'search_default_filter_open_contracts': 1,
+            'default_partner_type': 'supplier'}</field>
+    </record>
+
+
+    <menuitem name="Customer Contracts"
+              id="generic_contract_customer"
+              sequence="10"
+              parent="generic_contract.generic_contract_contracts"
+              action="generic_contract_action_customer_contracts"/>
+
+    <menuitem name="Supplier Contracts"
+              id="generic_contract_supplier"
+              sequence="20"
+              parent="generic_contract.generic_contract_contracts"
+              action="generic_contract_action_supplier_contracts"/>
+
+</odoo>

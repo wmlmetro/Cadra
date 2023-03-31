@@ -1,0 +1,41 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_resource_document
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:17+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_resource_document/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_resource_document
+#: model:ir.model.fields,field_description:generic_resource_document.field_generic_resource__resource_attachment_ids
+#: model:ir.model.fields,field_description:generic_resource_document.field_generic_resource_simple__resource_attachment_ids
+msgid "Attachments"
+msgstr "Ekler"
+
+#. module: generic_resource_document
+#: model:ir.model.fields,field_description:generic_resource_document.field_generic_resource__resource_attachment_count
+#: model:ir.model.fields,field_description:generic_resource_document.field_generic_resource_simple__resource_attachment_count
+msgid "Attachments Count"
+msgstr "Ek Sayısı"
+
+#. module: generic_resource_document
+#: model_terms:ir.ui.view,arch_db:generic_resource_document.generic_resource_view_form
+msgid "Documents"
+msgstr "Belgeler"
+
+#. module: generic_resource_document
+#: model:ir.model,name:generic_resource_document.model_generic_resource
+msgid "Generic Resource"
+msgstr "Genel Kaynak"

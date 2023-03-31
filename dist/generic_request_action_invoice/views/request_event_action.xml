@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+   <record model="ir.ui.view" id="view_request_event_action_form">
+        <field name="model">request.event.action</field>
+        <field name="inherit_id" ref="generic_request_action.view_request_event_action_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook/page[@name='page_action_mail_activity']" position="after">
+               <page name="page_action_invoice"
+                     string="Invoice"
+                     attrs="{'invisible': [('act_type', '!=', 'invoice')]}">
+                   <group>
+                       <field name="invoice_auto_validate"
+                              string="Auto-validate invoice"/>
+                   </group>
+               </page>
+            </xpath>
+        </field>
+   </record>
+</odoo>
+

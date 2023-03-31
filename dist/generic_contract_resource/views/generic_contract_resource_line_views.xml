@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_generic_contract_resource_line_form" model="ir.ui.view">
+        <field name="model">generic.contract.resource.line</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group name="contract_info_group">
+                            <field name="contract_date_start" invisible="1"/>
+                            <field name="contract_date_end" invisible="1"/>
+                            <field name="contract_id"/>
+                            <field name="contract_partner_id" string="Contract Partner"/>
+                            <field name="contract_state" string="Contract State"/>
+                        </group>
+                        <group name="resource_info_group">
+                            <field name="resource_res_model" invisible="1"/>
+                            <field name="resource_id" invisible="1"/>
+                            <field name="resource_type_id"
+                                   required="1"
+                                   options="{'no_create': true, 'no_quick_create': true}"/>
+                            <field name="resource_res_id"
+                                   widget="generic_m2o"
+                                   model_field="resource_res_model"
+                                   class="oe_left"
+                                   attrs="{'invisible': [('resource_res_model', '=', False)],
+                                           'required': [('resource_res_model', '!=', False)]}"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page name="resource_service_page" string="Resource SLA">
+                            <field name="resource_service_line_ids"
+                                   context="{'default_contract_resource_line_id': active_id}">
+                                <tree editable="bottom">
+                                    <field name="service_id" required="1"/>
+                                    <field name="service_level_id" groups="generic_service.group_use_service_level"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="view_request_event_action_form" model="ir.ui.view">
+        <field name="model">request.event.action</field>
+        <field name="inherit_id" ref="generic_request_action.view_request_event_action_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook[@name='notebook_action']" position="inside">
+                <page name="page_action_generic_todo"
+                    string="Generic Todo"
+                    attrs="{'invisible': [('act_type', '!=', 'generic-todo')]}">
+                    <group>
+                        <group name="group_action_generic_todo">
+                            <field name="generic_todo_action"/>
+                            <field name="generic_todo_template_id"
+                                   attrs="{
+                                       'required': [('act_type', '=', 'generic-todo'), ('generic_todo_action', 'in', ['add-to-end', 'rewrite'])],
+                                       'invisible': [('generic_todo_action', '=', 'clean')]}"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

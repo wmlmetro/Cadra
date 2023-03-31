@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="generic_assign_wizard_form" model="ir.ui.view">
+        <field name="name">generic.assign.wizard.form
+        </field>
+        <field name="model">generic.wizard.assign</field>
+        <field name="arch" type="xml">
+            <form string="Assign">
+
+                <group>
+                    <field name="assign_model_id"/>
+                    <field name="assign_model"/>
+                    <field name="assign_type"/>
+                    <field name="unsubscribe_prev_assignee"/>
+                    <field name="assign_user_id"
+                           attrs="{'invisible': [('assign_type', '!=', 'user')],
+                                   'required': [('assign_type', '=', 'user')]}"
+                           options="{'create': false, 'create_edit': false}"/>
+                    <field name="assign_policy_id"
+                           attrs="{'invisible': [('assign_type', '!=', 'policy')],
+                                   'required': [('assign_type', '=', 'policy')]}"
+                           options="{'create': false, 'create_edit': false}"
+                           domain="[('model_id.model', '=', assign_model)]"/>
+                </group>
+                <field name="assign_comment"
+                        nolabel="1"
+                        colspan="4"
+                        placeholder="Comment..."/>
+                <footer>
+                    <button class="oe_button oe_highlight" icon="fa-check"
+                            name="do_assign" string="Assign" type="object"/>
+                    <button class="oe_button oe_highlight" special="cancel"
+                            string="Cancel" icon="fa-ban"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_assignment_wizard_assign" model="ir.actions.act_window">
+        <field name="res_model">generic.wizard.assign</field>
+        <field name="name">Assign</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

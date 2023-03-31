@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="request_type_form_inherit" model="ir.ui.view">
+        <field name="model">request.type</field>
+        <field name="inherit_id" ref="generic_request.view_request_type_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='group_settings_timesheet']"
+                   position="after">
+                <group name="group_settings_project" string="Project">
+                    <field name="use_subtasks"
+                           string="Use Subtasks"
+                           widget="boolean_toggle"/>
+                    <field name="use_worklog"
+                       string="Use Worklog"
+                       widget="boolean_toggle"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

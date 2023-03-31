@@ -1,0 +1,43 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* crnd_wsd_related_doc
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:17+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/crnd_wsd_related_doc/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: crnd_wsd_related_doc
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_related_doc.wsd_requests_related_request
+msgid ""
+"<span class=\"wsd_request header-bg-filler\">Related documents</span>\n"
+"                        <span class=\"header-separator-splitter\"/>"
+msgstr ""
+"<span class=\"wsd_request header-bg-filler\">İlgili belgeler</span>\n"
+"                         <span class=\"header-separator-splitter\"/>"
+
+#. module: crnd_wsd_related_doc
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_related_doc.wsd_request_table_related_docs
+msgid "Related documents"
+msgstr "İlgili belgeler"
+
+#. module: crnd_wsd_related_doc
+#: model:ir.model,name:crnd_wsd_related_doc.model_request_related_document
+msgid "Request Related Document"
+msgstr "İlgili Belge İste"
+
+#. module: crnd_wsd_related_doc
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_related_doc.wsd_requests_related_request
+msgid "Type"
+msgstr "Tür"

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="generic.system.event.source" id="system_event_source_generic_todo">
+        <field name="model_id" ref="generic_todo.model_generic_todo"/>
+        <field name="event_data_model_id" ref="model_generic_todo_event_data"/>
+    </record>
+</odoo>

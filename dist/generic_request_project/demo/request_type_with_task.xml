@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo noupdate="1">
+    <!-- Demo request type with task-->
+    <record id="request_type_with_task" model="request.type">
+        <field name="name">Request with task</field>
+        <field name="code">request_with_task</field>
+        <field name="category_ids" eval="[(4, ref('generic_request.request_category_demo_general'), 0)]"/>
+        <field name="use_subtasks" eval="True"/>
+        <field name="help_html">
+            This is demo request type to demonstrate automatic actions and triggers on routes.
+            That automatic triggers will be triggered when related task changes its stage.
+        </field>
+    </record>
+
+    <!-- Stages -->
+    <record id="request_stage_type_with_task_draft" model="request.stage">
+        <field name="sequence" eval="1"/>
+        <field name="name">Draft</field>
+        <field name="code">draft</field>
+        <field name="request_type_id" ref="request_type_with_task"/>
+    </record>
+    <record id="request_stage_type_with_task_new" model="request.stage">
+        <field name="sequence" eval="2"/>
+        <field name="name">New</field>
+        <field name="code">new</field>
+        <field name="request_type_id" ref="request_type_with_task"/>
+    </record>
+    <record id="request_stage_type_with_task_done" model="request.stage">
+        <field name="sequence" eval="3"/>
+        <field name="name">Done</field>
+        <field name="code">done</field>
+        <field name="request_type_id" ref="request_type_with_task"/>
+        <field name="closed" eval="True"/>
+    </record>
+
+    <!-- Routes -->
+    <record id="request_stage_type_with_task_draft_to_new"
+            model="request.stage.route">
+        <field name="name">Draft to New</field>
+        <field name="stage_from_id" ref="request_stage_type_with_task_draft"/>
+        <field name="stage_to_id" ref="request_stage_type_with_task_new"/>
+        <field name="request_type_id" ref="request_type_with_task"/>
+    </record>
+    <record id="request_stage_type_with_task_new_to_done"
+            model="request.stage.route">
+        <field name="name">New to Done</field>
+        <field name="stage_from_id" ref="request_stage_type_with_task_new"/>
+        <field name="stage_to_id" ref="request_stage_type_with_task_done"/>
+        <field name="request_type_id" ref="request_type_with_task"/>
+    </record>
+
+    <!-- Demo related task -->
+    <!-- Project -->
+    <record id="request_with_task_project_1" model="project.project">
+        <field name="name">Request-related tasks</field>
+        <field name="type_ids" eval="[(4, ref('project.project_stage_0')),
+            (4, ref('project.project_stage_1'))]"/>
+    </record>
+
+    <!--Demo request -->
+    <record id="demo_request_with_task" model="request.request">
+        <field name="type_id" ref="request_type_with_task"/>
+        <field name="request_text">This is demo request with task</field>
+        <field name="deadline_date" eval="time.strftime('%Y-%m-14')"/>
+    </record>
+
+    <!-- Demo Task -->
+    <record id="request_with_task_task_1" model="project.task">
+        <field name="project_id" ref="request_with_task_project_1"/>
+        <field name="name">Demo task 1 related to request</field>
+        <field name="stage_id" ref="project.project_stage_0"/>
+        <field name="request_id" ref="demo_request_with_task"/>
+    </record>
+    <record id="request_with_task_task_2" model="project.task">
+        <field name="project_id" ref="request_with_task_project_1"/>
+        <field name="name">Demo task 2 related to request</field>
+        <field name="stage_id" ref="project.project_stage_0"/>
+        <field name="request_id" ref="demo_request_with_task"/>
+    </record>
+
+</odoo>

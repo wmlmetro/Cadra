@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <template id="message_request_sla_warning">
+        <t t-call="generic_request.message_request_notification__template">
+            <p>Dear <t t-esc="partner.name"/>,</p>
+            <p>Request <strong><a t-att-href="object.get_mail_url(partner.id)" target="_blank" t-esc="object.display_name"/></strong>
+                assigned to you have reached SLA Warning date. Please, take actions to complete it befor SLA Limit date (<t t-esc="object.sla_limit_date"/>).</p>
+        </t>
+    </template>
+
+    <template id="message_request_sla_failed">
+        <t t-call="generic_request.message_request_notification__template">
+            <p>Dear <t t-esc="partner.display_name"/>,</p>
+            <p>Request <strong><a t-att-href="object.get_mail_url(partner.id)" target="_blank" t-esc="object.display_name"/></strong> assigned to you have reached SLA Limit date. Please, take actions to complete it as fast as possible.</p>
+        </t>
+    </template>
+</odoo>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="generic.system.event.category"
+            id="system_event_category_basic">
+        <field name="name">Basic Events</field>
+        <field name="code">basic-events</field>
+        <field name="event_source_id" eval="False"/>
+    </record>
+</odoo>

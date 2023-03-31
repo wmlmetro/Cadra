@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+
+    <template id="wsd_request_table_related_request"
+              inherit_id="crnd_wsd.wsd_request_table"
+              name="Display related requests">
+
+        <xpath expr="//table[hasclass('wsd_requests_table')]//span[hasclass('request-shortcuts')]"
+               position="inside">
+            <a t-if="req.related_request_ids or req.related_reverse_request_ids"
+               t-attf-href="/requests/request/{{ req.id }}"
+               title="Related requests"
+               class="fa fa-chain"/>
+        </xpath>
+
+    </template>
+
+    <template id="wsd_requests_related_request"
+              inherit_id="crnd_wsd.wsd_request_body"
+              name="Display Related Requests"
+              customize_show="True"
+              active="True">
+        <xpath expr="//div[@id='request-body-response']" position="after">
+            <div id="request-body-related-request" class="col-md-12">
+                <t t-if="req.related_request_ids or req.related_reverse_request_ids">
+                    <h4 class="wsd_request header-separator">
+                        <span class="wsd_request header-bg-filler">Related requests</span>
+                        <span class="header-separator-splitter"/>
+                    </h4>
+                </t>
+                <t t-if="req.related_request_ids">
+                    <table class="table mt16 wsd_requests_table wsd_requests_table_subrequest">
+                        <tbody>
+                            <t t-foreach="req.related_request_ids" t-as="rel_req">
+                                <t t-call="crnd_wsd.wsd_request_simplified_line"/>
+                            </t>
+                        </tbody>
+                    </table>
+                </t>
+                <t t-if="req.related_reverse_request_ids">
+                    <table class="table mt16 wsd_requests_table ">
+                        <tbody>
+                            <t t-foreach="req.related_reverse_request_ids" t-as="rel_req">
+                                <t t-call="crnd_wsd.wsd_request_simplified_line"/>
+                            </t>
+                        </tbody>
+                    </table>
+                </t>
+            </div>
+        </xpath>
+    </template>
+
+</odoo>

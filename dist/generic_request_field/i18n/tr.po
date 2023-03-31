@@ -1,0 +1,503 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_field
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:20+0000\n"
+"PO-Revision-Date: 2023-02-28 17:32+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_field/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field__active
+#: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_field_search
+msgid "Active"
+msgstr "Aktif"
+
+#. module: generic_request_field
+#: model:ir.model.fields.selection,name:generic_request_field.selection__request_field__position__after
+msgid "After request text"
+msgstr "İstek metninden sonra"
+
+#. module: generic_request_field
+#: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_field_form
+#: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_field_search
+msgid "Archived"
+msgstr "arşivlendi"
+
+#. module: generic_request_field
+#: model:ir.model.fields.selection,name:generic_request_field.selection__request_field__position__before
+msgid "Before request text"
+msgstr "İstek metninden önce"
+
+#. module: generic_request_field
+#: model:request.field,name:generic_request_field.request__create_lxc_field_cpu
+#: model:request.field,name:generic_request_field.request_stage_field_cpu
+msgid "CPU"
+msgstr "CPU"
+
+#. module: generic_request_field
+#: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_field_form
+msgid "Categories"
+msgstr "Kategoriler"
+
+#. module: generic_request_field
+#: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_field_form
+msgid "Category"
+msgstr "kategori"
+
+#. module: generic_request_field
+#: model:request.stage,name:generic_request_field.request_stage__create_lxc_closed
+#: model:request.stage.route,name:generic_request_field.request_route__create_lxc_closed
+msgid "Closed"
+msgstr "Kapalı"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field__code
+msgid "Code"
+msgstr "kod"
+
+#. module: generic_request_field
+#: model:request.field,name:generic_request_field.request_stage_field_comment
+msgid "Comment"
+msgstr "Yorum"
+
+#. module: generic_request_field
+#: model:request.field,name:generic_request_field.request__create_lxc_field_container_name
+msgid "Container Name"
+msgstr "Konteyner Adı"
+
+#. module: generic_request_field
+#: model:request.stage.route,name:generic_request_field.request_stage_route_type_field_new_to_closed
+msgid "Create"
+msgstr "oluştur"
+
+#. module: generic_request_field
+#: model:request.type,name:generic_request_field.request_type__create_lxc
+msgid "Create LXC Container"
+msgstr "LXC Konteyneri Oluşturun"
+
+#. module: generic_request_field
+#: model:request.type,name:generic_request_field.request_type_field
+msgid "Create VM"
+msgstr "VM oluştur"
+
+#. module: generic_request_field
+#: model:request.stage,name:generic_request_field.request_stage_type_field_closed
+msgid "Created"
+msgstr "oluşturuldu"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field__create_uid
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__create_uid
+#: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__create_uid
+msgid "Created by"
+msgstr "Tarafından yaratıldı"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field__create_date
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__create_date
+#: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__create_date
+msgid "Created on"
+msgstr "oluşturuldu"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field__default
+msgid "Default"
+msgstr "Varsayılan"
+
+#. module: generic_request_field
+#: model:ir.model.fields,help:generic_request_field.field_request_field__default
+msgid ""
+"Default value for field. It is possible to use here Jinja2 template "
+"placeholders. Currently, it is possible to compute default value for the "
+"field based on current user. For example, you can use following example of "
+"default value: {{ current_user.name }}"
+msgstr ""
+"Alan için varsayılan değer. Burada Jinja2 şablon yer tutucularını kullanmak "
+"mümkündür. Şu anda, geçerli kullanıcıya dayalı olarak alan için varsayılan "
+"değeri hesaplamak mümkündür. Örneğin, aşağıdaki varsayılan değer örneğini "
+"kullanabilirsiniz: {{ current_user.name }}"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field__display_name
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__display_name
+#: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__display_name
+msgid "Display Name"
+msgstr "Ekran adı"
+
+#. module: generic_request_field
+#: model:request.field,name:generic_request_field.request__create_lxc_field_domain_name
+msgid "Domain Name"
+msgstr "Alan adı"
+
+#. module: generic_request_field
+#: model:request.field,name:generic_request_field.request__create_lxc_field_expose_port
+msgid "Expose Port"
+msgstr "Bağlantı Noktasını Açığa Çıkar"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__field_id
+#: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__field_id
+msgid "Field"
+msgstr "Alan"
+
+#. module: generic_request_field
+#: code:addons/generic_request_field/models/request_field_value.py:0
+#, python-format
+msgid "Field %(field)s is required!"
+msgstr "%(field)s alanı zorunludur!"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_type__field_count
+msgid "Field Count"
+msgstr "Alan Sayısı"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field__field_help
+msgid "Field Help"
+msgstr "Alan Yardımı"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field__field_placeholder
+msgid "Field Placeholder"
+msgstr "Alan Yer Tutucusu"
+
+#. module: generic_request_field
+#: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_request_search
+msgid "Field Values"
+msgstr "Alan Değerleri"
+
+#. module: generic_request_field
+#: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_field_form
+msgid "Field code"
+msgstr "Alan kodu"
+
+#. module: generic_request_field
+#: model:ir.model.constraint,message:generic_request_field.constraint_request_field_code_uniq
+msgid "Field code must be unique."
+msgstr "Alan kodu benzersiz olmalıdır."
+
+#. module: generic_request_field
+#: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_field_form
+msgid "Field name"
+msgstr "alan adı"
+
+#. module: generic_request_field
+#: model:ir.model.constraint,message:generic_request_field.constraint_request_field_name_uniq
+msgid "Field name must be unique."
+msgstr "Alan adı benzersiz olmalıdır."
+
+#. module: generic_request_field
+#: code:addons/generic_request_field/models/request_request.py:0
+#, python-format
+msgid ""
+"Field request_field_values_json supports only str with encoded json or "
+"python dict as possible values"
+msgstr ""
+"request_field_values_json alanı, olası değerler olarak yalnızca kodlanmış "
+"json veya python dict ile str'yi destekler"
+
+#. module: generic_request_field
+#: model:ir.actions.act_window,name:generic_request_field.action_request_type_fields
+#: model:ir.model.fields,field_description:generic_request_field.field_request_type__field_ids
+#: model_terms:ir.ui.view,arch_db:generic_request_field.request_type_field_view_dashboard
+#: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_type_form
+msgid "Fields"
+msgstr "Alanlar"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close__wizard_fields_json_bottom
+#: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close__wizard_fields_json_top
+msgid "Fields Info (JSON) [ALL]"
+msgstr "Alan Bilgileri (JSON) [TÜMÜ]"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_request__request_fields_json_bottom
+msgid "Fields Info (JSON) [BOTTOM]"
+msgstr "Alan Bilgileri (JSON) [ALT]"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_request__request_fields_json_top
+msgid "Fields Info (JSON) [TOP]"
+msgstr "Alan Bilgileri (JSON) [YUKARI]"
+
+#. module: generic_request_field
+#: model_terms:request.request,help_html:generic_request_field.request_request_type_field_new_lxc_container_1
+#: model_terms:request.type,help_html:generic_request_field.request_type__create_lxc
+msgid "Fill <i>Data</i> tab below with desired container configuration"
+msgstr ""
+"Aşağıdaki <i>Veri</i> sekmesini istenen kapsayıcı yapılandırmasıyla doldurun"
+
+#. module: generic_request_field
+#: model_terms:request.request,help_html:generic_request_field.request_request_type_field_new_vm
+#: model_terms:request.type,help_html:generic_request_field.request_type_field
+msgid "Fill <i>Data</i> tab below with desired machine configuration"
+msgstr ""
+"Aşağıdaki <i>Veri</i> sekmesini istenen makine yapılandırmasıyla doldurun"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field__grid_classes
+msgid "Grid Classes"
+msgstr "Grid Sınıfları"
+
+#. module: generic_request_field
+#: model:request.field,name:generic_request_field.request__create_lxc_field_hdd
+#: model:request.field,name:generic_request_field.request_stage_field_hdd
+msgid "HDD"
+msgstr "HDD"
+
+#. module: generic_request_field
+#: model:ir.model.fields,help:generic_request_field.field_request_field__field_help
+msgid "Help message for the field"
+msgstr "Alan için yardım mesajı"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field__id
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__id
+#: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_request_field
+#: code:addons/generic_request_field/models/request_request.py:0
+#, python-format
+msgid ""
+"Incorrect format of request_field_values_json. Expected json-encoded dict, "
+"got: %(data_type)s"
+msgstr ""
+"request_field_values_json'un yanlış formatı. Beklenen json kodlu dikte, elde "
+"edilen: %(data_type)s"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field____last_update
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field_value____last_update
+#: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value____last_update
+msgid "Last Modified on"
+msgstr "Son Değiştirme Tarihi"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field__write_uid
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__write_uid
+#: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__write_uid
+msgid "Last Updated by"
+msgstr "Son Güncelleyen"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field__write_date
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__write_date
+#: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__write_date
+msgid "Last Updated on"
+msgstr "Son güncelleme tarihi"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field__mandatory
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__field_mandatory
+#: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__field_mandatory
+msgid "Mandatory"
+msgstr "Zorunlu"
+
+#. module: generic_request_field
+#: model:request.field,name:generic_request_field.request__create_lxc_field_memory
+#: model:request.field,name:generic_request_field.request_stage_field_memory
+msgid "Memory"
+msgstr "Hafıza"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field__name
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__field_name
+#: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__field_name
+msgid "Name"
+msgstr "İsim"
+
+#. module: generic_request_field
+#: model:request.stage,name:generic_request_field.request_stage__create_lxc_new
+#: model:request.stage,name:generic_request_field.request_stage_type_field_new
+msgid "New"
+msgstr "Yeni"
+
+#. module: generic_request_field
+#: model:request.field,name:generic_request_field.request_stage_field_os
+msgid "OS"
+msgstr "işletim sistemi"
+
+#. module: generic_request_field
+#: model:ir.model.fields,help:generic_request_field.field_request_field__field_placeholder
+msgid "Placeholder for the field"
+msgstr "Alan için yer tutucu"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field__position
+msgid "Position"
+msgstr "pozisyon"
+
+#. module: generic_request_field
+#: model:request.field,name:generic_request_field.request__create_lxc_field_priviledged
+msgid "Priviledged"
+msgstr "Ayrıcalıklı"
+
+#. module: generic_request_field
+#: model:request.stage.route,name:generic_request_field.request_stage_route_type_field_new_to_rejected
+msgid "Reject"
+msgstr "Reddetmek"
+
+#. module: generic_request_field
+#: model:request.stage,name:generic_request_field.request_stage_type_field_rejected
+msgid "Rejected"
+msgstr "Reddedildi"
+
+#. module: generic_request_field
+#: model:ir.model,name:generic_request_field.model_request_request
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__request_id
+#: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__request_id
+msgid "Request"
+msgstr "İstek"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field__category_ids
+msgid "Request Categories"
+msgstr "İstek Kategorileri"
+
+#. module: generic_request_field
+#: model:ir.model,name:generic_request_field.model_request_field
+msgid "Request Field"
+msgstr "Talep Alanı"
+
+#. module: generic_request_field
+#: model:ir.model,name:generic_request_field.model_request_field_value
+msgid "Request Field Value"
+msgstr "Talep Alanı Değeri"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_request__request_field_values_json
+msgid "Request Field Values Json"
+msgstr "Talep Alanı Değerleri JSON"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_request__request_has_fields_bottom
+msgid "Request Has Fields Bottom"
+msgstr "İstekte Alanlar Var Altta"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_request__request_has_fields_top
+msgid "Request Has Fields Top"
+msgstr "İstekte Alanlar Var Yukarıda"
+
+#. module: generic_request_field
+#: model:ir.model,name:generic_request_field.model_request_type
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field__request_type_id
+msgid "Request Type"
+msgstr "İstek Türü"
+
+#. module: generic_request_field
+#: model:ir.model,name:generic_request_field.model_request_wizard_close
+msgid "Request Wizard: Close"
+msgstr "İstek Sihirbazı: Kapat"
+
+#. module: generic_request_field
+#: model:ir.model,name:generic_request_field.model_request_wizard_close_field_value
+msgid "Request Wizard: Close (field value)"
+msgstr "İstek Sihirbazı: Kapat (alan değeri)"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field__sequence
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__sequence
+#: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__sequence
+msgid "Sequence"
+msgstr "Sıra"
+
+#. module: generic_request_field
+#: model:ir.model.fields,help:generic_request_field.field_request_field__code
+msgid "System field name, not translatable, ASCII-only"
+msgstr "Sistem alan adı, tercüme edilemez, yalnızca ASCII"
+
+#. module: generic_request_field
+#: model:ir.model.fields,help:generic_request_field.field_request_request__request_field_values_json
+msgid ""
+"Technical field, that could be used to update request field values via json "
+"string. This field can handle json encoded dict where keys are codes of the "
+"request fields."
+msgstr ""
+"İstek alanı değerlerini json dizesi aracılığıyla güncellemek için "
+"kullanılabilecek teknik alan. Bu alan, anahtarların istek alanlarının "
+"kodları olduğu json kodlu dict'i işleyebilir."
+
+#. module: generic_request_field
+#: code:addons/generic_request_field/models/request_field.py:0
+#, python-format
+msgid ""
+"The request categories %(categories)s used in the '%(field)s' field do not "
+"belong to the categories allowed for the request type '%(request_type)s'."
+msgstr ""
+"'%(field)s' alanında kullanılan istek kategorileri %(categories)s, "
+"'%(request_type)s' istek türü için izin verilen kategorilere ait değil."
+
+#. module: generic_request_field
+#: code:addons/generic_request_field/models/request_type.py:0
+#, python-format
+msgid ""
+"The request categories %(categories)s used in the request fields do not "
+"belong to the categories allowed for the request type '%(request_type)s'."
+msgstr ""
+"İstek alanlarında kullanılan %(categories)s istek kategorileri, "
+"'%(request_type)s' istek türü için izin verilen kategorilere ait değil."
+
+#. module: generic_request_field
+#: code:addons/generic_request_field/models/request_request.py:0
+#, python-format
+msgid ""
+"There is following errors in request fields:\n"
+"%(error_msg)s"
+msgstr ""
+"İstek alanlarında aşağıdaki hatalar var:\n"
+"%(error_msg)s"
+
+#. module: generic_request_field
+#: model_terms:request.request,stage_help_html:generic_request_field.request_request_type_field_new_vm
+#: model_terms:request.stage,help_html:generic_request_field.request_stage_type_field_new
+msgid "To close this request, just click 'Closed' stage in statusbar!"
+msgstr ""
+"Bu isteği kapatmak için, durum çubuğunda 'Kapalı' aşamasını tıklamanız "
+"yeterlidir!"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__value
+#: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__value
+msgid "Value"
+msgstr "Değer"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_request__value_ids
+#: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close__value_ids
+msgid "Values"
+msgstr "Değerler"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__wizard_id
+msgid "Wizard"
+msgstr "Sihirbaz"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close__wizard_has_fields_bottom
+msgid "Wizard Has Fields Bottom"
+msgstr "Sihirbazın Altta Alanları Var"
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close__wizard_has_fields_top
+msgid "Wizard Has Fields Top"
+msgstr "Sihirbazın Yukarda Alanları Var"
+
+#. module: generic_request_field
+#: model:ir.model.fields,help:generic_request_field.field_request_field__grid_classes
+msgid "You can use bootstrap grid classes, that could be applied to this field"
+msgstr "Bu alana uygulanabilecek önyükleme grid sınıflarını kullanabilirsiniz"

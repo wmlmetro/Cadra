@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <menuitem id="menu_simple_todo_root"
+              name="Simple Todos"
+              parent="generic_todo.menu_generic_todo_toplevel"/>
+
+    <record id="generic_todo_simple_view_tree" model="ir.ui.view">
+        <field name="model">generic.todo.simple</field>
+        <field name="inherit_id" ref="generic_todo.generic_todo_view_tree_general"/>
+        <field name="mode">primary</field>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='todo_type_id']" position="replace"/>
+        </field>
+    </record>
+
+    <record id="generic_todo_simple_view_form" model="ir.ui.view">
+        <field name="model">generic.todo.simple</field>
+        <field name="inherit_id" ref="generic_todo.generic_todo_view_form"/>
+        <field name="mode">primary</field>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='todo_type_id']" position="replace"/>
+            <xpath expr="//group[@name='group_todo_config_implementation']" position="replace">
+                <group name="group_simple_todo_fields">
+                    <field name="description"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="generic_todo_simple_action" model="ir.actions.act_window">
+        <field name="name">Simple Todos</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">generic.todo.simple</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- Menu for Simple Todos -->
+    <menuitem id="generic_todo_simple_menu_item"
+                name="Todos"
+                parent="menu_simple_todo_root" sequence="0"
+                action="generic_todo_simple_action"/>
+
+</odoo>

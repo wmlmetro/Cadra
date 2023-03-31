@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_generic_assign_policy_model_tree">
+        <field name="model">generic.assign.policy.model</field>
+        <field name="inherit_id" ref="generic_assignment.view_generic_assign_policy_model_tree"/>
+        <field name="arch" type="xml">
+            <field name="assign_user_field_id" position="after">
+                <field name="assign_team_field_id"/>
+            </field>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_generic_assign_policy_model_form">
+        <field name="model">generic.assign.policy.model</field>
+        <field name="inherit_id" ref="generic_assignment.view_generic_assign_policy_model_form"/>
+        <field name="arch" type="xml">
+            <field name="assign_user_field_id" position="after">
+                <field name="assign_team_field_id"/>
+            </field>
+        </field>
+    </record>
+</odoo>

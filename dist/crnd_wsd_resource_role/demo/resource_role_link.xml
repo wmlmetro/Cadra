@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="generic_resource_simple_computer_3_role_link_wsd_demo_user" model="generic.resource.role.link">
+        <field name="resource_id" ref="generic_resource.simple_resource_computer_1_generic_resource"/>
+        <field name="role_id" ref="generic_resource_role.generic_resource_simple_role_user"/>
+        <field name="partner_id" ref="crnd_wsd.user_demo_service_desk_website_res_partner"/>
+    </record>
+
+    <record id="generic_resource_simple_notebook_2_role_link_wsd_demo_user" model="generic.resource.role.link">
+        <field name="resource_id" ref="generic_resource.simple_resource_notebook_5_generic_resource"/>
+        <field name="role_id" ref="generic_resource_role.generic_resource_simple_role_user"/>
+        <field name="partner_id" ref="crnd_wsd.user_demo_service_desk_website_res_partner"/>
+    </record>
+
+    <record id="generic_resource_simple_laser_printer_7_role_link_wsd_demo_user" model="generic.resource.role.link">
+        <field name="resource_id" ref="generic_resource.simple_resource_laserprinter_2_generic_resource"/>
+        <field name="role_id" ref="generic_resource_role.generic_resource_simple_role_user"/>
+        <field name="partner_id" ref="crnd_wsd.user_demo_service_desk_website_res_partner"/>
+    </record>
+
+    <record id="generic_resource_simple_inkprinter_1_role_link_wsd_demo_user" model="generic.resource.role.link">
+        <field name="resource_id" ref="generic_resource.simple_resource_inkprinter_1_generic_resource"/>
+        <field name="role_id" ref="generic_resource_role.generic_resource_simple_role_user"/>
+        <field name="partner_id" ref="crnd_wsd.user_demo_service_desk_website_res_partner"/>
+    </record>
+
+    <record id="generic_resource_simple_inkprinter_4_role_link_wsd_demo_user" model="generic.resource.role.link">
+        <field name="resource_id" ref="generic_resource.simple_resource_inkprinter_5_generic_resource"/>
+        <field name="role_id" ref="generic_resource_role.generic_resource_simple_role_admin"/>
+        <field name="partner_id" ref="crnd_wsd.user_demo_service_desk_website_res_partner"/>
+    </record>
+</odoo>
+

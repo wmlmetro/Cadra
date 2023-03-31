@@ -1,0 +1,64 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* crnd_wsd_related_request
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:15+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/crnd_wsd_related_request/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: crnd_wsd_related_request
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_related_request.wsd_requests_related_request
+msgid ""
+"<span class=\"wsd_request header-bg-filler\">Related requests</span>\n"
+"                        <span class=\"header-separator-splitter\"/>"
+msgstr ""
+"<span class=\"wsd_request header-bg-filler\">İlgili Görevler</span>\n"
+"                         <span class=\"header-separator-splitter\"/>"
+
+#. module: crnd_wsd_related_request
+#: model_terms:request.request,stage_help_html:crnd_wsd_related_request.request_request_type_simple_demo_2
+#: model_terms:request.request,stage_help_html:crnd_wsd_related_request.request_request_type_simple_related_request
+msgid ""
+"Now request is in <i>Draft</i> state.<br>\n"
+"            Please click 'Sent' stage on status bar (right-top corner)\n"
+"            to send it to our team."
+msgstr ""
+"Şimdi istek <i>Taslak</i> durumunda.<br>\n"
+"             Lütfen durum çubuğunda (sağ üst köşe) 'Gönderildi' aşamasını "
+"tıklayın\n"
+"             ekibimize göndermek için."
+
+#. module: crnd_wsd_related_request
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_related_request.wsd_request_table_related_request
+msgid "Related requests"
+msgstr "İlgili istekler"
+
+#. module: crnd_wsd_related_request
+#: model_terms:request.request,help_html:crnd_wsd_related_request.request_request_type_simple_demo_2
+#: model_terms:request.request,help_html:crnd_wsd_related_request.request_request_type_simple_related_request
+msgid "This is simple request type with simple routes:"
+msgstr "Bu, basit yollara sahip basit bir istek türüdür:"
+
+#. module: crnd_wsd_related_request
+#: model_terms:request.request,help_html:crnd_wsd_related_request.request_request_type_simple_demo_2
+#: model_terms:request.request,help_html:crnd_wsd_related_request.request_request_type_simple_related_request
+msgid "draft -&gt; sent -&gt; confirmed"
+msgstr "taslak -&gt; gönderildi -&gt; onaylanmış"
+
+#. module: crnd_wsd_related_request
+#: model_terms:request.request,help_html:crnd_wsd_related_request.request_request_type_simple_demo_2
+#: model_terms:request.request,help_html:crnd_wsd_related_request.request_request_type_simple_related_request
+msgid "draft -&gt; sent -&gt; rejected"
+msgstr "taslak -&gt; gönderildi -&gt; reddedildi"

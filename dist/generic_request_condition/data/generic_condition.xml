@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Default request-related conditions -->
+    <record id="condition_request_is_assigned" model="generic.condition">
+        <field name="name">Assigned</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">related_field</field>
+        <field name="description">Check if request is assigned to somebody</field>
+        <field name="condition_related_field_field_id"
+               ref="generic_request.field_request_request__user_id"/>
+        <field name="condition_related_field_operator">set</field>
+    </record>
+    <record id="condition_request_is_not_assigned" model="generic.condition">
+        <field name="name">Not assigned</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">condition</field>
+        <field name="description">Check if request is not assigned yet</field>
+        <field name="condition_condition_id" ref="condition_request_is_assigned"/>
+        <field name="invert" eval="True"/>
+    </record>
+    <record id="condition_request_is_assigned_to_current_user" model="generic.condition">
+        <field name="name">Assigned to current user</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">current_user</field>
+        <field name="description">Check if request is assigned to current user</field>
+        <field name="condition_user_user_field_id"
+               ref="generic_request.field_request_request__user_id"/>
+    </record>
+    <record id="condition_request_is_not_assigned_to_current_user" model="generic.condition">
+        <field name="name">Not assigned to current user</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">condition</field>
+        <field name="description">Check if request is not assigned to current user</field>
+        <field name="condition_condition_id" ref="condition_request_is_assigned_to_current_user"/>
+        <field name="invert" eval="True"/>
+    </record>
+    <record id="condition_request_is_not_assigned_or_assigned_to_current_user" model="generic.condition">
+        <field name="name">Not assigned or assigned to current user</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">condition_group</field>
+        <field name="description">Check if request has no assignee or assigned to current user</field>
+        <field name="condition_condition_ids"
+               eval="[(6, 0, [ref('generic_request_condition.condition_request_is_not_assigned'), ref('generic_request_condition.condition_request_is_assigned_to_current_user')])]"/>
+        <field name="condition_condition_ids_operator">or</field>
+    </record>
+    <record id="condition_request_is_created_by_current_user" model="generic.condition">
+        <field name="name">Created by current user</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">current_user</field>
+        <field name="description">Check if request is created by current user</field>
+        <field name="condition_user_user_field_id"
+               ref="generic_request.field_request_request__created_by_id"/>
+    </record>
+    <record id="condition_request_is_not_created_by_current_user" model="generic.condition">
+        <field name="name">Not created by current user</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">condition</field>
+        <field name="description">Check if request is not created by current user</field>
+        <field name="condition_condition_id" ref="condition_request_is_created_by_current_user"/>
+        <field name="invert" eval="True"/>
+    </record>
+    <record id="condition_request_is_closed" model="generic.condition">
+        <field name="name">Is closed</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">simple_field</field>
+        <field name="description">Check if request is closed</field>
+        <field name="condition_simple_field_field_id"
+               ref="generic_request.field_request_request__closed"/>
+        <field name="condition_simple_field_value_boolean">true</field>
+    </record>
+    <record id="condition_request_is_open" model="generic.condition">
+        <field name="name">Is open</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">simple_field</field>
+        <field name="description">Check if request is open</field>
+        <field name="condition_simple_field_field_id"
+               ref="generic_request.field_request_request__closed"/>
+        <field name="condition_simple_field_value_boolean">false</field>
+    </record>
+    <record id="condition_request_partner_is_set" model="generic.condition">
+        <field name="name">Partner is set</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">related_field</field>
+        <field name="description">Check if request have related partner</field>
+        <field name="condition_related_field_field_id"
+               ref="generic_request.field_request_request__partner_id"/>
+        <field name="condition_related_field_operator">set</field>
+    </record>
+    <record id="condition_request_partner_is_not_set" model="generic.condition">
+        <field name="name">Partner is not set</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">condition</field>
+        <field name="description">Check if request have no related partner</field>
+        <field name="condition_condition_id" ref="condition_request_partner_is_set"/>
+        <field name="invert" eval="True"/>
+    </record>
+    <record id="condition_request_have_response_text" model="generic.condition">
+        <field name="name">Have response text</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">simple_field</field>
+        <field name="description">Check if request have response text</field>
+        <field name="condition_simple_field_field_id"
+               ref="generic_request.field_request_request__response_text"/>
+        <field name="condition_simple_field_string_operator_html">set</field>
+    </record>
+    <record id="condition_request_have_no_response_text" model="generic.condition">
+        <field name="name">Have no response text</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">condition</field>
+        <field name="description">Check if request have no response text</field>
+        <field name="condition_condition_id"
+               ref="condition_request_have_response_text"/>
+        <field name="invert" eval="True"/>
+    </record>
+    <record id="condition_request_category_is_set" model="generic.condition">
+        <field name="name">Category is set</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">related_field</field>
+        <field name="description">Check if request category is set</field>
+        <field name="condition_related_field_field_id"
+               ref="generic_request.field_request_request__category_id"/>
+        <field name="condition_related_field_operator">set</field>
+    </record>
+    <record id="condition_request_category_is_not_set" model="generic.condition">
+        <field name="name">Category is not set</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">condition</field>
+        <field name="description">Check if request category is not set</field>
+        <field name="condition_condition_id" ref="condition_request_category_is_set"/>
+        <field name="invert" eval="True"/>
+    </record>
+    <record id="condition_request_is_in_start_stage" model="generic.condition">
+        <field name="name">Is in start stage</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">eval</field>
+        <field name="description">Evaluates to True if request is in start stage.</field>
+        <field name="condition_eval">record.stage_id == record.sudo().type_id.start_stage_id</field>
+        <field name="with_sudo" eval="True"/>
+    </record>
+    <record id="condition_request_is_not_in_start_stage" model="generic.condition">
+        <field name="name">Is not in start stage</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">condition</field>
+        <field name="description">Evaluates to True if request is not in start stage.</field>
+        <field name="condition_condition_id" ref="condition_request_is_in_start_stage"/>
+        <field name="invert" eval="True"/>
+    </record>
+    <record id="condition_request_is_closed_ok" model="generic.condition">
+        <field name="name">Is closed (OK)</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">related_field</field>
+        <field name="description">Evaluates to True if request is on stage with type Closed (OK).</field>
+        <field name="condition_related_field_field_id"
+               ref="generic_request.field_request_request__stage_type_id"/>
+        <field name="condition_related_field_operator">contains</field>
+        <field name="condition_related_field_value_id" ref="generic_request.request_stage_type_closed_ok"/>
+    </record>
+    <record id="condition_request_is_closed_fail" model="generic.condition">
+        <field name="name">Is closed (Fail)</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">related_field</field>
+        <field name="description">Evaluates to True if request is on stage with type Closed (Fail).</field>
+        <field name="condition_related_field_field_id"
+               ref="generic_request.field_request_request__stage_type_id"/>
+        <field name="condition_related_field_operator">contains</field>
+        <field name="condition_related_field_value_id" ref="generic_request.request_stage_type_closed_fail"/>
+    </record>
+
+    <record id="condition_request_has_mail_activity_for_assignee" model="generic.condition">
+        <field name="name">Has mail activity for assignee</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">eval</field>
+        <field name="description">Has mail activity for assignee</field>
+        <field name="condition_eval">any(a.user_id == record.user_id for a in record.activity_ids)</field>
+    </record>
+    <record id="condition_request_has_not_mail_activity_for_assignee" model="generic.condition">
+        <field name="name">Has NOT mail activity for assignee</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">condition</field>
+        <field name="condition_condition_id" ref="condition_request_has_mail_activity_for_assignee"/>
+        <field name="invert" eval="True"/>
+        <field name="description">Has NOT mail activity for assignee</field>
+    </record>
+</odoo>

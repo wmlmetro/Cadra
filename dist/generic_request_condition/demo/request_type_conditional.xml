@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Request Type conditional-->
+    <!-- Simple request type with conditional stage routes:
+            - draft -> sent -> confirm
+            - draft -> sent -> reject
+    -->
+    <record id="request_type_conditional" model="request.type">
+        <field name="name">Conditional Request</field>
+        <field name="code">conditional</field>
+        <field name="help_html"><![CDATA[
+            This is conditional request type with conditional routes:
+            <ul>
+                <li>draft -> sent -> confirmed</li>
+                <li>draft -> sent -> rejected</li>
+            </ul>
+        ]]></field>
+        <field name="category_ids"
+               eval="[(4, ref('generic_request.request_category_demo'), 0), (4, ref('generic_request.request_category_demo_general'), 0), (4, ref('generic_request.request_category_demo_technical'), 0)]"/>
+        <field name="change_request_text_condition_ids"
+               eval="[(6, 0, [ref('generic_request_condition.condition_request_is_created_by_current_user')])]"/>
+        <field name="change_assignee_condition_ids"
+               eval="[(6, 0, [ref('generic_request_condition.condition_request_is_not_assigned_or_assigned_to_current_user')])]"/>
+        <field name="change_category_condition_ids"
+               eval="[(6, 0, [ref('generic_request_condition.demo_condition_request_stage_is_draft_or_sent')])]"/>
+        <field name="change_deadline_condition_ids"
+               eval="[(6, 0, [ref('generic_request_condition.condition_request_text_is_confirm_me')])]"/>
+        <field name="change_author_condition_ids"
+               eval="[(6, 0, [ref('generic_request_condition.condition_request_text_is_change_author')])]"/>
+    </record>
+
+    <!-- Simple request type stages -->
+    <record id="request_stage_type_conditional_draft" model="request.stage">
+        <field name="sequence" eval="1"/>
+        <field name="name">Draft</field>
+        <field name="code">draft</field>
+        <field name="request_type_id" ref="request_type_conditional"/>
+        <field name="type_id" ref="generic_request.request_stage_type_draft"/>
+    </record>
+    <record id="request_stage_type_conditional_sent" model="request.stage">
+        <field name="sequence" eval="2"/>
+        <field name="name">Sent</field>
+        <field name="code">sent</field>
+        <field name="request_type_id" ref="request_type_conditional"/>
+        <field name="type_id" ref="generic_request.request_stage_type_sent"/>
+    </record>
+    <record id="request_stage_type_conditional_confirmed" model="request.stage">
+        <field name="sequence" eval="3"/>
+        <field name="name">Confirmed</field>
+        <field name="code">confirmed</field>
+        <field name="request_type_id" ref="request_type_conditional"/>
+        <field name="type_id" ref="generic_request.request_stage_type_closed_ok"/>
+        <field name="closed" eval="True"/>
+    </record>
+    <record id="request_stage_type_conditional_rejected" model="request.stage">
+        <field name="sequence" eval="4"/>
+        <field name="name">Rejected</field>
+        <field name="code">rejected</field>
+        <field name="request_type_id" ref="request_type_conditional"/>
+        <field name="type_id" ref="generic_request.request_stage_type_closed_fail"/>
+        <field name="closed" eval="True"/>
+    </record>
+
+    <!-- Simple request type routes -->
+    <record id="request_stage_route_type_conditional_draft_to_sent"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_conditional_draft"/>
+        <field name="stage_to_id" ref="request_stage_type_conditional_sent"/>
+        <field name="request_type_id" ref="request_type_conditional"/>
+    </record>
+    <record id="request_stage_route_type_conditional_sent_confirmed"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_conditional_sent"/>
+        <field name="stage_to_id" ref="request_stage_type_conditional_confirmed"/>
+        <field name="request_type_id" ref="request_type_conditional"/>
+        <field name="condition_ids"
+                eval="[(6, 0, [ref('generic_request_condition.condition_request_text_is_confirm_me')])]"/>
+
+    </record>
+    <record id="request_stage_route_type_conditional_sent_rejected"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_conditional_sent"/>
+        <field name="stage_to_id" ref="request_stage_type_conditional_rejected"/>
+        <field name="request_type_id" ref="request_type_conditional"/>
+    </record>
+
+    <!-- Request Request -->
+    <record id="request_conditional_demo_1" model="request.request">
+        <field name="request_text">
+            This is demo conditional request.
+            Unless this text is replaced by 'confirm me',
+            this request could not be confirmed
+        </field>
+        <field name="type_id" ref="request_type_conditional"/>
+        <field name="category_id" ref="generic_request.request_category_demo"/>
+    </record>
+</odoo>

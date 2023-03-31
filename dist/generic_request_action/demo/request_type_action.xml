@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- demo data for requests with actions -->
+    <record id="request_type_action" model="request.type">
+        <field name="name">Action Request</field>
+        <field name="code">action</field>
+        <field name="category_ids" eval="[(4, ref('generic_request.request_category_demo_general'), 0)]"/>
+    </record>
+
+    <!-- Action request type stages -->
+    <record id="request_stage_type_action_draft" model="request.stage">
+        <field name="sequence" eval="1"/>
+        <field name="name">Draft</field>
+        <field name="code">draft</field>
+        <field name="request_type_id" ref="request_type_action"/>
+    </record>
+    <record id="request_stage_type_action_sent" model="request.stage">
+        <field name="sequence" eval="2"/>
+        <field name="name">Sent</field>
+        <field name="code">sent</field>
+        <field name="request_type_id" ref="request_type_action"/>
+    </record>
+    <record id="request_stage_type_action_confirmed" model="request.stage">
+        <field name="sequence" eval="3"/>
+        <field name="name">Confirmed</field>
+        <field name="code">confirmed</field>
+        <field name="closed" eval="True"/>
+        <field name="request_type_id" ref="request_type_action"/>
+    </record>
+    <record id="request_stage_type_action_rejected" model="request.stage">
+        <field name="sequence" eval="4"/>
+        <field name="name">Rejected</field>
+        <field name="code">rejected</field>
+        <field name="closed" eval="True"/>
+        <field name="request_type_id" ref="request_type_action"/>
+    </record>
+
+    <!-- Action request type routes -->
+    <record id="request_stage_route_type_action_draft_to_sent"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_action_draft"/>
+        <field name="stage_to_id" ref="request_stage_type_action_sent"/>
+        <field name="request_type_id" ref="request_type_action"/>
+    </record>
+    <record id="request_stage_route_type_action_sent_confirmed"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_action_sent"/>
+        <field name="stage_to_id" ref="request_stage_type_action_confirmed"/>
+        <field name="request_type_id" ref="request_type_action"/>
+    </record>
+    <record id="request_stage_route_type_action_sent_rejected"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_action_sent"/>
+        <field name="stage_to_id" ref="request_stage_type_action_rejected"/>
+        <field name="request_type_id" ref="request_type_action"/>
+    </record>
+
+    <!-- Action request 'draft->sent' actions -->
+    <record id="request_stage_route_type_action_draft_to_sent_subscribe"
+            model="request.event.action">
+        <field name="name">Subscribe partner</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_request.request_event_type_stage_changed'))]"/>
+        <field name="request_type_id" ref="request_type_action"/>
+        <field name="route_id"
+               ref="request_stage_route_type_action_draft_to_sent"/>
+        <field name="act_type">subscribe</field>
+        <field name="subscribe_partner_ids" eval="[(4, ref('base.res_partner_2'))]"/>
+    </record>
+    <record id="request_stage_route_type_action_draft_to_sent_assign"
+            model="request.event.action">
+        <field name="name">Assign to demo request user</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_request.request_event_type_stage_changed'))]"/>
+        <field name="request_type_id" ref="request_type_action"/>
+        <field name="route_id"
+               ref="request_stage_route_type_action_draft_to_sent"/>
+        <field name="act_type">assign</field>
+        <field name="assign_type">user</field>
+        <field name="assign_user_id" ref="generic_request.user_demo_request"/>
+    </record>
+
+    <!-- Action request 'sent->confirmed' actions -->
+        <record id="server_action__add_request_resonse_text" model="ir.actions.server">
+            <field name="name">Add request response text</field>
+            <field name="type">ir.actions.server</field>
+            <field name="model_id" ref="generic_request.model_request_request"/>
+            <field name="state">code</field>
+            <field name="code">
+            record.write({
+                'response_text': 'Your request was rejected by %s' % user.name,
+            })
+            </field>
+        </record>
+    <record id="request_stage_route_type_action_sent_to_rejected_set_response"
+            model="request.event.action">
+        <field name="name">Set rejected response</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_request.request_event_type_closed'))]"/>
+        <field name="request_type_id" ref="request_type_action"/>
+        <field name="route_id"
+               ref="request_stage_route_type_action_sent_rejected"/>
+        <field name="act_type">server_action</field>
+        <field name="action_id" ref="server_action__add_request_resonse_text"/>
+    </record>
+
+    <!-- Action Schedule Activity -->
+    <record id="request_stage_route_type_action_draft_to_sent_mail_activity"
+            model="request.event.action">
+        <field name="name">Demo Schedule Activity action</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_request.request_event_type_stage_changed'))]"/>
+        <field name="request_type_id" ref="request_type_action"/>
+        <field name="route_id"
+               ref="request_stage_route_type_action_draft_to_sent"/>
+        <field name="act_type">mail_activity</field>
+        <field name="mail_activity_activity_type_id" ref="mail.mail_activity_data_email"/>
+        <field name="mail_activity_date_delta_uom">days</field>
+        <field name="mail_activity_date_delta_value">3</field>
+        <field name="mail_activity_assign_type">user</field>
+        <field name="mail_activity_user_id" ref="base.user_root"/>
+        <field name="mail_activity_summary">Get more info related to {{ request.name }}</field>
+        <field name="mail_activity_note"><![CDATA[Ask client to provide more info for request <a href="{{ request.get_mail_url() }}">{{request.name}}</a>]]></field>
+    </record>
+
+    <!-- Action Send Mail on Create -->
+    <record id="request_event_action_send_mail_on_create"
+            model="request.event.action">
+        <field name="name">Send mail when request created</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_system_event.system_event_record_created'))]"/>
+        <field name="request_type_id" ref="request_type_action"/>
+        <field name="act_type">send_email</field>
+        <field name="send_email_template_id" ref="demo_mail_template_request_created"/>
+    </record>
+
+    <!-- Request Request -->
+    <record id="request_request_type_action_demo_1" model="request.request">
+        <field name="request_text"><![CDATA[
+            <h1>Action Request</h1>
+
+            <p>This is demo-request that demonstrates automated actions</p>
+        ]]></field>
+        <field name="type_id" ref="request_type_action"/>
+        <field name="created_by_id" ref="generic_request.user_demo_request"/>
+        <field name="author_id" ref="base.res_partner_address_2"/>
+        <field name="category_id" ref="generic_request.request_category_demo_general"></field>
+    </record>
+
+</odoo>

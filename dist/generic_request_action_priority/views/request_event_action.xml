@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="view_request_event_action_form_priority" model="ir.ui.view">
+        <field name="name">view.request.event.action.form.priority</field>
+        <field name="model">request.event.action</field>
+        <field name="inherit_id" ref="generic_request_action.view_request_event_action_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook[@name='notebook_action']" position="inside">
+                <page name="page_action_priority"
+                      string="Priority"
+                      attrs="{'invisible': [('act_type', '!=', 'set_priority')]}">
+                    <field name="act_priority_is_priority_complex" invisible="1"/>
+                    <group>
+                        <group>
+                            <field name="act_priority_type"/>
+                            <field name="act_priority_priority" attrs="{'invisible': ['|', ('act_priority_type', '!=', 'set'), ('act_priority_is_priority_complex', '!=', False)]}"/>
+                            <field name="act_priority_priority_modifier" attrs="{'invisible': ['|', ('act_priority_type', '=', 'set'), ('act_priority_is_priority_complex', '!=', False)]}"/>
+
+                            <field name="act_priority_impact" attrs="{'invisible': ['|', ('act_priority_type', '!=', 'set'), ('act_priority_is_priority_complex', '=', False)]}"/>
+                            <field name="act_priority_impact_modifier" attrs="{'invisible': ['|', ('act_priority_type', '=', 'set'), ('act_priority_is_priority_complex', '=', False)]}"/>
+
+                            <field name="act_priority_urgency" attrs="{'invisible': ['|', ('act_priority_type', '!=', 'set'), ('act_priority_is_priority_complex', '=', False)]}"/>
+                            <field name="act_priority_urgency_modifier" attrs="{'invisible': ['|', ('act_priority_type', '=', 'set'), ('act_priority_is_priority_complex', '=', False)]}"/>
+                        </group>
+                        <group></group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

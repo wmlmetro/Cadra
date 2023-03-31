@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_type_form">
+        <field name="model">request.type</field>
+        <field name="inherit_id" ref="generic_request.view_request_type_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='group_settings']"
+                   position="inside">
+                <group name="group_settings_legal" string="Legal settings">
+                    <field name="require_terms_and_conditions"/>
+                    <field name="terms_and_conditions_url"
+                           options="{'website_path': True}"
+                           widget="url"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

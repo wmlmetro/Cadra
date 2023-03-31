@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="generic_resource_type_view_form" model="ir.ui.view">
+        <field name="model">generic.resource.type</field>
+        <field name="inherit_id" ref="generic_resource.generic_resource_type_view_from"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='group_right']" position="inside">
+                <field name="use_generic_locations"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

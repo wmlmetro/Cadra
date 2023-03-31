@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_request_related_requests_from_request_request_form" model="ir.ui.view">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button class="oe_stat_button"
+                        type="object"
+                        name="action_view_related_requests"
+                        attrs="{'invisible': [('related_request_total_count', '=', 0)]}"
+                        icon="fa-chain">
+                    <field string="Related Requests" name="related_request_total_count" widget="statinfo"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_request_related_requests_from_request_request_search" model="ir.ui.view">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <field name="related_request_ids"
+                       filter_domain="['|', ('related_ids', 'ilike', self),
+                                            ('related_reverse_request_ids', 'ilike', self)]"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="iherited_view_request_request_kanban_inherit_request_parent" model="ir.ui.view">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="." position="inside">
+                <field name="related_request_count"></field>
+            </xpath>
+            <xpath expr="//div[@name='icons_info']" position="inside">
+                <span t-if="record.related_request_count.raw_value" class="icon">
+                    <span title='Related requests' class='fa fa-chain mr4'></span>
+                    <t t-esc="record.related_request_count.raw_value"/>
+                </span>
+            </xpath>
+        </field>
+    </record>
+</odoo>

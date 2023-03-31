@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_crm_leads">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook/page[@name='page_other']//group[@name='group_info_left']" position="inside">
+                <field name="crm_lead_id"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

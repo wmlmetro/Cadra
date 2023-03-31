@@ -1,0 +1,1032 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_assignment
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 12.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-09-16 11:43+0000\n"
+"PO-Revision-Date: 2022-01-25 13:01+0000\n"
+"Last-Translator: Валерия <valittle@ukr.net>\n"
+"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-14-0/generic_assignment/uk/>\n"
+"Language: uk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_assignment
+#: model:res.groups,comment:generic_assignment.group_generic_assignment_policy_manager
+msgid ""
+"\n"
+"            Full access to assignment policies\n"
+"        "
+msgstr ""
+"\n"
+"            Повний доступ до політик призначення\n"
+"        "
+
+#. module: generic_assignment
+#: model:res.groups,comment:generic_assignment.group_generic_assignment_policy_user
+msgid ""
+"\n"
+"            Read only access to assignment policies, but have access to "
+"policy menu items\n"
+"        "
+msgstr ""
+"\n"
+"            Доступ лише-читання до політик призначення, але має доступ до "
+"меню політик призначення\n"
+"        "
+
+#. module: generic_assignment
+#: model:res.groups,comment:generic_assignment.group_generic_assignment_policy_user_implicit
+msgid ""
+"\n"
+"            Read only access to assignment policies, no access to menu "
+"items\n"
+"        "
+msgstr ""
+"\n"
+"            Доступ лише-читання до політик призначення, не маає доступу до "
+"меню\n"
+"        "
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__access_ids
+msgid "Access"
+msgstr "Доступ"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__act_assign_id
+msgid "Action Assign"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_needaction
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_needaction
+msgid "Action Needed"
+msgstr "Необхідні дії"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_ir_actions_server__state
+#: model:ir.model.fields,field_description:generic_assignment.field_ir_cron__state
+msgid "Action To Do"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__active
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__active
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_search
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_search
+msgid "Active"
+msgstr "Активно"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_form
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_search
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_search
+msgid "Archived"
+msgstr "Заархівовано"
+
+#. module: generic_assignment
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_related_policy_sort_direction__asc
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_user_field_sort_direction__asc
+msgid "Ascending"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.actions.act_window,name:generic_assignment.action_assignment_wizard_assign
+#: model_terms:ir.ui.view,arch_db:generic_assignment.generic_assign_wizard_form
+msgid "Assign"
+msgstr "Призначити"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.generic_assign_policy_test_wizard_form
+msgid "Assign Debug Log"
+msgstr "Журнал відлагодження призначень"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_eval
+msgid "Assign Eval"
+msgstr "Призначити (Eval)"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__assign_model_id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__assign_model_id
+msgid "Assign Model"
+msgstr "Модель призначення"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__assign_policy_ids
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_policy_id
+#: model:ir.model.fields,field_description:generic_assignment.field_ir_actions_server__assign_policy_id
+#: model:ir.model.fields,field_description:generic_assignment.field_ir_cron__assign_policy_id
+msgid "Assign Policy"
+msgstr "Політика призначення"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_id
+msgid "Assign Related Policy"
+msgstr "Пов'язана політика призначення"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_choice_condition_ids
+msgid "Assign Related Policy Choice Condition"
+msgstr "Умови вибору пов'язаної політики призначення"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_field_id
+msgid "Assign Related Policy Field"
+msgstr "Поле пов'язаної політики призначення"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_sort_direction
+msgid "Assign Related Policy Sort Direction"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_sort_field_id
+msgid "Assign Related Policy Sort Field"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_user_id
+msgid "Assign User"
+msgstr "Призначити користувача"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__assign_user_field_id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__assign_user_field_id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_user_field_id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__assign_user_field_id
+msgid "Assign User Field"
+msgstr "Призначити користувача (поле)"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_user_field_choice_condition_ids
+msgid "Assign User Field Choice Condition"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_user_field_choice_type
+msgid "Assign User Field Choice Type"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_user_field_sort_direction
+msgid "Assign User Field Sort Direction"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_user_field_sort_field_id
+msgid "Assign User Field Sort Field"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields.selection,name:generic_assignment.selection__ir_actions_server__state__assign_by_policy
+msgid "Assign by Policy"
+msgstr ""
+
+#. module: generic_assignment
+#: code:addons/generic_assignment/wizard/generic_wizard_assignment.py:0
+#, python-format
+msgid ""
+"Assign model (%(assign_model)s) must be equal to policy's assign model "
+"%(policy_model)s"
+msgstr ""
+
+#. module: generic_assignment
+#: code:addons/generic_assignment/wizard/generic_wizard_assignment.py:0
+#, python-format
+msgid ""
+"Assign object's model (%(obj_model)s) must be equal to policy's assign model "
+"%(policy_model)s"
+msgstr ""
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_server_action_form_assign
+msgid "Assign policy"
+msgstr ""
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_search
+msgid "Assign type"
+msgstr "Тип призначення"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__assignment_model_ids
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_resource_type__assignment_model_ids
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_system_event_source__assignment_model_ids
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_tag_model__assignment_model_ids
+#: model:ir.model.fields,field_description:generic_assignment.field_ir_model__assignment_model_ids
+msgid "Assignment Model"
+msgstr "Модель призначення"
+
+#. module: generic_assignment
+#: model:ir.model,name:generic_assignment.model_generic_assign_policy
+msgid "Assignment Policy"
+msgstr "Політика призначення"
+
+#. module: generic_assignment
+#: model:ir.model,name:generic_assignment.model_generic_assign_policy_model
+msgid "Assignment Policy Model"
+msgstr "Модель політики призначення"
+
+#. module: generic_assignment
+#: model:ir.ui.menu,name:generic_assignment.policy_models
+msgid "Assignment Policy Models"
+msgstr "Моделі політики призначення"
+
+#. module: generic_assignment
+#: model:ir.model,name:generic_assignment.model_generic_assign_policy_rule
+msgid "Assignment Policy Rule"
+msgstr "Правило політики призначення"
+
+#. module: generic_assignment
+#: model:ir.ui.menu,name:generic_assignment.assignment_policies
+msgid "Assignment policies"
+msgstr "Політики призначення"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_attachment_count
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_attachment_count
+msgid "Attachment Count"
+msgstr "Кількість прикріплень"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.generic_assign_wizard_form
+msgid "Cancel"
+msgstr "Скасувати"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+msgid "Choice conditions"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_choice_type
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+msgid "Choice type"
+msgstr "Тип вибору"
+
+#. module: generic_assignment
+#: code:addons/generic_assignment/wizard/generic_wizard_assignment.py:0
+#, python-format
+msgid "Closing this activity because assignee was unsubscribed!"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__assign_comment
+#, fuzzy
+msgid "Comment"
+msgstr "Коментар"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.generic_assign_wizard_form
+#, fuzzy
+msgid "Comment..."
+msgstr "Коментар ..."
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__condition_ids
+msgid "Condition"
+msgstr "Умова"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+msgid "Conditions..."
+msgstr "Умови..."
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__act_assign_id
+msgid "Context action that allows to assign multiple objects from list view"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__count
+msgid "Count (Incl. Archived)"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__create_uid
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__create_uid
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__create_uid
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__create_uid
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__create_uid
+msgid "Created by"
+msgstr "Створив"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__create_date
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__create_date
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__create_date
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__create_date
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__create_date
+msgid "Created on"
+msgstr "Дата створення"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__debug_log
+msgid "Debug Log"
+msgstr "Журнал відлагодження"
+
+#. module: generic_assignment
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_related_policy_sort_direction__desc
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_user_field_sort_direction__desc
+msgid "Descending"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__description
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__description
+msgid "Description"
+msgstr "Опис"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+msgid "Description ..."
+msgstr "Опис..."
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_form
+msgid "Description of policy..."
+msgstr "Опис політики..."
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__display_name
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__display_name
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__display_name
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__display_name
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__display_name
+msgid "Display Name"
+msgstr "Відображуване ім’я"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__enable_act_assign
+msgid "Enable context assign"
+msgstr ""
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+msgid "Field"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_field_type
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_user_field_type
+msgid "Field Type"
+msgstr "Тип поля"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_field_id
+msgid "Field that points to record to run related policy."
+msgstr "Поле що вказує на запис для якого виконати пов'язану політику."
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__assign_user_field_id
+msgid "Field to get user from."
+msgstr "Поле з якого прочитати користувача."
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__field_id
+msgid "Fields"
+msgstr "Поля"
+
+#. module: generic_assignment
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_related_policy_choice_type__first
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_user_field_choice_type__first
+msgid "First"
+msgstr "Перший"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_follower_ids
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_follower_ids
+msgid "Followers"
+msgstr "Підписники"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_partner_ids
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_partner_ids
+msgid "Followers (Partners)"
+msgstr "Підписники (Партнери)"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_field_model_id
+msgid "For relationship fields, the technical name of the target model"
+msgstr "Для повʼязаних полів - технічне ім'я цільової моделі"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__resource_type_id
+msgid "Generic Resource Type"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__resource_type_ids
+msgid "Generic Resource Types"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__system_event_source_id
+msgid "Generic System Event Source"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__system_event_source_ids
+msgid "Generic System Event Sources"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model,name:generic_assignment.model_generic_wizard_assign
+msgid "Generic Wizard: Assign"
+msgstr "Універсальний майстер: Призначити"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_search
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_search
+msgid "Group By"
+msgstr "Групувати за"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__has_message
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__has_message
+msgid "Has Message"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_test_assign_policy__res_id
+msgid "ID of object to test assign policy on"
+msgstr "ID об'єкта на якому протестувати політику"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy__message_needaction
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy__message_unread
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__message_needaction
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__message_unread
+msgid "If checked, new messages require your attention."
+msgstr "Якщо відмічено, то нові повідомлення будуть потребувати вашої уваги."
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy__message_has_error
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__message_has_error
+msgid "If checked, some messages have a delivery error."
+msgstr "Якщо позначено, деякі повідомлення мають помилку доставки."
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__modules
+msgid "In Apps"
+msgstr "В додатках"
+
+#. module: generic_assignment
+#: code:addons/generic_assignment/models/generic_assign_policy_model.py:0
+#, python-format
+msgid "Incorrect combination of assign_user_field_id and model_id."
+msgstr "Неправильна комбінація assign_user_field_id і model_id."
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__info
+msgid "Information"
+msgstr "Інформація"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__inherited_model_ids
+msgid "Inherited models"
+msgstr "Успадковані моделі"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_is_follower
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_is_follower
+msgid "Is Follower"
+msgstr "Підписник"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__is_generic_resource
+msgid "Is Generic Resource"
+msgstr "Універсальний ресурс"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy____last_update
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model____last_update
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule____last_update
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy____last_update
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign____last_update
+msgid "Last Modified on"
+msgstr "Остання модифікація"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__write_uid
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__write_uid
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__write_uid
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__write_uid
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__write_uid
+msgid "Last Updated by"
+msgstr "Востаннє оновив"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__write_date
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__write_date
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__write_date
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__write_date
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__write_date
+msgid "Last Updated on"
+msgstr "Останнє оновлення"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__modules
+msgid "List of modules in which the object is defined or inherited"
+msgstr "Список модулів з визначеним або успадкованим об'єктом"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__is_mail_activity
+msgid "Mail Activity"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__is_mail_blacklist
+msgid "Mail Blacklist"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__is_mail_thread
+msgid "Mail Thread"
+msgstr "Поштовий зв'язок"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_main_attachment_id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_main_attachment_id
+msgid "Main Attachment"
+msgstr "Основне прикріплення"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_has_error
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_has_error
+msgid "Message Delivery error"
+msgstr "Помилка доставлення повідомлення"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_ids
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_ids
+msgid "Messages"
+msgstr "Повідомлення"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__model_id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__model
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__model_name
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__assign_model
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_search
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_search
+msgid "Model"
+msgstr "Модель"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__name
+msgid "Model Description"
+msgstr "Опис моделі"
+
+#. module: generic_assignment
+#: model:ir.model,name:generic_assignment.model_ir_model
+msgid "Models"
+msgstr "Моделі"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__name
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__name
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_search
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_search
+msgid "Name"
+msgstr "Назва"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_form
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+msgid "Name..."
+msgstr "Назва..."
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_needaction_counter
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_needaction_counter
+msgid "Number of Actions"
+msgstr "Кількість дій"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_has_error_counter
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_has_error_counter
+msgid "Number of errors"
+msgstr "Кількість помилок"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy__message_needaction_counter
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__message_needaction_counter
+msgid "Number of messages which requires an action"
+msgstr "Кількість повідомлень, які потебують дії"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy__message_has_error_counter
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__message_has_error_counter
+msgid "Number of messages with delivery error"
+msgstr "Кількість повідомлень з помилкою доставки"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy__message_unread_counter
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__message_unread_counter
+msgid "Number of unread messages"
+msgstr "Кількість непрочитаних повідомлень"
+
+#. module: generic_assignment
+#: code:addons/generic_assignment/wizard/test_assign_policy.py:0
+#, python-format
+msgid "Object (model: %(model)s; id: %(res_id)s) not found"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__res_id
+msgid "Object ID"
+msgstr "ID Об'єкта"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__res_model
+msgid "Object Model"
+msgstr "Модель об'єкта"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__model_id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__model_id
+msgid "Odoo Model"
+msgstr "Модель Odoo"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__order
+msgid "Order"
+msgstr ""
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_form
+msgid "Please, save this policy, to be able to edit its rules!"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.actions.act_window,name:generic_assignment.action_assign_policy
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__assign_policy_count
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_model_form
+msgid "Policies"
+msgstr "Політики"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__policy_id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__assign_policy_id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__assign_policy_id
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_type__policy
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_wizard_assign__assign_type__policy
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_search
+msgid "Policy"
+msgstr "Політика"
+
+#. module: generic_assignment
+#: model:res.groups,name:generic_assignment.group_generic_assignment_policy_manager
+msgid "Policy Manager"
+msgstr "Керівник політик"
+
+#. module: generic_assignment
+#: model:ir.actions.act_window,name:generic_assignment.action_assign_policy_model
+msgid "Policy Models"
+msgstr "Моделі політик"
+
+#. module: generic_assignment
+#: model:res.groups,name:generic_assignment.group_generic_assignment_policy_user
+msgid "Policy User"
+msgstr "Користувач політик"
+
+#. module: generic_assignment
+#: model:res.groups,name:generic_assignment.group_generic_assignment_policy_user_implicit
+msgid "Policy user implicit"
+msgstr "Неявний користувач політик"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__sequence
+msgid "Priority"
+msgstr "Пріоритет"
+
+#. module: generic_assignment
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_type__eval
+msgid "Python expression"
+msgstr "Python-вираз"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__assign_eval
+msgid ""
+"Python expression that evaluates to False or dict with keys:\n"
+"         user_id. If False is returned, than next rule in chain\n"
+"          will be triggered.\n"
+"           For example: '{\"user_id\": record.create_uid}' or 'False'"
+msgstr ""
+"Вираз Python, що обчислюється, як False або словник з ключами:\n"
+"user_id. Якщо повернено False, то буде спрацьовувати наступне правило\n"
+"в послідовності. Наприклад:'{\"user_id \": record.create_uid}' або 'False'"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.generic_assign_policy_test_wizard_form
+msgid "Quit"
+msgstr "Вийти"
+
+#. module: generic_assignment
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_related_policy_choice_type__random
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_user_field_choice_type__random
+msgid "Random"
+msgstr "Випадково"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__rule_ids
+msgid "Record Rules"
+msgstr "Правила запису"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_field_model_id
+msgid "Related Model"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_type__related_policy
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+msgid "Related policy"
+msgstr "Пов'язана політика"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__result_convert
+msgid "Result Convert"
+msgstr "Конвертований результат"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__result_get
+msgid "Result Get"
+msgstr "Отриманий результат"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__result_user_id
+msgid "Result User"
+msgstr "Результат: Користувач"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__rule_ids
+msgid "Rule"
+msgstr "Правило"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__rule_count
+msgid "Rule Count"
+msgstr "Правила (к-сть)"
+
+#. module: generic_assignment
+#: model:ir.actions.act_window,name:generic_assignment.action_assign_policy_rule
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_form
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_tree
+msgid "Rules"
+msgstr "Правила"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__rule_not_unique
+msgid "Rules priority is not unique"
+msgstr "Пріоритети правил не унікальні"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__order
+msgid ""
+"SQL expression for ordering records in the model; e.g. \"x_sequence asc, id "
+"desc\""
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model,name:generic_assignment.model_ir_actions_server
+msgid "Server Action"
+msgstr ""
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+msgid "Sort direction"
+msgstr ""
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+msgid "Sort field"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__sequence
+msgid ""
+"Specify here priority for this assignment rule. Rules with less priority "
+"will be executed first. "
+msgstr ""
+"Вкажіть тут пріоритет для цього правила призначення. Правила з меншим "
+"пріоритетом будуть виконані першими."
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.generic_assign_policy_test_wizard_form
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_form
+msgid "Test"
+msgstr "Перевірити"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__test_as_user_id
+msgid "Test As User"
+msgstr "Перевірити як користувач"
+
+#. module: generic_assignment
+#: model:ir.actions.act_window,name:generic_assignment.action_generic_assign_policy_test_wizard_view
+#: model_terms:ir.ui.view,arch_db:generic_assignment.generic_assign_policy_test_wizard_form
+msgid "Test Assign Policy"
+msgstr "Перевірити політику призначення"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__inherited_model_ids
+msgid "The list of models that extends the current model."
+msgstr "Список моделей, що розширюють поточну."
+
+#. module: generic_assignment
+#: model:ir.model.constraint,message:generic_assignment.constraint_generic_assign_policy_model_model_unique
+msgid "The model for the assignment policy must be unique."
+msgstr "Модель для політики призначення повинна бути унікальна."
+
+#. module: generic_assignment
+#: code:addons/generic_assignment/models/generic_assign_policy.py:0
+#, python-format
+msgid ""
+"This policy cannot be used to set assignee, because policy model is not "
+"configured, but it could be used to compute assign data based on model: %s"
+msgstr ""
+"Ця політика не може бути використана для встановлення виконавця, тому що її "
+"модель не налаштована для цього, але вона може бути використана для "
+"обчислення даних призначення на основі моделі: %s"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__count
+msgid "Total number of records in this model"
+msgstr "Загальна кількість записів у цій моделі"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__transient
+msgid "Transient Model"
+msgstr "Тимчасова модель"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__state
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_type
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__assign_type
+msgid "Type"
+msgstr "Тип"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_ir_actions_server__state
+#: model:ir.model.fields,help:generic_assignment.field_ir_cron__state
+msgid ""
+"Type of server action. The following values are available:\n"
+"- 'Execute Python Code': a block of python code that will be executed\n"
+"- 'Create': create a new record with new values\n"
+"- 'Update a Record': update the values of a record\n"
+"- 'Execute several actions': define an action that triggers several other "
+"server actions\n"
+"- 'Send Email': automatically send an email (Discuss)\n"
+"- 'Add Followers': add followers to a record (Discuss)\n"
+"- 'Create Next Activity': create an activity (Discuss)"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_unread
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_unread
+msgid "Unread Messages"
+msgstr "Непрочитані повідомлення"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_unread_counter
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_unread_counter
+msgid "Unread Messages Counter"
+msgstr "Кількість непрочитаних повідомлень"
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__unsubscribe_prev_assignee
+msgid "Unsubscribe previously subscribed"
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__assign_user_id
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_type__user
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_wizard_assign__assign_type__user
+msgid "User"
+msgstr "Користувач"
+
+#. module: generic_assignment
+#: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_type__user_field
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
+msgid "User field"
+msgstr "Поле користувача"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__assign_user_id
+msgid "User to be assigned to this request."
+msgstr "Користувач, що призначається для цього запиту."
+
+#. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__view_ids
+msgid "Views"
+msgstr "Переглядів"
+
+#. module: generic_assignment
+#: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_form
+msgid ""
+"Warning: more that one rule of this policy have same sequence! This may lead "
+"to undefined order of rules execution!"
+msgstr ""
+"Увага: більше одного правила цієї політики мають однакову послідовність! Це "
+"може призвести до невизначеного порядку виконання правил!"
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__is_generic_resource
+msgid "Whether this model is Generic Resource."
+msgstr "Чи є ця модель універсальним ресурсом."
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__is_mail_activity
+msgid "Whether this model supports activities."
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__is_mail_blacklist
+msgid "Whether this model supports blacklist."
+msgstr ""
+
+#. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__is_mail_thread
+msgid "Whether this model supports messages and notifications."
+msgstr "Чи підтримує ця модель повідомлення та сповіщення."
+
+#. module: generic_assignment
+#: model:ir.model,name:generic_assignment.model_generic_assign_policy_test_assign_policy
+msgid "Wizard: Test generic assign policy"
+msgstr "Майстер: Перевірити універсальну політику призначень"
+
+#. module: generic_assignment
+#: code:addons/generic_assignment/wizard/generic_wizard_assignment.py:0
+#, python-format
+msgid "Wrong assign type selected"
+msgstr "Вибрано неправльний тип призначення"
+
+#~ msgid "Followers (Channels)"
+#~ msgstr "Підписники (Канали)"
+
+#~ msgid "Error caught while getting assignment data %s[%d]"
+#~ msgstr "Сталась помилка при отрмианні даних призначення %s[%d]"
+
+#~ msgid "Object (model: %s; id: %s) not found"
+#~ msgstr "Обʼєкт (модель: %s; id: %s) не знайдено"
+
+#~ msgid "Object Relation"
+#~ msgstr "Звʼязок об'єкта"
+
+#~ msgid "Count (incl. archived)"
+#~ msgstr "Підрахунок (у тому числі зархівованих)"
+
+#~ msgid "Department Employee"
+#~ msgstr "Працівник відділу"
+
+#~ msgid "Department Manager"
+#~ msgstr "Керівник відділу"
+
+#~ msgid "If checked new messages require your attention."
+#~ msgstr "Якщо позначено, то повідомленя потребує вашої уваги"
+
+#~ msgid "Number of error"
+#~ msgstr "Кількість помилок"
+
+#~ msgid "Object"
+#~ msgstr "Об'єкт"
+
+#~ msgid "Resource Type"
+#~ msgstr "Тип кадру"
+
+#~ msgid "Team Leader"
+#~ msgstr "Лідер команди"
+
+#~ msgid "Team Member"
+#~ msgstr "Член команди"
+
+#~ msgid "Team Task Manager"
+#~ msgstr "Менеджер завдань команди"
+
+#~ msgid "Website Messages"
+#~ msgstr "Повідомлення з вебсайту"
+
+#~ msgid "Website communication history"
+#~ msgstr "Історія бесіди на сайті"

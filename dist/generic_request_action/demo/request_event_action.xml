@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="request_action_send_mail_activity_on_assign"
+            model="request.event.action">
+        <field name="name">Schedule Activity on assign</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_request.request_event_type_assigned')), (4, ref('generic_request.request_event_type_reassigned'))]"/>
+        <field name="act_type">mail_activity</field>
+        <field name="act_sudo" eval="True"/>
+        <field name="mail_activity_activity_type_id" ref="mail.mail_activity_data_email"/>
+        <field name="mail_activity_date_delta_uom">days</field>
+        <field name="mail_activity_date_delta_value">0</field>
+        <field name="mail_activity_assign_type">field</field>
+        <field name="mail_activity_user_field_id" ref="generic_request.field_request_request__user_id"/>
+        <field name="mail_activity_summary">Please, process request {{ request.name }}</field>
+        <field name="mail_activity_note">{{ request.request_text | safe }}</field>
+    </record>
+
+
+</odoo>

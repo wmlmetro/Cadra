@@ -1,0 +1,222 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_sla_log
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:17+0000\n"
+"PO-Revision-Date: 2023-03-07 12:45+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_sla_log/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__assignee_id
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
+msgid "Assignee"
+msgstr "Atanan"
+
+#. module: generic_request_sla_log
+#: model:request.stage,name:generic_request_sla_log.request_stage_type_sla_confirmed
+msgid "Confirmed"
+msgstr "Onaylandı"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__create_uid
+msgid "Created by"
+msgstr "Tarafından yaratıldı"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__create_date
+msgid "Created on"
+msgstr "oluşturuldu"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__date
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
+msgid "Date"
+msgstr "Tarih"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__date_prev
+msgid "Date Prev"
+msgstr "Önceki Tarih"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__display_name
+msgid "Display Name"
+msgstr "Ekran adı"
+
+#. module: generic_request_sla_log
+#: model:request.stage,name:generic_request_sla_log.request_stage_type_sla_draft
+msgid "Draft"
+msgstr "Taslak"
+
+#. module: generic_request_sla_log
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
+msgid "Group By..."
+msgstr "Gruplandır..."
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__kanban_state
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
+msgid "Kanban State"
+msgstr "Kanban Durumu"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log____last_update
+msgid "Last Modified on"
+msgstr "Son Değiştirme Tarihi"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__write_uid
+msgid "Last Updated by"
+msgstr "Son Güncelleyen"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__write_date
+msgid "Last Updated on"
+msgstr "Son güncelleme tarihi"
+
+#. module: generic_request_sla_log
+#: model:request.stage,name:generic_request_sla_log.request_stage_type_sla_rejected
+msgid "Rejected"
+msgstr "Reddedildi"
+
+#. module: generic_request_sla_log
+#: model:ir.model,name:generic_request_sla_log.model_request_request
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__request_id
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
+msgid "Request"
+msgstr "İstek"
+
+#. module: generic_request_sla_log
+#: model:ir.model,name:generic_request_sla_log.model_request_sla_log
+msgid "Request SLA Log"
+msgstr "SLA Kaydı İste"
+
+#. module: generic_request_sla_log
+#: model:ir.model,name:generic_request_sla_log.model_request_type
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
+msgid "Request Type"
+msgstr "İstek Türü"
+
+#. module: generic_request_sla_log
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.inherited_view_request_request_form_inherit_request_sla_log
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.inherited_view_request_type_form_inherit_request_sla_log
+msgid "SLA"
+msgstr "SLA"
+
+#. module: generic_request_sla_log
+#: model:ir.actions.act_window,name:generic_request_sla_log.action_generic_request_type_2_request_sla_log
+#: model:ir.actions.act_window,name:generic_request_sla_log.action_request_sla_log_view
+#: model:ir.actions.act_window,name:generic_request_sla_log.action_request_sla_log_view__tree_first
+#: model:ir.ui.menu,name:generic_request_sla_log.menu_request_sla_log
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.inherited_view_request_type_form_inherit_request_sla_log
+msgid "SLA Log"
+msgstr "SLA Kaydı"
+
+#. module: generic_request_sla_log
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.inherited_view_request_request_form_inherit_request_sla_log
+msgid "SLA Log lines"
+msgstr "SLA Kayıt Satırları"
+
+#. module: generic_request_sla_log
+#: model:request.type,name:generic_request_sla_log.request_type_sla
+msgid "SLA Request"
+msgstr "SLA İsteği"
+
+#. module: generic_request_sla_log
+#: model:request.stage,name:generic_request_sla_log.request_stage_type_sla_sent
+msgid "Sent"
+msgstr "Gönderildi"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_request__sla_log_ids
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_type__sla_log_ids
+msgid "Sla Log"
+msgstr "Sla Kaydı"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_request__sla_log_count
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_type__sla_log_count
+msgid "Sla Log Count"
+msgstr "Sla Kayıt Sayısı"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__stage_id
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
+msgid "Stage"
+msgstr "Aşama"
+
+#. module: generic_request_sla_log
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
+msgid "Stage Type"
+msgstr "Aşama Türü"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__stage_type_id
+msgid "Stage Types"
+msgstr "Aşama Türleri"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__time_spent_calendar
+msgid "Time Spent Calendar"
+msgstr "Harcanan Zaman Takvimi"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__time_spent_total
+msgid "Time Spent Total"
+msgstr "Toplam Harcanan Zaman"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__request_type_id
+msgid "Type"
+msgstr "Tür"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,help:generic_request_sla_log.field_request_sla_log__request_type_id
+msgid "Type of request"
+msgstr "İstek tipi"
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__user_id
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
+msgid "User"
+msgstr "Kullanıcı"
+
+#. module: generic_request_sla_log
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_log.inherited_view_request_type_form_inherit_request_sla_log
+msgid ""
+"Working hours of your company.\n"
+"                                Required to be set if you select to compute "
+"SLA time as working time\n"
+"                                (in the Compute Time field on the Rule or "
+"Rule Lines view). In Odoo v.12, be sure to specify the appropriate timezone "
+"for your company on the Working Time form."
+msgstr ""
+"Şirketinizin çalışma saatleri.\n"
+"                                 SLA süresini çalışma süresi olarak "
+"hesaplamayı seçerseniz ayarlanması gerekir\n"
+"                                 (Kural veya Kural Çizgileri görünümündeki "
+"Hesaplama Süresi alanında). Odoo v.12'de, Çalışma Süresi formunda "
+"şirketinize uygun saat dilimini belirttiğinizden emin olun."
+
+#. module: generic_request_sla_log
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__calendar_id
+#: model:ir.model.fields,field_description:generic_request_sla_log.field_request_type__sla_calendar_id
+msgid "Working time"
+msgstr "Çalışma zamanı"

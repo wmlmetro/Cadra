@@ -1,0 +1,63 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_action_hr
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 12.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-09-16 11:54+0000\n"
+"PO-Revision-Date: 2019-09-16 11:54+0000\n"
+"Last-Translator: <>\n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: generic_request_action_hr
+#: model:ir.model.fields,field_description:generic_request_action_hr.field_request_event_action__assign_type
+msgid "Assign Type"
+msgstr "Тип назначения"
+
+#. module: generic_request_action_hr
+#: model:ir.model.fields,field_description:generic_request_action_hr.field_request_event_action__assign_department_id
+msgid "Department"
+msgstr "Отдел"
+
+#. module: generic_request_action_hr
+#: model:ir.model.fields.selection,name:generic_request_action_hr.selection__request_event_action__assign_type__department_employee
+msgid "Department Employee"
+msgstr "Работник отдела"
+
+#. module: generic_request_action_hr
+#: model:ir.model.fields.selection,name:generic_request_action_hr.selection__request_event_action__assign_type__department_manager
+msgid "Department Manager"
+msgstr "Менеджер отдела"
+
+#. module: generic_request_action_hr
+#: model:ir.model.fields,field_description:generic_request_action_hr.field_request_event_action__assign_department_job_id
+msgid "Job"
+msgstr "Должность"
+
+#. module: generic_request_action_hr
+#: model:ir.model,name:generic_request_action_hr.model_request_event_action
+msgid "Request Event Action"
+msgstr "Действие события запроса"
+
+#. module: generic_request_action_hr
+#: model:hr.job,name:generic_request_action_hr.job_consultant_request_action_hr
+msgid "Senior Consultant"
+msgstr "Старший консультант"
+
+#. module: generic_request_action_hr
+#: model:ir.model.fields,field_description:generic_request_action_hr.field_request_event_action__subscribe_department_ids
+msgid "Subscribe departments"
+msgstr "Подписать отделы"
+
+#~ msgid "Policy"
+#~ msgstr "Политика"
+
+#~ msgid "User"
+#~ msgstr "Пользователь"

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="view_request_request_survey_answer" model="ir.ui.view">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/header" position="inside">
+                <button name="action_send_request_survey"
+                        type="object"
+                        string="Send Survey"
+                        class="oe_highlight"
+                        groups="survey.group_survey_user"/>
+            </xpath>
+            <xpath expr="//form/sheet/div[@name='button_box']" position="inside">
+                <button name="action_show_survey_answers"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-list-alt"
+                        groups="survey.group_survey_user">
+                    <field string="Answers" name="answer_count"
+                           widget="statinfo"
+                           groups="survey.group_survey_user"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_request_request_kanban" model="ir.ui.view">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="//kanban/field[last()]" position="after">
+                <field name="answer_count"
+                       groups="survey.group_survey_user"/>
+            </xpath>
+            <xpath expr="//kanban/templates//div[@name='icons_info']" position="inside">
+                <span t-if="record.answer_count.raw_value" class="icon"
+                      groups="survey.group_survey_user">
+                    <span title='Answers' class='fa fa-list-alt mr4'></span>
+                    <t t-esc="record.answer_count.raw_value"/>
+                </span>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

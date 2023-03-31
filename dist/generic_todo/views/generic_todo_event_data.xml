@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_generic_todo_event_data_tree" model="ir.ui.view">
+        <field name="model">generic.todo.event.data</field>
+        <field name="arch" type="xml">
+            <tree create="false" edit="false">
+                <field name="event_id"/>
+                <field name="event_type_id"/>
+                <field name="event_date"/>
+                <field name="user_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_generic_todo_event_data_form" model="ir.ui.view">
+        <field name="model">generic.todo.event.data</field>
+        <field name="inherit_id" ref="generic_system_event.view_generic_system_event_form"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='group_event']/field[@name='event_type_id']"
+                   position="before">
+                <field name="event_id"/>
+            </xpath>
+            <xpath expr="//group[@name='group_data_root']"
+                   position="inside">
+                <group string="State Changed"
+                       name="group_state_changed">
+                    <field name="old_state"/>
+                    <field name="new_state"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_generic_todo_event_data" model="ir.actions.act_window">
+        <field name="name">Generic Todo Events Data</field>
+        <field name="res_model">generic.todo.event.data</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+</odoo>

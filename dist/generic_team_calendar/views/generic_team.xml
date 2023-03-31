@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_calendar_events">
+        <field name="model">generic.team</field>
+        <field name="inherit_id" ref="generic_team.generic_team_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="////div[hasclass('oe_button_box')]" position="inside">
+                <button class="oe_stat_button"
+                        type="object"
+                        name="action_view_related_meeting"
+                        icon="fa-calendar">
+                    <div class="o_stat_info">
+                        <field name="meeting_count" class="o_stat_value"/>
+                        <span class="o_stat_text"
+                                attrs="{'invisible': [('meeting_count', '&lt;', 2)]}"> Meetings</span>
+                        <span class="o_stat_text"
+                                attrs="{'invisible': [('meeting_count', '&gt;', 1)]}"> Meeting</span>
+                    </div>
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>

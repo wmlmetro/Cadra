@@ -1,0 +1,4 @@
+- Updated to use *Request Creation Templates*.
+- Merged modules:
+    - *generic_request_api_service*
+    - *generic_request_api_tag*

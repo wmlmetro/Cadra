@@ -1,0 +1,2 @@
+- Added 'use_subtasks' field to request.type (default=False)
+- Hide statbutton 'Tasks' if field use_subtasks = False

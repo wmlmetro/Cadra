@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--customer simple-->
+    <record id="contract_template_demo_client_customer" model="generic.contract.template">
+        <field name="name">Client contract</field>
+        <field name="partner_type">customer</field>
+        <field name="number_sequence_id" ref="generic_contract.seq_generic_contract_customer_contracts"/>
+    </record>
+
+    <!--customer basic support-->
+    <record id="contract_template_demo_basic_support" model="generic.contract.template">
+        <field name="name">Basic support contract</field>
+        <field name="partner_type">customer</field>
+        <field name="number_sequence_id" ref="generic_contract.seq_generic_contract_customer_contracts"/>
+    </record>
+
+    <record id="contract_template_demo_basic_support_initial_stage" model="generic.contract.template">
+        <field name="name">Development &amp; Configuration</field>
+        <field name="partner_type">customer</field>
+    </record>
+
+    <record id="contract_template_demo_basic_support_final_stage" model="generic.contract.template">
+        <field name="name">Hosting &amp; Administration</field>
+        <field name="partner_type">customer</field>
+    </record>
+
+    <!--supplier simple-->
+    <record id="contract_template_demo_supplier" model="generic.contract.template">
+        <field name="name">Supplier contract</field>
+        <field name="partner_type">supplier</field>
+        <field name="number_sequence_id" ref="generic_contract.seq_generic_contract_supplier_contracts"/>
+    </record>
+
+</odoo>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="generic.system.event.type" id="system_event_type_contract_confirmed">
+        <field name="name">Contract Confirmed</field>
+        <field name="code">contract-confirmed</field>
+        <field name="event_category_id" ref="system_event_category_generic_contract"/>
+        <field name="event_source_id" ref="system_event_source_generic_contract"/>
+    </record>
+
+    <record model="generic.system.event.type" id="system_event_type_contract_activated">
+        <field name="name">Contract Activated</field>
+        <field name="code">contract-activated</field>
+        <field name="event_category_id" ref="system_event_category_generic_contract"/>
+        <field name="event_source_id" ref="system_event_source_generic_contract"/>
+    </record>
+
+    <record model="generic.system.event.type" id="system_event_type_contract_closed">
+        <field name="name">Contract Closed</field>
+        <field name="code">contract-closed</field>
+        <field name="event_category_id" ref="system_event_category_generic_contract"/>
+        <field name="event_source_id" ref="system_event_source_generic_contract"/>
+    </record>
+
+    <record model="generic.system.event.type" id="system_event_type_contract_assignee_changed">
+        <field name="name">Assignee Changed</field>
+        <field name="code">assignee-changed</field>
+        <field name="event_category_id" ref="system_event_category_generic_contract"/>
+        <field name="event_source_id" ref="system_event_source_generic_contract"/>
+    </record>
+</odoo>

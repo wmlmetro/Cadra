@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id='generic_resource_simple_role_user' model='generic.resource.role'>
+        <field name='name'>User</field>
+        <field name="can_write" eval="True"/>
+        <field name="resource_type_id" ref="generic_resource.generic_resource_type_default"/>
+        <field name="role_type_id" ref="generic_resource_role.generic_resource_role_type_user"/>
+    </record>
+    <record id='generic_resource_simple_role_admin' model='generic.resource.role'>
+        <field name='name'>Administrator</field>
+        <field name="can_write" eval="True"/>
+        <field name="can_manage_roles" eval="True"/>
+        <field name="resource_type_id" ref="generic_resource.generic_resource_type_default"/>
+        <field name="role_type_id" ref="generic_resource_role.generic_resource_role_type_admin"/>
+    </record>
+    <record id='generic_resource_simple_role_readonly' model='generic.resource.role'>
+        <field name='name'>Readonly User</field>
+        <field name="resource_type_id" ref="generic_resource.generic_resource_type_default"/>
+        <field name="role_type_id" ref="generic_resource_role.generic_resource_role_type_other"/>
+    </record>
+</odoo>

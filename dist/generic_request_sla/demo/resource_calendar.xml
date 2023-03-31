@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Few example SLA calendars -->
+
+    <record id="example_sla_calendar_1" model="resource.calendar">
+        <field name="name">40 Hours/Week</field>
+        <field name="attendance_ids" eval="[]"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_1_attendance_mon1">
+        <field name="name">Monday morning</field>
+        <field name="dayofweek">0</field>
+        <field name="hour_from">09</field>
+        <field name="hour_to">12</field>
+        <field name="calendar_id" ref="example_sla_calendar_1"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_1_attendance_mon2">
+        <field name="name">Monday evening</field>
+        <field name="dayofweek">0</field>
+        <field name="hour_from">13</field>
+        <field name="hour_to">18</field>
+        <field name="calendar_id" ref="example_sla_calendar_1"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_1_attendance_tue1">
+        <field name="name">Tuesday morning</field>
+        <field name="dayofweek">1</field>
+        <field name="hour_from">09</field>
+        <field name="hour_to">12</field>
+        <field name="calendar_id" ref="example_sla_calendar_1"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_1_attendance_tue2">
+        <field name="name">Tuesday evening</field>
+        <field name="dayofweek">1</field>
+        <field name="hour_from">13</field>
+        <field name="hour_to">18</field>
+        <field name="calendar_id" ref="example_sla_calendar_1"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_1_attendance_wed1">
+        <field name="name">Wednesday morning</field>
+        <field name="dayofweek">2</field>
+        <field name="hour_from">09</field>
+        <field name="hour_to">12</field>
+        <field name="calendar_id" ref="example_sla_calendar_1"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_1_attendance_wed2">
+        <field name="name">Wednesday evening</field>
+        <field name="dayofweek">2</field>
+        <field name="hour_from">13</field>
+        <field name="hour_to">18</field>
+        <field name="calendar_id" ref="example_sla_calendar_1"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_1_attendance_thu1">
+        <field name="name">Thursday morning</field>
+        <field name="dayofweek">3</field>
+        <field name="hour_from">09</field>
+        <field name="hour_to">12</field>
+        <field name="calendar_id" ref="example_sla_calendar_1"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_1_attendance_thu2">
+        <field name="name">Thursday evening</field>
+        <field name="hour_from">13</field>
+        <field name="hour_to">18</field>
+        <field name="dayofweek">3</field>
+        <field name="calendar_id" ref="example_sla_calendar_1"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_1_attendance_fri1">
+        <field name="name">Friday morning</field>
+        <field name="dayofweek">4</field>
+        <field name="hour_from">09</field>
+        <field name="hour_to">12</field>
+        <field name="calendar_id" ref="example_sla_calendar_1"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_1_attendance_fri2">
+        <field name="name">Friday evening</field>
+        <field name="dayofweek">4</field>
+        <field name="hour_from">13</field>
+        <field name="hour_to">18</field>
+        <field name="calendar_id" ref="example_sla_calendar_1"/>
+    </record>
+
+    <!-- ''''''''''''''''''''''''''''''''''' -->
+
+    <record id="example_sla_calendar_2" model="resource.calendar">
+        <field name="name">42 Hours/Week (Mon - Sat)</field>
+        <field name="attendance_ids" eval="[]"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_2_attendance_mon1">
+        <field name="name">Monday morning</field>
+        <field name="dayofweek">0</field>
+        <field name="hour_from">09</field>
+        <field name="hour_to">12</field>
+        <field name="calendar_id" ref="example_sla_calendar_2"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_2_attendance_mon2">
+        <field name="name">Monday evening</field>
+        <field name="dayofweek">0</field>
+        <field name="hour_from">13</field>
+        <field name="hour_to">17</field>
+        <field name="calendar_id" ref="example_sla_calendar_2"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_2_attendance_tue1">
+        <field name="name">Tuesday morning</field>
+        <field name="dayofweek">1</field>
+        <field name="hour_from">09</field>
+        <field name="hour_to">12</field>
+        <field name="calendar_id" ref="example_sla_calendar_2"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_2_attendance_tue2">
+        <field name="name">Tuesday evening</field>
+        <field name="dayofweek">1</field>
+        <field name="hour_from">13</field>
+        <field name="hour_to">17</field>
+        <field name="calendar_id" ref="example_sla_calendar_2"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_2_attendance_wed1">
+        <field name="name">Wednesday morning</field>
+        <field name="dayofweek">2</field>
+        <field name="hour_from">09</field>
+        <field name="hour_to">12</field>
+        <field name="calendar_id" ref="example_sla_calendar_2"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_2_attendance_wed2">
+        <field name="name">Wednesday evening</field>
+        <field name="dayofweek">2</field>
+        <field name="hour_from">13</field>
+        <field name="hour_to">17</field>
+        <field name="calendar_id" ref="example_sla_calendar_2"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_2_attendance_thu1">
+        <field name="name">Thursday morning</field>
+        <field name="dayofweek">3</field>
+        <field name="hour_from">09</field>
+        <field name="hour_to">12</field>
+        <field name="calendar_id" ref="example_sla_calendar_2"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_2_attendance_thu2">
+        <field name="name">Thursday evening</field>
+        <field name="hour_from">13</field>
+        <field name="hour_to">17</field>
+        <field name="dayofweek">3</field>
+        <field name="calendar_id" ref="example_sla_calendar_2"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_2_attendance_fri1">
+        <field name="name">Friday morning</field>
+        <field name="dayofweek">4</field>
+        <field name="hour_from">09</field>
+        <field name="hour_to">12</field>
+        <field name="calendar_id" ref="example_sla_calendar_2"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_2_attendance_fri2">
+        <field name="name">Friday evening</field>
+        <field name="dayofweek">4</field>
+        <field name="hour_from">13</field>
+        <field name="hour_to">17</field>
+        <field name="calendar_id" ref="example_sla_calendar_2"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_2_attendance_sat1">
+        <field name="name">Saturday morning</field>
+        <field name="dayofweek">5</field>
+        <field name="hour_from">09</field>
+        <field name="hour_to">12</field>
+        <field name="calendar_id" ref="example_sla_calendar_2"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_2_attendance_sat2">
+        <field name="name">Saturday evening</field>
+        <field name="dayofweek">5</field>
+        <field name="hour_from">13</field>
+        <field name="hour_to">17</field>
+        <field name="calendar_id" ref="example_sla_calendar_2"/>
+    </record>
+
+    <!-- ''''''''''''''''''''''''''''''''''' -->
+
+    <record id="example_sla_calendar_3" model="resource.calendar">
+        <field name="name">47 Hours/Week (Mon - Sun)</field>
+        <field name="attendance_ids" eval="[]"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_3_attendance_mon1">
+        <field name="name">Monday morning</field>
+        <field name="dayofweek">0</field>
+        <field name="hour_from">09</field>
+        <field name="hour_to">12</field>
+        <field name="calendar_id" ref="example_sla_calendar_3"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_3_attendance_mon2">
+        <field name="name">Monday evening</field>
+        <field name="dayofweek">0</field>
+        <field name="hour_from">13</field>
+        <field name="hour_to">17</field>
+        <field name="calendar_id" ref="example_sla_calendar_3"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_3_attendance_tue1">
+        <field name="name">Tuesday morning</field>
+        <field name="dayofweek">1</field>
+        <field name="hour_from">09</field>
+        <field name="hour_to">12</field>
+        <field name="calendar_id" ref="example_sla_calendar_3"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_3_attendance_tue2">
+        <field name="name">Tuesday evening</field>
+        <field name="dayofweek">1</field>
+        <field name="hour_from">13</field>
+        <field name="hour_to">17</field>
+        <field name="calendar_id" ref="example_sla_calendar_3"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_3_attendance_wed1">
+        <field name="name">Wednesday morning</field>
+        <field name="dayofweek">2</field>
+        <field name="hour_from">09</field>
+        <field name="hour_to">12</field>
+        <field name="calendar_id" ref="example_sla_calendar_3"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_3_attendance_wed2">
+        <field name="name">Wednesday evening</field>
+        <field name="dayofweek">2</field>
+        <field name="hour_from">13</field>
+        <field name="hour_to">17</field>
+        <field name="calendar_id" ref="example_sla_calendar_3"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_3_attendance_thu1">
+        <field name="name">Thursday morning</field>
+        <field name="dayofweek">3</field>
+        <field name="hour_from">09</field>
+        <field name="hour_to">12</field>
+        <field name="calendar_id" ref="example_sla_calendar_3"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_3_attendance_thu2">
+        <field name="name">Thursday evening</field>
+        <field name="hour_from">13</field>
+        <field name="hour_to">17</field>
+        <field name="dayofweek">3</field>
+        <field name="calendar_id" ref="example_sla_calendar_3"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_3_attendance_fri1">
+        <field name="name">Friday morning</field>
+        <field name="dayofweek">4</field>
+        <field name="hour_from">09</field>
+        <field name="hour_to">12</field>
+        <field name="calendar_id" ref="example_sla_calendar_3"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_3_attendance_fri2">
+        <field name="name">Friday evening</field>
+        <field name="dayofweek">4</field>
+        <field name="hour_from">13</field>
+        <field name="hour_to">17</field>
+        <field name="calendar_id" ref="example_sla_calendar_3"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_3_attendance_sat1">
+        <field name="name">Saturday morning</field>
+        <field name="dayofweek">5</field>
+        <field name="hour_from">09</field>
+        <field name="hour_to">12</field>
+        <field name="calendar_id" ref="example_sla_calendar_3"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_3_attendance_sat2">
+        <field name="name">Saturday evening</field>
+        <field name="dayofweek">5</field>
+        <field name="hour_from">13</field>
+        <field name="hour_to">17</field>
+        <field name="calendar_id" ref="example_sla_calendar_3"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_3_attendance_sun1">
+        <field name="name">Sunday morning</field>
+        <field name="dayofweek">6</field>
+        <field name="hour_from">10</field>
+        <field name="hour_to">12</field>
+        <field name="calendar_id" ref="example_sla_calendar_3"/>
+    </record>
+    <record model="resource.calendar.attendance" id="sla_calendar_3_attendance_sun2">
+        <field name="name">Sunday evening</field>
+        <field name="dayofweek">6</field>
+        <field name="hour_from">13</field>
+        <field name="hour_to">16</field>
+        <field name="calendar_id" ref="example_sla_calendar_3"/>
+    </record>
+</odoo>

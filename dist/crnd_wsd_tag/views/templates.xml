@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <template id="wsd_requests_tags"
+              inherit_id="crnd_wsd.wsd_request_body"
+              name="Display Tags"
+              customize_show="True"
+              active="True">
+        <xpath expr="//div[@id='request-head']" position="before">
+            <div t-if="req.tag_ids" id="request-head-tags" class="row mb8">
+                <div class="col-md-12">
+                    <t t-foreach="req.tag_ids" t-as="tag">
+                        <span t-attf-class="wsd_tag_color_{{tag.color}} badge">
+                            <t t-esc="tag.complete_name"/>
+                        </span>
+                    </t>
+                </div>
+            </div>
+        </xpath>
+    </template>
+
+    <template id="wsd_requests_new_request_data_tags"
+              inherit_id="crnd_wsd.wsd_requests_new_request_data"
+              name="Request Tags"
+              customize_show="True"
+              active="True">
+        <xpath expr="//section[@id='request-body']" position="before">
+            <div t-if="request_tag_categories" id="request-data-tags" class="col-sm-12">
+                <div class="row">
+                    <t t-foreach="request_tag_categories" t-as="tag_category">
+                        <div t-if="tag_category.tag_ids" class="col-sm-4 request-data-tag-category">
+                            <label class="control-label" t-esc="tag_category.display_name"/>
+                            <t t-foreach="tag_category.tag_ids" t-as="tag">
+                                <t t-if="tag_category.check_xor">
+                                    <div class="form-check request-data-tag-tag">
+                                        <t t-if="request.website.is_request_restricted_ui()">
+                                            <input type="radio"
+                                                   class="form-check-input"
+                                                   t-attf-id="tag_id_{{ tag_category.id }}_{{ tag.id }}"
+                                                   t-attf-name="tag_id_{{ tag_category.id }}"
+                                                   disabled="disabled"
+                                                   t-att-value="tag.id"/>
+                                            <label class="form-check-label"
+                                                   t-attf-for="tag_id_{{ tag_category.id }}_{{ tag.id }}"
+                                                   t-esc="tag.name"/>
+                                        </t>
+                                        <t t-else="">
+                                            <input type="radio"
+                                                   class="form-check-input"
+                                                   t-attf-id="tag_id_{{ tag_category.id }}_{{ tag.id }}"
+                                                   t-attf-name="tag_id_{{ tag_category.id }}"
+                                                   t-att-value="tag.id"/>
+                                            <label class="form-check-label"
+                                                   t-attf-for="tag_id_{{ tag_category.id }}_{{ tag.id }}"
+                                                   t-esc="tag.name"/>
+                                        </t>
+                                    </div>
+                                </t>
+                                <t t-else="">
+                                    <div class="form-check request-data-tag-tag">
+                                        <t t-if="request.website.is_request_restricted_ui()">
+                                            <input type="checkbox"
+                                                   class="form-check-input"
+                                                   t-attf-id="tag_id_{{ tag_category.id }}_{{ tag.id }}"
+                                                   t-attf-name="tag_id_{{ tag_category.id }}_{{ tag.id }}"
+                                                   disabled="disabled"
+                                                   t-att-value="tag.id"/>
+                                            <label class="form-check-label"
+                                                   t-attf-for="tag_id_{{ tag_category.id }}_{{ tag.id }}"
+                                                   t-esc="tag.name"/>
+
+                                        </t>
+                                        <t t-else="">
+                                            <input type="checkbox"
+                                                   class="form-check-input"
+                                                   t-attf-id="tag_id_{{ tag_category.id }}_{{ tag.id }}"
+                                                   t-attf-name="tag_id_{{ tag_category.id }}_{{ tag.id }}"
+                                                   t-att-value="tag.id"/>
+                                            <label class="form-check-label"
+                                                   t-attf-for="tag_id_{{ tag_category.id }}_{{ tag.id }}"
+                                                   t-esc="tag.name"/>
+                                        </t>
+                                    </div>
+                                </t>
+                            </t>
+                        </div>
+                    </t>
+                </div>
+            </div>
+            <div t-if="request_tag_categories" class="oe_structure col-sm-12"/>
+        </xpath>
+    </template>
+
+    <template id="wsd_requests_table_tags"
+              inherit_id="crnd_wsd.wsd_request_table"
+              name="Display Tags"
+              customize_show="True"
+              active="True">
+        <xpath expr="//div[hasclass('request_top')]" position="after">
+            <div t-if="req.tag_ids" class="row mb8 request_tags">
+                <div class="col-md-12">
+                    <t t-foreach="req.tag_ids" t-as="tag">
+                        <span t-attf-class="wsd_tag_color_{{tag.color}} badge">
+                            <t t-esc="tag.complete_name"/>
+                        </span>
+                    </t>
+                </div>
+            </div>
+        </xpath>
+    </template>
+
+    <template id="wsd_requests_table_congrat_tags"
+              inherit_id="crnd_wsd.wsd_requests_new_congratulation"
+              name="Display Tags"
+              customize_show="True"
+              active="True">
+        <xpath expr="//div[hasclass('request_top')]" position="after">
+            <div t-if="req.tag_ids" class="row mb8 request_tags">
+                <div class="col-md-12">
+                    <t t-foreach="req.tag_ids" t-as="tag">
+                        <span t-attf-class="wsd_tag_color_{{tag.color}} badge">
+                            <t t-esc="tag.complete_name"/>
+                        </span>
+                    </t>
+                </div>
+            </div>
+        </xpath>
+    </template>
+
+</odoo>

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Tag category skill -->
+    <record id="tag_skill_python" model="generic.tag">
+        <field name="name">Python</field>
+        <field name="code">skill_python</field>
+        <field name="model_id" ref="generic_tag_generic_team_member"/>
+        <field name="category_id" ref="tag_category_skill"/>
+    </record>
+    <record id="tag_skill_linux" model="generic.tag">
+        <field name="name">Linux</field>
+        <field name="code">skill_linux</field>
+        <field name="model_id" ref="generic_tag_generic_team_member"/>
+        <field name="category_id" ref="tag_category_skill"/>
+    </record>
+    <record id="tag_skill_macos" model="generic.tag">
+        <field name="name">MacOS</field>
+        <field name="code">skill_macos</field>
+        <field name="model_id" ref="generic_tag_generic_team_member"/>
+        <field name="category_id" ref="tag_category_skill"/>
+    </record>
+    <record id="tag_skill_windows" model="generic.tag">
+        <field name="name">Windows</field>
+        <field name="code">skill_windows</field>
+        <field name="model_id" ref="generic_tag_generic_team_member"/>
+        <field name="category_id" ref="tag_category_skill"/>
+    </record>
+    <record id="tag_skill_odoo" model="generic.tag">
+        <field name="name">Odoo</field>
+        <field name="code">skill_odoo</field>
+        <field name="model_id" ref="generic_tag_generic_team_member"/>
+        <field name="category_id" ref="tag_category_skill"/>
+    </record>
+    <record id="tag_skill_git" model="generic.tag">
+        <field name="name">Git</field>
+        <field name="code">skill_git</field>
+        <field name="model_id" ref="generic_tag_generic_team_member"/>
+        <field name="category_id" ref="tag_category_skill"/>
+    </record>
+    <record id="tag_skill_js" model="generic.tag">
+        <field name="name">JS</field>
+        <field name="code">skill_js</field>
+        <field name="model_id" ref="generic_tag_generic_team_member"/>
+        <field name="category_id" ref="tag_category_skill"/>
+    </record>
+    
+    <!-- Tag category role -->
+    <record id="tag_role_engineer" model="generic.tag">
+        <field name="name">Software engineer</field>
+        <field name="code">role_software_engineer</field>
+        <field name="model_id" ref="generic_tag_generic_team_member"/>
+        <field name="category_id" ref="tag_category_role"/>
+    </record>
+    <record id="tag_role_qa" model="generic.tag">
+        <field name="name">QA tester</field>
+        <field name="code">role_qa</field>
+        <field name="model_id" ref="generic_tag_generic_team_member"/>
+        <field name="category_id" ref="tag_category_role"/>
+    </record>
+    <record id="tag_role_tech_support" model="generic.tag">
+        <field name="name">Technical support</field>
+        <field name="code">role_tech_support</field>
+        <field name="model_id" ref="generic_tag_generic_team_member"/>
+        <field name="category_id" ref="tag_category_role"/>
+    </record>
+    <record id="tag_role_project_manager" model="generic.tag">
+        <field name="name">Project manager</field>
+        <field name="code">role_project_manager</field>
+        <field name="model_id" ref="generic_tag_generic_team_member"/>
+        <field name="category_id" ref="tag_category_role"/>
+    </record>
+
+    <!-- Team Tags -->
+    <record id="tag_team_python" model="generic.tag">
+        <field name="name">Python</field>
+        <field name="code">team_python</field>
+        <field name="model_id" ref="generic_tag_generic_team"/>
+    </record>
+    <record id="tag_team_odoo" model="generic.tag">
+        <field name="name">Odoo</field>
+        <field name="code">team_odoo</field>
+        <field name="model_id" ref="generic_tag_generic_team"/>
+    </record>
+    <record id="tag_team_devops" model="generic.tag">
+        <field name="name">DevOps</field>
+        <field name="code">team_devops</field>
+        <field name="model_id" ref="generic_tag_generic_team"/>
+    </record>
+    <record id="tag_team_js" model="generic.tag">
+        <field name="name">JS</field>
+        <field name="code">team_js</field>
+        <field name="model_id" ref="generic_tag_generic_team"/>
+    </record>
+    <record id="tag_team_support" model="generic.tag">
+        <field name="name">Technical support</field>
+        <field name="code">team_support</field>
+        <field name="model_id" ref="generic_tag_generic_team"/>
+    </record>
+</odoo>

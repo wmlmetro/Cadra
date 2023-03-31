@@ -1,0 +1,1 @@
+- Added ability to manage team assignment notifications from request type

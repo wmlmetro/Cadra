@@ -1,0 +1,129 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_sla_team
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:16+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_sla_team/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_sla_team
+#: model:request.type,description:generic_request_sla_team.request_type_sla_team
+msgid ""
+"\n"
+"            Simple request to demonstrate (and test) SLA log lines and\n"
+"            computation of request SLA rules with team assignments.\n"
+"        "
+msgstr ""
+"\n"
+"            SLA günlük satırlarını göstermek (ve test etmek) için basit "
+"istek ve\n"
+"             ekip atamaları ile istek SLA kurallarının hesaplanması.\n"
+"        "
+
+#. module: generic_request_sla_team
+#: model:ir.model.fields,field_description:generic_request_sla_team.field_request_sla_control__assigned_team
+#: model:ir.model.fields,field_description:generic_request_sla_team.field_request_sla_rule__assigned_team
+msgid "Assigned Team"
+msgstr "Atanan Takım"
+
+#. module: generic_request_sla_team
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_team.generic_request_sla_control_view_search
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_team.generic_request_sla_rule_view_search
+msgid "Assigned team"
+msgstr "Atanan Takım"
+
+#. module: generic_request_sla_team
+#: model:request.stage,name:generic_request_sla_team.request_stage_type_sla_team_cancelled
+msgid "Cancelled"
+msgstr "İptal Edildi"
+
+#. module: generic_request_sla_team
+#: model:request.stage,name:generic_request_sla_team.request_stage_type_sla_team_completed
+msgid "Completed"
+msgstr "Tamamlandı"
+
+#. module: generic_request_sla_team
+#: model:request.stage,name:generic_request_sla_team.request_stage_type_sla_team_in_progress
+msgid "In progress"
+msgstr "Devam etmekte"
+
+#. module: generic_request_sla_team
+#: model:request.stage,name:generic_request_sla_team.request_stage_type_sla_team_new
+msgid "New"
+msgstr "Yeni"
+
+#. module: generic_request_sla_team
+#: model:ir.model.fields.selection,name:generic_request_sla_team.selection__request_sla_control__assigned_team__no
+#: model:ir.model.fields.selection,name:generic_request_sla_team.selection__request_sla_rule__assigned_team__no
+msgid "No"
+msgstr "Hayır"
+
+#. module: generic_request_sla_team
+#: model:ir.model.fields.selection,name:generic_request_sla_team.selection__request_sla_control__assigned_team__none
+#: model:ir.model.fields.selection,name:generic_request_sla_team.selection__request_sla_rule__assigned_team__none
+msgid "None"
+msgstr "Hiçbiri"
+
+#. module: generic_request_sla_team
+#: model:ir.model,name:generic_request_sla_team.model_request_request
+msgid "Request"
+msgstr "İstek"
+
+#. module: generic_request_sla_team
+#: model:ir.model,name:generic_request_sla_team.model_request_sla_control
+msgid "Request SLA Control"
+msgstr "SLA Kontrolü İste"
+
+#. module: generic_request_sla_team
+#: model:ir.model,name:generic_request_sla_team.model_request_sla_log
+msgid "Request SLA Log"
+msgstr "SLA Kaydı İste"
+
+#. module: generic_request_sla_team
+#: model:ir.model,name:generic_request_sla_team.model_request_sla_rule
+msgid "Request SLA rule"
+msgstr "SLA kuralı iste"
+
+#. module: generic_request_sla_team
+#: model:request.type,name:generic_request_sla_team.request_type_sla_team
+msgid "SLA Request (team)"
+msgstr "SLA Talebi (ekip)"
+
+#. module: generic_request_sla_team
+#: model:request.sla.rule,name:generic_request_sla_team.request_sla_rule_solution_time_6h
+msgid "Solution time 6 hours"
+msgstr "Çözüm süresi 6 saat"
+
+#. module: generic_request_sla_team
+#: model:ir.model.fields,field_description:generic_request_sla_team.field_request_sla_log__team_id
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_team.1_request_sla_log_view_search
+msgid "Team"
+msgstr "Takım"
+
+#. module: generic_request_sla_team
+#: model:request.sla.rule,name:generic_request_sla_team.request_sla_rule_team_assignment_time_2h
+msgid "Team assignment time 2 hours"
+msgstr "Ekip atama süresi 2 saat"
+
+#. module: generic_request_sla_team
+#: model:request.sla.rule,name:generic_request_sla_team.request_sla_rule_assignment_time_3h
+msgid "User assignment time 3 hours"
+msgstr "Kullanıcı atama süresi 3 saat"
+
+#. module: generic_request_sla_team
+#: model:ir.model.fields.selection,name:generic_request_sla_team.selection__request_sla_control__assigned_team__yes
+#: model:ir.model.fields.selection,name:generic_request_sla_team.selection__request_sla_rule__assigned_team__yes
+msgid "Yes"
+msgstr "Evet"

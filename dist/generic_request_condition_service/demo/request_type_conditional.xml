@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="generic_request_condition.request_type_conditional" model="request.type">
+        <field name="service_ids"
+               eval="[(6, 0, [ref('generic_service.generic_service_rent_notebook')])]"/>
+        <field name="change_service_condition_ids"
+               eval="[(6, 0, [ref('generic_request_condition.demo_condition_request_stage_is_draft_or_sent')])]"/>
+    </record>
+</odoo>

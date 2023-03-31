@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--customer-->
+    <record id="demo_contract_service" model="generic.contract">
+        <field name="name">Contract with services</field>
+        <field name="partner_type">customer</field>
+        <field name="partner_id" ref="base.partner_demo_portal"/>
+        <field name="date_start"
+               eval="(DateTime.today() - timedelta(weeks=12)).strftime('%Y-%m-%d 00:00:00')"/>
+        <field name="date_end"
+               eval="(DateTime.today() + timedelta(weeks=20)).strftime('%Y-%m-%d 00:00:00')"/>
+        <field name="description">
+             This is demo contract for portal user that is used in tests
+        </field>
+    </record>
+
+    <record id="demo_contract_service_line_1" model="generic.contract.service.line">
+        <field name="service_id" ref="generic_service.generic_service_support_consulting"/>
+        <field name="service_level_id" ref="generic_service.generic_service_level_2"/>
+        <field name="contract_id" ref="crnd_wsd_contract_service.demo_contract_service"/>
+    </record>
+
+    <record id="demo_contract_service_line_3" model="generic.contract.service.line">
+        <field name="service_id" ref="generic_service.generic_service_support_development"/>
+        <field name="service_level_id" ref="generic_service.generic_service_level_3"/>
+        <field name="request_category_ids"
+               eval="[(4, ref('generic_request.request_category_demo_general'))]"/>
+        <field name="contract_id" ref="crnd_wsd_contract_service.demo_contract_service"/>
+    </record>
+
+</odoo>

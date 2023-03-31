@@ -1,0 +1,1433 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_sla
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:20+0000\n"
+"PO-Revision-Date: 2023-03-07 12:45+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_sla/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_sla
+#: model:request.type,description:generic_request_sla.request_type_sla_complex
+msgid ""
+"\n"
+"            Request type to demonstrate complex SLA configuration:\n"
+"            - Reaction time 2h using working time \"47 Hours/Week (Mon - "
+"Sun)\"\n"
+"            - Resolution time is 8h using working time \"40 Hours/Week\"\n"
+"            - Resolution time for requests with category \"Support\" is 8h "
+"using working time \"42 Hours/Week (Mon - Sat)\"\n"
+"        "
+msgstr ""
+"\n"
+"            Karmaşık SLA yapılandırmasını göstermek için istek türü:\n"
+"             - \"47 Saat/Hafta (Pzt - Paz)\" çalışma süresi kullanılarak "
+"reaksiyon süresi 2 saat\n"
+"             - \"40 Saat/Hafta\" çalışma süresi kullanılarak çözüm süresi 8 "
+"saattir\n"
+"             - \"Destek\" kategorisine sahip isteklerin çözüm süresi, \"42 "
+"Saat/Hafta (Pzt - Cmt)\" çalışma süresi kullanılarak 8 saattir.\n"
+"        "
+
+#. module: generic_request_sla
+#: model:request.type,description:generic_request_sla.request_type_sla_2
+msgid ""
+"\n"
+"            Simple request to demonstrate (and test) the SLA computation "
+"type\n"
+"            Least Date and Worst Status.\n"
+"        "
+msgstr ""
+"\n"
+"            SLA hesaplama türünü göstermek (ve test etmek) için basit istek\n"
+"             En Az Tarih ve En Kötü Durum.\n"
+"        "
+
+#. module: generic_request_sla
+#: model:request.type,description:generic_request_sla.request_type_sla_conditions
+msgid ""
+"\n"
+"            Simple request to demonstrate (and test) the SLA rule "
+"conditions.\n"
+"        "
+msgstr ""
+"\n"
+"            SLA kural koşullarını göstermek (ve test etmek) için basit istek."
+"\n"
+"        "
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__assigned
+msgid ""
+"1) None - SLA Rule will be active at this stage(s) regardless of assignment\n"
+"2) Yes - SLA Rule will activate at this stage(s) if responsible person is "
+"assigned\n"
+"3) No - SLA Rule will be active if no responsible person is assigned"
+msgstr ""
+"1) Yok - SLA Kuralı, atamadan bağımsız olarak bu aşamada/aşamalarda etkin "
+"olacaktır\n"
+"2) Evet - Sorumlu kişi atanırsa, SLA Kuralı bu aşamada/aşamalarda "
+"etkinleşir\n"
+"3) Hayır - Sorumlu kişi atanmadığı takdirde SLA Kuralı etkin olacaktır"
+
+#. module: generic_request_sla
+#: model:request.sla.rule,name:generic_request_sla.request_sla_rule_2h_unassigned
+msgid "2H Unassigned"
+msgstr "2H Atanmamış"
+
+#. module: generic_request_sla
+#: model:request.sla.rule,name:generic_request_sla.request_sla_rule_4h_assigned
+msgid "4H Assigned"
+msgstr "4H Atanmış"
+
+#. module: generic_request_sla
+#: model:request.sla.rule,name:generic_request_sla.request_sla_rule_8h_in_draft
+msgid "8H in Draft"
+msgstr "Taslakta 8H"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.iherited_view_request_request_kanban_inherit_request_sla
+msgid "<i class=\"text-danger fa fa-bell mr4\" title=\"SLA Failed\"/>"
+msgstr "<i class=\"text-danger fa fa-bell mr4\" title=\"SLA Başarısız Oldu\"/>"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.iherited_view_request_request_kanban_inherit_request_sla
+msgid "<i class=\"text-success fa fa-bell-o\" title=\"SLA OK\"/>"
+msgstr "<i class=\"text-success fa fa-bell-o\" title=\"SLA OK\"/>"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.iherited_view_request_request_kanban_inherit_request_sla
+msgid ""
+"<i class=\"text-warning font-weight-bold fa fa-bell-o\" title=\"SLA "
+"Approaching limit date\"/>"
+msgstr ""
+"<i class=\"text-warning font-weight-bold fa fa-bell-o\" title=\"SLA Yaklaşan "
+"sınır tarihi\"/>"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid ""
+"<i>Request Categories</i>: specify request categories. For requests of these "
+"categories, time limits of the new line will be used. If no category is "
+"selected, this condition applies to requests of any category."
+msgstr ""
+"<i>İstek Kategorileri</i>: istek kategorilerini belirtin. Bu kategorilerdeki "
+"talepler için yeni hattın zaman limitleri kullanılacaktır. Hiçbir kategori "
+"seçilmezse, bu koşul herhangi bir kategorideki istekler için geçerlidir."
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__compute_time__absolute
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule__compute_time__absolute
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule_line__compute_time__absolute
+msgid "Absolute time"
+msgstr "mutlak zaman"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_needaction
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_needaction
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_needaction
+msgid "Action Needed"
+msgstr "İhtiyaç duyulan eylem"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__active
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__active
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__active
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__active
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_search
+msgid "Active"
+msgstr "Aktif"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_type_from_request_sla_rule_form
+msgid ""
+"An active SLA Rule with the highest position in the list on the SLA Rules "
+"page. Position determines by the Sequence on the Rule form. The lower the "
+"sequence number, the higher the position."
+msgstr ""
+"SLA Kuralları sayfasındaki listede en yüksek konuma sahip etkin bir SLA "
+"Kuralı. Konum, Kural formundaki Sıra ile belirlenir. Sıra numarası ne kadar "
+"düşükse, konum o kadar yüksektir."
+
+#. module: generic_request_sla
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_condition_analysis
+msgid "Analysis"
+msgstr "Analiz"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_type_view_form
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_search
+msgid "Archived"
+msgstr "arşivlendi"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__assigned
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__assigned
+#: model:request.sla.rule.type,name:generic_request_sla.request_sla_rule_type_assigned
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_search
+msgid "Assigned"
+msgstr "Atandı"
+
+#. module: generic_request_sla
+#: model:request.sla.rule,name:generic_request_sla.request_sla_rule_assignment_time_2h
+msgid "Assignment time 2 hours"
+msgstr "Atama süresi 2 saat"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_attachment_count
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_attachment_count
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_attachment_count
+msgid "Attachment Count"
+msgstr "Ek Sayısı"
+
+#. module: generic_request_sla
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_2_cancelled
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_complex_cancelled
+msgid "Cancelled"
+msgstr "İptal Edildi"
+
+#. module: generic_request_sla
+#: code:addons/generic_request_sla/models/request_sla_rule_line.py:0
+#, python-format
+msgid ""
+"Cannot set compute time to Working time, because request SLA Rule Line '%s' "
+"have no configured Working time!"
+msgstr ""
+"İşlem süresi Çalışma süresi olarak ayarlanamıyor çünkü istek SLA Kural "
+"Satırı '%s' yapılandırılmış Çalışma süresine sahip değil!"
+
+#. module: generic_request_sla
+#: code:addons/generic_request_sla/models/request_sla_rule.py:0
+#, python-format
+msgid ""
+"Cannot set compute time to Working time, because request SLA rule '%s' have "
+"no configured Working time!"
+msgstr ""
+"İşlem süresi Çalışma süresi olarak ayarlanamıyor çünkü istek SLA kuralı '%s' "
+"yapılandırılmış Çalışma süresine sahip değil!"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__request_category_id
+msgid "Category"
+msgstr "kategori"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__request_category_id
+msgid "Category of request"
+msgstr "İstek kategorisi"
+
+#. module: generic_request_sla
+#: model_terms:ir.actions.act_window,help:generic_request_sla.action_request_sla_rule_type_view
+msgid "Click to create a new SLA Rule Type."
+msgstr "Yeni bir SLA Kural Türü oluşturmak için tıklayın."
+
+#. module: generic_request_sla
+#: model_terms:ir.actions.act_window,help:generic_request_sla.generic_request_sla_rule_action
+msgid "Click to create a new SLA rule."
+msgstr "Yeni bir SLA Kuralı oluşturmak için tıklayın."
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__code
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__code
+msgid "Code"
+msgstr "kod"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_type_view_form
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid "Code..."
+msgstr "Kod..."
+
+#. module: generic_request_sla
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_2_completed
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_complex_completed
+msgid "Completed"
+msgstr "Tamamlandı"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__compute_time
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__compute_time
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__compute_time
+msgid "Compute Time"
+msgstr "Hesaplama Süresi"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_search
+msgid "Compute time"
+msgstr "Hesaplama Süresi"
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_type__sla_compute_type__conditional
+msgid "Conditional"
+msgstr "koşullu"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__condition_ids
+msgid "Conditions"
+msgstr "Koşullar"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__sequence
+msgid "Conditions with smaller value in this field will be checked first"
+msgstr ""
+"Bu alanda daha küçük değere sahip koşullar ilk olarak kontrol edilecektir"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_condition_view_tree
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_type_from_request_sla_rule_form
+msgid "Conditions..."
+msgstr "Şartlar..."
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_type_from_request_sla_rule_form
+msgid "Configure SLA Rules"
+msgstr "SLA Kurallarını Yapılandır"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__date
+msgid "Created"
+msgstr "oluşturuldu"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__create_uid
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__create_uid
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__create_uid
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__create_uid
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__create_uid
+msgid "Created by"
+msgstr "Tarafından yaratıldı"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__create_date
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__create_date
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__create_date
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__create_date
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__create_date
+msgid "Created on"
+msgstr "oluşturuldu"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
+msgid "Date"
+msgstr "Tarih"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
+msgid "Deadline"
+msgstr "Son teslim tarihi"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.message_request_sla_failed
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.message_request_sla_warning
+msgid "Dear"
+msgstr "Sayın"
+
+#. module: generic_request_sla
+#: model:request.sla.rule.type,name:generic_request_sla.request_sla_rule_type_default
+msgid "Default"
+msgstr "Varsayılan"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__description
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__description
+msgid "Description"
+msgstr "Tanım"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_condition_view_form
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_type_view_form
+msgid "Description..."
+msgstr "Tanım ..."
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__display_name
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__display_name
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__display_name
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__display_name
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__display_name
+msgid "Display Name"
+msgstr "Ekran adı"
+
+#. module: generic_request_sla
+#: model_terms:ir.actions.act_window,help:generic_request_sla.action_request_sla_rule_type_view
+#: model_terms:ir.actions.act_window,help:generic_request_sla.generic_request_sla_rule_action
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid "Documentation"
+msgstr "dökümantasyon"
+
+#. module: generic_request_sla
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_condition_done
+msgid "Done"
+msgstr "Tamamlandı"
+
+#. module: generic_request_sla
+#: model:request.sla.rule.type,name:generic_request_sla.request_sla_rule_type_draft
+msgid "Draft"
+msgstr "Taslak"
+
+#. module: generic_request_sla
+#: model:generic.condition,description:generic_request_sla.condition_request_has_no_tag_on_site_fix
+msgid "Evaluates to False if request has tag On Site Fix."
+msgstr "İstek, Sitede Düzeltme etiketine sahipse False olarak değerlendirilir."
+
+#. module: generic_request_sla
+#: model:generic.condition,description:generic_request_sla.condition_request_has_tag_on_site_fix
+msgid "Evaluates to True if request has tag On Site Fix."
+msgstr "İstek, Sitede Düzeltme etiketine sahipse True olarak değerlendirilir."
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_event__sla_state__failed
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_request__sla_state__failed
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__sla_state__failed
+msgid "Failed"
+msgstr "Başarısız Oldu"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_follower_ids
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_follower_ids
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_follower_ids
+msgid "Followers"
+msgstr "Takipçiler"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_partner_ids
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_partner_ids
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_partner_ids
+msgid "Followers (Partners)"
+msgstr "Takipçiler (Ortaklar)"
+
+#. module: generic_request_sla
+#: model:ir.actions.server,name:generic_request_sla.ir_cron_request_sla_update_state_ir_actions_server
+#: model:ir.cron,cron_name:generic_request_sla.ir_cron_request_sla_update_state
+#: model:ir.cron,name:generic_request_sla.ir_cron_request_sla_update_state
+msgid "Generic Request SLA: Update SLA State"
+msgstr "Genel İstek SLA'sı: SLA Durumunu Güncelle"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_event__sla_rule_type_id
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__sla_rule_type_id
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__sla_rule_type_id
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__sla_rule_type_id
+msgid ""
+"Global type of SLA Rule\n"
+"It is used to group SLA Rules (e.g. for reporting)"
+msgstr ""
+"Global SLA Kuralı türü\n"
+"SLA Kurallarını gruplandırmak için kullanılır (örn. raporlama için)"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_search
+msgid "Group By..."
+msgstr "Gruplandır..."
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__has_message
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__has_message
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__has_message
+msgid "Has Message"
+msgstr "Mesaj Var"
+
+#. module: generic_request_sla
+#: model:generic.condition,name:generic_request_sla.condition_request_has_no_tag_on_site_fix
+msgid "Has No Tag On Site Fix"
+msgstr "Site Düzeltmesinde Etiket Yok"
+
+#. module: generic_request_sla
+#: model:generic.condition,name:generic_request_sla.condition_request_has_tag_on_site_fix
+msgid "Has Tag On Site Fix"
+msgstr "Site Düzeltmesinde Etiket Var"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__message_needaction
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__message_unread
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__message_needaction
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__message_unread
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__message_needaction
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__message_unread
+msgid "If checked, new messages require your attention."
+msgstr "Kontrol edilirse, yeni iletilerle ilgilenmeniz gerekir."
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__message_has_error
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__message_has_sms_error
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__message_has_error
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__message_has_sms_error
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__message_has_error
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__message_has_sms_error
+msgid "If checked, some messages have a delivery error."
+msgstr "Kontrol edilirse, bazı iletilerde teslim hatası vardır."
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid "If not checked any box, kanban state will be ingored in SLA Rule"
+msgstr ""
+"Herhangi bir kutu işaretlenmezse, SLA Kuralında kanban durumu göz ardı "
+"edilecektir"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__kanban_state_blocked
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__kanban_state_blocked
+msgid "If selected, the rule is active when kanban state is \"Blocked\""
+msgstr "Seçilirse, kanban durumu \"Engellendi\" olduğunda kural etkindir"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__kanban_state_normal
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__kanban_state_normal
+msgid "If selected, the rule is active when kanban state is \"In Progress\""
+msgstr "Seçilirse, kanban durumu \"Devam Ediyor\" olduğunda kural etkindir"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__kanban_state_done
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__kanban_state_done
+msgid ""
+"If selected, the rule is active when kanban state is \"Ready for next stage\""
+msgstr ""
+"Seçilirse, kanban durumu \"Sonraki aşamaya hazır\" olduğunda kural etkindir"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
+msgid ""
+"If you want to get instance of this rule in mail templates or other places,\n"
+"                         then you can call "
+"<code>get_sla_control_by_code('code')</code> method of request.\n"
+"                         For example, in mail template it could look like: "
+"<code>${ object.get_sla_control_by_code('sla-resolution-time') }</code>."
+msgstr ""
+"Mail şablonlarında veya başka yerlerde bu kuralın örneğini almak "
+"istiyorsanız,\n"
+"                          o zaman <code>get_sla_control_by_code('code')</"
+"code> istek yöntemini çağırabilirsiniz.\n"
+"                          Örneğin, posta şablonunda şöyle görünebilir: "
+"<code>${ object.get_sla_control_by_code('sla-resolution-time') }</code>."
+
+#. module: generic_request_sla
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_2_in_progress
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_complex_in_progress
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_tree
+msgid "In Progress"
+msgstr "Devam etmekte"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_is_follower
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_is_follower
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_is_follower
+msgid "Is Follower"
+msgstr "takipçidir"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__kanban_state_normal
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__kanban_state_normal
+msgid "Kanban State In Progress"
+msgstr "Kanban Durumu Devam Ediyor"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__kanban_state_blocked
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__kanban_state_blocked
+msgid "Kanban State Paused"
+msgstr "Kanban Durumu Duraklatıldı"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__kanban_state_done
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__kanban_state_done
+msgid "Kanban State Ready"
+msgstr "Kanban Durumu Hazır"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid "Kanban state time record settings"
+msgstr "Kanban durumu zaman kaydı ayarları"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control____last_update
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule____last_update
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition____last_update
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line____last_update
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type____last_update
+msgid "Last Modified on"
+msgstr "Son Değiştirme Tarihi"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__write_uid
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__write_uid
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__write_uid
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__write_uid
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__write_uid
+msgid "Last Updated by"
+msgstr "Son Güncelleyen"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__write_date
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__write_date
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__write_date
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__write_date
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__write_date
+msgid "Last Updated on"
+msgstr "Son güncelleme tarihi"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__user_id
+msgid "Last user responsible for this SLA control line"
+msgstr "Bu SLA kontrol satırından sorumlu son kullanıcı"
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_type__sla_compute_type__least_date_worst_status
+msgid "Least Date Worst Status"
+msgstr "En Düşük Tarih En Kötü Durum"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__limit_date
+msgid "Limit Date"
+msgstr "Limit Tarihi"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__limit_time
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__limit_time
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__limit_time
+msgid "Limit Time"
+msgstr "Limit Süresi"
+
+#. module: generic_request_sla
+#: model:ir.model.constraint,message:generic_request_sla.constraint_request_sla_rule_check_limit_time_gt_warn_time
+msgid "Limit time must be greater than Warn time"
+msgstr "Limit süresi Uyarı süresinden daha büyük olmalıdır"
+
+#. module: generic_request_sla
+#: model:ir.model.constraint,message:generic_request_sla.constraint_request_sla_rule_check_limit_time_gt_0
+msgid "Limit time must be greater that zero"
+msgstr "Limit süresi sıfırdan büyük olmalıdır"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
+msgid "Limits"
+msgstr "Limitler"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_main_attachment_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_main_attachment_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_main_attachment_id
+msgid "Main Attachment"
+msgstr "Ana Eklenti"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__sla_main_rule_id
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_type__sla_compute_type__main_sla_rule
+msgid "Main SLA Rule"
+msgstr "Ana SLA Kuralı"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_has_error
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_has_error
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_has_error
+msgid "Message Delivery error"
+msgstr "Mesaj Teslim hatası"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_ids
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_ids
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_ids
+msgid "Messages"
+msgstr "Mesajlar"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__name
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__name
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__name
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_tree
+msgid "Name"
+msgstr "İsim"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_condition_view_form
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_type_view_form
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid "Name..."
+msgstr "İsim..."
+
+#. module: generic_request_sla
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_2_new
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_complex_new
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_condition_new
+msgid "New"
+msgstr "Yeni"
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__assigned__no
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule__assigned__no
+msgid "No"
+msgstr "Hayır"
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__assigned__none
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule__assigned__none
+msgid "None"
+msgstr "Hiçbiri"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_needaction_counter
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_needaction_counter
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_needaction_counter
+msgid "Number of Actions"
+msgstr "Eylem Sayısı"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_has_error_counter
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_has_error_counter
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_has_error_counter
+msgid "Number of errors"
+msgstr "hata sayısı"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__message_needaction_counter
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__message_needaction_counter
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__message_needaction_counter
+msgid "Number of messages which requires an action"
+msgstr "İşlem gerektiren mesaj sayısı"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__message_has_error_counter
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__message_has_error_counter
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__message_has_error_counter
+msgid "Number of messages with delivery error"
+msgstr "Teslimat hatası olan mesaj sayısı"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__message_unread_counter
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__message_unread_counter
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__message_unread_counter
+msgid "Number of unread messages"
+msgstr "Okunmamış mesaj sayısı"
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_event__sla_state__ok
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_request__sla_state__ok
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__sla_state__ok
+msgid "Ok"
+msgstr "tamam"
+
+#. module: generic_request_sla
+#: model:generic.tag,name:generic_request_sla.tag_on_site_fix
+#: model:request.sla.rule.condition,name:generic_request_sla.sla_rule_condition_on_site_fix
+msgid "On Site Fix"
+msgstr "Yerinde Düzeltme"
+
+#. module: generic_request_sla
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_condition_on_site_fix
+msgid "On Site Fix (Optional step)"
+msgstr "Yerinde Düzeltme (İsteğe bağlı adım)"
+
+#. module: generic_request_sla
+#: model:request.sla.rule,name:generic_request_sla.request_sla_rule_on_site_fix
+msgid "On Site Fix Time"
+msgstr "Yerinde Düzeltme Süresi"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_tree
+msgid "Paused"
+msgstr "Duraklatıldı"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid "Please, save this rule, to be able to edit its rule lines!"
+msgstr "Kural satırlarını düzenleyebilmek için lütfen bu kuralı kaydedin!"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid "Point the field name to see a tooltip. Or read the"
+msgstr "Bir araç ipucu görmek için alan adını işaretleyin. veya oku"
+
+#. module: generic_request_sla
+#: model:request.sla.rule.type,name:generic_request_sla.request_sla_rule_type_reaction_time
+msgid "Reaction Time"
+msgstr "Reaksiyon süresi"
+
+#. module: generic_request_sla
+#: model:request.sla.rule,name:generic_request_sla.request_sla_rule_reaction_time_2h
+msgid "Reaction time 2 hours"
+msgstr "Reaksiyon süresi 2 saat"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_tree
+msgid "Ready"
+msgstr "Hazır"
+
+#. module: generic_request_sla
+#: model:request.sla.rule.condition,name:generic_request_sla.sla_rule_condition_remoute_fix
+#: model:request.stage,name:generic_request_sla.request_stage_type_sla_condition_remote_fix
+msgid "Remote Fix"
+msgstr "Uzaktan Düzeltme"
+
+#. module: generic_request_sla
+#: model:ir.model,name:generic_request_sla.model_request_request
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__request_id
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.message_request_sla_failed
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.message_request_sla_warning
+msgid "Request"
+msgstr "İstek"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__category_ids
+msgid "Request Categories"
+msgstr "İstek Kategorileri"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__request_channel_ids
+msgid "Request Channels"
+msgstr "Kanal Talep Et"
+
+#. module: generic_request_sla
+#: model:ir.model,name:generic_request_sla.model_request_event
+msgid "Request Event"
+msgstr "Etkinlik İste"
+
+#. module: generic_request_sla
+#: model:ir.model,name:generic_request_sla.model_request_sla_control
+msgid "Request SLA Control"
+msgstr "SLA Kontrolü İste"
+
+#. module: generic_request_sla
+#: model:ir.model,name:generic_request_sla.model_request_sla_rule_line
+msgid "Request SLA Rule Line"
+msgstr "SLA Kural Satırı İste"
+
+#. module: generic_request_sla
+#: model:ir.model,name:generic_request_sla.model_request_sla_rule
+msgid "Request SLA rule"
+msgstr "SLA kuralı iste"
+
+#. module: generic_request_sla
+#: model:ir.model,name:generic_request_sla.model_request_sla_rule_condition
+msgid "Request SLA rule Condition"
+msgstr "SLA kuralı isteme Koşulu"
+
+#. module: generic_request_sla
+#: model:ir.model,name:generic_request_sla.model_request_sla_rule_type
+msgid "Request SLA rule type"
+msgstr "SLA kuralı türü isteme"
+
+#. module: generic_request_sla
+#: model:ir.actions.act_window,name:generic_request_sla.generic_request_sla_rule_action
+#: model:ir.ui.menu,name:generic_request_sla.menu_request_sla_rule
+msgid "Request SLA rules"
+msgstr "SLA kuralları iste"
+
+#. module: generic_request_sla
+#: model:ir.model,name:generic_request_sla.model_request_type
+msgid "Request Type"
+msgstr "İstek Türü"
+
+#. module: generic_request_sla
+#: model:ir.model.constraint,message:generic_request_sla.constraint_request_sla_control_request_rule_uniq
+msgid "Request and SLA Rule must be unique for each SLA Control line."
+msgstr ""
+"İstek ve SLA Kuralı, her bir SLA Kontrol satırı için benzersiz olmalıdır."
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
+msgid "Request category"
+msgstr "İstek Kategorisi"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__request_type_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__request_type_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__request_type_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__request_type_id
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_search
+msgid "Request type"
+msgstr "İstek Türü"
+
+#. module: generic_request_sla
+#: code:addons/generic_request_sla/models/request_type.py:0
+#, python-format
+msgid ""
+"Request type '%s' must have Working time, because it have SLA rules or at "
+"least one from SLA rule lines that depend on Working time!"
+msgstr ""
+"'%s' istek türü, Çalışma süresine sahip olmalıdır, çünkü SLA kuralları "
+"vardır veya Çalışma süresine bağlı olan SLA kural satırlarından en az biri "
+"vardır!"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid "Request type..."
+msgstr "İstek Türü..."
+
+#. module: generic_request_sla
+#: model:request.sla.rule.type,name:generic_request_sla.request_sla_rule_type_resolution_time
+msgid "Resolution Time"
+msgstr "Çözünürlük Süresi"
+
+#. module: generic_request_sla
+#: model:request.sla.rule,name:generic_request_sla.request_sla_rule_resolution_time_8h
+msgid "Resolution time 8 hours"
+msgstr "Çözünürlük süresi 8 saat"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__user_id
+msgid "Responsible User"
+msgstr "Sorumlu Kullanıcı"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
+msgid "Rule"
+msgstr "Kural"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid ""
+"Rule lines below allow you to indicate special cases for this rule. In each "
+"line you can specify conditions (these conditions may vary depending on the "
+"installed addons). If all of the specified conditions in the line are met, "
+"this rule will use its time limits instead of timers of the general rule. If "
+"there are more than one line in the list, the first line that satisfies the "
+"condition (starting from the top of the list) will be active."
+msgstr ""
+"Aşağıdaki kural satırları, bu kural için özel durumları belirtmenizi sağlar. "
+"Her satırda koşulları belirtebilirsiniz (bu koşullar yüklü eklentilere bağlı "
+"olarak değişebilir). Satırda belirtilen koşulların tümü karşılanırsa, bu "
+"kural, genel kuralın zamanlayıcıları yerine kendi zaman sınırlarını "
+"kullanır. Listede birden fazla satır varsa koşulu sağlayan ilk satır ("
+"listenin başından başlayarak) etkin olur."
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_type_view_form
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid "Rules"
+msgstr "Kurallar"
+
+#. module: generic_request_sla
+#: model:ir.ui.menu,name:generic_request_sla.menu_request_configuration_sla
+msgid "SLA"
+msgstr "SLA"
+
+#. module: generic_request_sla
+#: model:ir.actions.act_window,name:generic_request_sla.action_request_sla_control_view
+#: model:ir.ui.menu,name:generic_request_sla.menu_request_sla_control
+msgid "SLA Control"
+msgstr "SLA Kontrolü"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_request__sla_control_ids
+msgid "SLA Controls"
+msgstr "SLA Kontrolleri"
+
+#. module: generic_request_sla
+#: model:generic.system.event.type,name:generic_request_sla.event_type_sla_failed
+msgid "SLA Failed"
+msgstr "SLA Başarısız Oldu"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.iherited_view_request_request_kanban_inherit_request_sla
+msgid "SLA Limit Date"
+msgstr "SLA Sınır tarihi"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_request__sla_limit_date
+msgid "SLA Limit date"
+msgstr "SLA Sınır tarihi"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_request_sla_form
+msgid "SLA Log"
+msgstr "SLA Kaydı"
+
+#. module: generic_request_sla
+#: model:request.type,name:generic_request_sla.request_type_sla_complex
+msgid "SLA Request (Complex)"
+msgstr "SLA İsteği (Kompleks)"
+
+#. module: generic_request_sla
+#: model:request.type,name:generic_request_sla.request_type_sla_conditions
+msgid "SLA Request (Conditions)"
+msgstr "SLA İsteği (Koşulları)"
+
+#. module: generic_request_sla
+#: model:request.type,name:generic_request_sla.request_type_sla_2
+msgid "SLA Request (least date)"
+msgstr "SLA İsteği (en az tarih)"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_request_sla_form
+msgid "SLA Responsible"
+msgstr "SLA Sorumlusu"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_request__sla_user_id
+msgid "SLA Responsible User"
+msgstr "SLA Sorumlu Kullanıcısı"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_rule_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__sla_rule_id
+msgid "SLA Rule"
+msgstr "SLA Kuralı"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_rule_code
+msgid "SLA Rule Code"
+msgstr "SLA Kural Kodu"
+
+#. module: generic_request_sla
+#: model:ir.actions.act_window,name:generic_request_sla.action_request_sla_rule_condition_view
+#: model:ir.ui.menu,name:generic_request_sla.menu_request_sla_rule_condition
+msgid "SLA Rule Condition"
+msgstr "SLA Kuralı Koşulu"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__sla_rule_condition_ids
+msgid "SLA Rule Conditions"
+msgstr "SLA Kuralı Koşulları"
+
+#. module: generic_request_sla
+#: model:ir.actions.act_window,name:generic_request_sla.action_request_sla_rule_type_view
+#: model:ir.ui.menu,name:generic_request_sla.menu_request_sla_rule_type
+msgid "SLA Rule Type"
+msgstr "SLA Kuralı Türü"
+
+#. module: generic_request_sla
+#: model_terms:ir.actions.act_window,help:generic_request_sla.action_request_sla_rule_type_view
+msgid ""
+"SLA Rule Type is a global type of SLA Rules. It is used to group\n"
+"                these rules (Examples: Draft, Assigned, Unassigned, etc.).\n"
+"                It can also be used to group records in SLA Reports."
+msgstr ""
+"SLA Kural Türü, genel bir SLA Kuralı türüdür. gruplandırmak için kullanılır\n"
+"                 bu kurallar (Örnekler: Taslak, Atandı, Atanmadı vb.).\n"
+"                 SLA Raporlarındaki kayıtları gruplandırmak için de "
+"kullanılabilir."
+
+#. module: generic_request_sla
+#: model:ir.model.constraint,message:generic_request_sla.constraint_request_sla_rule_name_uniq
+msgid "SLA Rule code must be unique for each request type"
+msgstr "SLA Kuralı kodu, her istek türü için benzersiz olmalıdır"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_event__sla_rule_type_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_rule_type_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__sla_rule_type_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__sla_rule_type_id
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_search
+msgid "SLA Rule type"
+msgstr "SLA Kuralı Türü"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__sla_rule_ids
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__sla_rule_ids
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_type_view_tree
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.request_type_view_dashboard
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_type_from_request_sla_rule_form
+msgid "SLA Rules"
+msgstr "SLA Kuralları"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_request__sla_state
+msgid "SLA State"
+msgstr "SLA Durumu"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_type_from_request_sla_rule_form
+msgid "SLA Warn"
+msgstr "SLA Uyarısı"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_request__sla_warn_date
+msgid "SLA Warn date"
+msgstr "SLA Uyarı tarihi"
+
+#. module: generic_request_sla
+#: model:generic.system.event.type,name:generic_request_sla.event_type_sla_warning
+msgid "SLA Warning"
+msgstr "SLA Uyarısı"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.iherited_view_request_request_kanban_inherit_request_sla
+msgid "SLA Warning Date"
+msgstr "SLA Uyarı tarihi"
+
+#. module: generic_request_sla
+#: model_terms:ir.actions.act_window,help:generic_request_sla.action_request_sla_rule_type_view
+msgid ""
+"SLA configures for each type of request. On the form of a request type,\n"
+"                click the <b>SLA Rules</b> button and create appropriate "
+"rules.<br>\n"
+"                More info about SLA setup can be read in the"
+msgstr ""
+"SLA, her istek türü için yapılandırılır. Bir istek türü formunda,\n"
+"                 <b>SLA Kuralları</b> düğmesini tıklayın ve uygun kuralları "
+"oluşturun.<br>\n"
+"                 SLA kurulumu hakkında daha fazla bilgi şu adreste okunabilir"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_type_from_request_sla_rule_form
+msgid "SLA limit"
+msgstr "SLA sınırı"
+
+#. module: generic_request_sla
+#: model_terms:ir.actions.act_window,help:generic_request_sla.generic_request_sla_rule_action
+msgid ""
+"SLA rules define time limits for each stage to complete.\n"
+"                You can create several rules for one request type.<br>\n"
+"                After SLA Rules are set, you can see status of the SLA\n"
+"                on requests of this type from the kanban view or by opening\n"
+"                request form -&gt; SLA tab.<br>\n"
+"                View more about SLA setup in the"
+msgstr ""
+"SLA kuralları, her aşamanın tamamlanması için süre sınırlarını tanımlar.\n"
+"                 Bir istek türü için birkaç kural oluşturabilirsiniz.<br>\n"
+"                 SLA Kuralları ayarlandıktan sonra, SLA'nın durumunu "
+"görebilirsiniz.\n"
+"                 kanban görünümünden veya açarak bu tür isteklerde\n"
+"                 istek formu -&gt; SLA sekmesi.<br>\n"
+"                 SLA kurulumu hakkında daha fazlasını şuradan görüntüleyin"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_has_sms_error
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_has_sms_error
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_has_sms_error
+msgid "SMS Delivery error"
+msgstr "SMS Teslimat hatası"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__send_default_notification_sla_limit
+msgid "Send Default Notification Sla Limit"
+msgstr "Varsayılan Bildirim Sla Sınırını Gönder"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__send_default_notification_sla_warn
+msgid "Send Default Notification Sla Warn"
+msgstr "Varsayılan Bildirim Sla Uyarı Gönder"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__sequence
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__sequence
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__sequence
+msgid "Sequence"
+msgstr "Sıra"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__sequence
+msgid ""
+"Sequence determines position of this rule in the list on the SLA Rules "
+"page.\n"
+"The lower the sequence, the higher the position.\n"
+"The first active SLA Rule in the list will be the Main SLA Rule for this "
+"type of request."
+msgstr ""
+"Sıra, bu kuralın SLA Kuralları sayfasındaki listedeki konumunu belirler.\n"
+"Sıra ne kadar düşükse, konum o kadar yüksek olur.\n"
+"Listedeki ilk aktif SLA Kuralı, bu tür talepler için Ana SLA Kuralı "
+"olacaktır."
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_active
+msgid "Sla Active"
+msgstr "Aktif Sla"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_active_date
+msgid "Sla Active Date"
+msgstr "Sla Aktif Tarihi"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__sla_compute_type
+msgid "Sla Compute Type"
+msgstr "Sla İşlem Türü"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_event__sla_control_line_id
+msgid "Sla Control Line"
+msgstr "Sla Kontrol Satırı"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__sla_limit_notification_show_request_text
+msgid "Sla Limit Notification Show Request Text"
+msgstr "SLA Limit Bildirimi Talep Metnini Göster"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__sla_limit_notification_show_response_text
+msgid "Sla Limit Notification Show Response Text"
+msgstr "Sla Limit Bildirimi Yanıt Metnini Göster"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_log_ids
+msgid "Sla Log"
+msgstr "Sla Kaydı"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_log_count
+msgid "Sla Log Count"
+msgstr "Sla Kayıt Sayısı"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_event__sla_rule_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__sla_rule_id
+msgid "Sla Rule"
+msgstr "SLA Kuralı"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__sla_rule_count
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__sla_rule_count
+msgid "Sla Rule Count"
+msgstr "Sla Kural Sayısı"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_event__sla_state
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_state
+msgid "Sla State"
+msgstr "Sla Durumu"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__sla_warn_notification_show_request_text
+msgid "Sla Warn Notification Show Request Text"
+msgstr "Sla Uyarı Bildirimi Talep Metnini Göster"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_type__sla_warn_notification_show_response_text
+msgid "Sla Warn Notification Show Response Text"
+msgstr "Sla Uyarı Bildirimi Yanıt Metnini Göster"
+
+#. module: generic_request_sla
+#: model:request.sla.rule,name:generic_request_sla.request_sla_rule_solution_time_8h2
+msgid "Solution time 8 hours"
+msgstr "Çözüm süresi 8 saat"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__rule_line_ids
+msgid "Specific Rules"
+msgstr "Özel Kurallar"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__condition_ids
+#: model:ir.model.fields,help:generic_request_sla.field_request_type__sla_rule_condition_ids
+msgid ""
+"Specify generic conditions to decide whether the activity can be executed."
+msgstr ""
+"Etkinliğin yürütülüp yürütülemeyeceğine karar vermek için genel koşulları "
+"belirtin."
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__request_stage_ids
+msgid "Stages"
+msgstr "Aşamalar"
+
+#. module: generic_request_sla
+#: model:request.sla.rule,name:generic_request_sla.request_sla_rule_standart_fix_time_remoute
+msgid "Standart Fix Time"
+msgstr "Standart Düzeltme Süresi"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
+msgid "State"
+msgstr "Durum"
+
+#. module: generic_request_sla
+#: model:request.sla.rule.type,name:generic_request_sla.request_sla_rule_type_testing_time
+msgid "Testing Time"
+msgstr "Test Süresi"
+
+#. module: generic_request_sla
+#: model:request.sla.rule,name:generic_request_sla.request_sla_rule_testing_time_72h
+msgid "Testing time 72 hours"
+msgstr "Test süresi 72 saat"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__request_stage_ids
+msgid "This SLA Rule will be active on selected stages"
+msgstr "Bu SLA Kuralı, seçilen aşamalarda etkin olacaktır"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_type_from_request_sla_rule_form
+msgid "This field determines the way to compute SLA fields on request."
+msgstr "Bu alan, istek üzerine SLA alanlarının nasıl hesaplanacağını belirler."
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
+msgid "Time Spent"
+msgstr "Harcanan zaman"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_request_sla_form
+msgid "Time Tracked"
+msgstr "Takip edilen zaman"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__warn_time
+msgid "Time before the warning shows up"
+msgstr "Uyarı görünmeden önceki süre"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__compute_time
+msgid ""
+"Time calculating method\n"
+"If \"Working time\" is selected, it must be configured: Request Type Form -> "
+"SLA Tab"
+msgstr ""
+"Zaman hesaplama yöntemi\n"
+"\"Çalışma süresi\" seçilirse, yapılandırılmalıdır: İstek Tipi Formu -> SLA "
+"Sekmesi"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_type__sla_main_rule_id
+msgid ""
+"To change, just move required SLA rule to the top of the list on the SLA "
+"Rules page. Or specify the lowest Sequence on the Rule form."
+msgstr ""
+"Değiştirmek için gerekli SLA kuralını SLA Kuralları sayfasındaki listenin en "
+"üstüne taşımanız yeterlidir. Veya Kural formunda en düşük Sırayı belirtin."
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__total_time
+msgid "Total Time"
+msgstr "Toplam zaman"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__limit_time
+msgid "Total time after which SLA will Fail"
+msgstr "SLA'nın Başarısız Olacağı Toplam Süre"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__total_time
+msgid "Total time request was in state described by SLA rule"
+msgstr "Toplam süre isteği, SLA kuralı tarafından açıklanan durumdaydı"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__request_type_id
+msgid "Type of request"
+msgstr "İstek tipi"
+
+#. module: generic_request_sla
+#: model:request.sla.rule.type,name:generic_request_sla.request_sla_rule_type_unassigned
+msgid "Unassigned"
+msgstr "Atanmamış"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_unread
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_unread
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_unread
+msgid "Unread Messages"
+msgstr "Okunmamış Mesajlar"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_unread_counter
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_unread_counter
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_unread_counter
+msgid "Unread Messages Counter"
+msgstr "Okunmamış Mesaj Sayacı"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_request_sla_form
+msgid "View SLA Log used to compute this rule"
+msgstr "Bu kuralı hesaplamak için kullanılan SLA Kaydını görüntüleyin"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__warn_date
+msgid "Warn Date"
+msgstr "Uyarı Tarihi"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__warn_time
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__warn_time
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__warn_time
+msgid "Warn Time"
+msgstr "Uyarı Tarihi"
+
+#. module: generic_request_sla
+#: model:ir.model.constraint,message:generic_request_sla.constraint_request_sla_rule_check_warn_time_gte_0
+msgid "Warn time must be greater or equal zero"
+msgstr "Uyarı Tarihi sıfırdan büyük veya eşit olmalıdır"
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_event__sla_state__warning
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_request__sla_state__warning
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__sla_state__warning
+msgid "Warning"
+msgstr "Uyarı"
+
+#. module: generic_request_sla
+#: code:addons/generic_request_sla/models/request_request.py:0
+#, python-format
+msgid "Warning! Your request %s reached SLA Limit date!"
+msgstr "Uyarı! %s isteğiniz SLA Sınır tarihine ulaştı!"
+
+#. module: generic_request_sla
+#: code:addons/generic_request_sla/models/request_request.py:0
+#, python-format
+msgid "Warning! Your request %s reached SLA Warning date!"
+msgstr "Uyarı! %s isteğiniz SLA Uyarı tarihine ulaştı!"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__website_message_ids
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__website_message_ids
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__website_message_ids
+msgid "Website Messages"
+msgstr "Web Sitesi Mesajları"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__website_message_ids
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__website_message_ids
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__website_message_ids
+msgid "Website communication history"
+msgstr "Web sitesi iletişim geçmişi"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__calendar_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__sla_calendar_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__sla_calendar_id
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__compute_time__calendar
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule__compute_time__calendar
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule_line__compute_time__calendar
+msgid "Working time"
+msgstr "Çalışma zamanı"
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__assigned__yes
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule__assigned__yes
+msgid "Yes"
+msgstr "Evet"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.message_request_sla_failed
+msgid ""
+"assigned to you have reached SLA Limit date. Please, take actions to "
+"complete it as fast as possible."
+msgstr ""
+"size atanan SLA Limit tarihine ulaştınız. Lütfen mümkün olan en kısa sürede "
+"tamamlamak için harekete geçin."
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.message_request_sla_warning
+msgid ""
+"assigned to you have reached SLA Warning date. Please, take actions to "
+"complete it befor SLA Limit date ("
+msgstr ""
+"size atanan SLA Uyarı tarihine ulaştı. Lütfen SLA Sınırı tarihinden önce "
+"harekete geçin("

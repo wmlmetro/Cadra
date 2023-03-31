@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="contract_template_service_line_1" model="generic.contract.template.service.line">
+        <field name="service_id" ref="generic_service.generic_service_default"/>
+        <field name="service_level_id" ref="generic_service.generic_service_level_2"/>
+        <field name="contract_template_id" ref="generic_contract.contract_template_demo_client_customer"/>
+    </record>
+
+    <record id="contract_template_service_line_3" model="generic.contract.template.service.line">
+        <field name="service_id" ref="generic_service.generic_service_default"/>
+        <field name="contract_template_id" ref="generic_contract.contract_template_demo_supplier"/>
+    </record>
+
+    <!-- Basic support contract -->
+    <record id="contract_template_basic_service_line_1" model="generic.contract.template.service.line">
+        <field name="service_id" ref="generic_service.generic_service_support_consulting"/>
+        <field name="service_level_id" ref="generic_service.generic_service_level_1"/>
+        <field name="contract_template_id" ref="generic_contract.contract_template_demo_basic_support"/>
+    </record>
+
+    <record id="contract_template_basic_service_line_2" model="generic.contract.template.service.line">
+        <field name="service_id" ref="generic_service.generic_service_support_development"/>
+        <field name="service_level_id" ref="generic_service.generic_service_level_4"/>
+        <field name="contract_template_id" ref="generic_contract.contract_template_demo_basic_support_initial_stage"/>
+    </record>
+
+    <record id="contract_template_basic_service_line_3" model="generic.contract.template.service.line">
+        <field name="service_id" ref="generic_service.generic_service_support_configuration"/>
+        <field name="service_level_id" ref="generic_service.generic_service_level_1"/>
+        <field name="contract_template_id" ref="generic_contract.contract_template_demo_basic_support_initial_stage"/>
+    </record>
+
+    <record id="contract_template_basic_service_line_4" model="generic.contract.template.service.line">
+        <field name="service_id" ref="generic_service.generic_service_support_administration"/>
+        <field name="service_level_id" ref="generic_service.generic_service_level_2"/>
+        <field name="contract_template_id" ref="generic_contract.contract_template_demo_basic_support_final_stage"/>
+    </record>
+
+    <record id="contract_template_basic_service_line_5" model="generic.contract.template.service.line">
+        <field name="service_id" ref="generic_service.generic_service_support_hosting"/>
+        <field name="service_level_id" ref="generic_service.generic_service_level_3"/>
+        <field name="contract_template_id" ref="generic_contract.contract_template_demo_basic_support_final_stage"/>
+    </record>
+</odoo>

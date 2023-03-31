@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="action_project_task_assign" model="ir.actions.act_window">
+        <field name="res_model">generic.wizard.assign</field>
+        <field name="binding_model_id" ref="project.model_project_task"/>
+        <field name="name">Assign</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{
+            'default_res_id': active_id,
+            'default_assign_model': 'project.task'}"</field>
+    </record>
+
+    <record id="action_project_project_assign" model="ir.actions.act_window">
+        <field name="res_model">generic.wizard.assign</field>
+        <field name="binding_model_id" ref="project.model_project_project"/>
+        <field name="name">Assign</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{
+            'default_res_id': active_id,
+            'default_assign_model': 'project.project'}</field>
+    </record>
+</odoo>

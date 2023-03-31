@@ -1,0 +1,968 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_contract
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 13.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-07-27 15:57+0000\n"
+"PO-Revision-Date: 2023-01-12 13:28+0000\n"
+"Last-Translator: Oleksandr Nechyporenko <anechipor@gmail.com>\n"
+"Language-Team: French <http://weblate.crnd.pro/projects/bureaucrat-itsm-15-0/"
+"generic_contract/fr/>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__message_needaction
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__message_needaction
+msgid "Action Needed"
+msgstr "Action nécessaire"
+
+#. module: generic_contract
+#: model:ir.actions.server,name:generic_contract.activate_pending_contracts_ir_actions_server
+#: model:ir.cron,cron_name:generic_contract.activate_pending_contracts
+#: model:ir.cron,name:generic_contract.activate_pending_contracts
+msgid "Activate Pending Contracts"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__active
+#: model:ir.model.fields.selection,name:generic_contract.selection__generic_contract__state__active
+msgid "Active"
+msgstr "Actif"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_service__active_contract_ids
+msgid "Active contracts"
+msgstr ""
+
+#. module: generic_contract
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_search
+msgid "Actives"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__activity_ids
+msgid "Activities"
+msgstr "Activités"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__activity_exception_decoration
+msgid "Activity Exception Decoration"
+msgstr "Décoration d'exception d'activité"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__activity_state
+msgid "Activity State"
+msgstr "Statut"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__activity_type_icon
+msgid "Activity Type Icon"
+msgstr "Icône Activité"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__contracts_service_ids
+msgid "All Services"
+msgstr ""
+
+#. module: generic_contract
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_template_form
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_template_search
+msgid "Archived"
+msgstr "Archivé"
+
+#. module: generic_contract
+#: model:generic.system.event.type,name:generic_contract.system_event_type_contract_assignee_changed
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_event_form
+msgid "Assignee Changed"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__message_attachment_count
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__message_attachment_count
+msgid "Attachment Count"
+msgstr "Nb PJ"
+
+#. module: generic_contract
+#: model:generic.contract,name:generic_contract.contract_basic_provider
+msgid "Basic provider contract"
+msgstr ""
+
+#. module: generic_contract
+#: model:generic.contract,name:generic_contract.contract_basic_support
+#: model:generic.contract.template,name:generic_contract.contract_template_demo_basic_support
+msgid "Basic support contract"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.constraint,message:generic_contract.constraint_generic_contract_service_line_contract_service_unique
+msgid "Binding: contract_id and service_id, must be unique!"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.constraint,message:generic_contract.constraint_generic_contract_template_service_line_contract_template_service_unique
+msgid "Binding: contract_template_id and service_id, must be unique!"
+msgstr ""
+
+#. module: generic_contract
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_create_wizard_form
+msgid "Cancel"
+msgstr "Annuler"
+
+#. module: generic_contract
+#: model:generic.contract.template,name:generic_contract.contract_template_demo_client_customer
+msgid "Client contract"
+msgstr ""
+
+#. module: generic_contract
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_form
+msgid "Close"
+msgstr "Clôturer"
+
+#. module: generic_contract
+#: model:ir.actions.server,name:generic_contract.close_reached_contracts_ir_actions_server
+#: model:ir.cron,cron_name:generic_contract.close_reached_contracts
+#: model:ir.cron,name:generic_contract.close_reached_contracts
+msgid "Close Reached Contracts"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields.selection,name:generic_contract.selection__generic_contract__state__closed
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_search
+msgid "Closed"
+msgstr "Clôturé"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__event_code
+msgid "Code"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__company_id
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__company_id
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_search
+msgid "Company"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.ui.menu,name:generic_contract.generic_contract_configuration
+msgid "Configuration"
+msgstr "Configuration"
+
+#. module: generic_contract
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_form
+msgid "Confirm"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model,name:generic_contract.model_res_partner
+msgid "Contact"
+msgstr "Contact"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_service_line__contract_id
+#: model:ir.ui.menu,name:generic_contract.generic_contract_top_menu
+msgid "Contract"
+msgstr ""
+
+#. module: generic_contract
+#: model:generic.system.event.type,name:generic_contract.system_event_type_contract_activated
+msgid "Contract Activated"
+msgstr ""
+
+#. module: generic_contract
+#: model:generic.system.event.type,name:generic_contract.system_event_type_contract_closed
+msgid "Contract Closed"
+msgstr ""
+
+#. module: generic_contract
+#: model:generic.system.event.type,name:generic_contract.system_event_type_contract_confirmed
+msgid "Contract Confirmed"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__contract_count
+msgid "Contract Count"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template_service_line__contract_template_id
+msgid "Contract Template"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__contract_ids
+#: model:ir.model.fields,field_description:generic_contract.field_generic_service__generic_contract_ids
+#: model:ir.model.fields,field_description:generic_contract.field_res_partner__generic_contract_ids
+#: model:ir.model.fields,field_description:generic_contract.field_res_users__generic_contract_ids
+#: model:ir.ui.menu,name:generic_contract.generic_contract_contracts
+#: model_terms:ir.ui.view,arch_db:generic_contract.inherited_res_partner_view_form
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_template_form
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_template_tree
+msgid "Contracts"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_res_partner__generic_contract_count
+#: model:ir.model.fields,field_description:generic_contract.field_res_users__generic_contract_count
+msgid "Count of contracts"
+msgstr ""
+
+#. module: generic_contract
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_create_wizard_form
+msgid "Create"
+msgstr "Créer"
+
+#. module: generic_contract
+#: model:ir.actions.act_window,name:generic_contract.action_generic_contract_create_wizard
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_create_wizard_form
+msgid "Create Contract"
+msgstr ""
+
+#. module: generic_contract
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_template_form
+msgid "Create contract"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__create_uid
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__create_uid
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_service_line__create_uid
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__create_uid
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template_service_line__create_uid
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__create_uid
+msgid "Created by"
+msgstr "Créé par"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__create_date
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__create_date
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_service_line__create_date
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__create_date
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template_service_line__create_date
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__create_date
+msgid "Created on"
+msgstr "Créé le"
+
+#. module: generic_contract
+#: model:ir.model.fields.selection,name:generic_contract.selection__generic_contract__partner_type__customer
+#: model:ir.model.fields.selection,name:generic_contract.selection__generic_contract_template__partner_type__customer
+#: model:ir.model.fields.selection,name:generic_contract.selection__generic_contract_wizard_create__partner_type__customer
+msgid "Customer"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.ui.menu,name:generic_contract.generic_contract_customer
+msgid "Customer Contracts"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__date
+msgid "Date"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_service_line__date_added
+msgid "Date Added"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__date_closed
+msgid "Date Closed"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__date_end
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__date_end
+msgid "Date End"
+msgstr "Date de fin"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__date_start
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__date_start
+msgid "Date Start"
+msgstr "Date de début"
+
+#. module: generic_contract
+#: code:addons/generic_contract/models/generic_contract.py:0
+#, python-format
+msgid "Date start can`t be less than date end of contract! Check it, please"
+msgstr ""
+
+#. module: generic_contract
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_template_form
+msgid "Describe the contract..."
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__description
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__description
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_template_form
+msgid "Description"
+msgstr "Description"
+
+#. module: generic_contract
+#: model:generic.contract,name:generic_contract.contract_basic_support_initial_stage
+#: model:generic.contract.template,name:generic_contract.contract_template_demo_basic_support_initial_stage
+msgid "Development & Configuration"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__display_name
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__display_name
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_service_line__display_name
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__display_name
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template_service_line__display_name
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__display_name
+msgid "Display Name"
+msgstr "Nom affiché"
+
+#. module: generic_contract
+#: model:ir.model.fields.selection,name:generic_contract.selection__generic_contract__state__draft
+msgid "Draft"
+msgstr "Brouillon"
+
+#. module: generic_contract
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_search
+msgid "Drafts"
+msgstr ""
+
+#. module: generic_contract
+#: model:generic.contract,name:generic_contract.contract_basic_provider_initial_stage_1_1
+msgid "Equipment installation"
+msgstr ""
+
+#. module: generic_contract
+#: model:generic.contract,name:generic_contract.contract_basic_provider_initial_stage_1
+msgid "Equipment purchase and installation"
+msgstr ""
+
+#. module: generic_contract
+#: model:generic.tag.category,name:generic_contract.generic_tag_category_contract_error
+msgid "Error"
+msgstr "Erreur"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__event_id
+msgid "Event"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__event_data_id
+msgid "Event Data"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__event_date
+msgid "Event Date"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__event_source_id
+msgid "Event Source"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__event_source_model_id
+msgid "Event Source Model"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__event_source_model_name
+msgid "Event Source Model (Name)"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__event_source_record_id
+msgid "Event Source Record"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__event_type_id
+msgid "Event Type"
+msgstr ""
+
+#. module: generic_contract
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_form
+msgid "Events"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,help:generic_contract.field_generic_contract__search_tag_id
+msgid "Find all records that contain this tag"
+msgstr "Toutes les données avec ce tag"
+
+#. module: generic_contract
+#: model:ir.model.fields,help:generic_contract.field_generic_contract__search_no_tag_id
+msgid "Find all records that have no this tag"
+msgstr "Toutes les données sans ce tag"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__message_follower_ids
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__message_follower_ids
+msgid "Followers"
+msgstr "Abonnés"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__message_partner_ids
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__message_partner_ids
+msgid "Followers (Partners)"
+msgstr "Abonnés (Clients)"
+
+#. module: generic_contract
+#: model:ir.model.fields,help:generic_contract.field_generic_contract__activity_type_icon
+msgid "Font awesome icon e.g. fa-tasks"
+msgstr "Font awesome icon e.g. fa-tasks"
+
+#. module: generic_contract
+#: model:generic.system.event.source,name:generic_contract.system_event_source_generic_contract
+#: model:generic.tag.model,name:generic_contract.generic_tag_model_generic_contract
+#: model:ir.actions.act_window,name:generic_contract.generic_contract_action
+#: model:ir.model,name:generic_contract.model_generic_contract
+msgid "Generic Contract"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.actions.act_window,name:generic_contract.generic_contract_action_customer_contracts
+msgid "Generic Contract Customer"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.actions.act_window,name:generic_contract.action_generic_contract_event
+#: model:ir.model,name:generic_contract.model_generic_contract_event
+msgid "Generic Contract Event"
+msgstr ""
+
+#. module: generic_contract
+#: model:generic.system.event.category,name:generic_contract.system_event_category_generic_contract
+msgid "Generic Contract Events"
+msgstr ""
+
+#. module: generic_contract
+#: model:res.groups,name:generic_contract.group_generic_contract_manager
+msgid "Generic Contract Manager"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model,name:generic_contract.model_generic_contract_service_line
+#: model:ir.model,name:generic_contract.model_generic_contract_template_service_line
+msgid "Generic Contract Service Line"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.actions.act_window,name:generic_contract.generic_contract_action_supplier_contracts
+msgid "Generic Contract Supplier"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.actions.act_window,name:generic_contract.generic_contract_template_action
+#: model:ir.model,name:generic_contract.model_generic_contract_template
+msgid "Generic Contract Template"
+msgstr ""
+
+#. module: generic_contract
+#: model:res.groups,name:generic_contract.group_generic_contract_user
+msgid "Generic Contract User"
+msgstr ""
+
+#. module: generic_contract
+#: model:res.groups,name:generic_contract.group_generic_contract_user_implicit
+msgid "Generic Contract User (implicit)"
+msgstr ""
+
+#. module: generic_contract
+#: model:res.groups,name:generic_contract.group_generic_contract_user_readonly
+msgid "Generic Contract User (readonly)"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model,name:generic_contract.model_generic_service
+msgid "Generic Service"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model,name:generic_contract.model_generic_service_line
+msgid "Generic Service Line"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model,name:generic_contract.model_generic_contract_wizard_create
+msgid "Generic Wizard: Create Contract"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__has_message
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__has_message
+msgid "Has Message"
+msgstr "Avec un message"
+
+#. module: generic_contract
+#: model:generic.contract,name:generic_contract.contract_basic_support_final_stage
+#: model:generic.contract.template,name:generic_contract.contract_template_demo_basic_support_final_stage
+msgid "Hosting & Administration"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__id
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__id
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_service_line__id
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__id
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template_service_line__id
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__activity_exception_icon
+msgid "Icon"
+msgstr "Icône"
+
+#. module: generic_contract
+#: model:ir.model.fields,help:generic_contract.field_generic_contract__activity_exception_icon
+msgid "Icon to indicate an exception activity."
+msgstr "Icône pour indiquer une activité d'exception."
+
+#. module: generic_contract
+#: model:ir.model.fields,help:generic_contract.field_generic_contract__message_needaction
+#: model:ir.model.fields,help:generic_contract.field_generic_contract__message_unread
+#: model:ir.model.fields,help:generic_contract.field_generic_contract_template__message_needaction
+#: model:ir.model.fields,help:generic_contract.field_generic_contract_template__message_unread
+msgid "If checked, new messages require your attention."
+msgstr "Si coché, nouveaux messages à vérifier."
+
+#. module: generic_contract
+#: model:ir.model.fields,help:generic_contract.field_generic_contract__message_has_error
+#: model:ir.model.fields,help:generic_contract.field_generic_contract_template__message_has_error
+msgid "If checked, some messages have a delivery error."
+msgstr "Si coché, des messages n'ont pas été envoyés."
+
+#. module: generic_contract
+#: code:addons/generic_contract/models/generic_service_line.py:0
+#, python-format
+msgid ""
+"If you don`t want to set the service or service level, unlink this row. You "
+"can`t save empty row."
+msgstr ""
+
+#. module: generic_contract
+#: model:generic.contract,name:generic_contract.contract_basic_provider_final_stage
+msgid "Internet provision"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__message_is_follower
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__message_is_follower
+msgid "Is Follower"
+msgstr "Suivi"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract____last_update
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event____last_update
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_service_line____last_update
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template____last_update
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template_service_line____last_update
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create____last_update
+msgid "Last Modified on"
+msgstr "Dernière modification le"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__write_uid
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__write_uid
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_service_line__write_uid
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__write_uid
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template_service_line__write_uid
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__write_uid
+msgid "Last Updated by"
+msgstr "Dernière mise à jour par"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__write_date
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__write_date
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_service_line__write_date
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__write_date
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template_service_line__write_date
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__write_date
+msgid "Last Updated on"
+msgstr "Dernière mise à jour le"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__message_main_attachment_id
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__message_main_attachment_id
+msgid "Main Attachment"
+msgstr "PJ principale"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__message_has_error
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__message_has_error
+msgid "Message Delivery error"
+msgstr "Erreur d'envoi de message"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__message_ids
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__message_ids
+msgid "Messages"
+msgstr "Messages"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__event_data_model_name
+msgid "Model"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__my_activity_date_deadline
+msgid "My Activity Deadline"
+msgstr "Date cible activité"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__name
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__name
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_template_form
+msgid "Name"
+msgstr "Nom"
+
+#. module: generic_contract
+#: model:ir.ui.menu,name:generic_contract.generic_contract_new
+msgid "New"
+msgstr "Nouveau"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__new_user_id
+msgid "New User"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__activity_calendar_event_id
+msgid "Next Activity Calendar Event"
+msgstr "Prochaine activité dans le calendrier"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__activity_date_deadline
+msgid "Next Activity Deadline"
+msgstr "Prochaine Activité / GTR"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__activity_summary
+msgid "Next Activity Summary"
+msgstr "Résumé de la prochaine activité"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__activity_type_id
+msgid "Next Activity Type"
+msgstr "Type de la prochaine activité"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__search_no_tag_id
+msgid "No tag"
+msgstr "Sans tag"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__number
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_form
+msgid "Number"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__message_needaction_counter
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__message_needaction_counter
+msgid "Number of Actions"
+msgstr "Nb d'actions"
+
+#. module: generic_contract
+#: model:ir.model.constraint,message:generic_contract.constraint_generic_contract_contract_number_unique
+msgid "Number of contract must be unique!"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__message_has_error_counter
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__message_has_error_counter
+msgid "Number of errors"
+msgstr "Nb d'erreurs"
+
+#. module: generic_contract
+#: model:ir.model.fields,help:generic_contract.field_generic_contract__message_needaction_counter
+#: model:ir.model.fields,help:generic_contract.field_generic_contract_template__message_needaction_counter
+msgid "Number of messages which requires an action"
+msgstr "Nb de messages à vérifier"
+
+#. module: generic_contract
+#: model:ir.model.fields,help:generic_contract.field_generic_contract__message_has_error_counter
+#: model:ir.model.fields,help:generic_contract.field_generic_contract_template__message_has_error_counter
+msgid "Number of messages with delivery error"
+msgstr "Nb de messages en erreur"
+
+#. module: generic_contract
+#: model:ir.model.fields,help:generic_contract.field_generic_contract__message_unread_counter
+#: model:ir.model.fields,help:generic_contract.field_generic_contract_template__message_unread_counter
+msgid "Number of unread messages"
+msgstr "Nb de messages non lus"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__old_user_id
+msgid "Old User"
+msgstr ""
+
+#. module: generic_contract
+#: code:addons/generic_contract/models/generic_contract.py:0
+#, python-format
+msgid "Only manager can convert active contracts to draft"
+msgstr ""
+
+#. module: generic_contract
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_search
+msgid "Open"
+msgstr "Ouvert"
+
+#. module: generic_contract
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_form
+msgid "Other"
+msgstr "Autre"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__partner_id
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__partner_id
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_search
+msgid "Partner"
+msgstr "Client"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__partner_type
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__partner_type
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__partner_type
+msgid "Partner Type"
+msgstr ""
+
+#. module: generic_contract
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_search
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_template_search
+msgid "Partner type"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields.selection,name:generic_contract.selection__generic_contract__state__pending
+msgid "Pending"
+msgstr ""
+
+#. module: generic_contract
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_search
+msgid "Pendings"
+msgstr ""
+
+#. module: generic_contract
+#: model:generic.contract,name:generic_contract.contract_basic_provider_initial_stage_1_2
+msgid "Purchase of equipment"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__ref
+msgid "Ref"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__user_id
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__user_id
+msgid "Responsible"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__activity_user_id
+msgid "Responsible User"
+msgstr "Responsable"
+
+#. module: generic_contract
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_search
+msgid "Responsible user"
+msgstr ""
+
+#. module: generic_contract
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_form
+msgid "SLA"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__number_sequence_id
+msgid "Sequence"
+msgstr "Séquence"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_service_line__service_id
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template_service_line__service_id
+#: model:ir.model.fields,field_description:generic_contract.field_generic_service_line__service_id
+msgid "Service"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_service_line__service_level_id
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template_service_line__service_level_id
+#: model:ir.model.fields,field_description:generic_contract.field_generic_service_line__service_level_id
+msgid "Service Level"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__service_contract_line_ids
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__service_contract_line_ids
+msgid "Service Lines"
+msgstr ""
+
+#. module: generic_contract
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_template_form
+msgid "Services"
+msgstr ""
+
+#. module: generic_contract
+#: model:generic.contract,name:generic_contract.generic_contract_simple_customer_contract
+msgid "Simple Support Contract"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__state
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_service_line__contract_state
+msgid "Status"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,help:generic_contract.field_generic_contract__activity_state
+msgid ""
+"Status based on activities\n"
+"Overdue: Due date is already passed\n"
+"Today: Activity date is today\n"
+"Planned: Future activities."
+msgstr ""
+"Statut basé sur les activités\n"
+"En retard : la date d'échéance est déjà dépassée\n"
+"Aujourd'hui : la date d'activité est aujourd'hui\n"
+"Planifié : Activités futures."
+
+#. module: generic_contract
+#: model:ir.model.fields.selection,name:generic_contract.selection__generic_contract__partner_type__supplier
+#: model:ir.model.fields.selection,name:generic_contract.selection__generic_contract_template__partner_type__supplier
+#: model:ir.model.fields.selection,name:generic_contract.selection__generic_contract_wizard_create__partner_type__supplier
+msgid "Supplier"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.ui.menu,name:generic_contract.generic_contract_supplier
+msgid "Supplier Contracts"
+msgstr ""
+
+#. module: generic_contract
+#: model:generic.contract.template,name:generic_contract.contract_template_demo_supplier
+msgid "Supplier contract"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__generic_event_count
+msgid "System Events"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,help:generic_contract.field_generic_service__active_contract_ids
+msgid "System field to get all active contracts related to this service"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,help:generic_contract.field_generic_service__generic_contract_ids
+msgid "System field to show all contracts related to this service"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__search_tag_id
+msgid "Tag"
+msgstr "Tag"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__tag_ids
+msgid "Tags"
+msgstr "Tags"
+
+#. module: generic_contract
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_tree
+msgid "Tags..."
+msgstr "Tags..."
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__template_id
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__template_id
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_search
+msgid "Template"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.ui.menu,name:generic_contract.generic_contract_template
+msgid "Templates"
+msgstr ""
+
+#. module: generic_contract
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_form
+msgid "To Draft"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,help:generic_contract.field_generic_contract__activity_exception_decoration
+msgid "Type of the exception activity on record."
+msgstr "Type d'activité d'exception enregistrée."
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__message_unread
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__message_unread
+msgid "Unread Messages"
+msgstr "Messages non lus"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__message_unread_counter
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__message_unread_counter
+msgid "Unread Messages Counter"
+msgstr "Nb messages non lus"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__user_id
+msgid "User"
+msgstr ""
+
+#. module: generic_contract
+#: model:ir.model.fields,help:generic_contract.field_generic_contract_event__user_id
+msgid "User that triggered this event."
+msgstr ""
+
+#. module: generic_contract
+#: code:addons/generic_contract/models/generic_contract.py:0
+#, python-format
+msgid "You can convert to draft only pending contracts."
+msgstr ""
+
+#. module: generic_contract
+#: code:addons/generic_contract/models/generic_contract.py:0
+#, python-format
+msgid "You can`t close this contract."
+msgstr ""
+
+#. module: generic_contract
+#: code:addons/generic_contract/models/generic_contract.py:0
+#, python-format
+msgid ""
+"You can`t delete contract: %s, because it is not in \"draft\" state. You can "
+"delete only draft contracts."
+msgstr ""
+
+#~ msgid "Config Settings"
+#~ msgstr "Paramètres de configuration"
+
+#~ msgid "Parent"
+#~ msgstr "Parent"
+
+#~ msgid "Parent Path"
+#~ msgstr "Parent"
+
+#~ msgid "Settings"
+#~ msgstr "Paramètres"

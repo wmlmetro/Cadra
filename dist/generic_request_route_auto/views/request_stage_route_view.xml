@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_stage_route_trigger_form">
+        <field name="model">request.stage.route</field>
+        <field name="inherit_id"
+               ref="generic_request.view_request_stage_route_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet/div[@name='button_box']"
+                   position="inside">
+                <button name="action_request_stage_route_trigger_actions"
+                        type="object"
+                        class="oe_stat_button" icon="fa-bell">
+                    <field string="Triggers" name="trigger_count"
+                           widget="statinfo"/>
+                </button>
+            </xpath>
+            <group name="group_access" position="inside">
+                <field name="auto_only"/>
+            </group>
+            <xpath expr="//page[@name='page_route_info']" position="after">
+                <page string="Triggers"
+                      name="page_route_triggers"
+                      attrs="{'invisible': [('id', '=', False)]}">
+                    <field name="trigger_ids"
+                           mode="tree"
+                           context="{'default_route_id': id}"/>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_stage_route_trigger_tree">
+        <field name="model">request.stage.route</field>
+        <field name="inherit_id"
+               ref="generic_request.view_request_stage_route_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//tree/field[@name='close']" position="after">
+                <field string="Triggers" name="trigger_count"/>
+                <button name="action_request_stage_route_trigger_actions"
+                        type="object"
+                        title="Triggers"
+                        aria-label="Triggers"
+                        icon="fa-bell"/>
+            </xpath>
+            <field name="allowed_user_ids" position="before">
+                <field name="auto_only"/>
+            </field>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_stage_route_search">
+        <field name="model">request.stage.route</field>
+        <field name="inherit_id" ref="generic_request.view_request_stage_route_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='group_group_by']" position="before">
+                <separator/>
+                <filter string="Auto Only"
+                        name="filter_auto_only"
+                        domain="[('auto_only', '=', True)]"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

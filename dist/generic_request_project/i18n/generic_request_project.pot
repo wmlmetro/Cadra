@@ -1,0 +1,417 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_project
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_project_kanban
+msgid "<span class=\"o_label\">Requests</span>"
+msgstr ""
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_request_request_kanban
+msgid "<span title=\"Tasks\" class=\"fa fa-briefcase mr4\"/>"
+msgstr ""
+
+#. module: generic_request_project
+#: model:generic.system.event.type,name:generic_request_project.request_event_type_task_all_tasks_closed
+msgid "All tasks closed"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model,name:generic_request_project.model_account_analytic_line
+msgid "Analytic Line"
+msgstr ""
+
+#. module: generic_request_project
+#: model:project.task,legend_blocked:generic_request_project.project_task_analyse_sla_per_resource
+#: model:project.task,legend_blocked:generic_request_project.project_task_development
+#: model:project.task,legend_blocked:generic_request_project.project_task_technical_auto_tests
+#: model:project.task,legend_blocked:generic_request_project.project_task_technical_development
+#: model:project.task,legend_blocked:generic_request_project.project_task_update_docs
+#: model:project.task,legend_blocked:generic_request_project.request_with_task_task_1
+#: model:project.task,legend_blocked:generic_request_project.request_with_task_task_2
+msgid "Blocked"
+msgstr ""
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.request_wizard_work_log_form_view
+msgid "Cancel"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,help:generic_request_project.field_project_task__request_category_id
+msgid "Category of request"
+msgstr ""
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_generic_request_project_task_request_request
+msgid "Create Task"
+msgstr ""
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_generic_request_project_task_request_request
+msgid "Create new task"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__create_uid
+msgid "Created by"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__create_date
+msgid "Created on"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__display_name
+msgid "Display Name"
+msgstr ""
+
+#. module: generic_request_project
+#: model:request.stage,name:generic_request_project.request_stage_type_with_task_done
+msgid "Done"
+msgstr ""
+
+#. module: generic_request_project
+#: model:request.stage,name:generic_request_project.request_stage_type_with_task_draft
+msgid "Draft"
+msgstr ""
+
+#. module: generic_request_project
+#: model:request.stage.route,name:generic_request_project.request_stage_type_with_task_draft_to_new
+msgid "Draft to New"
+msgstr ""
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.request_wizard_work_log_form_view
+msgid "Duration"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.actions.act_window,name:generic_request_project.action_wizard_work_log
+msgid "Edit work log"
+msgstr ""
+
+#. module: generic_request_project
+#: model:project.project,name:generic_request_project.project_functional_support
+msgid "Functional Product Support"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__id
+msgid "ID"
+msgstr ""
+
+#. module: generic_request_project
+#: model:project.task,legend_normal:generic_request_project.project_task_analyse_sla_per_resource
+#: model:project.task,legend_normal:generic_request_project.project_task_development
+#: model:project.task,legend_normal:generic_request_project.project_task_technical_auto_tests
+#: model:project.task,legend_normal:generic_request_project.project_task_technical_development
+#: model:project.task,legend_normal:generic_request_project.project_task_update_docs
+#: model:project.task,legend_normal:generic_request_project.request_with_task_task_1
+#: model:project.task,legend_normal:generic_request_project.request_with_task_task_2
+msgid "In Progress"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard____last_update
+msgid "Last Modified on"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__write_uid
+msgid "Last Updated by"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__write_date
+msgid "Last Updated on"
+msgstr ""
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_generic_request_project_task_request_request
+msgid "Log your work"
+msgstr ""
+
+#. module: generic_request_project
+#: model:request.stage,name:generic_request_project.request_stage_type_with_task_new
+msgid "New"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_event__new_project_id
+msgid "New Project"
+msgstr ""
+
+#. module: generic_request_project
+#: model:request.stage.route,name:generic_request_project.request_stage_type_with_task_new_to_done
+msgid "New to Done"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_event__old_project_id
+msgid "Old Project"
+msgstr ""
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_task_form2
+msgid "Other"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model,name:generic_request_project.model_project_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_request__project_id
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__project_id
+#: model_terms:ir.ui.view,arch_db:generic_request_project.request_type_form_inherit
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_request_request_searchpanel
+msgid "Project"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_request__project_task_count
+msgid "Project Task Count"
+msgstr ""
+
+#. module: generic_request_project
+#: model:generic.system.event.category,name:generic_request_project.system_event_category_request_project_task_events
+msgid "Project Task Events"
+msgstr ""
+
+#. module: generic_request_project
+#: model:generic.system.event.type,name:generic_request_project.request_event_type_project_changed
+msgid "Project changed"
+msgstr ""
+
+#. module: generic_request_project
+#: model:project.task,legend_done:generic_request_project.project_task_analyse_sla_per_resource
+#: model:project.task,legend_done:generic_request_project.project_task_development
+#: model:project.task,legend_done:generic_request_project.project_task_technical_auto_tests
+#: model:project.task,legend_done:generic_request_project.project_task_technical_development
+#: model:project.task,legend_done:generic_request_project.project_task_update_docs
+#: model:project.task,legend_done:generic_request_project.request_with_task_task_1
+#: model:project.task,legend_done:generic_request_project.request_with_task_task_2
+msgid "Ready"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_account_analytic_line__req_timesheet_line_id
+msgid "Req Timesheet Line"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model,name:generic_request_project.model_request_request
+#: model:ir.model.fields,field_description:generic_request_project.field_account_analytic_line__request_id
+#: model:ir.model.fields,field_description:generic_request_project.field_project_task__request_id
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__request_id
+msgid "Request"
+msgstr ""
+
+#. module: generic_request_project
+#: code:addons/generic_request_project/models/request_request.py:0
+#, python-format
+msgid "Request %s"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_project_task__request_category_id
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_task_search_form
+msgid "Request Category"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_project_project__request_count
+msgid "Request Count"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model,name:generic_request_project.model_request_event
+msgid "Request Event"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_project_task__request_service_id
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_task_search_form
+msgid "Request Service"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.actions.act_window,name:generic_request_project.action_show_request_tasks
+#: model:ir.ui.menu,name:generic_request_project.menu_request_tasks_all
+msgid "Request Tasks"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model,name:generic_request_project.model_request_timesheet_line
+msgid "Request Timesheet Line"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model,name:generic_request_project.model_request_type
+#: model:ir.model.fields,field_description:generic_request_project.field_project_task__request_type_id
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_task_search_form
+msgid "Request Type"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model,name:generic_request_project.model_work_log_wizard
+msgid "Request Wizard: Work Log"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,help:generic_request_project.field_project_task__request_id
+msgid "Request this task is related to"
+msgstr ""
+
+#. module: generic_request_project
+#: model:request.type,name:generic_request_project.request_type_with_task
+msgid "Request with task"
+msgstr ""
+
+#. module: generic_request_project
+#: model:project.project,name:generic_request_project.request_with_task_project_1
+msgid "Request-related tasks"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_project_project__request_ids
+#: model_terms:ir.ui.view,arch_db:generic_request_project.edit_project
+msgid "Requests"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_project_task__request_ids
+msgid "Requests (Deprecated)"
+msgstr ""
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.request_wizard_work_log_form_view
+msgid "Save"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,help:generic_request_project.field_project_task__request_service_id
+msgid "Service of request"
+msgstr ""
+
+#. module: generic_request_project
+#: model:generic.system.event.source,name:generic_request_project.system_event_source__project_task
+#: model:ir.model,name:generic_request_project.model_project_task
+#: model:ir.model.fields,field_description:generic_request_project.field_request_event__task_id
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__task_id
+msgid "Task"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_event__task_new_stage_id
+msgid "Task New Stage"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_event__task_old_stage_id
+msgid "Task Old Stage"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_request__project_task_timesheet_ids
+msgid "Task Timesheets"
+msgstr ""
+
+#. module: generic_request_project
+#: model:generic.system.event.type,name:generic_request_project.request_event_type_task_closed
+msgid "Task closed"
+msgstr ""
+
+#. module: generic_request_project
+#: model:generic.system.event.type,name:generic_request_project.request_event_type_task_stage_changed
+msgid "Task stage changed"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.actions.act_window,name:generic_request_project.action_request_project_task
+#: model:ir.model.fields,field_description:generic_request_project.field_request_request__project_task_ids
+#: model:ir.ui.menu,name:generic_request_project.menu_request_tasks
+#: model:project.project,label_tasks:generic_request_project.project_functional_support
+#: model:project.project,label_tasks:generic_request_project.project_technical_support
+#: model:project.project,label_tasks:generic_request_project.request_with_task_project_1
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_generic_request_project_task_request_request
+msgid "Tasks"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_request__project_task_recursive_ids
+msgid "Tasks (Recursive)"
+msgstr ""
+
+#. module: generic_request_project
+#: model:project.project,name:generic_request_project.project_technical_support
+msgid "Technical Product Support"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,help:generic_request_project.field_project_task__request_ids
+msgid ""
+"This field is deprecated! Do not use it. If you still need it, then contact "
+"us (CR&D)"
+msgstr ""
+
+#. module: generic_request_project
+#: model_terms:request.request,help_html:generic_request_project.demo_request_with_complex_task
+#: model_terms:request.request,help_html:generic_request_project.demo_request_with_task
+#: model_terms:request.type,help_html:generic_request_project.request_type_with_task
+msgid ""
+"This is demo request type to demonstrate automatic actions and triggers on routes.\n"
+"            That automatic triggers will be triggered when related task changes its stage."
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__timesheet_ids
+msgid "Timesheets"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,help:generic_request_project.field_project_task__request_type_id
+msgid "Type of request"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_request__use_subtasks
+#: model:ir.model.fields,field_description:generic_request_project.field_request_type__use_subtasks
+#: model_terms:ir.ui.view,arch_db:generic_request_project.request_type_form_inherit
+msgid "Use Subtasks"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_request__use_worklog
+#: model:ir.model.fields,field_description:generic_request_project.field_request_type__use_worklog
+#: model_terms:ir.ui.view,arch_db:generic_request_project.request_type_form_inherit
+msgid "Use Worklog"
+msgstr ""
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_generic_request_project_task_request_request
+msgid "Work Log"
+msgstr ""
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_generic_request_project_task_request_request
+msgid ""
+"You have to create task for this timesheet to be able to log working time "
+"spent on that task."
+msgstr ""
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_generic_request_project_task_request_request
+msgid "or"
+msgstr ""

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Demo data to demonstrate Reopen Request As Type feature -->
+
+    <!-- Test Reopen As request types -->
+    <record id="request_type_reopen_as_type_no_categ" model="request.type" context="{'create_default_stages': True}">
+        <field name="name">Request Reopen No Categ</field>
+        <field name="code">request-reopen-no-categ</field>
+        <field name="description">Simple request type without related categories</field>
+    </record>
+    <record id="request_type_reopen_as_type_categ_1" model="request.type" context="{'create_default_stages': True}">
+        <field name="name">Request Reopen (category general)</field>
+        <field name="code">request-reopen-categ-general</field>
+        <field name="description">Simple request type related to category 'General'</field>
+        <field name="category_ids"
+               eval="[(6, 0, [ref('generic_request.request_category_demo_general')])]"/>
+    </record>
+    <record id="request_type_reopen_as_type_categ_2" model="request.type" context="{'create_default_stages': True}">
+        <field name="name">Request Reopen (category technical config)</field>
+        <field name="code">request-reopen-categ-technical-config</field>
+        <field name="description">Simple request type related to category 'Technical / Configuration'</field>
+        <field name="service_ids" eval="[(4, ref('generic_service.generic_service_default'))]"/>
+        <field name="category_ids"
+               eval="[(6, 0, [ref('generic_request.request_category_demo_technical_configuration')])]"/>
+    </record>
+    <!-- End test reopen request types -->
+
+    <!-- Main Request -->
+    <record id="request_type_reopen_main" model="request.type">
+        <field name="name">Request Reopen Main</field>
+        <field name="code">request-reopen-main</field>
+        <field name="description">Request type designed to demonstrate "Reopen As" feature</field>
+    </record>
+    <record id="request_stage_type_reopen_main_new" model="request.stage">
+        <field name="sequence" eval="5"/>
+        <field name="name">New</field>
+        <field name="code">new</field>
+        <field name="type_id" ref="request_stage_type_draft"/>
+        <field name="request_type_id" ref="request_type_reopen_main"/>
+    </record>
+    <record id="request_stage_type_reopen_main_classified" model="request.stage">
+        <field name="sequence" eval="10"/>
+        <field name="name">Classified</field>
+        <field name="code">classified</field>
+        <field name="closed" eval="True"/>
+        <field name="type_id" ref="request_stage_type_closed_ok"/>
+        <field name="request_type_id" ref="request_type_reopen_main"/>
+    </record>
+    <record id="request_stage_type_reopen_main_cancel" model="request.stage">
+        <field name="sequence" eval="15"/>
+        <field name="name">Cancel</field>
+        <field name="code">cancel</field>
+        <field name="type_id" ref="request_stage_type_cancel"/>
+        <field name="closed" eval="True"/>
+        <field name="request_type_id" ref="request_type_reopen_main"/>
+    </record>
+    <record id="request_stage_route_type_reopen_main_new_to_classified"
+            model="request.stage.route">
+        <field name="name">Classify</field>
+        <field name="sequence" eval="10"/>
+        <field name="stage_from_id" ref="request_stage_type_reopen_main_new"/>
+        <field name="stage_to_id" ref="request_stage_type_reopen_main_classified"/>
+        <field name="request_type_id" ref="request_type_reopen_main"/>
+        <field name="reopen_as_type_ids" eval="[(4, ref('request_type_reopen_as_type_no_categ')), (4, ref('request_type_reopen_as_type_categ_1')), (4, ref('request_type_reopen_as_type_categ_2'))]"/>
+        <field name="button_style">info</field>
+    </record>
+    <record id="request_stage_route_type_reopen_main_new_to_cancel"
+            model="request.stage.route">
+        <field name="name">Cancel</field>
+        <field name="sequence" eval="15"/>
+        <field name="stage_from_id" ref="request_stage_type_reopen_main_new"/>
+        <field name="stage_to_id" ref="request_stage_type_reopen_main_cancel"/>
+        <field name="request_type_id" ref="request_type_reopen_main"/>
+        <field name="button_style">secondary</field>
+    </record>
+    <!-- End Request Type Reopen Main -->
+
+    <record id="request_request_reopen_main_1" model="request.request">
+        <field name="request_text"><![CDATA[
+            <p>I cannot work in Word, the system just hangs.</p>
+            <p>Please, help!</p>
+        ]]></field>
+        <field name="type_id" ref="request_type_reopen_main"/>
+        <field name="author_id" ref="base.res_partner_address_7"/>
+    </record>
+</odoo>

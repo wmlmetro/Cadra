@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+
+    <record id="generic_tag_generic_team" model="generic.tag.model">
+        <field name="res_model_id" ref="generic_team.model_generic_team"/>
+    </record>
+
+    <record id="generic_tag_generic_team_member" model="generic.tag.model">
+        <field name="res_model_id" ref="generic_team.model_generic_team_member"/>
+    </record>
+
+</odoo>

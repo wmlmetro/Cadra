@@ -1,0 +1,415 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_condition
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:21+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_condition/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_condition
+#: model:ir.model.fields.selection,name:generic_request_condition.selection__request_stage_route__condition_operator__and
+msgid "AND"
+msgstr "VE"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_assigned
+msgid "Assigned"
+msgstr "Atandı"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_assigned_to_current_user
+msgid "Assigned to current user"
+msgstr "Mevcut kullanıcıya atandı"
+
+#. module: generic_request_condition
+#: model:ir.model.fields,field_description:generic_request_condition.field_request_type__change_assignee_condition_ids
+msgid "Can change assignee"
+msgstr "atananı değiştir"
+
+#. module: generic_request_condition
+#: model:ir.model.fields,field_description:generic_request_condition.field_request_type__change_author_condition_ids
+msgid "Can change author"
+msgstr "Yazarı değiştirebilir"
+
+#. module: generic_request_condition
+#: model:ir.model.fields,field_description:generic_request_condition.field_request_type__change_category_condition_ids
+msgid "Can change category"
+msgstr "Kategoriyi değiştirebilir"
+
+#. module: generic_request_condition
+#: model:ir.model.fields,field_description:generic_request_condition.field_request_type__change_deadline_condition_ids
+msgid "Can change deadline"
+msgstr "Son tarihi değiştirebilir"
+
+#. module: generic_request_condition
+#: model:ir.model.fields,field_description:generic_request_condition.field_request_type__change_request_text_condition_ids
+msgid "Can change request text"
+msgstr "İstek metnini değiştirebilir"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_category_is_not_set
+msgid "Category is not set"
+msgstr "Kategori ayarlanmadı"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_category_is_set
+msgid "Category is set"
+msgstr "Kategori ayarlandı"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_category_is_not_set
+msgid "Check if request category is not set"
+msgstr "İstek kategorisinin ayarlanıp ayarlanmadığını kontrol edin"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_category_is_set
+msgid "Check if request category is set"
+msgstr "İstek kategorisinin ayarlandığını kontrol edin"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_not_assigned_or_assigned_to_current_user
+msgid "Check if request has no assignee or assigned to current user"
+msgstr ""
+"İsteğin atanan veya mevcut kullanıcıya atanmış olup olmadığını kontrol edin"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_partner_is_not_set
+msgid "Check if request have no related partner"
+msgstr "İsteğin ilgili ortağı olup olmadığını kontrol edin"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_have_no_response_text
+msgid "Check if request have no response text"
+msgstr "İstekte yanıt metni olup olmadığını kontrol edin"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_partner_is_set
+msgid "Check if request have related partner"
+msgstr "İsteğin ilgili ortağı olup olmadığını kontrol edin"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_have_response_text
+msgid "Check if request have response text"
+msgstr "İsteğin yanıt metni olup olmadığını kontrol edin"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_assigned_to_current_user
+msgid "Check if request is assigned to current user"
+msgstr "İsteğin geçerli kullanıcıya atanıp atanmadığını kontrol edin"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_assigned
+msgid "Check if request is assigned to somebody"
+msgstr "İsteğin geçerli birine atanıp atanmadığını kontrol edin"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_closed
+msgid "Check if request is closed"
+msgstr "İsteğin kapalı olup olmadığını kontrol edin"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_created_by_current_user
+msgid "Check if request is created by current user"
+msgstr "İsteğin mevcut kullanıcı tarafından oluşturulduğunu kontrol edin"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_not_assigned_to_current_user
+msgid "Check if request is not assigned to current user"
+msgstr "İsteğin geçerli kullanıcıya atanıp atanmadığını kontrol edin"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_not_assigned
+msgid "Check if request is not assigned yet"
+msgstr "İsteğin henüz atanıp atanmadığını kontrol edin"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_not_created_by_current_user
+msgid "Check if request is not created by current user"
+msgstr ""
+"İsteğin mevcut kullanıcı tarafından oluşturulup oluşturulmadığını kontrol "
+"edin"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_open
+msgid "Check if request is open"
+msgstr "İsteğin açık olup olmadığını kontrol edin"
+
+#. module: generic_request_condition
+#: model:ir.model.fields,field_description:generic_request_condition.field_request_stage_route__condition_operator
+msgid "Condition Operator"
+msgstr "Koşul Operatörü"
+
+#. module: generic_request_condition
+#: model:request.type,name:generic_request_condition.request_type_conditional
+msgid "Conditional Request"
+msgstr "Koşullu İstek"
+
+#. module: generic_request_condition
+#: model:ir.model.fields,field_description:generic_request_condition.field_request_stage_route__condition_ids
+#: model_terms:ir.ui.view,arch_db:generic_request_condition.view_request_stage_route_form
+msgid "Conditions"
+msgstr "Koşullar"
+
+#. module: generic_request_condition
+#: model:request.stage,name:generic_request_condition.request_stage_type_conditional_confirmed
+msgid "Confirmed"
+msgstr "Onaylandı"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_created_by_current_user
+msgid "Created by current user"
+msgstr "mevcut kullanıcı tarafından oluşturuldu"
+
+#. module: generic_request_condition
+#: model:request.stage,name:generic_request_condition.request_stage_type_conditional_draft
+msgid "Draft"
+msgstr "Taslak"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_in_start_stage
+msgid "Evaluates to True if request is in start stage."
+msgstr "İstek başlangıç aşamasındaysa True olarak değerlendirilir."
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_not_in_start_stage
+msgid "Evaluates to True if request is not in start stage."
+msgstr "İstek başlangıç aşamasında değilse True olarak değerlendirilir."
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_closed_fail
+msgid "Evaluates to True if request is on stage with type Closed (Fail)."
+msgstr ""
+"İstek, Closed (Fail) türünde işlem aşamasındaysa True olarak değerlendirilir."
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_is_closed_ok
+msgid "Evaluates to True if request is on stage with type Closed (OK)."
+msgstr ""
+"İstek, Closed (OK) türünde işlem aşamasındaysa True olarak değerlendirilir."
+
+#. module: generic_request_condition
+#: model:ir.actions.act_window,name:generic_request_condition.generic_request_condition_action
+#: model:ir.ui.menu,name:generic_request_condition.menu_request_conditions
+msgid "Generic Conditions"
+msgstr "Genel Koşullar"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_has_not_mail_activity_for_assignee
+#: model:generic.condition,name:generic_request_condition.condition_request_has_not_mail_activity_for_assignee
+msgid "Has NOT mail activity for assignee"
+msgstr "Atanan için posta etkinliği YOKTUR"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.condition_request_has_mail_activity_for_assignee
+#: model:generic.condition,name:generic_request_condition.condition_request_has_mail_activity_for_assignee
+msgid "Has mail activity for assignee"
+msgstr "Atanan için posta etkinliği"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_have_no_response_text
+msgid "Have no response text"
+msgstr "yanıt metni yok"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_have_response_text
+msgid "Have response text"
+msgstr "yanıt metni var"
+
+#. module: generic_request_condition
+#: model:request.category,name:generic_request_condition.request_category_demo_install_os
+msgid "Install OS"
+msgstr "İşletim Sistemini Yükle"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_closed
+msgid "Is closed"
+msgstr "kapalı"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_closed_fail
+msgid "Is closed (Fail)"
+msgstr "kapalı (Hata)"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_closed_ok
+msgid "Is closed (OK)"
+msgstr "kapalı (OK)"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_in_start_stage
+msgid "Is in start stage"
+msgstr "Başlangıç aşamasında"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_not_in_start_stage
+msgid "Is not in start stage"
+msgstr "Başlangıç aşamasında değil"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_open
+msgid "Is open"
+msgstr "Aç"
+
+#. module: generic_request_condition
+#: model:ir.model.fields,help:generic_request_condition.field_request_stage_route__condition_ids
+msgid ""
+"List here conditions that request shouds satisfy to be able to use this route"
+msgstr ""
+"Bu rotayı kullanabilmek için talebin yerine getirmesi gereken koşulları "
+"burada listeleyin"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_not_assigned
+msgid "Not assigned"
+msgstr "atanmadı"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_not_assigned_or_assigned_to_current_user
+msgid "Not assigned or assigned to current user"
+msgstr "Mevcut kullanıcıya atanmış veya atanmamış"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_not_assigned_to_current_user
+msgid "Not assigned to current user"
+msgstr "Mevcut kullanıcıya atanmadı"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_is_not_created_by_current_user
+msgid "Not created by current user"
+msgstr "mevcut kullanıcı tarafından oluşturulmadı"
+
+#. module: generic_request_condition
+#: model:ir.model.fields.selection,name:generic_request_condition.selection__request_stage_route__condition_operator__or
+msgid "OR"
+msgstr "YADA"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_partner_is_not_set
+msgid "Partner is not set"
+msgstr "Ortak ayarlanmadı"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_partner_is_set
+msgid "Partner is set"
+msgstr "Ortak ayarlandı"
+
+#. module: generic_request_condition
+#: model:request.stage,name:generic_request_condition.request_stage_type_conditional_rejected
+msgid "Rejected"
+msgstr "Reddedildi"
+
+#. module: generic_request_condition
+#: model:ir.model,name:generic_request_condition.model_request_request
+msgid "Request"
+msgstr "İstek"
+
+#. module: generic_request_condition
+#: model:ir.model,name:generic_request_condition.model_request_stage_route
+msgid "Request Stage Route"
+msgstr "İstek Aşaması Rotası"
+
+#. module: generic_request_condition
+#: model:ir.model,name:generic_request_condition.model_request_type
+msgid "Request Type"
+msgstr "İstek Türü"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.install_os
+msgid "Request for OS installing"
+msgstr "İşletim sistemi yükleme isteği"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.install_os
+msgid "Request for install OS"
+msgstr "İşletim sistemi yükleme isteği"
+
+#. module: generic_request_condition
+#: model:request.category,description:generic_request_condition.request_category_demo_install_os
+msgid "Request for installing OS"
+msgstr "İşletim sistemi yükleme isteği"
+
+#. module: generic_request_condition
+#: model:generic.condition,description:generic_request_condition.setup_workplace
+#: model:generic.condition,name:generic_request_condition.setup_workplace
+#: model:request.category,description:generic_request_condition.request_category_demo_setup_workplace
+msgid "Request for set up workplace"
+msgstr "workplace kurma talebi"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.demo_condition_request_stage_is_draft
+msgid "Request stage is Draft"
+msgstr "Talep aşaması Bekliyor'dur"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.demo_condition_request_stage_is_sent
+msgid "Request stage is Sent"
+msgstr "Talep aşaması Gönderildi'dir"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_text_is_change_author
+msgid "Request text is \"change author\""
+msgstr "İstek metni \"yazar değiştir\""
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.condition_request_text_is_confirm_me
+msgid "Request text is \"confirm me\""
+msgstr "istek metni \"onayla beni\"'dir"
+
+#. module: generic_request_condition
+#: model:request.stage,name:generic_request_condition.request_stage_type_conditional_sent
+msgid "Sent"
+msgstr "Gönderildi"
+
+#. module: generic_request_condition
+#: model:request.category,name:generic_request_condition.request_category_demo_setup_workplace
+msgid "Set up workplace"
+msgstr "workplace ayarla"
+
+#. module: generic_request_condition
+#: model:generic.condition,name:generic_request_condition.demo_condition_request_stage_is_draft_or_sent
+msgid "Stage is Draft or Sent"
+msgstr "Aşama Bekliyor veya Gönderildi"
+
+#. module: generic_request_condition
+#: model_terms:request.request,help_html:generic_request_condition.request_conditional_demo_1
+#: model_terms:request.type,help_html:generic_request_condition.request_type_conditional
+msgid "This is conditional request type with conditional routes:"
+msgstr "Bu, koşullu yollara sahip koşullu istek türüdür:"
+
+#. module: generic_request_condition
+#: code:addons/generic_request_condition/models/request_stage_route.py:0
+#, python-format
+msgid ""
+"This stage change '%(route)s' restricted by route conditions.\n"
+"Request: %(request)s\n"
+"Request Type: %(request_type)s\n"
+"Request Category: %(request_category)s\n"
+msgstr ""
+"Bu aşama değişikliği '%(route)s' rota koşulları tarafından kısıtlandı.\n"
+"İstek: %(request)s\n"
+"İstek Türü: %(request_type)s\n"
+"İstek Kategorisi: %(request_category)s\n"
+
+#. module: generic_request_condition
+#: model_terms:request.request,help_html:generic_request_condition.request_conditional_demo_1
+#: model_terms:request.type,help_html:generic_request_condition.request_type_conditional
+msgid "draft -&gt; sent -&gt; confirmed"
+msgstr "taslak -&gt; gönderildi -&gt; onaylanmış"
+
+#. module: generic_request_condition
+#: model_terms:request.request,help_html:generic_request_condition.request_conditional_demo_1
+#: model_terms:request.type,help_html:generic_request_condition.request_type_conditional
+msgid "draft -&gt; sent -&gt; rejected"
+msgstr "taslak -&gt; gönderildi -&gt; reddedildi"

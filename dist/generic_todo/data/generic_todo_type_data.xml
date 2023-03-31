@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="generic_todo_type_simple" model="generic.todo.type">
+        <field name="name">Simple</field>
+        <field name="model_id" ref="generic_todo.model_generic_todo_simple"/>
+    </record>
+
+</odoo>

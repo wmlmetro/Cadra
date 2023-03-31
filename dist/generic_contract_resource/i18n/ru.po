@@ -1,0 +1,357 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_contract_resource
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 12.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-09-16 11:54+0000\n"
+"PO-Revision-Date: 2020-07-28 12:23+0000\n"
+"Last-Translator: Ostap Yakovenko <ceo@crnd.pro>\n"
+"Language-Team: Russian <http://weblate.crnd.pro/projects/bureaucrat-itsm-13/"
+"generic_contract_resource/ru/>\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 3.10.3\n"
+
+#. module: generic_contract_resource
+#: model_terms:ir.ui.view,arch_db:generic_contract_resource.contract_recource_wizard_add_lines_form_view
+msgid "Add"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model_terms:ir.ui.view,arch_db:generic_contract_resource.view_generic_contract_form
+msgid "Add Resource Lines"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.actions.act_window,name:generic_contract_resource.action_contract_resource_lines_wizard
+msgid "Add Resource Lines "
+msgstr ""
+
+#. module: generic_contract_resource
+#: model_terms:ir.ui.view,arch_db:generic_contract_resource.contract_recource_wizard_add_lines_form_view
+#: model_terms:ir.ui.view,arch_db:generic_contract_resource.view_generic_contract_form
+msgid "Added"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:generic.resource.simple.category,name:generic_contract_resource.simple_resource_category_applications
+msgid "Applications"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model_terms:ir.ui.view,arch_db:generic_contract_resource.contract_recource_wizard_add_lines_form_view
+msgid "Cancel"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_lines_wizard__contract_id
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__contract_id
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_service_line__contract_id
+#, fuzzy
+msgid "Contract"
+msgstr "контракт"
+
+#. module: generic_contract_resource
+#: model_terms:ir.ui.view,arch_db:generic_contract_resource.view_generic_contract_resource_line_form
+msgid "Contract Partner"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:generic.system.event.type,name:generic_contract_resource.system_event_type_contract_resource_added
+msgid "Contract Resource Added"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_event__contract_resource_line_id
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_service_line__contract_resource_line_id
+msgid "Contract Resource Line"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_service_line_wizard__contract_resource_wizard_add_lines_id
+msgid "Contract Resource Wizard Add Lines"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model_terms:ir.ui.view,arch_db:generic_contract_resource.view_generic_contract_resource_line_form
+msgid "Contract State"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_template_resource_line__contract_template_id
+msgid "Contract Template"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model,name:generic_contract_resource.model_contract_resource_lines_wizard
+msgid "Contract Wizard: Add Resource Lines"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model_terms:ir.ui.view,arch_db:generic_contract_resource.generic_resource_view_form
+msgid "Contracts"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_lines_wizard__create_uid
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_service_line_wizard__create_uid
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__create_uid
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_service_line__create_uid
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_template_resource_line__create_uid
+msgid "Created by"
+msgstr "Создано"
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_lines_wizard__create_date
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_service_line_wizard__create_date
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__create_date
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_service_line__create_date
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_template_resource_line__create_date
+msgid "Created on"
+msgstr "Создан"
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__contract_date_end
+msgid "Date End"
+msgstr "Дата окончания"
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__contract_date_start
+msgid "Date Start"
+msgstr "Дата начала"
+
+#. module: generic_contract_resource
+#: model_terms:ir.ui.view,arch_db:generic_contract_resource.contract_recource_wizard_add_lines_form_view
+msgid "Datetime"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_lines_wizard__datetime_added
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__datetime_added
+msgid "Datetime Added"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_lines_wizard__datetime_end
+msgid "Datetime End"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_lines_wizard__display_name
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_service_line_wizard__display_name
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__display_name
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_service_line__display_name
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_template_resource_line__display_name
+msgid "Display Name"
+msgstr "Отображаемое Имя"
+
+#. module: generic_contract_resource
+#: model_terms:ir.ui.view,arch_db:generic_contract_resource.contract_recource_wizard_add_lines_form_view
+msgid "End"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model,name:generic_contract_resource.model_generic_contract
+msgid "Generic Contract"
+msgstr "Общие контракты"
+
+#. module: generic_contract_resource
+#: model:ir.model,name:generic_contract_resource.model_generic_contract_event
+msgid "Generic Contract Event"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model,name:generic_contract_resource.model_generic_contract_resource_line
+msgid "Generic Contract Resource Line"
+msgstr "Линия ресурса общего контракта"
+
+#. module: generic_contract_resource
+#: model:ir.model,name:generic_contract_resource.model_generic_contract_resource_service_line
+msgid "Generic Contract Resource Service Line"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model,name:generic_contract_resource.model_contract_resource_service_line_wizard
+msgid "Generic Contract Resource Service Line Wizard"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model,name:generic_contract_resource.model_generic_contract_template
+msgid "Generic Contract Template"
+msgstr "Шаблоны общих контрактов"
+
+#. module: generic_contract_resource
+#: model:ir.model,name:generic_contract_resource.model_generic_contract_template_resource_line
+msgid "Generic Contract Template Resource Line"
+msgstr "Линия ресурса шаблона общего контракта"
+
+#. module: generic_contract_resource
+#: model:ir.model,name:generic_contract_resource.model_generic_resource
+msgid "Generic Resource"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_lines_wizard__resource_id
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__resource_id
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_service_line__resource_id
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_template_resource_line__resource_id
+msgid "Generic resource"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:generic.resource.simple,name:generic_contract_resource.simple_resource_guest_book
+msgid "Guest Book Application"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_lines_wizard__id
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_service_line_wizard__id
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__id
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_service_line__id
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_template_resource_line__id
+msgid "ID"
+msgstr "Номер"
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_lines_wizard____last_update
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_service_line_wizard____last_update
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line____last_update
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_service_line____last_update
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_template_resource_line____last_update
+msgid "Last Modified on"
+msgstr "Последнее изменение"
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_lines_wizard__write_uid
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_service_line_wizard__write_uid
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__write_uid
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_service_line__write_uid
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_template_resource_line__write_uid
+msgid "Last Updated by"
+msgstr "Последний раз обновил"
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_lines_wizard__write_date
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_service_line_wizard__write_date
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__write_date
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_service_line__write_date
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_template_resource_line__write_date
+msgid "Last Updated on"
+msgstr "Последнее обновление"
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__contract_partner_id
+msgid "Partner"
+msgstr "Партнёр"
+
+#. module: generic_contract_resource
+#: model_terms:ir.ui.view,arch_db:generic_contract_resource.view_generic_contract_form
+msgid "Remove"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_lines_wizard__resource_res_id
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_event__resource_id
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__resource_res_id
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_template_resource_line__resource_res_id
+msgid "Resource"
+msgstr "Ресурс"
+
+#. module: generic_contract_resource
+#: model_terms:ir.ui.view,arch_db:generic_contract_resource.view_generic_contract_event_form
+msgid "Resource Added"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_resource__resource_contract_ids
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_resource_simple__resource_contract_ids
+msgid "Resource Contract"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_resource__resource_contract_count
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_resource_simple__resource_contract_count
+msgid "Resource Contract Count"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model_terms:ir.ui.view,arch_db:generic_contract_resource.contract_recource_wizard_add_lines_form_view
+msgid "Resource Info"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract__contract_resource_line_ids
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_template__contract_resource_line_ids
+msgid "Resource Lines"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model_terms:ir.ui.view,arch_db:generic_contract_resource.contract_recource_wizard_add_lines_form_view
+#: model_terms:ir.ui.view,arch_db:generic_contract_resource.view_generic_contract_resource_line_form
+msgid "Resource SLA"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_lines_wizard__resource_service_line_ids
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__resource_service_line_ids
+msgid "Resource Service Lines"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_lines_wizard__resource_res_model
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__resource_res_model
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_template_resource_line__resource_res_model
+msgid "Resource model"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_lines_wizard__resource_type_id
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__resource_type_id
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_service_line__resource_type_id
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_template_resource_line__resource_type_id
+msgid "Resource type"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model_terms:ir.ui.view,arch_db:generic_contract_resource.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_resource.view_generic_contract_template_form
+msgid "Resources"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_service_line_wizard__service_id
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_service_line__service_id
+msgid "Service"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_service_line_wizard__service_level_id
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_service_line__service_level_id
+msgid "Service Level"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__resource_service_line_count
+msgid "Services"
+msgstr ""
+
+#. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__contract_state
+msgid "Status"
+msgstr "Статус"
+
+#~ msgid "Parent"
+#~ msgstr "Родитель"
+
+#~ msgid "Generic Wizard: Create Contract"
+#~ msgstr "Визард: Создать контракт"
+
+#~ msgid "Model"
+#~ msgstr "Модель"

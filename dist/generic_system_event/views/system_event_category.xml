@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_generic_system_event_category_tree" model="ir.ui.view">
+        <field name="model">generic.system.event.category</field>
+        <field name="arch" type="xml">
+            <tree create="false">
+                <field name="name"/>
+                <field name="code"/>
+                <field name="event_source_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_generic_system_event_category_form" model="ir.ui.view">
+        <field name="model">generic.system.event.category</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false">
+                <sheet>
+                    <div name="title" class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Name..."/>
+                        </h1>
+                        <h3>
+                            <field name="code" placeholder="Code..."/>
+                        </h3>
+                    </div>
+                    <group>
+                        <field name="event_source_id"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_generic_system_event_category_search" model="ir.ui.view">
+        <field name="model">generic.system.event.category</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="code"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_generic_system_event_category" model="ir.actions.act_window">
+        <field name="name">Event categories</field>
+        <field name="res_model">generic.system.event.category</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+</odoo>

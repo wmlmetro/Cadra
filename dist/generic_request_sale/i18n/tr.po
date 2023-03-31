@@ -1,0 +1,190 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_sale
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:18+0000\n"
+"PO-Revision-Date: 2023-02-28 17:32+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_sale/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_sale
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.request_sale_product_template_form_view
+msgid "<b>sale_order</b>: record representing sale order"
+msgstr "<b>sale_order</b>: satış siparişini temsil eden kayıt"
+
+#. module: generic_request_sale
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.request_sale_product_template_form_view
+msgid "<b>sale_order_line</b>: record representing sale order line"
+msgstr "<b>sale_order_line</b>: satış siparişi satırını temsil eden kayıt"
+
+#. module: generic_request_sale
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.request_sale_product_template_form_view
+msgid "Above you can specify"
+msgstr "Yukarıda belirtebilirsiniz"
+
+#. module: generic_request_sale
+#: model:product.product,name:generic_request_sale.demo_service_consulting_bureaucrat
+#: model:product.template,name:generic_request_sale.demo_service_consulting_bureaucrat_product_template
+msgid "BUREAUCRAT Consulting"
+msgstr "BÜROKRAT Danışmanlık"
+
+#. module: generic_request_sale
+#: model_terms:product.product,description:generic_request_sale.demo_service_consulting_bureaucrat
+#: model_terms:product.template,description:generic_request_sale.demo_service_consulting_bureaucrat_product_template
+msgid "Consulting related to Bureaucrat Product."
+msgstr "Bürokrat Ürün ile ilgili Danışmanlık."
+
+#. module: generic_request_sale
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.request_sale_product_template_form_view
+msgid "Create request on SO confirmation?"
+msgstr "SO onayında istek oluşturulsun mu?"
+
+#. module: generic_request_sale
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.request_sale_product_template_form_view
+msgid "Delivered stage types"
+msgstr "Teslim edilen aşama türleri"
+
+#. module: generic_request_sale
+#: model:ir.model.fields,help:generic_request_sale.field_product_product__is_create_request
+#: model:ir.model.fields,help:generic_request_sale.field_product_template__is_create_request
+msgid "Do we need to create requests when sale order is confirmed?"
+msgstr "Satış siparişi onaylandığında talep oluşturmamız gerekiyor mu?"
+
+#. module: generic_request_sale
+#: model:ir.model.fields,field_description:generic_request_sale.field_product_product__is_create_request
+#: model:ir.model.fields,field_description:generic_request_sale.field_product_template__is_create_request
+msgid "Is Create Request"
+msgstr "İstek oluştur"
+
+#. module: generic_request_sale
+#: model:ir.model.fields,field_description:generic_request_sale.field_request_request__sale_order_id
+msgid "Order Reference"
+msgstr "sipariş referansı"
+
+#. module: generic_request_sale
+#: model:ir.model,name:generic_request_sale.model_product_template
+msgid "Product Template"
+msgstr "Ürün Şablonu"
+
+#. module: generic_request_sale
+#: model:ir.model,name:generic_request_sale.model_request_request
+#: model:ir.model.fields,field_description:generic_request_sale.field_sale_order__request_ids
+#: model:ir.model.fields,field_description:generic_request_sale.field_sale_order_line__request_ids
+msgid "Request"
+msgstr "İstek"
+
+#. module: generic_request_sale
+#: model:ir.model.fields,field_description:generic_request_sale.field_sale_order__request_count
+msgid "Request Count"
+msgstr "Talep Sayısı"
+
+#. module: generic_request_sale
+#: model:ir.model.fields,field_description:generic_request_sale.field_product_product__request_creation_template_id
+#: model:ir.model.fields,field_description:generic_request_sale.field_product_template__request_creation_template_id
+msgid "Request Creation Template"
+msgstr "İstek Oluşturma Şablonu"
+
+#. module: generic_request_sale
+#: model:ir.model.fields,field_description:generic_request_sale.field_product_product__request_delivered_stage_type_ids
+#: model:ir.model.fields,field_description:generic_request_sale.field_product_template__request_delivered_stage_type_ids
+msgid "Request Delivered Stage Type"
+msgstr "Talep Teslim Etme Aşaması Türü"
+
+#. module: generic_request_sale
+#: model:ir.model.fields,field_description:generic_request_sale.field_product_product__request_text_template
+#: model:ir.model.fields,field_description:generic_request_sale.field_product_template__request_text_template
+msgid "Request Text Template"
+msgstr "Metin Şablonu Talebi"
+
+#. module: generic_request_sale
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.request_sale_product_template_form_view
+msgid "Request for SO {{sale_order.name}}"
+msgstr "SO Talebi {{sale_order.name}}"
+
+#. module: generic_request_sale
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.request_sale_product_template_form_view
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.view_request_sale_order_form
+msgid "Requests"
+msgstr "İstekler"
+
+#. module: generic_request_sale
+#: model:ir.model.fields,field_description:generic_request_sale.field_request_request__sale_order_line_id
+msgid "Sale Order Line"
+msgstr "Satış Siparişi Hattı"
+
+#. module: generic_request_sale
+#: model:ir.model,name:generic_request_sale.model_sale_order
+msgid "Sales Order"
+msgstr "Satış Siparişi"
+
+#. module: generic_request_sale
+#: model:ir.model,name:generic_request_sale.model_sale_order_line
+msgid "Sales Order Line"
+msgstr "Satış Siparişi Hattı"
+
+#. module: generic_request_sale
+#: model:product.product,uom_name:generic_request_sale.demo_service_consulting_bureaucrat
+#: model:product.template,uom_name:generic_request_sale.demo_service_consulting_bureaucrat_product_template
+msgid "Units"
+msgstr "Birimler"
+
+#. module: generic_request_sale
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.request_sale_product_template_form_view
+msgid "Use request template"
+msgstr "İstek şablonunu kullan"
+
+#. module: generic_request_sale
+#: model:ir.model.fields,help:generic_request_sale.field_product_product__request_creation_template_id
+#: model:ir.model.fields,help:generic_request_sale.field_product_template__request_creation_template_id
+msgid ""
+"Use this request creation template to create requests from sale order when "
+"it will be confirmed."
+msgstr ""
+"Onaylanacağı zaman satış siparişinden talepler oluşturmak için bu talep "
+"oluşturma şablonunu kullanın."
+
+#. module: generic_request_sale
+#: model:ir.model.fields,help:generic_request_sale.field_product_product__request_text_template
+#: model:ir.model.fields,help:generic_request_sale.field_product_template__request_text_template
+msgid ""
+"Use this template to fill request text for requests created from sale orders."
+msgstr ""
+"Satış siparişlerinden oluşturulan istekler için istek metnini doldurmak için "
+"bu şablonu kullanın."
+
+#. module: generic_request_sale
+#: model:ir.model.fields,help:generic_request_sale.field_product_product__request_delivered_stage_type_ids
+#: model:ir.model.fields,help:generic_request_sale.field_product_template__request_delivered_stage_type_ids
+msgid ""
+"When request reaches stage with one of selected stage types, then this "
+"request is considered as delivered."
+msgstr ""
+"İstek, seçilen aşama türlerinden biriyle aşamaya geldiğinde bu istek "
+"iletilmiş kabul edilir."
+
+#. module: generic_request_sale
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.request_sale_product_template_form_view
+msgid "jinja2"
+msgstr "jinja2"
+
+#. module: generic_request_sale
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.request_sale_product_template_form_view
+msgid ""
+"template\n"
+"                            for request text for requests created by sale "
+"order. You can use following variables there:"
+msgstr ""
+"şablon\n"
+"                             satış siparişi tarafından oluşturulan talepler "
+"için talep metni. Orada aşağıdaki değişkenleri kullanabilirsiniz:"

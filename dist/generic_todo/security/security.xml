@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="group_generic_todo_user_implicit" model="res.groups">
+        <field name="name">Generic TODO user (implicit)</field>
+        <field name="category_id" ref="base.module_category_generic_todo"/>
+        <field name="comment">Read and write to Generic TODO (no access to menus)</field>
+    </record>
+    <record id="group_generic_todo_user" model="res.groups">
+        <field name="name">Generic TODO user</field>
+        <field name="category_id" ref="base.module_category_generic_todo"/>
+        <field name="comment">Read and write to Generic TODO</field>
+        <field name="implied_ids" eval="[(4, ref('generic_todo.group_generic_todo_user_implicit'))]"/>
+    </record>
+    <record id="group_generic_todo_manager" model="res.groups">
+        <field name="name">Generic TODO manager</field>
+        <field name="implied_ids" eval="[(4, ref('generic_todo.group_generic_todo_user'))]"/>
+        <field name="category_id" ref="base.module_category_generic_todo"/>
+        <field name="comment">Manage Generic TODO`s</field>
+        <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+    </record>
+
+</odoo>

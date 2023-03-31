@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_generic_contract_resource_service_line_tree" model="ir.ui.view">
+        <field name="model">generic.contract.resource.service.line</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="contract_id"/>
+                <field name="service_id"/>
+                <field name="service_level_id" groups="generic_service.group_use_service_level"/>
+                <field name="resource_type_id"/>
+                <field name="resource_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_generic_contract_resource_service_line_form" model="ir.ui.view">
+        <field name="model">generic.contract.resource.service.line</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <group>
+                        <field name="contract_id"/>
+                        <field name="contract_resource_line_id"/>
+                        <field name="service_id"/>
+                        <field name="service_level_id" groups="generic_service.group_use_service_level"/>
+                    </group>
+                    <group>
+                        <field name="resource_type_id"/>
+                        <field name="resource_id"/>
+                    </group>
+                </group>
+            </form>
+        </field>
+    </record>
+</odoo>

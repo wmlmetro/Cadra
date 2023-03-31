@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="recent_related_request_period" model="ir.config_parameter">
+        <field name="key">request.recent_related_request_period</field>
+        <field name="value">7</field>
+    </record>
+</odoo>

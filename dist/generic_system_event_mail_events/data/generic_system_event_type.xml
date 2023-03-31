@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="generic_system_event_type_mail_comment" model="generic.system.event.type">
+        <field name="name">Mail Comment</field>
+        <field name="code">mail-comment</field>
+        <field name="event_category_id" ref="system_event_category_mail_events"/>
+        <field name="event_source_id" eval="False"/>
+    </record>
+    <record id="generic_system_event_type_mail_note" model="generic.system.event.type">
+        <field name="name">Mail Note</field>
+        <field name="code">mail-note</field>
+        <field name="event_category_id" ref="system_event_category_mail_events"/>
+        <field name="event_source_id" eval="False"/>
+    </record>
+    <record id="generic_system_event_type_mail_activity_new" model="generic.system.event.type">
+        <field name="name">New Mail Activity</field>
+        <field name="code">mail-activity-new</field>
+        <field name="event_category_id" ref="system_event_category_mail_events"/>
+        <field name="event_source_id" eval="False"/>
+    </record>
+    <record id="generic_system_event_type_mail_activity_done" model="generic.system.event.type">
+        <field name="name">Mail Activity Done</field>
+        <field name="code">mail-activity-done</field>
+        <field name="event_category_id" ref="system_event_category_mail_events"/>
+        <field name="event_source_id" eval="False"/>
+    </record>
+    <record id="generic_system_event_type_mail_activity_delete" model="generic.system.event.type">
+        <field name="name">Mail Activity Delete</field>
+        <field name="code">mail-activity-delete</field>
+        <field name="event_category_id" ref="system_event_category_mail_events"/>
+        <field name="event_source_id" eval="False"/>
+    </record>
+    <record id="generic_system_event_type_mail_activity_changed" model="generic.system.event.type">
+        <field name="name">Mail Activity Changed</field>
+        <field name="code">mail-activity-changed</field>
+        <field name="event_category_id" ref="system_event_category_mail_events"/>
+        <field name="event_source_id" eval="False"/>
+    </record>
+</odoo>

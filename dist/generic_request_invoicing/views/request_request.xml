@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_request_form">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form/field[@name='id']" position="after">
+                 <field name="enable_invoicing" invisible="1"/>
+            </xpath>
+            
+            <xpath expr="//header" position="inside">
+                <button name="action_generate_invoice"
+                        type="object"
+                        string="Generate invoice"
+                        class="btn btn-primary"
+                        groups="account.group_account_invoice"
+                        attrs="{'invisible': ['|', ('enable_invoicing', '=', False), ('partner_id', '=', False)]}"/>
+            </xpath>
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_show_all_invoices"
+                        type="object"
+                        class="oe_stat_button" icon="fa-copy"
+                        groups="account.group_account_invoice"
+                        attrs="{'invisible': [('invoice_count', '&lt;', 1)]}">
+                    <field string="Invoices" name="invoice_count"
+                           widget="statinfo"/>
+                </button>
+            </xpath>
+            <xpath expr="//group[@name='group_time_log_footer']" position="inside">
+                <div class="col-1" name="div_make_all_billable_or_not_billable">
+                    <button name="action_make_all_billable"
+                            type="object"
+                            class="oe_link"
+                            string="Make all billable"/>
+                    <button name="action_make_all_not_billable"
+                            type="object"
+                            class="oe_link"
+                            string="Make all not billable"/>
+                </div>
+            </xpath>
+            <xpath expr="//group[@name='request_head_info_right']/div[@name='header_time_tracking']"
+                   position="before">
+                <div colspan="2" name="header_billing"
+                     class="request-head-info-item"
+                     groups="generic_request_invoicing.group_request_user_invoicing"
+                     attrs="{'invisible': [('enable_invoicing', '=', False)]}">
+                    <span class="field-with-icon">
+                        <span class="field-icon fa fa-money oe_inline"
+                              title="Total Amount"/>
+                        <field name="price_total"
+                               string="Total Amount"
+                               class="w_auto ml4 mr4"/>
+                        <field name="currency_id"
+                               groups="base.group_multi_currency"
+                               class="oe_inline w_auto mr4 ml4 oe_edit_only"/>
+                    </span>
+                </div>
+            </xpath>
+
+            <xpath expr="//field[@name='timesheet_line_ids']/tree/field[@name='description']"
+                   position="after">
+                <field name="enable_invoicing" invisible="1"/>
+                <field name="is_billable"
+                       widget="boolean_toggle"
+                       attrs="{'invisible': ['|', ('enable_invoicing', '=', False), '&amp;', ('date_start', '!=', False), ('date_end', '=', False)],
+                               'column_invisible': [('parent.enable_invoicing',  '=', False)]}"/>
+            </xpath>
+
+            <xpath expr="//notebook/page[@name='page_help']" position="before">
+                <page name="page_invoicing" string="Invoicing"
+                      groups="generic_request_invoicing.group_request_user_invoicing"
+                      attrs="{'invisible': [('enable_invoicing', '=', False)]}">
+                    <group>
+                        <group>
+                            <field name="pricelist_id" groups="product.group_product_pricelist"/>
+                        </group>
+                        <group>
+                        </group>
+                    </group>
+                    <field name="request_invoice_line_ids" mode="tree">
+                        <tree editable="bottom">
+                            <field name="product_id" attrs="{'readonly': [('is_invoiced', '!=', False)]}"/>
+                            <field name="description" attrs="{'readonly': [('is_invoiced', '!=', False)]}"/>
+                            <field name="quantity" attrs="{'readonly': [('is_invoiced', '!=', False)]}"/>
+                            <field name="uom_id"
+                                   attrs="{'readonly': [('is_invoiced', '!=', False)]}"
+                                   string="UoM"
+                                   groups="uom.group_uom"/>
+                            <field name="price_unit" attrs="{'readonly': [('is_invoiced', '!=', False)]}"/>
+                            <field name="price_subtotal" sum="Total"/>
+                            <field name="is_invoiced"/>
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

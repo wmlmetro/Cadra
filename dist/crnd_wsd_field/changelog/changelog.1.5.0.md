@@ -1,0 +1,3 @@
+- Added ability to specify help text for request fields
+- Added ability to specify placeholders for request fields
+- Do not show '\* - required fields' if there are no required fields on the form

@@ -1,0 +1,103 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_contract
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:21+0000\n"
+"PO-Revision-Date: 2023-02-28 17:32+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_contract/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_contract
+#: model_terms:ir.ui.view,arch_db:generic_request_contract.view_generic_contract_form
+msgid "<span class=\"o_stat_text\">Requests</span>"
+msgstr "<span class=\"o_stat_text\">İstekler</span>"
+
+#. module: generic_request_contract
+#: model_terms:ir.ui.view,arch_db:generic_request_contract.view_generic_contract_form
+msgid "<span class=\"oe_form_field oe_inline\">/</span>"
+msgstr "<span class=\"oe_form_field oe_inline\">/</span>"
+
+#. module: generic_request_contract
+#: model:ir.model.fields,field_description:generic_request_contract.field_request_category__active_contract_ids
+msgid "Active contracts"
+msgstr "Aktif sözleşmeler"
+
+#. module: generic_request_contract
+#: model:ir.model.fields,field_description:generic_request_contract.field_generic_contract__contract_request_count
+msgid "All Requests"
+msgstr "Tüm Talepler"
+
+#. module: generic_request_contract
+#: model:ir.model.fields,field_description:generic_request_contract.field_request_request__contract_id
+#: model_terms:ir.ui.view,arch_db:generic_request_contract.view_request_request_search
+msgid "Contract"
+msgstr "Sözleşme"
+
+#. module: generic_request_contract
+#: model:generic.system.event.type,name:generic_request_contract.request_event_type_contract_changed
+msgid "Contract changed"
+msgstr "Sözleşme değişti"
+
+#. module: generic_request_contract
+#: model:ir.model,name:generic_request_contract.model_generic_contract
+msgid "Generic Contract"
+msgstr "Genel Sözleşme"
+
+#. module: generic_request_contract
+#: model:ir.model,name:generic_request_contract.model_generic_contract_service_line
+#: model:ir.model,name:generic_request_contract.model_generic_contract_template_service_line
+msgid "Generic Contract Service Line"
+msgstr "Genel Sözleşme Kaynak Satırı"
+
+#. module: generic_request_contract
+#: model:ir.model.fields,field_description:generic_request_contract.field_request_event__new_contract_id
+msgid "New Contract"
+msgstr "Yeni Sözleşme"
+
+#. module: generic_request_contract
+#: model:ir.model.fields,field_description:generic_request_contract.field_request_event__old_contract_id
+msgid "Old Contract"
+msgstr "Eski Sözleşme"
+
+#. module: generic_request_contract
+#: model:ir.model.fields,field_description:generic_request_contract.field_generic_contract__contract_request_open_count
+msgid "Open requests"
+msgstr "Açık istekler"
+
+#. module: generic_request_contract
+#: model:ir.model,name:generic_request_contract.model_request_request
+msgid "Request"
+msgstr "İstek"
+
+#. module: generic_request_contract
+#: model:ir.model,name:generic_request_contract.model_request_category
+#: model:ir.model.fields,field_description:generic_request_contract.field_generic_contract_service_line__request_category_ids
+#: model:ir.model.fields,field_description:generic_request_contract.field_generic_contract_template_service_line__request_category_ids
+msgid "Request Category"
+msgstr "İstek Kategorisi"
+
+#. module: generic_request_contract
+#: model:ir.model,name:generic_request_contract.model_request_event
+msgid "Request Event"
+msgstr "Etkinlik İste"
+
+#. module: generic_request_contract
+#: model:ir.model.fields,field_description:generic_request_contract.field_generic_contract__contract_request_ids
+msgid "Requests"
+msgstr "İstekler"
+
+#. module: generic_request_contract
+#: model:ir.model.fields,help:generic_request_contract.field_request_category__active_contract_ids
+msgid "System field to get all active contracts related to this category"
+msgstr "Bu kategoriyle ilgili tüm aktif sözleşmeleri almak için sistem alanı"

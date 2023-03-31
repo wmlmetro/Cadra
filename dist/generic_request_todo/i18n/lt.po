@@ -1,0 +1,57 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_todo_request
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 14.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-04-21 08:08+0000\n"
+"PO-Revision-Date: 2022-04-21 08:08+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: generic_request_todo
+#: model_terms:ir.ui.view,arch_db:generic_request_todo.view_request_request_form
+msgid "Add Template Todo"
+msgstr ""
+
+#. module: generic_request_todo
+#: model:generic.system.event.type,name:generic_request_todo.request_event_type__all_todo_completed
+msgid "All ToDo Completed"
+msgstr ""
+
+#. module: generic_request_todo
+#: model_terms:ir.ui.view,arch_db:generic_request_todo.view_request_request_form
+msgid "Hide Done Todo"
+msgstr ""
+
+#. module: generic_request_todo
+#: model:ir.model,name:generic_request_todo.model_request_request
+msgid "Request"
+msgstr ""
+
+#. module: generic_request_todo
+#: model:generic.system.event.type,name:generic_request_todo.request_event_type__todo_cancelled
+msgid "ToDo Cancelled"
+msgstr ""
+
+#. module: generic_request_todo
+#: model:generic.system.event.type,name:generic_request_todo.request_event_type__todo_completed
+msgid "ToDo Completed"
+msgstr ""
+
+#. module: generic_request_todo
+#: model_terms:ir.ui.view,arch_db:generic_request_todo.view_request_request_form
+msgid "Todo"
+msgstr ""
+
+#. module: generic_request_todo
+#: model:ir.model.fields,field_description:generic_request_todo.field_request_request__generic_todo_ids
+msgid "Todos"
+msgstr ""

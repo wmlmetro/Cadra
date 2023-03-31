@@ -1,0 +1,825 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_todo
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:17+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_todo/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_todo
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_wizard_add_template_view_form
+msgid ""
+"<i class=\"fa fa-download mr-1\"/>\n"
+"                                Load lines"
+msgstr ""
+"<i class=\"fa fa-download mr-1\"/>\n"
+"                                Satırları Yükle"
+
+#. module: generic_todo
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_wizard_add_template_view_form
+msgid ""
+"<i class=\"fa fa-trash mr-1\"/>\n"
+"                                Clear lines"
+msgstr ""
+"<i class=\"fa fa-trash mr-1\"/>\n"
+"                                Satırları Temizle"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__access_ids
+msgid "Access"
+msgstr "Erişim"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo__active
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__active
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__active
+msgid "Active"
+msgstr "Aktif"
+
+#. module: generic_todo
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_wizard_add_template_view_form
+msgid "Add Lines"
+msgstr "Satırları Ekle"
+
+#. module: generic_todo
+#: model:ir.actions.act_window,name:generic_todo.action_todo_wizard_add_template
+msgid "Add Todo Lines"
+msgstr "Yapılacak Satırları Ekle"
+
+#. module: generic_todo
+#: model:ir.model.fields,help:generic_todo.field_todo_wizard_add_template_line__to_add
+msgid "Apply this line to model"
+msgstr "Bu satırı modele ekle"
+
+#. module: generic_todo
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_type_view_from
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_form
+msgid "Archived"
+msgstr "arşivlendi"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__assignment_model_ids
+msgid "Assignment Model"
+msgstr "Atama Modeli"
+
+#. module: generic_todo
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_form
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_tree_editable
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_tree_general
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_wizard_add_template_view_form
+msgid "Cancel"
+msgstr "İptal etmek"
+
+#. module: generic_todo
+#: model:ir.model.fields.selection,name:generic_todo.selection__generic_todo__state__canceled
+msgid "Canceled"
+msgstr "İptal edildi"
+
+#. module: generic_todo
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_wizard_add_template_view_form
+msgid "Clear all lines from list"
+msgstr "Bütün satırları listeden sil"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__event_code
+msgid "Code"
+msgstr "kod"
+
+#. module: generic_todo
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_form
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_tree_editable
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_tree_general
+msgid "Complete"
+msgstr "Tamamla"
+
+#. module: generic_todo
+#: model:ir.ui.menu,name:generic_todo.menu_generic_todo_config_root
+msgid "Configuration"
+msgstr "Konfigürasyon"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__count
+msgid "Count (Incl. Archived)"
+msgstr "Sayım (Arşivlenenler Dahil)"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo__date_created
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__date_created
+msgid "Created"
+msgstr "oluşturuldu"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__create_uid
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__create_uid
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template__create_uid
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template_line__create_uid
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__create_uid
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template__create_uid
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template_line__create_uid
+msgid "Created by"
+msgstr "Tarafından yaratıldı"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__create_date
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__create_date
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template__create_date
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template_line__create_date
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__create_date
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template__create_date
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template_line__create_date
+msgid "Created on"
+msgstr "oluşturuldu"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo__date_completed
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__date_completed
+msgid "Date Completed"
+msgstr "Tamamlanma Tarihi"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo__date_last_action
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__date_last_action
+msgid "Date Last Action"
+msgstr "Son Eylemin Tarihi"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo__date_started
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__date_started
+msgid "Date Started"
+msgstr "Başlama Tarihi"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__description
+msgid "Description"
+msgstr "Tanım"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo__display_name
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__display_name
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__display_name
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template__display_name
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template_line__display_name
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__display_name
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template__display_name
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template_line__display_name
+msgid "Display Name"
+msgstr "Ekran adı"
+
+#. module: generic_todo
+#: model:ir.model.fields.selection,name:generic_todo.selection__generic_todo__state__done
+msgid "Done"
+msgstr "Tamamlandı"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template__edit_mode
+msgid "Edit Mode"
+msgstr "Düzenleme modu"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__enable_state_canceled
+msgid "Enable State Canceled"
+msgstr "Durumu Etkinleştirme İptal Edildi"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__enable_state_pause
+msgid "Enable State Pause"
+msgstr "Durum Etkinleştirmeyi Duraklat"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__event_id
+msgid "Event"
+msgstr "Olay"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__event_data_id
+msgid "Event Data"
+msgstr "Etkinlik Verileri"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__event_date
+msgid "Event Date"
+msgstr "Etkinlik Tarihleri"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__event_source_id
+msgid "Event Source"
+msgstr "Etkinlik Kaynağı"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__event_source_model_id
+msgid "Event Source Model"
+msgstr "Olay Kaynağı Modeli"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__event_source_model_name
+msgid "Event Source Model (Name)"
+msgstr "Olay Kaynağı Modeli (Ad)"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__event_source_record_id
+msgid "Event Source Record"
+msgstr "Etkinlik Kaynağı Kaydı"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__event_type_id
+msgid "Event Type"
+msgstr "Etkinlik tipi"
+
+#. module: generic_todo
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_form
+msgid "Events"
+msgstr "Olaylar"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__field_id
+msgid "Fields"
+msgstr "Alanlar"
+
+#. module: generic_todo
+#: model:ir.model.constraint,message:generic_todo.constraint_generic_todo_type_model_id_uniq
+msgid "For each Odoo model only one Todo Type can be created!"
+msgstr "Her Odoo modeli için yalnızca bir Yapılacak İş Türü oluşturulabilir!"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__resource_type_id
+msgid "Generic Resource Type"
+msgstr "Genel Kaynak Türü"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__resource_type_ids
+msgid "Generic Resource Types"
+msgstr "Genel Kaynak Türleri"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__system_event_source_id
+msgid "Generic System Event Source"
+msgstr "Genel Sistem Olay Kaynağı"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__system_event_source_ids
+msgid "Generic System Event Sources"
+msgstr "Genel Sistem Olay Kaynakları"
+
+#. module: generic_todo
+#: model:res.groups,name:generic_todo.group_generic_todo_manager
+msgid "Generic TODO manager"
+msgstr "Genel YAPILACAKLAR yöneticisi"
+
+#. module: generic_todo
+#: model:res.groups,name:generic_todo.group_generic_todo_user
+msgid "Generic TODO user"
+msgstr "Genel YAPILACAKLAR kullancısı"
+
+#. module: generic_todo
+#: model:res.groups,name:generic_todo.group_generic_todo_user_implicit
+msgid "Generic TODO user (implicit)"
+msgstr "Genel YAPILACAKLAR kullanıcısı(üstü kapalı)"
+
+#. module: generic_todo
+#: model:generic.system.event.source,name:generic_todo.system_event_source_generic_todo
+#: model:ir.model,name:generic_todo.model_generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_mixin_implementation__generic_todo_id
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__generic_todo_id
+msgid "Generic Todo"
+msgstr "Genel Yapılacaklar"
+
+#. module: generic_todo
+#: model:generic.system.event.type,name:generic_todo.todo_cancel_event_type_generic_todo
+msgid "Generic Todo Canceled"
+msgstr "Genel Yapılacak İptal Edildi"
+
+#. module: generic_todo
+#: model:generic.system.event.type,name:generic_todo.todo_done_event_type_generic_todo
+msgid "Generic Todo Completed"
+msgstr "Genel Yapılacaklar Tamamlandı"
+
+#. module: generic_todo
+#: model:generic.system.event.category,name:generic_todo.system_event_category_generic_todo
+msgid "Generic Todo Event Category"
+msgstr "Genel Yapılacaklar Etkinlik Kategorisi"
+
+#. module: generic_todo
+#: model:ir.model,name:generic_todo.model_generic_todo_event_data
+msgid "Generic Todo Event Data"
+msgstr "Genel Yapılacak Etkinlik Verileri"
+
+#. module: generic_todo
+#: model:ir.actions.act_window,name:generic_todo.action_generic_todo_event_data
+msgid "Generic Todo Events Data"
+msgstr "Genel Yapılacak Etkinlikleri Verileri"
+
+#. module: generic_todo
+#: model:ir.model,name:generic_todo.model_generic_todo_mixin_implementation
+msgid "Generic Todo MixIn Implementation"
+msgstr "Genel Todo MixIn Uygulaması"
+
+#. module: generic_todo
+#: model:ir.model,name:generic_todo.model_generic_todo_mixin_object
+msgid "Generic Todo MixIn Object"
+msgstr "Genel Todo MixIn Nesnesi"
+
+#. module: generic_todo
+#: model:ir.model,name:generic_todo.model_generic_todo_simple
+msgid "Generic Todo Simple"
+msgstr "Genel Yapılacaklar Basit"
+
+#. module: generic_todo
+#: model:generic.system.event.type,name:generic_todo.todo_state_changed_event_type_generic_todo
+msgid "Generic Todo State Changed"
+msgstr "Genel Yapılacak Durum Değiştirildi"
+
+#. module: generic_todo
+#: model:ir.model,name:generic_todo.model_generic_todo_template
+msgid "Generic Todo Template"
+msgstr "Genel Yapılacak Şablonu"
+
+#. module: generic_todo
+#: model:ir.model,name:generic_todo.model_generic_todo_template_line
+msgid "Generic Todo Template Line"
+msgstr "Genel Yapılacaklar Şablonu Satırı"
+
+#. module: generic_todo
+#: model:ir.ui.menu,name:generic_todo.menu_generic_todo_template_root
+msgid "Generic Todo Templates"
+msgstr "Genel Yapılacak Şablonları"
+
+#. module: generic_todo
+#: model:ir.model,name:generic_todo.model_generic_todo_type
+msgid "Generic Todo Type"
+msgstr "Genel Yapılacaklar Türü"
+
+#. module: generic_todo
+#: model:ir.ui.menu,name:generic_todo.menu_generic_todo_root
+msgid "Generic Todos"
+msgstr "Genel Yapılacaklar"
+
+#. module: generic_todo
+#: model:ir.model.fields,help:generic_todo.field_generic_todo_template_line__sequence
+#: model:ir.model.fields,help:generic_todo.field_todo_wizard_add_template_line__sequence
+msgid "Gives the sequence order for Todo Template Line."
+msgstr "Yapılacak İş Şablonu Satırı için sıra sırasını verir."
+
+#. module: generic_todo
+#: model:ir.model.fields,help:generic_todo.field_generic_todo__sequence
+#: model:ir.model.fields,help:generic_todo.field_generic_todo_simple__sequence
+msgid "Gives the sequence order for Todo."
+msgstr "Yapılacaklar için sıra sırasını verir."
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo__id
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__id
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__id
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template__id
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template_line__id
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__id
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template__id
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template_line__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__modules
+msgid "In Apps"
+msgstr "Uygulamalarda"
+
+#. module: generic_todo
+#: model:ir.model.fields.selection,name:generic_todo.selection__generic_todo__state__in_progress
+msgid "In Progress"
+msgstr "Devam etmekte"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__info
+msgid "Information"
+msgstr "Bilgi"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__inherited_model_ids
+msgid "Inherited models"
+msgstr "Miras alınan modeller"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__is_generic_resource
+msgid "Is Generic Resource"
+msgstr "Genel Kaynaktır"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo____last_update
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data____last_update
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple____last_update
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template____last_update
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template_line____last_update
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type____last_update
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template____last_update
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template_line____last_update
+msgid "Last Modified on"
+msgstr "Son Değiştirme Tarihi"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__write_uid
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__write_uid
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template__write_uid
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template_line__write_uid
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__write_uid
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template__write_uid
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template_line__write_uid
+msgid "Last Updated by"
+msgstr "Son Güncelleyen"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__write_date
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__write_date
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template__write_date
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template_line__write_date
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__write_date
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template__write_date
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template_line__write_date
+msgid "Last Updated on"
+msgstr "Son güncelleme tarihi"
+
+#. module: generic_todo
+#: model:ir.model.fields,help:generic_todo.field_generic_todo_type__modules
+msgid "List of modules in which the object is defined or inherited"
+msgstr "Nesnenin tanımlandığı veya devralındığı modüllerin listesi"
+
+#. module: generic_todo
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_wizard_add_template_view_form
+msgid "Load lines from selected template"
+msgstr "Seçilen şablondan satırları yükle"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__mail_activity_id
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__is_mail_activity
+msgid "Mail Activity"
+msgstr "Mail Etkinliği"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__mail_activity_type_id
+msgid "Mail Activity Type"
+msgstr "Posta Etkinlik Türü"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__is_mail_blacklist
+msgid "Mail Blacklist"
+msgstr "Mail Kara Listesi"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__mail_message_id
+msgid "Mail Message"
+msgstr "Posta Mesajları"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__is_mail_thread
+msgid "Mail Thread"
+msgstr "Mail Konusu"
+
+#. module: generic_todo
+#: model:res.groups,comment:generic_todo.group_generic_todo_manager
+msgid "Manage Generic TODO`s"
+msgstr "Genel YAPILACAKLAR'ı yönetin"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo__todo_implementation_model
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__event_data_model_name
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__todo_implementation_model
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__model
+msgid "Model"
+msgstr "Model"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo__name
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__name
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template__name
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template_line__name
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__name
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template_line__name
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_template_line_view_form
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_template_view_form
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_type_view_from
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_form
+msgid "Name"
+msgstr "İsim"
+
+#. module: generic_todo
+#: model:ir.model.fields.selection,name:generic_todo.selection__generic_todo__state__new
+msgid "New"
+msgstr "Yeni"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__new_state
+msgid "New State"
+msgstr "Yeni Durum"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__old_state
+msgid "Old State"
+msgstr "Eski Durum"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__order
+msgid "Order"
+msgstr "Sipariş"
+
+#. module: generic_todo
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_type_view_from
+msgid "Parameters"
+msgstr "Parametreler"
+
+#. module: generic_todo
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_form
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_tree_editable
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_tree_general
+msgid "Pause"
+msgstr "Duraklat"
+
+#. module: generic_todo
+#: model:ir.model.fields.selection,name:generic_todo.selection__generic_todo__state__paused
+msgid "Paused"
+msgstr "Duraklatıldı"
+
+#. module: generic_todo
+#: model:res.groups,comment:generic_todo.group_generic_todo_user
+msgid "Read and write to Generic TODO"
+msgstr "Genel YAPILACAKLAR'ı okuyun ve yazın"
+
+#. module: generic_todo
+#: model:res.groups,comment:generic_todo.group_generic_todo_user_implicit
+msgid "Read and write to Generic TODO (no access to menus)"
+msgstr "Genel YAPILACAKLAR'ı okuyun ve yazın (menülere erişim yok)"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__rule_ids
+msgid "Record Rules"
+msgstr "Kayıt Kuralları"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo__res_id
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__res_id
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template__res_id
+msgid "Related Document"
+msgstr "İlgili belge"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo__res_model
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__res_model
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template__res_model
+msgid "Related Model"
+msgstr "İlgili Model"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo__user_id
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__user_id
+msgid "Responsible"
+msgstr "sorumlu"
+
+#. module: generic_todo
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_wizard_add_template_view_form
+msgid "Rewrite Lines"
+msgstr "Satırları Yeniden Yaz"
+
+#. module: generic_todo
+#: model:ir.model.fields,help:generic_todo.field_generic_todo_type__order
+msgid ""
+"SQL expression for ordering records in the model; e.g. \"x_sequence asc, id "
+"desc\""
+msgstr ""
+"Modeldeki kayıtları sıralamak için SQL ifadesi; Örneğin. \"x_sequence artan, "
+"id azalan\""
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo__sequence
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__sequence
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template_line__sequence
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template_line__sequence
+msgid "Sequence"
+msgstr "Sıra"
+
+#. module: generic_todo
+#: model:generic.todo.type,name:generic_todo.generic_todo_type_simple
+msgid "Simple"
+msgstr "Basit"
+
+#. module: generic_todo
+#: model:ir.actions.act_window,name:generic_todo.generic_todo_simple_action
+#: model:ir.ui.menu,name:generic_todo.menu_simple_todo_root
+msgid "Simple Todos"
+msgstr "Basit Yapılacaklar"
+
+#. module: generic_todo
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_form
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_tree_editable
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_tree_general
+msgid "Start"
+msgstr "Başla"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo__state
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__state
+msgid "State"
+msgstr "Durum"
+
+#. module: generic_todo
+#: model_terms:ir.ui.view,arch_db:generic_todo.view_generic_todo_event_data_form
+msgid "State Changed"
+msgstr "Durum Değiştirildi"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo__generic_event_count
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__generic_event_count
+msgid "System Events"
+msgstr "Sistem Olayları"
+
+#. module: generic_todo
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_type_view_from
+msgid "System Info"
+msgstr "Sistem bilgisi"
+
+#. module: generic_todo
+#: model:ir.actions.act_window,name:generic_todo.action_todo_wizard_add_template_line
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_template_view_form
+msgid "Template Lines"
+msgstr "Şablon Satırları"
+
+#. module: generic_todo
+#: model:ir.model.fields,help:generic_todo.field_generic_todo_type__inherited_model_ids
+msgid "The list of models that extends the current model."
+msgstr "Şuanki modeli genişleten modellerin listesi."
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template_line__to_add
+msgid "To Add"
+msgstr "Ekle"
+
+#. module: generic_todo
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_template_view_form
+msgid "To be able to add new lines, save the template first!"
+msgstr "Yeni satırları ekleyebilmek için önce şablonu kaydedin!"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__todo_count
+msgid "Todo Count"
+msgstr "Yapılacaklar Sayısı"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo__todo_implementation_res_id
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__todo_implementation_res_id
+msgid "Todo Implementation"
+msgstr "Yapılacak Uygulama"
+
+#. module: generic_todo
+#: model:ir.model.constraint,message:generic_todo.constraint_generic_todo_unique_model
+msgid "Todo Implementation instance must be unique"
+msgstr "Yapılacaklar Uygulaması örneği benzersiz olmalıdır"
+
+#. module: generic_todo
+#: model:ir.model.constraint,message:generic_todo.constraint_generic_todo_location_unique_todo_id
+#: model:ir.model.constraint,message:generic_todo.constraint_generic_todo_mixin_implementation_unique_todo_id
+#: model:ir.model.constraint,message:generic_todo.constraint_generic_todo_simple_unique_todo_id
+msgid "Todo Implementation must be unique"
+msgstr "Yapılacaklar Uygulaması benzersiz olmalıdır"
+
+#. module: generic_todo
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_form
+msgid "Todo Info"
+msgstr "Yapılacak Bilgi"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template__todo_lines_count
+msgid "Todo Lines Count"
+msgstr "Yapılacak Satırların Sayısı"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo__todo_implementation_model_id
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__todo_implementation_model_id
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__model_id
+msgid "Todo Model"
+msgstr "Yapılacak Model"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template_line__todo_template_id
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template__todo_template_id
+msgid "Todo Template"
+msgstr "Yapılacaklar Şablonu"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template__todo_template_line_ids
+msgid "Todo Template Line"
+msgstr "Yapılacak Şablon Satırı"
+
+#. module: generic_todo
+#: model:ir.actions.act_window,name:generic_todo.generic_todo_template_line_action
+msgid "Todo Template Lines"
+msgstr "Yapılacak Şablon Satırları"
+
+#. module: generic_todo
+#: model:ir.actions.act_window,name:generic_todo.generic_todo_template_action
+#: model:ir.ui.menu,name:generic_todo.generic_todo_template_menu_item
+msgid "Todo Templates"
+msgstr "Yapılacak Şablonları"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo__todo_type_id
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__todo_type_id
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template_line__todo_type_id
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template_line__todo_type_id
+msgid "Todo Type"
+msgstr "Yapılacak İş Türü"
+
+#. module: generic_todo
+#: model:ir.actions.act_window,name:generic_todo.generic_todo_type_action
+#: model:ir.ui.menu,name:generic_todo.generic_todo_type_menu_item
+msgid "Todo Types"
+msgstr "Yapılacakları Türü"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template_line__todo_wizard_add_template_id
+msgid "Todo Wizard Add Template"
+msgstr "Yapılacaklar Sihirbazı Şablon Ekleme"
+
+#. module: generic_todo
+#: model:ir.model,name:generic_todo.model_todo_wizard_add_template_line
+#: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template__todo_wizard_add_template_line_ids
+msgid "Todo Wizard Add Template Line"
+msgstr "Yapılacaklar Sihirbazı Şablon Satır Ekleme"
+
+#. module: generic_todo
+#: model:ir.model,name:generic_todo.model_todo_wizard_add_template
+msgid "TodoWizardAddTemplate"
+msgstr "Yapılacaklar Sihirbazı Şablon Ekleme"
+
+#. module: generic_todo
+#: model:ir.actions.act_window,name:generic_todo.generic_todo_action
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_mixin_object__generic_todo_ids
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__todo_ids
+#: model:ir.ui.menu,name:generic_todo.generic_todo_menu_item
+#: model:ir.ui.menu,name:generic_todo.generic_todo_simple_menu_item
+#: model:ir.ui.menu,name:generic_todo.menu_generic_todo_toplevel
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_type_view_from
+msgid "Todos"
+msgstr "Yapılacaklar"
+
+#. module: generic_todo
+#: model:ir.model.fields,help:generic_todo.field_generic_todo_type__count
+msgid "Total number of records in this model"
+msgstr "Bu modeldeki toplam kayıt sayısı"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__transient
+msgid "Transient Model"
+msgstr "Geçici Model"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__state
+msgid "Type"
+msgstr "Tür"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__user_id
+msgid "User"
+msgstr "Kullanıcı"
+
+#. module: generic_todo
+#: model:ir.model.fields,help:generic_todo.field_generic_todo_event_data__user_id
+msgid "User that triggered this event."
+msgstr "Bu olayı tetikleyen kullanıcı."
+
+#. module: generic_todo
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_tree_editable
+msgid "View todo object"
+msgstr "Yapılacak nesneyi görüntüle"
+
+#. module: generic_todo
+#: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__view_ids
+msgid "Views"
+msgstr "Görüntülemeler"
+
+#. module: generic_todo
+#: model:ir.model.fields,help:generic_todo.field_generic_todo_type__is_generic_resource
+msgid "Whether this model is Generic Resource."
+msgstr "Bu modelin Genel Kaynak olup olmadığı."
+
+#. module: generic_todo
+#: model:ir.model.fields,help:generic_todo.field_generic_todo_type__is_mail_activity
+msgid "Whether this model supports activities."
+msgstr "Bu modelin etkinlikleri destekleyip desteklemediği."
+
+#. module: generic_todo
+#: model:ir.model.fields,help:generic_todo.field_generic_todo_type__is_mail_blacklist
+msgid "Whether this model supports blacklist."
+msgstr "Bu modelin kara listeyi destekleyip desteklemediği."
+
+#. module: generic_todo
+#: model:ir.model.fields,help:generic_todo.field_generic_todo_type__is_mail_thread
+msgid "Whether this model supports messages and notifications."
+msgstr "Bu modelin mesajları ve bildirimleri destekleyip desteklemediği."

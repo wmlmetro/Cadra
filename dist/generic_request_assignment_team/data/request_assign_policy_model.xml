@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="generic_request_assignment.request_assign_policy_model"
+            model="generic.assign.policy.model">
+        <field name="assign_team_field_id"
+               ref="generic_request_team.field_request_request__team_id"/>
+    </record>
+</odoo>

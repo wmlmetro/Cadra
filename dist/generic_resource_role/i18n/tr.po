@@ -1,0 +1,985 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_resource_role
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:16+0000\n"
+"PO-Revision-Date: 2023-03-07 12:45+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_resource_role/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource_role__role_code
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource_role_type__code
+msgid "ASCII only short code for role type."
+msgstr "ASCII rol türü için yalnızca kısa kod."
+
+#. module: generic_resource_role
+#: model:ir.model.fields.selection,name:generic_resource_role.selection__generic_resource__resource_visibility__role-based
+#: model:ir.model.fields.selection,name:generic_resource_role.selection__generic_resource_type__resource_visibility__role-based
+msgid "Access restricted by roles"
+msgstr "Roller tarafından kısıtlanan erişim"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles__action
+msgid "Action"
+msgstr "İşlem"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__message_needaction
+msgid "Action Needed"
+msgstr "İhtiyaç duyulan eylem"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__active
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__active
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type__active
+msgid "Active"
+msgstr "Aktif"
+
+#. module: generic_resource_role
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_view_form
+msgid "Add new role link"
+msgstr "Yeni rol bağlantısı ekle"
+
+#. module: generic_resource_role
+#: model:generic.resource.role,name:generic_resource_role.generic_resource_simple_role_admin
+#: model:generic.resource.role.type,name:generic_resource_role.generic_resource_role_type_admin
+msgid "Administrator"
+msgstr "Yönetici"
+
+#. module: generic_resource_role
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_view_form
+msgid "Also, you can"
+msgstr "Sen de yapabilirsin"
+
+#. module: generic_resource_role
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_wizard_manage_roles_form_view
+msgid "Apply"
+msgstr "Uygula"
+
+#. module: generic_resource_role
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_link_view_form
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_type_view_form
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_view_form
+msgid "Archived"
+msgstr "arşivlendi"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__message_attachment_count
+msgid "Attachment Count"
+msgstr "Ek Sayısı"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__can_manage_roles
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__can_manage_roles
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link_sec_view__can_manage_roles
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_link_view_search
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_view_search
+msgid "Can Manage Roles"
+msgstr "Rolleri Yönetebilir"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__can_unlink
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__can_unlink
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link_sec_view__can_unlink
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_link_view_search
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_view_search
+msgid "Can Unlink"
+msgstr "Bağlantıyı Kaldırabilir"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__can_write
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__can_write
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link_sec_view__can_write
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_link_view_search
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_view_search
+msgid "Can Write"
+msgstr "Yazabilir"
+
+#. module: generic_resource_role
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_wizard_manage_roles_form_view
+msgid "Cancel"
+msgstr "İptal etmek"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__child_ids
+msgid "Child"
+msgstr "Çocuk"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__child_count
+msgid "Child Count"
+msgstr "Çocuk Sayısı"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_permission__code
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__role_code
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type__code
+msgid "Code"
+msgstr "kod"
+
+#. module: generic_resource_role
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_type_view_form
+msgid "Code..."
+msgstr "Kod..."
+
+#. module: generic_resource_role
+#: model:ir.model,name:generic_resource_role.model_res_partner
+msgid "Contact"
+msgstr "Sözleşme"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_permission__create_uid
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__create_uid
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__create_uid
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type__create_uid
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__create_uid
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles__create_uid
+msgid "Created by"
+msgstr "Tarafından yaratıldı"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_permission__create_date
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__create_date
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__create_date
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type__create_date
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__create_date
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles__create_date
+msgid "Created on"
+msgstr "oluşturuldu"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_type__creator_role_id
+msgid "Creator Role"
+msgstr "Yaratıcı Rolü"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__ir_model_data_id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__ir_model_data_id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type__ir_model_data_id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__ir_model_data_id
+msgid "Data record"
+msgstr "Veri kaydı"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__ir_model_data_ids
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__ir_model_data_ids
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type__ir_model_data_ids
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__ir_model_data_ids
+msgid "Data records"
+msgstr "Veri kayıtları"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__date_end
+msgid "Date End"
+msgstr "Tarih Bitişi"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles__date_expire
+msgid "Date Expire"
+msgstr "Bitiş Tarihi"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__date_start
+msgid "Date Start"
+msgstr "Başlangıç Tarihi"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_permission__description
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__description
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_sub_role_view_form
+msgid "Description"
+msgstr "Tanım"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_permission__display_name
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__display_name
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__display_name
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link_sec_view__display_name
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type__display_name
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__display_name
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles__display_name
+msgid "Display Name"
+msgstr "Ekran adı"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__doc_model
+msgid "Doc Model"
+msgstr "Belge Modeli"
+
+#. module: generic_resource_role
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_view_form
+msgid "Expire Role Link"
+msgstr "Rol Bağlantısının Süresi Doldu"
+
+#. module: generic_resource_role
+#: model:generic.resource.role.type,name:generic_resource_role.generic_resource_role_type_follower
+msgid "Follower"
+msgstr "Takipçi"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__message_follower_ids
+msgid "Followers"
+msgstr "Takipçiler"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__message_partner_ids
+msgid "Followers (Partners)"
+msgstr "Takipçiler (Ortaklar)"
+
+#. module: generic_resource_role
+#: model:ir.model,name:generic_resource_role.model_generic_resource
+msgid "Generic Resource"
+msgstr "Genel Kaynak"
+
+#. module: generic_resource_role
+#: model:ir.model,name:generic_resource_role.model_generic_resource_permission
+msgid "Generic Resource Permission"
+msgstr "Genel Kaynak İzni"
+
+#. module: generic_resource_role
+#: model:ir.model,name:generic_resource_role.model_generic_resource_type
+msgid "Generic Resource Type"
+msgstr "Genel Kaynak Türü"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__resource_id
+msgid "Generic resource"
+msgstr "Genel Kaynak"
+
+#. module: generic_resource_role
+#: model:res.groups,name:generic_resource_role.group_generic_resource_manage_roles
+msgid "Generic resource: Role manager"
+msgstr "Genel kaynak: Rol yöneticisi"
+
+#. module: generic_resource_role
+#: model:ir.model.fields.selection,name:generic_resource_role.selection__generic_resource_wizard_manage_roles__action__grant
+msgid "Grant"
+msgstr "izin ver"
+
+#. module: generic_resource_role
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_permission_view_search
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_view_search
+msgid "Group by"
+msgstr "Gruplandır"
+
+#. module: generic_resource_role
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_link_view_search
+msgid "Group by..."
+msgstr "Gruplandır..."
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__has_message
+msgid "Has Message"
+msgstr "Mesaj Var"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_permission__id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link_sec_view__id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type__id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource_sub_role__message_needaction
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource_sub_role__message_unread
+msgid "If checked, new messages require your attention."
+msgstr "Kontrol edilirse, yeni iletilerle ilgilenmeniz gerekir."
+
+#. module: generic_resource_role
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource_sub_role__message_has_error
+msgid "If checked, some messages have a delivery error."
+msgstr "Kontrol edilirse, bazı iletilerde teslim hatası vardır."
+
+#. module: generic_resource_role
+#: code:addons/generic_resource_role/models/generic_resource_sub_role.py:0
+#, python-format
+msgid "Incorrect combination of Master Role and Sub Field"
+msgstr "Ana Rol ve Alt Alanın yanlış birleşimi"
+
+#. module: generic_resource_role
+#: code:addons/generic_resource_role/models/generic_resource_sub_role.py:0
+#, python-format
+msgid "Incorrect combination of Sub Type and Sub Field"
+msgstr "Alt Tür ve Alt Alanın yanlış birleşimi"
+
+#. module: generic_resource_role
+#: code:addons/generic_resource_role/models/generic_resource_sub_role.py:0
+#, python-format
+msgid "Incorrect combination of Sub Type and Sub Role"
+msgstr "Alt Tür ve Alt Rol'ün yanlış kombinasyonu"
+
+#. module: generic_resource_role
+#: code:addons/generic_resource_role/models/generic_resource_role_link.py:0
+#, python-format
+msgid ""
+"Incorrect configuration of subrole %(subrole)s!\n"
+"Incorrect field type %(field)s: %(field_type)s"
+msgstr ""
+"%(subrole)s alt rolünün yanlış yapılandırılması!\n"
+"Yanlış alan türü %(field)s: %(field_type)s"
+
+#. module: generic_resource_role
+#: code:addons/generic_resource_role/models/generic_resource_sub_role.py:0
+#, python-format
+msgid "Incorrect subfield (%(subfield)s) type: %(subfield_type)s"
+msgstr "Yanlış alt alan (%(subfield)s) türü: %(subfield_type)s"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource_role__ir_model_data_no_update
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource_role_link__ir_model_data_no_update
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource_role_type__ir_model_data_no_update
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource_sub_role__ir_model_data_no_update
+msgid ""
+"Indicates whether this record will be updated with module update or not. If "
+"set to True, the record will not be overriden on module update, if set to "
+"False, thenrecord will be overridden by module update"
+msgstr ""
+"Bu kaydın modül güncellemesi ile güncellenip güncellenmeyeceğini belirtir. "
+"True olarak ayarlanırsa, modül güncellemesinde kayıt geçersiz kılınmaz, "
+"False olarak ayarlanırsa, kayıt modül güncellemesi tarafından geçersiz "
+"kılınır"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__message_is_follower
+msgid "Is Follower"
+msgstr "takipçidir"
+
+#. module: generic_resource_role
+#: code:addons/generic_resource_role/models/generic_resource_role_link.py:0
+#, python-format
+msgid "It is not allowed to change parent role link manualy."
+msgstr "Üst rol bağlantısının manuel olarak değiştirilmesine izin verilmez."
+
+#. module: generic_resource_role
+#: code:addons/generic_resource_role/models/generic_resource_role_link.py:0
+#, python-format
+msgid "It is not allowed to change roles generated by sub-roles."
+msgstr ""
+"Alt roller tarafından oluşturulan rollerin değiştirilmesine izin verilmez."
+
+#. module: generic_resource_role
+#: code:addons/generic_resource_role/models/generic_resource_role_link.py:0
+#, python-format
+msgid "It is not allowed to create roles sub-role-links manualy."
+msgstr ""
+"Rollerin alt rol bağlantılarının manuel olarak oluşturulmasına izin verilmez."
+
+#. module: generic_resource_role
+#: code:addons/generic_resource_role/models/generic_resource_role_link.py:0
+#, python-format
+msgid "It is not allowed to delete roles generated by sub-roles."
+msgstr "Alt roller tarafından oluşturulan rollerin silinmesine izin verilmez."
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_permission____last_update
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role____last_update
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link____last_update
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link_sec_view____last_update
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type____last_update
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role____last_update
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles____last_update
+msgid "Last Modified on"
+msgstr "Son Değiştirme Tarihi"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_permission__write_uid
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__write_uid
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__write_uid
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type__write_uid
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__write_uid
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles__write_uid
+msgid "Last Updated by"
+msgstr "Son Güncelleyen"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_permission__write_date
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__write_date
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__write_date
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type__write_date
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__write_date
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles__write_date
+msgid "Last Updated on"
+msgstr "Son güncelleme tarihi"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__message_main_attachment_id
+msgid "Main Attachment"
+msgstr "Ana Eklenti"
+
+#. module: generic_resource_role
+#: model:ir.actions.act_window,name:generic_resource_role.action_resource_open_wizard_manage_roles
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_view_form
+msgid "Manage Roles"
+msgstr "Rolleri Yönet"
+
+#. module: generic_resource_role
+#: model:res.groups,comment:generic_resource_role.group_generic_resource_manage_roles
+msgid ""
+"Manage generic resource's roles. This group allows users to edit roles on "
+"resources where they (users) has Manage Roles access role."
+msgstr ""
+"Genel kaynağın rollerini yönetin. Bu grup, kullanıcıların Rolleri Yönet "
+"erişim rolüne sahip oldukları kaynaklardaki rolleri düzenlemelerine olanak "
+"tanır."
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_role_manager_ids
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_role_manager_ids
+msgid "Manager Role Links"
+msgstr "Yönetici Rol Bağlantıları"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__master_type_id
+msgid "Master Resource Type"
+msgstr "Ana Kaynak Türü"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__master_role_id
+msgid "Master Role"
+msgstr "Ana Rol"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__message_has_error
+msgid "Message Delivery error"
+msgstr "Mesaj Teslim hatası"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__message_ids
+msgid "Messages"
+msgstr "Mesajlar"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_permission__name
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__name
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type__name
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__name
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_permission_view_form
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_view_form
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_view_tree
+msgid "Name"
+msgstr "İsim"
+
+#. module: generic_resource_role
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_type_view_form
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_sub_role_view_form
+msgid "Name..."
+msgstr "İsim..."
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__ir_model_data_no_update
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__ir_model_data_no_update
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type__ir_model_data_no_update
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__ir_model_data_no_update
+msgid "Non Updatable"
+msgstr "Güncellenemez"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__message_needaction_counter
+msgid "Number of Actions"
+msgstr "Eylem Sayısı"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__message_has_error_counter
+msgid "Number of errors"
+msgstr "hata sayısı"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource_sub_role__message_needaction_counter
+msgid "Number of messages which requires an action"
+msgstr "İşlem gerektiren mesaj sayısı"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource_sub_role__message_has_error_counter
+msgid "Number of messages with delivery error"
+msgstr "Teslimat hatası olan mesaj sayısı"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource_sub_role__message_unread_counter
+msgid "Number of unread messages"
+msgstr "Okunmamış mesaj sayısı"
+
+#. module: generic_resource_role
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_view_form
+msgid "Open Role Link"
+msgstr "Rol Bağlantısını Aç"
+
+#. module: generic_resource_role
+#: code:addons/generic_resource_role/models/generic_resource.py:0
+#, python-format
+msgid ""
+"Operation '%(operation)s' is not allowed for this resource(s) "
+"(%(resources)s) !"
+msgstr ""
+"Bu kaynak(lar) için (%(resources)s) '%(operation)s' işlemine izin verilmiyor!"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__doc_id
+msgid "Origin document"
+msgstr "Başlangıç belgesi"
+
+#. module: generic_resource_role
+#: model:generic.resource.role.type,name:generic_resource_role.generic_resource_role_type_other
+msgid "Other"
+msgstr "Diğer"
+
+#. module: generic_resource_role
+#: model:generic.resource.role.type,name:generic_resource_role.generic_resource_role_type_owner
+msgid "Owner"
+msgstr "Mal sahibi"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__parent_id
+msgid "Parent"
+msgstr "Parent"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__partner_id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__view_partner_id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link_sec_view__partner_id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles__partner_ids
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_link_view_search
+msgid "Partner"
+msgstr "Ortak"
+
+#. module: generic_resource_role
+#: model:ir.actions.act_window,name:generic_resource_role.generic_resource_permission_action_view
+msgid "Permission"
+msgstr "İzin"
+
+#. module: generic_resource_role
+#: code:addons/generic_resource_role/models/generic_resource.py:0
+#, python-format
+msgid ""
+"Permission '%(permission)s' is not allowed for this resource(s) "
+"(%(resources)s) !"
+msgstr ""
+"Bu kaynaklar için '%(permission)s' iznine izin verilmiyor (%(resources)s) !"
+
+#. module: generic_resource_role
+#: model:ir.model.constraint,message:generic_resource_role.constraint_generic_resource_permission_permission_code_uniq
+msgid "Permission code must be uniq for resource type"
+msgstr "İzin kodu, kaynak türü için benzersiz olmalıdır"
+
+#. module: generic_resource_role
+#: model:ir.model.constraint,message:generic_resource_role.constraint_generic_resource_permission_permission_name_uniq
+msgid "Permission name must be uniq for resource type"
+msgstr "Kaynak türü için izin adı benzersiz olmalıdır"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_type__resource_permission_count
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_type__resource_permission_ids
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_type_view_form
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.view_generic_resource_type_kanban
+msgid "Permissions"
+msgstr "İzinler"
+
+#. module: generic_resource_role
+#: model:generic.resource.role,name:generic_resource_role.generic_resource_simple_role_readonly
+msgid "Readonly User"
+msgstr "Salt Okunur Kullanıcı"
+
+#. module: generic_resource_role
+#: model:ir.model,name:generic_resource_role.model_ir_rule
+msgid "Record Rule"
+msgstr "Kayıt Kuralı"
+
+#. module: generic_resource_role
+#: model:ir.actions.act_window,name:generic_resource_role.action_generic_resource_role_type_view_relatd_roles
+msgid "Related roles"
+msgstr "İlgili roller"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__resource_res_id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__view_resource_res_id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link_sec_view__resource_id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles__resource_ids
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_link_view_search
+msgid "Resource"
+msgstr "Kaynak"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_type__resource_act_manage_roles_id
+msgid "Resource Act Manage Roles"
+msgstr "Kaynak Yasası Rolleri Yönet"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_is_role_manager
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_is_role_manager
+msgid "Resource Is Role Manager"
+msgstr "Kaynak Rol Yöneticisidir"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__master_model_id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__sub_model_id
+msgid "Resource Model"
+msgstr "Kaynak Modeli"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__resource_permission_ids
+msgid "Resource Permissions"
+msgstr "Kaynak İzinleri"
+
+#. module: generic_resource_role
+#: model:ir.model,name:generic_resource_role.model_generic_resource_role
+msgid "Resource Role"
+msgstr "Kaynak Rolü"
+
+#. module: generic_resource_role
+#: model:ir.model,name:generic_resource_role.model_generic_resource_role_link
+msgid "Resource Role Link"
+msgstr "Kaynak Rol Bağlantısı"
+
+#. module: generic_resource_role
+#: model:ir.model,name:generic_resource_role.model_generic_resource_role_link_sec_view
+msgid "Resource Role Link (Sec View)"
+msgstr "Kaynak Rol Bağlantısı (Saniye Görünümü)"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_res_partner__resource_role_link_count
+#: model:ir.model.fields,field_description:generic_resource_role.field_res_users__resource_role_link_count
+msgid "Resource Role Link Count"
+msgstr "Kaynak Rolü Bağlantı Sayısı"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_role_sec_view_ids
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_role_sec_view_ids
+msgid "Resource Role Sec View"
+msgstr "Kaynak Rolü Görünümü"
+
+#. module: generic_resource_role
+#: model:ir.model,name:generic_resource_role.model_generic_resource_role_type
+msgid "Resource Role Type"
+msgstr "Kaynak Rol Türü"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_res_partner__resource_role_link_ids
+#: model:ir.model.fields,field_description:generic_resource_role.field_res_users__resource_role_link_ids
+msgid "Resource Roles"
+msgstr "Kaynak Rolleri"
+
+#. module: generic_resource_role
+#: model:ir.model,name:generic_resource_role.model_generic_resource_sub_role
+msgid "Resource Sub Role"
+msgstr "Kaynak Alt Rolü"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles__resource_type_id
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_permission_view_search
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_view_search
+msgid "Resource Type"
+msgstr "Kaynak Türü"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_user_role_ids
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_user_role_ids
+msgid "Resource User Role"
+msgstr "Kaynak Kullanıcı Rolü"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_visibility
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_visibility
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_type__resource_visibility
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles__resource_visibility
+msgid "Resource Visibility"
+msgstr "Kaynak Görünürlüğü"
+
+#. module: generic_resource_role
+#: model:ir.model,name:generic_resource_role.model_generic_resource_wizard_manage_roles
+msgid "Resource Wizard: Manage Roles"
+msgstr "Kaynak Sihirbazı: Rolleri Yönetin"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__resource_res_model
+msgid "Resource model"
+msgstr "Kaynak Modeli"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_permission__resource_type_id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__resource_type_id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__resource_type_id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__view_resource_type_id
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_link_view_search
+msgid "Resource type"
+msgstr "Kaynak Türü"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource__resource_visibility
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource_simple__resource_visibility
+msgid ""
+"Resource visibility determines users that have read access for this resource."
+msgstr ""
+"Kaynak görünürlüğü, bu kaynak için okuma erişimi olan kullanıcıları belirler."
+
+#. module: generic_resource_role
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.view_partner_form
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.view_users_form
+msgid "Resources"
+msgstr "Kaynaklar"
+
+#. module: generic_resource_role
+#: model:ir.model.fields.selection,name:generic_resource_role.selection__generic_resource_wizard_manage_roles__action__revoke
+msgid "Revoke"
+msgstr "Geri çekmek"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__role_id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link_sec_view__role_id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles__role_ids
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_link_view_search
+msgid "Role"
+msgstr "Rol"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link_sec_view__role_link_id
+msgid "Role Link"
+msgstr "Rol Bağlantısı"
+
+#. module: generic_resource_role
+#: model:ir.actions.act_window,name:generic_resource_role.generic_resource_role_link_action_view
+#: model:ir.ui.menu,name:generic_resource_role.menu_generic_resource_role_links
+msgid "Role Links"
+msgstr "Rol Bağlantıları"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__role_type_id
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_view_search
+msgid "Role Type"
+msgstr "Rol Türü"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_role_link_ids
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__role_link_count
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__role_link_ids
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_role_link_ids
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_type__role_link_count
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_type__role_link_ids
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_view_form
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_type_view_form
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_view_form
+msgid "Role links"
+msgstr "Rol Bağlantıları"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_role_link_count
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_role_link_count
+msgid "Role links (Count)"
+msgstr "Rol bağlantıları (Sayı)"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__role_type_id
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_link_view_search
+msgid "Role type"
+msgstr "Rol Türü"
+
+#. module: generic_resource_role
+#: model:ir.model.constraint,message:generic_resource_role.constraint_generic_resource_role_type_code_ascii_only
+msgid "Role type code must be ascii only"
+msgstr "Rol türü kodu yalnızca ascii olmalıdır"
+
+#. module: generic_resource_role
+#: model:ir.model.constraint,message:generic_resource_role.constraint_generic_resource_role_type_name_uniq
+msgid "Role type name must be unique."
+msgstr "Rol türü adı benzersiz olmalıdır."
+
+#. module: generic_resource_role
+#: model:ir.actions.act_window,name:generic_resource_role.generic_resource_role_action_view
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type__role_count
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type__role_ids
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_type__role_count
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_type__role_ids
+#: model:ir.ui.menu,name:generic_resource_role.menu_generic_resource_roles
+#: model:ir.ui.menu,name:generic_resource_role.menu_generic_resource_roles_root
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_link_view_search
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_type_view_form
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_type_view_form
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_view_form
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.view_generic_resource_type_kanban
+msgid "Roles"
+msgstr "Roller"
+
+#. module: generic_resource_role
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.view_generic_resource_type_kanban
+msgid "Roles Links"
+msgstr "Roller Bağlantıları"
+
+#. module: generic_resource_role
+#: model:ir.actions.act_window,name:generic_resource_role.generic_resource_role_type_action_view
+#: model:ir.ui.menu,name:generic_resource_role.menu_generic_resource_role_types
+msgid "Roles Types"
+msgstr "Rol Türleri"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource__resource_user_role_ids
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource_simple__resource_user_role_ids
+msgid "Roles that have current user for this resource"
+msgstr "Bu kaynak için şu anki kullanıcıya sahip roller"
+
+#. module: generic_resource_role
+#: model:ir.model.fields.selection,name:generic_resource_role.selection__generic_resource_wizard_manage_roles__action__set_visibility
+msgid "Set Visibility"
+msgstr "Görünürlüğü Ayarla"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__sub_field_id
+msgid "Sub Field"
+msgstr "Alt Alan"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__sub_role_id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__sub_role_id
+msgid "Sub Role"
+msgstr "Alt Rol"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__sub_role_count
+msgid "Sub Role Count"
+msgstr "Alt Rol Sayısı"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__sub_role_link_ids
+msgid "Sub Role Link"
+msgstr "Alt Rol Bağlantısı"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__sub_role_link_count
+msgid "Sub Role Link Count"
+msgstr "Alt Rol Bağlantı Sayısı"
+
+#. module: generic_resource_role
+#: model:ir.model.constraint,message:generic_resource_role.constraint_generic_resource_sub_role_subrole_uniq
+msgid ""
+"Sub Role must be uniq by fields (Master Role, Sub Type, Sub Field, Sub Role)."
+msgstr ""
+"Alt Rol, alanlara (Ana Rol, Alt Tür, Alt Alan, Alt Rol) göre benzersiz "
+"olmalıdır."
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__sub_role_ids
+msgid "Sub Roles"
+msgstr "Alt Roller"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__sub_type_id
+msgid "Sub Type"
+msgstr "Alt Tipler"
+
+#. module: generic_resource_role
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_link_view_form
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_sub_role_view_form
+msgid "SubRole links"
+msgstr "Alt Rol Bağlantıları"
+
+#. module: generic_resource_role
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_link_view_search
+msgid "Subrole"
+msgstr "Alt Rol"
+
+#. module: generic_resource_role
+#: model:ir.actions.act_window,name:generic_resource_role.action_generic_resource_sub_role_view
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_link_view_search
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_view_form
+msgid "Subroles"
+msgstr "Alt Roller"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource__resource_is_role_manager
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource_simple__resource_is_role_manager
+msgid ""
+"Technical field to determine if current user is role manager. This field "
+"mostly use for UI."
+msgstr ""
+"Geçerli kullanıcının rol yöneticisi olup olmadığını belirlemek için teknik "
+"alan. Bu alan çoğunlukla kullanıcı arayüzü için kullanılır."
+
+#. module: generic_resource_role
+#: code:addons/generic_resource_role/models/generic_resource_role_link.py:0
+#, python-format
+msgid "The start date can not exceed the end date."
+msgstr "Başlangıç tarihi bitiş tarihini aşamaz."
+
+#. module: generic_resource_role
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_wizard_manage_roles_form_view
+msgid ""
+"This action could be applied only for resources of same type.\n"
+"                        Please, select only resources of single resource "
+"type!"
+msgstr ""
+"Bu eylem yalnızca aynı türdeki kaynaklar için uygulanabilir.\n"
+"                         Lütfen yalnızca tek kaynak türündeki kaynakları "
+"seçin!"
+
+#. module: generic_resource_role
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_view_form
+msgid "This list displays only active roles."
+msgstr "Bu liste yalnızca etkin rolleri görüntüler."
+
+#. module: generic_resource_role
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource_type__creator_role_id
+msgid "This role will be automatically assigned to resource creator"
+msgstr "Bu rol otomatik olarak kaynak oluşturucuya atanacak"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__message_unread
+msgid "Unread Messages"
+msgstr "Okunmamış Mesajlar"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__message_unread_counter
+msgid "Unread Messages Counter"
+msgstr "Okunmamış Mesaj Sayacı"
+
+#. module: generic_resource_role
+#: model:generic.resource.role,name:generic_resource_role.generic_resource_simple_role_user
+#: model:generic.resource.role.type,name:generic_resource_role.generic_resource_role_type_user
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__user_id
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link_sec_view__user_id
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_link_view_search
+msgid "User"
+msgstr "Kullanıcı"
+
+#. module: generic_resource_role
+#: model:ir.model,name:generic_resource_role.model_res_users
+msgid "Users"
+msgstr "Kullanıcılar"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__ir_model_data_xmlid
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__ir_model_data_xmlid
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type__ir_model_data_xmlid
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__ir_model_data_xmlid
+msgid "XML ID"
+msgstr "XML ID"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource_role__ir_model_data_xmlid
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource_role_link__ir_model_data_xmlid
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource_role_type__ir_model_data_xmlid
+#: model:ir.model.fields,help:generic_resource_role.field_generic_resource_sub_role__ir_model_data_xmlid
+msgid "XML ID for this record."
+msgstr "Bu kayıt için XML ID."
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__master_model
+msgid "ir.model"
+msgstr "ir.model"
+
+#. module: generic_resource_role
+#: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_view_form
+msgid "open full list of roles"
+msgstr "rollerin tam listesini aç"

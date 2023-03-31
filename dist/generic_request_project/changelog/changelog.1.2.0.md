@@ -1,0 +1,5 @@
+- Add request event category Project Task Events
+- Added new request event types:
+    - Task stage changed
+    - Task closed
+    - All tasks closed

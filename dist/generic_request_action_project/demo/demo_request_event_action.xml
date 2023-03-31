@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo noupdate="1">
+    <!-- Demo create task action action -->
+    <record id="demo_create_project_task_action" model="request.event.action">
+        <field name="name">Create related task</field>
+        <field name="act_type">task</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_request.request_event_type_stage_changed'))]"/>
+        <field name="request_type_id" ref="generic_request_project.request_type_with_task"/>
+        <field name="route_id" ref="generic_request_project.request_stage_type_with_task_draft_to_new"/>
+        <field name="task_project_compute_type">fixed</field>
+        <field name="task_project_id" ref="generic_request_project.request_with_task_project_1"/>
+        <field name="task_stage_id" ref="project.project_stage_0"/>
+        <field name="task_title">Task for request {{ request.name }}</field>
+    </record>
+    <record id="demo_create_project_task_action_domain" model="request.event.action">
+        <field name="name">Create related task</field>
+        <field name="act_type">task</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_request.request_event_type_category_changed'))]"/>
+        <field name="request_type_id" ref="generic_request_project.request_type_with_task"/>
+        <field name="task_project_compute_type">domain</field>
+        <field name="task_project_domain">[('partner_id', '=', request.partner_id.commercial_partner_id.id)]</field>
+        <field name="task_title">Project for this task selected by domain</field>
+    </record>
+    <record id="demo_create_project_task_action_py_expression" model="request.event.action">
+        <field name="name">Create related task</field>
+        <field name="act_type">task</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_request.request_event_type_category_changed'))]"/>
+        <field name="request_type_id" ref="generic_request_project.request_type_with_task"/>
+        <field name="task_project_compute_type">python-expression</field>
+        <field name="task_project_py_expression">Project.search([('partner_id', '=', request.partner_id.commercial_partner_id.id)], limit=1)</field>
+        <field name="task_title">Project for this task selected by python expression</field>
+    </record>
+    <!--Demo request -->
+    <record id="demo_request_with_task_3" model="request.request">
+        <field name="type_id" ref="generic_request_project.request_type_with_task"/>
+        <field name="partner_id" ref="base.partner_demo_portal"/>
+        <field name="request_text">
+            This is demo request that is used to test automatic task creation.</field>
+    </record>
+</odoo>

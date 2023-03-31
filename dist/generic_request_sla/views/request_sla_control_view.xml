@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Tree view for generic request sla control -->
+    <record id="generic_request_sla_control_view_tree" model="ir.ui.view">
+        <field name="name">request.sla.control.tree</field>
+        <field name="model">request.sla.control</field>
+        <field name="arch" type="xml">
+            <tree create="false" edit="false">
+                <field name="date"/>
+                <field name="sla_rule_type_id"/>
+                <field name="sla_rule_id"/>
+                <field name="request_id"/>
+                <field name="request_type_id"/>
+                <field name="request_category_id"/>
+                <field name="assigned"/>
+                <field name="compute_time"/>
+                <field name="warn_date"/>
+                <field name="limit_date"/>
+                <field name="calendar_id"/>
+                <field name="user_id"/>
+                <field name="sla_active"/>
+                <field name="sla_active_date"/>
+                <field name="sla_state"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="generic_request_sla_control_view_search" model="ir.ui.view">
+        <field name="name">request.sla.control.search</field>
+        <field name="model">request.sla.control</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="request_id"/>
+                <field name="request_type_id"/>
+                <field name="request_category_id"/>
+                <field name="sla_rule_type_id"/>
+                <field name="sla_rule_id"/>
+                <field name="user_id"/>
+                <field name="date"/>
+
+                <group name="group_group_by" expand="0" string="Group By...">
+                     <filter name="group_by_request" string="Request" context="{'group_by': 'request_id'}"/>
+                     <filter name="group_by_request_type" string="Request type" context="{'group_by': 'request_type_id'}"/>
+                     <filter name="group_by_request_category" string="Request category" context="{'group_by': 'request_category_id'}"/>
+                     <filter name="group_by_sla_rule_type" string="SLA Rule type" context="{'group_by': 'sla_rule_type_id'}"/>
+                     <filter name="group_by_date" string="Date" context="{'group_by': 'date'}"/>
+                     <filter name="group_by_assigned" string="Assigned" context="{'group_by': 'assigned'}"/>
+                     <filter name="group_by_compute_time" string="Compute time" context="{'group_by': 'compute_time'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="generic_request_sla_control_view_pivot" model="ir.ui.view">
+        <field name="name">request.sla.control.pivot</field>
+        <field name="model">request.sla.control</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="date" type="col"/>
+                <field name="sla_state" type="col"/>
+                <field name="sla_rule_type_id" type="row"/>
+                <field name="request_type_id" type="row"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="generic_request_sla_control_view_graph" model="ir.ui.view">
+        <field name="name">request.sla.control.graph</field>
+        <field name="model">request.sla.control</field>
+        <field name="arch" type="xml">
+            <graph>
+                <field name="request_type_id"/>
+                <field name="sla_state"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="generic_request_sla_control_form" model="ir.ui.view">
+        <field name="name">request.sla.control.form</field>
+        <field name="model">request.sla.control</field>
+        <field name="arch" type="xml">
+            <form>
+                <field name="sla_log_count" invisible="1"/>
+                <sheet>
+                    <group>
+                        <group name="group_rule_info" string="Rule">
+                            <field name="sla_rule_id"/>
+                            <field name="sla_rule_type_id"/>
+                            <field name="sla_rule_code"/>
+                        </group>
+                        <group name="group_rule_deadline" string="Deadline">
+                            <field name="compute_time"/>
+                            <field name="warn_date"/>
+                            <field name="limit_date"/>
+                        </group>
+                        <group name="group_sla_state" string="State">
+                            <field name="sla_active"/>
+                            <field name="sla_active_date"/>
+                            <field name="sla_state"/>
+                            <field name="assigned"/>
+                            <field name="user_id"/>
+                        </group>
+                        <group name="group_request_info" string="Request">
+                            <field name="request_id"/>
+                            <field name="request_type_id"/>
+                            <field name="request_category_id"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group name="group_rule_limits" string="Limits">
+                            <field name="warn_time" widget="float_time"/>
+                            <field name="limit_time" widget="float_time"/>
+                        </group>
+                        <group name="group_time_spent" string="Time Spent">
+                            <label for="total_time"/>
+                            <div class="o_row">
+                                <field name="total_time" widget="float_time"/>
+                                <button class="btn-link btn-sm"
+                                        type="object"
+                                        name="action_show_related_sla_log_lines"
+                                        help="View SLA Log used to compute this rule"
+                                        string="SLA Log"
+                                        attrs="{'invisible': [('sla_log_count', '=', False)]}"
+                                        icon="fa-search-plus">
+                                </button>
+                            </div>
+                        </group>
+                    </group>
+                    <div class="alert alert-info" role="alert"
+                         groups="base.group_no_one">
+                         If you want to get instance of this rule in mail templates or other places,
+                         then you can call <code>get_sla_control_by_code('code')</code> method of request.
+                         For example, in mail template it could look like: <code>${ object.get_sla_control_by_code('sla-resolution-time') }</code>.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_request_sla_control_view" model="ir.actions.act_window">
+      <field name="name">SLA Control</field>
+      <field name="res_model">request.sla.control</field>
+      <field name="view_mode">pivot,graph,tree</field>
+    </record>
+
+    <menuitem name="SLA Control" id="menu_request_sla_control"
+              parent="generic_request.menu_request_report"
+              action="action_request_sla_control_view"/>
+</odoo>

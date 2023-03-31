@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="generic_request_related_doc.request_request_type_sale_problem_demo_1" model="request.request">
+        <field name="user_id" ref="crnd_wsd.user_demo_service_desk_website"/>
+    </record>
+</odoo>

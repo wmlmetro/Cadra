@@ -1,0 +1,181 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_action_survey
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 12.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-09-16 11:46+0000\n"
+"PO-Revision-Date: 2022-01-25 13:01+0000\n"
+"Last-Translator: Валерия <valittle@ukr.net>\n"
+"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-14-0/generic_request_action_survey/uk/>\n"
+"Language: uk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_action_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_action_survey.view_request_event_action_form
+msgid "Add existing contacts..."
+msgstr "Додайте існуючі контакти..."
+
+#. module: generic_request_action_survey
+#: model:request.stage,name:generic_request_action_survey.request_stage_type_with_survey_done
+msgid "Done"
+msgstr "Зроблено"
+
+#. module: generic_request_action_survey
+#: model_terms:ir.ui.view,arch_db:generic_request_action_survey.view_request_event_action_form
+msgid "Email Template"
+msgstr "Шаблон ел. листа"
+
+#. module: generic_request_action_survey
+#: model:request.stage,name:generic_request_action_survey.request_stage_type_with_survey_in_progress
+msgid "In Progress"
+msgstr "В процесі"
+
+#. module: generic_request_action_survey
+#: model:request.stage.route,name:generic_request_action_survey.request_stage_type_with_survey_in_progress_to_done
+msgid "In Progress to Done"
+msgstr "В процесі до Виконано"
+
+#. module: generic_request_action_survey
+#: model:request.stage,name:generic_request_action_survey.request_stage_type_with_survey_new
+msgid "New"
+msgstr "Новий"
+
+#. module: generic_request_action_survey
+#: model:request.stage.route,name:generic_request_action_survey.request_stage_type_with_survey_new_to_in_progress
+msgid "New to In Progress"
+msgstr "Новий до В процесі"
+
+#. module: generic_request_action_survey
+#: model:request.stage.route,name:generic_request_action_survey.request_stage_type_with_survey_new_to_survey_sent
+msgid "New to Survey Sent"
+msgstr "Новий до Опитування надіслано"
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_partner_ids
+msgid "Partners"
+msgstr "Партнери"
+
+#. module: generic_request_action_survey
+#: code:addons/generic_request_action_survey/models/request_event_action.py:0
+#, python-format
+msgid ""
+"Please add '__URL__' to email content,                     it will "
+"automaticaly be converted into survey URL."
+msgstr ""
+"Будь-ласка додайте '__URL__' до змісту листа,                     воно буде "
+"автоматично замінено посиланням на опитування."
+
+#. module: generic_request_action_survey
+#: model:ir.model,name:generic_request_action_survey.model_request_event_action
+msgid "Request Event Action"
+msgstr "Дія події запиту"
+
+#. module: generic_request_action_survey
+#: model:request.type,name:generic_request_action_survey.request_type_with_survey
+msgid "Request with survey"
+msgstr "Запит з опитуванням"
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields.selection,name:generic_request_action_survey.selection__request_event_action__act_type__survey
+#: model_terms:ir.ui.view,arch_db:generic_request_action_survey.view_request_event_action_form
+msgid "Survey"
+msgstr "Опитування"
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_email_template_id
+msgid "Survey Email Template"
+msgstr ""
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_send_assignee
+msgid "Survey Send Assignee"
+msgstr "Надіслати призначеному"
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_send_author
+msgid "Survey Send Author"
+msgstr "Надіслати автору"
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_send_creator
+msgid "Survey Send Creator"
+msgstr "Надіслати творцю запиту"
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_send_others
+msgid "Survey Send Others"
+msgstr "Інші отримувачі"
+
+#. module: generic_request_action_survey
+#: model:request.stage,name:generic_request_action_survey.request_stage_type_with_survey_survey_sent
+msgid "Survey Sent"
+msgstr "Опитування надіслано"
+
+#. module: generic_request_action_survey
+#: model:request.stage.route,name:generic_request_action_survey.request_stage_type_with_survey_survey_sent_to_in_progress
+msgid "Survey Sent to In Progress"
+msgstr "Опитування надіслано до В процесі"
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_template_id
+msgid "Survey Template"
+msgstr "Шаблон опитування"
+
+#. module: generic_request_action_survey
+#: model_terms:request.request,help_html:generic_request_action_survey.demo_request_with_survey
+#: model_terms:request.type,help_html:generic_request_action_survey.request_type_with_survey
+msgid ""
+"This is demo request type to demonstrate automatic actions.\n"
+"            When request moves from New to Survey Sent, survey is sent using "
+"auto-action."
+msgstr ""
+"Це демо тип запиту для демонстрації автоматичних дій.\n"
+"            Коли запит рухається від стадії Новий до Опитування надіслано, "
+"за допомогою автоматичної дії надсилається опитування."
+
+#. module: generic_request_action_survey
+#: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__act_type
+msgid "Type"
+msgstr "Тип"
+
+#~ msgid "Display Name"
+#~ msgstr "Відображуване ім’я"
+
+#~ msgid "ID"
+#~ msgstr "ID"
+
+#~ msgid "Last Modified on"
+#~ msgstr "Остання модифікація"
+
+#~ msgid "Assign"
+#~ msgstr "Призначити"
+
+#~ msgid "Schedule activity"
+#~ msgstr "Планування діяльності"
+
+#~ msgid "Send Email"
+#~ msgstr "Відправити ел.лист"
+
+#~ msgid "Server Action"
+#~ msgstr "Дії на сервері"
+
+#~ msgid "Subrequest"
+#~ msgstr "Підзапит"
+
+#~ msgid "Subscribe"
+#~ msgstr "Підписати"
+
+#~ msgid "Tag"
+#~ msgstr "Тег"
+
+#~ msgid "Task"
+#~ msgstr "Завдання"

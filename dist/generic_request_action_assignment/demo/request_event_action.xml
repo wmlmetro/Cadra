@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <!-- action with mail_activity_assign_type=policy -->
+    <record id="request_stage_route_type_action_draft_to_sent_mail_activity_policy"
+            model="request.event.action">
+        <field name="name">Demo Schedule Activity assign policy action</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_request.request_event_type_stage_changed'))]"/>
+        <field name="request_type_id" ref="generic_request_action.request_type_action"/>
+        <field name="route_id"
+               ref="generic_request_action.request_stage_route_type_action_draft_to_sent"/>
+        <field name="act_type">mail_activity</field>
+        <field name="mail_activity_activity_type_id" ref="mail.mail_activity_data_call"/>
+        <field name="mail_activity_assign_type">policy</field>
+        <field name="mail_activity_date_delta_uom">days</field>
+        <field name="mail_activity_date_delta_value">2</field>
+        <field name="mail_activity_assign_policy_id" ref="generic_request_assignment.request_example_assign_policy_policy"/>
+        <field name="mail_activity_assign_policy_user_id"
+               ref="base.user_root"/>
+        <field name="mail_activity_summary">Make a call to partner</field>
+        <field name="mail_activity_note">Ask partner to rate our service</field>
+    </record>
+
+</odoo>

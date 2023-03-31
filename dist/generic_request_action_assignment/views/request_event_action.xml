@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_event_action_form">
+        <field name="name">view.request.event.action.form</field>
+        <field name="model">request.event.action</field>
+        <field name="inherit_id" ref="generic_request_action.view_request_event_action_form"/>
+        <field name="arch" type="xml">
+            <field name="assign_user_id" position="after">
+                <field name="assign_policy_id"
+                       attrs="{'required': [('act_type', '=', 'assign'), ('assign_type', '=', 'policy')], 'invisible': [('assign_type', '!=', 'policy')]}"/>
+            </field>
+            <xpath expr="//form//field[@name='mail_activity_user_id']" position="before">
+                <field name="mail_activity_assign_policy_id"
+                       string="Assign policy"
+                       domain="[('model_id.model', '=', 'request.request')]"
+                       context="{'default_model': 'request.request'}"
+                       attrs="{'invisible': [('mail_activity_assign_type', '!=', 'policy')], 'required': [('act_type', '=', 'mail_activity'), ('mail_activity_assign_type', '=', 'policy')]}"/>
+                <field name="mail_activity_assign_policy_user_id"
+                       attrs="{'invisible': [('mail_activity_assign_type', '!=', 'policy')], 'required': [('act_type', '=', 'mail_activity'), ('mail_activity_assign_type', '=', 'policy')]}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

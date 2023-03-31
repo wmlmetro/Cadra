@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_generic_contract_template_form">
+        <field name="model">generic.contract.template</field>
+        <field name="inherit_id" ref="generic_contract.view_generic_contract_template_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form//notebook" position="inside">
+                <page name="page_resources"
+                      string="Resources">
+                    <field name="contract_resource_line_ids" nolabel="1" mode="tree">
+                        <tree editable="bottom">
+                            <field name="resource_res_model" invisible="1"/>
+                            <field name="resource_type_id"
+                                required="1"
+                                options="{'no_create': true, 'no_quick_create': true}"/>
+                            <field name="resource_res_id"
+                                   widget="generic_m2o"
+                                   model_field="resource_res_model"
+                                    class="oe_left"
+                                    attrs="{'invisible': [('resource_res_model', '=', False)],
+                                            'required': [('resource_res_model', '!=', False)]}"/>
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_generic_request_api_field_map_all,access_generic_request_field_map.all,model_request_api_endpoint_field_map,,1,0,0,0
+access_generic_request_api_field_map_manager,access_generic_request_field_map.manager,model_request_api_endpoint_field_map,generic_request.group_request_manager,1,1,1,1
+

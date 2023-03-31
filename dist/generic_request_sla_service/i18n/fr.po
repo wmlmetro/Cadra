@@ -1,0 +1,82 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_sla_service
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 13.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-07-27 16:00+0000\n"
+"PO-Revision-Date: 2023-01-19 17:43+0000\n"
+"Last-Translator: François LAGARDE <f.lagarde@groupe-alliance.com>\n"
+"Language-Team: French <http://weblate.crnd.pro/projects/bureaucrat-itsm-15-0/"
+"generic_request_sla_service/fr/>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_sla_service
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_service.generic_request_sla_rule_view_form
+msgid ""
+"<i>Service Level</i>: specify service level. This rule line will be active "
+"for customers with a selected service level. If no service level is "
+"selected, this condition applies to requests of any service level."
+msgstr ""
+
+#. module: generic_request_sla_service
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_service.generic_request_sla_rule_view_form
+msgid ""
+"<i>Service</i>: select a service of requests for which this rule line will "
+"be active. If no service is selected, this condition applies to requests of "
+"any service."
+msgstr ""
+
+#. module: generic_request_sla_service
+#: model:ir.model,name:generic_request_sla_service.model_request_request
+msgid "Request"
+msgstr "Ticket"
+
+#. module: generic_request_sla_service
+#: model:ir.model,name:generic_request_sla_service.model_request_sla_control
+msgid "Request SLA Control"
+msgstr "Contrôle SLA"
+
+#. module: generic_request_sla_service
+#: model:ir.model,name:generic_request_sla_service.model_request_sla_rule_line
+msgid "Request SLA Rule Line"
+msgstr ""
+
+#. module: generic_request_sla_service
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_service.generic_request_sla_control_view_search
+msgid "Request service"
+msgstr ""
+
+#. module: generic_request_sla_service
+#: model_terms:ir.ui.view,arch_db:generic_request_sla_service.generic_request_sla_control_view_search
+msgid "Request service level"
+msgstr ""
+
+#. module: generic_request_sla_service
+#: model:ir.model.fields,field_description:generic_request_sla_service.field_request_sla_control__request_service_id
+#: model:ir.model.fields,field_description:generic_request_sla_service.field_request_sla_rule_line__service_id
+msgid "Service"
+msgstr ""
+
+#. module: generic_request_sla_service
+#: model:ir.model.fields,field_description:generic_request_sla_service.field_request_sla_control__request_service_level_id
+#: model:ir.model.fields,field_description:generic_request_sla_service.field_request_sla_rule_line__service_level_id
+msgid "Service Level"
+msgstr ""
+
+#. module: generic_request_sla_service
+#: model:ir.model.fields,help:generic_request_sla_service.field_request_sla_control__request_service_id
+msgid "Service of request"
+msgstr ""
+
+#. module: generic_request_sla_service
+#: model:ir.model.fields,help:generic_request_sla_service.field_request_sla_control__request_service_level_id
+msgid "Service of request. Used to compute SLA for request."
+msgstr ""

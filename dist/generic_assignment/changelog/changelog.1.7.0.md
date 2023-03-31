@@ -1,0 +1,2 @@
+- Added ability to edit assignment rules on assignment policy page
+- Add onchange to cleanup rules when policy models changed

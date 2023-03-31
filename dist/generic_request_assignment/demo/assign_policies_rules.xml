@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Demo policy -->
+    <record id="request_example_assign_policy_policy" model="generic.assign.policy">
+        <field name="name">Demo assign policy</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="description">Just assign to demo portal user.</field>
+    </record>
+    <record id="request_rule_assign_user_demo_portal" model="generic.assign.policy.rule">
+        <field name="name">Assign demo portal user</field>
+        <field name="sequence">5</field>
+        <field name="policy_id"
+               ref="request_example_assign_policy_policy"/>
+        <field name="assign_type">user</field>
+        <field name="assign_user_id" ref="base.demo_user0"/>
+    </record>
+
+    <!-- Test policy.-->
+    <record id="request_example_assign_policy" model="generic.assign.policy">
+        <field name="name">Test Assign Policy</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="description">This is demo assign policy that is used in automatic tests</field>
+    </record>
+    <record id="request_rule_assign_user_demo" model="generic.assign.policy.rule">
+        <field name="name">Assign demo user</field>
+        <field name="sequence">5</field>
+        <field name="policy_id"
+               ref="request_example_assign_policy"/>
+        <field name="assign_type">user</field>
+        <field name="assign_user_id" ref="base.user_demo"/>
+    </record>
+    <record id="request_rule_assign_eval" model="generic.assign.policy.rule">
+        <field name="name">Assign admin by python-expression</field>
+        <field name="sequence">6</field>
+        <field name="policy_id"
+               ref="request_example_assign_policy"/>
+        <field name="assign_type">eval</field>
+        <field name="assign_eval">{'user_id': 1}</field>
+    </record>
+    <record id="request_rule_assign_user_field" model="generic.assign.policy.rule">
+        <field name="name">Assign user from field 'created_by'</field>
+        <field name="sequence">7</field>
+        <field name="policy_id"
+               ref="request_example_assign_policy"/>
+        <field name="assign_type">user_field</field>
+        <field name="assign_user_field_id"
+               ref="generic_request.field_request_request__created_by_id"/>
+        <field name="description">Assign user by field "created_by" of the request. Type of policy: "User field".</field>
+    </record>
+    <record id="request_rule_assign_policy" model="generic.assign.policy.rule">
+        <field name="name">Call other assign policy</field>
+        <field name="sequence">8</field>
+        <field name="policy_id" ref="request_example_assign_policy"/>
+        <field name="assign_type">policy</field>
+        <field name="assign_policy_id"
+               ref="request_example_assign_policy_policy"/>
+    </record>
+
+</odoo>

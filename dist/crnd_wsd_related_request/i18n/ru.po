@@ -1,0 +1,64 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* crnd_wsd_related_request
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 12.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-01-09 16:22+0000\n"
+"PO-Revision-Date: 2020-01-09 16:22+0000\n"
+"Last-Translator: <>\n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: crnd_wsd_related_request
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_related_request.wsd_requests_related_request
+msgid ""
+"<span class=\"wsd_request header-bg-filler\">Related requests</span>\n"
+"                        <span class=\"header-separator-splitter\"/>"
+msgstr ""
+
+#. module: crnd_wsd_related_request
+#: model_terms:request.request,stage_help_html:crnd_wsd_related_request.request_request_type_simple_demo_2
+#: model_terms:request.request,stage_help_html:crnd_wsd_related_request.request_request_type_simple_related_request
+msgid ""
+"Now request is in <i>Draft</i> state.<br>\n"
+"            Please click 'Sent' stage on status bar (right-top corner)\n"
+"            to send it to our team."
+msgstr ""
+"Сейчас запрос находится на стадии <i>Черновик</i>.<br>\n"
+"            Нажмите на этап 'Отправлено' на панели состояния (правый верхний "
+"угол)\n"
+"            чтобы отправить запрос нашей команде."
+
+#. module: crnd_wsd_related_request
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_related_request.wsd_request_table_related_request
+msgid "Related requests"
+msgstr "Связанные запросы"
+
+#. module: crnd_wsd_related_request
+#: model_terms:request.request,help_html:crnd_wsd_related_request.request_request_type_simple_demo_2
+#: model_terms:request.request,help_html:crnd_wsd_related_request.request_request_type_simple_related_request
+msgid "This is simple request type with simple routes:"
+msgstr "Это простой тип запроса с простыми маршрутами:"
+
+#. module: crnd_wsd_related_request
+#: model_terms:request.request,help_html:crnd_wsd_related_request.request_request_type_simple_demo_2
+#: model_terms:request.request,help_html:crnd_wsd_related_request.request_request_type_simple_related_request
+msgid "draft -&gt; sent -&gt; confirmed"
+msgstr "черновик -&gt; отправлено -&gt; подтверждено"
+
+#. module: crnd_wsd_related_request
+#: model_terms:request.request,help_html:crnd_wsd_related_request.request_request_type_simple_demo_2
+#: model_terms:request.request,help_html:crnd_wsd_related_request.request_request_type_simple_related_request
+msgid "draft -&gt; sent -&gt; rejected"
+msgstr "черновик -&gt; отправлено -&gt; отклонено"
+
+#~ msgid "<span class=\"wsd_request header-bg-filler\">Related requests</span>"
+#~ msgstr ""
+#~ "<span class=\"wsd_request header-bg-filler\">Связаные запросы</span>"

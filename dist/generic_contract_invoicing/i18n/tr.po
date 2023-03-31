@@ -1,0 +1,771 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_contract_invoicing
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:18+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_contract_invoicing/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "- account.invoice instance"
+msgstr "- account.invoice instance"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+msgid ""
+"- can use method to get employee rate from field contract_employee_rate_ids "
+"for employee.\n"
+"                                                            Method gets "
+"parameter \"employee\".\n"
+"                                                            It can be "
+"instance of \"res.user\" or \"hr.employee\" classes or integer (id of record "
+"of \"hr.employee\" class)."
+msgstr ""
+"- çalışan için contract_employee_rate_ids alanından çalışan oranını almak "
+"için yöntemi kullanabilir.\n"
+"                                                             Yöntem, "
+"\"çalışan\" parametresini alır.\n"
+"                                                             \"res.user\" "
+"veya \"hr.employee\" sınıfları veya tamsayı (\"hr.employee\" sınıfı kayıt "
+"kimliği) örneği olabilir."
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid ""
+"- can use method to get employee rate from field contract_employee_rate_ids "
+"for employee.\n"
+"                                                    Method gets parameter "
+"\"employee\".\n"
+"                                                    It can be instance of "
+"\"res.user\" or \"hr.employee\" classes or integer (id of record of \"hr."
+"employee\" class)."
+msgstr ""
+"- çalışan için contract_employee_rate_ids alanından çalışan oranını almak "
+"için yöntemi kullanabilir.\n"
+"                                                     Yöntem, \"çalışan\" "
+"parametresini alır.\n"
+"                                                     \"res.user\" veya \"hr."
+"employee\" sınıfları veya tamsayı (\"hr.employee\" sınıfı kayıt kimliği) "
+"örneği olabilir."
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "- datetime.date representing end date of invoicing period"
+msgstr "- fatura döneminin bitiş tarihini temsil eden datetime.date"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "- datetime.date representing invoice date"
+msgstr "- fatura tarihini temsil eden datetime.date"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "- datetime.date representing start date of invoicing period"
+msgstr "- fatura döneminin başlangıç tarihini temsil eden datetime.date"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid ""
+"- if you have installed \"generic_contract_resource\" module, then you can "
+"use this signature to iterate over resources of specified type (model) "
+"related to contract"
+msgstr ""
+"- \"generic_contract_resource\" modülünü yüklediyseniz, bu imzayı, "
+"sözleşmeyle ilgili belirtilen türdeki (model) kaynaklar üzerinde yineleme "
+"yapmak için kullanabilirsiniz"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "- instance of 'generic.contract' model"
+msgstr "- 'generic.contract' modeli örneği"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+msgid "Add a ELIF"
+msgstr "ELIF ekle"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+msgid "Add a ELSE"
+msgstr "ELSE ekle"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "Add a END"
+msgstr "END ekle"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "Add a FOR"
+msgstr "FOR ekle"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "Add a IF"
+msgstr "IF ekle"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "Add a line"
+msgstr "satır ekle"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "Add a note"
+msgstr "bir not ekle"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "Add a section"
+msgstr "bölüm ekle"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__auto_accept
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template__auto_accept
+msgid "Auto Accept"
+msgstr "Otomatik Kabul Et"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__auto_send
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template__auto_send
+msgid "Auto Send"
+msgstr "Otomatik Gönder"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__recurring_invoices
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template__recurring_invoices
+msgid "Automatically generate invoices"
+msgstr "Faturaları otomatik olarak oluştur"
+
+#. module: generic_contract_invoicing
+#: model:generic.contract.template.invoice.line,name:generic_contract_invoicing.contract_template_basic_support_invoice_consulting
+msgid "Bureaucrat Consulting"
+msgstr "Bürokrat Danışmanlığı"
+
+#. module: generic_contract_invoicing
+#: model:generic.tag,name:generic_contract_invoicing.generic_contract_tag_error_invoice_generation
+msgid "Cannot generate invoice"
+msgstr "Fatura oluşturulamıyor"
+
+#. module: generic_contract_invoicing
+#: code:addons/generic_contract_invoicing/models/generic_contract.py:0
+#: code:addons/generic_contract_invoicing/models/generic_contract_template.py:0
+#, python-format
+msgid "Cannot use template that is not bound to 'account.invoice' model!"
+msgstr "'account.invoice' modeline bağlı olmayan şablon kullanılamaz!"
+
+#. module: generic_contract_invoicing
+#: model:product.product,name:generic_contract_invoicing.product_consulting
+#: model:product.template,name:generic_contract_invoicing.product_consulting_product_template
+msgid "Consulting"
+msgstr "Danışmanlık"
+
+#. module: generic_contract_invoicing
+#: model:product.product,description_sale:generic_contract_invoicing.product_consulting
+#: model:product.template,description_sale:generic_contract_invoicing.product_consulting_product_template
+msgid "Consulting Services"
+msgstr "Danışmanlık servisleri"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_account_bank_statement_line__generic_contract_id
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_account_move__generic_contract_id
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_account_payment__generic_contract_id
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_employee_rate__generic_contract_id
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__contract_id
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__contract_template_id
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_account_invoice_tree
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_account_move_form
+msgid "Contract"
+msgstr "Sözleşme"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_employee_rate__contract_currency_id
+msgid "Contract Currency"
+msgstr "Sözleşme Para Birimi"
+
+#. module: generic_contract_invoicing
+#: model:ir.model,name:generic_contract_invoicing.model_generic_contract_invoice_line
+msgid "Contract Invoice Lines"
+msgstr "Sözleşme Fatura Satırları"
+
+#. module: generic_contract_invoicing
+#: model:ir.model,name:generic_contract_invoicing.model_generic_contract_template_invoice_line
+msgid "Contract Template Invoice Lines"
+msgstr "Sözleşme Şablonu Fatura Satırları"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_employee_rate__create_uid
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__create_uid
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__create_uid
+msgid "Created by"
+msgstr "Tarafından yaratıldı"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_employee_rate__create_date
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__create_date
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__create_date
+msgid "Created on"
+msgstr "oluşturuldu"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__currency_id
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__currency_id
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template__currency_id
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__currency_id
+msgid "Currency"
+msgstr "Para birimi"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract__recurring_type__daily
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract_template__recurring_type__daily
+msgid "Day(s)"
+msgstr "Gün(ler)"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__price_er_default_rate
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__price_er_default_rate
+msgid "Default Employee Rate"
+msgstr "Varsayılan Çalışan Oranı"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,help:generic_contract_invoicing.field_generic_contract_invoice_line__price_er_default_rate
+#: model:ir.model.fields,help:generic_contract_invoicing.field_generic_contract_template_invoice_line__price_er_default_rate
+msgid "Default rate of employees per hour."
+msgstr "Saat başına varsayılan çalışan oranı."
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__name
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "Description"
+msgstr "Tanım"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_employee_rate__display_name
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__display_name
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__display_name
+msgid "Display Name"
+msgstr "Ekran adı"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__display_type
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__display_type
+msgid "Display Type"
+msgstr "Ekran tipi"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__email_from
+msgid "Email From"
+msgstr "Tarafından e-posta"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__auto_send_template_id
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template__auto_send_template_id
+msgid "Email Template"
+msgstr "E-posta şablonu"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_employee_rate__employee_id
+msgid "Employee"
+msgstr "Çalışan"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract_invoice_line__price_type__employee_rate
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract_template_invoice_line__price_type__employee_rate
+msgid "Employee Rate"
+msgstr "Çalışan Oranı"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__contract_employee_rate_ids
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+msgid "Employee Rates"
+msgstr "Çalışan Oranları"
+
+#. module: generic_contract_invoicing
+#: model:generic.tag,category_name:generic_contract_invoicing.generic_contract_tag_error_invoice_generation
+msgid "Error"
+msgstr "hata"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract_invoice_line__price_type__fixed
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract_template_invoice_line__price_type__fixed
+msgid "Fixed Price"
+msgstr "Sabit fiyat"
+
+#. module: generic_contract_invoicing
+#: model:ir.model,name:generic_contract_invoicing.model_generic_contract
+msgid "Generic Contract"
+msgstr "Genel Sözleşme"
+
+#. module: generic_contract_invoicing
+#: model:ir.model,name:generic_contract_invoicing.model_generic_contract_employee_rate
+msgid "Generic Contract Employee Rate"
+msgstr "Genel Sözleşmeli Çalışan Oranı"
+
+#. module: generic_contract_invoicing
+#: model:ir.model,name:generic_contract_invoicing.model_generic_contract_template
+msgid "Generic Contract Template"
+msgstr "Genel Sözleşme Şablonu"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,help:generic_contract_invoicing.field_generic_contract_invoice_line__sequence
+msgid "Gives the sequence order when displaying inside contract."
+msgstr "Sözleşme içinde görüntülerken sıra sırasını verir."
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,help:generic_contract_invoicing.field_generic_contract_template_invoice_line__sequence
+msgid "Gives the sequence order when displaying of contract."
+msgstr "Sözleşmeyi görüntülerken sıra sırasını verir."
+
+#. module: generic_contract_invoicing
+#: model:product.product,uom_name:generic_contract_invoicing.product_consulting
+#: model:product.template,uom_name:generic_contract_invoicing.product_consulting_product_template
+msgid "Hours"
+msgstr "Saatler"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_employee_rate__id
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__id
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,help:generic_contract_invoicing.field_generic_contract__payment_term_id
+#: model:ir.model.fields,help:generic_contract_invoicing.field_generic_contract_template__payment_term_id
+msgid ""
+"If you use payment terms, the due date will be computed automatically at the "
+"generation of accounting entries. If you keep the payment terms and the due "
+"date empty, it means direct payment. The payment terms may compute several "
+"due dates, for example 50% now, 50% in one month."
+msgstr ""
+"Ödeme koşullarını kullanırsanız vade tarihi, muhasebe girişlerinin "
+"oluşturulmasında otomatik olarak hesaplanacaktır. Ödeme koşullarını ve son "
+"ödeme tarihini boş bırakırsanız, doğrudan ödeme anlamına gelir. Ödeme "
+"koşulları birkaç vade tarihini hesaplayabilir, örneğin %50 şimdi, %50 bir ay "
+"içinde."
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__recurring_invoice_line_ids
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template__recurring_invoice_line_ids
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "Invoice Lines"
+msgstr "Fatura Satırları"
+
+#. module: generic_contract_invoicing
+#: model:ir.actions.act_window,name:generic_contract_invoicing.action_generic_contract_invoices
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__account_invoice_count
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__account_invoice_ids
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+msgid "Invoices"
+msgstr "Faturalar"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "Invoicing Type"
+msgstr "Faturalama Türü"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__journal_id
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template__journal_id
+msgid "Journal"
+msgstr "Günlük"
+
+#. module: generic_contract_invoicing
+#: model:ir.model,name:generic_contract_invoicing.model_account_move
+msgid "Journal Entry"
+msgstr "Günlük Girişi"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__journal_type
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template__journal_type
+msgid "Journal Type"
+msgstr "Günlük Türü"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+msgid "Last Error"
+msgstr "Son Hata"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_employee_rate____last_update
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line____last_update
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line____last_update
+msgid "Last Modified on"
+msgstr "Son Değiştirme Tarihi"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_employee_rate__write_uid
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__write_uid
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__write_uid
+msgid "Last Updated by"
+msgstr "Son Güncelleyen"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_employee_rate__write_date
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__write_date
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__write_date
+msgid "Last Updated on"
+msgstr "Son güncelleme tarihi"
+
+#. module: generic_contract_invoicing
+#: code:addons/generic_contract_invoicing/models/generic_contract.py:0
+#, python-format
+msgid "Model \"%(model)s\" do not have field %(name)s"
+msgstr "\"%(model)s\" modelinde %(name)s alanı yok"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract__recurring_type__monthly
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract_template__recurring_type__monthly
+msgid "Month(s)"
+msgstr "Ay(lar)"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract__recurring_type__monthly-last-day
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract_template__recurring_type__monthly-last-day
+msgid "Month(s) last day"
+msgstr "Ay(lar) son gün"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__name
+msgid "Name"
+msgstr "İsim"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__recurring_next_date
+msgid "Next Invoice Date"
+msgstr "Sonraki Fatura Tarihi"
+
+#. module: generic_contract_invoicing
+#: code:addons/generic_contract_invoicing/models/generic_contract.py:0
+#, python-format
+msgid ""
+"Next Invoicing Date of the contract '[%s]' can`t be less than Date Start! "
+"Check it, please."
+msgstr ""
+"'[%s]' sözleşmesinin Sonraki Faturalama Tarihi, Başlangıç Tarihinden önce "
+"olamaz! Kontrol edin lütfen."
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract_invoice_line__display_type__line_note
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract_template_invoice_line__display_type__line_note
+msgid "Note"
+msgstr "Not"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__payer_id
+msgid "Payer"
+msgstr "ödeyen"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__payment_term_id
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template__payment_term_id
+msgid "Payment Terms"
+msgstr "Ödeme şartları"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract__recurring_invoicing_type__post-paid
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract_template__recurring_invoicing_type__post-paid
+msgid "Post-paid"
+msgstr "Sonradan ödemeli"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__price_er_employee_expr
+msgid "Price (Employee Expr)"
+msgstr "Fiyat (Çalışan İfadesi)"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__price_fixed
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__price_fixed
+msgid "Price (Fixed)"
+msgstr "Fiyat (Sabit)"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__price_pricelist
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__price_pricelist
+msgid "Price (Pricelist)"
+msgstr "Fiyat (Fiyat Listesi)"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__price_py_expr
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__price_py_expr
+msgid "Price (Py Expr)"
+msgstr "Fiyat (Py İfadesi)"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__price_display
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__price_display
+msgid "Price Display"
+msgstr "Fiyat Gösterimi"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__price_er_employee_expr
+msgid "Price Rate Employee"
+msgstr "Fiyat Oran Çalışan"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__price_type
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__price_type
+msgid "Price Type"
+msgstr "Fiyat Türü"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__pricelist_id
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template__pricelist_id
+msgid "Pricelist"
+msgstr "Fiyat listesi"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract_invoice_line__price_type__pricelist
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract_template_invoice_line__price_type__pricelist
+msgid "Pricelist Price"
+msgstr "Fiyat Listesi Fiyatı"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__product_id
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__product_id
+msgid "Product"
+msgstr "Ürün"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract__journal_type__purchase
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract_template__journal_type__purchase
+msgid "Purchase"
+msgstr "Satın al"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract_invoice_line__price_type__py_expr
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract_template_invoice_line__price_type__py_expr
+msgid "Python Expression"
+msgstr "Python ifadesi"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,help:generic_contract_invoicing.field_generic_contract_invoice_line__quantity
+#: model:ir.model.fields,help:generic_contract_invoicing.field_generic_contract_template_invoice_line__quantity
+msgid "Python expressiong that have to be used to compute quantity."
+msgstr "Miktarı hesaplamak için kullanılması gereken Python ifadesi."
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__quantity
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__quantity
+msgid "Quantity"
+msgstr "Miktar"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_employee_rate__rate
+msgid "Rate"
+msgstr "Oran"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,help:generic_contract_invoicing.field_generic_contract_employee_rate__rate
+msgid "Rate of employee per hour."
+msgstr "Saat başına çalışan oranı."
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__recipient_ids
+msgid "Recipient"
+msgstr "alıcı"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__recurring_type
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template__recurring_type
+msgid "Recurrence"
+msgstr "tekrar"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "Recurring Invoices"
+msgstr "Yinelenen Faturalar"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__recurring_invoices_last_error
+msgid "Recurring Invoices Last Error"
+msgstr "Yinelenen Faturalarda Son Hata"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__recurring_invoices_offset_date
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template__recurring_invoices_offset_date
+msgid "Recurring Invoices Offset Date"
+msgstr "Tekrarlayan Faturalar Offset Tarihi"
+
+#. module: generic_contract_invoicing
+#: model:ir.actions.server,name:generic_contract_invoicing.generic_contract_recurring_create_invoice_ir_actions_server
+#: model:ir.cron,cron_name:generic_contract_invoicing.generic_contract_recurring_create_invoice
+#: model:ir.cron,name:generic_contract_invoicing.generic_contract_recurring_create_invoice
+msgid "Recurring Invoices from Generic Contracts"
+msgstr "Genel Sözleşmelerden Yinelenen Faturalar"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__recurring_invoicing_type
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template__recurring_invoicing_type
+msgid "Recurring Invoicing Type"
+msgstr "Yinelenen Faturalama Türü"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__recurring_next_invoice_date
+msgid "Recurring Next Invoice Date"
+msgstr "Yinelenen Sonraki Fatura Tarihi"
+
+#. module: generic_contract_invoicing
+#: code:addons/generic_contract_invoicing/models/generic_contract.py:0
+#, python-format
+msgid "Recurring Period (Repeat Every) must be greater then 0"
+msgstr "Yinelenen Dönem (Tekrar Aralığı) 0'dan büyük olmalıdır"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__recurring_period
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template__recurring_period
+msgid "Repeat Every"
+msgstr "Hep Tekrarla"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,help:generic_contract_invoicing.field_generic_contract__recurring_period
+#: model:ir.model.fields,help:generic_contract_invoicing.field_generic_contract_template__recurring_period
+msgid "Repeat every (Days/Week/Month/Year)"
+msgstr "Her (Gün/Hafta/Ay/Yıl) tekrarla"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+msgid "Run scheduler"
+msgstr "zamanlayıcıyı çalıştır"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract__journal_type__sale
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract_template__journal_type__sale
+msgid "Sale"
+msgstr "Satış"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract_invoice_line__display_type__line_section
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract_template_invoice_line__display_type__line_section
+msgid "Section"
+msgstr "Bölüm"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__sequence
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__sequence
+msgid "Sequence"
+msgstr "Sıra"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,help:generic_contract_invoicing.field_generic_contract__recurring_type
+#: model:ir.model.fields,help:generic_contract_invoicing.field_generic_contract_template__recurring_type
+msgid "Specify Interval for automatic invoice generation."
+msgstr "Otomatik fatura üretimi için Aralık belirtin."
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,help:generic_contract_invoicing.field_generic_contract__recurring_invoices_offset_date
+#: model:ir.model.fields,help:generic_contract_invoicing.field_generic_contract_template__recurring_invoices_offset_date
+msgid ""
+"Specify offset days for automatic invoice generation. For example, if "
+"recurring_next_date equals 01-01-2021 and offset date equals 2, then "
+"invoice_date equals 30-12-2020."
+msgstr ""
+"Otomatik fatura üretimi için mahsup günlerini belirtin. Örneğin, "
+"recurring_next_date 01-01-2021'e ve mahsup tarihi 2'ye eşitse, invoice_date "
+"30-12-2020'ye eşittir."
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,help:generic_contract_invoicing.field_generic_contract_invoice_line__display_type
+#: model:ir.model.fields,help:generic_contract_invoicing.field_generic_contract_template_invoice_line__display_type
+msgid "Technical field for UX purpose."
+msgstr "UX amaçlı teknik alan."
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__template_line_id
+msgid "Template Line"
+msgstr "Şablon Satırı"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__uom_id
+#: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__uom_id
+msgid "Unit of Measure"
+msgstr "Ölçü birimi"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract__recurring_type__weekly
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract_template__recurring_type__weekly
+msgid "Week(s)"
+msgstr "Hafta(lar)"
+
+#. module: generic_contract_invoicing
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract__recurring_type__yearly
+#: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract_template__recurring_type__yearly
+msgid "Year(s)"
+msgstr "Yıl(lar)"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "You can use following variables in context:"
+msgstr "Bağlamda aşağıdaki değişkenleri kullanabilirsiniz:"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "contract"
+msgstr "Sözleşme"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "contract.get_employee_rate(employee)"
+msgstr "contract.get_employee_rate(employee)"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "contract.get_resources(model_name, all_lines=False)"
+msgstr "contract.get_resources(model_name, all_lines=False)"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "invoice"
+msgstr "Fatura"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "invoice_date"
+msgstr "invoice_date"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "period_date_end"
+msgstr "period_date_end"
+
+#. module: generic_contract_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
+#: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_template_form
+msgid "period_date_start"
+msgstr "period_date_start"

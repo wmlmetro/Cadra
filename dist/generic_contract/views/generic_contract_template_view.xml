@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_generic_contract_template_tree" model="ir.ui.view">
+        <field name="model">generic.contract.template</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="partner_type"/>
+                <field name="contract_count" string="Contracts"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_generic_contract_template_form" model="ir.ui.view">
+        <field name="model">generic.contract.template</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button class="oe_highlight"
+                            type="object"
+                            name="action_open_contract_create_wizard"
+                            string="Create contract">
+                    </button>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" type="object"
+                                name="action_view_template_contracts"
+                                icon="fa-files-o">
+                            <field string="Contracts"
+                                name="contract_count"
+                                widget="statinfo"/>
+                        </button>
+                    </div>
+                    <field name="active" invisible="1"/>
+                    <widget name="web_ribbon" title="Archived"
+                            bg_color="bg-danger"
+                            attrs="{'invisible': [('active', '=', True)]}"/>
+                    <div class="oe_title">
+                        <h2>
+                            <field name="name" default_focus="1" placeholder="Name" />
+                        </h2>
+                    </div>
+                    <group name="main_contract_group">
+                        <group name="main_contract_group_left">
+                            <field name="partner_type"/>
+                        </group>
+                        <group name="main_contract_group_right">
+                            <field name="number_sequence_id"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page name="page_description" string="Description">
+                            <field name="description" placeholder="Describe the contract..."/>
+                        </page>
+                        <page name="page_services"
+                              string="Services">
+                            <field name="service_contract_line_ids" nolabel="1" mode="tree">
+                                <tree editable="bottom">
+                                    <field name="service_id"/>
+                                    <field name="service_level_id" groups="generic_service.group_use_service_level"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_generic_contract_template_search">
+        <field name="model">generic.contract.template</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <separator/>
+                <filter name="filter_archived"
+                        string="Archived"
+                        domain="[('active', '=', False)]"/>
+                <separator/>
+                <filter name="group_by_partner_type" string="Partner type"
+                            context="{'group_by': 'partner_type'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="generic_contract_template_action" model="ir.actions.act_window">
+        <field name="name">Generic Contract Template</field>
+        <field name="res_model">generic.contract.template</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'search_default_filter_main_contracts_templates': 1}</field>
+    </record>
+
+    <menuitem name="Templates"
+              id="generic_contract_template"
+              sequence="20"
+              parent="generic_contract.generic_contract_configuration"
+              action="generic_contract_template_action"/>
+
+</odoo>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo noupdate="1">
+    <record id="assign_project_manager_policy"
+            model="generic.assign.policy">
+        <field name="name">Assign project manager</field>
+        <field name="model_id" ref="project.model_project_project"/>
+    </record>
+    <record id="assign_project_manager_to_project_task_policy"
+            model="generic.assign.policy">
+        <field name="name">Assign project manager to task</field>
+        <field name="model_id" ref="project.model_project_task"/>
+    </record>
+
+     <record id="assign_project_manager_policy_rule_primary"
+             model="generic.assign.policy.rule">
+        <field name="name">Project manager</field>
+        <field name="policy_id" ref="assign_project_manager_policy"/>
+        <field name="assign_type">user_field</field>
+        <field name="assign_user_field_id"
+               ref="project.field_project_project__user_id"/>
+    </record>
+
+     <record id="assign_project_manager_policy_rule_secondary"
+             model="generic.assign.policy.rule">
+        <field name="name">Project manager</field>
+        <field name="policy_id"
+               ref="assign_project_manager_to_project_task_policy"/>
+        <field name="assign_type">related_policy</field>
+        <field name="assign_related_policy_field_id"
+               ref="project.field_project_task__project_id"/>
+        <field name="assign_related_policy_id"
+               ref="assign_project_manager_policy"/>
+    </record>
+
+</odoo>

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="generic_request_sla_rule_type_view_tree" model="ir.ui.view">
+        <field name="model">request.sla.rule.type</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="sla_rule_count" string="SLA Rules"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="generic_request_sla_rule_type_view_search" model="ir.ui.view">
+        <field name="model">request.sla.rule.type</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="code"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="generic_request_sla_rule_type_view_form" model="ir.ui.view">
+        <field name="model">request.sla.rule.type</field>
+        <field name="arch" type="xml">
+            <form>
+                <field name="id" invisible="1"/>
+                <sheet>
+                    <field name="active" invisible="1"/>
+                    <widget name="web_ribbon" title="Archived"
+                            bg_color="bg-danger"
+                            attrs="{'invisible': [('active', '=', True)]}"/>
+                    <div name="title" class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Name..."/>
+                        </h1>
+                        <h3>
+                            <field name="code" placeholder="Code..."/>
+                        </h3>
+                    </div>
+                    <group name="group_rules" string="Rules"
+                           attrs="{'invisible': [('id', '=', False)]}">
+                        <field name="sla_rule_ids"
+                               nolabel="1"
+                               context="{'default_sla_rule_type_id': id}"/>
+                    </group>
+                    <field name="description" placeholder="Description..."/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="request_sla_rule_type_view_dashboard" model="ir.ui.view">
+        <field name="name">request.sla.rule.type.dashbard</field>
+        <field name="model">request.sla.rule.type</field>
+        <field name="arch" type="xml">
+            <kanban class="oe_background_grey o_request_dashboard_kanban">
+                <field name="name"/>
+                <field name="code"/>
+                <field name="description"/>
+
+                <templates>
+                     <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click o_request_dashboard_kanban">
+                            <div class="o_request_dashboard_kanban_main">
+                                <div class="o_request_dashboard_content">
+                                    <div class="o_kanban_primary_left">
+                                        <div class="o_primary">
+                                            <span><t t-esc="record.name.raw_value"/></span>
+                                        </div>
+                                        <div t-if="record.code.raw_value" class="text-muted">
+                                            <span><t t-esc="record.code.raw_value"/></span>
+                                        </div>
+                                        <div t-if="record.description.raw_value">
+                                            <span><t t-esc="record.description.raw_value"/></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+
+    <record id="action_request_sla_rule_type_view" model="ir.actions.act_window">
+        <field name="name">SLA Rule Type</field>
+        <field name="res_model">request.sla.rule.type</field>
+        <field name="view_mode">kanban,tree,form</field>
+        <field name="help" type="html">
+            <p class="oe_view_nocontent_create">
+                Click to create a new SLA Rule Type.
+            </p>
+            <p>
+                SLA Rule Type is a global type of SLA Rules. It is used to group
+                these rules (Examples: Draft, Assigned, Unassigned, etc.).
+                It can also be used to group records in SLA Reports.
+            </p>
+            <p>
+                SLA configures for each type of request. On the form of a request type,
+                click the <b>SLA Rules</b> button and create appropriate rules.<br/>
+                More info about SLA setup can be read in the
+                <a href="https://crnd.pro/doc-bureaucrat-itsm/11.0/en/Generic_Request_SLA_admin_eng/"
+                target="_blank">Documentation</a>.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_request_sla_rule_type"
+              parent="menu_request_configuration_sla"
+              action="action_request_sla_rule_type_view"
+              sequence="100"/>
+</odoo>

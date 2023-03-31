@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_event_action_form">
+        <field name="model">request.event.action</field>
+        <field name="inherit_id" ref="generic_request_action.view_request_event_action_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form//notebook[@name='notebook_action']" position="inside">
+                <page name="page_action_subrequest"
+                      string="Subrequest"
+                      attrs="{'invisible': [('act_type', '!=', 'subrequest')]}">
+                    <group>
+                        <group>
+                            <field name="subrequest_template_id"
+                                   attrs="{'required': [('act_type', '=', 'subrequest')]}"/>
+                            <field name="subrequest_type_id"/>
+                            <field name="subrequest_category_id"/>
+                            <field name="subrequest_same_author"
+                                   string="Use same author for subrequest"/>
+                            <field name="subrequest_same_deadline"
+                                   string="Use same deadline for subrequest"/>
+                            <field name="subrequest_transfer_field_ids"
+                                   string="Transfer fields to subrequest"
+                                   widget="many2many_tags"/>
+
+                            <!-- Trigger route -->
+                            <field name="subrequest_start_stage_id" invisible="1"/>
+                            <field name="subrequest_trigger_route_id"
+                                   domain="[('stage_from_id', '=', subrequest_start_stage_id)]"/>
+                            <field name="subrequest_text_template_id"/>
+                        </group>
+                        <group name="group_action_subrequest">
+                            <field name="subrequest_subscribe_partner_ids" widget="many2many_tags"/>
+                        </group>
+                        <field name="subrequest_text" colspan="4" attrs="{'invisible': [('subrequest_text_template_id', '!=', False)]}"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

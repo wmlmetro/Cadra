@@ -1,0 +1,1 @@
+from . import generic_resource_wizard_link_service

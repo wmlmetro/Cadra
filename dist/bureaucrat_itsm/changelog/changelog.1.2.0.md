@@ -1,0 +1,2 @@
+- Added addon `crnd_wsd_broadcast`
+- Added addon `crnd_wsd_hr`

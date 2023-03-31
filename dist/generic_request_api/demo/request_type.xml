@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="test_api_request_type" model="request.type" context="{'create_default_stages': True}">
+        <field name="name">API Type</field>
+        <field name="code">T1</field>
+        <field name="category_ids" eval="[(4, ref('generic_request_api.test_api_request_category'))]"/>
+    </record>
+</odoo>

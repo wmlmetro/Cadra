@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Demo for generic.location -->
+    <record model="generic.location" id="simple_location_table_1">
+        <field name="name">table 1</field>
+        <field name="parent_id" ref="generic_location.simple_location_room_7"/>
+    </record>
+    <record model="generic.location" id="simple_location_table_2">
+        <field name="name">table 2</field>
+        <field name="parent_id" ref="generic_location.simple_location_room_7"/>
+        <field name="located_resource_ids" eval="[(6, 0, [ref('generic_resource.simple_resource_notebook_3')])]"/>
+    </record>
+    <record model="generic.location" id="simple_location_table_3">
+        <field name="name">table 3</field>
+        <field name="parent_id" ref="generic_location.simple_location_room_10"/>
+        <field name="located_resource_ids" eval="[(6, 0, [ref('generic_resource.simple_resource_computer_2')])]"/>
+    </record>
+    <record model="generic.location" id="simple_location_table_1_place_1">
+        <field name="name">place 1</field>
+        <field name="parent_id" ref="simple_location_table_1"/>
+        <field name="located_resource_ids" eval="[(6, 0, [ref('generic_resource.simple_resource_notebook_2')])]"/>
+    </record>
+    <record model="generic.location" id="simple_location_table_1_place_2">
+        <field name="name">place 2</field>
+        <field name="parent_id" ref="simple_location_table_1"/>
+        <field name="located_resource_ids" eval="[(6, 0, [ref('generic_resource.simple_resource_inkprinter_4')])]"/>
+    </record>
+
+    <!-- Demo for generic.resource -->
+    <record model="generic.resource.simple" id="generic_resource.simple_resource_notebook_2">
+        <field name="placed_on_location_id" ref="simple_location_table_1_place_1"/>
+    </record>
+    <record model="generic.resource.simple" id="generic_resource.simple_resource_notebook_3">
+        <field name="placed_on_location_id" ref="simple_location_table_2"/>
+    </record>
+    <record model="generic.resource.simple" id="generic_resource.simple_resource_computer_2">
+        <field name="placed_on_location_id" ref="simple_location_table_3"/>
+    </record>
+    <record model="generic.resource.simple" id="generic_resource.simple_resource_inkprinter_4">
+        <field name="placed_on_location_id" ref="simple_location_table_1_place_2"/>
+    </record>
+</odoo>

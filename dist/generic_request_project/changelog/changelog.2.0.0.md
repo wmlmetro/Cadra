@@ -1,0 +1,2 @@
+- Added field *Project* to *Request* model.
+- Added new request event *Project Changed* that could be handled by automated actions.

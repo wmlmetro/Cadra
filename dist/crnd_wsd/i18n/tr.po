@@ -1,0 +1,1728 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* crnd_wsd
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:20+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-15-0/crnd_wsd/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: crnd_wsd
+#: model:request.category,description:crnd_wsd.request_category_demo_website
+msgid ""
+"\n"
+"            SaAS related requests\n"
+"        "
+msgstr ""
+"\n"
+"            SaAS ile ilgili talepler\n"
+"        "
+
+#. module: crnd_wsd
+#: model:request.category,description:crnd_wsd.request_category_demo_website_tech
+msgid ""
+"\n"
+"            Technical requests\n"
+"        "
+msgstr ""
+"\n"
+"            teknik istekler\n"
+"        "
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid ""
+".\n"
+"\n"
+"                            Following popular Mime Types could be used:"
+msgstr ""
+".\n"
+"\n"
+"                             Aşağıdaki popüler Mime Türleri kullanılabilir:"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid ""
+"<b><i>Allow to create request</i></b> - unauthorized users will be able to "
+"create requests in system without need to login or register."
+msgstr ""
+"<b><i>Talep oluşturmaya izin ver</i></b> - yetkisiz kullanıcılar oturum "
+"açmaya veya kaydolmaya gerek kalmadan sistemde istek oluşturabilecektir."
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "<b><i>Redirect to congratulation page</i></b>"
+msgstr "<b><i>Tebrik sayfasına yönlendir</i></b>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid ""
+"<b><i>Redirect to login</i></b> - unauthorized users will be automatically "
+"redirected to login page."
+msgstr ""
+"<b><i>Giriş yapmak için yönlendir</i></b> - yetkisiz kullanıcılar otomatik "
+"olarak giriş sayfasına yönlendirilecektir."
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "<b><i>Redirect to request page</i></b>"
+msgstr "<b><i>İstek sayfasına yönlendir</i></b>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid ""
+"<b><i>Require login</i></b> - if user is not authenticated,\n"
+"                                    then redirect to login page first, and "
+"after user logged in,\n"
+"                                    redirect back to request page (website "
+"for portal users, and web for internal users)"
+msgstr ""
+"<b><i>Giriş gerektir</i></b> - kullanıcının kimliği doğrulanmamışsa,\n"
+"                                     ardından önce oturum açma sayfasına "
+"yönlendirin ve kullanıcı oturum açtıktan sonra,\n"
+"                                     istek sayfasına geri yönlendirme "
+"(portal kullanıcıları için web sitesi ve dahili kullanıcılar için web)"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid ""
+"<b><i>Restricted UI</i></b> - unauthorized users will be able to pass all "
+"steps of creating a request but unable to submit request until logged in. "
+"Also, on all screens they will see small block that asks them to login or "
+"register (with links to both actions)."
+msgstr ""
+"<b><i>Kısıtlı Kullanıcı Arayüzü</i></b> - Yetkisiz kullanıcılar, istek "
+"oluşturmanın tüm adımlarını geçebilecek ancak giriş yapana kadar istek "
+"gönderemeyecek. Ayrıca, tüm ekranlarda küçük bir blok görecekler. oturum "
+"açmalarını veya kaydolmalarını ister (her iki eyleme de bağlantılarla "
+"birlikte)."
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid ""
+"<b><i>Shared link</i></b> - in this case, the mail link will\n"
+"                                    contain <i>access_token</i>, thus if "
+"user is not logged in, the website page of request\n"
+"                                    will be displayed for this user with "
+"limited functionality\n"
+"                                    (no ability to edit request text, no "
+"ability to move request to next stage, etc).\n"
+"                                    In case if it is default notification "
+"email, or if email contains id of partner,\n"
+"                                    only chatter could work."
+msgstr ""
+"<b><i>Paylaşılan bağlantı</i></b> - bu durumda, posta bağlantısı\n"
+"                                     <i>access_token</i> içerir, böylece "
+"kullanıcı oturum açmamışsa istek web sitesi sayfası\n"
+"                                     sınırlı işlevselliğe sahip bu kullanıcı "
+"için görüntülenecek\n"
+"                                     (istek metnini düzenleyememe, isteği "
+"bir sonraki aşamaya taşıyamama vb.).\n"
+"                                     Varsayılan bildirim e-postası ise veya "
+"e-posta iş ortağının kimliğini içeriyorsa,\n"
+"                                     sadece gevezelik işe yarayabilir."
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid ""
+"<code>\n"
+"                                object.get_mail_url()\n"
+"                            </code>"
+msgstr ""
+"<code>\n"
+"                                object.get_mail_url()\n"
+"                            </code>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid ""
+"<code>\n"
+"                                object.get_mail_url(pid)\n"
+"                            </code>"
+msgstr ""
+"<code>\n"
+"                                object.get_mail_url(pid)\n"
+"                            </code>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data_priority
+msgid "<i class=\"fa fa-arrow-right\" title=\"Priority\"/>"
+msgstr "<i class=\"fa fa-arrow-right\" title=\"Öncelik\"/>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data_priority
+msgid "<i class=\"fa fa-clock-o\" title=\"Urgency\"/>"
+msgstr "<i class=\"fa fa-clock-o\" title=\"Aciliyet\"/>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data_priority
+msgid "<i class=\"fa fa-star-half-o\" title=\"Impact\"/>"
+msgstr "<i class=\"fa fa-star-half-o\" title=\"Etki\"/>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
+msgid ""
+"<small id=\"request_author_email_help\" class=\"form-text text-muted\">\n"
+"                                    Please, enter here your email address.\n"
+"                                </small>"
+msgstr ""
+"<small id=\"request_author_email_help\" class=\"form-text text-muted\">\n"
+"                                     Lütfen e-posta adresinizi buraya "
+"giriniz.\n"
+"                                 </small>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
+msgid ""
+"<small id=\"request_author_phone_help\" class=\"form-text text-muted\">\n"
+"                                    Please, enter here your phone number.\n"
+"                                </small>"
+msgstr ""
+"<small id=\"request_author_phone_help\" class=\"form-text text-muted\">\n"
+"                                     Lütfen telefon numaranızı buraya "
+"giriniz.\n"
+"                                 </small>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.request_short_info
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_selection_box
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_table
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_congratulation
+msgid "<span class=\"fa fa-bars mr4\" title=\"Category\"/>"
+msgstr "<span class=\"fa fa-bars mr4\" title=\"Kategori\"/>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+msgid "<span class=\"fa fa-chevron-down\">Read more</span>"
+msgstr "<span class=\"fa fa-chevron-down\">Devamını oku</span>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+msgid "<span class=\"fa fa-chevron-up\">Read less</span>"
+msgstr "<span class=\"fa fa-chevron-up\">Daha az oku</span>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.request_short_info
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_selection_box
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_table
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_congratulation
+msgid "<span class=\"fa fa-hashtag mr4\" title=\"Type\"/>"
+msgstr "<span class=\"fa fa-hashtag mr4\" title=\"Tür\"/>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_simplified_line
+msgid ""
+"<span class=\"fa fa-info-circle info-toggle mr8\" title=\"Show request info"
+"\"/>"
+msgstr ""
+"<span class=\"fa fa-info-circle info-toggle mr8\" title=\"İstek bilgisini "
+"göster\"/>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.request_short_info
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_selection_box
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_table
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_congratulation
+msgid "<span class=\"fa fa-square mr4\" title=\"Kind\"/>"
+msgstr "<span class=\"fa fa-square mr4\" title=\"Tür\"/>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.request_short_info
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_selection_box
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_table
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_congratulation
+msgid "<span class=\"fa fa-square-o mr4\" title=\"Service\"/>"
+msgstr ""
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+msgid ""
+"<span class=\"header-bg-filler\">Request</span>\n"
+"                                    <span class=\"header-separator-splitter"
+"\"/>"
+msgstr ""
+"<span class=\"header-bg-filler\">İstek</span>\n"
+"                                    <span class=\"header-separator-splitter"
+"\"/>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
+msgid ""
+"<span class=\"pull-right badge\" id=\"characters_left_label\" data-toggle="
+"\"tooltip\" data-placement=\"bottom\" title=\"Remaining characters.\"/>"
+msgstr ""
+"<span class=\"pull-right badge\" id=\"characters_left_label\" data-toggle="
+"\"tooltip\" data-placement=\"bottom\" title=\"Kalan karakterler.\"/>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+msgid ""
+"<span class=\"wsd_request header-bg-filler\">Response</span>\n"
+"                                    <span class=\"header-separator-splitter"
+"\"/>"
+msgstr ""
+"<span class=\"wsd_request header-bg-filler\">Yanıt</span>\n"
+"                                    <span class=\"header-separator-splitter"
+"\"/>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+msgid ""
+"<span class=\"wsd_request header-bg-filler\">Subrequests</span>\n"
+"                                        <span class=\"header-separator-"
+"splitter\"/>"
+msgstr ""
+"<span class=\"wsd_request header-bg-filler\">Alt istekler</span>\n"
+"                                        <span class=\"header-separator-"
+"splitter\"/>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
+msgid "<span>X</span>"
+msgstr "<span>X</span>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_action_log
+msgid "<strong>Assigned</strong>"
+msgstr "<strong>Atandı</strong>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_action_log
+msgid "<strong>Closed</strong>"
+msgstr "<strong>Kapandı</strong>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_action_log
+msgid "<strong>Created</strong>"
+msgstr "<strong>Oluşturuldu</strong>"
+
+#. module: crnd_wsd
+#: model:request.stage,name:crnd_wsd.request_stage_type_upgrade_accepted
+msgid "Accepted"
+msgstr "Kabul edildi"
+
+#. module: crnd_wsd
+#: code:addons/crnd_wsd/controllers/helpers.py:0
+#, python-format
+msgid "Access denied"
+msgstr "Erişim engellendi"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_request__access_warning
+msgid "Access warning"
+msgstr "Erişim uyarısı"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_filterbox
+msgid "All"
+msgstr "Bütün"
+
+#. module: crnd_wsd
+#: model:ir.model.fields.selection,name:crnd_wsd.selection__res_company__request_wsd_public_ui_visibility__create-request
+msgid "Allow to create request"
+msgstr "İstek oluşturmaya izin ver"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_type__website_comments_closed
+msgid "Are comments not available?"
+msgstr "Yorumlar müsait değil mi?"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_simplified_line
+msgid "Assigned"
+msgstr "Atandı"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_action_log
+msgid "Assignee"
+msgstr "Atanan"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_request__assignee_avatar
+msgid "Assignee (Avatar)"
+msgstr "Atanan (Avatar)"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_action_log
+msgid "Author"
+msgstr "Yazar"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_request__author_avatar
+msgid "Author (Avatar)"
+msgstr "Yazar (Avatar)"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
+msgid "Back"
+msgstr "geri"
+
+#. module: crnd_wsd
+#: model_terms:request.request,instruction_html:crnd_wsd.demo_request_request_printer_1
+msgid "Below is example of list, that describes steps to solve request"
+msgstr "Aşağıda, isteği çözme adımlarını açıklayan liste örneği verilmiştir"
+
+#. module: crnd_wsd
+#: model:request.type,name:crnd_wsd.request_type_bug_report
+msgid "Bug Report"
+msgstr "Bug Raporu"
+
+#. module: crnd_wsd
+#. openerp-web
+#: code:addons/crnd_wsd/static/src/xml/templates.xml:0
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_select_param
+#, python-format
+msgid "Cancel"
+msgstr "İptal etmek"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.request_short_info
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_selection_box
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_table
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_congratulation
+msgid "Category"
+msgstr "kategori"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_progress
+msgid ""
+"Category\n"
+"                <span/>"
+msgstr ""
+"Kategori\n"
+"                <span/>"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid ""
+"Choose if you need to use the author`s phone on the creation page of the "
+"request."
+msgstr ""
+"İsteğin oluşturma sayfasında yazarın telefonunu kullanmanız gerekip "
+"gerekmediğini seçin."
+
+#. module: crnd_wsd
+#: model_terms:request.request,note_html:crnd_wsd.demo_request_request_printer_1
+msgid "Choose printer You want to get access for"
+msgstr "Erişim elde etmek istediğiniz yazıcıyı seçin"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "Choose the layout style applied for request creation steps."
+msgstr "İstek oluşturma adımları için uygulanan düzen stilini seçin."
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "Choose the the kind of access for link provided in emails."
+msgstr "E-postalarda sağlanan bağlantı için erişim türünü seçin."
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "Choose the way to redirect after request created."
+msgstr "İstek oluşturulduktan sonra yönlendirmenin yolunu seçin."
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_res_config_settings__request_mail_link_access
+msgid "Choose what kind of link to request will be used in emails."
+msgstr "E-postalarda ne tür bağlantı talep edileceğini seçin."
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "Choose what public (unregistered) users can see or can do."
+msgstr ""
+"Herkese açık (kayıtlı olmayan) kullanıcıların neler görebileceğini veya "
+"neler yapabileceğini seçin."
+
+#. module: crnd_wsd
+#: model:request.stage.route,name:crnd_wsd.request_stage_route_type_bug_report_sent_to_closed
+#: model:request.stage.route,name:crnd_wsd.request_stage_route_type_generic_sent_to_closed
+#: model:request.stage.route,name:crnd_wsd.request_stage_route_type_without_service_sent_to_closed
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
+msgid "Close"
+msgstr "Kapat"
+
+#. module: crnd_wsd
+#: model:request.stage,name:crnd_wsd.request_stage_type_bug_report_closed
+#: model:request.stage,name:crnd_wsd.request_stage_type_generic_closed
+#: model:request.stage,name:crnd_wsd.request_stage_type_without_service_closed
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_filterbox
+msgid "Closed"
+msgstr "Kapalı"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_request__closed_by_avatar
+msgid "Closed By (Avatar)"
+msgstr "Kapatan (Avatar)"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_action_log
+msgid "Closed by"
+msgstr "Kapatan"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_action_log
+msgid "Closing date"
+msgstr "Kapanma tarihi"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_table
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_congratulation
+msgid "Comments"
+msgstr "Yorumlar"
+
+#. module: crnd_wsd
+#: model:ir.model,name:crnd_wsd.model_res_company
+msgid "Companies"
+msgstr "şirketler"
+
+#. module: crnd_wsd
+#: model:ir.model,name:crnd_wsd.model_res_config_settings
+msgid "Config Settings"
+msgstr "Yapılandırma Ayarları"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
+msgid "Create"
+msgstr "oluştur"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests
+msgid "Create request"
+msgstr "İstek oluştur"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_action_log
+msgid "Created by"
+msgstr "Tarafından yaratıldı"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_simplified_line
+msgid "Created: {{ rel_req.date_created }}"
+msgstr "Created: {{ rel_req.date_created }}"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_action_log
+msgid "Creation date"
+msgstr "Oluşturulma tarihi"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_request__created_by_avatar
+msgid "Creator (Avatar)"
+msgstr "Oluşturucu (Avatar)"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+msgid "Current stage"
+msgstr "Mevcut aşama"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,help:crnd_wsd.field_request_request__access_url
+msgid "Customer Portal URL"
+msgstr "Müşteri Portalı URL'si"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_action_log
+msgid "Date assigned"
+msgstr "Atanan tarih"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+msgid "Deadline date"
+msgstr "son teslim tarihi"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_simplified_line
+msgid "Deadline: {{rel_req.deadline_date}}"
+msgstr "Deadline: {{rel_req.deadline_date}}"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_table
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_congratulation
+msgid "Deadline: {{req.deadline_date}}"
+msgstr "Deadline: {{req.deadline_date}}"
+
+#. module: crnd_wsd
+#: model:request.kind,name:crnd_wsd.request_kind_demo_wsd
+msgid "Demo WSD"
+msgstr "Demo WSD"
+
+#. module: crnd_wsd
+#: model:request.kind,description:crnd_wsd.request_kind_demo_wsd
+msgid "Demo website service desk requests"
+msgstr "Demo web sitesi hizmet masası istekleri"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_select_param__selection__radio
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_select_param__selection__tile
+msgid "Description"
+msgstr "Tanım"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,help:crnd_wsd.field_request_type__website_comments_closed
+msgid "Disable website comments on closed requests"
+msgstr "Kapalı isteklerde web sitesi yorumlarını devre dışı bırak"
+
+#. module: crnd_wsd
+#. openerp-web
+#: code:addons/crnd_wsd/static/src/js/request_actions.js:0
+#, python-format
+msgid "Discard"
+msgstr "At"
+
+#. module: crnd_wsd
+#. openerp-web
+#: code:addons/crnd_wsd/static/src/js/blockui.js:0
+#, python-format
+msgid "Don't leave yet,<br />it's still loading..."
+msgstr "Henüz ayrılmayın,<br />hala yükleniyor..."
+
+#. module: crnd_wsd
+#: model:request.stage,name:crnd_wsd.request_stage_type_bug_report_draft
+#: model:request.stage,name:crnd_wsd.request_stage_type_generic_draft
+#: model:request.stage,name:crnd_wsd.request_stage_type_upgrade_draft
+#: model:request.stage,name:crnd_wsd.request_stage_type_without_service_draft
+msgid "Draft"
+msgstr "Taslak"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+msgid "Edit"
+msgstr "Düzenle"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid ""
+"Ensure, that your proxy server (nginx, apache, etc) allows to upload files "
+"of selected size,\n"
+"                            because it is frequent case, when uploading of "
+"large files is blocked on nginx level."
+msgstr ""
+"Proxy sunucunuzun (nginx, apache, vb.) seçilen boyuttaki dosyaları yüklemeye "
+"izin verdiğinden emin olun,\n"
+"                             nginx düzeyinde büyük dosyaların yüklenmesi "
+"engellendiğinde sık görülen bir durumdur."
+
+#. module: crnd_wsd
+#. openerp-web
+#: code:addons/crnd_wsd/static/src/js/request_actions.js:0
+#, python-format
+msgid "Error"
+msgstr "hata"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_stage_route_form
+msgid "Extra Action"
+msgstr "Ekstra İşlem"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "File Types Allowed to Upload"
+msgstr "Karşıya Yüklenmesine İzin Verilen Dosya Türleri"
+
+#. module: crnd_wsd
+#: code:addons/crnd_wsd/controllers/helpers.py:0
+#, python-format
+msgid "File size is too big!"
+msgstr "Dosya boyutu çok büyük!"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
+msgid "Following errors happened during request creation!"
+msgstr "İstek oluşturma sırasında aşağıdaki hatalar oluştu!"
+
+#. module: crnd_wsd
+#: model:ir.model.fields.selection,name:crnd_wsd.selection__res_company__request_limit_max_upload_file_size_uom__gbytes
+msgid "GB"
+msgstr "GB"
+
+#. module: crnd_wsd
+#: model:request.category,name:crnd_wsd.request_category_demo_website_general
+msgid "General"
+msgstr ""
+
+#. module: crnd_wsd
+#: model:request.category,description:crnd_wsd.request_category_demo_website_general
+msgid "General website requests"
+msgstr ""
+
+#. module: crnd_wsd
+#: model:request.type,name:crnd_wsd.request_type_generic
+msgid "Generic Question"
+msgstr "Genel Soru"
+
+#. module: crnd_wsd
+#: model:ir.model,name:crnd_wsd.model_generic_service
+msgid "Generic Service"
+msgstr ""
+
+#. module: crnd_wsd
+#: model:request.type,description:crnd_wsd.request_type_generic
+msgid "Generic questions about anything"
+msgstr "Herhangi bir şey hakkında genel sorular"
+
+#. module: crnd_wsd
+#: model:ir.model,name:crnd_wsd.model_ir_http
+msgid "HTTP Routing"
+msgstr "HTTP Yönlendirmesi"
+
+#. module: crnd_wsd
+#: model_terms:request.request,instruction_html:crnd_wsd.demo_request_request_printer_1
+msgid "Here is just example of instruction."
+msgstr "İşte sadece talimat örneği."
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_timesheet_info
+msgid "Hours"
+msgstr "Saatler"
+
+#. module: crnd_wsd
+#: model_terms:request.request,help_html:crnd_wsd.crnd_wsd_subrequest_parent_request
+msgid ""
+"If you have some troubles with access (see access denied errors, etc)\n"
+"             then use this request type"
+msgstr ""
+"Erişimle ilgili bazı sorunlarınız varsa (bkz. erişim reddedildi hataları, "
+"vb.)\n"
+"              sonra bu istek türünü kullanın"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid ""
+"If you want to provide link to request in your custom email template,\n"
+"                                use following method to get the link:"
+msgstr ""
+"Özel e-posta şablonunuzda istek için bağlantı sağlamak istiyorsanız,\n"
+"                                 bağlantıyı almak için aşağıdaki yöntemi "
+"kullanın:"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "In example above <i>pid</i> is ID for the partner to generate link for."
+msgstr ""
+"Yukarıdaki örnekte <i>pid</i>, bağlantı oluşturacak iş ortağının kimliğidir."
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_congratulation
+msgid "It will be reviewed soon"
+msgstr "Yakında incelenecek"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+msgid "It will be reviewed soon."
+msgstr "Yakında incelenecek."
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
+msgid "John Doe <john.doe@johnmail.com>"
+msgstr "John Doe <john.doe@johnmail.com>"
+
+#. module: crnd_wsd
+#: model:ir.model.fields.selection,name:crnd_wsd.selection__res_company__request_limit_max_upload_file_size_uom__kbytes
+msgid "KB"
+msgstr "KB"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.request_short_info
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_selection_box
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_table
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_congratulation
+msgid "Kind"
+msgstr "Tür"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "Layout for request creation steps"
+msgstr "İstek oluşturma adımları için düzen"
+
+#. module: crnd_wsd
+#. openerp-web
+#: code:addons/crnd_wsd/static/src/js/blockui.js:0
+#, python-format
+msgid "Loading..."
+msgstr "Yükleniyor..."
+
+#. module: crnd_wsd
+#: model:ir.model.fields.selection,name:crnd_wsd.selection__res_company__request_limit_max_upload_file_size_uom__mbytes
+msgid "MB"
+msgstr "MB"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "MIME-Types"
+msgstr "MIME-Türleri"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "Maximum File Size Allowed to Upload"
+msgstr "Yüklemeye İzin Verilen Maksimum Dosya Boyutu"
+
+#. module: crnd_wsd
+#. openerp-web
+#: code:addons/crnd_wsd/static/src/js/blockui.js:0
+#, python-format
+msgid "Maybe you should consider reloading the application by pressing F5..."
+msgstr "Belki de F5'e basarak uygulamayı yeniden yüklemeyi düşünmelisiniz..."
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_filterbox
+msgid "My"
+msgstr "Benim"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_navigation
+msgid "New"
+msgstr "Yeni"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_select_param
+msgid "Next"
+msgstr "Sonraki"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_request__activity_date_deadline
+msgid "Next Activity Deadline"
+msgstr "Sonraki Etkinlik Son Tarihi"
+
+#. module: crnd_wsd
+#: model:ir.model.fields.selection,name:crnd_wsd.selection__res_company__request_wsd_public_use_author_phone__no-phone
+msgid "No Phone"
+msgstr "Telefon yok"
+
+#. module: crnd_wsd
+#: model_terms:request.request,stage_help_html:crnd_wsd.crnd_wsd_subrequest_subrequest
+msgid ""
+"Now request is in <i>Draft</i> state.<br>\n"
+"            Please click 'Sent' stage on status bar (right-top corner)\n"
+"            to send it to our team."
+msgstr ""
+"Şimdi istek <i>Taslak</i> durumunda.<br>\n"
+"             Lütfen durum çubuğunda (sağ üst köşe) 'Gönderildi' aşamasını "
+"tıklayın\n"
+"             ekibimize göndermek için."
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_filterbox
+msgid "Open"
+msgstr "Açık"
+
+#. module: crnd_wsd
+#: model:ir.model.fields.selection,name:crnd_wsd.selection__res_company__request_wsd_public_use_author_phone__optional-phone
+msgid "Optional Phone"
+msgstr "Opsiyonel Telefon"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid ""
+"Or, if you have partner in context, then you can call this method providing "
+"ID\n"
+"                                of partner, to generate link specific for "
+"this partner."
+msgstr ""
+"Veya, bağlamda ortağınız varsa, kimlik sağlayan bu yöntemi "
+"çağırabilirsiniz.\n"
+"                                 ortağın, bu ortağa özel bağlantı oluşturmak "
+"için."
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_table
+msgid "Parent Request"
+msgstr "Parent İsteği"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_timesheet_info
+msgid "Planned time"
+msgstr "Planlanan zaman"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_select_param
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
+msgid "Please,"
+msgstr "Lütfen,"
+
+#. module: crnd_wsd
+#. openerp-web
+#: code:addons/crnd_wsd/static/src/js/request_actions.js:0
+#, python-format
+msgid "Please, fill response text!"
+msgstr "Lütfen yanıt metnini doldurunuz!"
+
+#. module: crnd_wsd
+#: code:addons/crnd_wsd/controllers/main.py:0
+#, python-format
+msgid "Please, specify your email address!"
+msgstr "Lütfen e-posta adresinizi belirtin!"
+
+#. module: crnd_wsd
+#: code:addons/crnd_wsd/controllers/main.py:0
+#, python-format
+msgid "Please, specify your phone number!"
+msgstr "Lütfen telefon numaranızı belirtin!"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_request__access_url
+msgid "Portal Access URL"
+msgstr "Portal Erişim URL'si"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data_priority
+msgid "Priority"
+msgstr "Öncelik"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data_priority
+msgid "Priority..."
+msgstr "Öncelik..."
+
+#. module: crnd_wsd
+#: model:request.type,name:crnd_wsd.request_type_without_service
+msgid "Question without service"
+msgstr ""
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+msgid "Read less"
+msgstr "Daha az oku"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+msgid "Read more"
+msgstr "Daha çok oku"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_res_config_settings__request_on_request_creating_redirect_to
+msgid "Redirect after request created on Website"
+msgstr "Web sitesinde oluşturulan istekten sonra yönlendirme"
+
+#. module: crnd_wsd
+#: model:ir.model.fields.selection,name:crnd_wsd.selection__request_stage_route__website_extra_action__redirect_to_my
+msgid "Redirect to My Requests"
+msgstr "İsteklerime Yönlendir"
+
+#. module: crnd_wsd
+#: model:ir.model.fields.selection,name:crnd_wsd.selection__website__request_redirect_after_created_on_website__congrats_page
+msgid "Redirect to congratulation page"
+msgstr "Tebrik sayfasına yönlendir"
+
+#. module: crnd_wsd
+#: model:ir.model.fields.selection,name:crnd_wsd.selection__res_company__request_wsd_public_ui_visibility__redirect
+msgid "Redirect to login"
+msgstr "Oturum açmak için yönlendir"
+
+#. module: crnd_wsd
+#: model:ir.model.fields.selection,name:crnd_wsd.selection__website__request_redirect_after_created_on_website__req_page
+msgid "Redirect to request page"
+msgstr "İstek sayfasına yönlendir"
+
+#. module: crnd_wsd
+#: model:request.stage,name:crnd_wsd.request_stage_type_upgrade_rejected
+msgid "Rejected"
+msgstr "Reddedildi"
+
+#. module: crnd_wsd
+#: model:request.type,description:crnd_wsd.request_type_bug_report
+msgid "Report a bug"
+msgstr "Hata bildir"
+
+#. module: crnd_wsd
+#: model:ir.model,name:crnd_wsd.model_request_request
+msgid "Request"
+msgstr "İstek"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_progress
+msgid ""
+"Request\n"
+"                <span/>"
+msgstr ""
+"İstek\n"
+"                <span/>"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_res_company__request_allowed_upload_file_types
+#: model:ir.model.fields,field_description:crnd_wsd.field_res_config_settings__request_allowed_upload_file_types
+msgid "Request Allowed Upload File Types"
+msgstr "İzin Verilen Yükleme Dosyası Türlerini İste"
+
+#. module: crnd_wsd
+#: model:ir.model,name:crnd_wsd.model_request_category
+msgid "Request Category"
+msgstr "İstek Kategorisi"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_res_config_settings__request_create_step_layout
+#: model:ir.model.fields,field_description:crnd_wsd.field_website__request_create_step_layout
+msgid "Request Create Step Layout"
+msgstr "Adım Düzeni Oluşturma İsteği"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_res_company__request_limit_max_text_size
+#: model:ir.model.fields,field_description:crnd_wsd.field_res_config_settings__request_limit_max_text_size
+msgid "Request Limit Max Text Size"
+msgstr "İstek Sınırı Maksimum Metin Boyutu"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_res_company__request_limit_max_upload_file_size
+#: model:ir.model.fields,field_description:crnd_wsd.field_res_config_settings__request_limit_max_upload_file_size
+msgid "Request Limit Max Upload File Size"
+msgstr "İstek Sınırı Maksimum Yükleme Dosyası Boyutu"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_res_company__request_limit_max_upload_file_size_uom
+#: model:ir.model.fields,field_description:crnd_wsd.field_res_config_settings__request_limit_max_upload_file_size_uom
+msgid "Request Limit Max Upload File Size Uom"
+msgstr "Talep Limiti Maksimum Yükleme Dosyası Boyutu Ölçü Birimi"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_res_company__request_mail_link_access
+msgid "Request Mail Link Access"
+msgstr "Posta Bağlantısı Erişimi İste"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_website__request_redirect_after_created_on_website
+msgid "Request Redirect After Created On Website"
+msgstr "Web Sitesinde Oluşturulduktan Sonra Yeniden Yönlendirme İste"
+
+#. module: crnd_wsd
+#: model:ir.model,name:crnd_wsd.model_request_stage_route
+msgid "Request Stage Route"
+msgstr "İstek Aşaması Rotası"
+
+#. module: crnd_wsd
+#: model:ir.model,name:crnd_wsd.model_request_type
+msgid "Request Type"
+msgstr "İstek Türü"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_res_company__request_wsd_public_ui_visibility
+msgid "Request Wsd Public Ui Visibility"
+msgstr "Wsd Genel Kullanıcı Arayüzü Görünürlüğü İsteyin"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_res_company__request_wsd_public_use_author_phone
+msgid "Request Wsd Public Use Author Phone"
+msgstr "Wsd Genel Kullanım Yazar Telefonu Talep Edin"
+
+#. module: crnd_wsd
+#: model:request.stage,description:crnd_wsd.request_stage_type_bug_report_closed
+#: model:request.stage,description:crnd_wsd.request_stage_type_generic_closed
+#: model:request.stage,description:crnd_wsd.request_stage_type_without_service_closed
+msgid "Request is closed"
+msgstr "İstek kapandı"
+
+#. module: crnd_wsd
+#: model:request.stage,description:crnd_wsd.request_stage_type_bug_report_draft
+#: model:request.stage,description:crnd_wsd.request_stage_type_generic_draft
+#: model:request.stage,description:crnd_wsd.request_stage_type_without_service_draft
+msgid "Request is in stage Draft"
+msgstr "İstek, Taslak aşamasında"
+
+#. module: crnd_wsd
+#: model:request.stage,description:crnd_wsd.request_stage_type_bug_report_sent
+#: model:request.stage,description:crnd_wsd.request_stage_type_generic_sent
+#: model:request.stage,description:crnd_wsd.request_stage_type_without_service_sent
+msgid "Request is in stage Sent"
+msgstr "İstek, Gönderildi aşamasında"
+
+#. module: crnd_wsd
+#: model:ir.model,name:crnd_wsd.model_request_kind
+msgid "Request kind"
+msgstr "İstek Türü"
+
+#. module: crnd_wsd
+#: code:addons/crnd_wsd/controllers/main.py:0
+#, python-format
+msgid "Request text is empty!"
+msgstr "İstek metni boş!"
+
+#. module: crnd_wsd
+#: code:addons/crnd_wsd/controllers/main.py:0
+#, python-format
+msgid "Request text is too long!"
+msgstr "İstek metni çok uzun!"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_navigation
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_portal_my_home
+msgid "Requests"
+msgstr "İstekler"
+
+#. module: crnd_wsd
+#: model:ir.model.fields.selection,name:crnd_wsd.selection__res_company__request_mail_link_access__require-login
+msgid "Require login"
+msgstr "Giriş gerektir"
+
+#. module: crnd_wsd
+#: model:ir.model.fields.selection,name:crnd_wsd.selection__res_company__request_wsd_public_use_author_phone__required-phone
+msgid "Required Phone"
+msgstr "Gerekli Telefon"
+
+#. module: crnd_wsd
+#: model:ir.model.fields.selection,name:crnd_wsd.selection__res_company__request_wsd_public_ui_visibility__restrict
+msgid "Restricted UI"
+msgstr "Kısıtlanmış kullanıcı arayüzü"
+
+#. module: crnd_wsd
+#: model:request.category,name:crnd_wsd.request_category_demo_website
+msgid "SaAS"
+msgstr "SaAS"
+
+#. module: crnd_wsd
+#. openerp-web
+#: code:addons/crnd_wsd/static/src/js/request_actions.js:0
+#: code:addons/crnd_wsd/static/src/xml/templates.xml:0
+#, python-format
+msgid "Save"
+msgstr "Kaydet"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_filterbox
+msgid "Search by name, type, category or request message"
+msgstr "Ada, türe, kategoriye veya istek mesajına göre arama yapın"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_request__access_token
+msgid "Security Token"
+msgstr "Güvenlik Token'ı"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_select_category
+msgid "Select category"
+msgstr "kategori seç"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_select_service
+msgid "Select service"
+msgstr ""
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_select_type
+msgid "Select type"
+msgstr "tür seç"
+
+#. module: crnd_wsd
+#: code:addons/crnd_wsd/controllers/main.py:0
+#, python-format
+msgid "Selected request type require service!"
+msgstr ""
+
+#. module: crnd_wsd
+#: code:addons/crnd_wsd/controllers/main.py:0
+#, python-format
+msgid "Selected service and request type are incompatible!"
+msgstr ""
+
+#. module: crnd_wsd
+#: model:ir.model.fields.selection,name:crnd_wsd.selection__request_type__selection_priority_view__selection
+msgid "Selection"
+msgstr "Seçim"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_type__selection_priority_view
+msgid "Selection Priority View"
+msgstr "Seçim Önceliği Görünümü"
+
+#. module: crnd_wsd
+#: model:request.stage.route,name:crnd_wsd.request_stage_route_type_bug_report_draft_to_sent
+#: model:request.stage.route,name:crnd_wsd.request_stage_route_type_generic_draft_to_sent
+#: model:request.stage.route,name:crnd_wsd.request_stage_route_type_without_service_draft_to_sent
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_progress
+msgid "Send"
+msgstr "Gönder"
+
+#. module: crnd_wsd
+#: model:request.stage,name:crnd_wsd.request_stage_type_bug_report_sent
+#: model:request.stage,name:crnd_wsd.request_stage_type_generic_sent
+#: model:request.stage,name:crnd_wsd.request_stage_type_without_service_sent
+msgid "Sent"
+msgstr "Gönderildi"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.request_short_info
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_selection_box
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_table
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_congratulation
+msgid "Service"
+msgstr ""
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_progress
+msgid ""
+"Service\n"
+"                <span/>"
+msgstr ""
+
+#. module: crnd_wsd
+#: model:website.menu,name:crnd_wsd.menu_service_desk
+msgid "Service Desk"
+msgstr "Servis masası"
+
+#. module: crnd_wsd
+#: model:res.groups,name:crnd_wsd.group_service_desk_website_user
+msgid "Service Desk Website user"
+msgstr "Hizmet Masası Web sitesi kullanıcısı"
+
+#. module: crnd_wsd
+#: model:res.groups,name:crnd_wsd.group_service_desk_website_user_advanced
+msgid "Service Desk Website user (Advanced)"
+msgstr "Service Desk Web sitesi kullanıcısı (Gelişmiş)"
+
+#. module: crnd_wsd
+#: model:res.groups,name:crnd_wsd.group_service_desk_website_user_all_requests
+msgid "Service Desk Website user (All requests)"
+msgstr "Hizmet Masası Web sitesi kullanıcısı (Tüm istekler)"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid ""
+"Set the maximum size of request text.\n"
+"                            When user tries to enter more symbols than "
+"allowed by this option,\n"
+"                            system will not allow him to do this."
+msgstr ""
+"İstek metninin maksimum boyutunu ayarlayın.\n"
+"                             Kullanıcı bu seçeneğin izin verdiğinden daha "
+"fazla simge girmeye çalıştığında,\n"
+"                             sistem bunu yapmasına izin vermez."
+
+#. module: crnd_wsd
+#: model:ir.model.fields.selection,name:crnd_wsd.selection__res_company__request_mail_link_access__shared-link
+msgid "Shared link"
+msgstr "Paylaşılan bağlantı"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_kind__show_as_website_filter
+msgid "Show As Website Filter"
+msgstr "Web Sitesi Filtresi Olarak Göster"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_select_param
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
+msgid "Sign In"
+msgstr "Kaydol"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_select_param
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
+msgid "Sign Up"
+msgstr "Üye ol"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid ""
+"Specify here maximum size of files allowed to upload.\n"
+"                            If user will try to upload larger file, he will "
+"get message that file is too large."
+msgstr ""
+"Burada karşıya yüklenmesine izin verilen maksimum dosya boyutunu belirtin.\n"
+"                             Kullanıcı daha büyük bir dosya yüklemeye "
+"çalışırsa, dosyanın çok büyük olduğu mesajını alır."
+
+#. module: crnd_wsd
+#: model_terms:request.request,help_html:crnd_wsd.demo_request_request_upgrade_request_1
+#: model_terms:request.type,help_html:crnd_wsd.request_type_upgrade
+msgid "Specify what you want to upgrade"
+msgstr "Neyi yükseltmek istediğinizi belirtin"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+msgid "Stage"
+msgstr "Aşama"
+
+#. module: crnd_wsd
+#: model:ir.model.fields.selection,name:crnd_wsd.selection__website__request_create_step_layout__standard
+msgid "Standard"
+msgstr "Standart"
+
+#. module: crnd_wsd
+#: model:ir.model.fields.selection,name:crnd_wsd.selection__request_type__selection_priority_view__star
+msgid "Star bar"
+msgstr "Yıldız çubuğu"
+
+#. module: crnd_wsd
+#: model_terms:request.request,instruction_html:crnd_wsd.demo_request_request_printer_1
+msgid "Step 1"
+msgstr "Aşama 1"
+
+#. module: crnd_wsd
+#: model_terms:request.request,instruction_html:crnd_wsd.demo_request_request_printer_1
+msgid "Step 2"
+msgstr "Aşama 2"
+
+#. module: crnd_wsd
+#: model_terms:request.request,instruction_html:crnd_wsd.demo_request_request_printer_1
+msgid "Step N"
+msgstr "Aşama N"
+
+#. module: crnd_wsd
+#. openerp-web
+#: code:addons/crnd_wsd/static/src/js/blockui.js:0
+#, python-format
+msgid "Still loading..."
+msgstr "Hala yükleniyor..."
+
+#. module: crnd_wsd
+#. openerp-web
+#: code:addons/crnd_wsd/static/src/js/blockui.js:0
+#, python-format
+msgid "Still loading...<br />Please be patient."
+msgstr "Hala yükleniyor...<br />Lütfen sabırlı olun."
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_table
+msgid "Subrequests"
+msgstr "Alt istekler"
+
+#. module: crnd_wsd
+#: model:request.category,name:crnd_wsd.request_category_demo_website_support
+msgid "Support"
+msgstr "Destek"
+
+#. module: crnd_wsd
+#. openerp-web
+#: code:addons/crnd_wsd/static/src/js/blockui.js:0
+#, python-format
+msgid "Take a minute to get a coffee,<br />because it's loading..."
+msgstr "Bir kahve almak için bir dakikanızı ayırın,<br />çünkü yükleniyor..."
+
+#. module: crnd_wsd
+#: model:request.category,name:crnd_wsd.request_category_demo_website_tech
+msgid "Technical"
+msgstr "Teknik"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid ""
+"The list of allowed file types allowed to upload in request.\n"
+"                            This field must contain coma-separated list of"
+msgstr ""
+"İstek üzerine yüklenmesine izin verilen dosya türlerinin listesi.\n"
+"                             Bu alan virgülle ayrılmış liste içermelidir"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid ""
+"The type of uploaded file, now also validated on backend side.\n"
+"                                In order to make file upload restriction "
+"work properly on backend side,\n"
+"                                now it is recommended to install"
+msgstr ""
+"Yüklenen dosyanın türü artık arka uç tarafında da doğrulanıyor.\n"
+"                                 Dosya yükleme kısıtlamasının arka uç "
+"tarafında düzgün çalışması için,\n"
+"                                 şimdi yüklemeniz önerilir"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests
+msgid "There are currently no requests."
+msgstr "Şu anda hiç istek yok."
+
+#. module: crnd_wsd
+#: model_terms:request.request,note_html:crnd_wsd.demo_request_request_generic_question_1
+#: model_terms:request.type,note_html:crnd_wsd.request_type_generic
+msgid "There you should ask a questions related to our SaaS service."
+msgstr "Orada SaaS hizmetimizle ilgili bir soru sormalısınız."
+
+#. module: crnd_wsd
+#: model_terms:request.request,stage_help_html:crnd_wsd.demo_request_request_printer_1
+msgid ""
+"This is draft request. You can still edit it.\n"
+"             When you think it is finished, send it."
+msgstr ""
+"Bu taslak istek. Yine de düzenleyebilirsiniz.\n"
+"              Bittiğini düşündüğünüzde gönderin."
+
+#. module: crnd_wsd
+#: model_terms:request.request,help_html:crnd_wsd.demo_request_request_generic_question_1
+#: model_terms:request.type,help_html:crnd_wsd.request_type_generic
+msgid ""
+"This is request type for generic questions related to our SaaS service\n"
+"            Use this request type if you cannot find exact request type for "
+"your question"
+msgstr ""
+"Bu, SaaS hizmetimizle ilgili genel sorular için istek türüdür\n"
+"             Sorunuz için tam istek türünü bulamıyorsanız bu istek türünü "
+"kullanın"
+
+#. module: crnd_wsd
+#: model:request.type,description:crnd_wsd.request_type_without_service
+msgid "This is request type that does not have related service"
+msgstr ""
+
+#. module: crnd_wsd
+#: model_terms:request.request,help_html:crnd_wsd.crnd_wsd_subrequest_subrequest
+msgid "This is simple request type with simple routes:"
+msgstr "Bu, basit yollara sahip basit bir istek türüdür:"
+
+#. module: crnd_wsd
+#: model_terms:request.request,help_html:crnd_wsd.demo_request_request_printer_1
+msgid "This request type is used to request access to printer."
+msgstr "Bu istek türü, yazıcıya erişim istemek için kullanılır."
+
+#. module: crnd_wsd
+#: model:ir.model.fields.selection,name:crnd_wsd.selection__website__request_create_step_layout__tiles
+msgid "Tiles"
+msgstr "Kartlar"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_timesheet_info
+msgid "Time spent"
+msgstr "Harcanan zaman"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+msgid "To discussion"
+msgstr "tartışmaya"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+msgid "To response"
+msgstr "Yanıtla"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_timesheet_info
+msgid "Tracked time"
+msgstr "izlenen zaman"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.request_short_info
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_selection_box
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_simplified_line
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_table
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_congratulation
+msgid "Type"
+msgstr "Tür"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_progress
+msgid ""
+"Type\n"
+"                <span/>"
+msgstr ""
+"Tür\n"
+"                <span/>"
+
+#. module: crnd_wsd
+#: code:addons/crnd_wsd/controllers/main.py:0
+#, python-format
+msgid "Unknown server error. See server logs."
+msgstr "Bilinmeyen sunucu hatası. Sunucu kayıtlarına bakın."
+
+#. module: crnd_wsd
+#: code:addons/crnd_wsd/controllers/helpers.py:0
+#, python-format
+msgid "Unsupported file format!"
+msgstr "Desteklenmeyen dosya formatı!"
+
+#. module: crnd_wsd
+#: model:request.type,name:crnd_wsd.request_type_upgrade
+msgid "Upgrade request"
+msgstr "Yükseltme isteği"
+
+#. module: crnd_wsd
+#: model:request.stage,name:crnd_wsd.request_stage_type_upgrade_upgraded
+msgid "Upgraded"
+msgstr "Yükseltildi"
+
+#. module: crnd_wsd
+#: model:res.groups,comment:crnd_wsd.group_service_desk_website_user_all_requests
+msgid ""
+"Users in this groups can see all requests in system, but still not have "
+"access to internal UI."
+msgstr ""
+"Bu gruplardaki kullanıcılar, sistemdeki tüm istekleri görebilir, ancak yine "
+"de dahili kullanıcı arayüzüne erişemez."
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+msgid "View in internal"
+msgstr "Dahili görüntüle"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_request_form
+msgid "View on Website"
+msgstr "Web Sitesinde Görüntüle"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_generic_service__website_published
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_category__website_published
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_stage_route__website_published
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_type__website_published
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_service_view_search
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_category_search
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_stage_route_search
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_type_search
+msgid "Visible in Website"
+msgstr "Web Sitesinde Görünür"
+
+#. module: crnd_wsd
+#: model:request.kind,website_filter_name:crnd_wsd.request_kind_demo_wsd
+msgid "WSD"
+msgstr "WSD"
+
+#. module: crnd_wsd
+#: model:ir.model,name:crnd_wsd.model_website
+#: model:ir.model.fields,field_description:crnd_wsd.field_generic_service__website_ids
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_category__website_ids
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_request__website_id
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_type__website_ids
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_stage_route_form
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_type_form
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_website_request_request_search
+msgid "Website"
+msgstr "İnternet sitesi"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_type__website_custom_congratulation_note
+msgid "Website Custom Congratulation Note"
+msgstr "Web Sitesi Özel Tebrik Notu"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_type__website_custom_label_editor
+msgid "Website Custom Label Editor"
+msgstr "Web Sitesi Özel Etiket Düzenleyici"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_stage_route__website_extra_action
+msgid "Website Extra Action"
+msgstr "Web Sitesi Ekstra İşlem"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_kind__website_filter_name
+msgid "Website Filter Name"
+msgstr "Web Sitesi Filtre Adı"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_type__website_request_text_help
+msgid "Website Request Text Help"
+msgstr "Web Sitesi İstek Metni Yardımı"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_type__website_request_title
+msgid "Website Request Title"
+msgstr "Web Sitesi İsteği Başlığı"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_res_config_settings__request_wsd_public_ui_visibility
+msgid "Website Service Desk (Public Visibility)"
+msgstr "Web Sitesi Hizmet Masası (Genel Görünürlük)"
+
+#. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_res_config_settings__request_wsd_public_use_author_phone
+msgid "Website Service Desk (Use Author Phone)"
+msgstr "Web Sitesi Hizmet Masası (Yazarın Telefonunu Kullanın)"
+
+#. module: crnd_wsd
+#: model:res.groups,comment:crnd_wsd.group_service_desk_website_user_advanced
+msgid ""
+"Website advanced users of service desk. Users in this group can create "
+"requests with request types and categories they are subscribed for, even if "
+"these types and categories not website published."
+msgstr ""
+"Hizmet masasının ileri düzey kullanıcıları web sitesi. Bu gruptaki "
+"kullanıcılar üye oldukları istek türleri ve kategorileri ile bu tür ve "
+"kategoriler web sitesinde yayınlanmamış olsa dahi istek oluşturabilirler."
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "Website settings"
+msgstr "Web sitesi ayarları"
+
+#. module: crnd_wsd
+#: model:request.category,description:crnd_wsd.request_category_demo_website_support
+msgid "Website support related requests"
+msgstr "Web sitesi desteği ile ilgili talepler"
+
+#. module: crnd_wsd
+#: model:res.groups,comment:crnd_wsd.group_service_desk_website_user
+msgid "Website users of service desk"
+msgstr "Hizmet masasının web sitesi kullanıcıları"
+
+#. module: crnd_wsd
+#: model_terms:request.request,instruction_html:crnd_wsd.demo_request_request_printer_1
+msgid "You can use here html, for formatting."
+msgstr "Biçimlendirme için burada html kullanabilirsiniz."
+
+#. module: crnd_wsd
+#. openerp-web
+#: code:addons/crnd_wsd/static/src/js/blockui.js:0
+#, python-format
+msgid ""
+"You may not believe it, <br/> but the application is actually loading..."
+msgstr "İnanmayabilirsin <br/> ama uygulama gerçekten yükleniyor..."
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
+msgid "Your Phone"
+msgstr "Senin Telefonun"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
+msgid "Your email"
+msgstr "Senin E-postan"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_congratulation
+msgid "Your request has been submitted."
+msgstr "İsteğiniz gönderilmiştir."
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "application/msword"
+msgstr "application/msword"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "application/pdf"
+msgstr "application/pdf"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "application/vnd.oasis.opendocument.text"
+msgstr "application/vnd.oasis.opendocument.text"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "audio/*"
+msgstr "audio/*"
+
+#. module: crnd_wsd
+#: model_terms:request.request,help_html:crnd_wsd.crnd_wsd_subrequest_subrequest
+msgid "draft -&gt; sent -&gt; confirmed"
+msgstr "taslak -&gt; gönderildi -&gt; onaylanmış"
+
+#. module: crnd_wsd
+#: model_terms:request.request,help_html:crnd_wsd.crnd_wsd_subrequest_subrequest
+msgid "draft -&gt; sent -&gt; rejected"
+msgstr "taslak -&gt; gönderildi -&gt; reddedildi"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
+msgid "e.g +1 (123)-123-4567"
+msgstr "Örneğin; +1 (123)-123-4567"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "image/*"
+msgstr "image/*"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "image/*, application/pdf, application/msword"
+msgstr "image/*, application/pdf, application/msword"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "image/jpeg"
+msgstr "image/jpeg"
+
+#. module: crnd_wsd
+#. openerp-web
+#: code:addons/crnd_wsd/static/src/js/widgets.js:0
+#, python-format
+msgid "less"
+msgstr "az"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_timesheet_info
+msgid "of"
+msgstr "ile ilgili"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid ""
+"of files\n"
+"                            allowed to upload.;\n"
+"                            In order to allow to upload all images, pdf and "
+"msword documents, you can use following value:"
+msgstr ""
+"dosyaların\n"
+"                             yüklemeye izin verilir.;\n"
+"                             Tüm resimlerin, pdf ve msword belgelerinin "
+"yüklenmesine izin vermek için aşağıdaki değeri kullanabilirsiniz:"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_select_param
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
+msgid "or"
+msgstr "yada"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid ""
+"python package, that is used to detect mimetype of uploaded file on "
+"backend.\n"
+"                                To make it work properly, it is also "
+"required to install system dependency libmagic\n"
+"                                (to do it on Debian/Ubuntu run"
+msgstr ""
+"backend'de yüklenen dosyanın mime tipini algılamak için kullanılan python "
+"paketi.\n"
+"                                 Düzgün çalışması için ayrıca sistem "
+"bağımlılığı libmagic'i kurmanız gerekir.\n"
+"                                 (Debian/Ubuntu çalıştırmasında yapmak için"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "python-magic"
+msgstr "python-magic"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "sudo apt-get install libmagic1"
+msgstr "sudo apt-get install libmagic1"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "text/*"
+msgstr "text/*"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_select_param
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
+msgid "to be able to view and create requests."
+msgstr "istekleri görüntüleyebilmek ve oluşturabilmek için."
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "video/*"
+msgstr "video/*"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data_priority
+msgid "{{priority[1]}}"
+msgstr "{{priority[1]}}"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.priority_bar
+msgid "{{priority_inv[1]}}"
+msgstr "{{priority_inv[1]}}"

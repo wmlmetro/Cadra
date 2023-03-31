@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_generic_system_event_form" model="ir.ui.view">
+        <field name="model">generic.system.event</field>
+        <field name="inherit_id" ref="generic_system_event.view_generic_system_event_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='group_data_root']"
+                   position="inside">
+                <group name="group_event_data_mail"
+                        attrs="{'invisible': [('event_code', 'not in', ('mail-comment', 'mail-note'))]}"
+                        colspan="4">
+                    <group>
+                        <field name="mail_message_id"/>
+                    </group>
+                </group>
+                <group name="group_event_data_mail_activity"
+                        attrs="{'invisible': [('event_code', 'not in', ('mail-activity-new', 'mail-activity-done', 'mail-activity-delete', 'mail-activity-changed'))]}"
+                        colspan="4">
+                        <group>
+                            <field name="mail_activity_id"/>
+                            <field name="mail_activity_type_id"/>
+                        </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

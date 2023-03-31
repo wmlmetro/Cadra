@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Tree view for generic request sla control -->
+    <record id="generic_request_sla_control_view_tree" model="ir.ui.view">
+        <field name="model">request.sla.control</field>
+        <field name="inherit_id" ref="generic_request_sla.generic_request_sla_control_view_tree"/>
+        <field name="arch" type="xml">
+            <field name="request_category_id" position="before">
+                <field name="request_service_id"
+                       groups="generic_request.group_request_use_services"/>
+                <field name="request_service_level_id"
+                       groups="generic_service.group_use_service_level"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="generic_request_sla_control_view_search" model="ir.ui.view">
+        <field name="model">request.sla.control</field>
+        <field name="inherit_id" ref="generic_request_sla.generic_request_sla_control_view_search"/>
+        <field name="arch" type="xml">
+            <field name="request_category_id" position="before">
+                <field name="request_service_id"
+                       groups="generic_request.group_request_use_services"/>
+                <field name="request_service_level_id"
+                       groups="generic_service.group_use_service_level"/>
+            </field>
+
+            <filter name="group_by_request_category" position="before">
+                <filter name="group_by_request_service"
+                        string="Request service"
+                        context="{'group_by': 'request_service_id'}"
+                        groups="generic_request.group_request_use_services"/>
+                <filter name="group_by_request_service_level"
+                        string="Request service level"
+                        context="{'group_by': 'request_service_level_id'}"
+                        groups="generic_service.group_use_service_level"/>
+            </filter>
+        </field>
+    </record>
+
+    <record id="generic_request_sla_control_form_service" model="ir.ui.view">
+        <field name="model">request.sla.control</field>
+        <field name="inherit_id" ref="generic_request_sla.generic_request_sla_control_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='group_request_info']" position="inside">
+                <field name="request_service_id"
+                       groups="generic_request.group_request_use_services"/>
+                <field name="request_service_level_id"
+                       groups="generic_service.group_use_service_level"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

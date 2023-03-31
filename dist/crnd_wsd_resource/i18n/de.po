@@ -1,0 +1,155 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* crnd_wsd_resource
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 13.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-07-27 15:54+0000\n"
+"PO-Revision-Date: 2020-07-27 15:54+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: crnd_wsd_resource
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_resource.wsd_request_info_resource
+msgid "<span class=\"fa fa-cube mr4\" title=\"Resource\"/>"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_resource.wsd_request_info_resource
+msgid "<span class=\"fa fa-cubes mr4\" title=\"Resource type\"/>"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_resource.wsd_requests_new_request_data_resource
+msgid ""
+"<span id=\"check_resource_label\" data-toggle=\"tooltip\" data-placement="
+"\"bottom\" class=\"fa fa-times text-danger\" title=\"Result of resource "
+"selection.\"/>"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model:request.stage,name:crnd_wsd_resource.request_stage_type_resource_question_closed
+msgid "Closed"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model:ir.model,name:crnd_wsd_resource.model_res_company
+msgid "Companies"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model:ir.model,name:crnd_wsd_resource.model_res_config_settings
+msgid "Config Settings"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model:ir.model,name:crnd_wsd_resource.model_generic_resource_type
+msgid "Generic Resource Type"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model:request.type,description:crnd_wsd_resource.request_type_resource_question
+msgid "Generic questions about resources"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_resource.view_request_type_form
+msgid "Help message"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_resource.view_request_type_form
+msgid "Label"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model:ir.model.fields,help:crnd_wsd_resource.field_request_type__resource_label
+msgid "Label to be used for Resource field on website"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#. openerp-web
+#: code:addons/crnd_wsd_resource/static/src/js/request_new.js:0
+#, python-format
+msgid "More..."
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model:request.stage,name:crnd_wsd_resource.request_stage_type_resource_question_new
+msgid "New"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_resource.view_request_type_form
+msgid "Placeholder"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model:ir.model.fields,help:crnd_wsd_resource.field_request_type__resource_placeholder
+msgid "Placeholder for Resource field on website"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model:ir.model.fields,field_description:crnd_wsd_resource.field_res_company__request_resource_autocomplete_max_resources
+#: model:ir.model.fields,field_description:crnd_wsd_resource.field_res_config_settings__request_resource_autocomplete_max_resources
+msgid "Request Resource Autocomplete Max Resources"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model:ir.model,name:crnd_wsd_resource.model_request_type
+msgid "Request Type"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model_terms:ir.ui.view,arch_db:crnd_wsd_resource.wsd_requests_new_request_data_resource
+msgid "Resource"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model:ir.model.fields,field_description:crnd_wsd_resource.field_request_type__resource_help
+msgid "Resource Help"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model:ir.model.fields,field_description:crnd_wsd_resource.field_request_type__resource_label
+msgid "Resource Label"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model:ir.model.fields,field_description:crnd_wsd_resource.field_request_type__resource_placeholder
+msgid "Resource Placeholder"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model:request.type,name:crnd_wsd_resource.request_type_resource_question
+msgid "Resource Question"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: code:addons/crnd_wsd_resource/controllers/main.py:0
+#, python-format
+msgid "Resource not selected!"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model:ir.model.fields,field_description:crnd_wsd_resource.field_generic_resource_type__search_by_field_id
+msgid "Search By Field"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: model:ir.model.fields,help:crnd_wsd_resource.field_request_type__resource_help
+msgid "Short help message for Resource field on website"
+msgstr ""
+
+#. module: crnd_wsd_resource
+#: code:addons/crnd_wsd_resource/controllers/main.py:0
+#, python-format
+msgid "Wrong resource type selected!"
+msgstr ""

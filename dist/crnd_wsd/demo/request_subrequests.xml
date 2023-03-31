@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="crnd_wsd_subrequest_parent_request" model="request.request">
+        <field name="type_id" ref="generic_request.request_type_access"/>
+        <field name="category_id" ref="generic_request.request_category_demo_general"/>
+        <field name="stage_id" ref="generic_request.request_stage_type_access_sent"/>
+        <field name="request_text">Demo parent request</field>
+        <field name="created_by_id" ref="crnd_wsd.user_demo_service_desk_website"/>
+    </record>
+    <record id="crnd_wsd_subrequest_subrequest" model="request.request">
+        <field name="type_id" ref="generic_request.request_type_simple"/>
+        <field name="category_id" ref="generic_request.request_category_demo_general"/>
+        <field name="stage_id" ref="generic_request.request_stage_type_simple_draft"/>
+        <field name="parent_id" ref="crnd_wsd_subrequest_parent_request"/>
+        <field name="request_text">Demo subrequest</field>
+        <field name="created_by_id" ref="crnd_wsd.user_demo_service_desk_website"/>
+    </record>
+</odoo>

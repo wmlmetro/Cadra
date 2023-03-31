@@ -1,0 +1,222 @@
+<?xml version="1.0"?>
+<odoo noupdate="1">
+    <!-- Answers -->
+    <!-- User1 Error/Bug Page1 -->
+    <record model="survey.user_input.line" id="uil_1">
+        <field name="user_input_id" ref="ui1" />
+        <field name="question_id" ref="bug_classification_1" />
+        <field name="answer_type">char_box</field>
+        <field name="value_char_box">Odoo Events</field>
+    </record>
+    <record model="survey.user_input.line" id="uil_2">
+        <field name="user_input_id" ref="ui1" />
+        <field name="question_id" ref="bug_classification_2" />
+        <field name="answer_type">text_box</field>
+        <field name="value_text_box">
+            odoo.tools.convert.ParseError:
+            "date/time field value out of range: "08-20-2019"
+            LINE 1: ..._id_seq'), '2019-08-23 16:42:12', 11, 16, 'date',
+            '08-20-201...
+        </field>
+    </record>
+    <record model="survey.user_input.line" id="uil_3">
+        <field name="user_input_id" ref="ui1" />
+        <field name="question_id" ref="bug_classification_3" />
+        <field name="answer_type">date</field>
+        <field name="value_date">2019-08-20</field>
+    </record>
+    <record model="survey.user_input.line" id="uil_4">
+        <field name="user_input_id" ref="ui1" />
+        <field name="question_id" ref="bug_classification_4" />
+        <field name="answer_type">suggestion</field>
+        <field name="suggested_answer_id" ref="bug_classification_4_choice_1" />
+    </record>
+    <record model="survey.user_input.line" id="uil_5">
+        <field name="user_input_id" ref="ui1" />
+        <field name="question_id" ref="bug_classification_5" />
+        <field name="answer_type">text_box</field>
+        <field name="value_text_box">
+            - create event
+            - select Start Date
+            - click on any date
+        </field>
+    </record>
+    <!-- User1 Error/Bug Page2 -->
+    <record model="survey.user_input.line" id="uil_6">
+        <field name="user_input_id" ref="ui1" />
+        <field name="question_id" ref="bug_priority_1" />
+        <field name="answer_type">suggestion</field>
+        <field name="suggested_answer_id" ref="bug_priority_1_choice_3" />
+    </record>
+    <record model="survey.user_input.line" id="uil_7">
+        <field name="user_input_id" ref="ui1" />
+        <field name="question_id" ref="bug_priority_2" />
+        <field name="skipped" eval="True"/>
+    </record>
+    <record model="survey.user_input.line" id="uil_8">
+        <field name="user_input_id" ref="ui1" />
+        <field name="question_id" ref="bug_priority_3" />
+        <field name="answer_type">suggestion</field>
+        <field name="suggested_answer_id" ref="bug_priority_3_choice_1" />
+    </record>
+
+    <!-- User2 Error/Bug Page1 -->
+    <record model="survey.user_input.line" id="uil_9">
+        <field name="user_input_id" ref="ui2" />
+        <field name="question_id" ref="bug_classification_1" />
+        <field name="answer_type">char_box</field>
+        <field name="value_char_box">Odoo Sales</field>
+    </record>
+    <record model="survey.user_input.line" id="uil_10">
+        <field name="user_input_id" ref="ui2" />
+        <field name="question_id" ref="bug_classification_2" />
+        <field name="skipped" eval="True"/>
+    </record>
+    <record model="survey.user_input.line" id="uil_11">
+        <field name="user_input_id" ref="ui2" />
+        <field name="question_id" ref="bug_classification_3" />
+        <field name="answer_type">date</field>
+        <field name="value_date">2019-08-10</field>
+    </record>
+    <record model="survey.user_input.line" id="uil_12">
+        <field name="user_input_id" ref="ui2" />
+        <field name="question_id" ref="bug_classification_4" />
+        <field name="answer_type">suggestion</field>
+        <field name="suggested_answer_id" ref="bug_classification_4_choice_1" />
+    </record>
+    <record model="survey.user_input.line" id="uil_13">
+        <field name="user_input_id" ref="ui2" />
+        <field name="question_id" ref="bug_classification_5" />
+        <field name="answer_type">text_box</field>
+        <field name="value_text_box">Sales -> Quotations -> Create</field>
+    </record>
+    <!-- User2 Error/Bug Page2 -->
+    <record model="survey.user_input.line" id="uil_14">
+        <field name="user_input_id" ref="ui2" />
+        <field name="question_id" ref="bug_priority_1" />
+        <field name="answer_type">suggestion</field>
+        <field name="suggested_answer_id" ref="bug_priority_1_choice_1" />
+    </record>
+    <record model="survey.user_input.line" id="uil_15">
+        <field name="user_input_id" ref="ui2" />
+        <field name="question_id" ref="bug_priority_2" />
+        <field name="answer_type">suggestion</field>
+        <field name="suggested_answer_id" ref="bug_priority_2_choice_1" />
+    </record>
+    <record model="survey.user_input.line" id="uil_16">
+        <field name="user_input_id" ref="ui2" />
+        <field name="question_id" ref="bug_priority_3" />
+        <field name="answer_type">suggestion</field>
+        <field name="suggested_answer_id" ref="bug_priority_3_choice_3" />
+    </record>
+
+    <!-- User4 Environment Page1 -->
+    <record model="survey.user_input.line" id="uil_17">
+        <field name="user_input_id" ref="ui4" />
+        <field name="question_id" ref="environment_1" />
+        <field name="answer_type">suggestion</field>
+        <field name="suggested_answer_id" ref="environment_1_choice_1" />
+    </record>
+    <record model="survey.user_input.line" id="uil_18">
+        <field name="user_input_id" ref="ui4" />
+        <field name="question_id" ref="environment_2" />
+        <field name="answer_type">char_box</field>
+        <field name="value_char_box">10</field>
+    </record>
+    <record model="survey.user_input.line" id="uil_19">
+        <field name="user_input_id" ref="ui4" />
+        <field name="question_id" ref="environment_3" />
+        <field name="answer_type">char_box</field>
+        <field name="value_char_box">110.144.8.201</field>
+    </record>
+    <record model="survey.user_input.line" id="uil_20">
+        <field name="user_input_id" ref="ui4" />
+        <field name="question_id" ref="environment_4" />
+        <field name="answer_type">char_box</field>
+        <field name="value_char_box">Odoo</field>
+    </record>
+    <record model="survey.user_input.line" id="uil_21">
+        <field name="user_input_id" ref="ui4" />
+        <field name="question_id" ref="environment_5" />
+        <field name="answer_type">char_box</field>
+        <field name="value_char_box">12</field>
+    </record>
+    <!-- User4 Environment Page2 -->
+    <record model="survey.user_input.line" id="uil_22">
+        <field name="user_input_id" ref="ui4" />
+        <field name="question_id" ref="configuration_1" />
+        <field name="answer_type">char_box</field>
+        <field name="value_char_box">Intel Core i3-8100</field>
+    </record>
+    <record model="survey.user_input.line" id="uil_23">
+        <field name="user_input_id" ref="ui4" />
+        <field name="question_id" ref="configuration_2" />
+        <field name="skipped" eval="True"/>
+    </record>
+    <record model="survey.user_input.line" id="uil_24">
+        <field name="user_input_id" ref="ui4" />
+        <field name="question_id" ref="configuration_3" />
+        <field name="answer_type">char_box</field>
+        <field name="value_char_box">DDR4-3200 MHz 16Gb</field>
+    </record>
+    <record model="survey.user_input.line" id="uil_25">
+        <field name="user_input_id" ref="ui4" />
+        <field name="question_id" ref="configuration_4" />
+        <field name="answer_type">char_box</field>
+        <field name="value_char_box">HDD Sata 3 512 GB</field>
+    </record>
+
+    <!-- User5 Environment Page1 -->
+    <record model="survey.user_input.line" id="uil_26">
+        <field name="user_input_id" ref="ui5" />
+        <field name="question_id" ref="environment_1" />
+        <field name="answer_type">suggestion</field>
+        <field name="suggested_answer_id" ref="environment_1_choice_3" />
+    </record>
+    <record model="survey.user_input.line" id="uil_27">
+        <field name="user_input_id" ref="ui5" />
+        <field name="question_id" ref="environment_2" />
+        <field name="answer_type">char_box</field>
+        <field name="value_char_box">16.04</field>
+    </record>
+    <record model="survey.user_input.line" id="uil_28">
+        <field name="user_input_id" ref="ui5" />
+        <field name="question_id" ref="environment_3" />
+        <field name="skipped" eval="True"/>
+    </record>
+    <record model="survey.user_input.line" id="uil_29">
+        <field name="user_input_id" ref="ui5" />
+        <field name="question_id" ref="environment_4" />
+        <field name="answer_type">char_box</field>
+        <field name="value_char_box">Odoo</field>
+    </record>
+    <record model="survey.user_input.line" id="uil_30">
+        <field name="user_input_id" ref="ui5" />
+        <field name="question_id" ref="environment_5" />
+        <field name="answer_type">char_box</field>
+        <field name="value_char_box">12</field>
+    </record>
+    <!-- User4 Environment Page2 -->
+    <record model="survey.user_input.line" id="uil_31">
+        <field name="user_input_id" ref="ui5" />
+        <field name="question_id" ref="configuration_1" />
+        <field name="skipped" eval="True"/>
+    </record>
+    <record model="survey.user_input.line" id="uil_32">
+        <field name="user_input_id" ref="ui5" />
+        <field name="question_id" ref="configuration_2" />
+        <field name="skipped" eval="True"/>
+    </record>
+    <record model="survey.user_input.line" id="uil_33">
+        <field name="user_input_id" ref="ui5" />
+        <field name="question_id" ref="configuration_3" />
+        <field name="answer_type">char_box</field>
+        <field name="value_char_box">8 gb</field>
+    </record>
+    <record model="survey.user_input.line" id="uil_34">
+        <field name="user_input_id" ref="ui5" />
+        <field name="question_id" ref="configuration_4" />
+        <field name="skipped" eval="True"/>
+    </record>
+
+</odoo>

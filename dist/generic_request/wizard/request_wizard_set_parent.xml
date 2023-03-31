@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="request_wizard_set_parent_form_view" model="ir.ui.view">
+        <field name="name">request.wizard.set.parent.form</field>
+        <field name="model">request.wizard.set.parent</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <field name="warning_type" invisible="1"/>
+                    <div name="alert_warning_one_parent"
+                            attrs="{'invisible': [('warning_type', '!=', 'one_parent')]}"
+                            colspan="4"
+                            class="alert alert-warning"
+                            role="alert">
+                        Some of selected requests already has parent!
+                    </div>
+                    <div name="alert_warning_few_parent"
+                            attrs="{'invisible': [('warning_type', '!=', 'few_parent')]}"
+                            colspan="4"
+                            class="alert alert-danger"
+                            role="alert">
+                        Selected requests has different parents!
+                    </div>
+                    <group>
+
+                        <field name="request_ids" widget="many2many_tags" readonly="1"/>
+                        <field name="parent_id" domain="[('id', 'not in', request_ids)]"
+                               options="{'no_create': True}"/>
+                        <field name="request_text_sample"/>
+                        <field name="author_id" readonly="1"/>
+                    </group>
+
+                </sheet>
+                <footer>
+                    <button string="Apply" name="do_set_parent" class="btn-primary" type="object"/>
+                    <button string="Cancel" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+   </record>
+   <record id="action_request_wizard_set_parent" model="ir.actions.act_window">
+       <field name="res_model">request.wizard.set.parent</field>
+       <field name="binding_model_id" ref="generic_request.model_request_request"/>
+       <field name="name">Change parent request</field>
+       <field name="groups_id" eval="[(4, ref('group_request_user'))]"/>
+       <field name="view_mode">form</field>
+       <field name="target">new</field>
+       <field name="context">{}</field>
+   </record>
+</odoo>

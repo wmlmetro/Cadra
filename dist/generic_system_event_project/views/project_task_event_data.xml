@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_event_data_tree" model="ir.ui.view">
+        <field name="model">project.task.event.data</field>
+        <field name="inherit_id" ref="generic_system_event.view_generic_generic_system_event_tree"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='event_type_id']" position="before">
+                <field name="event_id"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_project_event_data_form" model="ir.ui.view">
+        <field name="model">project.task.event.data</field>
+        <field name="inherit_id" ref="generic_system_event.view_generic_system_event_form"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='group_event']/field[@name='event_type_id']"
+                   position="before">
+                <field name="event_id"/>
+            </xpath>
+            <xpath expr="//group[@name='group_event_data_info']" position="inside">
+                <field name="old_deadline"
+                       attrs="{'invisible': [('old_deadline', '=', False)]}"/>
+                <field name="new_deadline"
+                       attrs="{'invisible': [('new_deadline', '=', False)]}"/>
+                <field name="old_stage_id"
+                       attrs="{'invisible': [('old_stage_id', '=', False)]}"/>
+                <field name="new_stage_id"
+                       attrs="{'invisible': [('new_stage_id', '=', False)]}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_project_event_data" model="ir.actions.act_window">
+        <field name="name">Project Events Data</field>
+        <field name="res_model">project.task.event.data</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

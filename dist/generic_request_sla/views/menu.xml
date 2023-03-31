@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_request_configuration_sla"
+              name="SLA"
+              parent="generic_request.menu_configuration"
+              sequence="40"/>
+</odoo>

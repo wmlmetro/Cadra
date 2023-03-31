@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_generic_assign_policy_rule_hr_holidays_form">
+        <field name="name">view.generic.assign.policy.rule.hr.form</field>
+        <field name="model">generic.assign.policy.rule</field>
+        <field name="inherit_id" ref="generic_assignment_hr.view_generic_assign_policy_rule_hr_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet//field[@name='assign_user_field_sort_direction']"
+                   position="after">
+                <field name="assign_user_field_filter_out_leaves"
+                       attrs="{'invisible': [('assign_type', '!=', 'user_field')]}"/>
+            </xpath>
+            <xpath expr="//form/sheet//field[@name='assign_department_sort_direction']"
+                   position="after">
+                <field name="assign_department_filter_out_leaves"
+                       attrs="{'invisible': [('assign_type', '!=', 'department_employee')]}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

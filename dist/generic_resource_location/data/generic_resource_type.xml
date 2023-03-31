@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="generic_resource.generic_resource_type_default" model="generic.resource.type">
+        <field name="use_generic_locations" eval="True"/>
+    </record>
+</odoo>

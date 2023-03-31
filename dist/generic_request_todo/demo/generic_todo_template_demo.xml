@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="generic_todo_template_crnd_deploy" model="generic.todo.template">
+        <field name="name">CRnD Deploy Assembly Bureaucrat Helpdesk Lite</field>
+    </record>
+
+    <record id="generic_todo_template_line_crnd_deploy_vm" model="generic.todo.template.line">
+        <field name="name">Start the Virtual Machine with the required parameters</field>
+        <field name="todo_template_id" ref="generic_todo_template_crnd_deploy"/>
+        <field name="todo_type_id" ref="generic_todo.generic_todo_type_simple"/>
+    </record>
+
+    <record id="generic_todo_template_line_crnd_deploy_os" model="generic.todo.template.line">
+        <field name="name">Install the required version of Ubuntu on the VM</field>
+        <field name="todo_template_id" ref="generic_todo_template_crnd_deploy"/>
+        <field name="todo_type_id" ref="generic_todo.generic_todo_type_simple"/>
+    </record>
+
+    <record id="generic_todo_template_line_crnd_deploy_odoo" model="generic.todo.template.line">
+        <field name="name">Install the required version of ODOO using the bash command</field>
+        <field name="todo_template_id" ref="generic_todo_template_crnd_deploy"/>
+        <field name="todo_type_id" ref="generic_todo.generic_todo_type_simple"/>
+    </record>
+
+    <record id="generic_todo_template_line_crnd_deploy_bhl" model="generic.todo.template.line">
+        <field name="name">Install Assembly Bureaucrat Helpdesk Lite</field>
+        <field name="todo_template_id" ref="generic_todo_template_crnd_deploy"/>
+        <field name="todo_type_id" ref="generic_todo.generic_todo_type_simple"/>
+    </record>
+
+</odoo>

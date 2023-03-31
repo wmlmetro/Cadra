@@ -1,0 +1,179 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_sale
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 13.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-07-27 15:56+0000\n"
+"PO-Revision-Date: 2020-07-27 15:56+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: generic_request_sale
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.request_sale_product_template_form_view
+msgid "<b>sale_order</b>: record representing sale order"
+msgstr ""
+
+#. module: generic_request_sale
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.request_sale_product_template_form_view
+msgid "<b>sale_order_line</b>: record representing sale order line"
+msgstr ""
+
+#. module: generic_request_sale
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.request_sale_product_template_form_view
+msgid "Above you can specify"
+msgstr ""
+
+#. module: generic_request_sale
+#: model:product.product,name:generic_request_sale.demo_service_consulting_bureaucrat
+#: model:product.template,name:generic_request_sale.demo_service_consulting_bureaucrat_product_template
+msgid "BUREAUCRAT Consulting"
+msgstr ""
+
+#. module: generic_request_sale
+#: model_terms:product.product,description:generic_request_sale.demo_service_consulting_bureaucrat
+#: model_terms:product.template,description:generic_request_sale.demo_service_consulting_bureaucrat_product_template
+msgid "Consulting related to Bureaucrat Product."
+msgstr ""
+
+#. module: generic_request_sale
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.request_sale_product_template_form_view
+msgid "Create request on SO confirmation?"
+msgstr ""
+
+#. module: generic_request_sale
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.request_sale_product_template_form_view
+msgid "Delivered stage types"
+msgstr ""
+
+#. module: generic_request_sale
+#: model:ir.model.fields,help:generic_request_sale.field_product_product__is_create_request
+#: model:ir.model.fields,help:generic_request_sale.field_product_template__is_create_request
+msgid "Do we need to create requests when sale order is confirmed?"
+msgstr ""
+
+#. module: generic_request_sale
+#: model:ir.model.fields,field_description:generic_request_sale.field_product_product__is_create_request
+#: model:ir.model.fields,field_description:generic_request_sale.field_product_template__is_create_request
+msgid "Is Create Request"
+msgstr ""
+
+#. module: generic_request_sale
+#: model:ir.model.fields,field_description:generic_request_sale.field_request_request__sale_order_id
+msgid "Order Reference"
+msgstr ""
+
+#. module: generic_request_sale
+#: model:ir.model,name:generic_request_sale.model_product_template
+msgid "Product Template"
+msgstr ""
+
+#. module: generic_request_sale
+#: model:ir.model,name:generic_request_sale.model_request_request
+#: model:ir.model.fields,field_description:generic_request_sale.field_sale_order__request_ids
+#: model:ir.model.fields,field_description:generic_request_sale.field_sale_order_line__request_ids
+msgid "Request"
+msgstr ""
+
+#. module: generic_request_sale
+#: model:ir.model.fields,field_description:generic_request_sale.field_sale_order__request_count
+msgid "Request Count"
+msgstr ""
+
+#. module: generic_request_sale
+#: model:ir.model.fields,field_description:generic_request_sale.field_product_product__request_creation_template_id
+#: model:ir.model.fields,field_description:generic_request_sale.field_product_template__request_creation_template_id
+msgid "Request Creation Template"
+msgstr ""
+
+#. module: generic_request_sale
+#: model:ir.model.fields,field_description:generic_request_sale.field_product_product__request_delivered_stage_type_ids
+#: model:ir.model.fields,field_description:generic_request_sale.field_product_template__request_delivered_stage_type_ids
+msgid "Request Delivered Stage Type"
+msgstr ""
+
+#. module: generic_request_sale
+#: model:ir.model.fields,field_description:generic_request_sale.field_product_product__request_text_template
+#: model:ir.model.fields,field_description:generic_request_sale.field_product_template__request_text_template
+msgid "Request Text Template"
+msgstr ""
+
+#. module: generic_request_sale
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.request_sale_product_template_form_view
+msgid "Request for SO {{sale_order.name}}"
+msgstr ""
+
+#. module: generic_request_sale
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.request_sale_product_template_form_view
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.view_request_sale_order_form
+msgid "Requests"
+msgstr ""
+
+#. module: generic_request_sale
+#: model:ir.model.fields,field_description:generic_request_sale.field_request_request__sale_order_line_id
+msgid "Sale Order Line"
+msgstr ""
+
+#. module: generic_request_sale
+#: model:ir.model,name:generic_request_sale.model_sale_order
+msgid "Sales Order"
+msgstr ""
+
+#. module: generic_request_sale
+#: model:ir.model,name:generic_request_sale.model_sale_order_line
+msgid "Sales Order Line"
+msgstr ""
+
+#. module: generic_request_sale
+#: model:product.product,uom_name:generic_request_sale.demo_service_consulting_bureaucrat
+#: model:product.template,uom_name:generic_request_sale.demo_service_consulting_bureaucrat_product_template
+msgid "Units"
+msgstr ""
+
+#. module: generic_request_sale
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.request_sale_product_template_form_view
+msgid "Use request template"
+msgstr ""
+
+#. module: generic_request_sale
+#: model:ir.model.fields,help:generic_request_sale.field_product_product__request_creation_template_id
+#: model:ir.model.fields,help:generic_request_sale.field_product_template__request_creation_template_id
+msgid ""
+"Use this request creation template to create requests from sale order when "
+"it will be confirmed."
+msgstr ""
+
+#. module: generic_request_sale
+#: model:ir.model.fields,help:generic_request_sale.field_product_product__request_text_template
+#: model:ir.model.fields,help:generic_request_sale.field_product_template__request_text_template
+msgid ""
+"Use this template to fill request text for requests created from sale orders."
+msgstr ""
+
+#. module: generic_request_sale
+#: model:ir.model.fields,help:generic_request_sale.field_product_product__request_delivered_stage_type_ids
+#: model:ir.model.fields,help:generic_request_sale.field_product_template__request_delivered_stage_type_ids
+msgid ""
+"When request reaches stage with one of selected stage types, then this "
+"request is considered as delivered."
+msgstr ""
+
+#. module: generic_request_sale
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.request_sale_product_template_form_view
+msgid "jinja2"
+msgstr ""
+
+#. module: generic_request_sale
+#: model_terms:ir.ui.view,arch_db:generic_request_sale.request_sale_product_template_form_view
+msgid ""
+"template\n"
+"                            for request text for requests created by sale "
+"order. You can use following variables there:"
+msgstr ""

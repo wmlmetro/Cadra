@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record model="ir.ui.view" id="request_send_survey">
+        <field name="name">request.send.survey.form</field>
+        <field name="model">request.send.survey</field>
+        <field name="arch" type="xml">
+            <form string="Send Survey">
+                <field name="request_id" invisible="1"/>
+                <group>
+                    <field name="survey_template_id"
+                           string="Survey"/>
+                </group>
+                <group>
+                    <field name="is_author_creator" invisible="1"/>
+                    <field name="send_author"/>
+                    <field name="send_creator"
+                           attrs="{'invisible': [('is_author_creator', '=', True)]}"/>
+                    <field name="send_assignee"/>
+                    <field name="send_others"/>
+                    <field name="partner_ids"
+                           attrs="{'invisible': [('send_others', '=', False)]}"
+                           widget="many2many_tags_email"
+                           placeholder="Add existing contacts..."/>
+                </group>
+                <group col="1">
+                    <group>
+                        <field name="subject" placeholder="Subject..."/>
+                    </group>
+                    <field name="body" options="{'style-inline': true}"/>
+                </group>
+                <footer>
+                    <button string="Send" name="send_mail" type="object" class="btn-primary" />
+                    <button string="Cancel" class="btn-default" special="cancel" />
+                    <field name="template_id" nolabel="1" placeholder="Email template..." style="float: right;"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="request_request_send_survey_action" model="ir.actions.act_window">
+        <field name="name">Send survey</field>
+        <field name="res_model">request.send.survey</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

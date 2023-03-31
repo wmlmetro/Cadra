@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_request_form">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='group_partner']/div[@name='div_partner']"
+                   position="after">
+                <field name="contract_id"
+                       domain="[('partner_id', '=', partner_id), ('state', '=', 'active')]"
+                       groups="generic_contract.group_generic_contract_user_implicit"
+                       options="{'no_create': true, 'no_quick_create': true}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_request_tree">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='type_id']" position="before">
+                <field name="contract_id"
+                       groups="generic_contract.group_generic_contract_user_implicit"
+                       optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_request_search">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='group_group_by']" position="inside">
+                <filter name="filter_group_by_contract"
+                        groups="generic_contract.group_generic_contract_user_implicit"
+                        string="Contract"
+                        context="{'group_by': 'contract_id'}"/>
+            </xpath>
+            <xpath expr="//field[@name='type_id']" position="before">
+                <field name="contract_id"
+                       groups="generic_contract.group_generic_contract_user_implicit"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

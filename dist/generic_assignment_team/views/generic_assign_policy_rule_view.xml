@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_generic_assign_policy_rule_team_form">
+        <field name="model">generic.assign.policy.rule</field>
+        <field name="inherit_id" ref="generic_assignment.view_generic_assign_policy_rule_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet//group[@name='group_rule_related_policy']"
+                   position="after">
+                <group name="group_rule_team_member" colspan="4"
+                       attrs="{'invisible': [('assign_type', 'not in', ('team', 'team_leader', 'team_member', 'team_task_manager'))]}">
+                    <field name="assign_team_id"
+                           options="{'no_quick_create': True}"
+                           attrs="{'required': [('assign_type', 'in', ('team', 'team_leader', 'team_member', 'team_task_manager'))]}"/>
+                    <field name="assign_team_choice_type"
+                           string="Choice type"
+                           attrs="{'required': [('assign_type', '=', 'team_member')],
+                                   'invisible': [('assign_type', '!=', 'team_member')]}"/>
+                    <field name="assign_team_choice_condition_ids"
+                           string="Choice conditions"
+                           widget="many2many_tags"
+                           domain="[('model_id', '=', 'generic.team.member')]"
+                           attrs="{'invisible': [('assign_type', '!=', 'team_member')]}"
+                           context="{'default_based_on': 'generic.team.member'}"/>
+                    <field name="assign_team_sort_field_id"
+                           string="Sort field"
+                           attrs="{'invisible': [('assign_type', '!=', 'team_member')]}"/>
+                    <field name="assign_team_sort_direction"
+                           string="Sort direction"
+                           attrs="{'invisible': [('assign_type', '!=', 'team_member')]}"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,144 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_resource
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 13.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-07-27 15:54+0000\n"
+"PO-Revision-Date: 2020-07-27 15:54+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: generic_request_resource
+#: model_terms:ir.ui.view,arch_db:generic_request_resource.inherited_view_generic_resource_form_inherit_request_resource
+msgid "<span class=\"o_stat_text\">Requests</span>"
+msgstr ""
+
+#. module: generic_request_resource
+#: model_terms:ir.ui.view,arch_db:generic_request_resource.inherited_view_generic_resource_form_inherit_request_resource
+msgid "<span class=\"oe_form_field oe_inline\">/</span>"
+msgstr ""
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource__resource_request_count
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource_simple__resource_request_count
+msgid "All Requests"
+msgstr ""
+
+#. module: generic_request_resource
+#: model:ir.model,name:generic_request_resource.model_generic_resource
+msgid "Generic Resource"
+msgstr ""
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_request__resource_id
+msgid "Generic resource"
+msgstr ""
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_request__resource_invisible
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_type__resource_invisible
+msgid "Hide resource fields"
+msgstr ""
+
+#. module: generic_request_resource
+#: model:ir.model.fields,help:generic_request_resource.field_request_request__resource_invisible
+#: model:ir.model.fields,help:generic_request_resource.field_request_type__resource_invisible
+msgid "Hide resource fields on request form view, when this type is selected"
+msgstr ""
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_event__new_resource_id
+msgid "New Resource"
+msgstr ""
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_event__old_resource_id
+msgid "Old Resource"
+msgstr ""
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource__resource_request_open_count
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource_simple__resource_request_open_count
+msgid "Open requests"
+msgstr ""
+
+#. module: generic_request_resource
+#: model:ir.model,name:generic_request_resource.model_request_request
+msgid "Request"
+msgstr ""
+
+#. module: generic_request_resource
+#: model:ir.model,name:generic_request_resource.model_request_event
+msgid "Request Event"
+msgstr ""
+
+#. module: generic_request_resource
+#: model:ir.model,name:generic_request_resource.model_request_type
+msgid "Request Type"
+msgstr ""
+
+#. module: generic_request_resource
+#: code:addons/generic_request_resource/models/generic_resource.py:0
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource__resource_request_ids
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource_simple__resource_request_ids
+#, python-format
+msgid "Requests"
+msgstr ""
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_request__resource_res_id
+#: model_terms:ir.ui.view,arch_db:generic_request_resource.inherited_view_request_type_form_inherit_request_resource
+msgid "Resource"
+msgstr ""
+
+#. module: generic_request_resource
+#: model:generic.system.event.type,name:generic_request_resource.request_event_type_resource_changed
+msgid "Resource changed"
+msgstr ""
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_request__resource_required
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_type__resource_required
+msgid "Resource is required"
+msgstr ""
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_request__resource_res_model
+msgid "Resource model"
+msgstr ""
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_request__resource_type_id
+msgid "Resource type"
+msgstr ""
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_type__resource_type_ids
+msgid "Resource types"
+msgstr ""
+
+#. module: generic_request_resource
+#: model:ir.model.fields,help:generic_request_resource.field_request_type__resource_type_ids
+msgid "Resource types allowed for selection on requests of this type."
+msgstr ""
+
+#. module: generic_request_resource
+#: model:ir.model.fields,help:generic_request_resource.field_request_request__resource_required
+#: model:ir.model.fields,help:generic_request_resource.field_request_type__resource_required
+msgid ""
+"Set this checkbox to make resource field required on requests of this type"
+msgstr ""
+
+#. module: generic_request_resource
+#: code:addons/generic_request_resource/models/generic_resource.py:0
+#, python-format
+msgid "Unable to unlink! There is a reference to this resource from requests"
+msgstr ""

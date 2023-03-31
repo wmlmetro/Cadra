@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="generic_resource_view_form" model="ir.ui.view">
+        <field name="model">generic.resource</field>
+        <field name="inherit_id" ref="generic_resource.generic_resource_view_form_base"/>
+        <field name="arch" type="xml">
+            <form position="inside">
+                <field name="resource_is_role_manager"
+                       invisible="1"/>
+            </form>
+            <field name="resource_visibility"
+                   position="attributes">
+                <attribute name="attrs">{'readonly': [('resource_is_role_manager', '=', False)]}</attribute>
+            </field>
+            <div name="button_box" position="inside">
+                <button class="oe_stat_button"
+                        type="object"
+                        name="action_view_resource_role_links"
+                        icon="fa-user"
+                        attrs="{'invisible': [('resource_is_role_manager', '=', False)]}">
+                    <field string="Role links"
+                           name="resource_role_link_count"
+                           widget="statinfo"/>
+                </button>
+            </div>
+            <page name="page_resource_info" position="after">
+                <page name="page_resource_roles"
+                      string="Roles"
+                      attrs="{'invisible': [('resource_is_role_manager', '=', False)]}">
+                    <div>This list displays only active roles.
+                         <span> Also, you can 
+                            <button name="action_view_resource_role_links"
+                                    type="object"
+                                    string="open full list of roles"
+                                    class="oe_link"
+                                    style="padding: 0; margin: 0; border: 0; font-size: 1em; vertical-align: baseline;"/>
+                        </span>
+                    </div>
+                    <field name="resource_role_sec_view_ids"
+                           colspan="4"
+                           nolabel="1"
+                           mode="tree">
+                        <tree>
+                            <field name="partner_id"/>
+                            <field name="user_id"/>
+                            <field name="role_id"/>
+                            <field name="can_write"/>
+                            <field name="can_unlink"/>
+                            <field name="can_manage_roles"/>
+                            <button name="action_edit_role_link"
+                                    type="object"
+                                    string="Open Role Link"
+                                    icon="fa-external-link"/>
+                            <button name="action_expire_role_link"
+                                    type="object"
+                                    string="Expire Role Link"
+                                    icon="fa-close"/>
+                        </tree>
+                    </field>
+                    <div>
+                        <button name="action_add_resource_role_link"
+                                type="object"
+                                string="Add new role link"
+                                class="oe_link"/>
+
+                        <button name="%(action_resource_open_wizard_manage_roles)d"
+                                type="action"
+                                string="Manage Roles"
+                                class="oe_link oe_right"/>
+                    </div>
+                </page>
+            </page>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_request_form">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form/sheet//div[@name='request_footer__assigned']/div[./field[@name='user_id']]"
+                   position="after">
+                <div attrs="{'invisible': [('team_id', '=', False)]}">
+                    <i class="fa fa-users mr4"
+                       title="Team"/>
+                    <field name="team_id"
+                           readonly="1"/>
+                </div>
+            </xpath>
+            <xpath expr="/form/sheet//div[@name='request_footer__assigned']/div/span[./label[@for='date_assigned']]"
+                   position="attributes">
+                <attribute name="attrs">{'invisible': [('user_id', '=', False), ('team_id', '=', False)]}</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_request_kanban">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="/kanban/field[@name='user_id']" position="after">
+                <field name="team_id"/>
+            </xpath>
+            <xpath expr="//div[@name='request_kanban_info_main_right']" position="inside">
+                <span>
+                    <span class="fa fa-users" title="Team"/>
+                    <span title="Team">
+                        <field t-if="record.team_id.raw_value"
+                               name="team_id"/>
+                        <span t-else="" class="text-muted">No team assigned</span>
+                    </span>
+                </span>
+            </xpath>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_request_searchpanel">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_searchpanel"/>
+        <field name="arch" type="xml">
+            <xpath expr="//searchpanel/field[@name='tag_ids']" position="before">
+                <field name="team_id" string="Team"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_request_tree">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="team_id"
+                       optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_team_request_request_search">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='group_group_by']" position="inside">
+                <filter name="filter_group_by_generic_team"
+                        string="Team"
+                        context="{'group_by': 'team_id'}"/>
+            </xpath>
+            <xpath expr="//filter[@name='filter_assigned_to_me']" position="after">
+                <filter name="filter_assigned_to_my_team"
+                        string="Assigned to my team"
+                        domain="['|', '|', ('team_id.user_ids', '=', uid), ('team_id.leader_id', '=', uid), ('team_id.task_manager_id', '=', uid)]"/>
+            </xpath>
+            <xpath expr="//field[@name='author_id']" position="before">
+                <field name="team_id"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

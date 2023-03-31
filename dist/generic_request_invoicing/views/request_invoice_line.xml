@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="view_request_invoice_line_tree" model="ir.ui.view">
+        <field name="name">view.request.invoice.line.tree</field>
+        <field name="model">request.invoice.line</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="request_id"/>
+                <field name="product_id"/>
+                <field name="description"/>
+                <field name="quantity"/>
+                <field name="uom_id" groups="uom.group_uom"/>
+                <field name="price_unit"/>
+                <field name="price_subtotal" sum="Total"/>
+                <field name="is_invoiced"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_request_invoice_line_form" model="ir.ui.view">
+        <field name="name">view.request.invoice.line.form</field>
+        <field name="model">request.invoice.line</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="request_id" attrs="{'readonly': [('is_invoiced', '!=', False)]}"/>
+                            <field name="product_id" attrs="{'readonly': [('is_invoiced', '!=', False)]}"/>
+                        </group>
+                        <group>
+                            <field name="is_invoiced"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="quantity" attrs="{'readonly': [('is_invoiced', '!=', False)]}"/>
+                            <field name="uom_id" groups="uom.group_uom" attrs="{'readonly': [('is_invoiced', '!=', False)]}"/>
+                            <field name="price_unit" attrs="{'readonly': [('is_invoiced', '!=', False)]}"/>
+                            <field name="price_subtotal"/>
+                        </group>
+                        <group>
+                            <field name="timesheet_line_id"/>
+                            <field name="invoice_line_id"/>
+                        </group>
+                    </group>
+                    <field name="description" placeholder="description" attrs="{'readonly': [('is_invoiced', '!=', False)]}"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>

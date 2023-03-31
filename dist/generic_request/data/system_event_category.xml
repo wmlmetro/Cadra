@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="generic.system.event.category" id="system_event_category_request_events">
+        <field name="name">Request Events</field>
+        <field name="code">request-events</field>
+        <field name="event_source_id" ref="system_event_source__request_request"/>
+    </record>
+    <record model="generic.system.event.category" id="system_event_category_request_sub_request_events">
+        <field name="name">SubRequest Events</field>
+        <field name="code">sub-request-events</field>
+        <field name="event_source_id" ref="system_event_source__request_request"/>
+    </record>
+    <record model="generic.system.event.category" id="system_event_category_request_parent_request_events">
+        <field name="name">Parent Request Events</field>
+        <field name="code">parent-request-events</field>
+        <field name="event_source_id" ref="system_event_source__request_request"/>
+    </record>
+</odoo>

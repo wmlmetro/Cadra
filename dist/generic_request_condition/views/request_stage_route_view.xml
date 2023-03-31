@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_stage_route_tree">
+        <field name="model">request.stage.route</field>
+        <field name="inherit_id" ref="generic_request.view_request_stage_route_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//tree/field[@name='allowed_group_ids']"
+                   position="after">
+                <field name="condition_operator"/>
+                <field name="condition_ids"
+                       domain="[('model_id.model', '=', 'request.request')]"
+                       widget="many2many_tags"
+                       context="{'default_based_on': 'request.request'}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_stage_route_form">
+        <field name="model">request.stage.route</field>
+        <field name="inherit_id" ref="generic_request.view_request_stage_route_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form//field[@name='allowed_group_ids']"
+                   position="after">
+                <label for="condition_operator" string="Conditions"/>
+                <div class="d-flex">
+                    <field name="condition_operator" class="oe_inline mr-2 align-self-center"/>
+                    <field name="condition_ids"
+                           domain="[('model_id.model', '=', 'request.request')]"
+                           widget="many2many_tags"
+                           context="{'default_based_on': 'request.request'}"
+                           options="{'no_quick_create': True, 'open': True}"/>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="generic_request_condition_action" model="ir.actions.act_window">
+        <field name="name">Generic Conditions</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">generic.condition</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('model_id.model', 'ilike', 'request.%')]</field>
+        <field name="context">{'default_based_on': 'request.request'}</field>
+    </record>
+
+    <menuitem name="Generic Conditions"
+              id="menu_request_conditions"
+              parent="generic_request.menu_configuration_rules"
+              groups="generic_request.group_request_manager"
+              action="generic_request_condition_action"
+              sequence="100"/>
+</odoo>

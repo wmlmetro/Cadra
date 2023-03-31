@@ -1,0 +1,142 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_related_requests
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:21+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_related_requests/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_related_requests
+#: model_terms:ir.ui.view,arch_db:generic_request_related_requests.iherited_view_request_request_kanban_inherit_request_parent
+msgid "<span title=\"Related requests\" class=\"fa fa-chain mr4\"/>"
+msgstr "<span title=\"İlgili istekler\" class=\"fa fa-chain mr4\"/>"
+
+#. module: generic_request_related_requests
+#: model_terms:ir.ui.view,arch_db:generic_request_related_requests.request_wizard_manage_related_requests_form_view
+msgid "Cancel"
+msgstr "İptal etmek"
+
+#. module: generic_request_related_requests
+#: model:ir.model.fields,field_description:generic_request_related_requests.field_request_wizard_manage_related_requests__create_uid
+msgid "Created by"
+msgstr "Tarafından yaratıldı"
+
+#. module: generic_request_related_requests
+#: model:ir.model.fields,field_description:generic_request_related_requests.field_request_wizard_manage_related_requests__create_date
+msgid "Created on"
+msgstr "oluşturuldu"
+
+#. module: generic_request_related_requests
+#: model:ir.model.fields,field_description:generic_request_related_requests.field_request_wizard_manage_related_requests__display_name
+msgid "Display Name"
+msgstr "Ekran adı"
+
+#. module: generic_request_related_requests
+#: model:ir.model.fields,field_description:generic_request_related_requests.field_request_wizard_manage_related_requests__id
+msgid "ID"
+msgstr "ID"
+
+#. module: generic_request_related_requests
+#: model:ir.model.fields,field_description:generic_request_related_requests.field_request_wizard_manage_related_requests____last_update
+msgid "Last Modified on"
+msgstr "Son Değiştirme Tarihi"
+
+#. module: generic_request_related_requests
+#: model:ir.model.fields,field_description:generic_request_related_requests.field_request_wizard_manage_related_requests__write_uid
+msgid "Last Updated by"
+msgstr "Son Güncelleyen"
+
+#. module: generic_request_related_requests
+#: model:ir.model.fields,field_description:generic_request_related_requests.field_request_wizard_manage_related_requests__write_date
+msgid "Last Updated on"
+msgstr "Son güncelleme tarihi"
+
+#. module: generic_request_related_requests
+#: model:ir.actions.act_window,name:generic_request_related_requests.request_wizard_manage_related_requests_action
+msgid "Manage related requests"
+msgstr "İlgili istekleri yönetin"
+
+#. module: generic_request_related_requests
+#: model_terms:ir.ui.view,arch_db:generic_request_related_requests.request_wizard_manage_related_requests_form_view
+msgid "OK"
+msgstr "Tamam"
+
+#. module: generic_request_related_requests
+#: model:ir.model.fields,help:generic_request_related_requests.field_request_request__related_request_ids
+msgid "Other requests referenced from this request"
+msgstr "Bu istekten atıfta bulunulan diğer istekler"
+
+#. module: generic_request_related_requests
+#: model:ir.model.fields.selection,name:generic_request_related_requests.selection__request_wizard_close__reopen_as__related-request
+msgid "Related Request"
+msgstr "İlgili İstek"
+
+#. module: generic_request_related_requests
+#: model:ir.model.fields,field_description:generic_request_related_requests.field_request_request__related_request_count
+msgid "Related Request Count"
+msgstr "İlgili İstek Sayısı"
+
+#. module: generic_request_related_requests
+#: model:ir.model.fields,field_description:generic_request_related_requests.field_request_request__related_request_total_count
+msgid "Related Request Total Count"
+msgstr "İlgili Talep Toplam Sayısı"
+
+#. module: generic_request_related_requests
+#: model_terms:ir.ui.view,arch_db:generic_request_related_requests.view_request_related_requests_from_request_request_form
+msgid "Related Requests"
+msgstr "İlgili İstekler"
+
+#. module: generic_request_related_requests
+#: model:ir.model.fields,field_description:generic_request_related_requests.field_request_request__related_reverse_request_count
+msgid "Related Reverse Request Count"
+msgstr "İlgili Ters İstek Sayısı"
+
+#. module: generic_request_related_requests
+#: model:ir.model.fields,field_description:generic_request_related_requests.field_request_request__related_request_ids
+#: model:ir.model.fields,field_description:generic_request_related_requests.field_request_wizard_manage_related_requests__related_request_ids
+#: model_terms:ir.ui.view,arch_db:generic_request_related_requests.request_wizard_manage_related_requests_form_view
+msgid "Related requests"
+msgstr "İlgili istekler"
+
+#. module: generic_request_related_requests
+#: model:ir.model.fields,field_description:generic_request_related_requests.field_request_request__related_reverse_request_ids
+msgid "Related to requests"
+msgstr "İsteklerle ilgili"
+
+#. module: generic_request_related_requests
+#: model:ir.model.fields,field_description:generic_request_related_requests.field_request_wizard_close__reopen_as
+msgid "Reopen As"
+msgstr "Farklı aç"
+
+#. module: generic_request_related_requests
+#: model:ir.model,name:generic_request_related_requests.model_request_request
+#: model:ir.model.fields,field_description:generic_request_related_requests.field_request_wizard_manage_related_requests__request_id
+msgid "Request"
+msgstr "İstek"
+
+#. module: generic_request_related_requests
+#: model:ir.model,name:generic_request_related_requests.model_request_wizard_close
+msgid "Request Wizard: Close"
+msgstr "İstek Sihirbazı: Kapat"
+
+#. module: generic_request_related_requests
+#: model:ir.model,name:generic_request_related_requests.model_request_wizard_manage_related_requests
+msgid "Request Wizard: Manage related requests"
+msgstr "İstek Sihirbazı: İlgili istekleri yönetin"
+
+#. module: generic_request_related_requests
+#: model:ir.model.fields,help:generic_request_related_requests.field_request_request__related_reverse_request_ids
+msgid "Requests that have references to this request"
+msgstr "Bu talebe atıfta bulunan talepler"

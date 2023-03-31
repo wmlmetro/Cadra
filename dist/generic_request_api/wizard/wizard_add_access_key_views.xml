@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="generic_request_api_wizard_add_access_key_view_form" model="ir.ui.view">
+        <field name="model">request.api.wizard.add.access.key</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="api_endpoint_id"/>
+                        <group>
+                            <field name="name"/>
+                        </group>
+                        <group>
+                            <field name="use_sudo"/>
+                            <field name="sudo_user_id"/>
+                        </group>
+                    </group>
+                </sheet>
+                <footer>
+                    <button string="Generate Access Key"
+                            name="do_generate_and_add_access_key"
+                            class="btn-primary"
+                            type="object"/>
+                    <button string="Cancel" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="generic_request_api_key_show_form" model="ir.ui.view">
+        <field name="model">request.api.wizard.add.access.key.show</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <h3 class="font-weight-bold">
+                        Write down your key
+                    </h3>
+                    <p>
+                        Here is your new API key, use it for Generic Request API Endpoint access.
+                    </p>
+                    <p><code><field name="key" readonly="True"/></code></p>
+                    <p class="alert alert-warning" role="alert">
+                        <strong>Important:</strong>
+                        The key cannot be retrieved later and provides <b>full access</b>
+                        to your Request API Endpoint, it is very important to store it securely.
+                    </p>
+                    <footer>
+                        <button special="cancel" string="Done!"/>
+                    </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_request_api_wizard_add_access_key" model="ir.actions.act_window">
+        <field name="res_model">request.api.wizard.add.access.key</field>
+        <field name="name">Add Access Keys</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

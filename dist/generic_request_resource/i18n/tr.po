@@ -1,0 +1,148 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* generic_request_resource
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-15 16:15+0000\n"
+"PO-Revision-Date: 2023-02-28 17:33+0000\n"
+"Last-Translator: Huseyin <hkpostam@gmail.com>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_resource/tr/>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.3.2\n"
+
+#. module: generic_request_resource
+#: model_terms:ir.ui.view,arch_db:generic_request_resource.inherited_view_generic_resource_form_inherit_request_resource
+msgid "<span class=\"o_stat_text\">Requests</span>"
+msgstr "<span class=\"o_stat_text\">İstekler</span>"
+
+#. module: generic_request_resource
+#: model_terms:ir.ui.view,arch_db:generic_request_resource.inherited_view_generic_resource_form_inherit_request_resource
+msgid "<span class=\"oe_form_field oe_inline\">/</span>"
+msgstr "<span class=\"oe_form_field oe_inline\">/</span>"
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource__resource_request_count
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource_simple__resource_request_count
+msgid "All Requests"
+msgstr "Tüm Talepler"
+
+#. module: generic_request_resource
+#: model:ir.model,name:generic_request_resource.model_generic_resource
+msgid "Generic Resource"
+msgstr "Genel Kaynak"
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_request__resource_id
+msgid "Generic resource"
+msgstr "Genel Kaynak"
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_request__resource_invisible
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_type__resource_invisible
+msgid "Hide resource fields"
+msgstr "Kaynak alanlarını gizle"
+
+#. module: generic_request_resource
+#: model:ir.model.fields,help:generic_request_resource.field_request_request__resource_invisible
+#: model:ir.model.fields,help:generic_request_resource.field_request_type__resource_invisible
+msgid "Hide resource fields on request form view, when this type is selected"
+msgstr "Bu tür seçildiğinde, istek formu görünümünde kaynak alanlarını gizle"
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_event__new_resource_id
+msgid "New Resource"
+msgstr "Yeni Kaynak"
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_event__old_resource_id
+msgid "Old Resource"
+msgstr "Eski Kaynak"
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource__resource_request_open_count
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource_simple__resource_request_open_count
+msgid "Open requests"
+msgstr "Açık istekler"
+
+#. module: generic_request_resource
+#: model:ir.model,name:generic_request_resource.model_request_request
+msgid "Request"
+msgstr "İstek"
+
+#. module: generic_request_resource
+#: model:ir.model,name:generic_request_resource.model_request_event
+msgid "Request Event"
+msgstr "Etkinlik İste"
+
+#. module: generic_request_resource
+#: model:ir.model,name:generic_request_resource.model_request_type
+msgid "Request Type"
+msgstr "İstek Türü"
+
+#. module: generic_request_resource
+#: code:addons/generic_request_resource/models/generic_resource.py:0
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource__resource_request_ids
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource_simple__resource_request_ids
+#, python-format
+msgid "Requests"
+msgstr "İstekler"
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_request__resource_res_id
+#: model_terms:ir.ui.view,arch_db:generic_request_resource.inherited_view_request_type_form_inherit_request_resource
+msgid "Resource"
+msgstr "Kaynak"
+
+#. module: generic_request_resource
+#: model:generic.system.event.type,name:generic_request_resource.request_event_type_resource_changed
+msgid "Resource changed"
+msgstr "Kaynak değişti"
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_request__resource_required
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_type__resource_required
+msgid "Resource is required"
+msgstr "Kaynak gerekli"
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_request__resource_res_model
+msgid "Resource model"
+msgstr "Kaynak Modeli"
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_request__resource_type_id
+msgid "Resource type"
+msgstr "Kaynak Türü"
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_type__resource_type_ids
+msgid "Resource types"
+msgstr "Kaynak Türleri"
+
+#. module: generic_request_resource
+#: model:ir.model.fields,help:generic_request_resource.field_request_type__resource_type_ids
+msgid "Resource types allowed for selection on requests of this type."
+msgstr "Bu tür isteklerde seçime izin verilen kaynak türleri."
+
+#. module: generic_request_resource
+#: model:ir.model.fields,help:generic_request_resource.field_request_request__resource_required
+#: model:ir.model.fields,help:generic_request_resource.field_request_type__resource_required
+msgid ""
+"Set this checkbox to make resource field required on requests of this type"
+msgstr ""
+"Bu tür isteklerde kaynak alanını gerekli kılmak için bu onay kutusunu "
+"ayarlayın"
+
+#. module: generic_request_resource
+#: code:addons/generic_request_resource/models/generic_resource.py:0
+#, python-format
+msgid "Unable to unlink! There is a reference to this resource from requests"
+msgstr "Bağlantı kaldırılamıyor! İsteklerden bu kaynağa bir referans var"

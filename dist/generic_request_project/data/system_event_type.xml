@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="request_event_type_task_stage_changed" model="generic.system.event.type">
+        <field name="name">Task stage changed</field>
+        <field name="code">task-stage-changed</field>
+        <field name="event_category_id" ref="system_event_category_request_project_task_events"/>
+        <field name="event_source_id" ref="generic_request.system_event_source__request_request"/>
+    </record>
+    <record id="request_event_type_task_closed" model="generic.system.event.type">
+        <field name="name">Task closed</field>
+        <field name="code">task-closed</field>
+        <field name="event_category_id" ref="system_event_category_request_project_task_events"/>
+        <field name="event_source_id" ref="generic_request.system_event_source__request_request"/>
+    </record>
+    <record id="request_event_type_task_all_tasks_closed" model="generic.system.event.type">
+        <field name="name">All tasks closed</field>
+        <field name="code">task-all-tasks-closed</field>
+        <field name="event_category_id" ref="system_event_category_request_project_task_events"/>
+        <field name="event_source_id" ref="generic_request.system_event_source__request_request"/>
+    </record>
+    <record id="request_event_type_project_changed" model="generic.system.event.type">
+        <field name="name">Project changed</field>
+        <field name="code">project-changed</field>
+        <field name="event_category_id" ref="system_event_category_request_project_task_events"/>
+        <field name="event_source_id" ref="generic_request.system_event_source__request_request"/>
+    </record>
+</odoo>

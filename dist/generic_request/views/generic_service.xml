@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_service_generic_service_form">
+        <field name="model">generic.service</field>
+        <field name="inherit_id" ref="generic_service.generic_service_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Request Types"
+                      groups="generic_request.group_request_use_services">
+                    <field name="request_type_ids"/>
+                </page>
+                <page string="Categories"
+                      groups="generic_request.group_request_use_services">
+                    <field name="category_ids"/>
+                </page>
+            </xpath>
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button class="oe_stat_button" type="object"
+                        name="action_show_service_requests"
+                        icon="fa-weixin"
+                        groups="generic_request.group_request_use_services">
+                    <field string="Requests" name="request_count" widget="statinfo"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_generic_service_kanban" model="ir.ui.view">
+        <field name="model">generic.service</field>
+        <field name="inherit_id" ref="generic_service.view_generic_service_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="//templates" position="before">
+                <field name="request_count"/>
+                <field name="request_type_count"/>
+                <field name="category_count"/>
+            </xpath>
+            <xpath expr="//div[hasclass('o_service_dashboard_kanban_boxes')]" position="inside">
+                <div class="o_service_dashboard_kanban_box"
+                     title="Requests"
+                     groups="generic_request.group_request_use_services">
+                    <a name="action_show_service_requests" type="object">
+                        <span class="o_value fa fa-weixin">
+                            <span class="ml8"><t t-esc="record.request_count.value"/></span>
+                        </span>
+                    </a>
+                </div>
+            </xpath>
+            <xpath expr="//div[hasclass('o_buttons')]" position="inside">
+                <a name="action_show_service_request_types"
+                   type="object"
+                   title="Request Types"
+                   groups="generic_request.group_request_use_services">
+                    <span class="fa fa-hashtag"/>
+                    <span><t t-esc="record.request_type_count.raw_value"/></span>
+                </a>
+                <a name="action_show_service_categories"
+                   type="object"
+                   title="Request Categories"
+                   groups="generic_request.group_request_use_services">
+                    <span class="fa fa-bars"/>
+                    <span><t t-esc="record.category_count.raw_value"/></span>
+                </a>
+            </xpath>
+        </field>
+    </record>
+</odoo>

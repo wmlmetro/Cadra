@@ -1,0 +1,1 @@
+- Added filter "Closed Today"

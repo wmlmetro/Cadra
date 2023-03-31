@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="group_request_user_invoicing" model="res.groups">
+        <field name="name">Request user (Invoicing)</field>
+        <field name="category_id" ref="base.module_category_generic_request"/>
+        <field name="comment">
+            Request user (Invoicing) can read and write request invoice lines.
+            If you need at allow for such user to see generated invoices, then
+            you have to add also accounting groups for such user.
+        </field>
+    </record>
+
+    <record id="generic_request.group_request_manager" model="res.groups">
+        <field name="implied_ids"
+               eval="[(4, ref('generic_request_invoicing.group_request_user_invoicing'))]"/>
+    </record>
+
+</odoo>

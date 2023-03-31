@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="tag_on_site_fix" model="generic.tag">
+        <field name="name">On Site Fix</field>
+        <field name="code">on-site-fix</field>
+        <field name="model_id" ref="generic_request.generic_request_tag_model"/>
+        <field name="color" eval="6"/>
+    </record>
+
+    <record id="request_type_sla_conditions" model="request.type">
+        <field name="name">SLA Request (Conditions)</field>
+        <field name="code">sla-request-conditions</field>
+        <field name="sla_compute_type">conditional</field>
+        <field name="color">rgba(135,70,149,0.54)</field>
+        <field name="description">
+            Simple request to demonstrate (and test) the SLA rule conditions.
+        </field>
+    </record>
+
+    <!-- Stages -->
+    <record id="request_stage_type_sla_condition_new" model="request.stage">
+        <field name="sequence" eval="1"/>
+        <field name="name">New</field>
+        <field name="code">new</field>
+        <field name="type_id" ref="generic_request.request_stage_type_draft"/>
+        <field name="request_type_id" ref="request_type_sla_conditions"/>
+    </record>
+    <record id="request_stage_type_sla_condition_analysis" model="request.stage">
+        <field name="sequence" eval="2"/>
+        <field name="name">Analysis</field>
+        <field name="code">analysis</field>
+        <field name="type_id" ref="generic_request.request_stage_type_progress"/>
+        <field name="request_type_id" ref="request_type_sla_conditions"/>
+    </record>
+    <record id="request_stage_type_sla_condition_remote_fix" model="request.stage">
+        <field name="sequence" eval="3"/>
+        <field name="name">Remote Fix</field>
+        <field name="code">remote-fix</field>
+        <field name="type_id" ref="generic_request.request_stage_type_progress"/>
+        <field name="request_type_id" ref="request_type_sla_conditions"/>
+    </record>
+    <record id="request_stage_type_sla_condition_on_site_fix" model="request.stage">
+        <field name="sequence" eval="3"/>
+        <field name="name">On Site Fix (Optional step)</field>
+        <field name="code">on-site-fix</field>
+        <field name="type_id" ref="generic_request.request_stage_type_progress"/>
+        <field name="request_type_id" ref="request_type_sla_conditions"/>
+    </record>
+    <record id="request_stage_type_sla_condition_done" model="request.stage">
+        <field name="sequence" eval="4"/>
+        <field name="name">Done</field>
+        <field name="code">done</field>
+        <field name="closed" eval="True"/>
+        <field name="type_id" ref="generic_request.request_stage_type_closed_ok"/>
+        <field name="request_type_id" ref="request_type_sla_conditions"/>
+    </record>
+
+    <!-- Routes -->
+    <record id="request_stage_route_type_sla_cond_new_to_analysis"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_sla_condition_new"/>
+        <field name="stage_to_id" ref="request_stage_type_sla_condition_analysis"/>
+        <field name="request_type_id" ref="request_type_sla_conditions"/>
+    </record>
+    <record id="request_stage_route_type_sla_condition_analys_to_remote_fix"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_sla_condition_analysis"/>
+        <field name="stage_to_id" ref="request_stage_type_sla_condition_remote_fix"/>
+        <field name="request_type_id" ref="request_type_sla_conditions"/>
+    </record>
+    <record id="request_stage_route_type_sla_condition_analys_to_site_fix"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_sla_condition_analysis"/>
+        <field name="stage_to_id" ref="request_stage_type_sla_condition_on_site_fix"/>
+        <field name="request_type_id" ref="request_type_sla_conditions"/>
+    </record>
+    <record id="request_stage_route_type_sla_condition_remote_to_site_fix"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_sla_condition_remote_fix"/>
+        <field name="stage_to_id" ref="request_stage_type_sla_condition_on_site_fix"/>
+        <field name="request_type_id" ref="request_type_sla_conditions"/>
+    </record>
+    <record id="request_stage_route_type_sla_condition_site_fix_to_remote"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_sla_condition_on_site_fix"/>
+        <field name="stage_to_id" ref="request_stage_type_sla_condition_remote_fix"/>
+        <field name="request_type_id" ref="request_type_sla_conditions"/>
+    </record>
+    <record id="request_stage_route_type_sla_condition_remoute_fix_to_done"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_sla_condition_remote_fix"/>
+        <field name="stage_to_id" ref="request_stage_type_sla_condition_done"/>
+        <field name="request_type_id" ref="request_type_sla_conditions"/>
+    </record>
+    <record id="request_stage_route_type_sla_condition_site_fix_to_done"
+            model="request.stage.route">
+        <field name="stage_from_id" ref="request_stage_type_sla_condition_on_site_fix"/>
+        <field name="stage_to_id" ref="request_stage_type_sla_condition_done"/>
+        <field name="request_type_id" ref="request_type_sla_conditions"/>
+    </record>
+
+    <!-- SLA Rules -->
+    <record id="request_sla_rule_standart_fix_time_remoute" model="request.sla.rule">
+        <field name="name">Standart Fix Time</field>
+        <field name="code">standart-fix-time</field>
+        <field name="sla_rule_type_id" ref="request_sla_rule_type_resolution_time"/>
+        <field name="request_type_id" ref="request_type_sla_conditions"/>
+        <field name="request_stage_ids" eval="[
+            (4, ref('generic_request_sla.request_stage_type_sla_condition_remote_fix')),
+            (4, ref('generic_request_sla.request_stage_type_sla_condition_analysis')),
+        ]"/>
+        <field name="warn_time" eval="2"/>
+        <field name="limit_time" eval="4"/>
+        <field name="sequence" eval="6"/>
+        <field name="compute_time">absolute</field>
+    </record>
+    <record id="request_sla_rule_on_site_fix" model="request.sla.rule">
+        <field name="name">On Site Fix Time</field>
+        <field name="code">on-site-fix-time</field>
+        <field name="sla_rule_type_id" ref="request_sla_rule_type_resolution_time"/>
+        <field name="request_type_id" ref="request_type_sla_conditions"/>
+        <field name="request_stage_ids" eval="[
+            (4, ref('generic_request_sla.request_stage_type_sla_condition_remote_fix')),
+            (4, ref('generic_request_sla.request_stage_type_sla_condition_analysis')),
+            (4, ref('generic_request_sla.request_stage_type_sla_condition_on_site_fix')),
+        ]"/>
+        <field name="warn_time" eval="5"/>
+        <field name="limit_time" eval="8"/>
+        <field name="sequence" eval="5"/>
+        <field name="compute_time">absolute</field>
+    </record>
+
+    <!-- Rules -->
+    <record id="condition_request_has_tag_on_site_fix" model="generic.condition">
+        <field name="name">Has Tag On Site Fix</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">related_field</field>
+        <field name="description">Evaluates to True if request has tag On Site Fix.</field>
+        <field name="condition_related_field_field_id"
+               ref="generic_request.field_request_request__tag_ids"/>
+        <field name="condition_related_field_operator">contains</field>
+        <field name="condition_related_field_value_id" ref="generic_request_sla.tag_on_site_fix"/>
+    </record>
+
+    <record id="condition_request_has_no_tag_on_site_fix" model="generic.condition">
+        <field name="name">Has No Tag On Site Fix</field>
+        <field name="model_id" ref="generic_request.model_request_request"/>
+        <field name="type">related_field</field>
+        <field name="description">Evaluates to False if request has tag On Site Fix.</field>
+        <field name="condition_related_field_field_id"
+               ref="generic_request.field_request_request__tag_ids"/>
+        <field name="condition_related_field_operator">contains</field>
+        <field name="condition_related_field_value_id" ref="generic_request_sla.tag_on_site_fix"/>
+        <field name="invert" eval="True"/>
+    </record>
+
+    <!--SLA Rule Conditions -->
+    <record id="sla_rule_condition_remoute_fix" model="request.sla.rule.condition">
+        <field name="name">Remote Fix</field>
+        <field name="request_type_id" ref="generic_request_sla.request_type_sla_conditions"/>
+        <field name="sla_rule_id" ref="generic_request_sla.request_sla_rule_standart_fix_time_remoute"/>
+        <field name="sequence" eval="5"/>
+        <field name="condition_ids" eval="[(4, ref('generic_request_sla.condition_request_has_no_tag_on_site_fix'))]"/>
+    </record>
+
+    <record id="sla_rule_condition_on_site_fix" model="request.sla.rule.condition">
+        <field name="name">On Site Fix</field>
+        <field name="request_type_id" ref="generic_request_sla.request_type_sla_conditions"/>
+        <field name="sla_rule_id" ref="generic_request_sla.request_sla_rule_on_site_fix"/>
+        <field name="sequence" eval="6"/>
+        <field name="condition_ids" eval="[(4, ref('generic_request_sla.condition_request_has_tag_on_site_fix'))]"/>
+    </record>
+
+</odoo>

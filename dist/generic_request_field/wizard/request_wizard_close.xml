@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="request_wizard_close_form_view" model="ir.ui.view">
+        <field name="model">request.wizard.close</field>
+        <field name="inherit_id" ref="generic_request.request_wizard_close_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form/field[1]" position="after">
+                <!-- This field is needed here to make onchange work in right way.
+                     We make this field readonly, because it is needed only on the form view,
+                     but it must not be sent to create method to allow inverse method compute it
+                     based on wizard_fields_json_top/bottom.
+                     Also, we make it invisible, because it must not be shown to the user
+                -->
+                <field name="value_ids" invisible="1" readonly="1"/>
+            </xpath>
+            <xpath expr="//notebook//page[@name='reopen_as']//field[@name='new_request_text']" position="before">
+                <field name="wizard_has_fields_top" invisible="1"/>
+                <field name="wizard_fields_json_top"
+                       widget="request_fields"
+                       class="mb0"
+                       attrs="{'invisible': [('wizard_has_fields_top', '=', False)]}"/>
+                <separator/>
+            </xpath>
+            <xpath expr="//notebook//page[@name='reopen_as']//field[@name='new_request_text']" position="after">
+                <field name="wizard_has_fields_bottom" invisible="1"/>
+                <field name="wizard_fields_json_bottom"
+                       widget="request_fields"
+                       class="mb0"
+                       attrs="{'invisible': [('wizard_has_fields_bottom', '=', False)]}"/>
+                <separator/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

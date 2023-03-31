@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_account_invoice_filter_generic_contract" model="ir.ui.view">
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_account_move_filter"/>
+        <field name="arch" type="xml">
+            <field name="date" position="after">
+                <separator/>
+                <field name="generic_contract_id"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_account_invoice_tree" model="ir.ui.view">
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_tree"/>
+        <field name="arch" type="xml">
+            <field name="state" position="after">
+                <field name="generic_contract_id"
+                       string="Contract"/>
+            </field>
+        </field>
+    </record>
+    
+    <record id="view_account_move_form" model="ir.ui.view">
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <field name="ref" position="after">
+                <field name="generic_contract_id"
+                       domain="[('partner_id', '=', partner_id)]"
+                       string="Contract"/>
+            </field>
+        </field>
+    </record>
+    
+    <record id="action_generic_contract_invoices" model="ir.actions.act_window">
+        <field name="name">Invoices</field>
+        <field name="res_model">account.move</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_ids"
+               eval="[(5, 0, 0),
+                      (0, 0, {'view_mode': 'tree', 'view_id': ref('account.view_move_tree')}),
+                      (0, 0, {'view_mode': 'form', 'view_id': ref('account.view_move_form')})]"/>
+    </record>
+
+</odoo>

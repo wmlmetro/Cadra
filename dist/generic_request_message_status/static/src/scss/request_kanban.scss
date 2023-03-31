@@ -1,0 +1,9 @@
+.o_request_kanban .o_request_kanban_header .o_header_right_info {
+    .o_header_messaging_status {
+        background-color: #c0c0c0;
+
+        &.o_msg_status_highlighted {
+            background-color: red;
+        }
+    }
+}

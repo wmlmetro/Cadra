@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- SLA Rules for request type 'SLA' -->
+    <record id="request_sla_rule_8h_in_draft" model="request.sla.rule">
+        <field name="name">8H in Draft</field>
+        <field name="code">DRAFT-8H</field>
+        <field name="sla_rule_type_id" ref="generic_request_sla.request_sla_rule_type_draft"/>
+        <field name="request_type_id" ref="generic_request_sla_log.request_type_sla"/>
+        <field name="request_stage_ids" eval="[(4, ref('generic_request_sla_log.request_stage_type_sla_draft'))]"/>
+        <field name="warn_time" eval="6"/>
+        <field name="limit_time" eval="8"/>
+        <field name="sequence" eval="5"/>
+    </record>
+    <record id="request_sla_rule_2h_unassigned" model="request.sla.rule">
+        <field name="name">2H Unassigned</field>
+        <field name="code">UNASSIGNED-2H</field>
+        <field name="sla_rule_type_id" ref="generic_request_sla.request_sla_rule_type_unassigned"/>
+        <field name="request_type_id" ref="generic_request_sla_log.request_type_sla"/>
+        <field name="request_stage_ids" eval="[(4, ref('generic_request_sla_log.request_stage_type_sla_sent'))]"/>
+        <field name="assigned">no</field>
+        <field name="warn_time" eval="1"/>
+        <field name="limit_time" eval="2"/>
+        <field name="sequence" eval="4"/>
+    </record>
+    <record id="request_sla_rule_4h_assigned" model="request.sla.rule">
+        <field name="name">4H Assigned</field>
+        <field name="code">ASSIGNED-4H</field>
+        <field name="sla_rule_type_id" ref="generic_request_sla.request_sla_rule_type_assigned"/>
+        <field name="request_type_id" ref="generic_request_sla_log.request_type_sla"/>
+        <field name="request_stage_ids" eval="[(4, ref('generic_request_sla_log.request_stage_type_sla_sent'))]"/>
+        <field name="assigned">yes</field>
+        <field name="warn_time" eval="3"/>
+        <field name="limit_time" eval="4"/>
+        <field name="sequence" eval="1"/>
+    </record>
+    <!-- SLA Rule Lines for request type SLA -->
+    <record id="request_sla_rule_8h_in_draft_support" model="request.sla.rule.line">
+        <field name="sla_rule_id" ref="request_sla_rule_8h_in_draft"/>
+        <field name="category_ids" eval="[(4, ref('generic_request.request_category_demo_support'))]"/>
+        <field name="sequence" eval="5"/>
+        <field name="compute_time">absolute</field>
+        <field name="warn_time" eval="3"/>
+        <field name="limit_time" eval="4"/>
+    </record>
+    <record id="request_sla_rule_8h_in_draft_technical" model="request.sla.rule.line">
+        <field name="sla_rule_id" ref="request_sla_rule_8h_in_draft"/>
+        <field name="category_ids" eval="[(4, ref('generic_request.request_category_demo_technical'))]"/>
+        <field name="sequence" eval="10"/>
+        <field name="compute_time">absolute</field>
+        <field name="warn_time" eval="5"/>
+        <field name="limit_time" eval="6"/>
+    </record>
+    <record id="request_sla_rule_website_channel" model="request.sla.rule.line">
+        <field name="sla_rule_id" ref="request_sla_rule_2h_unassigned"/>
+        <field name="sequence" eval="10"/>
+        <field name="compute_time">absolute</field>
+        <field name="request_channel_ids" eval="[(4, ref('generic_request.request_channel_website'))]"/>
+        <field name="warn_time" eval="7"/>
+        <field name="limit_time" eval="8"/>
+    </record>
+</odoo>
