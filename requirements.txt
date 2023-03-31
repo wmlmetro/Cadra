@@ -1,0 +1,3 @@
+# Please, list here python dependencies for accembly.
+# Documentation on requirements.txt file format available
+# here: https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format
