@@ -31,6 +31,11 @@ class ResConfigSettings(models.TransientModel):
         readonly=False,
         required=True)
 
+    use_service_groups = fields.Boolean(
+        related='website_id.use_service_groups',
+        readonly=False,
+        required=True)
+
     request_on_request_creating_redirect_to = fields.Selection(
         related='website_id.request_redirect_after_created_on_website',
         readonly=False,

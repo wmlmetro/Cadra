@@ -4,12 +4,21 @@
     <record id="request_type_sla" model="request.type">
         <field name="name">SLA Request</field>
         <field name="code">sla</field>
-        <field name="category_ids"
-               eval="[
-                   (4, ref('generic_request.request_category_demo_general'), 0),
-                   (4, ref('generic_request.request_category_demo_technical'), 0),
-                   (4, ref('generic_request.request_category_demo_support'), 0)]"/>
         <field name="color">rgba(118,139,215,0.59)</field>
+    </record>
+
+    <!--Add request.classifier-->
+    <record id="classifier_request_type_sla_gemo_general" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_general"/>
+        <field name="type_id" ref="generic_request_sla_log.request_type_sla"/>
+    </record>
+    <record id="classifier_request_type_sla_gemo_technical" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_technical"/>
+        <field name="type_id" ref="generic_request_sla_log.request_type_sla"/>
+    </record>
+    <record id="classifier_request_type_sla_gemo_support" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_support"/>
+        <field name="type_id" ref="generic_request_sla_log.request_type_sla"/>
     </record>
 
     <!-- SLA request type stages -->

@@ -2,7 +2,6 @@
 <odoo>
 
     <record model="ir.ui.view" id="view_request_related_document_tree">
-        <field name="name">view.request.related.document.tree</field>
         <field name="model">request.related.document</field>
         <field name="arch" type="xml">
             <tree>
@@ -21,7 +20,6 @@
     </record>
 
     <record model="ir.ui.view" id="view_request_related_document_form">
-        <field name="name">view.request.related.document.form</field>
         <field name="model">request.related.document</field>
         <field name="arch" type="xml">
             <form>

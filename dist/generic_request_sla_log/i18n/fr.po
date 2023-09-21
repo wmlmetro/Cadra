@@ -122,9 +122,6 @@ msgstr ""
 
 #. module: generic_request_sla_log
 #: model:ir.actions.act_window,name:generic_request_sla_log.action_generic_request_type_2_request_sla_log
-#: model:ir.actions.act_window,name:generic_request_sla_log.action_request_sla_log_view
-#: model:ir.actions.act_window,name:generic_request_sla_log.action_request_sla_log_view__tree_first
-#: model:ir.ui.menu,name:generic_request_sla_log.menu_request_sla_log
 #: model_terms:ir.ui.view,arch_db:generic_request_sla_log.inherited_view_request_type_form_inherit_request_sla_log
 msgid "SLA Log"
 msgstr "Suivi SLA"
@@ -133,6 +130,13 @@ msgstr "Suivi SLA"
 #: model_terms:ir.ui.view,arch_db:generic_request_sla_log.inherited_view_request_request_form_inherit_request_sla_log
 msgid "SLA Log lines"
 msgstr "Suivi SLA"
+
+#. module: generic_request_sla_log
+#: model:ir.actions.act_window,name:generic_request_sla_log.action_request_sla_log_view
+#: model:ir.actions.act_window,name:generic_request_sla_log.action_request_sla_log_view__tree_first
+#: model:ir.ui.menu,name:generic_request_sla_log.menu_request_sla_log
+msgid "SLA Logs Report"
+msgstr ""
 
 #. module: generic_request_sla_log
 #: model:request.type,name:generic_request_sla_log.request_type_sla

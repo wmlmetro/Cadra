@@ -10,7 +10,7 @@
     'website': "https://crnd.pro",
 
     'category': 'Generic Request',
-    'version': '15.0.2.1.1',
+    'version': '15.0.2.4.0',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -27,6 +27,7 @@
         'data/survey_email_template.xml',
         'data/system_event_type.xml',
         'views/request_event.xml',
+        'views/request_stage_view.xml',
         'views/request_type.xml',
     ],
     'demo': [

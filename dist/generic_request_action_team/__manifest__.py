@@ -7,7 +7,7 @@
     'author': "Center of Research and Development",
     'website': "https://crnd.pro",
     'category': 'Generic Assignment',
-    'version': '15.0.0.3.0',
+    'version': '15.0.0.6.0',
 
     # any module necessary for this one to work correctly
     'depends': [

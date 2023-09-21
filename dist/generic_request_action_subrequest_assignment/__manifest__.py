@@ -1,16 +1,15 @@
 {
-    'name': "Generic Request (Action Subrequest Assignment)",
+    'name': "Generic Request (Action Subrequest Assignment) [Obsolete]",
 
     'summary': """
-        Use assign policies for automatic assignments in subrequests
-        created via automated actions
+        This module reached the end of life and can be safely removed.
     """,
 
     'author': "Center of Research and Development",
     'website': "https://crnd.pro",
 
     'category': 'Generic Request',
-    'version': '15.0.0.5.0',
+    'version': '15.0.0.8.0',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -19,13 +18,11 @@
     ],
 
     # always loaded
-    'data': [
-        'views/request_event_action.xml',
-    ],
-    'demo': [
-    ],
+    'data': [],
+    'demo': [],
 
     'images': ['static/description/banner.png'],
+    'tags': ['obsolete'],
     'installable': True,
     'auto_install': False,
     'application': False,

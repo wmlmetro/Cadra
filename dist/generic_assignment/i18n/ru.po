@@ -73,6 +73,7 @@ msgid "Action Needed"
 msgstr "Требуется действие"
 
 #. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_base_automation__state
 #: model:ir.model.fields,field_description:generic_assignment.field_ir_actions_server__state
 #: model:ir.model.fields,field_description:generic_assignment.field_ir_cron__state
 msgid "Action To Do"
@@ -123,6 +124,7 @@ msgid "Assign Model"
 msgstr "Модель назначения"
 
 #. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_base_automation__assign_policy_id
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__assign_policy_ids
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_policy_id
 #: model:ir.model.fields,field_description:generic_assignment.field_ir_actions_server__assign_policy_id
@@ -584,6 +586,7 @@ msgstr "Сообщения"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__model_id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__model_name
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__model
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__model_name
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__assign_model
@@ -889,6 +892,7 @@ msgid "Type"
 msgstr "Тип"
 
 #. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_base_automation__state
 #: model:ir.model.fields,help:generic_assignment.field_ir_actions_server__state
 #: model:ir.model.fields,help:generic_assignment.field_ir_cron__state
 msgid ""

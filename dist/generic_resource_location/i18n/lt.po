@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:03+0000\n"
-"PO-Revision-Date: 2021-06-22 16:03+0000\n"
+"POT-Creation-Date: 2023-07-26 11:12+0000\n"
+"PO-Revision-Date: 2023-07-26 11:12+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -19,21 +19,21 @@ msgstr ""
 #. module: generic_resource_location
 #: model_terms:ir.ui.view,arch_db:generic_resource_location.inherited_generic_resource_view_form_inheritgeneric_resource_location
 msgid "Address"
-msgstr ""
+msgstr "Adresas"
 
 #. module: generic_resource_location
 #: model:ir.model.fields,field_description:generic_resource_location.field_generic_resource__city
 #: model:ir.model.fields,field_description:generic_resource_location.field_generic_resource_simple__city
 #: model_terms:ir.ui.view,arch_db:generic_resource_location.inherited_generic_resource_view_form_inheritgeneric_resource_location
 msgid "City"
-msgstr ""
+msgstr "Miestas"
 
 #. module: generic_resource_location
 #: model:ir.model.fields,field_description:generic_resource_location.field_generic_resource__country_id
 #: model:ir.model.fields,field_description:generic_resource_location.field_generic_resource_simple__country_id
 #: model_terms:ir.ui.view,arch_db:generic_resource_location.inherited_generic_resource_view_form_inheritgeneric_resource_location
 msgid "Country"
-msgstr ""
+msgstr "Valstybė"
 
 #. module: generic_resource_location
 #: model:ir.model,name:generic_resource_location.model_generic_resource
@@ -54,6 +54,12 @@ msgid ""
 msgstr ""
 
 #. module: generic_resource_location
+#: model:ir.model.fields,field_description:generic_resource_location.field_generic_resource__latitude
+#: model:ir.model.fields,field_description:generic_resource_location.field_generic_resource_simple__latitude
+msgid "Latitude"
+msgstr ""
+
+#. module: generic_resource_location
 #: model:ir.model.fields,field_description:generic_resource_location.field_generic_location__located_resource_ids
 msgid "Located Resources"
 msgstr ""
@@ -68,6 +74,12 @@ msgstr ""
 #: model:ir.model,name:generic_resource_location.model_generic_location
 #: model_terms:ir.ui.view,arch_db:generic_resource_location.inherited_generic_resource_view_form_inheritgeneric_resource_location
 msgid "Location"
+msgstr "Vieta"
+
+#. module: generic_resource_location
+#: model:ir.model.fields,field_description:generic_resource_location.field_generic_resource__longitude
+#: model:ir.model.fields,field_description:generic_resource_location.field_generic_resource_simple__longitude
+msgid "Longitude"
 msgstr ""
 
 #. module: generic_resource_location
@@ -79,36 +91,36 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_resource_location.field_generic_location__located_resource_count
 #: model_terms:ir.ui.view,arch_db:generic_resource_location.inherited_generic_location_view_form_inherit_resource_location
 msgid "Resources"
-msgstr ""
+msgstr "Ištekliai"
 
 #. module: generic_resource_location
 #: model:ir.model.fields,field_description:generic_resource_location.field_generic_resource__state_id
 #: model:ir.model.fields,field_description:generic_resource_location.field_generic_resource_simple__state_id
 #: model_terms:ir.ui.view,arch_db:generic_resource_location.inherited_generic_resource_view_form_inheritgeneric_resource_location
 msgid "State"
-msgstr ""
+msgstr "Regionas"
 
 #. module: generic_resource_location
 #: model:ir.model.fields,field_description:generic_resource_location.field_generic_resource__street
 #: model:ir.model.fields,field_description:generic_resource_location.field_generic_resource_simple__street
 msgid "Street"
-msgstr ""
+msgstr "Gatvė"
 
 #. module: generic_resource_location
 #: model_terms:ir.ui.view,arch_db:generic_resource_location.inherited_generic_resource_view_form_inheritgeneric_resource_location
 msgid "Street 2..."
-msgstr ""
+msgstr "Gatvė 2..."
 
 #. module: generic_resource_location
 #: model_terms:ir.ui.view,arch_db:generic_resource_location.inherited_generic_resource_view_form_inheritgeneric_resource_location
 msgid "Street..."
-msgstr ""
+msgstr "Gatvė..."
 
 #. module: generic_resource_location
 #: model:ir.model.fields,field_description:generic_resource_location.field_generic_resource__street2
 #: model:ir.model.fields,field_description:generic_resource_location.field_generic_resource_simple__street2
 msgid "Street2"
-msgstr ""
+msgstr "Gatvė 2"
 
 #. module: generic_resource_location
 #: model:ir.model.fields,field_description:generic_resource_location.field_generic_location__located_resource_total_count
@@ -139,10 +151,10 @@ msgstr ""
 #. module: generic_resource_location
 #: model_terms:ir.ui.view,arch_db:generic_resource_location.inherited_generic_resource_view_form_inheritgeneric_resource_location
 msgid "ZIP"
-msgstr ""
+msgstr "Pašto kodas"
 
 #. module: generic_resource_location
 #: model:ir.model.fields,field_description:generic_resource_location.field_generic_resource__zip
 #: model:ir.model.fields,field_description:generic_resource_location.field_generic_resource_simple__zip
 msgid "Zip"
-msgstr ""
+msgstr "Pašto kodas"

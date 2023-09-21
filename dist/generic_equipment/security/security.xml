@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="group_generic_equipment_user_implicit" model="res.groups">
+        <field name="name">Equipment user (imlicit)</field>
+        <field name="category_id" ref="base.module_category_generic_equipment"/>
+        <field name="comment">Read and write to equipments (no access to menus)</field>
+    </record>
+    <record id="group_generic_equipment_user" model="res.groups">
+        <field name="name">Equipment user</field>
+        <field name="category_id" ref="base.module_category_generic_equipment"/>
+        <field name="comment">Read and write to equipments</field>
+        <field name="implied_ids" eval="[(4, ref('generic_equipment.group_generic_equipment_user_implicit'))]"/>
+    </record>
+    <record id="group_generic_equipment_manager" model="res.groups">
+        <field name="name">Equipment manager</field>
+        <field name="implied_ids" eval="[(4, ref('generic_equipment.group_generic_equipment_user'))]"/>
+        <field name="category_id" ref="base.module_category_generic_equipment"/>
+        <field name="comment">Manage equipments</field>
+        <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+    </record>
+</odoo>

@@ -1,8 +1,13 @@
 from odoo.tests.common import TransactionCase
 from odoo.addons.generic_mixin.tests.common import ReduceLoggingMixin
+from odoo.addons.generic_system_event.tests.common import (
+    GenericSystemTestUtils,
+)
 
 
-class TestRequestProject(ReduceLoggingMixin, TransactionCase):
+class TestRequestProject(ReduceLoggingMixin,
+                         GenericSystemTestUtils,
+                         TransactionCase):
 
     @classmethod
     def setUpClass(cls):
@@ -185,3 +190,24 @@ class TestRequestProject(ReduceLoggingMixin, TransactionCase):
             last_event.event_code, 'project-changed')
         self.assertEqual(last_event.old_project_id, self.project)
         self.assertFalse(last_event.new_project_id)
+
+    def test_project_request_access_rights(self):
+        # Test that user who have no access to request can change stage on
+        # project task
+        user = self.env['res.users'].with_context(
+            no_reset_password=True,
+        ).create({
+            'name': 'Demo project user',
+            'login': 'demo-project-request-user',
+            'email': 'demo-project-request-user@example.com',
+            'groups_id': [
+                (6, 0, [self.env.ref('project.group_project_user').id])],
+        })
+        # Change stage of task
+        self.task_1.with_user(user).stage_id = self.task_stage_1
+
+        self.assertEqual(
+            self._get_last_event(self.request).event_code,
+            'task-stage-changed')
+        self.assertEqual(
+            self._get_last_event(self.request).user_id, user)

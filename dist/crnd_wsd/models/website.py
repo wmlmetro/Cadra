@@ -9,6 +9,8 @@ class Website(models.Model):
          ('tiles', 'Tiles')],
         default='standard',
         required=True)
+    use_service_groups = fields.Boolean(
+        default=False)
 
     request_redirect_after_created_on_website = fields.Selection(
         selection=[('congrats_page', 'Redirect to congratulation page'),

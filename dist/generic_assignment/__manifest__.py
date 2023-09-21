@@ -9,7 +9,7 @@
     'author': "Center of Research and Development",
     'website': "https://crnd.pro",
     'category': 'Generic Assignment',
-    'version': '15.0.1.24.0',
+    'version': '15.0.1.28.1',
 
     # any module necessary for this one to work correctly
     'depends': [

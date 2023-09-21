@@ -272,6 +272,14 @@ msgstr ""
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
 msgid ""
+"<span class=\"wsd_request header-bg-filler\">Attachments</span>\n"
+"                                    <span class=\"header-separator-splitter"
+"\"/>"
+msgstr ""
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+msgid ""
 "<span class=\"wsd_request header-bg-filler\">Response</span>\n"
 "                                    <span class=\"header-separator-splitter"
 "\"/>"
@@ -337,6 +345,11 @@ msgstr "Bütün"
 #: model:ir.model.fields.selection,name:crnd_wsd.selection__res_company__request_wsd_public_ui_visibility__create-request
 msgid "Allow to create request"
 msgstr "İstek oluşturmaya izin ver"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "Allow to use Service Groups for Services on Website."
+msgstr ""
 
 #. module: crnd_wsd
 #: model:ir.model.fields,field_description:crnd_wsd.field_request_type__website_comments_closed
@@ -412,11 +425,9 @@ msgstr ""
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
 msgid ""
-"Choose if you need to use the author`s phone on the creation page of the "
+"Choose if you need to use the author's phone on the creation page of the "
 "request."
 msgstr ""
-"İsteğin oluşturma sayfasında yazarın telefonunu kullanmanız gerekip "
-"gerekmediğini seçin."
 
 #. module: crnd_wsd
 #: model_terms:request.request,note_html:crnd_wsd.demo_request_request_printer_1
@@ -425,13 +436,13 @@ msgstr "Erişim elde etmek istediğiniz yazıcıyı seçin"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
-msgid "Choose the layout style applied for request creation steps."
-msgstr "İstek oluşturma adımları için uygulanan düzen stilini seçin."
+msgid "Choose the kind of access for link provided in emails."
+msgstr ""
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
-msgid "Choose the the kind of access for link provided in emails."
-msgstr "E-postalarda sağlanan bağlantı için erişim türünü seçin."
+msgid "Choose the layout style applied for request creation steps."
+msgstr "İstek oluşturma adımları için uygulanan düzen stilini seçin."
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
@@ -668,11 +679,6 @@ msgstr ""
 #: model:request.type,name:crnd_wsd.request_type_generic
 msgid "Generic Question"
 msgstr "Genel Soru"
-
-#. module: crnd_wsd
-#: model:ir.model,name:crnd_wsd.model_generic_service
-msgid "Generic Service"
-msgstr ""
 
 #. module: crnd_wsd
 #: model:request.type,description:crnd_wsd.request_type_generic
@@ -966,9 +972,9 @@ msgid "Request Allowed Upload File Types"
 msgstr "İzin Verilen Yükleme Dosyası Türlerini İste"
 
 #. module: crnd_wsd
-#: model:ir.model,name:crnd_wsd.model_request_category
-msgid "Request Category"
-msgstr "İstek Kategorisi"
+#: model:ir.model,name:crnd_wsd.model_request_classifier
+msgid "Request Classifier"
+msgstr ""
 
 #. module: crnd_wsd
 #: model:ir.model.fields,field_description:crnd_wsd.field_res_config_settings__request_create_step_layout
@@ -1117,6 +1123,11 @@ msgid "Select service"
 msgstr ""
 
 #. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_select_service_group
+msgid "Select service group"
+msgstr ""
+
+#. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_select_type
 msgid "Select type"
 msgstr "tür seç"
@@ -1124,13 +1135,7 @@ msgstr "tür seç"
 #. module: crnd_wsd
 #: code:addons/crnd_wsd/controllers/main.py:0
 #, python-format
-msgid "Selected request type require service!"
-msgstr ""
-
-#. module: crnd_wsd
-#: code:addons/crnd_wsd/controllers/main.py:0
-#, python-format
-msgid "Selected service and request type are incompatible!"
+msgid "Selected service, category and request type are incompatible!"
 msgstr ""
 
 #. module: crnd_wsd
@@ -1147,7 +1152,6 @@ msgstr "Seçim Önceliği Görünümü"
 #: model:request.stage.route,name:crnd_wsd.request_stage_route_type_bug_report_draft_to_sent
 #: model:request.stage.route,name:crnd_wsd.request_stage_route_type_generic_draft_to_sent
 #: model:request.stage.route,name:crnd_wsd.request_stage_route_type_without_service_draft_to_sent
-#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_progress
 msgid "Send"
 msgstr "Gönder"
 
@@ -1193,6 +1197,19 @@ msgstr "Service Desk Web sitesi kullanıcısı (Gelişmiş)"
 #: model:res.groups,name:crnd_wsd.group_service_desk_website_user_all_requests
 msgid "Service Desk Website user (All requests)"
 msgstr "Hizmet Masası Web sitesi kullanıcısı (Tüm istekler)"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_table
+msgid "Service group"
+msgstr ""
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_progress
+msgid ""
+"Service group\n"
+"                    <span/>"
+msgstr ""
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
@@ -1451,6 +1468,12 @@ msgid "Upgraded"
 msgstr "Yükseltildi"
 
 #. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_res_config_settings__use_service_groups
+#: model:ir.model.fields,field_description:crnd_wsd.field_website__use_service_groups
+msgid "Use Service Groups"
+msgstr ""
+
+#. module: crnd_wsd
 #: model:res.groups,comment:crnd_wsd.group_service_desk_website_user_all_requests
 msgid ""
 "Users in this groups can see all requests in system, but still not have "
@@ -1470,14 +1493,10 @@ msgid "View on Website"
 msgstr "Web Sitesinde Görüntüle"
 
 #. module: crnd_wsd
-#: model:ir.model.fields,field_description:crnd_wsd.field_generic_service__website_published
-#: model:ir.model.fields,field_description:crnd_wsd.field_request_category__website_published
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_classifier__website_published
 #: model:ir.model.fields,field_description:crnd_wsd.field_request_stage_route__website_published
-#: model:ir.model.fields,field_description:crnd_wsd.field_request_type__website_published
-#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_service_view_search
-#: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_category_search
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_classifier_search
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_stage_route_search
-#: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_type_search
 msgid "Visible in Website"
 msgstr "Web Sitesinde Görünür"
 
@@ -1488,10 +1507,8 @@ msgstr "WSD"
 
 #. module: crnd_wsd
 #: model:ir.model,name:crnd_wsd.model_website
-#: model:ir.model.fields,field_description:crnd_wsd.field_generic_service__website_ids
-#: model:ir.model.fields,field_description:crnd_wsd.field_request_category__website_ids
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_classifier__website_ids
 #: model:ir.model.fields,field_description:crnd_wsd.field_request_request__website_id
-#: model:ir.model.fields,field_description:crnd_wsd.field_request_type__website_ids
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_stage_route_form
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_type_form
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_website_request_request_search
@@ -1726,3 +1743,16 @@ msgstr "{{priority[1]}}"
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.priority_bar
 msgid "{{priority_inv[1]}}"
 msgstr "{{priority_inv[1]}}"
+
+#~ msgid "Request Category"
+#~ msgstr "İstek Kategorisi"
+
+#~ msgid ""
+#~ "Choose if you need to use the author`s phone on the creation page of the "
+#~ "request."
+#~ msgstr ""
+#~ "İsteğin oluşturma sayfasında yazarın telefonunu kullanmanız gerekip "
+#~ "gerekmediğini seçin."
+
+#~ msgid "Choose the the kind of access for link provided in emails."
+#~ msgstr "E-postalarda sağlanan bağlantı için erişim türünü seçin."

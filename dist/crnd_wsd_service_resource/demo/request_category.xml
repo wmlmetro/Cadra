@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<odoo>
-    <record id="generic_request.request_category_demo_resource" model="request.category">
-        <field name="service_ids" eval="[(4, ref('generic_service.generic_service_default'))]"/>
-        <field name="website_published" eval="True"/>
-    </record>
-</odoo>

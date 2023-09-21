@@ -7,10 +7,10 @@ msgstr ""
 "Project-Id-Version: Odoo Server 12.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2019-09-16 11:46+0000\n"
-"PO-Revision-Date: 2022-01-25 13:01+0000\n"
-"Last-Translator: Валерия <valittle@ukr.net>\n"
-"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/bureaucrat-"
-"itsm-14-0/generic_request_action_survey/uk/>\n"
+"PO-Revision-Date: 2023-07-31 18:36+0000\n"
+"Last-Translator: Den_Sharaf <den.sharaf@gmail.com>\n"
+"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_action_survey/uk/>\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -42,7 +42,7 @@ msgstr "В процесі"
 #. module: generic_request_action_survey
 #: model:request.stage.route,name:generic_request_action_survey.request_stage_type_with_survey_in_progress_to_done
 msgid "In Progress to Done"
-msgstr "В процесі до Виконано"
+msgstr "Виконується до завершення"
 
 #. module: generic_request_action_survey
 #: model:request.stage,name:generic_request_action_survey.request_stage_type_with_survey_new
@@ -52,7 +52,7 @@ msgstr "Новий"
 #. module: generic_request_action_survey
 #: model:request.stage.route,name:generic_request_action_survey.request_stage_type_with_survey_new_to_in_progress
 msgid "New to In Progress"
-msgstr "Новий до В процесі"
+msgstr "з Новий до В Прогресі"
 
 #. module: generic_request_action_survey
 #: model:request.stage.route,name:generic_request_action_survey.request_stage_type_with_survey_new_to_survey_sent

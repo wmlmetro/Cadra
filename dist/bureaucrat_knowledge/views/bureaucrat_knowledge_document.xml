@@ -94,7 +94,8 @@
                     <notebook>
                         <page name="document_document" string="Document">
                             <field name="document_body_html"
-                                attrs="{'invisible': [('document_format', '!=', 'html')]}"/>
+                                   attrs="{'invisible': [('document_format', '!=', 'html')]}"
+                                   options="{'style-inline': true, 'codeview': true }"/>
                             <field name="document_body_pdf"
                                 attrs="{'invisible': [('document_format', '!=', 'pdf')]}"
                                 widget="pdf_viewer"/>
@@ -222,7 +223,7 @@
                                  groups="base.group_user">
                                 <a class="dropdown-toggle" role="button"
                                    data-toggle="dropdown" href="#">
-                                    <span class="fa fa-bars fa-lg"/>
+                                    <span class="fa fa-bars fa-lg" title="Menu"/>
                                 </a>
                                 <ul class="dropdown-menu" role="menu"
                                     aria-labelledby="dLabel">
@@ -237,7 +238,7 @@
                                  t-attf-title="#{record.name.value}">
                                 <t t-esc="record.name.value"/>
                             </div>
-                            <div class="o_kanban_record_subtitle border-bottom text-primary border-primary font-italic"
+                            <div class="o_kanban_record_subtitle border-bottom text-primary border-primary font-italic knowledge-subtitle"
                                  t-attf-title="#{record.category_full_name.value}">
                                 <t t-esc="record.category_full_name.value"/>
                             </div>

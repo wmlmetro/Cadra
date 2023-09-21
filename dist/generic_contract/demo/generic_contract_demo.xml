@@ -5,7 +5,7 @@
         <field name="name">Basic support contract</field>
         <field name="partner_type">customer</field>
         <field name="partner_id" ref="base.res_partner_2"/>
-        <field name="date_start"
+        <field name="date_begin"
                eval="(DateTime.today() - timedelta(weeks=12)).strftime('%Y-%m-%d 00:00:00')"/>
         <field name="date_end"
                eval="(DateTime.today() + timedelta(weeks=20)).strftime('%Y-%m-%d 00:00:00')"/>
@@ -15,7 +15,7 @@
         <field name="name">Development &amp; Configuration</field>
         <field name="partner_type">customer</field>
         <field name="partner_id" ref="base.res_partner_2"/>
-        <field name="date_start"
+        <field name="date_begin"
                eval="(DateTime.today() - timedelta(weeks=12)).strftime('%Y-%m-%d 00:00:00')"/>
         <field name="date_end"
                eval="(DateTime.today() + timedelta(weeks=1)).strftime('%Y-%m-%d 00:00:00')"/>
@@ -25,7 +25,7 @@
         <field name="name">Hosting &amp; Administration</field>
         <field name="partner_type">customer</field>
         <field name="partner_id" ref="base.res_partner_2"/>
-        <field name="date_start"
+        <field name="date_begin"
                eval="(DateTime.today() + timedelta(weeks=1)).strftime('%Y-%m-%d 00:00:00')"/>
         <field name="date_end"
                eval="(DateTime.today() + timedelta(weeks=20)).strftime('%Y-%m-%d 00:00:00')"/>
@@ -35,7 +35,7 @@
         <field name="name">Simple Support Contract</field>
         <field name="partner_type">customer</field>
         <field name="partner_id" ref="base.res_partner_4"/>
-        <field name="date_start"
+        <field name="date_begin"
                eval="(DateTime.today() - timedelta(weeks=4)).strftime('%Y-%m-%d 00:00:00')"/>
         <field name="date_end"
                eval="(DateTime.today() + timedelta(weeks=20)).strftime('%Y-%m-%d 00:00:00')"/>
@@ -45,7 +45,7 @@
         <field name="name">Basic provider contract</field>
         <field name="partner_type">supplier</field>
         <field name="partner_id" ref="base.res_partner_1"/>
-        <field name="date_start"
+        <field name="date_begin"
                eval="(DateTime.today() - timedelta(weeks=10)).strftime('%Y-%m-%d 00:00:00')"/>
         <field name="date_end"
                eval="(DateTime.today() + timedelta(weeks=15)).strftime('%Y-%m-%d 00:00:00')"/>
@@ -55,7 +55,7 @@
         <field name="name">Equipment purchase and installation</field>
         <field name="partner_type">supplier</field>
         <field name="partner_id" ref="base.res_partner_1"/>
-        <field name="date_start"
+        <field name="date_begin"
                eval="(DateTime.today() - timedelta(weeks=10)).strftime('%Y-%m-%d 00:00:00')"/>
         <field name="date_end"
                eval="(DateTime.today() - timedelta(weeks=7)).strftime('%Y-%m-%d 00:00:00')"/>
@@ -65,7 +65,7 @@
         <field name="name">Equipment installation</field>
         <field name="partner_type">supplier</field>
         <field name="partner_id" ref="base.res_partner_1"/>
-        <field name="date_start"
+        <field name="date_begin"
                eval="(DateTime.today() - timedelta(weeks=9)).strftime('%Y-%m-%d 00:00:00')"/>
         <field name="date_end"
                eval="(DateTime.today() - timedelta(weeks=7)).strftime('%Y-%m-%d 00:00:00')"/>
@@ -75,7 +75,7 @@
         <field name="name">Purchase of equipment</field>
         <field name="partner_type">supplier</field>
         <field name="partner_id" ref="base.res_partner_1"/>
-        <field name="date_start"
+        <field name="date_begin"
                eval="(DateTime.today() - timedelta(weeks=10)).strftime('%Y-%m-%d 00:00:00')"/>
         <field name="date_end"
                eval="(DateTime.today() - timedelta(weeks=9)).strftime('%Y-%m-%d 00:00:00')"/>
@@ -85,7 +85,7 @@
         <field name="name">Internet provision</field>
         <field name="partner_type">supplier</field>
         <field name="partner_id" ref="base.res_partner_1"/>
-        <field name="date_start"
+        <field name="date_begin"
                eval="(DateTime.today() - timedelta(weeks=7)).strftime('%Y-%m-%d 00:00:00')"/>
         <field name="date_end"
                eval="(DateTime.today() + timedelta(weeks=15)).strftime('%Y-%m-%d 00:00:00')"/>

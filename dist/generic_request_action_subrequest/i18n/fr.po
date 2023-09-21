@@ -29,6 +29,11 @@ msgid "Request Event Action"
 msgstr ""
 
 #. module: generic_request_action_subrequest
+#: model_terms:ir.ui.view,arch_db:generic_request_action_subrequest.request_text_template_test
+msgid "Request name:"
+msgstr ""
+
+#. module: generic_request_action_subrequest
 #: model:ir.model.fields.selection,name:generic_request_action_subrequest.selection__request_event_action__act_type__subrequest
 #: model_terms:ir.ui.view,arch_db:generic_request_action_subrequest.view_request_event_action_form
 msgid "Subrequest"
@@ -99,6 +104,16 @@ msgstr ""
 "La première étape pour les nouvelles demandes de ce type. Pour changer, sur "
 "la page Étapes, cliquez sur l'icône des flèches croisées et faites glisser "
 "l'étape souhaitée en haut de la liste."
+
+#. module: generic_request_action_subrequest
+#: model_terms:ir.ui.view,arch_db:generic_request_action_subrequest.request_text_template_test
+msgid "Today date:"
+msgstr ""
+
+#. module: generic_request_action_subrequest
+#: model_terms:ir.ui.view,arch_db:generic_request_action_subrequest.request_text_template_test
+msgid "Today time:"
+msgstr ""
 
 #. module: generic_request_action_subrequest
 #: model_terms:ir.ui.view,arch_db:generic_request_action_subrequest.view_request_event_action_form

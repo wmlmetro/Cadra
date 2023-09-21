@@ -25,7 +25,7 @@ class RequestRequest(models.Model):
     def _compute_access_url(self):
         res = super(RequestRequest, self)._compute_access_url()
         for request in self:
-            request.access_url = '/requests/request/%s' % request.id
+            request.access_url = '/requests/request/n/%s' % request.name
         return res
 
     def get_access_action(self, access_uid=None):

@@ -2,7 +2,7 @@ import logging
 
 from odoo import exceptions
 from odoo import models, fields, api, _
-from odoo.addons.generic_mixin import pre_write, post_write
+from odoo.addons.generic_mixin import pre_write, post_write, pre_create
 from odoo.addons.generic_system_event import on_event
 
 _logger = logging.getLogger(__name__)
@@ -25,16 +25,14 @@ class RequestRequest(models.Model):
         if self.team_id and not self.user_id:
             members = self.team_id._get_team_users()
 
-            for user_id in members:
-                self._send_default_notification__send(
-                    'generic_request_team'
-                    '.message_request_assigned_team__assignee',
-                    user_id.sudo().partner_id,
-                    event,
-                    lazy_subject=lambda self: _(
-                        "Your team has received a new request %s!") %
-                    self.name,
-                )
+            self._send_default_notification__send(
+                'generic_request_team.message_request_assigned_team__assignee',
+                members.sudo().mapped('partner_id'),
+                event,
+                lazy_subject=lambda self: _(
+                    "Your team has received a new request %s!") %
+                self.name,
+            )
 
     @post_write('team_id')
     def _after_team_id_changed(self, changes):
@@ -52,17 +50,21 @@ class RequestRequest(models.Model):
         action = self.env.ref(
             'generic_request_team.action_request_team_wizard_assign')
         action = action.read()[0]
-        action['context'] = {
+        ctx = {
             'default_request_ids': [(6, 0, self.ids)],
         }
+        if self.team_id:
+            ctx.update({'default_team_id': self.team_id.id})
+        action['context'] = ctx
         return action
 
-    @api.model
-    def create(self, vals):
-        if vals.get('team_id'):
-            vals['date_assigned'] = fields.Datetime.now()
-        request = super(RequestRequest, self).create(vals)
-        return request
+    @pre_create('team_id')
+    def _before_create_update_date_assigned_when_team_supplied(self, changes):
+        if changes['team_id'].new_val:
+            return {
+                'date_assigned': fields.Datetime.now()
+            }
+        return {}
 
     @pre_write('team_id')
     def _before_team_id_changed(self, changes):

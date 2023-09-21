@@ -7,17 +7,17 @@ msgstr ""
 "Project-Id-Version: Odoo Server 12.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2019-09-16 11:44+0000\n"
-"PO-Revision-Date: 2020-03-22 11:44+0000\n"
-"Last-Translator: Ostap Yakovenko <ceo@crnd.pro>\n"
-"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/bureaucrat-"
-"itsm-12/generic_request_api/uk/>\n"
+"PO-Revision-Date: 2023-08-07 13:43+0000\n"
+"Last-Translator: Galina Prokopenko <am@crnd.pro>\n"
+"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_api/uk/>\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 3.10.3\n"
+"X-Generator: Weblate 4.3.2\n"
 
 #. module: generic_request_api
 #: model_terms:ir.ui.view,arch_db:generic_request_api.generic_request_api_key_show_form
@@ -58,7 +58,7 @@ msgstr "API Тип"
 #. module: generic_request_api
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__active
 msgid "Active"
-msgstr "Активно"
+msgstr "Активний"
 
 #. module: generic_request_api
 #: model_terms:ir.ui.view,arch_db:generic_request_api.request_api_endpoint_form
@@ -96,7 +96,7 @@ msgstr ""
 #. module: generic_request_api
 #: model_terms:ir.ui.view,arch_db:generic_request_api.generic_request_api_wizard_add_access_key_view_form
 msgid "Cancel"
-msgstr ""
+msgstr "Відмінити"
 
 #. module: generic_request_api
 #: model_terms:ir.ui.view,arch_db:generic_request_api.rest_api_help_main
@@ -124,14 +124,14 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_wizard_add_access_key__create_uid
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_wizard_add_access_key_show__create_uid
 msgid "Created by"
-msgstr "Створив"
+msgstr "Ким створено"
 
 #. module: generic_request_api
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__create_date
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_wizard_add_access_key__create_date
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_wizard_add_access_key_show__create_date
 msgid "Created on"
-msgstr "Створено"
+msgstr "Як створено"
 
 #. module: generic_request_api
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_key__create_date
@@ -144,7 +144,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_wizard_add_access_key__display_name
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_wizard_add_access_key_show__display_name
 msgid "Display Name"
-msgstr "Назва для відображення"
+msgstr "Відображати як"
 
 #. module: generic_request_api
 #: model_terms:ir.ui.view,arch_db:generic_request_api.generic_request_api_key_show_form
@@ -240,7 +240,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_wizard_add_access_key____last_update
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_wizard_add_access_key_show____last_update
 msgid "Last Modified on"
-msgstr "Остання модифікація"
+msgstr "Востаннє змінено"
 
 #. module: generic_request_api
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__write_uid
@@ -248,7 +248,7 @@ msgstr "Остання модифікація"
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_wizard_add_access_key__write_uid
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_wizard_add_access_key_show__write_uid
 msgid "Last Updated by"
-msgstr "Востаннє оновив"
+msgstr "Востаннє оновлено"
 
 #. module: generic_request_api
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__write_date
@@ -256,7 +256,7 @@ msgstr "Востаннє оновив"
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_wizard_add_access_key__write_date
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_wizard_add_access_key_show__write_date
 msgid "Last Updated on"
-msgstr "Останнє оновлення"
+msgstr "Востаннє оновлено"
 
 #. module: generic_request_api
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__name
@@ -265,7 +265,7 @@ msgstr "Останнє оновлення"
 #: model_terms:ir.ui.view,arch_db:generic_request_api.request_api_endpoint_form
 #: model_terms:ir.ui.view,arch_db:generic_request_api.request_api_key_form
 msgid "Name"
-msgstr "Назва"
+msgstr "Ім'я"
 
 #. module: generic_request_api
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__on_success
@@ -316,7 +316,7 @@ msgstr "Пененаправити на URL"
 #. module: generic_request_api
 #: model:ir.model,name:generic_request_api.model_request_request
 msgid "Request"
-msgstr ""
+msgstr "Запит"
 
 #. module: generic_request_api
 #: model:ir.model,name:generic_request_api.model_request_api_endpoint
@@ -347,11 +347,6 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_request_api.request_api_endpoint_form
 msgid "Request Data"
 msgstr ""
-
-#. module: generic_request_api
-#: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__request_type_id
-msgid "Request Type"
-msgstr "Тип запиту"
 
 #. module: generic_request_api
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__request_ids
@@ -413,9 +408,15 @@ msgid "Test rest API endpoint (with keys)."
 msgstr ""
 
 #. module: generic_request_api
+#: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__request_type_id
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__type
 msgid "Type"
 msgstr "Тип"
+
+#. module: generic_request_api
+#: model:ir.model.fields,help:generic_request_api.field_request_api_endpoint__request_type_id
+msgid "Type of request"
+msgstr ""
 
 #. module: generic_request_api
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__url
@@ -469,6 +470,9 @@ msgstr ""
 #: model:ir.model,name:generic_request_api.model_request_api_wizard_add_access_key_show
 msgid "request.api.wizard.add.access.key.show"
 msgstr ""
+
+#~ msgid "Request Type"
+#~ msgstr "Тип запиту"
 
 #~ msgid "At least one of the http methods must be set!"
 #~ msgstr "Хоча б один http метод має бути вибраним!"

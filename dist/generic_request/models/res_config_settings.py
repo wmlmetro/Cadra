@@ -12,11 +12,8 @@ FEATURE_MODULES = [
     'generic_request_action',
     'generic_request_action_assignment',
     'generic_request_action_invoice',
-    'generic_request_action_priority',
     'generic_request_action_project',
-    'generic_request_action_subrequest',
     'generic_request_action_survey',
-    'generic_request_action_tag',
     'generic_request_calendar',
     'generic_request_crm',
     'generic_request_field',
@@ -28,8 +25,6 @@ FEATURE_MODULES = [
     'generic_request_sale',
     'generic_request_sla',
     'generic_request_sla_log',
-    'generic_request_sla_priority',
-    'generic_request_sla_service',
     'generic_request_survey',
     'generic_request_team',
     'generic_request_web_conference',
@@ -51,8 +46,6 @@ class ResConfigSettings(models.TransientModel):
         string="Use Automated Actions")
     module_generic_request_action_project = fields.Boolean(
         string="Tasks")
-    module_generic_request_action_subrequest = fields.Boolean(
-        string="Subrequests")
     module_generic_request_sla = fields.Boolean(
         string="Use Service Level Agreements")
     module_generic_request_sla_log = fields.Boolean(
@@ -71,8 +64,6 @@ class ResConfigSettings(models.TransientModel):
         string="Surveys")
     module_generic_request_action_survey = fields.Boolean(
         string="Surveys (Action)")
-    module_generic_request_action_tag = fields.Boolean(
-        string="Tags")
     module_generic_request_invoicing = fields.Boolean(
         string="Invoicing")
     module_generic_request_action_invoice = fields.Boolean(
@@ -81,18 +72,12 @@ class ResConfigSettings(models.TransientModel):
         string="WSD Broadcast")
     module_crnd_wsd_legal = fields.Boolean(
         string="WSD Legal")
-    module_generic_request_sla_priority = fields.Boolean(
-        string="SLA Priority")
-    module_generic_request_sla_service = fields.Boolean(
-        string="SLA Service")
     module_generic_request_sale = fields.Boolean(
         string="Request Sale")
     module_generic_request_crm = fields.Boolean(
         string="Request CRM")
     module_generic_request_calendar = fields.Boolean(
         string="Request Calendar")
-    module_generic_request_action_priority = fields.Boolean(
-        string="Request Action Priority")
     module_generic_request_action_assignment = fields.Boolean(
         string="Request Action Assignment")
     module_generic_request_weight = fields.Boolean(
@@ -119,8 +104,6 @@ class ResConfigSettings(models.TransientModel):
         compute="_compute_generic_request_modules_can_install", readonly=True)
     need_install_generic_request_action_project = fields.Boolean(
         compute="_compute_generic_request_modules_can_install", readonly=True)
-    need_install_generic_request_action_subrequest = fields.Boolean(
-        compute="_compute_generic_request_modules_can_install", readonly=True)
     need_install_generic_request_sla = fields.Boolean(
         compute="_compute_generic_request_modules_can_install", readonly=True)
     need_install_generic_request_sla_log = fields.Boolean(
@@ -139,8 +122,6 @@ class ResConfigSettings(models.TransientModel):
         compute="_compute_generic_request_modules_can_install", readonly=True)
     need_install_generic_request_action_survey = fields.Boolean(
         compute="_compute_generic_request_modules_can_install", readonly=True)
-    need_install_generic_request_action_tag = fields.Boolean(
-        compute="_compute_generic_request_modules_can_install", readonly=True)
     need_install_generic_request_invoicing = fields.Boolean(
         compute="_compute_generic_request_modules_can_install", readonly=True)
     need_install_generic_request_action_invoice = fields.Boolean(
@@ -149,17 +130,11 @@ class ResConfigSettings(models.TransientModel):
         compute="_compute_generic_request_modules_can_install", readonly=True)
     need_install_crnd_wsd_legal = fields.Boolean(
         compute="_compute_generic_request_modules_can_install", readonly=True)
-    need_install_generic_request_sla_priority = fields.Boolean(
-        compute="_compute_generic_request_modules_can_install", readonly=True)
-    need_install_generic_request_sla_service = fields.Boolean(
-        compute="_compute_generic_request_modules_can_install", readonly=True)
     need_install_generic_request_sale = fields.Boolean(
         compute="_compute_generic_request_modules_can_install", readonly=True)
     need_install_generic_request_crm = fields.Boolean(
         compute="_compute_generic_request_modules_can_install", readonly=True)
     need_install_generic_request_calendar = fields.Boolean(
-        compute="_compute_generic_request_modules_can_install", readonly=True)
-    need_install_generic_request_action_priority = fields.Boolean(
         compute="_compute_generic_request_modules_can_install", readonly=True)
     need_install_generic_request_action_assignment = fields.Boolean(
         compute="_compute_generic_request_modules_can_install", readonly=True)
@@ -205,6 +180,14 @@ class ResConfigSettings(models.TransientModel):
         group='base.group_user,base.group_portal,base.group_public',
         implied_group='generic_request.'
                       'group_request_use_services')
+    group_request_use_service_groups = fields.Boolean(
+        group='base.group_user,base.group_portal,base.group_public',
+        implied_group='generic_request.'
+                      'group_request_use_service_groups')
+    group_request_use_kind = fields.Boolean(
+        group='base.group_user,base.group_portal,base.group_public',
+        implied_group='generic_request.'
+                      'group_request_use_kind')
     request_autoset_unsubscribe_prev_assignee = fields.Boolean(
         related='company_id.request_autoset_unsubscribe_prev_assignee',
         readonly=False

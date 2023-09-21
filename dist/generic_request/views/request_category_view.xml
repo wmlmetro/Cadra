@@ -237,6 +237,11 @@
                                    name="request_type_count"
                                    widget="statinfo"/>
                         </button>
+                        <button class="oe_stat_button" type="object"
+                                name="action_show_classifiers"
+                                icon="fa-folder-open">
+                            <field string="Classifiers" name="classifier_count" widget="statinfo"/>
+                        </button>
                     </div>
                     <field name="active" invisible="1"/>
                     <widget name="web_ribbon" title="Archived"
@@ -244,9 +249,6 @@
                             attrs="{'invisible': [('active', '=', True)]}"/>
                     <div class="oe_title">
                         <h1>
-                            <field name="parent_id"
-                                   placeholder="Parent category..."
-                                   class="oe_inline"/> /
                             <field name="name"
                                    placeholder="Name..."
                                    class="oe_inline"/>
@@ -256,6 +258,8 @@
                         <page string="Info" name="page_info">
                             <group name="group_info_root">
                                 <group name="group_info_left">
+                                    <field name="parent_id"
+                                           placeholder="Parent category..."/>
                                 </group>
                                 <group name="group_info_right">
                                     <field name="code"
@@ -266,14 +270,6 @@
                                            options="{'no_create': true, 'no_quick_create': true}"/>
                                 </group>
                             </group>
-                        </page>
-                        <page string="Types" name="page_request_types">
-                            <field name="request_type_ids"/>
-                        </page>
-                        <page string="Services"
-                              name="page_request_services"
-                              groups="generic_request.group_request_use_services">
-                            <field name="service_ids"/>
                         </page>
                         <page string="Description" name="page_description">
                             <field name="description"

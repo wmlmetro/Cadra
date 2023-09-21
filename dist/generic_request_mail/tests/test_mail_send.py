@@ -31,7 +31,7 @@ class TestRequestSendSettings(RequestCase):
         # message is dict with mail message data to be sent to smtp server.
         cls._sent_emails = []
 
-        # Patch send mail method to keep save message info before sending
+        # Patch send mail method to save message info before sending
         @api.model
         def send_email(self, message, mail_server_id=None, smtp_server=None,
                        smtp_port=None, smtp_user=None, smtp_password=None,

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- SLA Rule Lines for request type SLA category draft -->
+
+    <!-- mixed (service level 2, default service, request category support) -->
+    <record id="request_sla_rule_8h_in_draft_mixed" model="request.sla.rule.line">
+        <field name="sla_rule_id" ref="generic_request_sla.request_sla_rule_8h_in_draft"/>
+        <field name="sequence" eval="1"/>
+        <field name="compute_time">absolute</field>
+        <field name="warn_time" eval="12"/>
+        <field name="limit_time" eval="13"/>
+        <field name="category_ids" eval="[(4, ref('generic_request.request_category_demo_support'))]"/>
+        <field name="service_id" ref="generic_service.generic_service_default"/>
+        <field name="service_level_id" ref="generic_service.generic_service_level_2"/>
+    </record>
+
+    <!-- default service -->
+    <record id="request_sla_rule_8h_in_draft_default_service" model="request.sla.rule.line">
+        <field name="sla_rule_id" ref="generic_request_sla.request_sla_rule_8h_in_draft"/>
+        <field name="sequence" eval="2"/>
+        <field name="compute_time">absolute</field>
+        <field name="warn_time" eval="2"/>
+        <field name="limit_time" eval="3"/>
+        <field name="service_id" ref="generic_service.generic_service_default"/>
+    </record>
+
+    <!-- service level 1 -->
+    <record id="request_sla_rule_8h_in_draft_service_level_1" model="request.sla.rule.line">
+        <field name="sla_rule_id" ref="generic_request_sla.request_sla_rule_8h_in_draft"/>
+        <field name="sequence" eval="3"/>
+        <field name="compute_time">absolute</field>
+        <field name="warn_time" eval="1"/>
+        <field name="limit_time" eval="1"/>
+        <field name="service_level_id" ref="generic_service.generic_service_level_1"/>
+    </record>
+
+    <!-- service level 2 -->
+    <record id="request_sla_rule_8h_in_draft_service_level_2" model="request.sla.rule.line">
+        <field name="sla_rule_id" ref="generic_request_sla.request_sla_rule_8h_in_draft"/>
+        <field name="sequence" eval="4"/>
+        <field name="compute_time">absolute</field>
+        <field name="warn_time" eval="4"/>
+        <field name="limit_time" eval="5"/>
+        <field name="service_level_id" ref="generic_service.generic_service_level_2"/>
+    </record>
+
+    <!-- priority 3 -->
+    <record id="request_sla_rule_8h_in_draft_priority_3" model="request.sla.rule.line">
+        <field name="sla_rule_id" ref="generic_request_sla.request_sla_rule_8h_in_draft"/>
+        <field name="sequence" eval="2"/>
+        <field name="compute_time">absolute</field>
+        <field name="warn_time" eval="2"/>
+        <field name="limit_time" eval="3"/>
+        <field name="priority">3</field>
+    </record>
+
+    <!-- priority 4 -->
+    <record id="request_sla_rule_8h_in_draft_priority_4" model="request.sla.rule.line">
+        <field name="sla_rule_id" ref="generic_request_sla.request_sla_rule_8h_in_draft"/>
+        <field name="sequence" eval="3"/>
+        <field name="compute_time">absolute</field>
+        <field name="warn_time" eval="1"/>
+        <field name="limit_time" eval="1"/>
+        <field name="priority">4</field>
+    </record>
+</odoo>

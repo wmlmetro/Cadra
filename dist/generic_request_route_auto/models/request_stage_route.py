@@ -51,7 +51,7 @@ class RequestStageRoute(models.Model):
         """ Try to move specified request via route 'self'.
 
             :return: True if request moved,
-                     False if if is not possible to move via this route
+                     False if is not possible to move via this route
         """
         try:
             with self.env.cr.savepoint():

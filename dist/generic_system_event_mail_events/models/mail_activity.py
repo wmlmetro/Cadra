@@ -11,19 +11,20 @@ class MailActivity(models.Model):
             ].get_event_source(activity.res_model)
             if event_source:
                 record = self.env[activity.res_model].browse(activity.res_id)
-                record.trigger_event(event_type_code, {
-                    'mail_activity_id': activity.id,
-                    'mail_activity_type_id': activity.activity_type_id.id,
-                })
+                if record.exists():
+                    record.trigger_event(event_type_code, {
+                        'mail_activity_id': activity.id,
+                        'mail_activity_type_id': activity.activity_type_id.id,
+                    })
 
     @api.model_create_multi
     def create(self, values):
-        activities = super(MailActivity, self).create(values)
+        activities = super().create(values)
         activities._generic_system_event_trigger('mail-activity-new')
         return activities
 
     def write(self, values):
-        res = super(MailActivity, self).write(values)
+        res = super().write(values)
 
         if self.env.context.get('_system_event_write_protection_', False):
             return res

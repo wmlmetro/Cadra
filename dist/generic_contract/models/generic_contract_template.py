@@ -46,7 +46,7 @@ class GenericContractTemplate(models.Model):
         for record in self:
             record.contract_count = mapped_data.get(record.id, 0)
 
-    def _prepare_contract_values(self, partner, user, date_start, date_end):
+    def _prepare_contract_values(self, partner, user, date_begin, date_end):
         service_contract_line_ids_data = []
         for service_contract_line in self.service_contract_line_ids:
             service_contract_line_ids_data.append(
@@ -58,7 +58,7 @@ class GenericContractTemplate(models.Model):
             'partner_type': self.partner_type,
             'template_id': self.id,
             'partner_id': partner.commercial_partner_id.id,
-            'date_start': date_start,
+            'date_begin': date_begin,
             'date_end': date_end,
             'user_id': user.id if user else False,
             'description': self.description,
@@ -71,12 +71,12 @@ class GenericContractTemplate(models.Model):
         """
 
     def create_contract(self, partner, user=None,
-                        date_start=None, date_end=None):
+                        date_begin=None, date_end=None):
         self.ensure_one()
 
         root_contract = self.env['generic.contract'].create(
             self._prepare_contract_values(
-                partner, user, date_start, date_end))
+                partner, user, date_begin, date_end))
         self._postprocess_created_contract(root_contract)
 
         # TODO: copy translations

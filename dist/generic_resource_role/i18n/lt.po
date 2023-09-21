@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:10+0000\n"
-"PO-Revision-Date: 2021-06-22 16:10+0000\n"
+"POT-Creation-Date: 2023-07-26 11:10+0000\n"
+"PO-Revision-Date: 2023-07-26 11:10+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -135,7 +135,7 @@ msgstr ""
 #. module: generic_resource_role
 #: model:ir.model,name:generic_resource_role.model_res_partner
 msgid "Contact"
-msgstr ""
+msgstr "Kontaktai"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_permission__create_uid
@@ -160,6 +160,12 @@ msgstr ""
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_type__creator_role_id
 msgid "Creator Role"
+msgstr ""
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_is_role_manager
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_is_role_manager
+msgid "Current user is role manager"
 msgstr ""
 
 #. module: generic_resource_role
@@ -582,7 +588,7 @@ msgstr ""
 #. module: generic_resource_role
 #: model:ir.model,name:generic_resource_role.model_ir_rule
 msgid "Record Rule"
-msgstr ""
+msgstr "Įrašo taisyklė"
 
 #. module: generic_resource_role
 #: model:ir.actions.act_window,name:generic_resource_role.action_generic_resource_role_type_view_relatd_roles
@@ -601,12 +607,6 @@ msgstr ""
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_type__resource_act_manage_roles_id
 msgid "Resource Act Manage Roles"
-msgstr ""
-
-#. module: generic_resource_role
-#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_is_role_manager
-#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_is_role_manager
-msgid "Resource Is Role Manager"
 msgstr ""
 
 #. module: generic_resource_role
@@ -668,12 +668,6 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_permission_view_search
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_view_search
 msgid "Resource Type"
-msgstr ""
-
-#. module: generic_resource_role
-#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_user_role_ids
-#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_user_role_ids
-msgid "Resource User Role"
 msgstr ""
 
 #. module: generic_resource_role
@@ -931,9 +925,15 @@ msgid "User"
 msgstr ""
 
 #. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_user_role_ids
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_user_role_ids
+msgid "User roles"
+msgstr ""
+
+#. module: generic_resource_role
 #: model:ir.model,name:generic_resource_role.model_res_users
 msgid "Users"
-msgstr ""
+msgstr "Vartotojai"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__ir_model_data_xmlid

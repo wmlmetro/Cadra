@@ -58,6 +58,11 @@ msgid "Request Event Action"
 msgstr ""
 
 #. module: generic_request_action_assignment
+#: model:ir.model.fields,field_description:generic_request_action_assignment.field_request_event_action__subrequest_assign_policy_id
+msgid "Subrequest assign by policy"
+msgstr ""
+
+#. module: generic_request_action_assignment
 #: model:ir.model.fields,help:generic_request_action_assignment.field_request_event_action__mail_activity_assign_policy_user_id
 msgid "This user will be assigned to mail activity if policy returns no users"
 msgstr ""

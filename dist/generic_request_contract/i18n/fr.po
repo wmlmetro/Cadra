@@ -39,6 +39,7 @@ msgid "All Requests"
 msgstr "Tous les tickets"
 
 #. module: generic_request_contract
+#: model:ir.model.fields,field_description:generic_request_contract.field_request_report__request_contract_id
 #: model:ir.model.fields,field_description:generic_request_contract.field_request_request__contract_id
 #: model_terms:ir.ui.view,arch_db:generic_request_contract.view_request_request_search
 msgid "Contract"
@@ -88,9 +89,19 @@ msgid "Request Category"
 msgstr ""
 
 #. module: generic_request_contract
+#: model_terms:ir.ui.view,arch_db:generic_request_contract.view_request_report_search
+msgid "Request Contract"
+msgstr ""
+
+#. module: generic_request_contract
 #: model:ir.model,name:generic_request_contract.model_request_event
 msgid "Request Event"
 msgstr "Evénement"
+
+#. module: generic_request_contract
+#: model:ir.model,name:generic_request_contract.model_request_report
+msgid "Request Report"
+msgstr ""
 
 #. module: generic_request_contract
 #: model:ir.model.fields,field_description:generic_request_contract.field_generic_contract__contract_request_ids

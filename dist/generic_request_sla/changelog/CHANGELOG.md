@@ -1,5 +1,16 @@
 # Changelog
 
+## Version 2.13.0
+
+- Added ability to specify Request Tag for different SLA
+
+
+## Version 2.9.0
+
+- Merged `generic_request_sla_service` module.
+- Merged `generic_request_sla_priority` module.
+
+
 ## Version 2.1.0
 
 Added support for *SLA Compute Type: Conditional*,

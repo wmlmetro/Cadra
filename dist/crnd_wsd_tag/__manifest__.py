@@ -5,7 +5,7 @@
     'author': "Center of Research and Development",
     'website': "https://crnd.pro",
     'license': 'OPL-1',
-    'version': '15.0.0.15.0',
+    'version': '15.0.0.17.1',
     'depends': [
         'crnd_wsd',
         'generic_request',

@@ -7,7 +7,6 @@
         <field name="help_html"><![CDATA[
             Fill <i>Data</i> tab below with desired machine configuration
         ]]></field>
-        <field name="category_ids" eval="[(4, ref('generic_request.request_category_demo_technical_configuration'), 0)]"/>
     </record>
 
     <!-- fields request type stages -->

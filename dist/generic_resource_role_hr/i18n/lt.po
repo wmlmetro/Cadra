@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:04+0000\n"
-"PO-Revision-Date: 2021-06-22 16:04+0000\n"
+"POT-Creation-Date: 2023-07-26 11:11+0000\n"
+"PO-Revision-Date: 2023-07-26 11:11+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -20,7 +20,7 @@ msgstr ""
 #: model:ir.model,name:generic_resource_role_hr.model_hr_employee
 #: model:ir.model.fields,field_description:generic_resource_role_hr.field_generic_resource_role_link__employee_id
 msgid "Employee"
-msgstr ""
+msgstr "Darbuotojas"
 
 #. module: generic_resource_role_hr
 #: model:ir.model,name:generic_resource_role_hr.model_generic_resource_role_link

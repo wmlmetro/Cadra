@@ -12,7 +12,7 @@ class TestGenericContractWizardCreate(TestGenericContractCommon):
             'partner_type': 'supplier',
             'partner_id': self.partner_supplier.id,
             'template_id': self.supplier_template.id,
-            'date_start': self.today,
+            'date_begin': self.today,
         })
         new_supplier_contract_wizard._onchange_partner_type()
 

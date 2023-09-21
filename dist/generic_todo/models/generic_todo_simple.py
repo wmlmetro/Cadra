@@ -12,4 +12,4 @@ class GenericTodoSimple(models.Model):
         'generic.todo.mixin.implementation'
     ]
 
-    description = fields.Text(translate=True)
+    description = fields.Html(translate=False)

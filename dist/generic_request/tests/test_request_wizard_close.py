@@ -1,5 +1,6 @@
 from odoo.tests.common import TransactionCase
-from odoo.addons.generic_mixin.tests.common import ReduceLoggingMixin
+from odoo.addons.generic_mixin.tests.common import ReduceLoggingMixin, FindNew
+from odoo.addons.generic_mixin.tests.common import deactivate_records_for_model
 
 
 class TestRequestReopenAs(ReduceLoggingMixin, TransactionCase):
@@ -8,12 +9,30 @@ class TestRequestReopenAs(ReduceLoggingMixin, TransactionCase):
     def setUpClass(cls):
         super(TestRequestReopenAs, cls).setUpClass()
 
+        # Requests
+        cls.Request = cls.env['request.request']
         cls.request = cls.env.ref(
             "generic_request.request_request_type_sequence_demo_1")
         cls.request_reopen_1 = cls.env.ref(
             "generic_request.request_request_reopen_main_1")
+        cls.request_resp_attachment = cls.env.ref(
+            'generic_request.request_request_type_simple_demo_1')
+        cls.request = cls.env.ref(
+            "generic_request.request_request_type_sequence_demo_1")
+
+        # Stages
         cls.request.stage_id = cls.env.ref(
             "generic_request.request_stage_type_sequence_sent")
+        cls.request.stage_id = cls.env.ref(
+            "generic_request.request_stage_type_sequence_sent")
+        cls.stage_confirmed = cls.env.ref(
+            'generic_request.request_stage_type_simple_confirmed')
+        cls.stage_draft = cls.env.ref(
+            'generic_request.request_stage_type_simple_draft')
+        cls.stage_sent = cls.env.ref(
+            'generic_request.request_stage_type_simple_sent')
+
+        # Routes
         cls.close_reopen_route = cls.env.ref(
             'generic_request.'
             'request_stage_route_type_sequence_sent_to_grant')
@@ -22,10 +41,16 @@ class TestRequestReopenAs(ReduceLoggingMixin, TransactionCase):
         cls.new_reopen_1_route = cls.env.ref(
             'generic_request.'
             'request_stage_route_type_reopen_main_new_to_classified')
+
+        # Categories
         cls.new_request_category = cls.env.ref(
             'generic_request.request_category_demo_technical_configuration')
         cls.new_request_category_gen = cls.env.ref(
             'generic_request.request_category_demo_general')
+        cls.new_request_category = cls.env.ref(
+            'generic_request.request_category_demo_technical_configuration')
+
+        # Types
         cls.new_request_type = cls.env.ref(
             'generic_request.request_type_access')
         cls.new_request_type_reop_no_categ = cls.env.ref(
@@ -34,22 +59,21 @@ class TestRequestReopenAs(ReduceLoggingMixin, TransactionCase):
             'generic_request.request_type_reopen_as_type_categ_1')
         cls.new_request_type_reop_categ_2 = cls.env.ref(
             'generic_request.request_type_reopen_as_type_categ_2')
-        cls.request = cls.env.ref(
-            "generic_request.request_request_type_sequence_demo_1")
-        cls.request.stage_id = cls.env.ref(
-            "generic_request.request_stage_type_sequence_sent")
-        cls.close_reopen_route = cls.env.ref(
-            'generic_request.'
-            'request_stage_route_type_sequence_sent_to_grant')
         cls.new_request_type = cls.env.ref(
             'generic_request.request_type_access')
-        cls.new_request_category = cls.env.ref(
-            'generic_request.request_category_demo_technical_configuration')
+
+        # Services
         cls.default_service = cls.env.ref(
             'generic_service.generic_service_default')
-        cls.Request = cls.env['request.request']
+
+        # Attachments
+        cls.response_attachment1 = cls.env.ref(
+            'generic_request.request_response_attachment_demo1')
+        cls.response_attachment2 = cls.env.ref(
+            'generic_request.request_response_attachment_demo2')
 
     def test_request_wizard_close_onchanges(self):
+        deactivate_records_for_model(self.env, 'request.classifier')
         self.assertEqual(self.request.stage_id.code, 'sent')
         request_close = self.env['request.wizard.close'].new({
             'request_id': self.request.id,
@@ -104,9 +128,14 @@ class TestRequestReopenAs(ReduceLoggingMixin, TransactionCase):
         # Remove Default Service from category
         self.assertIn(
             self.default_service, self.new_request_category.service_ids)
-        self.new_request_category.write({
-            'service_ids': [(5, 0)]
-        })
+
+        # Remove link category with service
+        self.env['request.classifier'].search([
+            ('service_id', '=', self.default_service.id),
+            ('category_id', '=', self.new_request_category.id),
+        ]).write({'active': False})
+        self.env['request.classifier'].flush()
+        self.assertEqual(request_close.close_route_id, self.close_reopen_route)
         self.assertNotIn(
             self.default_service, self.new_request_category.service_ids)
 
@@ -135,6 +164,7 @@ class TestRequestReopenAs(ReduceLoggingMixin, TransactionCase):
 
     def test_request_wizard_close_onchanges_2(self):
         # pylint: disable=too-many-statements
+        deactivate_records_for_model(self.env, 'request.classifier')
         self.assertEqual(self.request_reopen_1.stage_id.code, 'new')
 
         request_close = self.env['request.wizard.close'].new({
@@ -221,12 +251,19 @@ class TestRequestReopenAs(ReduceLoggingMixin, TransactionCase):
             ]
         )
 
+        self.assertEqual(request_close.request_id, self.request_reopen_1)
+        self.assertEqual(
+            request_close.new_request_text, self.request_reopen_1.request_text)
         # Remove Default Service from category
         self.assertIn(
             self.default_service, self.new_request_category.service_ids)
-        self.new_request_category.write({
-            'service_ids': [(5, 0)]
-        })
+
+        # Remove link category with service
+        self.env['request.classifier'].search([
+            ('service_id', '=', self.default_service.id),
+            ('category_id', '=', self.new_request_category.id),
+        ]).write({'active': False})
+        self.env['request.classifier'].flush()
         self.assertNotIn(
             self.default_service, self.new_request_category.service_ids)
 
@@ -441,3 +478,46 @@ class TestRequestReopenAs(ReduceLoggingMixin, TransactionCase):
 
         self.assertEqual(self.request.stage_id.code, 'closed')
         self.assertFalse(self.request.child_ids)
+
+    def test_wizard_close_attachments(self):
+        # Prepare request for closing
+        self.assertEqual(
+            self.request_resp_attachment.stage_id, self.stage_draft)
+        self.request_resp_attachment.write({'stage_id': self.stage_sent.id})
+        self.assertTrue(self.request_resp_attachment.can_be_closed)
+
+        # Create wizard for closing the request, link attachment to it
+        close_route = self.env['request.stage.route'].sudo().search([
+            ('request_type_id', '=', self.request_resp_attachment.type_id.id),
+            ('stage_from_id', '=', self.request_resp_attachment.stage_id.id),
+            ('stage_to_id', '=', self.stage_confirmed.id),
+        ])
+        wizard_close = self.env['request.wizard.close'].create({
+            'request_id': self.request_resp_attachment.id,
+            'close_route_id': close_route.id,
+            'response_text': 'test-response-attachments',
+            'attachment_ids': [(4, self.response_attachment1.id),
+                               (4, self.response_attachment2.id)],
+        })
+        self.assertEqual(len(wizard_close.attachment_ids), 2)
+        self.assertIn(self.response_attachment1, wizard_close.attachment_ids)
+        self.assertIn(self.response_attachment2, wizard_close.attachment_ids)
+
+        # Close request
+        with FindNew(self.env, 'mail.mail') as nr:
+            wizard_close.action_close_request()
+        self.assertEqual(
+            self.request_resp_attachment.stage_id.code, 'confirmed')
+
+        # Check mail created and has the same attachments as request response
+        # attachments
+        response_mail = nr['mail.mail'].search(
+            [('subject', 'ilike', 'Your request %s has been closed!' %
+              self.request_resp_attachment.name)])
+        mail_attachments = response_mail.attachment_ids
+        self.assertEqual(len(mail_attachments), 2)
+        mail_attachment_datas = sorted(
+            mail_attachments.mapped('datas'))
+        wizard_attachment_datas = sorted(
+            wizard_close.attachment_ids.mapped('datas'))
+        self.assertListEqual(mail_attachment_datas, wizard_attachment_datas)

@@ -9,6 +9,9 @@
                 <field name="assign_team_id"
                     attrs="{'required': [('act_type', '=', 'assign'), ('assign_type', '=', 'team')],
                             'invisible': [('assign_type', '!=', 'team')]}"/>
+                <field name="assign_team_user_id"
+                       domain="[('generic_team_ids', '=', assign_team_id)]"
+                       attrs="{'invisible': [('assign_type', '!=', 'team')]}"/>
             </xpath>
         </field>
     </record>

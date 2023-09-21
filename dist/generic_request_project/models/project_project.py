@@ -14,7 +14,7 @@ class ProjectProject(models.Model):
     @api.depends('request_ids')
     def _compute_request_count(self):
         mapped_data = read_counts_for_o2m(
-            records=self, field_name='request_ids')
+            records=self.sudo(), field_name='request_ids')
         for record in self:
             record.request_count = mapped_data.get(record.id, 0)
 

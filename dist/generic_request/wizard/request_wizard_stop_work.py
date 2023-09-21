@@ -20,8 +20,18 @@ class RequestWizardStopWork(models.TransientModel):
         readonly=True)
     activity_id = fields.Many2one(
         'request.timesheet.activity', required=True, ondelete='cascade')
+    is_description_required = fields.Boolean(
+        related='activity_id.require_description', store=False, readonly=True)
     amount = fields.Float(required=True)
     description = fields.Text()
+
+    # Special case, when trying to start log time for new request, while
+    # we have already started request. In this case, the system will show
+    # stop wizard for old request, before stating new request,
+    # but we have to show user warning, that he must stop work on already
+    # running request. Thus we have special field for this.
+    start_request_id = fields.Many2one(
+        'request.request', ondelete='cascade', readonly=True)
 
     @api.model
     def default_get(self, fields_list):
@@ -42,6 +52,10 @@ class RequestWizardStopWork(models.TransientModel):
                 'amount': amount_seconds / 3600,
             })
 
+        if self.env.context.get('request_timesheet_start_request_id'):
+            res['start_request_id'] = self.env.context[
+                'request_timesheet_start_request_id']
+
         return res
 
     def _prepare_timesheet_line_data(self):
@@ -61,7 +75,5 @@ class RequestWizardStopWork(models.TransientModel):
             'timesheet_line_id': self.timesheet_line_id.id,
         })
 
-        if self.env.context.get('request_timesheet_start_request_id'):
-            self.env['request.request'].browse(
-                self.env.context.get('request_timesheet_start_request_id')
-            ).action_start_work()
+        if self.start_request_id:
+            self.start_request_id.action_start_work()

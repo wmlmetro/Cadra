@@ -15,8 +15,6 @@
                 <li>draft -> sent -> rejected</li>
             </ul>
         ]]></field>
-        <field name="category_ids"
-               eval="[(4, ref('generic_request.request_category_demo'), 0), (4, ref('generic_request.request_category_demo_general'), 0), (4, ref('generic_request.request_category_demo_technical'), 0)]"/>
         <field name="change_request_text_condition_ids"
                eval="[(6, 0, [ref('generic_request_condition.condition_request_is_created_by_current_user')])]"/>
         <field name="change_assignee_condition_ids"
@@ -27,6 +25,25 @@
                eval="[(6, 0, [ref('generic_request_condition.condition_request_text_is_confirm_me')])]"/>
         <field name="change_author_condition_ids"
                eval="[(6, 0, [ref('generic_request_condition.condition_request_text_is_change_author')])]"/>
+        <field name="change_service_condition_ids"
+               eval="[(6, 0, [ref('generic_request_condition.demo_condition_request_stage_is_draft_or_sent')])]"/>
+    </record>
+
+    <!--Add request.classifier-->
+    <record id="classifier_request_type_conditional_category_demo" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_rent_notebook"/>
+        <field name="category_id" ref="generic_request.request_category_demo"/>
+        <field name="type_id" ref="generic_request_condition.request_type_conditional"/>
+    </record>
+    <record id="classifier_request_type_conditional_demo_general" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_rent_notebook"/>
+        <field name="category_id" ref="generic_request.request_category_demo_general"/>
+        <field name="type_id" ref="generic_request_condition.request_type_conditional"/>
+    </record>
+    <record id="classifier_request_type_conditional_demo_technical" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_rent_notebook"/>
+        <field name="category_id" ref="generic_request.request_category_demo_technical"/>
+        <field name="type_id" ref="generic_request_condition.request_type_conditional"/>
     </record>
 
     <!-- Simple request type stages -->

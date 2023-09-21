@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
     <record id="request_wizard_assign_form_view" model="ir.ui.view">
-        <field name="name">request.wizard.assign.form</field>
         <field name="model">request.wizard.assign</field>
         <field name="arch" type="xml">
             <form>
@@ -49,4 +48,3 @@
        <field name="groups_id" eval="[(4, ref('group_request_user'))]"/>
    </record>
 </odoo>
-

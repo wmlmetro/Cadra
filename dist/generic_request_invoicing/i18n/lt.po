@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:08+0000\n"
-"PO-Revision-Date: 2021-06-22 16:08+0000\n"
+"POT-Creation-Date: 2023-07-26 11:14+0000\n"
+"PO-Revision-Date: 2023-07-26 11:14+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -35,6 +35,11 @@ msgid ""
 msgstr ""
 
 #. module: generic_request_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_timesheet_activity_search
+msgid "Billable"
+msgstr ""
+
+#. module: generic_request_invoicing
 #: code:addons/generic_request_invoicing/models/request_request.py:0
 #, python-format
 msgid "Cannot generate invoice unless partner selected!"
@@ -51,12 +56,12 @@ msgstr ""
 #. module: generic_request_invoicing
 #: model:ir.model,name:generic_request_invoicing.model_res_company
 msgid "Companies"
-msgstr ""
+msgstr "Įmonės"
 
 #. module: generic_request_invoicing
 #: model:ir.model,name:generic_request_invoicing.model_res_config_settings
 msgid "Config Settings"
-msgstr ""
+msgstr "Konfigūracijos nustatymai"
 
 #. module: generic_request_invoicing
 #: model:ir.model.fields,help:generic_request_invoicing.field_request_request__request_to_invoice_line_ids
@@ -68,18 +73,18 @@ msgstr ""
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__create_uid
 msgid "Created by"
-msgstr ""
+msgstr "Sukūrė"
 
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__create_date
 msgid "Created on"
-msgstr ""
+msgstr "Sukurta"
 
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__currency_id
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_request__currency_id
 msgid "Currency"
-msgstr ""
+msgstr "Valiuta"
 
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_type__default_timetracking_product_id
@@ -89,12 +94,12 @@ msgstr ""
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__description
 msgid "Description"
-msgstr ""
+msgstr "Aprašymas"
 
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__display_name
 msgid "Display Name"
-msgstr ""
+msgstr "Rodomas pavadinimas"
 
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_request__enable_invoicing
@@ -121,6 +126,20 @@ msgid "ID"
 msgstr ""
 
 #. module: generic_request_invoicing
+#: model:ir.model.fields,help:generic_request_invoicing.field_request_timesheet_line__is_billable
+msgid ""
+"If set to True, then system will generate new invoice line for this "
+"timesheet line for this request."
+msgstr ""
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,help:generic_request_invoicing.field_request_timesheet_activity__is_billable
+msgid ""
+"If set, then all timesheet lines of this activity will be billable by "
+"default."
+msgstr ""
+
+#. module: generic_request_invoicing
 #: model:ir.model.fields,help:generic_request_invoicing.field_request_invoice_line__is_invoiced
 msgid "Indicates whether this line is present in active invoice."
 msgstr ""
@@ -128,12 +147,12 @@ msgstr ""
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_request__invoice_ids
 msgid "Invoice"
-msgstr ""
+msgstr "Sąskaita-faktūra"
 
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_request__invoice_count
 msgid "Invoice Count"
-msgstr ""
+msgstr "Sąskaitų kiekis"
 
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__invoice_line_id
@@ -144,14 +163,15 @@ msgstr ""
 #. module: generic_request_invoicing
 #: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_request_form
 msgid "Invoices"
-msgstr ""
+msgstr "Sąskaitos-faktūros"
 
 #. module: generic_request_invoicing
 #: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_request_form
 msgid "Invoicing"
-msgstr ""
+msgstr "Apskaita"
 
 #. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_timesheet_activity__is_billable
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_timesheet_line__is_billable
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_wizard_stop_work__is_billable
 msgid "Is Billable"
@@ -165,27 +185,27 @@ msgstr ""
 #. module: generic_request_invoicing
 #: model:ir.model,name:generic_request_invoicing.model_account_move
 msgid "Journal Entry"
-msgstr ""
+msgstr "Žurnalo įrašas"
 
 #. module: generic_request_invoicing
 #: model:ir.model,name:generic_request_invoicing.model_account_move_line
 msgid "Journal Item"
-msgstr ""
+msgstr "Žurnalo įrašas"
 
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line____last_update
 msgid "Last Modified on"
-msgstr ""
+msgstr "Paskutinį kartą keista"
 
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__write_uid
 msgid "Last Updated by"
-msgstr ""
+msgstr "Paskutinį kartą atnaujino"
 
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__write_date
 msgid "Last Updated on"
-msgstr ""
+msgstr "Paskutinį kartą atnaujinta"
 
 #. module: generic_request_invoicing
 #: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_request_form
@@ -195,6 +215,11 @@ msgstr ""
 #. module: generic_request_invoicing
 #: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_request_form
 msgid "Make all not billable"
+msgstr ""
+
+#. module: generic_request_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_timesheet_activity_search
+msgid "Not Billable"
 msgstr ""
 
 #. module: generic_request_invoicing
@@ -212,12 +237,12 @@ msgstr ""
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__price_subtotal
 msgid "Price Subtotal"
-msgstr ""
+msgstr "Kainos tarpinė suma"
 
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_request__price_total
 msgid "Price Total"
-msgstr ""
+msgstr "Kaina"
 
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__price_unit
@@ -227,17 +252,17 @@ msgstr ""
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_request__pricelist_id
 msgid "Pricelist"
-msgstr ""
+msgstr "Kainoraštis"
 
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__product_id
 msgid "Product"
-msgstr ""
+msgstr "Produktas"
 
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__quantity
 msgid "Quantity"
-msgstr ""
+msgstr "Kiekis"
 
 #. module: generic_request_invoicing
 #: model:ir.model,name:generic_request_invoicing.model_request_request
@@ -246,7 +271,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_account_payment__request_id
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__request_id
 msgid "Request"
-msgstr ""
+msgstr "Užklausa"
 
 #. module: generic_request_invoicing
 #: model:ir.model,name:generic_request_invoicing.model_request_invoice_line
@@ -255,7 +280,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_timesheet_line__request_invoice_line_id
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_timesheet_line__request_invoice_line_ids
 msgid "Request Invoice Line"
-msgstr ""
+msgstr "Užklausos sąskaitos eilutė"
 
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_res_config_settings__request_invoice_line_description_tmpl
@@ -265,6 +290,11 @@ msgstr ""
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_res_company__request_invoice_line_description_tmpl
 msgid "Request Invoice Line Description Tmpl"
+msgstr ""
+
+#. module: generic_request_invoicing
+#: model:ir.model,name:generic_request_invoicing.model_request_timesheet_activity
+msgid "Request Timesheet Activity"
 msgstr ""
 
 #. module: generic_request_invoicing
@@ -280,7 +310,7 @@ msgstr ""
 #. module: generic_request_invoicing
 #: model:ir.model,name:generic_request_invoicing.model_request_type
 msgid "Request Type"
-msgstr ""
+msgstr "Užklausos tipas"
 
 #. module: generic_request_invoicing
 #: model:ir.model,name:generic_request_invoicing.model_request_wizard_stop_work
@@ -312,28 +342,28 @@ msgstr ""
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__timesheet_line_id
 msgid "Timesheet Line"
-msgstr ""
+msgstr "Darbo laiko apskaitos žiniaraščio eilutė"
 
 #. module: generic_request_invoicing
 #: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_invoice_line_tree
 #: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_request_form
 msgid "Total"
-msgstr ""
+msgstr "Suma"
 
 #. module: generic_request_invoicing
 #: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_request_form
 msgid "Total Amount"
-msgstr ""
+msgstr "Visa suma"
 
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_invoice_line__uom_id
 msgid "Unit of Measure"
-msgstr ""
+msgstr "Matavimo vienetas"
 
 #. module: generic_request_invoicing
 #: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_request_form
 msgid "UoM"
-msgstr ""
+msgstr "Mat. vnt."
 
 #. module: generic_request_invoicing
 #: model:ir.model.fields,help:generic_request_invoicing.field_res_config_settings__request_invoice_line_description_tmpl
@@ -343,4 +373,4 @@ msgstr ""
 #. module: generic_request_invoicing
 #: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_invoice_line_form
 msgid "description"
-msgstr ""
+msgstr "Aprašymas"

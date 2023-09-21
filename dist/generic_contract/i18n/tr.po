@@ -9,8 +9,8 @@ msgstr ""
 "POT-Creation-Date: 2023-02-15 16:16+0000\n"
 "PO-Revision-Date: 2023-03-07 12:45+0000\n"
 "Last-Translator: Huseyin <hkpostam@gmail.com>\n"
-"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
-"bureaucrat-itsm-15-0/generic_contract/tr/>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-15-0/generic_contract/tr/>\n"
 "Language: tr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -274,6 +274,12 @@ msgid "Date Added"
 msgstr "Tarih Eklendi"
 
 #. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__date_begin
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__date_begin
+msgid "Date Begin"
+msgstr ""
+
+#. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__date_closed
 msgid "Date Closed"
 msgstr "Tarih Kapatıldı"
@@ -285,17 +291,10 @@ msgid "Date End"
 msgstr "Tarih Bitişi"
 
 #. module: generic_contract
-#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__date_start
-#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__date_start
-msgid "Date Start"
-msgstr "Başlangıç Tarihi"
-
-#. module: generic_contract
 #: code:addons/generic_contract/models/generic_contract.py:0
 #, python-format
-msgid "Date start can`t be less than date end of contract! Check it, please"
+msgid "Date begin can`t be less than date end of contract! Check it, please"
 msgstr ""
-"Başlangıç tarihi, sözleşme bitiş tarihinden az olamaz! Kontrol et lütfen"
 
 #. module: generic_contract
 #: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_form
@@ -491,11 +490,6 @@ msgid "Generic Service"
 msgstr "Genel Servis"
 
 #. module: generic_contract
-#: model:ir.model,name:generic_contract.model_generic_service_line
-msgid "Generic Service Line"
-msgstr "Genel hizmet hattı"
-
-#. module: generic_contract
 #: model:ir.model,name:generic_contract.model_generic_contract_wizard_create
 msgid "Generic Wizard: Create Contract"
 msgstr "Genel Sihirbaz: Sözleşme Oluştur"
@@ -547,7 +541,8 @@ msgid "If checked, some messages have a delivery error."
 msgstr "Kontrol edilirse, bazı iletilerde teslim hatası vardır."
 
 #. module: generic_contract
-#: code:addons/generic_contract/models/generic_service_line.py:0
+#: code:addons/generic_contract/models/generic_contract_service_line.py:0
+#: code:addons/generic_contract/models/generic_contract_template_service_line.py:0
 #, python-format
 msgid ""
 "If you don`t want to set the service or service level, unlink this row. You "
@@ -800,14 +795,12 @@ msgstr "Sıra"
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_service_line__service_id
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template_service_line__service_id
-#: model:ir.model.fields,field_description:generic_contract.field_generic_service_line__service_id
 msgid "Service"
 msgstr "Servis"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_service_line__service_level_id
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template_service_line__service_level_id
-#: model:ir.model.fields,field_description:generic_contract.field_generic_service_line__service_level_id
 msgid "Service Level"
 msgstr "Servis seviyesi"
 
@@ -826,6 +819,11 @@ msgstr "Hizmetler"
 #: model:generic.contract,name:generic_contract.generic_contract_simple_customer_contract
 msgid "Simple Support Contract"
 msgstr "Basit Destek Sözleşmesi"
+
+#. module: generic_contract
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_search
+msgid "State"
+msgstr ""
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__state
@@ -959,3 +957,13 @@ msgid ""
 msgstr ""
 "%s sözleşmesini silemezsiniz çünkü \"taslak\" durumunda değil. Yalnızca "
 "taslak sözleşmeleri silebilirsiniz."
+
+#~ msgid "Generic Service Line"
+#~ msgstr "Genel hizmet hattı"
+
+#~ msgid "Date Start"
+#~ msgstr "Başlangıç Tarihi"
+
+#~ msgid "Date start can`t be less than date end of contract! Check it, please"
+#~ msgstr ""
+#~ "Başlangıç tarihi, sözleşme bitiş tarihinden az olamaz! Kontrol et lütfen"

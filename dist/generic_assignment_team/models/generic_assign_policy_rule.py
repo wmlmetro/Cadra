@@ -79,10 +79,10 @@ class GenericAssignPolicyRule(models.Model):
             # and add/leave a default value to the field attributes
             choice_type = self.assign_team_choice_type or 'first'
             order = None
-            if self.assign_team_sort_field_id:
+            if self.sudo().assign_team_sort_field_id:
                 order = ("%s %s" % (
-                    self.assign_team_sort_field_id.name,
-                    self.assign_team_sort_direction))
+                    self.sudo().assign_team_sort_field_id.name,
+                    self.sudo().assign_team_sort_direction))
 
             member = self._choose_record(members, choice_type, order)
             if member:

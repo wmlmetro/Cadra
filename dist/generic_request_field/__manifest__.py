@@ -9,7 +9,7 @@
     'website': "https://crnd.pro",
 
     'category': 'Generic Request',
-    'version': '15.0.3.24.0',
+    'version': '15.0.3.31.1',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -29,6 +29,7 @@
     'demo': [
         'demo/request_type_create_lxc.xml',
         'demo/request_type_field.xml',
+        'demo/request_classifier.xml',
     ],
     'assets': {
         'web.assets_backend': [
@@ -44,6 +45,6 @@
     'installable': True,
     'application': False,
     'license': 'OPL-1',
-    'price': 10.0,
+    'price': 50.0,
     'currency': 'EUR',
 }

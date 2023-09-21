@@ -13,6 +13,10 @@ class RequestWizardClose(models.TransientModel):
     require_response = fields.Boolean(
         related="close_route_id.require_response", readonly=True)
     response_text = fields.Html('Response')
+    attachment_ids = fields.Many2many(
+        'ir.attachment', 'request_wizard_close_attachment_rel',
+        'request_wizard_close_id', 'attachment_id', 'Attachments',
+        help="You may attach files to response")
 
     # Reopen section
     reopen_as = fields.Selection(
@@ -149,6 +153,8 @@ class RequestWizardClose(models.TransientModel):
         return res
 
     def _reopen_prepare_data(self):
+        """ Prepare data that will be overwritten in in new request.
+        """
         res = {
             'service_id': self.new_request_service_id.id,
             'type_id': self.new_request_type_id.id,
@@ -173,6 +179,14 @@ class RequestWizardClose(models.TransientModel):
         # Set response_text here, because it may be used in conditions
         # that checks if it is allowed to move request by specified route
         self.request_id.response_text = self.response_text
+
+        # If wizard has response attachments,
+        # bind them to request (to get access portal users) and
+        # add to request response attachments
+        if self.attachment_ids:
+            self._request_bind_response_attachments(self.request_id.id)
+            self.request_id.response_attachment_ids = self.attachment_ids.ids
+
         self.request_id.stage_id = self.close_route_id.stage_to_id
 
         if self.reopen:
@@ -188,3 +202,24 @@ class RequestWizardClose(models.TransientModel):
             action['views'] = [v for v in action['views'] if v[1] == 'form']
             return action
         return None
+
+    def _request_bind_response_attachments(self, request_id):
+        """
+            Bind the response attachments of this wizard
+            to the given request id.
+
+            :param request_id: The id of request record to which
+                               the attachments should be bound.
+            :type request_id: int
+
+            This method binds all the response attachments of this wizard
+            to the given request_id.
+
+            :return: None
+            """
+        self.ensure_one()
+        for attachment in self.attachment_ids:
+            attachment.sudo().write({
+                'res_model': 'request.request',
+                'res_id': request_id,
+            })

@@ -1,6 +1,7 @@
 import logging
 from contextlib import contextmanager
 from odoo.tests.common import TransactionCase
+from odoo import models
 from odoo.addons.generic_mixin.tests.common import (
     ReduceLoggingMixin,
     AccessRulesFixMixinST,
@@ -31,9 +32,113 @@ def disable_mail_auto_delete(env):
     env['mail.mail']._revert_method('create')
 
 
+def ensure_classifier(env, *,
+                      service=None, category=None,
+                      request_type=None, active=None):
+    """ Ensure that requested classifier exists, or create new one if not
+    """
+    # pylint: disable=too-many-branches
+    if isinstance(service, str):
+        service_id = env.ref(service).id
+    elif isinstance(service, models.BaseModel):
+        service_id = service.id
+    elif isinstance(service, int):
+        service_id = service
+    elif not service:
+        service_id = False
+    else:
+        raise AssertionError("Unknown format of service")
+
+    if isinstance(category, str):
+        category_id = env.ref(category).id
+    elif isinstance(category, models.BaseModel):
+        category_id = category.id
+    elif isinstance(category, int):
+        category_id = category
+    elif not category:
+        category_id = False
+    else:
+        raise AssertionError("Unknown format of category")
+
+    if isinstance(request_type, str):
+        type_id = env.ref(request_type).id
+    elif isinstance(request_type, models.BaseModel):
+        type_id = request_type.id
+    elif isinstance(request_type, int):
+        type_id = request_type
+    elif not request_type:
+        type_id = False
+    else:
+        raise AssertionError("Unknown format of request type")
+
+    classifier = env['request.classifier'].with_context(
+        active_test=False
+    ).search([
+        ('service_id', '=', service_id),
+        ('category_id', '=', category_id),
+        ('type_id', '=', type_id),
+    ], limit=1)
+    if not classifier:
+        classifier = env['request.classifier'].create({
+            'service_id': service_id,
+            'category_id': category_id,
+            'type_id': type_id,
+        })
+    if active is not None and classifier.active != active:
+        classifier.write({'active': active})
+    return classifier
+
+
+class RequestCloseMixin:
+    """ Simple mixin that provides convenient method to close requests.
+    """
+
+    def _close_request(self, request, stage, response_text=False, user=None):
+        if user is None:
+            user = self.env.user
+
+        close_route = self.env['request.stage.route'].with_user(user).search([
+            ('request_type_id', '=', request.type_id.id),
+            ('stage_from_id', '=', request.stage_id.id),
+            ('stage_to_id', '=', stage.id),
+        ])
+        close_route.ensure_one()
+
+        act = request.action_close_request()
+        wiz = self.env[act['res_model']].with_user(user).with_context(
+            **act['context'],
+        ).create({
+            'close_route_id': close_route.id,
+            'response_text': response_text,
+        })
+        wiz.action_close_request()
+
+        self.assertEqual(request.stage_id, stage)
+        self.assertEqual(request.response_text, response_text)
+
+
+class RequestClassifierUtilsMixin:
+    """ This mixin provides some utility methods to deal with
+        request classifiers in tests
+    """
+
+    def ensure_classifier(self, *, service=None, category=None,
+                          request_type=None, active=None, **kw):
+        """ Ensure that requested classifier exists, or create new one if not
+        """
+        return ensure_classifier(
+            self.env,
+            service=service,
+            category=category,
+            request_type=request_type,
+            active=active)
+
+
 class RequestCase(AccessRulesFixMixinST,
                   ReduceLoggingMixin,
                   GenericSystemTestUtils,
+                  RequestCloseMixin,
+                  RequestClassifierUtilsMixin,
                   TransactionCase):
     """ BAse tests case for tests related to generic request
     """
@@ -41,6 +146,8 @@ class RequestCase(AccessRulesFixMixinST,
     @classmethod
     def setUpClass(cls):
         super(RequestCase, cls).setUpClass()
+        cls.Classifier = cls.env['request.classifier']
+
         cls.general_category = cls.env.ref(
             'generic_request.request_category_demo_general')
         cls.resource_category = cls.env.ref(
@@ -95,29 +202,6 @@ class RequestCase(AccessRulesFixMixinST,
 
         # Request kind
         cls.request_kind = cls.env.ref('generic_request.request_kind_demo')
-
-    def _close_request(self, request, stage, response_text=False, user=None):
-        if user is None:
-            user = self.env.user
-
-        close_route = self.env['request.stage.route'].with_user(user).search([
-            ('request_type_id', '=', request.type_id.id),
-            ('stage_from_id', '=', request.stage_id.id),
-            ('stage_to_id', '=', stage.id),
-        ])
-        close_route.ensure_one()
-
-        act = request.action_close_request()
-        wiz = self.env[act['res_model']].with_user(user).with_context(
-            **act['context'],
-        ).create({
-            'close_route_id': close_route.id,
-            'response_text': response_text,
-        })
-        wiz.action_close_request()
-
-        self.assertEqual(request.stage_id, stage)
-        self.assertEqual(request.response_text, response_text)
 
 
 class AccessRightsCase(AccessRulesFixMixinST,

@@ -24,9 +24,16 @@ class RequestStageRoute(models.Model):
         required=True, index=True, tracking=True)
 
     allowed_group_ids = fields.Many2many(
-        'res.groups', string='Allowed groups')
+        'res.groups', string='Allowed groups',
+        help="If the field is empty, then the restrictions are not applied."
+             " If the field is filled, only users belonging to any"
+             " of the specified groups will be able to move the request"
+             " along this route.")
     allowed_user_ids = fields.Many2many(
-        'res.users', string='Allowed users')
+        'res.users', string='Allowed users',
+        help="If the field is empty, then the restrictions are not applied."
+             " If the field is filled, only the specified users will be abble"
+             " to move the request along this route.")
     close = fields.Boolean(
         related='stage_to_id.closed', store=True, index=True, readonly=True,
         help='If set, then this route will close request')

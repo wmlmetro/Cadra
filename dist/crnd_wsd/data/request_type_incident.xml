@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo noupdate="1">
     <!-- Request Type incident-->
-    <function model="request.type"
+    <function model="request.classifier"
               name="write">
-        <function model="request.type"
+        <function model="request.classifier"
                   name="search">
-            <value eval="[('id', '=', ref('crnd_service_desk.request_type_incident', False))]"/>
+            <value eval="[('id', '=', ref('crnd_service_desk.classifier_request_type_incident', False))]"/>
         </function>
         <value eval="{'website_published': True}"/>
     </function>

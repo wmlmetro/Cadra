@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:07+0000\n"
-"PO-Revision-Date: 2021-06-22 16:07+0000\n"
+"POT-Creation-Date: 2023-07-26 11:12+0000\n"
+"PO-Revision-Date: 2023-07-26 11:12+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -346,11 +346,6 @@ msgid "Request Data"
 msgstr ""
 
 #. module: generic_request_api
-#: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__request_type_id
-msgid "Request Type"
-msgstr ""
-
-#. module: generic_request_api
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__request_ids
 #: model_terms:ir.ui.view,arch_db:generic_request_api.request_api_endpoint_form
 msgid "Requests"
@@ -410,8 +405,14 @@ msgid "Test rest API endpoint (with keys)."
 msgstr ""
 
 #. module: generic_request_api
+#: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__request_type_id
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__type
 msgid "Type"
+msgstr ""
+
+#. module: generic_request_api
+#: model:ir.model.fields,help:generic_request_api.field_request_api_endpoint__request_type_id
+msgid "Type of request"
 msgstr ""
 
 #. module: generic_request_api

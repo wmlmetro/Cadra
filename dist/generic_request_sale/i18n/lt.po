@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:04+0000\n"
-"PO-Revision-Date: 2021-06-22 16:04+0000\n"
+"POT-Creation-Date: 2023-07-26 11:13+0000\n"
+"PO-Revision-Date: 2023-07-26 11:13+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -68,19 +68,19 @@ msgstr ""
 #. module: generic_request_sale
 #: model:ir.model.fields,field_description:generic_request_sale.field_request_request__sale_order_id
 msgid "Order Reference"
-msgstr ""
+msgstr "Užsakymo numeris"
 
 #. module: generic_request_sale
 #: model:ir.model,name:generic_request_sale.model_product_template
 msgid "Product Template"
-msgstr ""
+msgstr "Produkto šablonas"
 
 #. module: generic_request_sale
 #: model:ir.model,name:generic_request_sale.model_request_request
 #: model:ir.model.fields,field_description:generic_request_sale.field_sale_order__request_ids
 #: model:ir.model.fields,field_description:generic_request_sale.field_sale_order_line__request_ids
 msgid "Request"
-msgstr ""
+msgstr "Užklausa"
 
 #. module: generic_request_sale
 #: model:ir.model.fields,field_description:generic_request_sale.field_sale_order__request_count
@@ -114,22 +114,22 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_request_sale.request_sale_product_template_form_view
 #: model_terms:ir.ui.view,arch_db:generic_request_sale.view_request_sale_order_form
 msgid "Requests"
-msgstr ""
+msgstr "Užklausos"
 
 #. module: generic_request_sale
 #: model:ir.model.fields,field_description:generic_request_sale.field_request_request__sale_order_line_id
 msgid "Sale Order Line"
-msgstr ""
+msgstr "Pardavimo užsakymo eilutė"
 
 #. module: generic_request_sale
 #: model:ir.model,name:generic_request_sale.model_sale_order
 msgid "Sales Order"
-msgstr ""
+msgstr "Pardavimo užsakymas"
 
 #. module: generic_request_sale
 #: model:ir.model,name:generic_request_sale.model_sale_order_line
 msgid "Sales Order Line"
-msgstr ""
+msgstr "Pardavimo užsakymo eilutė"
 
 #. module: generic_request_sale
 #: model:product.product,uom_name:generic_request_sale.demo_service_consulting_bureaucrat

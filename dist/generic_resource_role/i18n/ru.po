@@ -166,6 +166,12 @@ msgid "Creator Role"
 msgstr "Роль создателя"
 
 #. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_is_role_manager
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_is_role_manager
+msgid "Current user is role manager"
+msgstr ""
+
+#. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__ir_model_data_id
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__ir_model_data_id
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type__ir_model_data_id
@@ -607,12 +613,6 @@ msgid "Resource Act Manage Roles"
 msgstr ""
 
 #. module: generic_resource_role
-#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_is_role_manager
-#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_is_role_manager
-msgid "Resource Is Role Manager"
-msgstr ""
-
-#. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__master_model_id
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__sub_model_id
 msgid "Resource Model"
@@ -672,12 +672,6 @@ msgstr "Суб-роли ресурса"
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_view_search
 msgid "Resource Type"
 msgstr "Тип ресурса"
-
-#. module: generic_resource_role
-#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_user_role_ids
-#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_user_role_ids
-msgid "Resource User Role"
-msgstr "Роль пользователя ресурса"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_visibility
@@ -938,6 +932,12 @@ msgid "User"
 msgstr "Пользователь"
 
 #. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_user_role_ids
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_user_role_ids
+msgid "User roles"
+msgstr ""
+
+#. module: generic_resource_role
 #: model:ir.model,name:generic_resource_role.model_res_users
 msgid "Users"
 msgstr "Пользователи"
@@ -967,6 +967,9 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_view_form
 msgid "open full list of roles"
 msgstr ""
+
+#~ msgid "Resource User Role"
+#~ msgstr "Роль пользователя ресурса"
 
 #~ msgid "Followers (Channels)"
 #~ msgstr "Подписчики (Каналы)"

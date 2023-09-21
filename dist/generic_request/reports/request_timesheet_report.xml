@@ -8,7 +8,8 @@
                 <field name="request_service_id"/>
                 <field name="request_category_id"/>
                 <field name="request_type_id"/>
-                <field name="request_kind_id"/>
+                <field name="request_kind_id"
+                       groups="generic_request.group_request_use_kind"/>
                 <field name="request_stage_type_id"/>
                 <field name="request_channel_id"/>
                 <field name="request_partner_id"/>
@@ -19,6 +20,8 @@
                 <filter name="filter_my"
                         string="My"
                         domain="[('user_id', '=', uid)]"/>
+                <separator/>
+
                 <filter name="filter_today"
                         string="Today"
                         domain="[('date', '=', datetime.datetime.now())]" />
@@ -40,10 +43,10 @@
                 <filter name="filter_closed"
                         string="Request Closed"
                         domain="[('request_closed', '=', True)]"/>
-                <separator/>
                 <filter name="filter_open"
                         string="Request Open"
                         domain="[('request_closed', '=', False)]"/>
+                <separator/>
 
                 <group string="Group By" name="groupby">
                     <filter name="date_groupby"
@@ -66,7 +69,8 @@
                             context="{'group_by': 'request_type_id'}"/>
                     <filter name="request_kind_groupby"
                             string="Request Kind"
-                            context="{'group_by': 'request_kind_id'}"/>
+                            context="{'group_by': 'request_kind_id'}"
+                            groups="generic_request.group_request_use_kind"/>
                     <filter name="request_stage_type_groupby"
                             string="Request Stage Type"
                             context="{'group_by': 'request_stage_type_id'}"/>
@@ -118,7 +122,8 @@
                  <field name="request_service_id"/>
                  <field name="request_category_id"/>
                  <field name="request_type_id"/>
-                 <field name="request_kind_id"/>
+                 <field name="request_kind_id"
+                        groups="generic_request.group_request_use_kind"/>
                  <field name="request_author_id"/>
                  <field name="request_partner_id"/>
                  <field name="activity_id"/>
@@ -129,12 +134,12 @@
      </record>
 
     <record id="action_timesheet_line_report" model="ir.actions.act_window">
-        <field name="name">Timesheet Report</field>
+        <field name="name">Timesheets Report</field>
         <field name="res_model">request.timesheet.report</field>
         <field name="view_mode">pivot,graph,tree</field>
     </record>
 
-    <menuitem name="Timesheet"
+    <menuitem name="Timesheets Report"
               id="menu_timesheet_line_report"
               parent="generic_request.menu_request_report"
               groups="generic_request.group_request_manager"

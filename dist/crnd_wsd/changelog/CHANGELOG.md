@@ -1,5 +1,24 @@
 # Changelog
 
+## Version 1.115.0
+
+- Introducing a new feature: Website now supports the use of Service Groups.
+- This addition allows users to conveniently organize services that belong to specific service groups.
+- The utilization of Service Groups becomes particularly beneficial when dealing with services that are part of such groups.
+
+
+## Version 1.108.0
+
+Fixed bug in selection of priority on website.
+Now, the selection of priority on website will handle default priority
+selected on request type form view.
+
+
+## Version 1.102.0
+
+Added response attachments on request form
+
+
 ## Version 1.100.0
 
 Remove resolution checking of request upload image

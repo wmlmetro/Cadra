@@ -7,7 +7,7 @@
     'author': "Center of Research and Development",
     'website': "https://crnd.pro",
     'category': 'Generic Assignment',
-    'version': '15.0.1.2.0',
+    'version': '15.0.1.11.1',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -27,6 +27,7 @@
         'views/request_event.xml',
         'views/request_type_view.xml',
 
+        'reports/request_graph_reports.xml',
         'reports/request_timesheet_report.xml',
     ],
     'images': ['static/description/banner.png'],

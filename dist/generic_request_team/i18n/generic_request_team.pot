@@ -95,7 +95,13 @@ msgstr ""
 
 #. module: generic_request_team
 #: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_request_kanban
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_team_request_request_search
 msgid "No team assigned"
+msgstr ""
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_team_request_request_search
+msgid "No user assigned"
 msgstr ""
 
 #. module: generic_request_team
@@ -116,6 +122,16 @@ msgstr ""
 #. module: generic_request_team
 #: model:ir.model,name:generic_request_team.model_request_event
 msgid "Request Event"
+msgstr ""
+
+#. module: generic_request_team
+#: model:ir.model,name:generic_request_team.model_request_report
+msgid "Request Report"
+msgstr ""
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_report_search
+msgid "Request Resource Type"
 msgstr ""
 
 #. module: generic_request_team
@@ -151,6 +167,7 @@ msgid "Send Default Assigned Team Notification"
 msgstr ""
 
 #. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_request_report__request_team_id
 #: model:ir.model.fields,field_description:generic_request_team.field_request_request__team_id
 #: model:ir.model.fields,field_description:generic_request_team.field_request_wizard_assign__team_id
 #: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_request_kanban

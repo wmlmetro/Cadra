@@ -19,7 +19,7 @@ class GenericContractWizardCreate(models.TransientModel):
         'res.partner', required=True, ondelete='cascade')
     user_id = fields.Many2one(
         'res.users', string='Responsible', ondelete='cascade')
-    date_start = fields.Date(
+    date_begin = fields.Date(
         index=True, required=True,
         default=fields.Date.today)
     date_end = fields.Date(index=True)
@@ -38,7 +38,7 @@ class GenericContractWizardCreate(models.TransientModel):
         return self.template_id.create_contract(
             self.partner_id,
             user=self.user_id,
-            date_start=self.date_start,
+            date_begin=self.date_begin,
             date_end=self.date_end,
         )
 

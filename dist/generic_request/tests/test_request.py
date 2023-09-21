@@ -1,10 +1,14 @@
 # pylint: disable=too-many-lines
 import logging
+from ast import literal_eval
 from psycopg2 import IntegrityError
 
 from odoo import exceptions
 from odoo.tools.misc import mute_logger
 
+from odoo.addons.generic_mixin.tests.common import deactivate_records_for_model
+
+from odoo.tests.common import Form
 from .common import RequestCase, freeze_time
 from ..models.request_request import html2text
 
@@ -148,7 +152,8 @@ class TestRequestBase(RequestCase):
         self.assertEqual(request.type_id, self.simple_type)
 
     def test_157_request__category_changed_restricts_type(self):
-        Request = self.env['request.request']
+        # pylint: disable=too-many-statements
+        deactivate_records_for_model(self.env, 'request.classifier')
 
         category_tech = self.env.ref(
             'generic_request.request_category_demo_technical_configuration')
@@ -157,87 +162,83 @@ class TestRequestBase(RequestCase):
         default_service = self.env.ref(
             'generic_service.generic_service_default')
 
-        # Create new (empty) request
-        request = Request.new({})
-        self.assertFalse(request.stage_id)
-        self.assertFalse(request.type_id)
+        # Create New Request
+        with Form(self.env['request.request']) as request_form:
+            self.assertFalse(request_form.stage_id)
+            self.assertFalse(request_form.type_id)
+            self.assertFalse(request_form.stage_id)
+            self.assertFalse(request_form.type_id)
+            self.assertFalse(request_form.category_id)
 
-        request.onchange_type_id()
+            # Remove Default Service from category
+            self.assertIn(default_service, category_tech.service_ids)
 
-        res = request._onchange_category_type()
-        self.assertFalse(request.stage_id)
-        self.assertFalse(request.type_id)
-        self.assertFalse(request.category_id)
+            # Remove link category with service
+            self.Classifier.get_classifiers(
+                service=default_service,
+                category=category_tech).write({'active': False})
+            self.env['request.classifier'].flush()
+            self.assertNotIn(default_service, category_tech.service_ids)
 
-        # Remove Default Service from category
-        self.assertIn(default_service, category_tech.service_ids)
-        category_tech.write({
-            'service_ids': [(5, 0)]
-        })
-        self.assertNotIn(default_service, category_tech.service_ids)
+            request_form.category_id = category_tech
+            self.assertTrue(request_form.category_id)
+            expected_classifier_type_ids = self.Classifier.search(
+                [('category_id', '=', category_tech.id),
+                 ('service_id', '=', False)]).mapped('type_id').ids
+            self.assertListEqual(
+                literal_eval(request_form.type_id_domain),
+                ['&', ('start_stage_id', '!=', False),
+                 ('id', 'in', expected_classifier_type_ids),
+                 ])
+            self.assertIn(self.access_type, category_tech.request_type_ids)
+            self.assertEqual(request_form.category_id, category_tech)
 
-        # Choose category Demo / Technical / Configuration
-        request.category_id = category_tech
-        res = request._onchange_category_type()
-        self.assertTrue(request.category_id)
-        self.assertEqual(
-            res['domain']['type_id'],
-            [
-                '&', '&',
-                ('category_ids', '=', category_tech.id),
-                ('start_stage_id', '!=', False),
-                ('service_ids', '=', False)
-            ])
-        self.assertIn(self.access_type, category_tech.request_type_ids)
-        self.assertEqual(request.category_id, category_tech)
+            # Choose request type 'Grant Access'
+            request_form.type_id = self.access_type
+            self.assertEqual(request_form.type_id, self.access_type)
+            self.assertEqual(request_form.stage_id,
+                             self.access_type.start_stage_id)
 
-        # Choose request type 'Grant Access'
-        request.type_id = self.access_type
-        request.onchange_type_id()
-        self.assertEqual(request.type_id, self.access_type)
-        self.assertEqual(request.stage_id, self.access_type.start_stage_id)
+            self.assertEqual(request_form.type_id, self.access_type)
 
-        # Trigger onchange categ_type, ensure type no changed
-        res = request._onchange_category_type()
-        self.assertEqual(request.type_id, self.access_type)
+            # Remove Default Service from category
+            self.assertIn(default_service, category_resource.service_ids)
 
-        # Remove Default Service from category
-        self.assertIn(default_service, category_resource.service_ids)
-        category_resource.write({
-            'service_ids': [(3, default_service.id)]
-        })
-        self.assertNotIn(default_service, category_resource.service_ids)
+            # Remove link category with service
+            self.Classifier.get_classifiers(
+                service=default_service,
+                category=category_resource).write({'active': False})
+            self.env['request.classifier'].flush()
+            self.assertNotIn(default_service, category_resource.service_ids)
 
-        # Choose category Demo / Resource
-        request.category_id = category_resource
-        self.assertNotIn(self.access_type, category_resource.request_type_ids)
+            # Choose category Demo / Resource
+            request_form.category_id = category_resource
+            self.assertEqual(request_form.category_id, category_resource)
+            self.assertNotIn(self.access_type,
+                             category_resource.request_type_ids)
 
-        # Trigger onchanges, ensure type set to False
-        res = request._onchange_category_type()
-        request.onchange_type_id()
-        self.assertFalse(request.type_id)
-        self.assertFalse(request.stage_id)
+            self.assertFalse(request_form.type_id)
+            self.assertFalse(request_form.stage_id)
 
-        self.assertEqual(request.category_id, category_resource)
-        self.assertEqual(
-            res['domain']['type_id'],
-            [
-                '&', '&',
-                ('category_ids', '=', category_resource.id),
-                ('start_stage_id', '!=', False),
-                ('service_ids', '=', False)
-            ])
+            self.assertEqual(request_form.category_id, category_resource)
+            expected_classifier_type_ids = self.Classifier.search(
+                [('category_id', '=', category_resource.id),
+                 ('service_id', '=', False)]).mapped('type_id').ids
+            self.assertListEqual(
+                literal_eval(request_form.type_id_domain),
+                ['&', ('start_stage_id', '!=', False),
+                 ('id', 'in', expected_classifier_type_ids),
+                 ])
+            # Choose type 'Printer Request'
+            request_form.type_id = self.sequence_type
+            self.assertEqual(request_form.type_id, self.sequence_type)
+            self.assertEqual(request_form.stage_id,
+                             self.sequence_type.start_stage_id)
+            self.assertIn(self.sequence_type,
+                          category_resource.request_type_ids)
 
-        # Choose type 'Printer Request'
-        request.type_id = self.sequence_type
-        request.onchange_type_id()
-        self.assertEqual(request.type_id, self.sequence_type)
-        self.assertEqual(request.stage_id, self.sequence_type.start_stage_id)
-        self.assertIn(self.sequence_type, category_resource.request_type_ids)
-
-        # Trigger onchange categ_type, ensure type no changed
-        res = request._onchange_category_type()
-        self.assertEqual(request.type_id, self.sequence_type)
+            self.assertEqual(request_form.type_id, self.sequence_type)
+            request_form.save()
 
     def test_160_request_category_display_name(self):
         self.assertEqual(
@@ -627,8 +628,7 @@ class TestRequestBase(RequestCase):
         # But suggestion of email_cc is enabled
         partner_emails = [r[1] for r in result]
         self.assertIn('lquixley3@ning.com', partner_emails)
-        self.assertIn(
-            'Julita Haddeston <jhaddeston5@cafepress.com>', partner_emails)
+        self.assertIn('jhaddeston5@cafepress.com', partner_emails)
 
         # Enable suggestion for partner
         self.env.user.company_id.request_mail_suggest_partner = True
@@ -1008,7 +1008,9 @@ class TestRequestBase(RequestCase):
                          len(self.demo_user.request_ids))
 
     def test_request_deadline_events(self):
+        # Test deadlinee events when deadline set via date field.
         # pylint: disable=too-many-statements
+        self.assertEqual(self.request_1.type_id.deadline_format, 'date')
         with freeze_time('2020-03-07'):
             self.request_1.deadline_date = '2020-03-10'
             cron_job = self.env.ref(
@@ -1054,7 +1056,7 @@ class TestRequestBase(RequestCase):
             events = self.request_1.request_event_ids.mapped('event_code')
             self.assertIn('deadline-overdue', events)
 
-        # Check that repeated cron action wouldn't generate same events
+            # Check that repeated cron action wouldn't generate same events
             cron_job.method_direct_trigger()
             events = self.request_1.request_event_ids.mapped('event_code')
             event_count = self._get_event_count(
@@ -1142,3 +1144,164 @@ class TestRequestBase(RequestCase):
             self.assertEqual(events.count('deadline-today'), 3)
             self.assertEqual(events.count('deadline-tomorrow'), 2)
             self.assertEqual(events.count('deadline-changed'), 4)
+
+    def test_request_deadline_events_dt(self):
+        # Test deadlinee events when deadline set via datetime field.
+        # pylint: disable=too-many-statements
+        self.request_1.type_id.deadline_format = 'datetime'
+        self.assertEqual(self.request_1.type_id.deadline_format, 'datetime')
+        with freeze_time('2020-03-07 00:00:00'):
+            self.assertTrue(self.request_1.deadline_date)
+            self.assertEventCount(
+                self.request_1, 0, only_codes=['deadline-changed'])
+            self.request_1.deadline_date_dt = '2020-03-10 07:00:00'
+            cron_job = self.env.ref(
+                'generic_request.ir_cron_request_check_deadlines')
+            self.assertEventCount(
+                self.request_1, 1, only_codes=['deadline-changed'])
+            self.assertEventCount(
+                self.request_1, 2,  exclude_codes=['service-level-changed'])
+
+        # Check no deadline events created over 2 day to deadline
+        with freeze_time('2020-03-08 00:00:00'):
+            cron_job.method_direct_trigger()
+            self.assertEventCount(
+                self.request_1, 2,  exclude_codes=['service-level-changed'])
+
+        # Check that event 'deadline-tomorrow' created 1 day before deadline
+        with freeze_time('2020-03-09 00:00:00'):
+            cron_job.method_direct_trigger()
+            self.assertEventCount(
+                self.request_1, 3,  exclude_codes=['service-level-changed'])
+            self.assertEventCount(
+                self.request_1, 1,  only_codes=['deadline-tomorrow'])
+
+        # Check that event 'deadline-today' created in deadline date
+        with freeze_time('2020-03-10 07:00:00'):
+            cron_job.method_direct_trigger()
+            self.assertEventCount(
+                self.request_1, 4,  exclude_codes=['service-level-changed'])
+            self.assertEventCount(
+                self.request_1, 1,  only_codes=['deadline-today'])
+
+        # Check that event 'deadline-overdue' generated
+        with freeze_time('2020-03-10 07:00:01'):
+            cron_job.method_direct_trigger()
+            self.assertEventCount(
+                self.request_1, 5,  exclude_codes=['service-level-changed'])
+            self.assertEventCount(
+                self.request_1, 1,  only_codes=['deadline-overdue'])
+
+        # Check that event 'deadline-overdue' no more generated
+        with freeze_time('2020-03-11 00:00:00'):
+            cron_job.method_direct_trigger()
+            self.assertEventCount(
+                self.request_1, 5,  exclude_codes=['service-level-changed'])
+            self.assertEventCount(
+                self.request_1, 1,  only_codes=['deadline-overdue'])
+
+            # Check that repeated cron action wouldn't generate same events
+            cron_job.method_direct_trigger()
+            self.assertEventCount(
+                self.request_1, 5,  exclude_codes=['service-level-changed'])
+            self.assertEventCount(
+                self.request_1, 1,  only_codes=['deadline-overdue'])
+
+        # Check no more deadline events created 2 days after deadline
+        with freeze_time('2020-03-12 00:00:00'):
+            cron_job.method_direct_trigger()
+            self.assertEventCount(
+                self.request_1, 5,  exclude_codes=['service-level-changed'])
+
+        # Check that event generated when deadline changed on future date
+        # immediately
+        with freeze_time('2020-03-13 00:00:00'):
+            self.request_1.deadline_date_dt = '2020-03-14 23:59:59'
+            self.assertEventCount(
+                self.request_1, 7,  exclude_codes=['service-level-changed'])
+            events = self.request_1.request_event_ids.mapped('event_code')
+            self.assertEqual(events.count('deadline-overdue'), 1)
+            self.assertEqual(events.count('deadline-today'), 1)
+            self.assertEqual(events.count('deadline-tomorrow'), 2)
+            self.assertEqual(events.count('deadline-changed'), 2)
+
+        # Check that event is generated by cron when new deadline reached
+        with freeze_time('2020-03-14 00:00:00'):
+            cron_job.method_direct_trigger()
+            self.assertEventCount(
+                self.request_1, 8,  exclude_codes=['service-level-changed'])
+            events = self.request_1.request_event_ids.mapped('event_code')
+            self.assertEqual(events.count('deadline-overdue'), 1)
+            self.assertEqual(events.count('deadline-today'), 2)
+            self.assertEqual(events.count('deadline-tomorrow'), 2)
+            self.assertEqual(events.count('deadline-changed'), 2)
+
+        # Check that overdue event generated when changing deadline
+        # to past date
+        with freeze_time('2020-03-14 00:00:00'):
+            self.request_1.deadline_date_dt = '2020-03-11 23:59:59'
+            self.assertEventCount(
+                self.request_1, 10,  exclude_codes=['service-level-changed'])
+            events = self.request_1.request_event_ids.mapped('event_code')
+            self.assertEqual(events.count('deadline-overdue'), 2)
+            self.assertEqual(events.count('deadline-today'), 2)
+            self.assertEqual(events.count('deadline-tomorrow'), 2)
+            self.assertEqual(events.count('deadline-changed'), 3)
+
+        # Check that no new event generated by cron
+        with freeze_time('2020-03-14 00:00:00'):
+            cron_job.method_direct_trigger()
+            events = self.request_1.request_event_ids.mapped('event_code')
+            self.assertEventCount(
+                self.request_1, 10,  exclude_codes=['service-level-changed'])
+            self.assertEqual(events.count('deadline-overdue'), 2)
+            self.assertEqual(events.count('deadline-today'), 2)
+            self.assertEqual(events.count('deadline-tomorrow'), 2)
+            self.assertEqual(events.count('deadline-changed'), 3)
+
+        # Test that 'deadline-today' event will be triggered immediately
+        with freeze_time('2020-03-14 00:00:00'):
+            self.request_1.deadline_date_dt = '2020-03-14 23:59:59'
+            self.assertEventCount(
+                self.request_1, 12,  exclude_codes=['service-level-changed'])
+            events = self.request_1.request_event_ids.mapped('event_code')
+            self.assertEqual(events.count('deadline-overdue'), 2)
+            self.assertEqual(events.count('deadline-today'), 3)
+            self.assertEqual(events.count('deadline-tomorrow'), 2)
+            self.assertEqual(events.count('deadline-changed'), 4)
+
+        # Check that no new event generated by cron
+        with freeze_time('2020-03-14 00:00:00'):
+            cron_job.method_direct_trigger()
+            self.assertEventCount(
+                self.request_1, 12,  exclude_codes=['service-level-changed'])
+            events = self.request_1.request_event_ids.mapped('event_code')
+            self.assertEqual(events.count('deadline-overdue'), 2)
+            self.assertEqual(events.count('deadline-today'), 3)
+            self.assertEqual(events.count('deadline-tomorrow'), 2)
+            self.assertEqual(events.count('deadline-changed'), 4)
+
+    def test_request_delete_ensure_events(self):
+        request = self.env.ref(
+            'generic_request.request_request_type_simple_demo_long_text_1')
+        user = self.request_user
+
+        self.assertEqual(request.stage_id, self.stage_draft)
+
+        # Make request sent
+        request.with_user(user).write({'stage_id': self.stage_sent.id})
+        self.assertEqual(request.stage_id, self.stage_sent)
+        self.assertFalse(request.date_closed)
+        self.assertFalse(request.closed_by_id)
+
+        # Delete request and check that events were removed
+        events = self._get_events(request)
+        base_events = events.mapped('event_id')
+
+        self.assertGreaterEqual(len(events), 1)
+        self.assertEqual(len(events), len(base_events))
+
+        request.unlink()
+
+        self.assertFalse(events.exists())
+        self.assertFalse(base_events.exists())

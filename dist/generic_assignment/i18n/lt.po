@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:09+0000\n"
-"PO-Revision-Date: 2021-06-22 16:09+0000\n"
+"POT-Creation-Date: 2023-07-26 11:15+0000\n"
+"PO-Revision-Date: 2023-07-26 11:15+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -45,7 +45,7 @@ msgstr ""
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__access_ids
 msgid "Access"
-msgstr ""
+msgstr "Prieiga"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__act_assign_id
@@ -56,13 +56,14 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_needaction
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_needaction
 msgid "Action Needed"
-msgstr ""
+msgstr "Reikalingas veiksmas"
 
 #. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_base_automation__state
 #: model:ir.model.fields,field_description:generic_assignment.field_ir_actions_server__state
 #: model:ir.model.fields,field_description:generic_assignment.field_ir_cron__state
 msgid "Action To Do"
-msgstr ""
+msgstr "Atliktinas veiksmas"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__active
@@ -70,7 +71,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_search
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_search
 msgid "Active"
-msgstr ""
+msgstr "Aktyvus"
 
 #. module: generic_assignment
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_form
@@ -78,7 +79,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_search
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_search
 msgid "Archived"
-msgstr ""
+msgstr "Archyvuota"
 
 #. module: generic_assignment
 #: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_related_policy_sort_direction__asc
@@ -90,7 +91,7 @@ msgstr ""
 #: model:ir.actions.act_window,name:generic_assignment.action_assignment_wizard_assign
 #: model_terms:ir.ui.view,arch_db:generic_assignment.generic_assign_wizard_form
 msgid "Assign"
-msgstr ""
+msgstr "Priskirti"
 
 #. module: generic_assignment
 #: model_terms:ir.ui.view,arch_db:generic_assignment.generic_assign_policy_test_wizard_form
@@ -109,6 +110,7 @@ msgid "Assign Model"
 msgstr ""
 
 #. module: generic_assignment
+#: model:ir.model.fields,field_description:generic_assignment.field_base_automation__assign_policy_id
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__assign_policy_ids
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_policy_id
 #: model:ir.model.fields,field_description:generic_assignment.field_ir_actions_server__assign_policy_id
@@ -243,12 +245,12 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_attachment_count
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_attachment_count
 msgid "Attachment Count"
-msgstr ""
+msgstr "Prisegtukų skaičius"
 
 #. module: generic_assignment
 #: model_terms:ir.ui.view,arch_db:generic_assignment.generic_assign_wizard_form
 msgid "Cancel"
-msgstr ""
+msgstr "Atšaukti"
 
 #. module: generic_assignment
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
@@ -270,7 +272,7 @@ msgstr ""
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__assign_comment
 msgid "Comment"
-msgstr ""
+msgstr "Komentaras"
 
 #. module: generic_assignment
 #: model_terms:ir.ui.view,arch_db:generic_assignment.generic_assign_wizard_form
@@ -280,7 +282,7 @@ msgstr ""
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__condition_ids
 msgid "Condition"
-msgstr ""
+msgstr "Sąlyga"
 
 #. module: generic_assignment
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
@@ -304,7 +306,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__create_uid
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__create_uid
 msgid "Created by"
-msgstr ""
+msgstr "Sukūrė"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__create_date
@@ -313,7 +315,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__create_date
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__create_date
 msgid "Created on"
-msgstr ""
+msgstr "Sukurta"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__debug_log
@@ -330,7 +332,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__description
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__description
 msgid "Description"
-msgstr ""
+msgstr "Aprašymas"
 
 #. module: generic_assignment
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
@@ -349,7 +351,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__display_name
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__display_name
 msgid "Display Name"
-msgstr ""
+msgstr "Rodomas pavadinimas"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__enable_act_assign
@@ -359,13 +361,13 @@ msgstr ""
 #. module: generic_assignment
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
 msgid "Field"
-msgstr ""
+msgstr "Laukas"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_field_type
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_user_field_type
 msgid "Field Type"
-msgstr ""
+msgstr "Lauko tipas"
 
 #. module: generic_assignment
 #: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_field_id
@@ -380,30 +382,30 @@ msgstr ""
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__field_id
 msgid "Fields"
-msgstr ""
+msgstr "Laukai"
 
 #. module: generic_assignment
 #: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_related_policy_choice_type__first
 #: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_user_field_choice_type__first
 msgid "First"
-msgstr ""
+msgstr "Pirmas"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_follower_ids
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_follower_ids
 msgid "Followers"
-msgstr ""
+msgstr "Sekėjai"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_partner_ids
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_partner_ids
 msgid "Followers (Partners)"
-msgstr ""
+msgstr "Sekėjai (partneriai)"
 
 #. module: generic_assignment
 #: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_field_model_id
 msgid "For relationship fields, the technical name of the target model"
-msgstr ""
+msgstr "Santykių laukams, tikslinio modelio techninis pavadinimas "
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__resource_type_id
@@ -434,13 +436,13 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_search
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_search
 msgid "Group By"
-msgstr ""
+msgstr "Grupuoti pagal"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__has_message
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__has_message
 msgid "Has Message"
-msgstr ""
+msgstr "Turi žinutę"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__id
@@ -462,18 +464,18 @@ msgstr ""
 #: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__message_needaction
 #: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__message_unread
 msgid "If checked, new messages require your attention."
-msgstr ""
+msgstr "Jeigu pažymėta, naujiems pranešimams reikės jūsų dėmesio."
 
 #. module: generic_assignment
 #: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy__message_has_error
 #: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__message_has_error
 msgid "If checked, some messages have a delivery error."
-msgstr ""
+msgstr "Jei pažymėta, yra žinučių, turinčių pristatymo klaidų."
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__modules
 msgid "In Apps"
-msgstr ""
+msgstr "Programose"
 
 #. module: generic_assignment
 #: code:addons/generic_assignment/models/generic_assign_policy_model.py:0
@@ -484,18 +486,18 @@ msgstr ""
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__info
 msgid "Information"
-msgstr ""
+msgstr "Informacija"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__inherited_model_ids
 msgid "Inherited models"
-msgstr ""
+msgstr "Paveldėti modeliai"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_is_follower
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_is_follower
 msgid "Is Follower"
-msgstr ""
+msgstr "Yra sekėjas"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__is_generic_resource
@@ -509,7 +511,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy____last_update
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign____last_update
 msgid "Last Modified on"
-msgstr ""
+msgstr "Paskutinį kartą keista"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__write_uid
@@ -518,7 +520,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__write_uid
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__write_uid
 msgid "Last Updated by"
-msgstr ""
+msgstr "Paskutinį kartą atnaujino"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__write_date
@@ -527,12 +529,12 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__write_date
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__write_date
 msgid "Last Updated on"
-msgstr ""
+msgstr "Paskutinį kartą atnaujinta"
 
 #. module: generic_assignment
 #: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__modules
 msgid "List of modules in which the object is defined or inherited"
-msgstr ""
+msgstr "Modulių sąrašas, kuriame objektas yra apibrėžtas arba paveldėtas"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__is_mail_activity
@@ -542,50 +544,51 @@ msgstr ""
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__is_mail_blacklist
 msgid "Mail Blacklist"
-msgstr ""
+msgstr "Pašto juodasis sąrašas"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__is_mail_thread
 msgid "Mail Thread"
-msgstr ""
+msgstr "El. pašto susirašinėjimas"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_main_attachment_id
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_main_attachment_id
 msgid "Main Attachment"
-msgstr ""
+msgstr "Pagrindinis prisegtukas"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_has_error
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_has_error
 msgid "Message Delivery error"
-msgstr ""
+msgstr "Žinutės pristatymo klaida"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_ids
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_ids
 msgid "Messages"
-msgstr ""
+msgstr "Žinutės"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__model_id
+#: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__model_name
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__model
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__model_name
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__assign_model
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_search
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_search
 msgid "Model"
-msgstr ""
+msgstr "Šablonas"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__name
 msgid "Model Description"
-msgstr ""
+msgstr "Modelio aprašymas"
 
 #. module: generic_assignment
 #: model:ir.model,name:generic_assignment.model_ir_model
 msgid "Models"
-msgstr ""
+msgstr "Modeliai"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__name
@@ -593,7 +596,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_search
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_search
 msgid "Name"
-msgstr ""
+msgstr "Vardas"
 
 #. module: generic_assignment
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_form
@@ -605,31 +608,31 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_needaction_counter
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_needaction_counter
 msgid "Number of Actions"
-msgstr ""
+msgstr "Veiksmų skaičius"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_has_error_counter
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_has_error_counter
 msgid "Number of errors"
-msgstr ""
+msgstr "Klaidų kiekis"
 
 #. module: generic_assignment
 #: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy__message_needaction_counter
 #: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__message_needaction_counter
 msgid "Number of messages which requires an action"
-msgstr ""
+msgstr "Žinučių, kurioms reikia jūsų veiksmo, skaičius"
 
 #. module: generic_assignment
 #: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy__message_has_error_counter
 #: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__message_has_error_counter
 msgid "Number of messages with delivery error"
-msgstr ""
+msgstr "Žinučių su pristatymo klaida skaičius"
 
 #. module: generic_assignment
 #: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy__message_unread_counter
 #: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__message_unread_counter
 msgid "Number of unread messages"
-msgstr ""
+msgstr "Neperskaitytų žinučių skaičius"
 
 #. module: generic_assignment
 #: code:addons/generic_assignment/wizard/test_assign_policy.py:0
@@ -656,7 +659,7 @@ msgstr ""
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__order
 msgid "Order"
-msgstr ""
+msgstr "Užsakymas"
 
 #. module: generic_assignment
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_form
@@ -703,12 +706,12 @@ msgstr ""
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__sequence
 msgid "Priority"
-msgstr ""
+msgstr "Svarba"
 
 #. module: generic_assignment
 #: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_type__eval
 msgid "Python expression"
-msgstr ""
+msgstr "Pythono išraiška"
 
 #. module: generic_assignment
 #: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_rule__assign_eval
@@ -733,7 +736,7 @@ msgstr ""
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__rule_ids
 msgid "Record Rules"
-msgstr ""
+msgstr "Įrašo taisyklės"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_related_policy_field_model_id
@@ -776,7 +779,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_form
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_tree
 msgid "Rules"
-msgstr ""
+msgstr "Taisyklės"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__rule_not_unique
@@ -793,7 +796,7 @@ msgstr ""
 #. module: generic_assignment
 #: model:ir.model,name:generic_assignment.model_ir_actions_server
 msgid "Server Action"
-msgstr ""
+msgstr "Serverio veiksmas"
 
 #. module: generic_assignment
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_rule_form
@@ -816,7 +819,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_assignment.generic_assign_policy_test_wizard_form
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_form
 msgid "Test"
-msgstr ""
+msgstr "Testas"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_test_assign_policy__test_as_user_id
@@ -832,7 +835,7 @@ msgstr ""
 #. module: generic_assignment
 #: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__inherited_model_ids
 msgid "The list of models that extends the current model."
-msgstr ""
+msgstr "Sąrašas modulių, praplėčiančių dabartinį modulį."
 
 #. module: generic_assignment
 #: model:ir.model.constraint,message:generic_assignment.constraint_generic_assign_policy_model_model_unique
@@ -850,21 +853,22 @@ msgstr ""
 #. module: generic_assignment
 #: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__count
 msgid "Total number of records in this model"
-msgstr ""
+msgstr "Visas šio modelio įrašų skaičius"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__transient
 msgid "Transient Model"
-msgstr ""
+msgstr "Laikinas modelis"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__state
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__assign_type
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__assign_type
 msgid "Type"
-msgstr ""
+msgstr "Tipas"
 
 #. module: generic_assignment
+#: model:ir.model.fields,help:generic_assignment.field_base_automation__state
 #: model:ir.model.fields,help:generic_assignment.field_ir_actions_server__state
 #: model:ir.model.fields,help:generic_assignment.field_ir_cron__state
 msgid ""
@@ -883,13 +887,13 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_unread
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_unread
 msgid "Unread Messages"
-msgstr ""
+msgstr "Neperskaitytos žinutės"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy__message_unread_counter
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_rule__message_unread_counter
 msgid "Unread Messages Counter"
-msgstr ""
+msgstr "Neperskaitytų žinučių skaičiavimas"
 
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_wizard_assign__unsubscribe_prev_assignee
@@ -901,7 +905,7 @@ msgstr ""
 #: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_type__user
 #: model:ir.model.fields.selection,name:generic_assignment.selection__generic_wizard_assign__assign_type__user
 msgid "User"
-msgstr ""
+msgstr "Vartotojas"
 
 #. module: generic_assignment
 #: model:ir.model.fields.selection,name:generic_assignment.selection__generic_assign_policy_rule__assign_type__user_field
@@ -917,7 +921,7 @@ msgstr ""
 #. module: generic_assignment
 #: model:ir.model.fields,field_description:generic_assignment.field_generic_assign_policy_model__view_ids
 msgid "Views"
-msgstr ""
+msgstr "Peržiūros"
 
 #. module: generic_assignment
 #: model_terms:ir.ui.view,arch_db:generic_assignment.view_generic_assign_policy_form
@@ -944,7 +948,7 @@ msgstr ""
 #. module: generic_assignment
 #: model:ir.model.fields,help:generic_assignment.field_generic_assign_policy_model__is_mail_thread
 msgid "Whether this model supports messages and notifications."
-msgstr ""
+msgstr "Ar šis modelis palaiko žinutes ir pranešimus."
 
 #. module: generic_assignment
 #: model:ir.model,name:generic_assignment.model_generic_assign_policy_test_assign_policy

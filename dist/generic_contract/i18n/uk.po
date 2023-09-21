@@ -7,10 +7,10 @@ msgstr ""
 "Project-Id-Version: Odoo Server 12.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2019-09-16 11:43+0000\n"
-"PO-Revision-Date: 2022-01-25 13:01+0000\n"
-"Last-Translator: Валерия <valittle@ukr.net>\n"
+"PO-Revision-Date: 2023-08-07 13:43+0000\n"
+"Last-Translator: Galina Prokopenko <am@crnd.pro>\n"
 "Language-Team: Ukrainian <http://weblate.crnd.pro/projects/bureaucrat-"
-"itsm-14-0/generic_contract/uk/>\n"
+"itsm-15-0/generic_contract/uk/>\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -36,12 +36,12 @@ msgstr "Активувати очікуючі контракти"
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__active
 #: model:ir.model.fields.selection,name:generic_contract.selection__generic_contract__state__active
 msgid "Active"
-msgstr "Активно"
+msgstr "Активний"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_service__active_contract_ids
 msgid "Active contracts"
-msgstr ""
+msgstr "Активні контракти"
 
 #. module: generic_contract
 #: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_search
@@ -56,7 +56,7 @@ msgstr "Дії"
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__activity_exception_decoration
 msgid "Activity Exception Decoration"
-msgstr ""
+msgstr "Декорація виключення діяльності"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__activity_state
@@ -71,7 +71,7 @@ msgstr "Значок типу діяльності"
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__contracts_service_ids
 msgid "All Services"
-msgstr ""
+msgstr "Всі сервіси"
 
 #. module: generic_contract
 #: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_template_form
@@ -83,7 +83,7 @@ msgstr "Заархівовано"
 #: model:generic.system.event.type,name:generic_contract.system_event_type_contract_assignee_changed
 #: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_event_form
 msgid "Assignee Changed"
-msgstr ""
+msgstr "Виконавця змінено"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__message_attachment_count
@@ -105,22 +105,23 @@ msgstr "Основний контракт підтримки"
 #. module: generic_contract
 #: model:ir.model.constraint,message:generic_contract.constraint_generic_contract_service_line_contract_service_unique
 msgid "Binding: contract_id and service_id, must be unique!"
-msgstr ""
+msgstr "Прив'язка: contract_id та service_id повинні бути унікальними!"
 
 #. module: generic_contract
 #: model:ir.model.constraint,message:generic_contract.constraint_generic_contract_template_service_line_contract_template_service_unique
 msgid "Binding: contract_template_id and service_id, must be unique!"
 msgstr ""
+"Прив'язка: contract_template_id та service_id повинні бути унікальними!"
 
 #. module: generic_contract
 #: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_create_wizard_form
 msgid "Cancel"
-msgstr "Скасувати"
+msgstr "Відмінити"
 
 #. module: generic_contract
 #: model:generic.contract.template,name:generic_contract.contract_template_demo_client_customer
 msgid "Client contract"
-msgstr ""
+msgstr "Клієнтський контракт"
 
 #. module: generic_contract
 #: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_form
@@ -143,14 +144,14 @@ msgstr "Закрито"
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__event_code
 msgid "Code"
-msgstr ""
+msgstr "Код"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__company_id
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__company_id
 #: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_search
 msgid "Company"
-msgstr ""
+msgstr "Компанія"
 
 #. module: generic_contract
 #: model:ir.ui.menu,name:generic_contract.generic_contract_configuration
@@ -176,27 +177,27 @@ msgstr "Контракт"
 #. module: generic_contract
 #: model:generic.system.event.type,name:generic_contract.system_event_type_contract_activated
 msgid "Contract Activated"
-msgstr ""
+msgstr "Контракт активовано"
 
 #. module: generic_contract
 #: model:generic.system.event.type,name:generic_contract.system_event_type_contract_closed
 msgid "Contract Closed"
-msgstr ""
+msgstr "Контракт закрито"
 
 #. module: generic_contract
 #: model:generic.system.event.type,name:generic_contract.system_event_type_contract_confirmed
 msgid "Contract Confirmed"
-msgstr ""
+msgstr "Контракт підтверджено"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__contract_count
 msgid "Contract Count"
-msgstr ""
+msgstr "Контракт зараховано"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template_service_line__contract_template_id
 msgid "Contract Template"
-msgstr ""
+msgstr "Шаблон контракту"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__contract_ids
@@ -230,7 +231,7 @@ msgstr "Створити контракт"
 #. module: generic_contract
 #: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_template_form
 msgid "Create contract"
-msgstr ""
+msgstr "Створити контракт"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__create_uid
@@ -240,7 +241,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template_service_line__create_uid
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__create_uid
 msgid "Created by"
-msgstr "Створив"
+msgstr "Ким створено"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__create_date
@@ -250,7 +251,7 @@ msgstr "Створив"
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template_service_line__create_date
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__create_date
 msgid "Created on"
-msgstr "Дата створення"
+msgstr "Як створено"
 
 #. module: generic_contract
 #: model:ir.model.fields.selection,name:generic_contract.selection__generic_contract__partner_type__customer
@@ -267,11 +268,17 @@ msgstr "Контракти клієнтів"
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__date
 msgid "Date"
-msgstr ""
+msgstr "Дата"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_service_line__date_added
 msgid "Date Added"
+msgstr "Дату додано"
+
+#. module: generic_contract
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__date_begin
+#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__date_begin
+msgid "Date Begin"
 msgstr ""
 
 #. module: generic_contract
@@ -286,18 +293,10 @@ msgid "Date End"
 msgstr "Дата закінчення"
 
 #. module: generic_contract
-#: model:ir.model.fields,field_description:generic_contract.field_generic_contract__date_start
-#: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__date_start
-msgid "Date Start"
-msgstr "Дата початку"
-
-#. module: generic_contract
 #: code:addons/generic_contract/models/generic_contract.py:0
 #, python-format
-msgid "Date start can`t be less than date end of contract! Check it, please"
+msgid "Date begin can`t be less than date end of contract! Check it, please"
 msgstr ""
-"Дата початку контракта не може бути меншою за дату кінця контракту! "
-"Перевірте, будь ласка"
 
 #. module: generic_contract
 #: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_form
@@ -327,7 +326,7 @@ msgstr "Розробка і настройка"
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template_service_line__display_name
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__display_name
 msgid "Display Name"
-msgstr "Відображуване ім’я"
+msgstr "Відображати як"
 
 #. module: generic_contract
 #: model:ir.model.fields.selection,name:generic_contract.selection__generic_contract__state__draft
@@ -352,52 +351,52 @@ msgstr "Закупка та установка обладнання"
 #. module: generic_contract
 #: model:generic.tag.category,name:generic_contract.generic_tag_category_contract_error
 msgid "Error"
-msgstr ""
+msgstr "Помилка"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__event_id
 msgid "Event"
-msgstr ""
+msgstr "Подія"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__event_data_id
 msgid "Event Data"
-msgstr ""
+msgstr "Дата події"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__event_date
 msgid "Event Date"
-msgstr ""
+msgstr "Дата події"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__event_source_id
 msgid "Event Source"
-msgstr ""
+msgstr "Джерело події"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__event_source_model_id
 msgid "Event Source Model"
-msgstr ""
+msgstr "Модель джерела події"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__event_source_model_name
 msgid "Event Source Model (Name)"
-msgstr ""
+msgstr "Модель джерела події (назва)"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__event_source_record_id
 msgid "Event Source Record"
-msgstr ""
+msgstr "Запис джерела події"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__event_type_id
 msgid "Event Type"
-msgstr ""
+msgstr "Тип події"
 
 #. module: generic_contract
 #: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_form
 msgid "Events"
-msgstr ""
+msgstr "Події"
 
 #. module: generic_contract
 #: model:ir.model.fields,help:generic_contract.field_generic_contract__search_tag_id
@@ -443,12 +442,12 @@ msgstr "Загальні контракти клієнтів"
 #: model:ir.actions.act_window,name:generic_contract.action_generic_contract_event
 #: model:ir.model,name:generic_contract.model_generic_contract_event
 msgid "Generic Contract Event"
-msgstr ""
+msgstr "Загальна подія контракту"
 
 #. module: generic_contract
 #: model:generic.system.event.category,name:generic_contract.system_event_category_generic_contract
 msgid "Generic Contract Events"
-msgstr ""
+msgstr "Загальні події контракту"
 
 #. module: generic_contract
 #: model:res.groups,name:generic_contract.group_generic_contract_manager
@@ -459,7 +458,7 @@ msgstr "Менеджер загальних контрактів"
 #: model:ir.model,name:generic_contract.model_generic_contract_service_line
 #: model:ir.model,name:generic_contract.model_generic_contract_template_service_line
 msgid "Generic Contract Service Line"
-msgstr ""
+msgstr "Загальна контрактна лінія обслуговування"
 
 #. module: generic_contract
 #: model:ir.actions.act_window,name:generic_contract.generic_contract_action_supplier_contracts
@@ -480,22 +479,17 @@ msgstr "Користувач загальних контрактів"
 #. module: generic_contract
 #: model:res.groups,name:generic_contract.group_generic_contract_user_implicit
 msgid "Generic Contract User (implicit)"
-msgstr ""
+msgstr "Користувач загального контракту (неявний)"
 
 #. module: generic_contract
 #: model:res.groups,name:generic_contract.group_generic_contract_user_readonly
 msgid "Generic Contract User (readonly)"
-msgstr ""
+msgstr "Користувач загального контракту (лише читання)"
 
 #. module: generic_contract
 #: model:ir.model,name:generic_contract.model_generic_service
 msgid "Generic Service"
-msgstr ""
-
-#. module: generic_contract
-#: model:ir.model,name:generic_contract.model_generic_service_line
-msgid "Generic Service Line"
-msgstr ""
+msgstr "Сервіс"
 
 #. module: generic_contract
 #: model:ir.model,name:generic_contract.model_generic_contract_wizard_create
@@ -506,7 +500,7 @@ msgstr "Візард: Створити контракт"
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__has_message
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__has_message
 msgid "Has Message"
-msgstr ""
+msgstr "Є повідомлення"
 
 #. module: generic_contract
 #: model:generic.contract,name:generic_contract.contract_basic_support_final_stage
@@ -549,12 +543,15 @@ msgid "If checked, some messages have a delivery error."
 msgstr "Якщо позначено, деякі повідомлення мають помилку доставки."
 
 #. module: generic_contract
-#: code:addons/generic_contract/models/generic_service_line.py:0
+#: code:addons/generic_contract/models/generic_contract_service_line.py:0
+#: code:addons/generic_contract/models/generic_contract_template_service_line.py:0
 #, python-format
 msgid ""
 "If you don`t want to set the service or service level, unlink this row. You "
 "can`t save empty row."
 msgstr ""
+"Якщо ви не хочете встановлювати послугу або рівень обслуговування, "
+"від’єднайте цей рядок. Ви не можете зберегти порожній рядок."
 
 #. module: generic_contract
 #: model:generic.contract,name:generic_contract.contract_basic_provider_final_stage
@@ -575,7 +572,7 @@ msgstr "Підписник"
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template_service_line____last_update
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create____last_update
 msgid "Last Modified on"
-msgstr "Остання модифікація"
+msgstr "Востаннє змінено"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__write_uid
@@ -585,7 +582,7 @@ msgstr "Остання модифікація"
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template_service_line__write_uid
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__write_uid
 msgid "Last Updated by"
-msgstr "Востаннє оновив"
+msgstr "Востаннє оновлено"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__write_date
@@ -595,7 +592,7 @@ msgstr "Востаннє оновив"
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template_service_line__write_date
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__write_date
 msgid "Last Updated on"
-msgstr "Останнє оновлення"
+msgstr "Востаннє оновлено"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__message_main_attachment_id
@@ -618,7 +615,7 @@ msgstr "Повідомлення"
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__event_data_model_name
 msgid "Model"
-msgstr ""
+msgstr "Модель"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__my_activity_date_deadline
@@ -631,7 +628,7 @@ msgstr "Кінцевий термін моєї дії"
 #: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_form
 #: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_template_form
 msgid "Name"
-msgstr "Назва"
+msgstr "Ім'я"
 
 #. module: generic_contract
 #: model:ir.ui.menu,name:generic_contract.generic_contract_new
@@ -641,12 +638,12 @@ msgstr "Новий"
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__new_user_id
 msgid "New User"
-msgstr ""
+msgstr "Новий користувач"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__activity_calendar_event_id
 msgid "Next Activity Calendar Event"
-msgstr ""
+msgstr "Наступна подія календаря активності"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__activity_date_deadline
@@ -683,13 +680,13 @@ msgstr "Кількість дій"
 #. module: generic_contract
 #: model:ir.model.constraint,message:generic_contract.constraint_generic_contract_contract_number_unique
 msgid "Number of contract must be unique!"
-msgstr ""
+msgstr "Номер контракту має бути унікальним!"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__message_has_error_counter
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__message_has_error_counter
 msgid "Number of errors"
-msgstr "Кількість помилок"
+msgstr "Номер помилки"
 
 #. module: generic_contract
 #: model:ir.model.fields,help:generic_contract.field_generic_contract__message_needaction_counter
@@ -712,13 +709,13 @@ msgstr "Кількість непрочитаних повідомлень"
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__old_user_id
 msgid "Old User"
-msgstr ""
+msgstr "Старий користувач"
 
 #. module: generic_contract
 #: code:addons/generic_contract/models/generic_contract.py:0
 #, python-format
 msgid "Only manager can convert active contracts to draft"
-msgstr ""
+msgstr "Тільки менеджер може конвертувати діючі контракти в чернетки"
 
 #. module: generic_contract
 #: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_search
@@ -775,7 +772,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__user_id
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_wizard_create__user_id
 msgid "Responsible"
-msgstr ""
+msgstr "Відповідальний"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__activity_user_id
@@ -785,12 +782,12 @@ msgstr "Відповідальний користувач"
 #. module: generic_contract
 #: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_search
 msgid "Responsible user"
-msgstr ""
+msgstr "Відповідальний користувач"
 
 #. module: generic_contract
 #: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_form
 msgid "SLA"
-msgstr ""
+msgstr "SLA"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__number_sequence_id
@@ -800,31 +797,34 @@ msgstr "Послідовність"
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_service_line__service_id
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template_service_line__service_id
-#: model:ir.model.fields,field_description:generic_contract.field_generic_service_line__service_id
 msgid "Service"
-msgstr ""
+msgstr "Сервіс"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_service_line__service_level_id
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template_service_line__service_level_id
-#: model:ir.model.fields,field_description:generic_contract.field_generic_service_line__service_level_id
 msgid "Service Level"
-msgstr ""
+msgstr "Рівень сервіса"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__service_contract_line_ids
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_template__service_contract_line_ids
 msgid "Service Lines"
-msgstr ""
+msgstr "Сервісні лінії"
 
 #. module: generic_contract
 #: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_template_form
 msgid "Services"
-msgstr ""
+msgstr "Сервіси"
 
 #. module: generic_contract
 #: model:generic.contract,name:generic_contract.generic_contract_simple_customer_contract
 msgid "Simple Support Contract"
+msgstr "Простий договір підтримки"
+
+#. module: generic_contract
+#: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_search
+msgid "State"
 msgstr ""
 
 #. module: generic_contract
@@ -861,22 +861,25 @@ msgstr "Контракти постачальників"
 #. module: generic_contract
 #: model:generic.contract.template,name:generic_contract.contract_template_demo_supplier
 msgid "Supplier contract"
-msgstr ""
+msgstr "Договір постачальника"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__generic_event_count
 msgid "System Events"
-msgstr ""
+msgstr "Системні події"
 
 #. module: generic_contract
 #: model:ir.model.fields,help:generic_contract.field_generic_service__active_contract_ids
 msgid "System field to get all active contracts related to this service"
 msgstr ""
+"Системне поле для отримання всіх активних контрактів, пов’язаних із цією "
+"послугою"
 
 #. module: generic_contract
 #: model:ir.model.fields,help:generic_contract.field_generic_service__generic_contract_ids
 msgid "System field to show all contracts related to this service"
 msgstr ""
+"Системне поле для відображення всіх контрактів, пов’язаних із цією послугою"
 
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract__search_tag_id
@@ -909,7 +912,7 @@ msgstr "Шаблони"
 #. module: generic_contract
 #: model_terms:ir.ui.view,arch_db:generic_contract.view_generic_contract_form
 msgid "To Draft"
-msgstr ""
+msgstr "Повернути до чернетки"
 
 #. module: generic_contract
 #: model:ir.model.fields,help:generic_contract.field_generic_contract__activity_exception_decoration
@@ -931,12 +934,12 @@ msgstr "Кількість непрочитаних повідомлень"
 #. module: generic_contract
 #: model:ir.model.fields,field_description:generic_contract.field_generic_contract_event__user_id
 msgid "User"
-msgstr ""
+msgstr "Користувач"
 
 #. module: generic_contract
 #: model:ir.model.fields,help:generic_contract.field_generic_contract_event__user_id
 msgid "User that triggered this event."
-msgstr ""
+msgstr "Користувач, який ініціював цю подію."
 
 #. module: generic_contract
 #: code:addons/generic_contract/models/generic_contract.py:0
@@ -948,7 +951,7 @@ msgstr "Ви можете переводити в стадію Чернетка 
 #: code:addons/generic_contract/models/generic_contract.py:0
 #, python-format
 msgid "You can`t close this contract."
-msgstr ""
+msgstr "Ви не можете закрити цей договір."
 
 #. module: generic_contract
 #: code:addons/generic_contract/models/generic_contract.py:0
@@ -959,6 +962,17 @@ msgid ""
 msgstr ""
 "Ви не можете видалити контракт: %s, тому що він не в стадії \"draft\" . Ви "
 "можете видаляти тільки контракти в стадії Чернетка"
+
+#~ msgid "Generic Service Line"
+#~ msgstr "Загальна лінія обслуговування"
+
+#~ msgid "Date Start"
+#~ msgstr "Дата початку"
+
+#~ msgid "Date start can`t be less than date end of contract! Check it, please"
+#~ msgstr ""
+#~ "Дата початку контракта не може бути меншою за дату кінця контракту! "
+#~ "Перевірте, будь ласка"
 
 #~ msgid "All Subcontracts"
 #~ msgstr "Всі сабконтракти"

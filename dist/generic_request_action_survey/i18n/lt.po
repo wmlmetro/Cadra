@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-11-07 23:16+0000\n"
-"PO-Revision-Date: 2021-11-07 23:16+0000\n"
+"POT-Creation-Date: 2023-07-26 11:11+0000\n"
+"PO-Revision-Date: 2023-07-26 11:11+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -19,7 +19,7 @@ msgstr ""
 #. module: generic_request_action_survey
 #: model_terms:ir.ui.view,arch_db:generic_request_action_survey.view_request_event_action_form
 msgid "Add existing contacts..."
-msgstr ""
+msgstr "Pridėti egzistuojančias sutartis..."
 
 #. module: generic_request_action_survey
 #: model:request.stage,name:generic_request_action_survey.request_stage_type_with_survey_done
@@ -29,7 +29,7 @@ msgstr ""
 #. module: generic_request_action_survey
 #: model_terms:ir.ui.view,arch_db:generic_request_action_survey.view_request_event_action_form
 msgid "Email Template"
-msgstr ""
+msgstr "El. laiško šablonas"
 
 #. module: generic_request_action_survey
 #: model:request.stage,name:generic_request_action_survey.request_stage_type_with_survey_in_progress
@@ -59,7 +59,7 @@ msgstr ""
 #. module: generic_request_action_survey
 #: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_partner_ids
 msgid "Partners"
-msgstr ""
+msgstr "Partneriai"
 
 #. module: generic_request_action_survey
 #: code:addons/generic_request_action_survey/models/request_event_action.py:0
@@ -83,7 +83,7 @@ msgstr ""
 #: model:ir.model.fields.selection,name:generic_request_action_survey.selection__request_event_action__act_type__survey
 #: model_terms:ir.ui.view,arch_db:generic_request_action_survey.view_request_event_action_form
 msgid "Survey"
-msgstr ""
+msgstr "Apklausa"
 
 #. module: generic_request_action_survey
 #: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__survey_email_template_id
@@ -137,4 +137,4 @@ msgstr ""
 #. module: generic_request_action_survey
 #: model:ir.model.fields,field_description:generic_request_action_survey.field_request_event_action__act_type
 msgid "Type"
-msgstr ""
+msgstr "Tipas"

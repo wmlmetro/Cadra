@@ -9,8 +9,8 @@ msgstr ""
 "POT-Creation-Date: 2023-02-15 16:15+0000\n"
 "PO-Revision-Date: 2023-02-28 17:33+0000\n"
 "Last-Translator: Huseyin <hkpostam@gmail.com>\n"
-"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
-"bureaucrat-itsm-15-0/generic_request_resource/tr/>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-15-0/generic_request_resource/tr/>\n"
 "Language: tr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -29,6 +29,8 @@ msgid "<span class=\"oe_form_field oe_inline\">/</span>"
 msgstr "<span class=\"oe_form_field oe_inline\">/</span>"
 
 #. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_equipment__resource_request_count
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_equipment_simple__resource_request_count
 #: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource__resource_request_count
 #: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource_simple__resource_request_count
 msgid "All Requests"
@@ -36,10 +38,12 @@ msgstr "Tüm Talepler"
 
 #. module: generic_request_resource
 #: model:ir.model,name:generic_request_resource.model_generic_resource
+#: model_terms:ir.ui.view,arch_db:generic_request_resource.inherited_view_request_request_search_inherit_request_resource
 msgid "Generic Resource"
 msgstr "Genel Kaynak"
 
 #. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_report__request_resource_id
 #: model:ir.model.fields,field_description:generic_request_resource.field_request_request__resource_id
 msgid "Generic resource"
 msgstr "Genel Kaynak"
@@ -67,6 +71,8 @@ msgid "Old Resource"
 msgstr "Eski Kaynak"
 
 #. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_equipment__resource_request_open_count
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_equipment_simple__resource_request_open_count
 #: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource__resource_request_open_count
 #: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource_simple__resource_request_open_count
 msgid "Open requests"
@@ -83,15 +89,30 @@ msgid "Request Event"
 msgstr "Etkinlik İste"
 
 #. module: generic_request_resource
+#: model:ir.model,name:generic_request_resource.model_request_report
+msgid "Request Report"
+msgstr ""
+
+#. module: generic_request_resource
+#: model_terms:ir.ui.view,arch_db:generic_request_resource.view_request_report_search
+msgid "Request Resource"
+msgstr ""
+
+#. module: generic_request_resource
+#: model_terms:ir.ui.view,arch_db:generic_request_resource.view_request_report_search
+msgid "Request Resource Type"
+msgstr ""
+
+#. module: generic_request_resource
 #: model:ir.model,name:generic_request_resource.model_request_type
 msgid "Request Type"
 msgstr "İstek Türü"
 
 #. module: generic_request_resource
-#: code:addons/generic_request_resource/models/generic_resource.py:0
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_equipment__resource_request_ids
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_equipment_simple__resource_request_ids
 #: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource__resource_request_ids
 #: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource_simple__resource_request_ids
-#, python-format
 msgid "Requests"
 msgstr "İstekler"
 
@@ -118,6 +139,7 @@ msgid "Resource model"
 msgstr "Kaynak Modeli"
 
 #. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_report__request_resource_type_id
 #: model:ir.model.fields,field_description:generic_request_resource.field_request_request__resource_type_id
 msgid "Resource type"
 msgstr "Kaynak Türü"

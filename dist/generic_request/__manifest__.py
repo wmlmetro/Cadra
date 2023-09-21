@@ -11,7 +11,7 @@
     'author': "Center of Research and Development",
     'website': "https://crnd.pro",
     'category': 'Generic Request',
-    'version': '15.0.3.2.0',
+    'version': '15.0.4.16.0',
     'external_dependencies': {
         'python': [
             'html2text',
@@ -32,6 +32,7 @@
         'crnd_web_m2o_info_widget',
         'base_setup',
         'base_field_m2m_view',
+        'crnd_web_field_domain',
     ],
 
     # always loaded
@@ -61,6 +62,7 @@
         'views/request_stage_type_view.xml',
         'views/request_request_view.xml',
         'views/request_channel_view.xml',
+        'views/request_classifier_view.xml',
         'views/res_partner_view.xml',
         'views/res_users.xml',
         'views/mail_templates.xml',
@@ -84,6 +86,7 @@
     ],
 
     'demo': [
+        'demo/response_attachments.xml',
         'demo/request_demo_users.xml',
         'demo/request_category_demo.xml',
         'demo/request_kind.xml',
@@ -93,6 +96,7 @@
         'demo/request_type_non_ascii.xml',
         'demo/request_type_with_complex_priority.xml',
         'demo/request_type_reopen.xml',
+        'demo/request_classifier.xml',
         'demo/request_mail_activity.xml',
         'demo/request_creation_template.xml',
         'demo/demo_request_timesheet_activity.xml',
@@ -115,5 +119,5 @@
     'images': ['static/description/banner.gif'],
     'installable': True,
     'application': True,
-    'license': 'LGPL-3',
+    'license': 'OPL-1',
 }

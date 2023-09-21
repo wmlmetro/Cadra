@@ -1,30 +1,19 @@
 {
-    'name': 'Website Service Desk (Field + Service)',
+    'name': 'Website Service Desk (Field + Service) [Obsolete]',
     'category': 'Service Desk',
     'summary': """
-        This module provides integration between the Website Service Desk,
-        Generic Request Fileds and Generic Service modules.
+        This module reached the end of life and can be safely removed.
     """,
     'author': "Center of Research and Development",
     'website': "https://crnd.pro",
     'license': 'OPL-1',
-    'version': '15.0.1.9.0',
+    'version': '15.0.1.13.0',
     'depends': [
         'crnd_wsd_field',
         'crnd_wsd',
-        'generic_request_field_service',
     ],
-    'data': [
-    ],
-    'demo': [
-        'demo/request_type_create_vm.xml',
-    ],
-    'assets': {
-        'web.assets_tests': [
-            'crnd_wsd_field_service/static/js/request_fields_tour.js',
-        ],
-    },
-
+    'data': [],
+    'demo': [],
     'images': ['static/description/banner.png'],
     'installable': True,
     'auto_install': True,

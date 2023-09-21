@@ -75,10 +75,22 @@
                         string="Assigned to my team"
                         domain="['|', '|', ('team_id.user_ids', '=', uid), ('team_id.leader_id', '=', uid), ('team_id.task_manager_id', '=', uid)]"/>
             </xpath>
+            <xpath expr="//filter[@name='filter_unassigned']" position="attributes">
+                <attribute name="domain">[('user_id', '=', False),('team_id', '=', False)]</attribute>
+            </xpath>
+            <xpath expr="//filter[@name='filter_today']" position="before">
+                <filter name="filter_no_assigned_user"
+                        string="No user assigned"
+                        domain="[('user_id', '=', False)]"/>
+                <separator/>
+                <filter name="filter_no_assigned_team"
+                        string="No team assigned"
+                        domain="[('team_id', '=', False)]"/>
+                <separator/>
+            </xpath>
             <xpath expr="//field[@name='author_id']" position="before">
                 <field name="team_id"/>
             </xpath>
         </field>
     </record>
-
 </odoo>

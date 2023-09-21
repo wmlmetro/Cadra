@@ -3,12 +3,12 @@
     <record id="view_users_form" model="ir.ui.view">
         <field name="model">res.users</field>
         <field name="inherit_id" ref="base.view_users_form"/>
-        <field name="groups_id" eval="[(4, ref('generic_request.group_request_user'))]"/>
         <field name="arch" type="xml">
             <div name="button_box" position="inside">
                 <button class="oe_stat_button"
                         type="object"
                         name="action_show_related_requests"
+                        groups="generic_request.group_request_user"
                         icon="fa-comments-o">
                     <field string="Requests" name="statbutton_total_request_count"
                            widget="statinfo"/>
@@ -16,7 +16,8 @@
             </div>
             <xpath expr="//notebook" position="inside">
                 <page name="page_generic_request"
-                      string="Requests">
+                      string="Requests"
+                      groups="generic_request.group_request_user">
                     <group name="group_requests_root">
                         <!-- TODO: Make field names links that open the
                         corresponding list of requests -->

@@ -7,19 +7,22 @@ msgstr ""
 "Project-Id-Version: Odoo Server 12.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2019-09-16 11:44+0000\n"
-"PO-Revision-Date: 2019-09-16 11:44+0000\n"
-"Last-Translator: <>\n"
-"Language-Team: \n"
-"Language: \n"
+"PO-Revision-Date: 2023-08-07 13:43+0000\n"
+"Last-Translator: Galina Prokopenko <am@crnd.pro>\n"
+"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_condition/uk/>\n"
+"Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
-"Plural-Forms: \n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.3.2\n"
 
 #. module: generic_request_condition
 #: model:ir.model.fields.selection,name:generic_request_condition.selection__request_stage_route__condition_operator__and
 msgid "AND"
-msgstr ""
+msgstr "ТА"
 
 #. module: generic_request_condition
 #: model:generic.condition,name:generic_request_condition.condition_request_is_assigned
@@ -55,6 +58,11 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_condition.field_request_type__change_request_text_condition_ids
 msgid "Can change request text"
 msgstr "Можна змінити текст запиту"
+
+#. module: generic_request_condition
+#: model:ir.model.fields,field_description:generic_request_condition.field_request_type__change_service_condition_ids
+msgid "Can change service"
+msgstr ""
 
 #. module: generic_request_condition
 #: model:generic.condition,name:generic_request_condition.condition_request_category_is_not_set

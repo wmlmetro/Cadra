@@ -38,6 +38,11 @@ msgstr ""
 "<span class=\"field-icon fa fa-money oe_inline\" title=\"Montant total\"/>"
 
 #. module: generic_request_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_timesheet_activity_search
+msgid "Billable"
+msgstr ""
+
+#. module: generic_request_invoicing
 #: code:addons/generic_request_invoicing/models/request_request.py:0
 #, python-format
 msgid "Cannot generate invoice unless partner selected!"
@@ -124,6 +129,20 @@ msgid "ID"
 msgstr "ID"
 
 #. module: generic_request_invoicing
+#: model:ir.model.fields,help:generic_request_invoicing.field_request_timesheet_line__is_billable
+msgid ""
+"If set to True, then system will generate new invoice line for this "
+"timesheet line for this request."
+msgstr ""
+
+#. module: generic_request_invoicing
+#: model:ir.model.fields,help:generic_request_invoicing.field_request_timesheet_activity__is_billable
+msgid ""
+"If set, then all timesheet lines of this activity will be billable by "
+"default."
+msgstr ""
+
+#. module: generic_request_invoicing
 #: model:ir.model.fields,help:generic_request_invoicing.field_request_invoice_line__is_invoiced
 msgid "Indicates whether this line is present in active invoice."
 msgstr "Indique que la ligne est dans la facture."
@@ -155,6 +174,7 @@ msgid "Invoicing"
 msgstr "Facturation"
 
 #. module: generic_request_invoicing
+#: model:ir.model.fields,field_description:generic_request_invoicing.field_request_timesheet_activity__is_billable
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_timesheet_line__is_billable
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_request_wizard_stop_work__is_billable
 msgid "Is Billable"
@@ -199,6 +219,11 @@ msgstr "Rendre facturable"
 #: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_request_form
 msgid "Make all not billable"
 msgstr "Rendre non facturable"
+
+#. module: generic_request_invoicing
+#: model_terms:ir.ui.view,arch_db:generic_request_invoicing.view_request_timesheet_activity_search
+msgid "Not Billable"
+msgstr ""
 
 #. module: generic_request_invoicing
 #: code:addons/generic_request_invoicing/models/request_request.py:0
@@ -268,6 +293,11 @@ msgstr ""
 #. module: generic_request_invoicing
 #: model:ir.model.fields,field_description:generic_request_invoicing.field_res_company__request_invoice_line_description_tmpl
 msgid "Request Invoice Line Description Tmpl"
+msgstr ""
+
+#. module: generic_request_invoicing
+#: model:ir.model,name:generic_request_invoicing.model_request_timesheet_activity
+msgid "Request Timesheet Activity"
 msgstr ""
 
 #. module: generic_request_invoicing

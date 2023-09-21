@@ -22,7 +22,7 @@
         <field name="arch" type="xml">
             <xpath expr="//search" position="inside">
                 <field name="related_request_ids"
-                       filter_domain="['|', ('related_ids', 'ilike', self),
+                       filter_domain="['|', ('related_request_ids', 'ilike', self),
                                             ('related_reverse_request_ids', 'ilike', self)]"/>
             </xpath>
         </field>

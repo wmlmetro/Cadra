@@ -30,13 +30,12 @@
                         <group name="group_info">
                             <field name="model_id"/>
                         </group>
-                        <group name="group_context_action_info"
-                               >
+                        <group name="group_context_action_info">
                             <field name="request_action_toggle"
                                    groups="base.group_system"
                                    widget="boolean_toggle"/>
                             <field name="request_action_id"
-                                   groups="base.group_no_one"
+                                   groups="base.group_system"
                                    attrs="{'invisible': [('request_action_toggle', '=', False)]}"/>
                             <field name="request_action_name"
                                    attrs="{'invisible': [('request_action_toggle', '=', False)]}"/>

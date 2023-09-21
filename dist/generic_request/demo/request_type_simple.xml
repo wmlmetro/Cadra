@@ -16,9 +16,6 @@
                 <li>draft -> sent -> rejected</li>
             </ul>
         ]]></field>
-        <field name="service_ids" eval="[(4, ref('generic_service.generic_service_default'))]"/>
-        <field name="category_ids"
-               eval="[(6, 0, [ref('generic_request.request_category_demo_general')])]"/>
         <field name="kind_id" ref="request_kind_demo"/>
         <field name="tag_category_ids"
                eval="[(4, ref('generic_request.tag_category_severity')), (4, ref('generic_request.tag_category_priority')), (4, ref('generic_request.tag_category_platform'))]"/>
@@ -96,6 +93,7 @@
         <field name="request_type_id" ref="request_type_simple"/>
         <field name="allowed_group_ids"
                 eval="[(6, 0, [ref('generic_request.group_request_manager')])]"/>
+        <field name="button_style">success</field>
     </record>
     <record id="request_stage_route_type_simple_sent_rejected"
             model="request.stage.route">
@@ -106,6 +104,7 @@
         <field name="require_response" eval="True"/>
         <field name="allowed_user_ids"
                 eval="[(6, 0, [ref('generic_request.user_demo_request_manager_2')])]"/>
+        <field name="button_style">danger</field>
     </record>
     <record id="request_stage_route_type_simple_rejected_draft"
             model="request.stage.route">

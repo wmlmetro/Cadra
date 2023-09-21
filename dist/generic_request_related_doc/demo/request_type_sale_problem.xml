@@ -12,7 +12,12 @@
                 <li>draft -> sent -> rejected</li>
             </ul>
         ]]></field>
-        <field name="category_ids" eval="[(4, ref('generic_request.request_category_demo_technical_configuration'), 0)]"/>
+    </record>
+
+    <!--Add request.classifier-->
+    <record id="classifier_request_type_sla_problem_demo_tech_config" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_technical_configuration"/>
+        <field name="type_id" ref="generic_request_related_doc.request_type_sale_problem"/>
     </record>
 
     <!-- sale_problem request type stages -->

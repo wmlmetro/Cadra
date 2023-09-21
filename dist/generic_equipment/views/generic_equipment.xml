@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_generic_equipment_tree" model="ir.ui.view">
+        <field name="model">generic.equipment</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="self_model_name" invisible="1"/>
+                <field name="name"/>
+                <field name="inventory_number"
+                       optional="show"/>
+                <field name="category_id"
+                       optional="show"/>
+                <field name="vendor_id"
+                       optional="show"/>
+                <field name="brand_id"
+                       optional="show"/>
+                <field name="series_id"
+                       optional="show"/>
+                <field name="model_id"
+                       optional="show"/>
+                <field name="serial_number"
+                       optional="show"/>
+                <field name="date_purchase"
+                       optional="show"/>
+                <field name="date_in_use"
+                       optional="show"/>
+                <field name="date_retired"
+                       optional="show"/>
+                <field name="date_warranty_expire"
+                       optional="show"/>
+                <field name="currency_id" invisible="1"/>
+                <field name="cost"
+                       optional="show"/>
+                <field name="state"
+                       optional="show"/>
+                <field name="tag_ids"
+                       options="{'color_field': 'color'}"
+                       widget="many2many_tags"
+                       placeholder="Tags..."
+                       context="{'default_model': self_model_name}"
+                       optional="show"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_generic_equipment_form" model="ir.ui.view">
+        <field name="model">generic.equipment</field>
+        <field name="inherit_id" ref="generic_resource.generic_resource_view_form_base"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <xpath expr="/form" position="inside">
+                <field name="self_model_name" invisible="1"/>
+            </xpath>
+            <xpath expr="/form" position="attributes">
+                <attribute name="create">true</attribute>
+                <attribute name="delete">true</attribute>
+            </xpath>
+            <xpath expr="/form/sheet" position="before">
+                <header>
+                    <field name="state"
+                           widget="statusbar"
+                           statusbar_visible="in-use,in-storage,in-maintenance,broken,retired"
+                           options="{'clickable': true}"/>
+                </header>
+            </xpath>
+            <xpath expr="//div[@name='div_title']" position="before">
+                <field name="image_1920" widget='image' class="oe_avatar" options='{"preview_image": "image_128"}'/>
+            </xpath>
+            <xpath expr="//h1[@name='h1_title']" position="after">
+                <field name="tag_ids"
+                       widget="many2many_tags"
+                       options="{'color_field': 'color'}"
+                       context="{'default_model': self_model_name}"
+                       placeholder="Tags..."/>
+            </xpath>
+            <xpath expr="//h1[@name='h1_title']" position="inside">
+                <field name="name" string="Name" placeholder="Name"/>
+            </xpath>
+            <xpath expr="//page[1]" position="before">
+                <page name="page_info" string="Info">
+                    <group name="group_info_root">
+                        <group name="group_info_general" string="General">
+                            <field name="category_id" placeholder="Category"/>
+                            <field name="inventory_number"/>
+                            <field name="resource_id"
+                                   string="Generic Resource"
+                                   required="0" readonly="1"
+                                   groups="base.group_no_one"/>
+                        </group>
+                        <group name="group_info_dates" string="Dates">
+                            <field name="date_purchase" string="Purchased"/>
+                            <field name="date_in_use" string="In Use Since"/>
+                            <field name="date_retired" string="Retired"/>
+                            <field name="date_warranty_expire" string="Warranty Expiration"/>
+                        </group>
+                        <group name="group_info_product_info" string="Product Info">
+                            <field name="vendor_id"/>
+                            <field name="brand_id" domain="[('vendor_id', '=', vendor_id)]"/>
+                            <field name="series_id" domain="[('vendor_id', '=', vendor_id), ('brand_id', '=', brand_id)]"/>
+                            <field name="model_id" domain="[('vendor_id', '=', vendor_id), ('brand_id', '=', brand_id), ('series_id', '=', series_id)]"/>
+                            <field name="serial_number"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="cost"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_generic_equipment_search">
+        <field name="model">generic.equipment</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="inventory_number"/>
+                <field name="serial_number"/>
+                <field name="category_id"/>
+                <field name="vendor_id"/>
+                <field name="brand_id"/>
+                <field name="series_id"/>
+                <field name="model_id"/>
+                <field name="state"/>
+            </search>
+        </field>
+    </record>
+
+</odoo>

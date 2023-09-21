@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_classifier_tree">
+        <field name="model">request.classifier</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="service_id_group"
+                       groups="generic_request.group_request_use_service_groups"/>
+                <field name="service_id"
+                       groups="generic_request.group_request_use_services"/>
+                <field name="category_id"/>
+                <field name="type_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_classifier_form">
+        <field name="model">request.classifier</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="toggle_active" type="object" groups="base.group_user"
+                                class="oe_stat_button" icon="fa-archive">
+                            <field name="active" widget="boolean_button"
+                                   options='{"terminology": "archive"}'/>
+                        </button>
+                    </div>
+                    <notebook>
+                        <page string="Info" name="page_info">
+                            <group name="group_info_root">
+                                <group name="group_info_left">
+                                    <field name="service_id"
+                                           groups="generic_request.group_request_use_services"/>
+                                    <field name="category_id"/>
+                                    <field name="type_id"/>
+                                </group>
+                                <group name="group_info_right">
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_classifier_search">
+        <field name="model">request.classifier</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="service_id"
+                       groups="generic_request.group_request_use_services"/>
+                <field name="service_id_group"
+                       groups="generic_request.group_request_use_service_groups"/>
+                <field name="category_id"/>
+                <field name="type_id"/>
+
+                <separator/>
+                <filter name="filter_archived"
+                        string="Archived"
+                        domain="[('active', '=', False)]"/>
+                <separator/>
+                <filter string="Has Service Group"
+                        name="has_service_group"
+                        domain="[('service_id_group', '!=', False)]"
+                        groups="generic_request.group_request_use_service_groups"/>
+                <filter string="Not Service Group"
+                        name="not_service_group"
+                        domain="[('service_id_group', '=', False)]"
+                        groups="generic_request.group_request_use_service_groups"/>
+
+                <group name="group_group_by">
+                    <filter name="filter_group_by_service"
+                            string="Service"
+                            groups="generic_request.group_request_use_services"
+                            context="{'group_by': 'service_id'}"/>
+                    <filter name="filter_group_by_category"
+                            string="Category"
+                            context="{'group_by': 'category_id'}"/>
+                    <filter name="filter_group_by_type"
+                            string="Type"
+                            context="{'group_by': 'type_id'}"/>
+                    <filter name="filter_group_by_service_group"
+                            string="Service Group"
+                            context="{'group_by': 'service_id_group'}"
+                            groups="generic_request.group_request_use_service_groups"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="action_classifier_window">
+        <field name="name">Classifier</field>
+        <field name="res_model">request.classifier</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_classifier_view"
+              parent="menu_configuration_requests"
+              action="action_classifier_window"/>
+</odoo>

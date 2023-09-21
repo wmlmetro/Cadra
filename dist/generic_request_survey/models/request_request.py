@@ -11,6 +11,8 @@ class RequestRequest(models.Model):
     answer_count = fields.Integer(
         compute='_compute_answer_count',
         readonly=True, compute_sudo=True)
+    stage_allow_send_survey = fields.Boolean(
+        related='stage_id.allow_send_survey', readonly=True)
 
     @api.depends('answer_ids', 'answer_ids.state')
     def _compute_answer_count(self):

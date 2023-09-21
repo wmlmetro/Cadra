@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:06+0000\n"
-"PO-Revision-Date: 2021-06-22 16:06+0000\n"
+"POT-Creation-Date: 2023-07-26 11:15+0000\n"
+"PO-Revision-Date: 2023-07-26 11:15+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -34,7 +34,7 @@ msgstr ""
 #. module: generic_request_project
 #: model:ir.model,name:generic_request_project.model_account_analytic_line
 msgid "Analytic Line"
-msgstr ""
+msgstr "Analitinė eilutė"
 
 #. module: generic_request_project
 #: model:project.task,legend_blocked:generic_request_project.project_task_analyse_sla_per_resource
@@ -50,17 +50,17 @@ msgstr ""
 #. module: generic_request_project
 #: model_terms:ir.ui.view,arch_db:generic_request_project.request_wizard_work_log_form_view
 msgid "Cancel"
-msgstr ""
+msgstr "Atšaukti"
 
 #. module: generic_request_project
 #: model:ir.model.fields,help:generic_request_project.field_project_task__request_category_id
 msgid "Category of request"
-msgstr ""
+msgstr "Užklausos kategorija"
 
 #. module: generic_request_project
 #: model_terms:ir.ui.view,arch_db:generic_request_project.view_generic_request_project_task_request_request
 msgid "Create Task"
-msgstr ""
+msgstr "Sukurti užduotį"
 
 #. module: generic_request_project
 #: model_terms:ir.ui.view,arch_db:generic_request_project.view_generic_request_project_task_request_request
@@ -70,17 +70,17 @@ msgstr ""
 #. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__create_uid
 msgid "Created by"
-msgstr ""
+msgstr "Sukūrė"
 
 #. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__create_date
 msgid "Created on"
-msgstr ""
+msgstr "Sukurta"
 
 #. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__display_name
 msgid "Display Name"
-msgstr ""
+msgstr "Rodomas pavadinimas"
 
 #. module: generic_request_project
 #: model:request.stage,name:generic_request_project.request_stage_type_with_task_done
@@ -100,7 +100,7 @@ msgstr ""
 #. module: generic_request_project
 #: model_terms:ir.ui.view,arch_db:generic_request_project.request_wizard_work_log_form_view
 msgid "Duration"
-msgstr ""
+msgstr "Trukmė"
 
 #. module: generic_request_project
 #: model:ir.actions.act_window,name:generic_request_project.action_wizard_work_log
@@ -131,17 +131,17 @@ msgstr ""
 #. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard____last_update
 msgid "Last Modified on"
-msgstr ""
+msgstr "Paskutinį kartą keista"
 
 #. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__write_uid
 msgid "Last Updated by"
-msgstr ""
+msgstr "Paskutinį kartą atnaujino"
 
 #. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__write_date
 msgid "Last Updated on"
-msgstr ""
+msgstr "Paskutinį kartą atnaujinta"
 
 #. module: generic_request_project
 #: model_terms:ir.ui.view,arch_db:generic_request_project.view_generic_request_project_task_request_request
@@ -171,16 +171,17 @@ msgstr ""
 #. module: generic_request_project
 #: model_terms:ir.ui.view,arch_db:generic_request_project.view_task_form2
 msgid "Other"
-msgstr ""
+msgstr "Kita"
 
 #. module: generic_request_project
 #: model:ir.model,name:generic_request_project.model_project_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_report__request_project_id
 #: model:ir.model.fields,field_description:generic_request_project.field_request_request__project_id
 #: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__project_id
 #: model_terms:ir.ui.view,arch_db:generic_request_project.request_type_form_inherit
 #: model_terms:ir.ui.view,arch_db:generic_request_project.view_request_request_searchpanel
 msgid "Project"
-msgstr ""
+msgstr "Projektas"
 
 #. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_request_request__project_task_count
@@ -219,7 +220,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_project.field_project_task__request_id
 #: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__request_id
 msgid "Request"
-msgstr ""
+msgstr "Užklausa"
 
 #. module: generic_request_project
 #: code:addons/generic_request_project/models/request_request.py:0
@@ -231,7 +232,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_project.field_project_task__request_category_id
 #: model_terms:ir.ui.view,arch_db:generic_request_project.view_task_search_form
 msgid "Request Category"
-msgstr ""
+msgstr "Užklausos kategorija"
 
 #. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_project_project__request_count
@@ -241,6 +242,16 @@ msgstr ""
 #. module: generic_request_project
 #: model:ir.model,name:generic_request_project.model_request_event
 msgid "Request Event"
+msgstr ""
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_request_report_search
+msgid "Request Project"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model,name:generic_request_project.model_request_report
+msgid "Request Report"
 msgstr ""
 
 #. module: generic_request_project
@@ -265,7 +276,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_project.field_project_task__request_type_id
 #: model_terms:ir.ui.view,arch_db:generic_request_project.view_task_search_form
 msgid "Request Type"
-msgstr ""
+msgstr "Užklausos tipas"
 
 #. module: generic_request_project
 #: model:ir.model,name:generic_request_project.model_work_log_wizard
@@ -291,7 +302,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_project.field_project_project__request_ids
 #: model_terms:ir.ui.view,arch_db:generic_request_project.edit_project
 msgid "Requests"
-msgstr ""
+msgstr "Užklausos"
 
 #. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_project_task__request_ids
@@ -301,7 +312,7 @@ msgstr ""
 #. module: generic_request_project
 #: model_terms:ir.ui.view,arch_db:generic_request_project.request_wizard_work_log_form_view
 msgid "Save"
-msgstr ""
+msgstr "Išsaugoti"
 
 #. module: generic_request_project
 #: model:ir.model.fields,help:generic_request_project.field_project_task__request_service_id
@@ -314,7 +325,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_project.field_request_event__task_id
 #: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__task_id
 msgid "Task"
-msgstr ""
+msgstr "Užduotis"
 
 #. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_request_event__task_new_stage_id
@@ -350,7 +361,7 @@ msgstr ""
 #: model:project.project,label_tasks:generic_request_project.request_with_task_project_1
 #: model_terms:ir.ui.view,arch_db:generic_request_project.view_generic_request_project_task_request_request
 msgid "Tasks"
-msgstr ""
+msgstr "Užduotys"
 
 #. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_request_request__project_task_recursive_ids
@@ -383,19 +394,19 @@ msgstr ""
 #. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__timesheet_ids
 msgid "Timesheets"
-msgstr ""
+msgstr "Veiklos"
 
 #. module: generic_request_project
 #: model:ir.model.fields,help:generic_request_project.field_project_task__request_type_id
 msgid "Type of request"
-msgstr ""
+msgstr "Užklausos tipas"
 
 #. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_request_request__use_subtasks
 #: model:ir.model.fields,field_description:generic_request_project.field_request_type__use_subtasks
 #: model_terms:ir.ui.view,arch_db:generic_request_project.request_type_form_inherit
 msgid "Use Subtasks"
-msgstr ""
+msgstr "Naudoti dukterines užduotis"
 
 #. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_request_request__use_worklog
@@ -419,4 +430,4 @@ msgstr ""
 #. module: generic_request_project
 #: model_terms:ir.ui.view,arch_db:generic_request_project.view_generic_request_project_task_request_request
 msgid "or"
-msgstr ""
+msgstr "arba"

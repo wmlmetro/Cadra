@@ -4,7 +4,7 @@ from odoo import models, fields, api, tools, _
 from odoo.tools.safe_eval import safe_eval
 
 from ..utils import str2bool
-from ..tools.graph import graph
+from ..tools.graph import Graph
 
 _logger = logging.getLogger(__name__)
 
@@ -106,8 +106,8 @@ class IrUiView(models.Model):
         no_ancester = []
         blank_nodes = []
 
-        Model = self.env[model]
-        Node = self.env[node_obj]
+        Model = self.sudo().env[model]
+        Node = self.sudo().env[node_obj]
 
         # pylint: disable=too-many-nested-blocks
         for model_key, model_value in Model._fields.items():
@@ -154,7 +154,7 @@ class IrUiView(models.Model):
                                 label_string + " " + tools.ustr(t[lbl]))
                 labels[str(t['id'])] = (line.id, label_string)
 
-        g = graph(nodes, transitions, no_ancester)
+        g = Graph(nodes, transitions, no_ancester)
         g.process(start)
         g.scale(*scale)
         result = g.result_get()

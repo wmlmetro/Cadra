@@ -9,4 +9,7 @@ from . import (
     test_req_sla_2,
     test_req_sla_condition,
     test_sla_channel,
+    test_sla_service,
+    test_priority,
+    test_sla_tag,
 )

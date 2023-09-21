@@ -9,7 +9,7 @@
     'website': "https://crnd.pro",
 
     'category': 'Generic Request',
-    'version': '15.0.2.12.0',
+    'version': '15.0.2.17.1',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -31,12 +31,13 @@
     'demo': [
         'demo/request_category.xml',
         'demo/request_type.xml',
+        'demo/request_classifier.xml',
         'demo/request_creation_template.xml',
         'demo/request_api_endpoint.xml',
     ],
 
     'images': ['static/description/banner.png'],
     'installable': True,
-    'application': True,
+    'application': False,
     'license': 'OPL-1',
 }

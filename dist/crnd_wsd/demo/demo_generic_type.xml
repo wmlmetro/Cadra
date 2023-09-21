@@ -11,11 +11,20 @@
         <field name="note_html"><![CDATA[
             <p align="left">There you should ask a questions related to our SaaS service.</p>
         ]]></field>
-        <field name="service_ids" eval="[(4, ref('generic_service.generic_service_default'))]"/>
-        <field name="category_ids" eval="[(4, ref('request_category_demo_website_support'), 0)]"/>
         <field name="kind_id" ref="request_kind_demo_wsd"/>
-        <field name="website_published" eval="True"/>
         <field name="website_request_text_help">Write here your question.</field>
+    </record>
+
+    <!--Add request.classifier-->
+    <record id="classifier_request_type_generic_website_support" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_default"/>
+        <field name="category_id" ref="crnd_wsd.request_category_demo_website_support"/>
+        <field name="type_id" ref="crnd_wsd.request_type_generic"/>
+        <field name="website_published" eval="True"/>
+    </record>
+    <!-- Update request.classifier-->
+    <record id="generic_request.classifier_request_type_sequence_demo_resource" model="request.classifier">
+        <field name="website_published" eval="True"/>
     </record>
 
     <!-- Generic request type stages -->

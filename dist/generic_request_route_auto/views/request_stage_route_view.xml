@@ -21,6 +21,10 @@
                 <page string="Triggers"
                       name="page_route_triggers"
                       attrs="{'invisible': [('id', '=', False)]}">
+                    <div class="alert alert-info" role="status" colspan="2">
+                        The route triggers allow to configure automatic move of request via this route
+                        on some conditions or events.
+                    </div>
                     <field name="trigger_ids"
                            mode="tree"
                            context="{'default_route_id': id}"/>
@@ -61,4 +65,3 @@
         </field>
     </record>
 </odoo>
-

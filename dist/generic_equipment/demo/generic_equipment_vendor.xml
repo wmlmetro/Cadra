@@ -1,0 +1,55 @@
+<odoo>
+    <!-- Vendors for Computers -->
+    <record model="generic.equipment.vendor" id="generic_equipment_vendor_hp">
+      <field name="name">HP</field>
+    </record>
+    <record model="generic.equipment.vendor" id="generic_equipment_vendor_dell">
+      <field name="name">Dell</field>
+    </record>
+    <record model="generic.equipment.vendor" id="generic_equipment_vendor_lenovo">
+      <field name="name">Lenovo</field>
+    </record>
+    <record model="generic.equipment.vendor" id="generic_equipment_vendor_apple">
+        <field name="name">Apple</field>
+    </record>
+
+    <!-- Vendors for Accessories -->
+    <record model="generic.equipment.vendor" id="generic_equipment_vendor_logitech">
+      <field name="name">Logitech</field>
+    </record>
+    <record model="generic.equipment.vendor" id="generic_equipment_vendor_microsoft">
+      <field name="name">Microsoft</field>
+    </record>
+
+    <!-- Vendors for Networking devices -->
+    <record model="generic.equipment.vendor" id="generic_equipment_vendor_cisco">
+      <field name="name">Cisco</field>
+    </record>
+    <record model="generic.equipment.vendor" id="generic_equipment_vendor_tp_link">
+      <field name="name">TP-Link</field>
+    </record>
+
+    <!-- Vendors for Office IT -->
+    <record model="generic.equipment.vendor" id="generic_equipment_vendor_epson">
+      <field name="name">Epson</field>
+    </record>
+    <record model="generic.equipment.vendor" id="generic_equipment_vendor_canon">
+      <field name="name">Canon</field>
+    </record>
+
+    <!-- Vendors for Vehicles -->
+    <record model="generic.equipment.vendor" id="generic_equipment_vendor_ford">
+      <field name="name">Ford</field>
+    </record>
+    <record model="generic.equipment.vendor" id="generic_equipment_vendor_toyota">
+      <field name="name">Toyota</field>
+    </record>
+
+    <!-- Vendors for Furniture -->
+    <record model="generic.equipment.vendor" id="generic_equipment_vendor_ikea">
+      <field name="name">IKEA</field>
+    </record>
+    <record model="generic.equipment.vendor" id="generic_equipment_vendor_steelcase">
+      <field name="name">Steelcase</field>
+    </record>
+</odoo>

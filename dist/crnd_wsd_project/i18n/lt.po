@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:05+0000\n"
-"PO-Revision-Date: 2021-06-22 16:05+0000\n"
+"POT-Creation-Date: 2023-07-26 11:10+0000\n"
+"PO-Revision-Date: 2023-07-26 11:10+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -51,12 +51,12 @@ msgstr ""
 #. module: crnd_wsd_project
 #: model_terms:ir.ui.view,arch_db:crnd_wsd_project.wsd_requests_project
 msgid "Stage"
-msgstr ""
+msgstr "Etapas"
 
 #. module: crnd_wsd_project
 #: model_terms:ir.ui.view,arch_db:crnd_wsd_project.wsd_requests_project_table
 msgid "Tasks"
-msgstr ""
+msgstr "Užduotys"
 
 #. module: crnd_wsd_project
 #: model_terms:request.request,help_html:crnd_wsd_project.demo_crnd_wsd_project_request_with_task

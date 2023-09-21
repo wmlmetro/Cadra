@@ -1,5 +1,13 @@
 # Changelog
 
+## Version 3.11.0
+
+- Use correct action to open Project Tasks from Request.
+This is needed to be compatible with Odoo Enterprise
+(be able to use gantt view for task related to requests)
+Implemented within request Q2303536.
+
+
 ## Version 3.5.0
 
 - Added fields `Request Service`, `Request Category`, `Request Type` on Task page *Other*

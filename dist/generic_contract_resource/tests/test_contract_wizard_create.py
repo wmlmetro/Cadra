@@ -12,7 +12,7 @@ class TestGenericContractResourceWizard(TestGenericContractResourceCommon):
             'partner_type': 'supplier',
             'partner_id': self.partner_supplier.id,
             'template_id': self.template_basic_support.id,
-            'date_start': self.today,
+            'date_begin': self.today,
         })
 
         basic_support_wizard.sudo().create_contract()

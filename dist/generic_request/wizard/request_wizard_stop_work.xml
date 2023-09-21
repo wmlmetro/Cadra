@@ -1,12 +1,35 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
     <record id="view_request_wizard_stop_work_form" model="ir.ui.view">
-        <field name="name">view.request.wizard.stop.work.form</field>
         <field name="model">request.wizard.stop.work</field>
         <field name="arch" type="xml">
             <form>
                 <sheet>
                     <field name="timesheet_line_id" invisible="1"/>
+                    <field name="is_description_required" invisible="1"/>
+                    <div class="alert alert-warning"
+                         role="alert"
+                         colspan="4"
+                         attrs="{'invisible': ['|', ('amount', '&lt;=', 8), ('amount', '&gt;', 12)]}">
+                        <p>Please, double check amount of time to be logged. Is it correct?</p>
+                    </div>
+                    <div class="alert alert-danger"
+                         role="alert"
+                         colspan="4"
+                         attrs="{'invisible': [('amount', '&lt;=', 12)]}">
+                        <p>The time to be logged is greater then 12 hours.</p>
+                        <p>Please, check if it is correct?</p>
+                    </div>
+                    <div class="alert alert-warning"
+                         role="alert"
+                         colspan="4"
+                         attrs="{'invisible': [('start_request_id', '=', False)]}">
+                        <p><b>Warning!</b> Before starting work on request
+                            <b><field name="start_request_id"
+                                   options="{'no_open': True}"/></b>
+                            you have to complete work on previous unfinished request.</p>
+                        <p>Please, review info in this wizard carefully.</p>
+                    </div>
                     <group>
                         <group>
                             <field name="date_start"/>
@@ -25,7 +48,9 @@
                         </group>
                     </group>
                     <separator string="Description" colspan="4"/>
-                    <field name="description" placeholder="Description..."/>
+                    <field name="description"
+                           placeholder="Description..."
+                           attrs="{'required': [('is_description_required', '=', True)]}"/>
                 </sheet>
                 <footer>
                    <button string="Log Time"

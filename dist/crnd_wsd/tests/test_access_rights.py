@@ -131,8 +131,11 @@ class TestWSDRequestAccessRights(AccessRightsCase):
             self.demo_test_user_1).read(['name']))
 
     def test_service_access_rights(self):
-        self.assertFalse(
-            self.uservice_demo_rent.sudo().website_published)
+        # Deactivate classifiers for service demo rent
+        self.env['request.classifier'].search([
+            ('service_id', '=', self.uservice_demo_rent.id),
+        ]).write({'website_published': False})
+
         with mute_logger('odoo.models'):
             with self.assertRaises(exceptions.AccessError):
                 # pylint: disable=pointless-statement

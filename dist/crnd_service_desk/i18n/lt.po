@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:09+0000\n"
-"PO-Revision-Date: 2021-06-22 16:09+0000\n"
+"POT-Creation-Date: 2023-07-26 11:15+0000\n"
+"PO-Revision-Date: 2023-07-26 11:15+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -20,47 +20,47 @@ msgstr ""
 #: model:request.stage,name:crnd_service_desk.request_stage_type_incident_classification
 #: model:request.stage.route,name:crnd_service_desk.request_stage_route_type_incident_new_to_classification
 msgid "Classification"
-msgstr ""
+msgstr "Klasifikavimas"
 
 #. module: crnd_service_desk
 #: model:request.stage,name:crnd_service_desk.request_stage_type_incident_done
 #: model:request.stage.route,name:crnd_service_desk.request_stage_route_type_incident_progress_to_done
 msgid "Done"
-msgstr ""
+msgstr "Atlikta"
 
 #. module: crnd_service_desk
 #: model:request.stage,name:crnd_service_desk.request_stage_type_incident_draft
 msgid "Draft"
-msgstr ""
+msgstr "Šablonas"
 
 #. module: crnd_service_desk
 #: model:request.type,name:crnd_service_desk.request_type_incident
 msgid "Incident"
-msgstr ""
+msgstr "incidentas"
 
 #. module: crnd_service_desk
 #: model:request.stage,name:crnd_service_desk.request_stage_type_incident_new
 #: model:request.stage.route,name:crnd_service_desk.request_stage_route_type_incident_draft_to_new
 msgid "New"
-msgstr ""
+msgstr "Nauja"
 
 #. module: crnd_service_desk
 #: model:request.stage,name:crnd_service_desk.request_stage_type_incident_progress
 #: model:request.stage.route,name:crnd_service_desk.request_stage_route_type_incident_classification_to_progress
 msgid "Progress"
-msgstr ""
+msgstr "Vykdoma"
 
 #. module: crnd_service_desk
 #: model:request.stage.route,name:crnd_service_desk.request_stage_route_type_incident_classification_to_rejected
 msgid "Reject"
-msgstr ""
+msgstr "Atšaukti"
 
 #. module: crnd_service_desk
 #: model:request.stage,name:crnd_service_desk.request_stage_type_incident_rejected
 msgid "Rejected"
-msgstr ""
+msgstr "Atšaukta"
 
 #. module: crnd_service_desk
 #: model_terms:request.type,help_html:crnd_service_desk.request_type_incident
 msgid "This is the type of incident request."
-msgstr ""
+msgstr "Tai incidento tipo užklausa"

@@ -6,7 +6,7 @@
         <field name="view_mode">form,tree</field>
         <field name="view_id" ref="mail.email_template_tree"/>
         <field name="search_view_id" ref="mail.view_email_template_search"/>
-        <field name="domain">[('model_id.model', '=', 'request.request')]</field>
+        <field name="domain">[('model', '=', 'request.request')]</field>
         <field name="context">{'default_model': 'request.request'}</field>
     </record>
 

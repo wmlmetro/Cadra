@@ -26,6 +26,12 @@
                             context="{'default_based_on': 'request.request'}"
                             options="{'no_quick_create': True, 'open': True}"
                             widget="many2many_tags"/>
+                    <field name="change_service_condition_ids"
+                            domain="[('model_id.model', '=', 'request.request')]"
+                            context="{'default_based_on': 'request.request'}"
+                            options="{'no_quick_create': True, 'open': True}"
+                            widget="many2many_tags"
+                            groups="generic_request.group_request_use_services"/>
                     <field name="change_deadline_condition_ids"
                             domain="[('model_id.model', '=', 'request.request')]"
                             context="{'default_based_on': 'request.request'}"

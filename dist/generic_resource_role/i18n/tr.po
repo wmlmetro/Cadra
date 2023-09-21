@@ -9,8 +9,8 @@ msgstr ""
 "POT-Creation-Date: 2023-02-15 16:16+0000\n"
 "PO-Revision-Date: 2023-03-07 12:45+0000\n"
 "Last-Translator: Huseyin <hkpostam@gmail.com>\n"
-"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
-"bureaucrat-itsm-15-0/generic_resource_role/tr/>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-15-0/generic_resource_role/tr/>\n"
 "Language: tr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -163,6 +163,12 @@ msgstr "oluşturuldu"
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_type__creator_role_id
 msgid "Creator Role"
 msgstr "Yaratıcı Rolü"
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_is_role_manager
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_is_role_manager
+msgid "Current user is role manager"
+msgstr ""
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__ir_model_data_id
@@ -619,12 +625,6 @@ msgid "Resource Act Manage Roles"
 msgstr "Kaynak Yasası Rolleri Yönet"
 
 #. module: generic_resource_role
-#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_is_role_manager
-#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_is_role_manager
-msgid "Resource Is Role Manager"
-msgstr "Kaynak Rol Yöneticisidir"
-
-#. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__master_model_id
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__sub_model_id
 msgid "Resource Model"
@@ -684,12 +684,6 @@ msgstr "Kaynak Alt Rolü"
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_view_search
 msgid "Resource Type"
 msgstr "Kaynak Türü"
-
-#. module: generic_resource_role
-#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_user_role_ids
-#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_user_role_ids
-msgid "Resource User Role"
-msgstr "Kaynak Kullanıcı Rolü"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_visibility
@@ -954,6 +948,12 @@ msgid "User"
 msgstr "Kullanıcı"
 
 #. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_user_role_ids
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_user_role_ids
+msgid "User roles"
+msgstr ""
+
+#. module: generic_resource_role
 #: model:ir.model,name:generic_resource_role.model_res_users
 msgid "Users"
 msgstr "Kullanıcılar"
@@ -983,3 +983,9 @@ msgstr "ir.model"
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_view_form
 msgid "open full list of roles"
 msgstr "rollerin tam listesini aç"
+
+#~ msgid "Resource Is Role Manager"
+#~ msgstr "Kaynak Rol Yöneticisidir"
+
+#~ msgid "Resource User Role"
+#~ msgstr "Kaynak Kullanıcı Rolü"

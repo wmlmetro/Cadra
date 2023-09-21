@@ -1,15 +1,15 @@
 {
-    'name': "Generic Request (Action Tag)",
+    'name': "Generic Request (Action Tag) [Obsolete]",
 
     'summary': """
-        Add / Remove Tags Using Automated Actions
+        This module reached the end of life and can be safely removed.
     """,
 
     'author': "Center of Research and Development",
     'website': "https://crnd.pro",
 
     'category': 'Generic Request',
-    'version': '15.0.1.0.0',
+    'version': '15.0.1.2.0',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -17,12 +17,8 @@
     ],
 
     # always loaded
-    'data': [
-        'views/request_event_action.xml',
-    ],
-    'demo': [
-        'demo/request_event_action.xml',
-    ],
+    'data': [],
+    'demo': [],
 
     'images': ['static/description/banner.png'],
     'installable': True,
@@ -31,4 +27,5 @@
     'license': 'OPL-1',
     'price': 30.0,
     'currency': 'EUR',
+    'tags': ['obsolete'],
 }

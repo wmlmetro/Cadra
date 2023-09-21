@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- IT Equipment -->
+    <record model="generic.equipment.category" id="generic_equipment_category_it">
+      <field name="name">IT Equipment</field>
+      <field name="code">it_equipment</field>
+    </record>
+
+    <!-- Computers -->
+    <record model="generic.equipment.category" id="generic_equipment_category_computers">
+      <field name="name">Computers</field>
+      <field name="code">computers</field>
+      <field name="parent_id" ref="generic_equipment_category_it"/>
+    </record>
+
+    <!-- Desktops -->
+    <record model="generic.equipment.category" id="generic_equipment_category_desktops">
+      <field name="name">Desktops</field>
+      <field name="code">desktops</field>
+      <field name="parent_id" ref="generic_equipment_category_computers"/>
+    </record>
+
+    <!-- Laptops -->
+    <record model="generic.equipment.category" id="generic_equipment_category_laptops">
+      <field name="name">Laptops</field>
+      <field name="code">laptops</field>
+      <field name="parent_id" ref="generic_equipment_category_computers"/>
+    </record>
+
+    <!-- Servers -->
+    <record model="generic.equipment.category" id="generic_equipment_category_servers">
+      <field name="name">Servers</field>
+      <field name="code">servers</field>
+      <field name="parent_id" ref="generic_equipment_category_computers"/>
+    </record>
+
+    <!-- Monitors -->
+    <record model="generic.equipment.category" id="generic_equipment_category_monitors">
+      <field name="name">Monitors</field>
+      <field name="code">monitors</field>
+      <field name="parent_id" ref="generic_equipment_category_computers"/>
+    </record>
+
+    <!-- Accessories -->
+    <record model="generic.equipment.category" id="generic_equipment_category_accessories">
+      <field name="name">Accessories</field>
+      <field name="code">accessories</field>
+      <field name="parent_id" ref="generic_equipment_category_it"/>
+    </record>
+
+    <!-- Mouses -->
+    <record model="generic.equipment.category" id="generic_equipment_category_mouses">
+      <field name="name">Mouses</field>
+      <field name="code">mouses</field>
+      <field name="parent_id" ref="generic_equipment_category_accessories"/>
+    </record>
+
+    <!-- Keyboards -->
+    <record model="generic.equipment.category" id="generic_equipment_category_keyboards">
+      <field name="name">Keyboards</field>
+      <field name="code">keyboards</field>
+      <field name="parent_id" ref="generic_equipment_category_accessories"/>
+    </record>
+
+    <!-- Networking devices -->
+    <record model="generic.equipment.category" id="generic_equipment_category_networking">
+      <field name="name">Networking devices</field>
+      <field name="code">networking_devices</field>
+      <field name="parent_id" ref="generic_equipment_category_it"/>
+    </record>
+
+    <!-- Routers & Switches -->
+    <record model="generic.equipment.category" id="generic_equipment_category_routers_switches">
+      <field name="name">Routers &amp; Switches</field>
+      <field name="code">routers_switches</field>
+      <field name="parent_id" ref="generic_equipment_category_networking"/>
+    </record>
+
+    <!-- Modems -->
+    <record model="generic.equipment.category" id="generic_equipment_category_modems">
+      <field name="name">Modems</field>
+      <field name="code">modems</field>
+      <field name="parent_id" ref="generic_equipment_category_networking"/>
+    </record>
+
+    <!-- Office IT -->
+    <record model="generic.equipment.category" id="generic_equipment_category_office_it">
+      <field name="name">Office IT</field>
+      <field name="code">office_it</field>
+      <field name="parent_id" ref="generic_equipment_category_it"/>
+    </record>
+
+    <!-- Printers -->
+    <record model="generic.equipment.category" id="generic_equipment_category_printers">
+      <field name="name">Printers</field>
+      <field name="code">printers</field>
+      <field name="parent_id" ref="generic_equipment_category_office_it"/>
+    </record>
+
+    <!-- Scanners -->
+    <record model="generic.equipment.category" id="generic_equipment_category_scanners">
+      <field name="name">Scanners</field>
+      <field name="code">scanners</field>
+      <field name="parent_id" ref="generic_equipment_category_office_it"/>
+    </record>
+
+    <!-- Vehicles -->
+    <record model="generic.equipment.category" id="generic_equipment_category_vehicles">
+      <field name="name">Vehicles</field>
+      <field name="code">vehicles</field>
+    </record>
+
+    <!-- Furniture -->
+    <record model="generic.equipment.category" id="generic_equipment_category_furniture">
+      <field name="name">Furniture</field>
+      <field name="code">furniture</field>
+    </record>
+</odoo>

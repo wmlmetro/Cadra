@@ -1,16 +1,15 @@
 {
-    'name': "Generic Request Field Service",
+    'name': "Generic Request Field Service [Obsolete]",
 
     'summary': """
-        Different custom fields in requests are displayed
-        for different services
+        This module reached the end of life and can be safely removed.
     """,
 
     'author': "Center of Research and Development",
     'website': "https://crnd.pro",
 
     'category': 'Generic Request',
-    'version': '15.0.1.12.0',
+    'version': '15.0.1.16.0',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -18,12 +17,8 @@
     ],
 
     # always loaded
-    'data': [
-        'views/request_field_view.xml',
-    ],
-    'demo': [
-        'demo/request_types.xml',
-    ],
+    'data': [],
+    'demo': [],
 
     'images': ['static/description/banner.png'],
     'installable': True,
@@ -31,4 +26,5 @@
     'license': 'OPL-1',
     'price': 30.0,
     'currency': 'EUR',
+    'tags': ['obsolete'],
 }

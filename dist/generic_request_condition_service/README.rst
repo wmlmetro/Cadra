@@ -1,5 +1,5 @@
-Generic Request Condition Service
-=================================
+Generic Request Condition Service [Obsolete]
+============================================
 
 .. |badge2| image:: https://img.shields.io/badge/license-OPL--1-blue.png
     :target: https://www.odoo.com/documentation/user/12.0/legal/licenses/licenses.html#odoo-apps
@@ -17,9 +17,7 @@ Generic Request Condition Service
 
 |badge2| |badge4| |badge5|
 
-Generic Request Condition Service is a module of the Generic Request application.
-
-Read the `Generic Request (Conditions) <https://crnd.pro/doc-bureaucrat-itsm/11.0/en/Generic_Request_Conditions_admin_eng/>`__ Module Guide for more information.
+This module is obsolete now and could be safely removed.
 
 This module is part of the Bureaucrat ITSM project.
 You can try it by the references below.

@@ -58,18 +58,11 @@ class TestWebsiteServiceDeskResource(TestPhantomTour):
             '/', 'crnd_wsd_resource_tour_request_public_user_redirect')
 
     def test_tour_request_new_with_resource_parameter(self):
-        self.env.ref(
-            'generic_request.request_type_sequence'
-        ).write({
-            'website_published': False,
-        })
+        self.ensure_classifier(
+            category='crnd_wsd.request_category_demo_website_tech',
+            request_type='crnd_wsd_resource.request_type_resource_question',
+            website_published=True)
 
-        self.env.ref(
-            'crnd_wsd_resource.request_type_resource_question'
-        ).write({
-            'category_ids': [(4, self.env.ref(
-                'crnd_wsd.request_category_demo_website_tech').id)],
-        })
         self.env.ref(
             'crnd_wsd.request_type_generic'
         ).write({

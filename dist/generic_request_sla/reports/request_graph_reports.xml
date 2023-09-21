@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+
+    <record id="view_request_report_tree_view" model="ir.ui.view">
+        <field name="model">request.report</field>
+        <field name="inherit_id" ref="generic_request.view_request_report_tree_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="/tree/field[@name='request_partner_id']"
+                   position="after">
+                <field name="request_sla_warn_date" optional="hide"/>
+                <field name="request_sla_limit_date" optional="hide"/>
+                <field name="request_sla_state" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

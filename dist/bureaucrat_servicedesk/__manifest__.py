@@ -7,7 +7,7 @@
 
     'author': "Center of Research and Development",
     'website': "https://crnd.pro",
-    'version': '15.0.1.7.0',
+    'version': '15.0.1.12.1',
     'category': 'Service Desk',
 
     # any module necessary for this one to work correctly
@@ -17,17 +17,15 @@
         'crnd_wsd_tag',
         'generic_request_calendar',
         'generic_request_field',
-        'generic_request_field_service',
         'generic_request_mail',
         'generic_request_condition',
-        'generic_request_condition_service',
+        'generic_request_condition_mail',
         'generic_system_event_mail_events',
         'generic_request_related_doc',
         'generic_request_related_requests',
         'crnd_wsd_related_doc',
         'crnd_wsd_related_request',
         'crnd_wsd_field',
-        'crnd_wsd_field_service',
         'bureaucrat_knowledge_rel_docs',
     ],
 
@@ -45,6 +43,5 @@
 
     'price': 1.0,
     'currency': 'EUR',
-    "live_test_url": "https://yodoo.systems/saas/"
-                     "template/bureaucrat-servicedesk-14-0-demo-254",
+    "live_test_url": "https://yodoo.systems/saas/templates",
 }

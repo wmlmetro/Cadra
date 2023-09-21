@@ -27,7 +27,8 @@ class RequestTimesheetLine(models.Model):
         compute='_compute_is_billable',
         inverse='_inverse_is_billable',
         store=True,
-    )
+        help="If set to True, then system will generate new invoice line for "
+             "this timesheet line for this request.")
 
     @api.depends('request_invoice_line_ids',
                  'request_invoice_line_ids.timesheet_line_id')
@@ -110,3 +111,13 @@ class RequestTimesheetLine(models.Model):
                         'invoice_id': inv_line.move_id.id,
                     })
                 record.request_invoice_line_ids.unlink()
+
+    @api.onchange('activity_id', 'request_id')
+    def _onchange_activity_id(self):
+        for record in self:
+            if not record.activity_id:
+                continue
+            if not record.request_id.type_id.enable_invoicing:
+                continue
+
+            record.is_billable = record.activity_id.is_billable

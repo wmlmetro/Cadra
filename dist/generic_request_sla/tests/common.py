@@ -6,10 +6,13 @@ from odoo.addons.generic_mixin.tests.common import (
     AccessRulesFixMixinST,
     ReduceLoggingMixin,
 )
+from odoo.addons.generic_request.tests.common import (
+    RequestClassifierUtilsMixin)
 
 
 class RequestSLACase(ReduceLoggingMixin,
                      AccessRulesFixMixinST,
+                     RequestClassifierUtilsMixin,
                      TransactionCase):
 
     @classmethod
@@ -72,6 +75,19 @@ class RequestSLACase(ReduceLoggingMixin,
         cls.sla_calendar = cls.env.ref(
             'generic_request_sla_log.example_sla_calendar')
         cls.sla_calendar.tz = 'UTC'
+
+    def _enable_use_services_setting(self):
+        (
+            self.env.ref('base.group_user') +
+            self.env.ref('base.group_portal') +
+            self.env.ref('base.group_public')
+        ).write({
+            'implied_ids': [
+                (4,
+                 self.env.ref(
+                     'generic_request.group_request_use_services').id),
+            ]
+        })
 
     def run(self, result=None):
         # Hide unnecessary log output

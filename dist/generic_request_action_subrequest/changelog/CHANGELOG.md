@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 2.10.0
+
+Merged into `generic_request_action` module.
+
+
 ## Version 2.1.0
 
 Added feature *Transfer Fields to Subrequest*,

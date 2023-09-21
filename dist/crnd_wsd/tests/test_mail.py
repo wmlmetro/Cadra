@@ -118,4 +118,4 @@ class TestRequestPortalMail(TestPhantomTour):
         action_res = request.action_show_on_website()
         self.assertEqual(action_res['type'], 'ir.actions.act_url')
         self.assertEqual(
-            action_res['url'], '/requests/request/%s' % request.id)
+            action_res['url'], '/requests/request/n/%s' % request.name)

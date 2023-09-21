@@ -1,14 +1,15 @@
 {
-    'name': "Generic Contract Resource Role",
+    'name': "Generic Contract Resource Role [Obsolete]",
 
-    'summary': """
-        Specify partner roles for resources used in the contract
-    """,
+    'summary': (
+        "This module reached the end of life and can be safely removed. "
+        "In case of uninstallation, all functionality added by this module "
+        "will be kept and updatable."),
 
     'author': "Center of Research and Development",
     'website': "https://crnd.pro",
     'category': 'Generic Contract',
-    'version': '15.0.0.6.0',
+    'version': '15.0.0.9.0',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -17,13 +18,9 @@
     ],
 
     # always loaded
-    'data': [
-        'views/generic_contract_resource_line_views.xml',
-        'views/generic_contract_views.xml',
-    ],
+    'data': [],
     'images': ['static/description/banner.png'],
     'demo': [
-        'demo/generic_resource_role.xml',
     ],
 
     'installable': True,
@@ -31,4 +28,5 @@
     'license': 'OPL-1',
     'price': 50.0,
     'currency': 'EUR',
+    'tags': ['obsolete'],
 }

@@ -1,16 +1,15 @@
 {
-    'name': "Generic Request (Action Subrequest)",
+    'name': "Generic Request (Action Subrequest) [Obsolete]",
 
     'summary': """
-        Automatically create sub-requests using automated
-        actions
+        This module reached the end of life and can be safely removed.
     """,
 
     'author': "Center of Research and Development",
     'website': "https://crnd.pro",
 
     'category': 'Generic Request',
-    'version': '15.0.2.5.0',
+    'version': '15.0.2.10.0',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -18,14 +17,11 @@
     ],
 
     # always loaded
-    'data': [
-        'views/request_event_action.xml',
-    ],
-    'demo': [
-        'demo/request_creation_template.xml',
-    ],
+    'data': [],
+    'demo': [],
 
     'images': ['static/description/banner.png'],
+    'tags': ['obsolete'],
     'installable': True,
     'auto_install': False,
     'application': False,

@@ -9,8 +9,8 @@ msgstr ""
 "POT-Creation-Date: 2023-02-15 16:19+0000\n"
 "PO-Revision-Date: 2023-02-28 17:32+0000\n"
 "Last-Translator: Huseyin <hkpostam@gmail.com>\n"
-"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
-"bureaucrat-itsm-15-0/generic_contract_resource/tr/>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-15-0/generic_contract_resource/tr/>\n"
 "Language: tr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -116,14 +116,14 @@ msgid "Created on"
 msgstr "oluşturuldu"
 
 #. module: generic_contract_resource
+#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__contract_date_start
+msgid "Date Begin"
+msgstr ""
+
+#. module: generic_contract_resource
 #: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__contract_date_end
 msgid "Date End"
 msgstr "Tarih Bitişi"
-
-#. module: generic_contract_resource
-#: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__contract_date_start
-msgid "Date Start"
-msgstr "Başlangıç Tarihi"
 
 #. module: generic_contract_resource
 #: model_terms:ir.ui.view,arch_db:generic_contract_resource.contract_recource_wizard_add_lines_form_view
@@ -216,6 +216,14 @@ msgstr "Ziyaretçi Defteri Uygulaması"
 #: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_template_resource_line__id
 msgid "ID"
 msgstr "ID"
+
+#. module: generic_contract_resource
+#: code:addons/generic_contract_resource/models/generic_contract_resource_service_line.py:0
+#, python-format
+msgid ""
+"If you don`t want to set the service or service level, unlink this row. You "
+"can`t save empty row."
+msgstr ""
 
 #. module: generic_contract_resource
 #: model:ir.model.fields,field_description:generic_contract_resource.field_contract_resource_lines_wizard____last_update
@@ -344,3 +352,6 @@ msgstr "Hizmetler"
 #: model:ir.model.fields,field_description:generic_contract_resource.field_generic_contract_resource_line__contract_state
 msgid "Status"
 msgstr "Durum"
+
+#~ msgid "Date Start"
+#~ msgstr "Başlangıç Tarihi"

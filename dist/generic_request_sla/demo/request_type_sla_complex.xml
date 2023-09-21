@@ -3,11 +3,6 @@
     <record id="request_type_sla_complex" model="request.type">
         <field name="name">SLA Request (Complex)</field>
         <field name="code">sla-complex</field>
-        <field name="category_ids"
-               eval="[
-                   (4, ref('generic_request.request_category_demo_general'), 0),
-                   (4, ref('generic_request.request_category_demo_technical'), 0),
-                   (4, ref('generic_request.request_category_demo_support'), 0)]"/>
         <field name="color">rgba(255,122,0,0.88)</field>
         <field name="description">
             Request type to demonstrate complex SLA configuration:
@@ -15,6 +10,20 @@
             - Resolution time is 8h using working time "40 Hours/Week"
             - Resolution time for requests with category "Support" is 8h using working time "42 Hours/Week (Mon - Sat)"
         </field>
+    </record>
+
+    <!--Add request.classifier-->
+    <record id="classifier_request_type_sla_complex_gemo_general" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_general"/>
+        <field name="type_id" ref="generic_request_sla.request_type_sla_complex"/>
+    </record>
+    <record id="classifier_request_type_sla_complex_gemo_technical" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_technical"/>
+        <field name="type_id" ref="generic_request_sla.request_type_sla_complex"/>
+    </record>
+    <record id="classifier_request_type_sla_complex_gemo_support" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_support"/>
+        <field name="type_id" ref="generic_request_sla.request_type_sla_complex"/>
     </record>
 
     <!-- Stages -->

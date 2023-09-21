@@ -7,14 +7,17 @@ msgstr ""
 "Project-Id-Version: Odoo Server 13.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-08-21 06:39+0000\n"
-"PO-Revision-Date: 2020-08-21 06:39+0000\n"
-"Last-Translator: \n"
-"Language-Team: \n"
-"Language: \n"
+"PO-Revision-Date: 2023-08-07 13:43+0000\n"
+"Last-Translator: Galina Prokopenko <am@crnd.pro>\n"
+"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_contract_invoicing/uk/>\n"
+"Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
-"Plural-Forms: \n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.3.2\n"
 
 #. module: generic_contract_invoicing
 #: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
@@ -204,14 +207,14 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__create_uid
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__create_uid
 msgid "Created by"
-msgstr ""
+msgstr "Ким створено"
 
 #. module: generic_contract_invoicing
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_employee_rate__create_date
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__create_date
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__create_date
 msgid "Created on"
-msgstr ""
+msgstr "Як створено"
 
 #. module: generic_contract_invoicing
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__currency_id
@@ -251,7 +254,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__display_name
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__display_name
 msgid "Display Name"
-msgstr ""
+msgstr "Відображати як"
 
 #. module: generic_contract_invoicing
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__display_type
@@ -290,7 +293,7 @@ msgstr ""
 #. module: generic_contract_invoicing
 #: model:generic.tag,category_name:generic_contract_invoicing.generic_contract_tag_error_invoice_generation
 msgid "Error"
-msgstr ""
+msgstr "Помилка"
 
 #. module: generic_contract_invoicing
 #: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract_invoice_line__price_type__fixed
@@ -334,7 +337,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__id
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__id
 msgid "ID"
-msgstr ""
+msgstr "ID"
 
 #. module: generic_contract_invoicing
 #: model:ir.model.fields,help:generic_contract_invoicing.field_generic_contract__payment_term_id
@@ -355,7 +358,6 @@ msgid "Invoice Lines"
 msgstr ""
 
 #. module: generic_contract_invoicing
-#: model:ir.actions.act_window,name:generic_contract_invoicing.action_generic_contract_invoices
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__account_invoice_count
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__account_invoice_ids
 #: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
@@ -395,21 +397,21 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line____last_update
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line____last_update
 msgid "Last Modified on"
-msgstr ""
+msgstr "Востаннє змінено"
 
 #. module: generic_contract_invoicing
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_employee_rate__write_uid
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__write_uid
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__write_uid
 msgid "Last Updated by"
-msgstr ""
+msgstr "Востаннє оновлено"
 
 #. module: generic_contract_invoicing
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_employee_rate__write_date
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__write_date
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__write_date
 msgid "Last Updated on"
-msgstr ""
+msgstr "Востаннє оновлено"
 
 #. module: generic_contract_invoicing
 #: code:addons/generic_contract_invoicing/models/generic_contract.py:0
@@ -432,7 +434,7 @@ msgstr ""
 #. module: generic_contract_invoicing
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__name
 msgid "Name"
-msgstr ""
+msgstr "Ім'я"
 
 #. module: generic_contract_invoicing
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__recurring_next_date
@@ -647,7 +649,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__sequence
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__sequence
 msgid "Sequence"
-msgstr ""
+msgstr "Послідовність"
 
 #. module: generic_contract_invoicing
 #: model:ir.model.fields,help:generic_contract_invoicing.field_generic_contract__recurring_type
@@ -679,6 +681,12 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_invoice_line__uom_id
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__uom_id
 msgid "Unit of Measure"
+msgstr ""
+
+#. module: generic_contract_invoicing
+#: code:addons/generic_contract_invoicing/models/generic_contract.py:0
+#, python-format
+msgid "Unsupported partner type '%(partner_type)s'"
 msgstr ""
 
 #. module: generic_contract_invoicing

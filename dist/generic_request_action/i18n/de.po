@@ -17,6 +17,15 @@ msgstr ""
 "Plural-Forms: \n"
 
 #. module: generic_request_action
+#: model:request.category,description:generic_request_action.request_category_demo_auto_change_deadline
+msgid ""
+"\n"
+"            This category is for demo requsets and demonstration\n"
+"            of the automatic deadline date change action.\n"
+"        "
+msgstr ""
+
+#. module: generic_request_action
 #: model:mail.template,body_html:generic_request_action.demo_mail_template_request_created
 msgid ""
 "\n"
@@ -35,6 +44,41 @@ msgid ""
 msgstr ""
 
 #. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__act_priority_impact
+msgid "Act Priority Impact"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__act_priority_impact_modifier
+msgid "Act Priority Impact Modifier"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__act_priority_priority
+msgid "Act Priority Priority"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__act_priority_priority_modifier
+msgid "Act Priority Priority Modifier"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__act_priority_type
+msgid "Act Priority Type"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__act_priority_urgency
+msgid "Act Priority Urgency"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__act_priority_urgency_modifier
+msgid "Act Priority Urgency Modifier"
+msgstr ""
+
+#. module: generic_request_action
 #: model:ir.model.fields,field_description:generic_request_action.field_request_stage_route__action_count
 #: model:ir.model.fields,field_description:generic_request_action.field_request_type__action_count
 msgid "Action Count"
@@ -48,6 +92,11 @@ msgstr ""
 #. module: generic_request_action
 #: model:request.type,name:generic_request_action.request_type_action
 msgid "Action Request"
+msgstr ""
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_search
+msgid "Action Type"
 msgstr ""
 
 #. module: generic_request_action
@@ -76,6 +125,11 @@ msgstr ""
 #. module: generic_request_action
 #: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__mail_activity_activity_type_id
 msgid "Activity Type"
+msgstr ""
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "Add"
 msgstr ""
 
 #. module: generic_request_action
@@ -131,14 +185,57 @@ msgid ""
 msgstr ""
 
 #. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__change_deadline_type__calendar_days
+msgid "Calendar Days"
+msgstr ""
+
+#. module: generic_request_action
+#: code:addons/generic_request_action/models/request_event_action.py:0
+#, python-format
+msgid ""
+"Cannot use server action in which the value of the field 'Change Deadline "
+"Value' is '0'!'"
+msgstr ""
+
+#. module: generic_request_action
 #: code:addons/generic_request_action/models/request_event_action.py:0
 #, python-format
 msgid "Cannot use server action that is not bound to 'request.request' model!"
 msgstr ""
 
 #. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__subrequest_category_id
+msgid "Category of request"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__change_deadline_calendar_id
+msgid "Change Deadline Calendar"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__change_deadline_type
+msgid "Change Deadline Type"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__change_deadline_value
+msgid "Change Deadline Value"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_type__change_deadline
+msgid "Change Deadline date"
+msgstr ""
+
+#. module: generic_request_action
 #: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_type__kanban_state
 msgid "Change Kanban state"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__act_priority_is_priority_complex
+msgid "Complex Priority"
 msgstr ""
 
 #. module: generic_request_action
@@ -165,6 +262,16 @@ msgid ""
 msgstr ""
 
 #. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_priority_priority__5
+msgid "Critical"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__change_deadline_from__now
+msgid "Current date"
+msgstr ""
+
+#. module: generic_request_action
 #: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__mail_activity_date_delta_uom__days
 msgid "Days"
 msgstr ""
@@ -175,8 +282,23 @@ msgid "Deadline"
 msgstr ""
 
 #. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "Deadline Date"
+msgstr ""
+
+#. module: generic_request_action
 #: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__mail_activity_date_delta_uom
 msgid "Deadline UoM"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_priority_type__decrease
+msgid "Decrease Priority"
+msgstr ""
+
+#. module: generic_request_action
+#: model:request.category,name:generic_request_action.request_category_demo_auto_change_deadline
+msgid "Demo / Auto change deadline"
 msgstr ""
 
 #. module: generic_request_action
@@ -200,6 +322,12 @@ msgid "Event Conditions"
 msgstr ""
 
 #. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__validate_event_condition_ids
+msgid ""
+"Event data is valid if all conditions listed here were evaluated to True."
+msgstr ""
+
+#. module: generic_request_action
 #: code:addons/generic_request_action/models/request_event_action.py:0
 #, python-format
 msgid "Event types are required!"
@@ -216,6 +344,7 @@ msgid "Events..."
 msgstr ""
 
 #. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__change_deadline_from__field
 #: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__mail_activity_assign_type__field
 msgid "Field"
 msgstr ""
@@ -228,6 +357,21 @@ msgstr ""
 #. module: generic_request_action
 #: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__message_partner_ids
 msgid "Followers (Partners)"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_priority_priority__1
+msgid "For Information"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__change_deadline_from
+msgid "From Date"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__change_deadline_from_field_date
+msgid "From Field"
 msgstr ""
 
 #. module: generic_request_action
@@ -246,6 +390,13 @@ msgid "Helper: ID of request model"
 msgstr ""
 
 #. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_priority_impact__3
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_priority_priority__4
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_priority_urgency__3
+msgid "High"
+msgstr ""
+
+#. module: generic_request_action
 #: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__id
 msgid "ID"
 msgstr ""
@@ -260,6 +411,23 @@ msgstr ""
 #: model:ir.model.fields,help:generic_request_action.field_request_event_action__message_has_error
 #: model:ir.model.fields,help:generic_request_action.field_request_event_action__message_has_sms_error
 msgid "If checked, some messages have a delivery error."
+msgstr ""
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid ""
+"If there is no value in the specified field when performing the action, the "
+"current time will be used for calculations."
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_priority_type__increase
+msgid "Increase Priority"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__change_deadline_value
+msgid "Increase the deadline date by the number of days"
 msgstr ""
 
 #. module: generic_request_action
@@ -293,8 +461,27 @@ msgid "List here conditions that request should satisfy to run this action"
 msgstr ""
 
 #. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__subrequest_transfer_field_ids
+msgid "List of fields to transfer to subrequesst from parent request."
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_priority_impact__1
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_priority_priority__2
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_priority_urgency__1
+msgid "Low"
+msgstr ""
+
+#. module: generic_request_action
 #: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__message_main_attachment_id
 msgid "Main Attachment"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_priority_impact__2
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_priority_priority__3
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_priority_urgency__2
+msgid "Medium"
 msgstr ""
 
 #. module: generic_request_action
@@ -305,6 +492,22 @@ msgstr ""
 #. module: generic_request_action
 #: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__message_ids
 msgid "Messages"
+msgstr ""
+
+#. module: generic_request_action
+#: code:addons/generic_request_action/models/request_event_action.py:0
+#, python-format
+msgid ""
+"Misconfigured automated action %(action)s! change_deadline_from cannot be "
+"%(value)s"
+msgstr ""
+
+#. module: generic_request_action
+#: code:addons/generic_request_action/models/request_event_action.py:0
+#, python-format
+msgid ""
+"Misconfigured automated action %(action)s! change_deadline_type cannot be "
+"%(value)s"
 msgstr ""
 
 #. module: generic_request_action
@@ -319,9 +522,21 @@ msgid "Name"
 msgstr ""
 
 #. module: generic_request_action
+#: model:generic.condition,name:generic_request_action.condition_request_event_new_text_is_valid
+msgid "New request text is \"valid\""
+msgstr ""
+
+#. module: generic_request_action
 #: model:mail.template,subject:generic_request_action.demo_mail_template_request_created
 msgid ""
 "New {{object.sudo().type_id.display_name}} created: {{object.display_name}}"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_priority_impact__0
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_priority_priority__0
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_priority_urgency__0
+msgid "Not set"
 msgstr ""
 
 #. module: generic_request_action
@@ -360,8 +575,18 @@ msgid "Number of unread messages"
 msgstr ""
 
 #. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "Priority"
+msgstr ""
+
+#. module: generic_request_action
 #: model:request.stage,name:generic_request_action.request_stage_type_action_rejected
 msgid "Rejected"
+msgstr ""
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "Remove"
 msgstr ""
 
 #. module: generic_request_action
@@ -397,8 +622,18 @@ msgid "Request Type"
 msgstr ""
 
 #. module: generic_request_action
+#: model:generic.condition,name:generic_request_action.condition_request_category_auto_change_dealine
+msgid "Request category automatic change deadline"
+msgstr ""
+
+#. module: generic_request_action
 #: model:ir.model.fields,help:generic_request_action.field_request_event_action__validate_condition_ids
 msgid "Request is valid if all conditions listed here were evaluated to True."
+msgstr ""
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.request_text_template_test
+msgid "Request name:"
 msgstr ""
 
 #. module: generic_request_action
@@ -461,6 +696,16 @@ msgid "Send Email"
 msgstr ""
 
 #. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__send_response_attachments
+msgid "Send response attachments"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__send_response_attachments
+msgid "Send response attachments, used when request was closed"
+msgstr ""
+
+#. module: generic_request_action
 #: model:request.stage,name:generic_request_action.request_stage_type_action_sent
 msgid "Sent"
 msgstr ""
@@ -478,8 +723,79 @@ msgid "Server Action"
 msgstr ""
 
 #. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_priority_type__set
+msgid "Set Priority"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_type__set_priority
+msgid "Set priority"
+msgstr ""
+
+#. module: generic_request_action
 #: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__kanban_state
 msgid "State"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_type__subrequest
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "Subrequest"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__subrequest_category_id
+msgid "Subrequest Category"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__subrequest_same_author
+msgid "Subrequest Same Author"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__subrequest_same_deadline
+msgid "Subrequest Same Deadline"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__subrequest_template_id
+msgid "Subrequest Template"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__subrequest_text
+msgid "Subrequest Text"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__subrequest_text_template_id
+msgid "Subrequest Text Template"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__subrequest_transfer_field_ids
+msgid "Subrequest Transfer Field"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__subrequest_start_stage_id
+msgid "Subrequest stage"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__subrequest_subscribe_partner_ids
+msgid "Subrequest subscribe partners"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__subrequest_trigger_route_id
+msgid "Subrequest trigger route"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__subrequest_type_id
+msgid "Subrequest type"
 msgstr ""
 
 #. module: generic_request_action
@@ -520,14 +836,59 @@ msgid "Summary..."
 msgstr ""
 
 #. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__act_type__tag
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "Tag"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__tag_add_tag_ids
+msgid "Tag Add Tag"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__tag_remove_tag_ids
+msgid "Tag Remove Tag"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__subrequest_start_stage_id
+msgid ""
+"The initial stage for new requests of this type. To change, on the Stages "
+"page, click the crossed arrows icon and drag the desired stage to the top of "
+"the list."
+msgstr ""
+
+#. module: generic_request_action
 #: model:ir.model.fields,help:generic_request_action.field_request_event_action__event_type_ids
 msgid "This action will be called to handle selected events."
 msgstr ""
 
 #. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.request_text_template_test
+msgid "Today date:"
+msgstr ""
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.request_text_template_test
+msgid "Today time:"
+msgstr ""
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "Transfer fields to subrequest"
+msgstr ""
+
+#. module: generic_request_action
 #: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__act_type
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
 #: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_search
 msgid "Type"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__subrequest_type_id
+msgid "Type of request"
 msgstr ""
 
 #. module: generic_request_action
@@ -548,6 +909,16 @@ msgstr ""
 #. module: generic_request_action
 #: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__unsubscribe_prev_assignee
 msgid "Unsubscribe previous assignee"
+msgstr ""
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "Use same author for subrequest"
+msgstr ""
+
+#. module: generic_request_action
+#: model_terms:ir.ui.view,arch_db:generic_request_action.view_request_event_action_form
+msgid "Use same deadline for subrequest"
 msgstr ""
 
 #. module: generic_request_action
@@ -575,8 +946,21 @@ msgid "Validate Request"
 msgstr ""
 
 #. module: generic_request_action
+#: code:addons/generic_request_action/models/request_event_action.py:0
+#, python-format
+msgid ""
+"Validate Request action misconfigured! It is required to specify 'Validate "
+"with request conditions' or 'Validate with event conditions fields'!"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__validate_event_condition_ids
+msgid "Validate event with conditions"
+msgstr ""
+
+#. module: generic_request_action
 #: model:ir.model.fields,field_description:generic_request_action.field_request_event_action__validate_condition_ids
-msgid "Validate with conditions"
+msgid "Validate request with conditions"
 msgstr ""
 
 #. module: generic_request_action
@@ -600,6 +984,18 @@ msgid "Weeks"
 msgstr ""
 
 #. module: generic_request_action
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__act_priority_is_priority_complex
+msgid ""
+"When creating request, users select Impact and Urgency of request. Priority "
+"will be automatically computed depending on these parameters"
+msgstr ""
+
+#. module: generic_request_action
+#: model:ir.model.fields.selection,name:generic_request_action.selection__request_event_action__change_deadline_type__working_days
+msgid "Working Days"
+msgstr ""
+
+#. module: generic_request_action
 #: code:addons/generic_request_action/models/request_event_action.py:0
 #, python-format
 msgid "Wrong combination of route and request type!"
@@ -613,6 +1009,7 @@ msgstr ""
 #. module: generic_request_action
 #: model:ir.model.fields,help:generic_request_action.field_request_event_action__mail_activity_note
 #: model:ir.model.fields,help:generic_request_action.field_request_event_action__mail_activity_summary
+#: model:ir.model.fields,help:generic_request_action.field_request_event_action__subrequest_text
 msgid "You can use jinja2 placeholders in this field"
 msgstr ""
 

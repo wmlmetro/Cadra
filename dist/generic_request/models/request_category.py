@@ -96,18 +96,24 @@ class RequestCategory(models.Model):
         compute="_compute_request_count", readonly=True,
         string="Unassigned Requests")
 
-    request_type_ids = fields.Many2many(
+    request_type_ids = fields.Many2manyView(
         'request.type',
-        'request_type_category_rel', 'category_id', 'type_id',
-        string="Request types")
+        'request_type_category_view', 'category_id', 'type_id',
+        string='Request types', readonly=True, copy=False)
     request_type_count = fields.Integer(
         compute='_compute_request_type_count')
     sequence = fields.Integer(index=True, default=5)
     color = fields.Integer()  # for many2many_tags widget
 
-    service_ids = fields.Many2many(
-        'generic.service', 'service_category_rel',
+    service_ids = fields.Many2manyView(
+        'generic.service', 'service_category_view',
         'category_id', 'service_id', string='Service')
+
+    classifier_ids = fields.One2many(
+        'request.classifier', 'category_id',
+        'Classifiers', required=False, index=True)
+    classifier_count = fields.Integer(
+        compute='_compute_classifier_count')
 
     _sql_constraints = [
         ('name_uniq',
@@ -239,6 +245,14 @@ class RequestCategory(models.Model):
     def _compute_request_type_count(self):
         for record in self:
             record.request_type_count = len(record.request_type_ids)
+
+    @api.depends('classifier_ids')
+    def _compute_classifier_count(self):
+        mapped_data = read_counts_for_o2m(
+            records=self,
+            field_name='classifier_ids')
+        for record in self:
+            record.classifier_count = mapped_data.get(record.id, 0)
 
     def action_category_request_open_today_count(self):
         self.ensure_one()
@@ -374,4 +388,12 @@ class RequestCategory(models.Model):
             domain=[
                 ('user_id', '=', False),
                 ('category_id', '=', self.id)],
+        )
+
+    def action_show_classifiers(self):
+        self.ensure_one()
+        return self.env['generic.mixin.get.action'].get_action_by_xmlid(
+            'generic_request.action_classifier_window',
+            context={'default_category_id': self.id},
+            domain=[('category_id', '=', self.id)],
         )

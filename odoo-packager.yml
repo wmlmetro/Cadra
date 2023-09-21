@@ -112,10 +112,12 @@ addons-list:
     - name: generic_team_hr
     - name: generic_team_tag
     - name: generic_todo
+    - name: generic_equipment
+    - name: generic_equipment_hr
+    - name: crnd_web_field_domain
+    - name: generic_request_condition_mail
 
 git-sources:
-    - crnd: crnd/bureaucrat-automation
-      name: bureaucrat_automation_150
     - crnd: crnd/bureaucrat-generics
       name: bureaucrat_generics_98
     - github: crnd-inc/crnd-web

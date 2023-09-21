@@ -22,3 +22,8 @@ class RequestTimesheetActivity(models.Model):
         relation='request_type__timesheet_activity__rel',
         column1='activity_id',
         column2='request_type_id')
+
+    require_description = fields.Boolean(
+        default=False,
+        help="If set to True, then description field will be required on "
+             "activities of this type.")

@@ -175,6 +175,7 @@ msgstr ""
 
 #. module: generic_request_project
 #: model:ir.model,name:generic_request_project.model_project_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_report__request_project_id
 #: model:ir.model.fields,field_description:generic_request_project.field_request_request__project_id
 #: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__project_id
 #: model_terms:ir.ui.view,arch_db:generic_request_project.request_type_form_inherit
@@ -241,6 +242,16 @@ msgstr ""
 #. module: generic_request_project
 #: model:ir.model,name:generic_request_project.model_request_event
 msgid "Request Event"
+msgstr ""
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_request_report_search
+msgid "Request Project"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model,name:generic_request_project.model_request_report
+msgid "Request Report"
 msgstr ""
 
 #. module: generic_request_project

@@ -2,8 +2,6 @@ import logging
 
 from odoo import models, fields
 
-# from odoo.addons.generic_mixin import post_write
-
 _logger = logging.getLogger(__name__)
 
 

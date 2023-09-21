@@ -34,7 +34,7 @@ class GenericTodoMixinImplementation(models.AbstractModel):
             ].get_todo_type_by_model(self._name).id
         return res
 
-    @api.model
+    @api.model_create_multi
     def create(self, vals):
         # Pass additional context to notify base object, that there is no
         # need to create implementation for this todo,

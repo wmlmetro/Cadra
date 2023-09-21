@@ -12,9 +12,9 @@ class RequestRequest(models.Model):
     @on_event('*')
     def _on_any_event__run_event_actions(self, event):
         domain = expression.AND([
-            [('event_type_ids', '=', event.event_type_id.id)],
+            [('event_type_ids.id', '=', event.event_type_id.id)],
             expression.OR([
-                [('request_type_id', '=', self.type_id.id)],
+                [('request_type_id', '=', self.sudo().type_id.id)],
                 [('request_type_id', '=', False)],
             ]),
         ])
@@ -27,7 +27,9 @@ class RequestRequest(models.Model):
                 ]),
             ])
 
-        self.env['request.event.action'].search(domain).with_context(
+        actions = self.env['request.event.action'].sudo().search(domain)
+        # Run actions in original env
+        self.env['request.event.action'].browse(actions.ids).with_context(
             request_event_ctx=event.get_context(),
             request_event=event,
         ).run(self, event)

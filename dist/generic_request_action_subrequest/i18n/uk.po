@@ -30,6 +30,11 @@ msgid "Request Event Action"
 msgstr "Дія події запиту"
 
 #. module: generic_request_action_subrequest
+#: model_terms:ir.ui.view,arch_db:generic_request_action_subrequest.request_text_template_test
+msgid "Request name:"
+msgstr ""
+
+#. module: generic_request_action_subrequest
 #: model:ir.model.fields.selection,name:generic_request_action_subrequest.selection__request_event_action__act_type__subrequest
 #: model_terms:ir.ui.view,arch_db:generic_request_action_subrequest.view_request_event_action_form
 msgid "Subrequest"
@@ -100,6 +105,16 @@ msgstr ""
 "Початковий етап для нових запитів цього типу. Для зміни на сторінці стадій "
 "натисніть іконку перехрещених стрілок і перетягніть необхідний етап на "
 "початок списку."
+
+#. module: generic_request_action_subrequest
+#: model_terms:ir.ui.view,arch_db:generic_request_action_subrequest.request_text_template_test
+msgid "Today date:"
+msgstr ""
+
+#. module: generic_request_action_subrequest
+#: model_terms:ir.ui.view,arch_db:generic_request_action_subrequest.request_text_template_test
+msgid "Today time:"
+msgstr ""
 
 #. module: generic_request_action_subrequest
 #: model_terms:ir.ui.view,arch_db:generic_request_action_subrequest.view_request_event_action_form

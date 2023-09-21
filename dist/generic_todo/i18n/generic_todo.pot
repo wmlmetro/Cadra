@@ -153,6 +153,7 @@ msgstr ""
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__description
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_simple_view_form
 msgid "Description"
 msgstr ""
 

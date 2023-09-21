@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+
     <record id="request_action_send_mail_activity_on_assign"
             model="request.event.action">
         <field name="name">Schedule Activity on assign</field>
@@ -15,5 +16,58 @@
         <field name="mail_activity_note">{{ request.request_text | safe }}</field>
     </record>
 
+    <record id="request_action_auto_change_deadline"
+            model="request.event.action">
+        <field name="name">Demo / Auto change deadline</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_request.request_event_type_assigned'))]"/>
+        <field name="condition_ids"
+               eval="[(4, ref('generic_request_action.condition_request_category_auto_change_dealine'))]"/>
+        <field name="act_type">change_deadline</field>
+        <field name="act_sudo" eval="True"/>
+        <field name="change_deadline_type">working_days</field>
+        <field name="change_deadline_from">field</field>
+        <field name="change_deadline_calendar_id" ref="resource.resource_calendar_std"/>
+        <field name="change_deadline_from_field_date" ref="generic_request.field_request_request__date_assigned"/>
+        <field name="change_deadline_value">20</field>
+    </record>
 
+    <!-- Demo action -->
+    <record id="demo_complex_priority_action" model="request.event.action">
+        <field name="name">Increase complex priority</field>
+        <field name="act_type">set_priority</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_request.request_event_type_stage_changed'))]"/>
+        <field name="request_type_id" ref="generic_request.request_type_with_complex_priority"/>
+        <field name="route_id" ref="generic_request.request_type_with_complex_priority_new_to_in_progress"/>
+        <field name="act_priority_type">increase</field>
+        <field name="act_priority_impact_modifier" eval="1"/>
+        <field name="act_priority_urgency_modifier" eval="1"/>
+    </record>
+
+    <record id="demo_priority_action" model="request.event.action">
+        <field name="name">Increase priority</field>
+        <field name="act_type">set_priority</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_request.request_event_type_assigned'))]"/>
+        <field name="request_type_id" ref="generic_request.request_type_simple"/>
+        <field name="act_priority_type">decrease</field>
+        <field name="act_priority_priority_modifier" eval="1"/>
+    </record>
+
+    <!-- Action: add tag on creation -->
+    <record id="request_event_action_add_tag_on_create"
+            model="request.event.action">
+        <field name="name">Add tags when request created</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_system_event.system_event_record_created'))]"/>
+        <field name="request_type_id" ref="generic_request_action.request_type_action"/>
+        <field name="act_type">tag</field>
+        <field name="tag_add_tag_ids" eval="[(4, ref('generic_request.tag_platform_linux')), (4, ref('generic_request.tag_priority_medium'))]"/>
+    </record>
+    <!-- Action: remove tag on stage change -->
+    <record id="request_event_action_remove_tag_on_stage_changed"
+            model="request.event.action">
+        <field name="name">Remove tag when stage changed</field>
+        <field name="event_type_ids" eval="[(4, ref('generic_request.request_event_type_stage_changed'))]"/>
+        <field name="request_type_id" ref="generic_request_action.request_type_action"/>
+        <field name="act_type">tag</field>
+        <field name="tag_remove_tag_ids" eval="[(4, ref('generic_request.tag_priority_medium'))]"/>
+    </record>
 </odoo>

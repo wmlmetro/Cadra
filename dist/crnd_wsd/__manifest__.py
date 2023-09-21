@@ -5,8 +5,8 @@
     'summary': 'Website UI for Service Desk',
     'author': "Center of Research and Development",
     'website': "https://crnd.pro",
-    'license': 'LGPL-3',
-    'version': '15.0.1.101.0',
+    'license': 'OPL-1',
+    'version': '15.0.1.121.0',
 
     'depends': [
         'mail',
@@ -20,10 +20,9 @@
         'templates/templates_request_page.xml',
         'templates/templates_request_new_page.xml',
         'templates/priority_templates.xml',
-        'views/generic_service.xml',
         'views/request_type_view.xml',
         'views/request_stage_route.xml',
-        'views/request_category_view.xml',
+        'views/request_classifier_view.xml',
         'views/request_kind.xml',
         'views/request_request.xml',
         'views/res_config_settings.xml',
@@ -54,17 +53,7 @@
             'crnd_wsd/static/lib/trumbowyg/dist/plugins/table/ui/trumbowyg.table.min.css',
             'crnd_wsd/static/lib/trumbowyg/dist/plugins/colors/ui/trumbowyg.colors.min.css',
 
-            'crnd_wsd/static/src/js/trumbowyg.upload-file.js',
-            'crnd_wsd/static/src/js/trumbowyg.js',
-            'crnd_wsd/static/src/js/blockui.js',
-            'crnd_wsd/static/src/js/request_discussion.js',
-            'crnd_wsd/static/src/js/request_new.js',
-            'crnd_wsd/static/src/js/request_new_step.js',
-            'crnd_wsd/static/src/js/request_actions.js',
-            'crnd_wsd/static/src/js/enable_popovers.js',
-            'crnd_wsd/static/src/js/widgets.js',
-            'crnd_wsd/static/src/js/priority_selection.js',
-
+            'crnd_wsd/static/src/js/*',
             'crnd_wsd/static/src/scss/*',
         ],
         'web.assets_tests': [

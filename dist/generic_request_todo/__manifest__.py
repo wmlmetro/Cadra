@@ -6,7 +6,7 @@
     'author': "Center of Research and Development",
     'website': "https://crnd.pro",
     'category': 'Generic Todo',
-    'version': '15.0.0.5.0',
+    'version': '15.0.0.6.1',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -26,5 +26,7 @@
     'images': [],
     'installable': True,
     'application': False,
+    'price': 50.0,
+    'currency': 'EUR',
     'license': 'OPL-1',
 }

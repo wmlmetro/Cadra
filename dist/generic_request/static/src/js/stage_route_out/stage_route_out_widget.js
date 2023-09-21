@@ -8,6 +8,8 @@ odoo.define('generic_request.RequestStageRouteOutWidget', function (require) {
 
         _renderWidget: function () {
             var self = this;
+            // Cleanup content of this widget, when routes changed
+            self.$el.html("");
             var value_json = JSON.parse(this.value);
 
             if (!value_json.routes || !this.res_id) {

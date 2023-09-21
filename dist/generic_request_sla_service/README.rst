@@ -1,5 +1,5 @@
-Generic Request SLA (Service)
-=============================
+Generic Request SLA (Service) [Obsolete]
+========================================
 
 .. |badge2| image:: https://img.shields.io/badge/license-OPL--1-blue.png
     :target: https://www.odoo.com/documentation/user/12.0/legal/licenses/licenses.html#odoo-apps
@@ -14,8 +14,8 @@ Generic Request SLA (Service)
 
 |badge2| |badge5|
 
-Generic Request SLA (Service) is a module of the Generic Request application.
-The module allows you to specify different SLA limit and warn times per service.
+This module reached the end of life and can be safely removed.
+In case of uninstallation, all functionality added by this module will be kept and updatable.
 
 This module is part of the Bureaucrat ITSM project. 
 You can try it by the references below.
@@ -45,4 +45,3 @@ This module is maintained by the Center of Research & Development company.
 We can provide you further Odoo Support, Odoo implementation, Odoo customization, Odoo 3rd Party development and integration software, consulting services. Our main goal is to provide the best quality product for you. 
 
 For any questions `contact us <mailto:info@crnd.pro>`__.
-

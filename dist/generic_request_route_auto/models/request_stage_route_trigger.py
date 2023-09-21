@@ -2,7 +2,7 @@ import logging
 
 from odoo import models, fields, api, tools, _
 
-from odoo.addons.generic_mixin import post_write
+from odoo.addons.generic_mixin import post_write, post_create
 
 _logger = logging.getLogger(__name__)
 
@@ -22,15 +22,16 @@ class RequestStageRouteTrigger(models.Model):
         related='route_id.sequence', store=True, index=True, readonly=True,
         string="Route Priority")
     route_id = fields.Many2one(
-        'request.stage.route', required=True, index=True,
+        'request.stage.route', required=True, index=True, auto_join=True,
         ondelete='cascade', tracking=True)
     route_stage_from_id = fields.Many2one(
         'request.stage', readonly=True,
         related='route_id.stage_from_id', store=True, index=True,
+        auto_join=True,
         help="Source stage of related route.")
     request_type_id = fields.Many2one(
         'request.type', related='route_id.request_type_id',
-        store=True, index=True, readonly=True)
+        store=True, index=True, auto_join=True, readonly=True)
     dummy_request_type_id = fields.Many2one(
         'request.type', store=False,
         help='Dummy technical field to handle UI route restriction when '
@@ -111,9 +112,12 @@ class RequestStageRouteTrigger(models.Model):
             :param req: Recordset with single request.
             :param req_event: Recordset with single request event.
             :return: True if request moved,
-                     False if if is not possible to move via this route
+                     False if is not possible to move via this route
         """
         triggerevent = self.env['request.stage.route.trigger.event']
+        # Here we create event before running trigger to ensure events have
+        # correct ordering (by id), thus if new trigger events will be created
+        # during trigger run, then they will be displayed after this event.
         event = triggerevent.sudo().create({
             'date': fields.datetime.now(),
             'trigger_id': self.id,
@@ -177,12 +181,7 @@ class RequestStageRouteTrigger(models.Model):
             self._get_auto_on_write_trigger_ids_for_stage(stage.id)
         )
 
-    @api.model
-    def create(self, vals):
-        res = super().create(vals)
-        self._get_auto_on_write_trigger_ids_for_stage.clear_cache(self)
-        return res
-
+    @post_create()
     @post_write('route_id', 'trigger')
     def _after_route_and_trigger_changed_clear_caches(self, changes):
         self._get_auto_on_write_trigger_ids_for_stage.clear_cache(self)

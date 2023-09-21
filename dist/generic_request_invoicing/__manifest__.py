@@ -9,7 +9,7 @@
     'website': "https://crnd.pro",
 
     'category': 'Generic Request',
-    'version': '15.0.0.21.1',
+    'version': '15.0.0.25.1',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -22,6 +22,7 @@
         'security/security.xml',
         'security/ir.model.access.csv',
         'views/request_timesheet_line.xml',
+        'views/request_timesheet_activity.xml',
         'views/request_invoice_line.xml',
         'views/account_invoice.xml',
         'views/request_request.xml',

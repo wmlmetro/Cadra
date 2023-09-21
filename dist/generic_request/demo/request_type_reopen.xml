@@ -12,16 +12,11 @@
         <field name="name">Request Reopen (category general)</field>
         <field name="code">request-reopen-categ-general</field>
         <field name="description">Simple request type related to category 'General'</field>
-        <field name="category_ids"
-               eval="[(6, 0, [ref('generic_request.request_category_demo_general')])]"/>
     </record>
     <record id="request_type_reopen_as_type_categ_2" model="request.type" context="{'create_default_stages': True}">
         <field name="name">Request Reopen (category technical config)</field>
         <field name="code">request-reopen-categ-technical-config</field>
         <field name="description">Simple request type related to category 'Technical / Configuration'</field>
-        <field name="service_ids" eval="[(4, ref('generic_service.generic_service_default'))]"/>
-        <field name="category_ids"
-               eval="[(6, 0, [ref('generic_request.request_category_demo_technical_configuration')])]"/>
     </record>
     <!-- End test reopen request types -->
 

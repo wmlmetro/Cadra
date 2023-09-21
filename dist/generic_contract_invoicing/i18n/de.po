@@ -360,7 +360,6 @@ msgid "Invoice Lines"
 msgstr "Rechnungszeilen"
 
 #. module: generic_contract_invoicing
-#: model:ir.actions.act_window,name:generic_contract_invoicing.action_generic_contract_invoices
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__account_invoice_count
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract__account_invoice_ids
 #: model_terms:ir.ui.view,arch_db:generic_contract_invoicing.view_generic_contract_form
@@ -685,6 +684,12 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_contract_invoicing.field_generic_contract_template_invoice_line__uom_id
 msgid "Unit of Measure"
 msgstr "Mengeneinheit"
+
+#. module: generic_contract_invoicing
+#: code:addons/generic_contract_invoicing/models/generic_contract.py:0
+#, python-format
+msgid "Unsupported partner type '%(partner_type)s'"
+msgstr ""
 
 #. module: generic_contract_invoicing
 #: model:ir.model.fields.selection,name:generic_contract_invoicing.selection__generic_contract__recurring_type__weekly

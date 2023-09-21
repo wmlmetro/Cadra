@@ -4,12 +4,17 @@
     <record id="request_type_auto" model="request.type">
         <field name="name">Request Auto Trigger</field>
         <field name="code">auto-trigger</field>
-        <field name="category_ids" eval="[(4, ref('generic_request.request_category_demo_general'), 0)]"/>
         <field name="help_html">
             this is demo request to demonstrate automatic triggers on routes.
             That automatic triggers will be triggered on any write on request
             or creation of request.
         </field>
+    </record>
+
+    <!--Add request.classifier-->
+    <record id="classifier_request_type_auto_category_demo_general" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_general"/>
+        <field name="type_id" ref="generic_request_route_auto.request_type_auto"/>
     </record>
 
     <!-- cron request type stages -->

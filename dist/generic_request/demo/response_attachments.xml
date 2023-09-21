@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="request_response_attachment_demo1" model="ir.attachment">
+        <field name="name">sample_attachment1.txt</field>
+        <field name="datas">VGhpcyBpcyByZXNwb25zZSBhdHRhY2htZW50MQ==</field>
+    </record>
+    <record id="request_response_attachment_demo2" model="ir.attachment">
+        <field name="name">sample_attachment2.txt</field>
+        <field name="datas">VGhpcyBpcyByZXNwb25zZSBhdHRhY2htZW50Mg===</field>
+    </record>
+    <record id="request_response_attachment_demo3" model="ir.attachment">
+        <field name="name">sample_attachment3.txt</field>
+        <field name="datas">VGhpcyBpcyByZXNwb25zZSBhdHRhY2htZW50Mw==</field>
+    </record>
+</odoo>

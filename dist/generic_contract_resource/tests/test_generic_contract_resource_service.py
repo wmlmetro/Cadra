@@ -48,7 +48,7 @@ class TestGenericContractResourceService(TestGenericContractResourceCommon):
             'partner_type': 'customer',
             'partner_id': self.customer_contract.partner_id.id,
             'name': 'test',
-            'date_start': self.today,
+            'date_begin': self.today,
         })
 
         resource_line = self.ContractResourceLine.create({
@@ -82,7 +82,7 @@ class TestGenericContractResourceService(TestGenericContractResourceCommon):
             'date_end': False,
         })
         self.customer_contract.write({
-            'date_start': fields.Date.to_date('2018-04-03'),
+            'date_begin': fields.Date.to_date('2018-04-03'),
             'date_end': fields.Date.to_date('2019-01-03'),
         })
 

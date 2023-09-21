@@ -230,15 +230,27 @@ class GenericResourceRoleLink(models.Model):
                     "It is not allowed to create roles "
                     "sub-role-links manualy."))
 
-    @api.model
+    @api.model_create_multi
     def create(self, vals):
-        role_id = vals.get('role_id')
-        if role_id and isinstance(role_id, GenericResourceRoleID):
-            vals['role_id'] = int(role_id)
-            role_links = super(
-                GenericResourceRoleLink, self.sudo()).create(vals)
-        else:
-            role_links = super(GenericResourceRoleLink, self).create(vals)
+        values = []
+        values_sudo = []
+        for v in vals:
+            role_id = v.get('role_id')
+            if role_id and isinstance(role_id, GenericResourceRoleID):
+                # This is used to create creator's role link,
+                # because, because otherwise user who create resource will
+                # not have access to it
+                values_sudo += [dict(v, role_id=int(role_id))]
+            else:
+                values += [v]
+
+        # We have to create most of the roles in normal mode, but some roles
+        # for example creator role, have to be created in sudo mode, because
+        # creator may not have access to add roles to created resource.
+        role_links = (
+            super().create(values) +
+            super(GenericResourceRoleLink, self.sudo()).create(values_sudo)
+        ).with_env(self.env)
 
         # Invalidate cache for 'resource_role_sec_view_ids' to make access
         # rights checks work
@@ -248,13 +260,17 @@ class GenericResourceRoleLink(models.Model):
 
         # Sync sub_roles
         if not self.env.context.get('__post_process_role_links__', False):
-            # There is special case, where we have no update subroles during
+            # There is special case, where we have no update sub-roles during
             # role link creation. This is case of creation of resource,
             # because, when role links passed as parameters to create resource,
             # then resource creation is not complete in this stage. In that
             # case '_subrole_update_subsubroles` will be called directly from
             # resource
             role_links._subrole__update_subroles()
+
+        # We have to invalidate cache to ensure access rights
+        # changes took effect
+        role_links.invalidate_cache()
         return role_links
 
     @post_write('resource_res_id', 'resource_id',

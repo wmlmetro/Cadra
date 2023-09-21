@@ -52,12 +52,12 @@ class GenericAssignPolicyModel(models.Model):
 
     @post_write('enable_act_assign')
     def _toggle_context_action_for_target_model(self, changes):
-        ActWindow = self.env['ir.actions.act_window']
+        ActWindow = self.env['ir.actions.act_window'].sudo()
         old_val, new_val = changes['enable_act_assign']
-        if new_val and not old_val and not self.act_assign_id:
+        if new_val and not old_val and not self.sudo().act_assign_id:
             self.act_assign_id = ActWindow.create({
                 'name': 'Assign by Policy',
-                'binding_model_id': self.model_id.id,
+                'binding_model_id': self.sudo().model_id.id,
                 'res_model': 'generic.wizard.assign',
                 'view_mode': 'form',
                 'target': 'new',
@@ -67,8 +67,8 @@ class GenericAssignPolicyModel(models.Model):
                     "'default_assign_object_ids': active_ids,"
                     "}"),
             })
-        elif old_val and not new_val and self.act_assign_id:
-            self.act_assign_id.unlink()
+        elif old_val and not new_val and self.sudo().act_assign_id:
+            self.sudo().act_assign_id.unlink()
 
     @api.onchange('model_id')
     def _onchange_model_id(self):
@@ -77,7 +77,7 @@ class GenericAssignPolicyModel(models.Model):
 
     @api.constrains('assign_user_field_id', 'model_id')
     def _check_assign_user_field(self):
-        for rec in self:
+        for rec in self.sudo():
             model_ok = rec.assign_user_field_id.model_id == rec.model_id
             type_ok = rec.assign_user_field_id.ttype in ('many2one',
                                                          'many2many')
@@ -91,5 +91,5 @@ class GenericAssignPolicyModel(models.Model):
         self.ensure_one()
         return self.env['generic.mixin.get.action'].get_action_by_xmlid(
             'generic_assignment.action_assign_policy',
-            context={'default_model_id': self.model_id.id},
+            context={'default_model_id': self.sudo().model_id.id},
             domain=[('assign_model_id', '=', self.id)])

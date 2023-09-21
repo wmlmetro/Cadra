@@ -9,8 +9,8 @@ msgstr ""
 "POT-Creation-Date: 2023-02-15 16:19+0000\n"
 "PO-Revision-Date: 2023-03-07 12:45+0000\n"
 "Last-Translator: Huseyin <hkpostam@gmail.com>\n"
-"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
-"bureaucrat-itsm-15-0/generic_request_project/tr/>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-15-0/generic_request_project/tr/>\n"
 "Language: tr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -177,6 +177,7 @@ msgstr "Diğer"
 
 #. module: generic_request_project
 #: model:ir.model,name:generic_request_project.model_project_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_report__request_project_id
 #: model:ir.model.fields,field_description:generic_request_project.field_request_request__project_id
 #: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__project_id
 #: model_terms:ir.ui.view,arch_db:generic_request_project.request_type_form_inherit
@@ -244,6 +245,16 @@ msgstr "Talep Sayısı"
 #: model:ir.model,name:generic_request_project.model_request_event
 msgid "Request Event"
 msgstr "Etkinlik İste"
+
+#. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_request_report_search
+msgid "Request Project"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model,name:generic_request_project.model_request_report
+msgid "Request Report"
+msgstr ""
 
 #. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_project_task__request_service_id

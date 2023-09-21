@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Classifiers for type access -->
+    <record id="classifier_request_type_access_demo_technical_configuration" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_technical_configuration"/>
+        <field name="type_id" ref="generic_request.request_type_access"/>
+    </record>
+    <record id="classifier_request_type_access_generic_service_default_demo_resource" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_default"/>
+        <field name="category_id" ref="generic_request.request_category_demo_resource"/>
+        <field name="type_id" ref="generic_request.request_type_access"/>
+    </record>
+    <record id="classifier_request_type_access_generic_service_default_tech_config" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_default"/>
+        <field name="category_id" ref="generic_request.request_category_demo_technical_configuration"/>
+        <field name="type_id" ref="generic_request.request_type_access"/>
+    </record>
+    <record id="classifier_request_type_access_generic_no_service_demo_general" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_general"/>
+        <field name="type_id" ref="generic_request.request_type_access"/>
+    </record>
+
+    <!-- Classifiers for type non-ascii -->
+    <record id="classifier_request_type_non_ascii_demo_technical_configuration" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_technical_configuration"/>
+        <field name="type_id" ref="generic_request.request_type_non_ascii"/>
+    </record>
+    <record id="classifier_request_type_non_ascii_demo_service_default_demo_resource" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_default"/>
+        <field name="category_id" ref="generic_request.request_category_demo_resource"/>
+        <field name="type_id" ref="generic_request.request_type_non_ascii"/>
+    </record>
+    <record id="classifier_request_type_non_ascii_demo_service_default_tech_config" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_default"/>
+        <field name="category_id" ref="generic_request.request_category_demo_technical_configuration"/>
+        <field name="type_id" ref="generic_request.request_type_non_ascii"/>
+    </record>
+
+    <!-- Classifiers for reopen types -->
+    <record id="classifier_request_type_reopen_as_type_categ_1_demo_general" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_general"/>
+        <field name="type_id" ref="generic_request.request_type_reopen_as_type_categ_1"/>
+    </record>
+    <record id="classifier_request_type_reopen_as_type_categ_2_demo_technical_configuration" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_technical_configuration"/>
+        <field name="type_id" ref="generic_request.request_type_reopen_as_type_categ_2"/>
+    </record>
+    <record id="classifier_request_type_reopen_as_type_categ_2_service_default_demo_resource" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_default"/>
+        <field name="category_id" ref="generic_request.request_category_demo_resource"/>
+        <field name="type_id" ref="generic_request.request_type_reopen_as_type_categ_2"/>
+    </record>
+    <record id="classifier_request_type_reopen_as_type_categ_2_service_default_tech_conf" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_default"/>
+        <field name="category_id" ref="generic_request.request_category_demo_technical_configuration"/>
+        <field name="type_id" ref="generic_request.request_type_reopen_as_type_categ_2"/>
+    </record>
+
+
+    <!-- Classifiers for Printer Request (type_seq) -->
+    <record id="classifier_request_type_sequence_demo_resource" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_resource"/>
+        <field name="type_id" ref="generic_request.request_type_sequence"/>
+    </record>
+    <record id="classifier_request_type_sequence_demo_technical_configuration" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_technical_configuration"/>
+        <field name="type_id" ref="generic_request.request_type_sequence"/>
+    </record>
+    <record id="classifier_request_type_sequence_service_default_demo_resource" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_default"/>
+        <field name="category_id" ref="generic_request.request_category_demo_resource"/>
+        <field name="type_id" ref="generic_request.request_type_sequence"/>
+    </record>
+    <record id="classifier_request_type_sequence_service_default_tech_config" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_default"/>
+        <field name="category_id" ref="generic_request.request_category_demo_technical_configuration"/>
+        <field name="type_id" ref="generic_request.request_type_sequence"/>
+    </record>
+    <record id="classifier_request_type_sequence_no_service_demo_general" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_general"/>
+        <field name="type_id" ref="generic_request.request_type_sequence"/>
+    </record>
+
+    <!-- Classifiers for Type Simple -->
+    <record id="classifier_request_type_simple_category_demo_general" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_general"/>
+        <field name="type_id" ref="generic_request.request_type_simple"/>
+    </record>
+    <record id="classifier_request_type_simple_category_service_default_demo_resource" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_default"/>
+        <field name="category_id" ref="generic_request.request_category_demo_resource"/>
+        <field name="type_id" ref="generic_request.request_type_simple"/>
+    </record>
+    <record id="classifier_request_type_simple_category_service_default_tech_config" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_default"/>
+        <field name="category_id" ref="generic_request.request_category_demo_technical_configuration"/>
+        <field name="type_id" ref="generic_request.request_type_simple"/>
+    </record>
+    <record id="classifier_request_type_simple_category_no_service_demo_technical" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_technical"/>
+        <field name="type_id" ref="generic_request.request_type_simple"/>
+    </record>
+    <record id="classifier_request_type_simple_no_service_no_category" model="request.classifier">
+        <field name="type_id" ref="generic_request.request_type_simple"/>
+    </record>
+    <record id="classifier_request_type_simple_service_rent_notebook_category_demo_technical" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_rent_notebook"/>
+        <field name="category_id" ref="generic_request.request_category_demo_technical"/>
+        <field name="type_id" ref="generic_request.request_type_simple"/>
+    </record>
+
+</odoo>

@@ -24,7 +24,6 @@
                     <field name="need_install_generic_request_assignment" invisible="1"/>
                     <field name="need_install_generic_request_action" invisible="1"/>
                     <field name="need_install_generic_request_action_project" invisible="1"/>
-                    <field name="need_install_generic_request_action_subrequest" invisible="1"/>
                     <field name="need_install_generic_request_sla" invisible="1"/>
                     <field name="need_install_generic_request_sla_log" invisible="1"/>
                     <field name="need_install_generic_request_field" invisible="1"/>
@@ -34,17 +33,13 @@
                     <field name="need_install_generic_request_mail" invisible="1"/>
                     <field name="need_install_generic_request_survey" invisible="1"/>
                     <field name="need_install_generic_request_action_survey" invisible="1"/>
-                    <field name="need_install_generic_request_action_tag" invisible="1"/>
                     <field name="need_install_generic_request_invoicing" invisible="1"/>
                     <field name="need_install_generic_request_action_invoice" invisible="1"/>
                     <field name="need_install_crnd_wsd_broadcast" invisible="1"/>
                     <field name="need_install_crnd_wsd_legal" invisible="1"/>
-                    <field name="need_install_generic_request_sla_priority" invisible="1"/>
-                    <field name="need_install_generic_request_sla_service" invisible="1"/>
                     <field name="need_install_generic_request_sale" invisible="1"/>
                     <field name="need_install_generic_request_crm" invisible="1"/>
                     <field name="need_install_generic_request_calendar" invisible="1"/>
-                    <field name="need_install_generic_request_action_priority" invisible="1"/>
                     <field name="need_install_generic_request_action_assignment" invisible="1"/>
                     <field name="need_install_generic_request_weight" invisible="1"/>
                     <field name="need_install_generic_request_team" invisible="1"/>
@@ -105,6 +100,28 @@
                                     If this group enabled, then Services will be used in requests.
                                 </div>
                             </div>
+                            <div class="o_setting_left_pane">
+                                <field name="group_request_use_service_groups"
+                                       string="Use Service Groups"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="group_request_use_service_groups"/>
+                                <div class="text-muted">
+                                    If this setting enabled, then Service Groups will be used in requests.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xs-12 col-md-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="group_request_use_kind"
+                                       string="Use Generic Kind"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="group_request_use_kind"/>
+                                <div class="text-muted">
+                                    If this group enabled, then Kind parameter will be used in requests.
+                                </div>
+                            </div>
                         </div>
                         <div class="col-xs-12 col-md-6 o_setting_box">
                             <div class="o_setting_left_pane">
@@ -157,7 +174,7 @@
                                     <p>When request created from incoming email or by unregistered user on website,
                                     and author is not present in odoo's contacts database,
                                     then create new contact (partner) for this email address.</p>
-                                    <p>Same bechavior will be applied to requests created on website by unregistered users.</p>
+                                    <p>Same behavior will be applied to requests created on website by unregistered users.</p>
                                 </div>
                             </div>
                         </div>
@@ -174,7 +191,7 @@
                                         mentioned in CC header new contact
                                         will
                                         be created (if not exists yet)</p>
-                                    <p>Same bechavior will be applied to
+                                    <p>Same behavior will be applied to
                                         requests
                                         created on website by unregistered
                                         users.</p>
@@ -229,28 +246,6 @@
                         </div>
                         <div class="col-xs-12 col-md-6 o_setting_box">
                             <div class="o_setting_left_pane">
-                                <field name="module_generic_request_action_subrequest" attrs="{'readonly': [('need_install_generic_request_action_subrequest', '=', True)]}"/>
-                            </div>
-                            <div class="o_setting_right_pane">
-                                <label for="module_generic_request_action_subrequest"/>
-                                <a class="btn-xs btn-docs" role="button" href="https://crnd.pro/knowledge" target="_blank">Docs</a>
-                                <div class="text-muted">
-                                    Automatically create subrequests
-                                </div>
-                                <div>
-                                    Part of the following bundles:
-                                    <div class="btn-group btn-group-xs">
-                                        <a class="btn-xs btn-warning btn-left" role="button" href="https://www.odoo.com/apps/modules/13.0/bureaucrat_servicedesk_ultimate/" target="_blank">Service Desk Ultimate</a>
-                                        <a class="btn-xs btn-violet btn-right" role="button" href="https://crnd.pro/product-comparison" target="_blank">ITSM</a>
-                                    </div>
-                                </div>
-                                <div attrs="{'invisible': [('need_install_generic_request_action_subrequest', '=', False)]}">
-                                    Addon requires installation. <a class="btn-xs btn-primary btn-rnd" role="button" href="https://www.odoo.com/apps/modules/13.0/generic_request_action_subrequest/" target="_blank">Download</a> from Odoo Market.
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-xs-12 col-md-6 o_setting_box">
-                            <div class="o_setting_left_pane">
                                 <field name="module_generic_request_action_project" attrs="{'readonly': [('need_install_generic_request_action_project', '=', True)]}"/>
                             </div>
                             <div class="o_setting_right_pane">
@@ -288,52 +283,6 @@
                                 </div>
                                 <div attrs="{'invisible': [('need_install_generic_request_action_invoice', '=', False)]}">
                                     Addon requires installation. <a class="btn-xs btn-primary btn-rnd" role="button" href="https://www.odoo.com/apps/modules/13.0/generic_request_action_invoice/" target="_blank">Download</a> from Odoo Market.
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-xs-12 col-md-6 o_setting_box">
-                            <div class="o_setting_left_pane">
-                                <field name="module_generic_request_action_priority"
-                                    attrs="{'readonly': [('need_install_generic_request_action_priority', '=', True)]}"/>
-                            </div>
-                            <div class="o_setting_right_pane">
-                                <label for="module_generic_request_action_priority"/>
-                                <div class="text-muted">
-                                    Set urgency, impact, or priority directly, depending on settings.
-                                </div>
-                                <div>
-                                    Part of the following bundles:
-                                    <div class="btn-group btn-group-xs">
-                                        <a class="btn-xs btn-warning btn-left" role="button"
-                                            href="https://www.odoo.com/apps/modules/13.0/bureaucrat_servicedesk_ultimate/" target="_blank">Service Desk Ultimate</a>
-                                        <a class="btn-xs btn-violet btn-right" role="button" href="https://crnd.pro/product-comparison" target="_blank">ITSM</a>
-                                    </div>
-                                </div>
-                                <div attrs="{'invisible': [('need_install_generic_request_action_priority', '=', False)]}">
-                                    Addon requires installation. <a class="btn-xs btn-primary btn-rnd"
-                                        role="button" href="https://www.odoo.com/apps/modules/13.0/generic_request_action_priority/" target="_blank">Download</a> from Odoo Market.
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-xs-12 col-md-6 o_setting_box">
-                            <div class="o_setting_left_pane">
-                                <field name="module_generic_request_action_tag" attrs="{'readonly': [('need_install_generic_request_action_tag', '=', True)]}"/>
-                            </div>
-                            <div class="o_setting_right_pane">
-                                <label for="module_generic_request_action_tag"/>
-                                <div class="text-muted">
-                                    Automatically add / remove tags
-                                </div>
-                                <div>
-                                    Part of the following bundles:
-                                    <div class="btn-group btn-group-xs">
-                                        <a class="btn-xs btn-warning btn-left" role="button"
-                                            href="https://www.odoo.com/apps/modules/13.0/bureaucrat_servicedesk_ultimate/" target="_blank">Service Desk Ultimate</a>
-                                        <a class="btn-xs btn-violet btn-right" role="button" href="https://crnd.pro/product-comparison" target="_blank">ITSM</a>
-                                    </div>
-                                </div>
-                                <div attrs="{'invisible': [('need_install_generic_request_action_tag', '=', False)]}">
-                                    Addon requires installation. <a class="btn-xs btn-primary btn-rnd" role="button" href="https://www.odoo.com/apps/modules/13.0/generic_request_action_tag/" target="_blank">Download</a> from Odoo Market.
                                 </div>
                             </div>
                         </div>
@@ -429,53 +378,6 @@
                                 </div>
                                 <div attrs="{'invisible': [('need_install_generic_request_sla_log', '=', False)]}">
                                     Addon requires installation. <a class="btn-xs btn-primary btn-rnd" role="button" href="https://www.odoo.com/apps/modules/13.0/generic_request_sla_log/" target="_blank">Download</a> from Odoo Market.
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-xs-12 col-md-6 o_setting_box">
-                            <div class="o_setting_left_pane">
-                                <field name="module_generic_request_sla_priority" attrs="{'readonly': [('need_install_generic_request_sla_priority', '=', True)]}"/>
-                            </div>
-                            <div class="o_setting_right_pane">
-                                <label for="module_generic_request_sla_priority"/>
-                                <div class="text-muted">
-                                    Set different time limits for one rule of SLA for requests with different priority.
-                                </div>
-                                <div>
-                                    Part of the following bundles:
-                                    <div class="btn-group btn-group-xs">
-                                        <a class="btn-xs btn-info btn-left" role="button" href="https://apps.odoo.com/apps/modules/13.0/bureaucrat_servicedesk_pro/" target="_blank">Service Desk Pro</a>
-                                        <a class="btn-xs btn-warning btn-center" role="button" href="https://www.odoo.com/apps/modules/13.0/bureaucrat_servicedesk_ultimate/" target="_blank">Service Desk Ultimate</a>
-                                        <a class="btn-xs btn-violet btn-right" role="button" href="https://crnd.pro/product-comparison" target="_blank">ITSM</a>
-                                    </div>
-                                </div>
-                                <div attrs="{'invisible': [('need_install_generic_request_sla_priority', '=', False)]}">
-                                    Addon requires installation. <a class="btn-xs btn-primary btn-rnd"
-                                        role="button"
-                                        href="https://www.odoo.com/apps/modules/13.0/generic_request_sla_priority/" target="_blank">Download</a> from Odoo Market.
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-xs-12 col-md-6 o_setting_box">
-                            <div class="o_setting_left_pane">
-                                <field name="module_generic_request_sla_service" attrs="{'readonly': [('need_install_generic_request_sla_service', '=', True)]}"/>
-                            </div>
-                            <div class="o_setting_right_pane">
-                                <label for="module_generic_request_sla_service"/>
-                                <div class="text-muted">
-                                    Specify different SLA limit and warn times per service.
-                                </div>
-                                <div>
-                                    Part of the following bundles:
-                                    <div class="btn-group btn-group-xs">
-                                        <a class="btn-xs btn-info btn-left" role="button" href="https://apps.odoo.com/apps/modules/13.0/bureaucrat_servicedesk_pro/" target="_blank">Service Desk Pro</a>
-                                        <a class="btn-xs btn-warning btn-center" role="button" href="https://www.odoo.com/apps/modules/13.0/bureaucrat_servicedesk_ultimate/" target="_blank">Service Desk Ultimate</a>
-                                        <a class="btn-xs btn-violet btn-right" role="button" href="https://crnd.pro/product-comparison" target="_blank">ITSM</a>
-                                    </div>
-                                </div>
-                                <div attrs="{'invisible': [('need_install_generic_request_sla_service', '=', False)]}">
-                                    Addon requires installation. <a class="btn-xs btn-primary btn-rnd"
-                                        role="button" href="https://www.odoo.com/apps/modules/13.0/generic_request_sla_service/" target="_blank">Download</a> from Odoo Market.
                                 </div>
                             </div>
                         </div>

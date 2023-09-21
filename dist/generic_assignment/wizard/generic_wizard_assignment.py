@@ -36,7 +36,7 @@ class GenericWizardAssign(models.TransientModel):
         default_assign_model_id = context.get('default_assign_model_id', False)
         if (default_assign_model is not False and
                 default_assign_model_id is False):
-            model = self.env['ir.model'].search(
+            model = self.sudo().env['ir.model'].search(
                 [('model', '=', default_assign_model)])
             assign_model_id = model.assignment_model_ids
             default.update({'assign_model_id': assign_model_id.id})

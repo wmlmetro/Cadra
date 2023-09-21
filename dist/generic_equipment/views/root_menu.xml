@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_generic_equipment_root"
+              name="Equipment"/>
+    <menuitem id="menu_generic_equipment_configuration_root"
+              name="Configuration"
+              parent="menu_generic_equipment_root"
+              sequence="90"/>
+</odoo>

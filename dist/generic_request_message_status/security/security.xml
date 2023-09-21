@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="group_request_message_status" model="res.groups">
+        <field name="name">Show message status</field>
+        <field name="comment">
+            User can see message status notification in kanban and tree view.
+        </field>
+    </record>
+    <data noupdate="1">
+        <record id="base.group_user" model="res.groups">
+            <field name="implied_ids"
+                   eval="[(4, ref('group_request_message_status'))]"/>
+        </record>
+    </data>
+</odoo>

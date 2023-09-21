@@ -14,6 +14,7 @@
         <field name="arch" type="xml">
             <tree>
                 <field name="name"/>
+                <field name="request_classifier_id"/>
                 <field name="request_service_id"
                        groups="generic_request.group_request_use_services"/>
                 <field name="request_category_id"/>
@@ -40,6 +41,8 @@
                     </div>
                     <group name="group_template_values">
                         <group name="group_template_values_left">
+                            <field name="request_classifier_id"
+                                   placehoder="Select request classifier for this template..."/>
                             <field name="request_service_id"
                                    placeholder="Request service..."
                                    groups="generic_request.group_request_use_services"/>

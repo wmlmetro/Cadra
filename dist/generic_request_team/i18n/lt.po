@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:04+0000\n"
-"PO-Revision-Date: 2021-06-22 16:04+0000\n"
+"POT-Creation-Date: 2023-07-26 11:12+0000\n"
+"PO-Revision-Date: 2023-07-26 11:12+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -79,7 +79,7 @@ msgstr ""
 #. module: generic_request_team
 #: model_terms:ir.ui.view,arch_db:generic_request_team.message_request_assigned_team__assignee
 msgid "Dear"
-msgstr ""
+msgstr "Gerb."
 
 #. module: generic_request_team
 #: model:ir.model,name:generic_request_team.model_generic_team
@@ -98,7 +98,13 @@ msgstr ""
 
 #. module: generic_request_team
 #: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_request_kanban
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_team_request_request_search
 msgid "No team assigned"
+msgstr ""
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_team_request_request_search
+msgid "No user assigned"
 msgstr ""
 
 #. module: generic_request_team
@@ -122,6 +128,16 @@ msgid "Request Event"
 msgstr ""
 
 #. module: generic_request_team
+#: model:ir.model,name:generic_request_team.model_request_report
+msgid "Request Report"
+msgstr ""
+
+#. module: generic_request_team
+#: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_report_search
+msgid "Request Resource Type"
+msgstr ""
+
+#. module: generic_request_team
 #: model:ir.model.fields,field_description:generic_request_team.field_request_timesheet_report__request_team_id
 #: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_timesheet_report_search
 msgid "Request Team"
@@ -135,7 +151,7 @@ msgstr ""
 #. module: generic_request_team
 #: model:ir.model,name:generic_request_team.model_request_type
 msgid "Request Type"
-msgstr ""
+msgstr "Užklausos tipas"
 
 #. module: generic_request_team
 #: model:ir.model,name:generic_request_team.model_request_wizard_assign
@@ -146,7 +162,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_team.field_generic_team__request_ids
 #: model_terms:ir.ui.view,arch_db:generic_request_team.generic_team_form_inherited
 msgid "Requests"
-msgstr ""
+msgstr "Užklausos"
 
 #. module: generic_request_team
 #: model:ir.model.fields,field_description:generic_request_team.field_request_type__send_default_assigned_team_notification
@@ -154,13 +170,14 @@ msgid "Send Default Assigned Team Notification"
 msgstr ""
 
 #. module: generic_request_team
+#: model:ir.model.fields,field_description:generic_request_team.field_request_report__request_team_id
 #: model:ir.model.fields,field_description:generic_request_team.field_request_request__team_id
 #: model:ir.model.fields,field_description:generic_request_team.field_request_wizard_assign__team_id
 #: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_request_kanban
 #: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_request_searchpanel
 #: model_terms:ir.ui.view,arch_db:generic_request_team.view_request_team_request_request_search
 msgid "Team"
-msgstr ""
+msgstr "Komanda"
 
 #. module: generic_request_team
 #: model:generic.system.event.type,name:generic_request_team.request_event_type_team_assigned
@@ -185,7 +202,7 @@ msgstr ""
 #. module: generic_request_team
 #: model:ir.model.fields,field_description:generic_request_team.field_request_wizard_assign__user_id
 msgid "User"
-msgstr ""
+msgstr "Vartotojas"
 
 #. module: generic_request_team
 #: code:addons/generic_request_team/models/request_request.py:0

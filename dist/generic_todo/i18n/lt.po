@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-02-15 12:31+0000\n"
-"PO-Revision-Date: 2023-02-15 12:31+0000\n"
+"POT-Creation-Date: 2023-07-26 13:28+0000\n"
+"PO-Revision-Date: 2023-07-26 13:28+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -33,14 +33,14 @@ msgstr ""
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__access_ids
 msgid "Access"
-msgstr ""
+msgstr "Prieiga"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo__active
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__active
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__active
 msgid "Active"
-msgstr ""
+msgstr "Aktyvus"
 
 #. module: generic_todo
 #: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_wizard_add_template_view_form
@@ -61,7 +61,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_type_view_from
 #: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_form
 msgid "Archived"
-msgstr ""
+msgstr "Archyvuota"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__assignment_model_ids
@@ -74,12 +74,12 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_tree_general
 #: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_wizard_add_template_view_form
 msgid "Cancel"
-msgstr ""
+msgstr "Atšaukti"
 
 #. module: generic_todo
 #: model:ir.model.fields.selection,name:generic_todo.selection__generic_todo__state__canceled
 msgid "Canceled"
-msgstr ""
+msgstr "Atšaukta"
 
 #. module: generic_todo
 #: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_wizard_add_template_view_form
@@ -89,7 +89,7 @@ msgstr ""
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__event_code
 msgid "Code"
-msgstr ""
+msgstr "Kodas"
 
 #. module: generic_todo
 #: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_form
@@ -101,7 +101,7 @@ msgstr ""
 #. module: generic_todo
 #: model:ir.ui.menu,name:generic_todo.menu_generic_todo_config_root
 msgid "Configuration"
-msgstr ""
+msgstr "Konfigūracija"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__count
@@ -112,7 +112,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo__date_created
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__date_created
 msgid "Created"
-msgstr ""
+msgstr "Sukurta"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__create_uid
@@ -123,7 +123,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template__create_uid
 #: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template_line__create_uid
 msgid "Created by"
-msgstr ""
+msgstr "Sukūrė"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__create_date
@@ -134,7 +134,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template__create_date
 #: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template_line__create_date
 msgid "Created on"
-msgstr ""
+msgstr "Sukurta"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo__date_completed
@@ -156,8 +156,9 @@ msgstr ""
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__description
+#: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_simple_view_form
 msgid "Description"
-msgstr ""
+msgstr "Aprašymas"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo__display_name
@@ -169,12 +170,12 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template__display_name
 #: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template_line__display_name
 msgid "Display Name"
-msgstr ""
+msgstr "Rodomas pavadinimas"
 
 #. module: generic_todo
 #: model:ir.model.fields.selection,name:generic_todo.selection__generic_todo__state__done
 msgid "Done"
-msgstr ""
+msgstr "Atlikta"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template__edit_mode
@@ -194,7 +195,7 @@ msgstr ""
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__event_id
 msgid "Event"
-msgstr ""
+msgstr "Renginys"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__event_data_id
@@ -229,17 +230,17 @@ msgstr ""
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__event_type_id
 msgid "Event Type"
-msgstr ""
+msgstr "Renginio tipas"
 
 #. module: generic_todo
 #: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_form
 msgid "Events"
-msgstr ""
+msgstr "Renginiai"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__field_id
 msgid "Fields"
-msgstr ""
+msgstr "Laukai"
 
 #. module: generic_todo
 #: model:ir.model.constraint,message:generic_todo.constraint_generic_todo_type_model_id_uniq
@@ -386,22 +387,22 @@ msgstr ""
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__modules
 msgid "In Apps"
-msgstr ""
+msgstr "Programose"
 
 #. module: generic_todo
 #: model:ir.model.fields.selection,name:generic_todo.selection__generic_todo__state__in_progress
 msgid "In Progress"
-msgstr ""
+msgstr "Vykdoma"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__info
 msgid "Information"
-msgstr ""
+msgstr "Informacija"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__inherited_model_ids
 msgid "Inherited models"
-msgstr ""
+msgstr "Paveldėti modeliai"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__is_generic_resource
@@ -418,7 +419,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template____last_update
 #: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template_line____last_update
 msgid "Last Modified on"
-msgstr ""
+msgstr "Paskutinį kartą keista"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__write_uid
@@ -429,7 +430,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template__write_uid
 #: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template_line__write_uid
 msgid "Last Updated by"
-msgstr ""
+msgstr "Paskutinį kartą atnaujino"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__write_date
@@ -440,12 +441,12 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template__write_date
 #: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template_line__write_date
 msgid "Last Updated on"
-msgstr ""
+msgstr "Paskutinį kartą atnaujinta"
 
 #. module: generic_todo
 #: model:ir.model.fields,help:generic_todo.field_generic_todo_type__modules
 msgid "List of modules in which the object is defined or inherited"
-msgstr ""
+msgstr "Modulių sąrašas, kuriame objektas yra apibrėžtas arba paveldėtas"
 
 #. module: generic_todo
 #: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_wizard_add_template_view_form
@@ -461,12 +462,12 @@ msgstr ""
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__mail_activity_type_id
 msgid "Mail Activity Type"
-msgstr ""
+msgstr "Pašto veiklos tipas"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__is_mail_blacklist
 msgid "Mail Blacklist"
-msgstr ""
+msgstr "Pašto juodasis sąrašas"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__mail_message_id
@@ -476,7 +477,7 @@ msgstr ""
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__is_mail_thread
 msgid "Mail Thread"
-msgstr ""
+msgstr "El. pašto susirašinėjimas"
 
 #. module: generic_todo
 #: model:res.groups,comment:generic_todo.group_generic_todo_manager
@@ -489,7 +490,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__todo_implementation_model
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__model
 msgid "Model"
-msgstr ""
+msgstr "Šablonas"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo__name
@@ -503,12 +504,12 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_type_view_from
 #: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_form
 msgid "Name"
-msgstr ""
+msgstr "Vardas"
 
 #. module: generic_todo
 #: model:ir.model.fields.selection,name:generic_todo.selection__generic_todo__state__new
 msgid "New"
-msgstr ""
+msgstr "Naujas"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__new_state
@@ -523,12 +524,12 @@ msgstr ""
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__order
 msgid "Order"
-msgstr ""
+msgstr "Užsakymas"
 
 #. module: generic_todo
 #: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_type_view_from
 msgid "Parameters"
-msgstr ""
+msgstr "Parametrai"
 
 #. module: generic_todo
 #: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_form
@@ -555,7 +556,7 @@ msgstr ""
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__rule_ids
 msgid "Record Rules"
-msgstr ""
+msgstr "Įrašo taisyklės"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo__res_id
@@ -575,7 +576,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo__user_id
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__user_id
 msgid "Responsible"
-msgstr ""
+msgstr "Atsakingas"
 
 #. module: generic_todo
 #: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_wizard_add_template_view_form
@@ -595,7 +596,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_template_line__sequence
 #: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template_line__sequence
 msgid "Sequence"
-msgstr ""
+msgstr "Seka"
 
 #. module: generic_todo
 #: model:generic.todo.type,name:generic_todo.generic_todo_type_simple
@@ -613,13 +614,13 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_tree_editable
 #: model_terms:ir.ui.view,arch_db:generic_todo.generic_todo_view_tree_general
 msgid "Start"
-msgstr ""
+msgstr "Pradėti"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo__state
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_simple__state
 msgid "State"
-msgstr ""
+msgstr "Regionas"
 
 #. module: generic_todo
 #: model_terms:ir.ui.view,arch_db:generic_todo.view_generic_todo_event_data_form
@@ -646,7 +647,7 @@ msgstr ""
 #. module: generic_todo
 #: model:ir.model.fields,help:generic_todo.field_generic_todo_type__inherited_model_ids
 msgid "The list of models that extends the current model."
-msgstr ""
+msgstr "Sąrašas modulių, praplėčiančių dabartinį modulį."
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_todo_wizard_add_template_line__to_add
@@ -764,22 +765,22 @@ msgstr ""
 #. module: generic_todo
 #: model:ir.model.fields,help:generic_todo.field_generic_todo_type__count
 msgid "Total number of records in this model"
-msgstr ""
+msgstr "Visas šio modelio įrašų skaičius"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__transient
 msgid "Transient Model"
-msgstr ""
+msgstr "Laikinas modelis"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__state
 msgid "Type"
-msgstr ""
+msgstr "Tipas"
 
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_event_data__user_id
 msgid "User"
-msgstr ""
+msgstr "Vartotojas"
 
 #. module: generic_todo
 #: model:ir.model.fields,help:generic_todo.field_generic_todo_event_data__user_id
@@ -794,7 +795,7 @@ msgstr ""
 #. module: generic_todo
 #: model:ir.model.fields,field_description:generic_todo.field_generic_todo_type__view_ids
 msgid "Views"
-msgstr ""
+msgstr "Peržiūros"
 
 #. module: generic_todo
 #: model:ir.model.fields,help:generic_todo.field_generic_todo_type__is_generic_resource
@@ -814,4 +815,4 @@ msgstr ""
 #. module: generic_todo
 #: model:ir.model.fields,help:generic_todo.field_generic_todo_type__is_mail_thread
 msgid "Whether this model supports messages and notifications."
-msgstr ""
+msgstr "Ar šis modelis palaiko žinutes ir pranešimus."

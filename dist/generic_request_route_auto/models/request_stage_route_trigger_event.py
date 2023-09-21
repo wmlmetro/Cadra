@@ -39,11 +39,15 @@ class RequestStageRouteTriggerEvent(models.Model):
             res.append((rec.id, name))
         return res
 
-    @api.model
+    @api.model_create_multi
     def create(self, vals):
-        if vals.get('error'):
-            vals['success'] = False
-        return super(RequestStageRouteTriggerEvent, self).create(vals)
+        values = []
+        for v in vals:
+            if v.get('error'):
+                v = dict(v, success=False)
+            values += [v]
+
+        return super().create(values)
 
     @api.depends('request_id', 'trigger_id', 'request_id.stage_id',
                  'route_id.stage_from_id')

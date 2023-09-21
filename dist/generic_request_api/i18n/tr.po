@@ -9,8 +9,8 @@ msgstr ""
 "POT-Creation-Date: 2023-02-15 16:16+0000\n"
 "PO-Revision-Date: 2023-02-28 17:33+0000\n"
 "Last-Translator: Huseyin <hkpostam@gmail.com>\n"
-"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
-"bureaucrat-itsm-15-0/generic_request_api/tr/>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-15-0/generic_request_api/tr/>\n"
 "Language: tr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -358,11 +358,6 @@ msgid "Request Data"
 msgstr "Veri Talep Et"
 
 #. module: generic_request_api
-#: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__request_type_id
-msgid "Request Type"
-msgstr "İstek Türü"
-
-#. module: generic_request_api
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__request_ids
 #: model_terms:ir.ui.view,arch_db:generic_request_api.request_api_endpoint_form
 msgid "Requests"
@@ -422,9 +417,15 @@ msgid "Test rest API endpoint (with keys)."
 msgstr "REST API endpoint'i test edin (anahtarlarla)."
 
 #. module: generic_request_api
+#: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__request_type_id
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__type
 msgid "Type"
 msgstr "Tür"
+
+#. module: generic_request_api
+#: model:ir.model.fields,help:generic_request_api.field_request_api_endpoint__request_type_id
+msgid "Type of request"
+msgstr ""
 
 #. module: generic_request_api
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__url
@@ -480,3 +481,6 @@ msgstr "application/json"
 #: model:ir.model,name:generic_request_api.model_request_api_wizard_add_access_key_show
 msgid "request.api.wizard.add.access.key.show"
 msgstr "request.api.wizard.add.access.key.show"
+
+#~ msgid "Request Type"
+#~ msgstr "İstek Türü"

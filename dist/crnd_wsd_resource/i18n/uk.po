@@ -7,10 +7,10 @@ msgstr ""
 "Project-Id-Version: Odoo Server 12.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2019-12-06 13:24+0000\n"
-"PO-Revision-Date: 2022-01-25 13:01+0000\n"
-"Last-Translator: Валерия <valittle@ukr.net>\n"
-"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/bureaucrat-"
-"itsm-14-0/crnd_wsd_resource/uk/>\n"
+"PO-Revision-Date: 2023-08-07 13:43+0000\n"
+"Last-Translator: Galina Prokopenko <am@crnd.pro>\n"
+"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/crnd_wsd_resource/uk/>\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -55,7 +55,7 @@ msgstr "Налаштування"
 #. module: crnd_wsd_resource
 #: model:ir.model,name:crnd_wsd_resource.model_generic_resource_type
 msgid "Generic Resource Type"
-msgstr ""
+msgstr "Загальний тип ресурсу"
 
 #. module: crnd_wsd_resource
 #: model:request.type,description:crnd_wsd_resource.request_type_resource_question
@@ -65,24 +65,24 @@ msgstr "Загальні питання про ресурси"
 #. module: crnd_wsd_resource
 #: model_terms:ir.ui.view,arch_db:crnd_wsd_resource.view_request_type_form
 msgid "Help message"
-msgstr ""
+msgstr "Допомога"
 
 #. module: crnd_wsd_resource
 #: model_terms:ir.ui.view,arch_db:crnd_wsd_resource.view_request_type_form
 msgid "Label"
-msgstr ""
+msgstr "Ярлик"
 
 #. module: crnd_wsd_resource
 #: model:ir.model.fields,help:crnd_wsd_resource.field_request_type__resource_label
 msgid "Label to be used for Resource field on website"
-msgstr ""
+msgstr "Ярлик для поля Ресурси на вебсайті"
 
 #. module: crnd_wsd_resource
 #. openerp-web
 #: code:addons/crnd_wsd_resource/static/src/js/request_new.js:0
 #, python-format
 msgid "More..."
-msgstr ""
+msgstr "Більше..."
 
 #. module: crnd_wsd_resource
 #: model:request.stage,name:crnd_wsd_resource.request_stage_type_resource_question_new
@@ -92,12 +92,12 @@ msgstr "Новий"
 #. module: crnd_wsd_resource
 #: model_terms:ir.ui.view,arch_db:crnd_wsd_resource.view_request_type_form
 msgid "Placeholder"
-msgstr ""
+msgstr "Плейсхолдер"
 
 #. module: crnd_wsd_resource
 #: model:ir.model.fields,help:crnd_wsd_resource.field_request_type__resource_placeholder
 msgid "Placeholder for Resource field on website"
-msgstr ""
+msgstr "Плейсхолдер для поля Ресурси на вебсайті"
 
 #. module: crnd_wsd_resource
 #: model:ir.model.fields,field_description:crnd_wsd_resource.field_res_company__request_resource_autocomplete_max_resources
@@ -123,12 +123,12 @@ msgstr ""
 #. module: crnd_wsd_resource
 #: model:ir.model.fields,field_description:crnd_wsd_resource.field_request_type__resource_label
 msgid "Resource Label"
-msgstr ""
+msgstr "Ярлик ресурсу"
 
 #. module: crnd_wsd_resource
 #: model:ir.model.fields,field_description:crnd_wsd_resource.field_request_type__resource_placeholder
 msgid "Resource Placeholder"
-msgstr ""
+msgstr "Плейсхолдер ресурсу"
 
 #. module: crnd_wsd_resource
 #: model:request.type,name:crnd_wsd_resource.request_type_resource_question
@@ -144,12 +144,12 @@ msgstr "Ресурс не вибрано!"
 #. module: crnd_wsd_resource
 #: model:ir.model.fields,field_description:crnd_wsd_resource.field_generic_resource_type__search_by_field_id
 msgid "Search By Field"
-msgstr ""
+msgstr "Пошук за полем"
 
 #. module: crnd_wsd_resource
 #: model:ir.model.fields,help:crnd_wsd_resource.field_request_type__resource_help
 msgid "Short help message for Resource field on website"
-msgstr ""
+msgstr "Коротке довідкове повідомлення для поля ресурсу на веб-сайті"
 
 #. module: crnd_wsd_resource
 #: code:addons/crnd_wsd_resource/controllers/main.py:0

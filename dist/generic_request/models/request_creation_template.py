@@ -4,11 +4,26 @@ from odoo import models, fields
 class RequestCreationTemplate(models.Model):
     _name = 'request.creation.template'
     _description = 'Request creation template'
+    _inherit = [
+        'generic.mixin.track.changes',
+    ]
     _order = 'name'
 
     name = fields.Char(required=True)
-    request_category_id = fields.Many2one('request.category')
-    request_type_id = fields.Many2one('request.type', required=True)
+    request_classifier_id = fields.Many2one(
+        comodel_name='request.classifier', required=True)
+    request_service_id = fields.Many2one(
+        comodel_name='generic.service',
+        related='request_classifier_id.service_id',
+        readonly=True)
+    request_category_id = fields.Many2one(
+        comodel_name='request.category',
+        related='request_classifier_id.category_id',
+        readonly=True)
+    request_type_id = fields.Many2one(
+        comodel_name='request.type',
+        related='request_classifier_id.type_id',
+        readonly=True, required=False)
     request_text = fields.Html()
     active = fields.Boolean(default=True, index=True)
 
@@ -16,8 +31,6 @@ class RequestCreationTemplate(models.Model):
         'generic.tag', string='Request Tags',
         domain=[('model_id.model', '=', 'request.request')],
         help="Assign tags to requests created from this mail source")
-
-    request_service_id = fields.Many2one('generic.service')
 
     def _prepare_request_data(self):
         """
@@ -33,10 +46,9 @@ class RequestCreationTemplate(models.Model):
         }
 
     def prepare_request_data(self, values=None):
-        """
-        :param values: request values dictionary
-        :return: dictionary for creation request with default
-        values from creation template
+        """ :param dict values: request values
+            :return dict: dictionary with data for request creation with
+                default values from creation template
         """
         data = self._prepare_request_data()
         if values:

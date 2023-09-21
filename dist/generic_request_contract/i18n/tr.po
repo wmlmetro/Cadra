@@ -9,8 +9,8 @@ msgstr ""
 "POT-Creation-Date: 2023-02-15 16:21+0000\n"
 "PO-Revision-Date: 2023-02-28 17:32+0000\n"
 "Last-Translator: Huseyin <hkpostam@gmail.com>\n"
-"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
-"bureaucrat-itsm-15-0/generic_request_contract/tr/>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-15-0/generic_request_contract/tr/>\n"
 "Language: tr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -39,6 +39,7 @@ msgid "All Requests"
 msgstr "Tüm Talepler"
 
 #. module: generic_request_contract
+#: model:ir.model.fields,field_description:generic_request_contract.field_request_report__request_contract_id
 #: model:ir.model.fields,field_description:generic_request_contract.field_request_request__contract_id
 #: model_terms:ir.ui.view,arch_db:generic_request_contract.view_request_request_search
 msgid "Contract"
@@ -88,9 +89,19 @@ msgid "Request Category"
 msgstr "İstek Kategorisi"
 
 #. module: generic_request_contract
+#: model_terms:ir.ui.view,arch_db:generic_request_contract.view_request_report_search
+msgid "Request Contract"
+msgstr ""
+
+#. module: generic_request_contract
 #: model:ir.model,name:generic_request_contract.model_request_event
 msgid "Request Event"
 msgstr "Etkinlik İste"
+
+#. module: generic_request_contract
+#: model:ir.model,name:generic_request_contract.model_request_report
+msgid "Request Report"
+msgstr ""
 
 #. module: generic_request_contract
 #: model:ir.model.fields,field_description:generic_request_contract.field_generic_contract__contract_request_ids

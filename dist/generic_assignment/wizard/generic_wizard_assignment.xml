@@ -20,7 +20,7 @@
                            attrs="{'invisible': [('assign_type', '!=', 'policy')],
                                    'required': [('assign_type', '=', 'policy')]}"
                            options="{'create': false, 'create_edit': false}"
-                           domain="[('model_id.model', '=', assign_model)]"/>
+                           domain="[('model_name', '=', assign_model)]"/>
                 </group>
                 <field name="assign_comment"
                         nolabel="1"

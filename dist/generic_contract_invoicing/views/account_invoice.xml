@@ -35,14 +35,4 @@
         </field>
     </record>
     
-    <record id="action_generic_contract_invoices" model="ir.actions.act_window">
-        <field name="name">Invoices</field>
-        <field name="res_model">account.move</field>
-        <field name="view_mode">tree,form</field>
-        <field name="view_ids"
-               eval="[(5, 0, 0),
-                      (0, 0, {'view_mode': 'tree', 'view_id': ref('account.view_move_tree')}),
-                      (0, 0, {'view_mode': 'form', 'view_id': ref('account.view_move_form')})]"/>
-    </record>
-
 </odoo>

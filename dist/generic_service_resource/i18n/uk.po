@@ -7,10 +7,10 @@ msgstr ""
 "Project-Id-Version: Odoo Server 12.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2019-09-16 11:44+0000\n"
-"PO-Revision-Date: 2022-01-25 13:01+0000\n"
-"Last-Translator: Валерия <valittle@ukr.net>\n"
-"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/bureaucrat-"
-"itsm-14-0/generic_service_resource/uk/>\n"
+"PO-Revision-Date: 2023-08-07 13:43+0000\n"
+"Last-Translator: Galina Prokopenko <am@crnd.pro>\n"
+"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_service_resource/uk/>\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -27,7 +27,7 @@ msgstr "Дія"
 #. module: generic_service_resource
 #: model_terms:ir.ui.view,arch_db:generic_service_resource.generic_resource_wizard_link_service_form_view
 msgid "Cancel"
-msgstr "Скасувати"
+msgstr "Відмінити"
 
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource__service_count
@@ -38,12 +38,12 @@ msgstr "Кіль-ть сервісів"
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__create_uid
 msgid "Created by"
-msgstr "Створив"
+msgstr "Ким створено"
 
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__create_date
 msgid "Created on"
-msgstr "Дата створення"
+msgstr "Як створено"
 
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_type__default_service_ids
@@ -53,7 +53,7 @@ msgstr "Сервіси за замовчанням"
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__display_name
 msgid "Display Name"
-msgstr "Відображуване ім’я"
+msgstr "Відображати як"
 
 #. module: generic_service_resource
 #: model:ir.model,name:generic_service_resource.model_generic_resource
@@ -63,12 +63,12 @@ msgstr "Універсальний ресурс"
 #. module: generic_service_resource
 #: model:ir.model,name:generic_service_resource.model_generic_resource_type
 msgid "Generic Resource Type"
-msgstr "Тип універсального ресурсу"
+msgstr "Загальний тип ресурсу"
 
 #. module: generic_service_resource
 #: model:ir.model,name:generic_service_resource.model_generic_service
 msgid "Generic Service"
-msgstr "Універсальний сервіс"
+msgstr "Сервіс"
 
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__id
@@ -78,17 +78,17 @@ msgstr "ID"
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service____last_update
 msgid "Last Modified on"
-msgstr "Остання модифікація"
+msgstr "Востаннє змінено"
 
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__write_uid
 msgid "Last Updated by"
-msgstr "Востаннє оновив"
+msgstr "Востаннє оновлено"
 
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__write_date
 msgid "Last Updated on"
-msgstr "Останнє оновлення"
+msgstr "Востаннє оновлено"
 
 #. module: generic_service_resource
 #: model:ir.model.fields.selection,name:generic_service_resource.selection__generic_resource_wizard_link_service__action__link
@@ -162,6 +162,8 @@ msgid ""
 "                        Please, select only resources of single resource "
 "type!"
 msgstr ""
+"Ця дія може бути застосована лише для ресурсів одного типу.\n"
+"                         Будь ласка, обирайте лише ресурси одного типу!"
 
 #~ msgid "Generic Resource Simple"
 #~ msgstr "Простий універсальний ресурс"

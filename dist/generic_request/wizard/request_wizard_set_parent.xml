@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
     <record id="request_wizard_set_parent_form_view" model="ir.ui.view">
-        <field name="name">request.wizard.set.parent.form</field>
         <field name="model">request.wizard.set.parent</field>
         <field name="arch" type="xml">
             <form>

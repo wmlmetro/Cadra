@@ -1,17 +1,11 @@
 import logging
 import psycopg2
 
-from odoo import exceptions, fields
+from odoo import exceptions
 from odoo.tools import mute_logger
 from .common import TestGenericContractCommon
 
 _logger = logging.getLogger(__name__)
-
-try:
-    from freezegun import freeze_time
-except ImportError:  # noqa
-    _logger.warning(
-        "freezegun not installed. Tests will not work!")
 
 
 class TestGenericContractService(TestGenericContractCommon):
@@ -22,7 +16,7 @@ class TestGenericContractService(TestGenericContractCommon):
             'partner_type': 'supplier',
             'partner_id': self.partner_supplier.id,
             'template_id': self.supplier_template.id,
-            'date_start': self.today,
+            'date_begin': self.today,
         })
 
         supplier_contract_wizard.sudo().create_contract()
@@ -89,92 +83,3 @@ class TestGenericContractService(TestGenericContractCommon):
                 'contract_template_id': self.customer_template.id,
                 'service_id': self.default_service.id,
             })
-
-    def test_add_service_line(self):
-        simple_contract = self.env.ref(
-            'generic_contract.generic_contract_simple_customer_contract')
-
-        self.assertEqual(len(simple_contract.service_contract_line_ids), 1)
-        self.assertFalse(
-            simple_contract.get_service_line_for(
-                self.support_development_service))
-        self.assertFalse(
-            simple_contract.get_service_line_for(
-                self.support_configuration_service))
-
-        simple_contract.action_confirm()
-
-        self.assertEqual(len(simple_contract.service_contract_line_ids), 1)
-        self.assertEqual(
-            simple_contract.get_service_line_for(
-                self.support_development_service),
-            self.env.ref(
-                'generic_contract.simple_contract_service_line_2'))
-        self.assertFalse(
-            simple_contract.get_service_line_for(
-                self.support_configuration_service))
-
-        with freeze_time('2020-05-04 16:30:00'):
-            simple_contract.add_service_line(
-                self.support_configuration_service)
-
-        self.assertTrue(
-            simple_contract.get_service_line_for(
-                self.support_configuration_service))
-        self.assertEqual(
-            simple_contract.get_service_line_for(
-                self.support_configuration_service).service_id,
-            self.support_configuration_service)
-        self.assertFalse(
-            simple_contract.get_service_line_for(
-                self.support_configuration_service).service_level_id)
-        self.assertEqual(
-            simple_contract.get_service_line_for(
-                self.support_configuration_service).date_added,
-            fields.Datetime.from_string('2020-05-04 16:30:00'))
-
-        with freeze_time('2020-05-04 16:30:00'):
-            # Change service level of already created service line
-            # But date not changed
-            simple_contract.add_service_line(
-                self.support_configuration_service,
-                service_level=self.service_level_1)
-
-        self.assertTrue(
-            simple_contract.get_service_line_for(
-                self.support_configuration_service))
-        self.assertEqual(
-            simple_contract.get_service_line_for(
-                self.support_configuration_service).service_id,
-            self.support_configuration_service)
-        self.assertEqual(
-            simple_contract.get_service_line_for(
-                self.support_configuration_service).service_level_id,
-            self.service_level_1)
-        self.assertEqual(
-            simple_contract.get_service_line_for(
-                self.support_configuration_service).date_added,
-            fields.Datetime.from_string('2020-05-04 16:30:00'))
-
-        with freeze_time('2020-05-04 16:30:00'):
-            # Add new line with specified service level and specified date
-            simple_contract.add_service_line(
-                self.support_consulting_service,
-                service_level=self.service_level_4,
-                date='2020-05-02 12:13:13')
-
-        self.assertTrue(
-            simple_contract.get_service_line_for(
-                self.support_consulting_service))
-        self.assertEqual(
-            simple_contract.get_service_line_for(
-                self.support_consulting_service).service_id,
-            self.support_consulting_service)
-        self.assertEqual(
-            simple_contract.get_service_line_for(
-                self.support_consulting_service).service_level_id,
-            self.service_level_4)
-        self.assertEqual(
-            simple_contract.get_service_line_for(
-                self.support_consulting_service).date_added,
-            fields.Datetime.from_string('2020-05-02 12:13:13'))

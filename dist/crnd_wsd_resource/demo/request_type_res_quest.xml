@@ -7,10 +7,49 @@
         <field name="note_html"><![CDATA[
             <p align="left" style="color: #BB7733>Do not forget to select resource.</p>
         ]]></field>
-        <field name="website_published" eval="True"/>
         <field name="resource_type_ids"
               eval="[(4, ref('generic_resource.generic_resource_type_default'))]"/>
-        <field name="category_ids" eval="[(4, ref('crnd_wsd.request_category_demo_website_support')), (4, ref('crnd_wsd.request_category_demo_website_general'))]"/>
+    </record>
+
+    <!--Add request.classifier-->
+    <record id="classifier_request_type_res_question_demo_website_support" model="request.classifier">
+        <field name="category_id" ref="crnd_wsd.request_category_demo_website_support"/>
+        <field name="type_id" ref="crnd_wsd_resource.request_type_resource_question"/>
+    </record>
+    <record id="classifier_request_type_res_question_demo_website_general" model="request.classifier">
+        <field name="category_id" ref="crnd_wsd.request_category_demo_website_general"/>
+        <field name="type_id" ref="crnd_wsd_resource.request_type_resource_question"/>
+        <field name="website_published" eval="True"/>
+    </record>
+    <!--Classifiers for "test_tour_request_new"-->
+    <record id="classifier_request_type_incident_demo_website_support" model="request.classifier">
+        <field name="category_id" ref="crnd_wsd.request_category_demo_website_support"/>
+        <field name="type_id" ref="crnd_service_desk.request_type_incident"/>
+        <field name="website_published" eval="True"/>
+    </record>
+    <record id="classifier_request_type_res_question_demo_website_support_support_config" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_support_configuration"/>
+        <field name="category_id" ref="crnd_wsd.request_category_demo_website_support"/>
+        <field name="type_id" ref="crnd_wsd_resource.request_type_resource_question"/>
+        <field name="website_published" eval="True"/>
+    </record>
+    <record id="classifier_request_type_res_question_demo_website_support_default" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_default"/>
+        <field name="category_id" ref="crnd_wsd.request_category_demo_website_support"/>
+        <field name="type_id" ref="crnd_wsd_resource.request_type_resource_question"/>
+        <field name="website_published" eval="True"/>
+    </record>
+    <record id="classifier_request_type_res_question_demo_website_support_rent_notebook" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_rent_notebook"/>
+        <field name="category_id" ref="crnd_wsd.request_category_demo_website_support"/>
+        <field name="type_id" ref="crnd_wsd_resource.request_type_resource_question"/>
+        <field name="website_published" eval="True"/>
+    </record>
+    <record id="classifier_request_type_res_question_demo_website_tech" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_default"/>
+        <field name="category_id" ref="crnd_wsd.request_category_demo_website_tech"/>
+        <field name="type_id" ref="crnd_wsd_resource.request_type_resource_question"/>
+        <field name="website_published" eval="True"/>
     </record>
 
     <!-- Generic request type stages -->

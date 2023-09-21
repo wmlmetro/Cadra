@@ -1,4 +1,7 @@
 import logging
+
+from datetime import datetime
+
 from odoo import fields
 from odoo.addons.generic_request.tests.common import freeze_time
 from .common import RequestSLACase
@@ -172,6 +175,90 @@ class TestRequestSLACalendarComplex(RequestSLACase):
 
         # Complete request
         with freeze_time('2020-07-06 17:43:00'):
+            request.with_user(
+                self.request_user
+            ).stage_id = self.t_complex_stage_done
+
+            request.with_user(
+                self.request_manager).user_id = self.request_manager_2
+
+            # Test active sla controls
+            self.assertFalse(sla_control_reaction.sla_active)
+            self.assertFalse(sla_control_resolution.sla_active)
+
+            self.assertEqual(sla_control_reaction.sla_state, 'ok')
+            self.assertEqual(sla_control_resolution.sla_state, 'warning')
+            self.assertEqual(request.sla_state, 'warning')
+
+    def test_sla_rule_sla_no_specific_lines_public_holidays(self):
+        # Use 40 Hours/Week calendar for resolution time
+        # (09:00-18:00 Mon-Fri)
+        Request = self.env['request.request']
+
+        # Add Time Off on next work day
+        self.env['resource.calendar.leaves'].create({
+            'name': 'Test Time Off',
+            'date_from': datetime(2020, 7, 6, 0, 0),
+            'date_to': datetime(2020, 7, 6, 23, 0),
+        })
+
+        # Create request (Sunday)
+        with freeze_time('2020-07-05 7:03:00'):
+            request = Request.with_user(self.request_user).create({
+                'type_id': self.sla_type_complex.id,
+                'category_id': self.request_category_general.id,
+                'request_text': 'Hello!',
+            })
+
+            # Get references to sla_control_ids
+            # Get references to sla_control_ids
+            sla_control_reaction = self._get_sla_control(
+                request, self.sla_complex_reaction_time)
+            sla_control_resolution = self._get_sla_control(
+                request, self.sla_complex_resolution_time)
+
+            # SLA Active
+            self.assertTrue(sla_control_reaction.sla_active)
+            self.assertFalse(sla_control_resolution.sla_active)
+
+            # SLA State
+            self.assertEqual(sla_control_reaction.sla_state, 'ok')
+            self.assertEqual(sla_control_resolution.sla_state, 'ok')
+            self.assertEqual(request.sla_state, 'ok')
+
+            # SLA dates
+            self.assertEqual(
+                fields.Datetime.to_string(sla_control_reaction.warn_date),
+                '2020-07-05 11:00:00')
+            self.assertEqual(
+                fields.Datetime.to_string(sla_control_reaction.limit_date),
+                '2020-07-05 12:00:00')
+
+        # Start working on request before warning date reached
+        with freeze_time('2020-07-05 10:33:00'):
+            request.user_id = self.request_user
+            request.with_user(
+                self.request_user
+            ).stage_id = self.t_complex_stage_progress
+
+            # Test active sla controls
+            self.assertFalse(sla_control_reaction.sla_active)
+            self.assertTrue(sla_control_resolution.sla_active)
+
+            self.assertEqual(sla_control_reaction.sla_state, 'ok')
+            self.assertEqual(sla_control_resolution.sla_state, 'ok')
+            self.assertEqual(request.sla_state, 'ok')
+
+            # Test SLA Dates
+            self.assertEqual(
+                fields.Datetime.to_string(sla_control_resolution.warn_date),
+                '2020-07-07 17:00:00')
+            self.assertEqual(
+                fields.Datetime.to_string(sla_control_resolution.limit_date),
+                '2020-07-07 18:00:00')
+
+        # Complete request
+        with freeze_time('2020-07-07 17:43:00'):
             request.with_user(
                 self.request_user
             ).stage_id = self.t_complex_stage_done

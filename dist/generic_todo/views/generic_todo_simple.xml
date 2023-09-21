@@ -23,8 +23,10 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='todo_type_id']" position="replace"/>
             <xpath expr="//group[@name='group_todo_config_implementation']" position="replace">
-                <group name="group_simple_todo_fields">
-                    <field name="description"/>
+                <group name="group_simple_todo_fields"
+                       string="Description"
+                       colspan="4">
+                    <field name="description" nolabel="1"/>
                 </group>
             </xpath>
         </field>

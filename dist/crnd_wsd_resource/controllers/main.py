@@ -10,6 +10,20 @@ _logger = logging.getLogger(__name__)
 
 class WebsiteRequestResource(WebsiteRequest):
 
+    def _request_new_get_public_services_domain(self, resource_id=None,
+                                                **post):
+        # Required to show only services related to selected resource
+        domain = super()._request_new_get_public_services_domain(
+            resource_id=None, **post)
+
+        if resource_id:
+            resource = self._id_to_record('generic.resource', resource_id)
+            return expression.AND([
+                domain,
+                [('resource_ids.id', '=', resource.id)],
+            ])
+        return domain
+
     def _request_new_get_public_types_domain(self, type_id=None,
                                              category_id=None,
                                              resource_id=None, **kwargs):
@@ -64,16 +78,38 @@ class WebsiteRequestResource(WebsiteRequest):
                 resource_id=resource_id, **kwargs))
 
     def _request_new_get_resource_types(self, req_type, category_id=None,
-                                        resource_id=None, **post):
+                                        resource_id=None, service_id=None,
+                                        **post):
         """ Find resource types available for current user to be used
             in request that being created
         """
-        if resource_id:
-            resource = self._id_to_record('generic.resource', resource_id)
-            return req_type.resource_type_ids.filtered(
+        # TODO: Try to simplify this method
+        resource = self._id_to_record('generic.resource', resource_id)
+        if resource:
+            resource_types = req_type.resource_type_ids.filtered(
                 lambda r: resource in r.resource_ids)
-        return req_type.resource_type_ids.filtered(
-            lambda r: r.resource_ids)
+        else:
+            resource_types = req_type.resource_type_ids.filtered(
+                lambda r: r.resource_ids)
+
+        service = self._id_to_record('generic.service', service_id)
+        if service and resource and service in resource.service_ids:
+            # If resource is specified, and it contains selected service,
+            # then everything seems to be ok, so we just return selected
+            # resource types (usually it will be only single resource type)
+            return resource_types
+        if service and resource:
+            # Empty list if service and resource specified, but selected
+            # resource has no selected service
+            return http.request.env['generic.resource.type'].browse()
+        if service:
+            # If only service specified, then just filter request types to
+            # those, that has resources that has selected service
+            return http.request.env['generic.resource.type'].search([
+                ('id', 'in', resource_types.ids),
+                ('resource_ids.service_ids', '=', service.id)])
+
+        return resource_types
 
     def _request_new_process_resource_data(self, req_type, **post):
         resource_types = self._request_new_get_resource_types(

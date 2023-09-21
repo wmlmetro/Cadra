@@ -1,6 +1,7 @@
 from odoo.addons.crnd_wsd.tests.phantom_common import (
     TestPhantomTour
 )
+from odoo.addons.generic_mixin.tests.common import deactivate_records_for_model
 
 
 class TestWebsiteServiceDeskContractService(TestPhantomTour):
@@ -12,62 +13,26 @@ class TestWebsiteServiceDeskContractService(TestPhantomTour):
         self._enable_use_services_setting()
 
     def init_test_data(self):
-        # TODO: refactor demo data to avoid using non-demo data
-        # show on website notebook rent service
-        self.env.ref('crnd_service_desk.request_type_incident').write({
-            'website_published': True,
-            'service_ids': [
-                (4, self.env.ref(
-                    'generic_service.generic_service_default').id),
-            ],
-            'category_ids': [
-                (4, self.env.ref(
-                    'crnd_wsd.'
-                    'request_category_demo_website_support').id),
-                (4, self.env.ref(
-                    'generic_request.request_category_demo_general').id),
-            ],
-        })
-        self.env.ref(
-            'generic_service.generic_service_support_consulting').write({
-                'request_type_ids': [
-                    (4, self.env.ref(
-                        'crnd_service_desk.request_type_incident').id),
-                ],
-                'category_ids': [
-                    (4, self.env.ref(
-                        'crnd_wsd.'
-                        'request_category_demo_website_support').id),
-                ],
-                'website_published': True,
-            })
+        deactivate_records_for_model(self.env, 'request.classifier')
 
-        self.env.ref('generic_service.generic_service_rent_notebook').write({
-            'request_type_ids': [
-                (4, self.env.ref(
-                    'crnd_service_desk.request_type_incident').id),
-            ],
-            'category_ids': [
-                (4, self.env.ref(
-                    'crnd_wsd.'
-                    'request_category_demo_website_support').id),
-            ],
-            'website_published': False,
-        })
-        self.env.ref(
-            'generic_service.generic_service_support_development'
-        ).write({
-            'request_type_ids': [
-                (4, self.env.ref(
-                    'crnd_service_desk.request_type_incident').id),
-            ],
-            'category_ids': [
-                (4, self.env.ref(
-                    'crnd_wsd.'
-                    'request_category_demo_website_support').id),
-            ],
-            'website_published': False,
-        })
+        # Classifiers with the following parameters are expected
+        # to be created:
+        self.ensure_classifier(
+            service='generic_service.generic_service_default',
+            category='generic_request.request_category_demo_general',
+            request_type='crnd_service_desk.request_type_incident',
+            website_published=False)
+        self.ensure_classifier(
+            service='generic_service.generic_service_support_consulting',
+            category='crnd_wsd.request_category_demo_website_support',
+            request_type='crnd_service_desk.request_type_incident',
+            website_published=True)
+        self.ensure_classifier(
+            service='generic_service.generic_service_support_development',
+            category='crnd_wsd.request_category_demo_website_support',
+            request_type='crnd_service_desk.request_type_incident',
+            website_published=True)
+
         self.env.ref('crnd_wsd_contract_service.demo_contract_service').write({
             'state': 'active',
         })
@@ -117,9 +82,6 @@ class TestWebsiteServiceDeskContractService(TestPhantomTour):
     def test_tour_request_contract_service_rent_notebook(self):
         self.init_test_data()
 
-        self.env.ref('generic_service.generic_service_rent_notebook').write({
-            'website_published': True,
-        })
         new_requests = self._test_phantom_tour_requests(
             '/', 'crnd_wsd_contract_service_tour_request_contract_service',
             login=self.user_demo.login)

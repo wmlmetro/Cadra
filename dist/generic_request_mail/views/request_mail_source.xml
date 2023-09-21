@@ -44,45 +44,52 @@
                         </h1>
                     </div>
                     <notebook>
-                        <page name="general" string="General">
-                            <group>
-                                <group>
+                        <page name="page_info" string="Info">
+                            <group name="group_info_general_root">
+                                <group name="group_info_general_left">
                                     <field name="request_creation_template_id"/>
                                 </group>
+                                <group name="group_info_general_right">
+
+                                </group>
                             </group>
-                        </page>
-                        <page name="emails" string="Emails">
-                            <group name="group_alias" attrs="{'invisible': [('alias_domain', '=', False)]}">
-                                <label for="alias_name" string="Email Alias"/>
-                                <div name="alias_def">
-                                    <field name="alias_id" class="oe_read_only oe_inline"
-                                        string="Email Alias" required="0"/>
-                                    <div class="oe_edit_only oe_inline" name="edit_alias" style="display: inline;" >
-                                        <field name="alias_name" class="oe_inline"/>@<field name="alias_domain" class="oe_inline" readonly="1"/>
+                            <group name="group_info_email" string="Email">
+                                <group name="group_alias" attrs="{'invisible': [('alias_domain', '=', False)]}">
+                                    <label for="alias_name" string="Email Alias"/>
+                                    <div name="alias_def">
+                                        <field name="alias_id" class="oe_read_only oe_inline"
+                                               string="Email Alias" required="0"/>
+                                        <div class="oe_edit_only oe_inline" name="edit_alias" style="display: inline;" >
+                                            <field name="alias_name" class="oe_inline"/>@<field name="alias_domain" class="oe_inline" readonly="1"/>
+                                        </div>
                                     </div>
+                                    <field name="alias_contact"
+                                           string="Accept Emails From"/>
+                                    <field name="mask_email_author_name"
+                                           string="Mask Author Name"/>
+                                    <field name="mask_email_address"/>
+                                </group>
+                                <group name="group_system"
+                                       groups="base.group_no_one"
+                                       attrs="{'invisible': [('alias_domain', '=', False)]}">
+                                    <field name="alias_defaults" readonly="1"/>
+                                </group>
+                                <div class="alert alert-warning"
+                                     role="alert"
+                                     colspan="4"
+                                     attrs="{'invisible': [('alias_domain', '!=', False)]}">
+                                    <h4 class="alert-heading" role="alert">Alias Domain is not configured!</h4>
+                                    <p>In order to be able to configure mail sources, you have to configure Alias Domain. To do this, you have to follow steps below:</p>
+                                    <ol>
+                                        <li>Navigate to <span><button name="base_setup.action_general_configuration" type="action" string="Settings/General Settings" class="p-0 btn-link"></button> </span></li>
+                                        <li>Find section Discuss</li>
+                                        <li>Set checkbox External Email Servers</li>
+                                        <li>Fill your company's email domain in Alias Domain field</li>
+                                        <li>Configure your Incoming and Outgoing mail server</li>
+                                    </ol>
+                                    <p>Steps above are required to configure mailing in Odoo, and after that steps completed, you will be able to configure mail sources.</p>
                                 </div>
-                                <field name="alias_contact" class="oe_inline"
-                                        string="Accept Emails From"/>
                             </group>
-                            <group name="group_system"
-                                   groups="base.group_no_one"
-                                   attrs="{'invisible': [('alias_domain', '=', False)]}">
-                                <field name="alias_defaults" readonly="1"/>
-                            </group>
-                            <div class="alert alert-warning"
-                                 role="alert"
-                                 attrs="{'invisible': [('alias_domain', '!=', False)]}">
-                                <h4 class="alert-heading" role="alert">Alias Domain is not configured!</h4>
-                                <p>In order to be able to configure mail sources, you have to configure Alias Domain. To do this, you have to follow steps below:</p>
-                                <ol>
-                                    <li>Navigate to <span><button name="base_setup.action_general_configuration" type="action" string="Settings/General Settings" class="p-0 btn-link"></button> </span></li>
-                                    <li>Find section Discuss</li>
-                                    <li>Set checkbox External Email Servers</li>
-                                    <li>Fill your company's email domain in Alias Domain field</li>
-                                    <li>Configure your Incoming and Outgoing mail server</li>
-                                </ol>
-                                <p>Steps above are required to configure mailing in Odoo, and after that steps completed, you will be able to configure mail sources.</p>
-                            </div>
                         </page>
                     </notebook>
                 </sheet>

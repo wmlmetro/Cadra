@@ -1,5 +1,7 @@
 import logging
 import re
+from dateutil.relativedelta import relativedelta
+from odoo import fields
 from odoo.tests import HttpCase
 from odoo.tools.misc import mute_logger
 from odoo.addons.generic_mixin.tests.common import (
@@ -210,3 +212,60 @@ class TestRequestMailNotificationLinks(AccessRulesFixMixinMT, HttpCase):
         self.assertEqual(message_text,
                          'Subrequest %s has been reopened. '
                          % child_request.name)
+
+    def test_deadline_track_changes_message(self):
+        Request = self.env['request.request']
+        simple_type = self.env.ref('generic_request.request_type_simple')
+        date_today = fields.Date.today()
+        datetime_today = fields.Datetime.now()
+
+        # assure request type has deadline format 'date'
+        self.assertEqual(simple_type.deadline_format, 'date')
+
+        # create request
+        deadline_request = Request.create({
+            'type_id': simple_type.id,
+            'category_id': self.env.ref(
+                'generic_request.request_category_demo_general').id,
+            'deadline_date': date_today,
+            'request_text': 'Test deadline change message request'
+        })
+        field_deadline_date = self.env['ir.model.fields'].search([
+            ('model_id', '=', deadline_request._name),
+            ('name', '=', 'deadline_date')])
+        field_deadline_date_dt = self.env['ir.model.fields'].search([
+            ('model_id', '=', deadline_request._name),
+            ('name', '=', 'deadline_date_dt')])
+        self.flush_tracking()
+        self.assertTrue(deadline_request.deadline_date)
+        self.assertTrue(deadline_request.deadline_date_dt)
+
+        # Change the deadline
+        with FindNew(self.env, 'mail.message') as nr:
+            deadline_request.deadline_date = date_today + relativedelta(days=6)
+            self.flush_tracking()
+
+        # Check message contains tracked field 'deadline_date'
+        message = nr['mail.message']
+        self.assertEqual(len(message), 1)
+        message_tracked_field = message.tracking_value_ids.field
+        self.assertEqual(len(message_tracked_field), 1)
+        self.assertEqual(message_tracked_field, field_deadline_date)
+
+        # Change deadline format to 'datetime'
+        simple_type.deadline_format = 'datetime'
+        # assure request type has deadline format 'datetime'
+        self.assertEqual(simple_type.deadline_format, 'datetime')
+
+        # Change request deadline
+        with FindNew(self.env, 'mail.message') as nr:
+            deadline_request.deadline_date_dt = datetime_today + relativedelta(
+                hours=5)
+            self.flush_tracking()
+
+        # Check message contains tracked field 'deadline_date_dt'
+        message = nr['mail.message']
+        self.assertEqual(len(message), 1)
+        message_tracked_field = message.tracking_value_ids.field
+        self.assertEqual(len(message_tracked_field), 1)
+        self.assertEqual(message_tracked_field, field_deadline_date_dt)

@@ -8,7 +8,8 @@ odoo.define('crnd_wsd.tour_request_new', function (require) {
         url: '/requests/new',
     }, [
         {
-            content: "Check that we in request creation process on step 'type'",
+            content: "Check that we in request creation" +
+                " process on step 'category'",
             trigger: ".wsd_request_new form#request_category",
         },
         {

@@ -9,8 +9,8 @@ msgstr ""
 "POT-Creation-Date: 2023-02-15 16:17+0000\n"
 "PO-Revision-Date: 2023-02-28 17:32+0000\n"
 "Last-Translator: Huseyin <hkpostam@gmail.com>\n"
-"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
-"bureaucrat-itsm-15-0/generic_request_mail/tr/>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-15-0/generic_request_mail/tr/>\n"
 "Language: tr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -83,6 +83,12 @@ msgid "All Requests"
 msgstr "Tüm Talepler"
 
 #. module: generic_request_mail
+#: model:ir.model.fields.selection,name:generic_request_mail.selection__request_mail_source__mask_email_address__all
+#: model:ir.model.fields.selection,name:generic_request_mail.selection__request_mail_source__mask_email_author_name__all
+msgid "All emails"
+msgstr ""
+
+#. module: generic_request_mail
 #: model_terms:ir.ui.view,arch_db:generic_request_mail.generic_request_res_config_settings_view_form
 msgid "Attach messages to request thread by subject"
 msgstr "Konuya göre mesaj dizisini istemek için mesaj ekleyin"
@@ -152,6 +158,26 @@ msgid "Default Values"
 msgstr "Varsayılan değerler"
 
 #. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__mask_email_address
+msgid ""
+"Define when system have to mask email address (for emails sent via Odoo). If "
+"set to none, then user's email will be used in From header of outgoing "
+"message; if set to internal, then only emails from internal users will be "
+"replaced with email of this mail source; if set to all, then all outgoing "
+"emails will be masked with the email of this mail source."
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__mask_email_author_name
+msgid ""
+"Define when system have to mask name of author of outgoing email (for emails "
+"sent via Odoo). If set to none, then user's name will be used in From header "
+"of outgoing message; if set to internal, then only emails from internal "
+"users will be replaced with name of this mail source; if set to all, then "
+"all outgoing emails will be masked with the name of this mail source."
+msgstr ""
+
+#. module: generic_request_mail
 #: model:request.mail.source,name:generic_request_mail.demo_request_mail_source
 msgid "Demo Requests"
 msgstr "Demo İstekler"
@@ -163,6 +189,11 @@ msgstr "Ekran adı"
 
 #. module: generic_request_mail
 #: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Email"
+msgstr ""
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
 msgid "Email Alias"
 msgstr "E-mail Alias"
 
@@ -170,11 +201,6 @@ msgstr "E-mail Alias"
 #: model:ir.model,name:generic_request_mail.model_mail_thread
 msgid "Email Thread"
 msgstr "Email Konusu"
-
-#. module: generic_request_mail
-#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
-msgid "Emails"
-msgstr "Email'ler"
 
 #. module: generic_request_mail
 #: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
@@ -195,11 +221,6 @@ msgstr "Takipçiler"
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_partner_ids
 msgid "Followers (Partners)"
 msgstr "Takipçiler (Ortaklar)"
-
-#. module: generic_request_mail
-#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
-msgid "General"
-msgstr "genel"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__has_message
@@ -271,6 +292,17 @@ msgid "Incoming message validators"
 msgstr "Gelen mesaj doğrulayıcıları"
 
 #. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Info"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields.selection,name:generic_request_mail.selection__request_mail_source__mask_email_address__internal
+#: model:ir.model.fields.selection,name:generic_request_mail.selection__request_mail_source__mask_email_author_name__internal
+msgid "Internal users only"
+msgstr ""
+
+#. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_is_follower
 msgid "Is Follower"
 msgstr "takipçidir"
@@ -308,6 +340,30 @@ msgid "Main Attachment"
 msgstr "Ana Eklenti"
 
 #. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Mask Author Name"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__mask_email_address
+msgid "Mask Email Address"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__mask_email_author_name
+msgid "Mask Email Author Name"
+msgstr ""
+
+#. module: generic_request_mail
+#: code:addons/generic_request_mail/models/generic_request_mail_source.py:0
+#, python-format
+msgid ""
+"Mask email address set to %(mask_address)s, thus only following values "
+"allowed for maks author name: %(allowed_mask_author_names)s. But got: "
+"%(mask_author_name_val)s."
+msgstr ""
+
+#. module: generic_request_mail
 #: model:ir.model,name:generic_request_mail.model_mail_message
 msgid "Message"
 msgstr "Mesaj"
@@ -332,6 +388,12 @@ msgstr "İsim"
 #: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
 msgid "Navigate to"
 msgstr "Şu yöne ayarla"
+
+#. module: generic_request_mail
+#: model:ir.model.fields.selection,name:generic_request_mail.selection__request_mail_source__mask_email_address__none
+#: model:ir.model.fields.selection,name:generic_request_mail.selection__request_mail_source__mask_email_author_name__none
+msgid "None"
+msgstr ""
 
 #. module: generic_request_mail
 #: model_terms:request.request,stage_help_html:generic_request_mail.request_request_type_simple_demo_1
@@ -446,6 +508,11 @@ msgstr "Record Thread ID"
 #: model:ir.model,name:generic_request_mail.model_request_request
 msgid "Request"
 msgstr "İstek"
+
+#. module: generic_request_mail
+#: model:ir.model,name:generic_request_mail.model_request_classifier
+msgid "Request Classifier"
+msgstr ""
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__request_closed_count
@@ -649,3 +716,9 @@ msgstr "taslak -&gt; gönderildi -&gt; onaylanmış"
 #: model_terms:request.request,help_html:generic_request_mail.request_request_type_simple_demo_1
 msgid "draft -&gt; sent -&gt; rejected"
 msgstr "taslak -&gt; gönderildi -&gt; reddedildi"
+
+#~ msgid "Emails"
+#~ msgstr "Email'ler"
+
+#~ msgid "General"
+#~ msgstr "genel"

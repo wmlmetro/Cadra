@@ -17,6 +17,9 @@ class GenericAssignPolicy(models.Model):
     model_id = fields.Many2one(
         'ir.model', required=True, index=True, ondelete='cascade',
         tracking=True)
+    model_name = fields.Char(
+        related='model_id.model', readonly=True,
+        store=True, index=True)
     assign_model_id = fields.Many2one(
         'generic.assign.policy.model', compute='_compute_assign_model_id',
         readonly=True, index=True, ondelete='set null',
@@ -53,12 +56,12 @@ class GenericAssignPolicy(models.Model):
     @api.depends('model_id', 'model_id.assignment_model_ids')
     def _compute_assign_model_id(self):
         for rec in self:
-            rec.assign_model_id = rec.model_id.assignment_model_ids
+            rec.assign_model_id = rec.sudo().model_id.assignment_model_ids
 
     @api.model
     def default_get(self, field_names):
         if self.env.context.get('default_model'):
-            model = self.env['ir.model'].sudo().search(
+            model = self.sudo().env['ir.model'].search(
                 [('model', '=', self.env.context['default_model'])])
             if len(model) == 1:
                 return super(

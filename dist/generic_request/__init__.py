@@ -1,5 +1,7 @@
-from . import models
-from . import wizard
-from . import controllers
-from . import reports
+from . import (
+    models,
+    wizard,
+    controllers,
+    reports,
+)
 from .models.request_request import service_level_guesser

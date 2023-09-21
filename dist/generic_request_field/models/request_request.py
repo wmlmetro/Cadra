@@ -72,6 +72,7 @@ class RequestRequest(models.Model):
                 values += res_values[field_id]
 
             record.value_ids = values
+        self.invalidate_cache()
 
     @api.depends('value_ids')
     def _compute_request_fields_json(self):
@@ -137,10 +138,14 @@ class RequestRequest(models.Model):
             return self.env['request.field'].browse()
         request_fields = self.type_id.field_ids.filtered(
             lambda f:
-                not f.category_ids or self.category_id in f.category_ids)
+                not f.category_ids or self.category_id in f.category_ids
+        ).filtered(
+            lambda f: (
+                not f.sudo().service_ids or self.service_id in f.service_ids))
         if position is not None:
             request_fields = request_fields.filtered(
                 lambda f: f.position == position)
+
         return request_fields
 
     def _request_fields__parse_json_field_values(self):
@@ -288,7 +293,7 @@ class RequestRequest(models.Model):
             default['request_field_values_json'] = json.dumps({})
         return super().copy_data(default=default)
 
-    @api.onchange('type_id', 'category_id',
+    @api.onchange('type_id', 'category_id', 'service_id',
                   'request_fields_json_top', 'request_fields_json_bottom')
     def onchange_type_id_fields(self):
         for record in self:

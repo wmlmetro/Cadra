@@ -120,8 +120,8 @@ class GenericContract(models.Model):
     def _get_default_datetime_start_for_resource_lines(self):
         self.ensure_one()
         default_date_start = fields.Date.today()
-        if default_date_start < self.date_start:
-            default_date_start = self.date_start
+        if default_date_start < self.date_begin:
+            default_date_start = self.date_begin
         return default_date_start
 
     def action_add_resource_line(self):

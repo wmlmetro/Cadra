@@ -285,3 +285,61 @@ class TestUploadFile(TestPhantomTour):
             "%s%s" % (TEST_URL, attachment_url_image))
         self.assertEqual(response_attachment.status_code, 200)
         self.assertEqual(attachment_url_image[:11], '/web/image/')
+
+    def test_portal_access_response_attachments(self):
+        # Initial data
+        test_request = self.env.ref('crnd_wsd.demo_request_request_printer_1')
+        test_attachment1 = self.env.ref(
+            'generic_request.request_response_attachment_demo1')
+        test_attachment2 = self.env.ref(
+            'generic_request.request_response_attachment_demo2')
+        stage_new = self.env.ref(
+            'generic_request.request_stage_type_sequence_new')
+        stage_sent = self.env.ref(
+            'generic_request.request_stage_type_sequence_sent')
+
+        # Prepare request for closing
+        self.assertEqual(test_request.stage_id, stage_new)
+        test_request.write({'stage_id': stage_sent.id})
+        self.assertTrue(test_request.can_be_closed)
+
+        # Create wizard for closing the request, link attachment to it
+        close_route = self.env.ref(
+            'generic_request.request_stage_route_type_sequence_sent_to_closed')
+        wizard_close = self.env['request.wizard.close'].create({
+            'request_id': test_request.id,
+            'close_route_id': close_route.id,
+            'response_text': 'test-access-portal-attachments',
+            'attachment_ids': [
+                (4, test_attachment1.id),
+                (4, test_attachment2.id)],
+        })
+        self.assertEqual(len(wizard_close.attachment_ids), 2)
+
+        # Check attachment has no access tokens yet
+        self.assertFalse(test_attachment1.access_token)
+        self.assertFalse(test_attachment2.access_token)
+
+        # Close request
+        wizard_close.action_close_request()
+        self.assertIn(test_attachment1, test_request.response_attachment_ids)
+        self.assertIn(test_attachment2, test_request.response_attachment_ids)
+
+        # Check user has access to test request
+        self.authenticate('demo-sd-website', 'demo-sd-website')
+        res = self.url_open('/requests/request/%s' % test_request.id)
+        self.assertEqual(res.status_code, 200)
+
+        # Check attachments already has access tokens after route
+        self.assertTrue(test_attachment1.access_token)
+        self.assertTrue(test_attachment2.access_token)
+
+        # Check user has access to response attachments
+        res = self.url_open(
+            '/web/content/%s?download=true&access_token=%s' %
+            (test_attachment1.id, test_attachment1.access_token))
+        self.assertEqual(res.status_code, 200)
+        res = self.url_open(
+            '/web/content/%s?download=true&access_token=%s' %
+            (test_attachment2.id, test_attachment2.access_token))
+        self.assertEqual(res.status_code, 200)

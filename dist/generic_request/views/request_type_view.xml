@@ -222,7 +222,8 @@
                 <field name="category_ids"/>
 
                 <separator/>
-                <field name="kind_id"/>
+                <field name="kind_id"
+                       groups="generic_request.group_request_use_kind"/>
 
                 <separator/>
                 <filter name="filter_archived"
@@ -231,7 +232,8 @@
 
                 <group name="group_group_by">
                     <filter name="filter_group_by_kind"
-                            string="Kind" context="{'group_by': 'kind_id'}"/>
+                            string="Kind" context="{'group_by': 'kind_id'}"
+                            groups="generic_request.group_request_use_kind"/>
                 </group>
             </search>
         </field>
@@ -247,7 +249,8 @@
                 <field name="category_ids"
                        widget="many2many_tags"
                        options="{'color_field': 'color'}"/>
-                <field name="kind_id"/>
+                <field name="kind_id"
+                       groups="generic_request.group_request_use_kind"/>
                 <field name="stage_count"/>
                 <field name="route_count"/>
                 <field name="request_count"/>
@@ -286,6 +289,11 @@
                             <field string="Stages" name="stage_count"
                                    widget="statinfo"/>
                         </button>
+                        <button class="oe_stat_button" type="object"
+                                name="action_show_classifiers"
+                                icon="fa-folder-open">
+                            <field string="Classifiers" name="classifier_count" widget="statinfo"/>
+                        </button>
                     </div>
                     <field name="active" invisible="1"/>
                     <widget name="web_ribbon" title="Archived"
@@ -295,17 +303,15 @@
                         <h1 name="header_type">
                             <field name="name" placeholder="Request type name..."/>
                         </h1>
-                        <h3 name="header_code">
-                            <field name="code" placeholder="Request type code..."/>
-                        </h3>
-                        <h3 name="header_kind">
-                            <field name="kind_id" placeholder="Request kind..."/>
-                        </h3>
                     </div>
                     <notebook>
                         <page string="Settings" name="page_settings">
                             <group name="group_settings">
                                 <group name="group_settings_generic" string="Generic Settings">
+                                    <field name="code" placeholder="Request type code..."/>
+                                    <field name="kind_id"
+                                           placeholder="Request kind..."
+                                           groups="generic_request.group_request_use_kind"/>
                                     <label for="start_stage_id"/>
                                     <div>
                                         <field name="start_stage_id" attrs="{'invisible': [('start_stage_id', '=', False)]}"/>
@@ -316,8 +322,9 @@
                                                 class="btn-primary"
                                                 style="padding-top: 0; padding-bottom: 0;"/>
                                     </div>
-                                    <field name="sequence_id" placeholder="Ticket numbering sequence..."/>
+                                    <field name="sequence_id" placeholder="Request numbering sequence..."/>
                                     <field name="color" widget="color"/>
+                                    <field name="current_stage_highlight_color" widget="color"/>
                                     <field name="tag_category_ids"
                                            widget="many2many_tags"/>
                                     <field name="access_group_ids"
@@ -347,30 +354,66 @@
                                            attrs="{'invisible': [('use_timesheet', '=', False)]}"
                                            string="Timesheet Activities"/>
                                 </group>
+                                <group name="group_settings_deadline" string="Deadline">
+                                    <field name="deadline_format"/>
+                                </group>
                             </group>
                             <separator colspan="4" string="Description"/>
                             <field colspan="4" name="description"
                                    nolabel="1" select="2" placeholder="Description"/>
                         </page>
-                        <page string="Categories" name="page_categories">
-                            <field name="category_ids"
-                                   placeholder="Request categories..."/>
-                        </page>
-                        <page string="Services" name="page_services"
-                              groups="generic_request.group_request_use_services">
-                            <field name="service_ids"
-                                   placeholder="Services..."/>
+                        <page string="Classifiers" name="page_classifiers">
+                            <field name="classifier_ids"
+                                   placeholder="Request classifier...">
+                                <tree>
+                                    <field name="service_id"
+                                           groups="generic_request.group_request_use_services"/>
+                                    <field name="category_id"/>
+                                </tree>
+                                <form>
+                                    <group>
+                                        <group name="group_info_left">
+                                            <field name="service_id"
+                                                   groups="generic_request.group_request_use_services"/>
+                                            <field name="category_id"/>
+                                        </group>
+                                        <group name="group_info_right">
+                                        </group>
+                                    </group>
+                                </form>
+                            </field>
                         </page>
                         <page string="Write control" name="page_write_control">
                         </page>
-                        <page string="Help" name="page_help">
-                            <field colspan="4" name="help_html"/>
-                        </page>
-                        <page string="Instruction" name="page_instruction">
-                            <field colspan="4" name="instruction_html"/>
-                        </page>
-                        <page string="Note" name="page_note">
-                            <field colspan="4" name="note_html"/>
+                        <page string="Description" name="page_description">
+                            <group name="group_help" string="Help" colspan="4">
+                                <div class="alert alert-info" role="status" colspan="2">
+                                    <p>
+                                        A brief description of the purpose of the request type.
+                                        Also shown on the "Help" tab in requests of this type.
+                                    </p>
+                                </div>
+                                <field name="help_html"
+                                       nolabel="1"/>
+                            </group>
+                            <group name="group_instruction" string="Instruction" colspan="4">
+                                <div class="alert alert-info" role="status" colspan="2">
+                                    <p>
+                                        Instructions for processing this type of request.
+                                    </p>
+                                </div>
+                                <field name="instruction_html"
+                                       nolabel="1"/>
+                            </group>
+                            <group name="group_note" string="Note" colspan="4">
+                                <div class="alert alert-info" role="status" colspan="2">
+                                    <p>
+                                        Short note, explanation for the request type.
+                                    </p>
+                                </div>
+                                <field name="note_html"
+                                       nolabel="1"/>
+                            </group>
                         </page>
                         <page string="Defaults" name="page_defaults">
                             <separator colspan="4" string="Default request's text"/>
@@ -388,25 +431,25 @@
                                         </tr>
                                     </thead>
                                     <tbody class="text-center">
-                                        <tr>
+                                        <tr name="tr-notification-created">
                                             <td class="text-left">Created</td>
                                             <td><field name="send_default_created_notification" style="width: 25%"/></td>
                                             <td><field name="created_notification_show_request_text"/></td>
                                             <td><field name="created_notification_show_response_text"/></td>
                                         </tr>
-                                        <tr>
+                                        <tr name="tr-notification-assigned">
                                             <td class="text-left">Assigned</td>
                                             <td><field name="send_default_assigned_notification" style="width: 25%"/></td>
                                             <td><field name="assigned_notification_show_request_text"/></td>
                                             <td><field name="assigned_notification_show_response_text"/></td>
                                         </tr>
-                                        <tr>
+                                        <tr name="tr-notification-closed">
                                             <td class="text-left">Closed</td>
                                             <td><field name="send_default_closed_notification" style="width: 25%"/></td>
                                             <td><field name="closed_notification_show_request_text"/></td>
                                             <td><field name="closed_notification_show_response_text"/></td>
                                         </tr>
-                                        <tr>
+                                        <tr name="tr-notification-reopened">
                                             <td class="text-left">Reopened</td>
                                             <td><field name="send_default_reopened_notification" style="width: 25%"/></td>
                                             <td><field name="reopened_notification_show_request_text"/></td>

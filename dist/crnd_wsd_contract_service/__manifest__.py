@@ -9,7 +9,7 @@
     'author': "Center of Research and Development",
     'website': "https://crnd.pro",
     'license': 'OPL-1',
-    'version': '15.0.0.14.0',
+    'version': '15.0.0.16.0',
     'depends': [
         'crnd_wsd',
         'generic_contract',

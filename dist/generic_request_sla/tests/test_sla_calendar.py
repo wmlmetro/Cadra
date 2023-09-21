@@ -442,3 +442,118 @@ class TestRequestSLACalendar(RequestSLACase):
             # Test active sla controls
             self.assertFalse(sla_control_draft.sla_active)
             self.assertEqual(sla_control_draft.sla_state, 'failed')
+
+    def test_sla_rule_sla_ok_public_holidays(self):
+        Request = self.env['request.request']
+
+        # Create holiday for Thursday, 2017-05-04
+        self.env['resource.calendar.leaves'].create({
+            'date_from': fields.Datetime.from_string("2017-05-04 00:00:00"),
+            'date_to': fields.Datetime.from_string("2017-05-04 23:59:59"),
+            'calendar_id': self.sla_calendar.id,
+        })
+
+        # Create request
+        # 2017-05-03 is Wednesday, next day is holiday
+        with freeze_time('2017-05-03 10:05:00'):
+            request = Request.with_user(self.request_user).create({
+                'type_id': self.sla_type.id,
+                'category_id': self.request_category_general.id,
+                'request_text': 'Hello!',
+            })
+
+            # Get references to sla_control_ids
+            sla_control_draft = self._get_sla_control(request, self.sla_draft)
+            sla_control_sent_unassigned = self._get_sla_control(
+                request, self.sla_sent_unassigned)
+            sla_control_sent_assigned = self._get_sla_control(
+                request, self.sla_sent_assigned)
+
+            # Test active sla controls
+            self.assertTrue(sla_control_draft.sla_active)
+            self.assertFalse(sla_control_sent_unassigned.sla_active)
+            self.assertFalse(sla_control_sent_assigned.sla_active)
+            self.assertEqual(sla_control_draft.sla_state, 'ok')
+            self.assertEqual(sla_control_sent_unassigned.sla_state, 'ok')
+            self.assertEqual(sla_control_sent_assigned.sla_state, 'ok')
+
+            # Test SLA Dates
+            # The draft-8h rule is absolute time
+            self.assertEqual(
+                fields.Datetime.to_string(sla_control_draft.warn_date),
+                '2017-05-03 16:05:00')
+            self.assertEqual(
+                fields.Datetime.to_string(sla_control_draft.limit_date),
+                '2017-05-03 18:05:00')
+
+        # Send request in the end of the day.
+        # Next day is holiday, thus limit dates have to be moved on Friday
+        with freeze_time('2017-05-03 16:03:00'):
+            request.with_user(self.request_user).stage_id = self.stage_sent
+
+            self.assertEqual(set(request.sla_control_ids.mapped('sla_state')),
+                             set(['ok']))
+            self.assertEqual(request.sla_state, 'ok')
+
+            # Test active sla controls
+            self.assertFalse(sla_control_draft.sla_active)
+            self.assertTrue(sla_control_sent_unassigned.sla_active)
+            self.assertFalse(sla_control_sent_assigned.sla_active)
+            self.assertEqual(sla_control_draft.sla_state, 'ok')
+            self.assertEqual(sla_control_sent_unassigned.sla_state, 'ok')
+            self.assertEqual(sla_control_sent_assigned.sla_state, 'ok')
+
+            # Test SLA Dates
+            self.assertEqual(
+                fields.Datetime.to_string(
+                    sla_control_sent_unassigned.warn_date),
+                '2017-05-03 17:03:00')
+            # Note, that date is transferred to 2017-05-05, because
+            # 2017-05-04 is holiday
+            self.assertEqual(
+                fields.Datetime.to_string(
+                    sla_control_sent_unassigned.limit_date),
+                '2017-05-05 08:03:00')
+
+        # Assign request in the end of day before holiday
+        with freeze_time('2017-05-03 17:01:00'):
+            request.with_user(
+                self.request_manager
+            ).user_id = self.request_manager_2
+
+            # Test active sla controls
+            self.assertFalse(sla_control_draft.sla_active)
+            self.assertFalse(sla_control_sent_unassigned.sla_active)
+            self.assertTrue(sla_control_sent_assigned.sla_active)
+            self.assertEqual(sla_control_draft.sla_state, 'ok')
+            self.assertEqual(sla_control_sent_unassigned.sla_state, 'ok')
+            self.assertEqual(sla_control_sent_assigned.sla_state, 'ok')
+
+            # SLA limit and warning dates must take into account
+            # public holiday defined on 2017-05-04, thus dates will be
+            # moved to next working day - Friday, 2017-05-05
+            self.assertEqual(
+                fields.Datetime.to_string(
+                    sla_control_sent_assigned.warn_date),
+                '2017-05-05 10:01:00')
+            self.assertEqual(
+                fields.Datetime.to_string(
+                    sla_control_sent_assigned.limit_date),
+                '2017-05-05 11:01:00')
+
+            self.assertEqual(request.sla_state, 'ok')
+
+        # Confirm request
+        with freeze_time('2017-05-05 09:03:00'):
+            request.with_user(
+                self.request_manager_2).stage_id = self.stage_confirmed
+
+            # Test active sla controls
+            self.assertFalse(sla_control_draft.sla_active)
+            self.assertFalse(sla_control_sent_unassigned.sla_active)
+            self.assertFalse(sla_control_sent_assigned.sla_active)
+            self.assertEqual(sla_control_draft.sla_state, 'ok')
+            self.assertEqual(sla_control_sent_unassigned.sla_state, 'ok')
+            self.assertEqual(sla_control_sent_assigned.sla_state, 'ok')
+
+            self.assertEqual(request.sla_state, 'ok')

@@ -1,5 +1,5 @@
-Generic Request Action Tag
-==========================
+Generic Request Action Tag [Obsolete]
+=====================================
 
 .. |badge2| image:: https://img.shields.io/badge/license-OPL--1-blue.png
     :target: https://www.odoo.com/documentation/user/12.0/legal/licenses/licenses.html#odoo-apps
@@ -15,7 +15,8 @@ Generic Request Action Tag
 
 |badge2| |badge5|
 
-Generic Request (Action Tag) allows you to automatically add / remove tags from request using automated actions.
+This module reached the end of life and can be safely removed.
+In case of uninstallation, all functionality added by this module will be kept and updatable.
 
 This module is part of the Bureaucrat ITSM project.
 You can try it by the references below.

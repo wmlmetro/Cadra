@@ -1,6 +1,5 @@
 import logging
 from odoo import models, fields
-from odoo.addons.generic_mixin import post_write
 
 _logger = logging.getLogger(__name__)
 
@@ -50,24 +49,4 @@ class ProjectTask(models.Model):
         """
         return super(
             ProjectTask, self
-        )._get_generic_tracking_fields() | set(['stage_id', ])
-
-    @post_write('stage_id')
-    def _request_handle_stage_change(self, changes):
-        if not self.request_id:
-            return
-
-        old_stage, new_stage = changes['stage_id']
-        self.request_id.trigger_event('task-stage-changed', {
-            'task_id': self.id,
-            'task_old_stage_id': old_stage.id,
-            'task_new_stage_id': new_stage.id})
-        if (not old_stage.fold and new_stage.fold):
-            self.request_id.trigger_event('task-closed', {
-                'task_id': self.id,
-                'task_old_stage_id': old_stage.id,
-                'task_new_stage_id': new_stage.id})
-            if (self.request_id.project_task_ids and
-                    all(task.stage_id.fold
-                        for task in self.request_id.project_task_ids)):
-                self.request_id.trigger_event('task-all-tasks-closed', {})
+        )._get_generic_tracking_fields() | {'stage_id'}

@@ -5,6 +5,7 @@ from . import (
     account_invoice_line,
     request_invoice_line,
     request_timesheet_line,
+    request_timesheet_activity,
     res_company,
     res_config_settings,
 )
