@@ -10,6 +10,16 @@ class GenericResource(models.Model):
     placed_on_location_id = fields.Many2one(
         'generic.location', string='Located in', index=True,
         ondelete='restrict')
+
+    # Location's geolocation
+    longitude = fields.Float(
+        related='placed_on_location_id.longitude', readonly=True,
+        digits=(16, 5))
+    latitude = fields.Float(
+        related='placed_on_location_id.latitude', readonly=True,
+        digits=(16, 5))
+
+    # Location's address fields
     country_id = fields.Many2one(
         related='placed_on_location_id.country_id', store=True, index=True)
     state_id = fields.Many2one(

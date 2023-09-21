@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:07+0000\n"
-"PO-Revision-Date: 2021-06-22 16:07+0000\n"
+"POT-Creation-Date: 2023-07-26 11:09+0000\n"
+"PO-Revision-Date: 2023-07-26 11:09+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -33,9 +33,9 @@ msgstr ""
 #. module: generic_team_calendar
 #: model:ir.model.fields,field_description:generic_team_calendar.field_generic_team__meeting_count
 msgid "Meeting Count"
-msgstr ""
+msgstr "Susitikimai"
 
 #. module: generic_team_calendar
 #: model:ir.model.fields,field_description:generic_team_calendar.field_generic_team__calendar_event_ids
 msgid "Meetings"
-msgstr ""
+msgstr "Susitikimai"

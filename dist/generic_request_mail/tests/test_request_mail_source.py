@@ -54,8 +54,20 @@ class TestRequestMailSource(TransactionCase):
             alias_defaults['type_id'], self.template1.request_type_id.id)
 
         # Change template 1 and see that mail-source updated too
-        self.template1.request_type_id = self.template2.request_type_id
+        self.template1.request_classifier_id.type_id = (
+            self.template2.request_type_id)
 
         alias_defaults = dict(ast.literal_eval(ms.alias_defaults))
         self.assertEqual(
             alias_defaults['type_id'], self.template2.request_type_id.id)
+
+        # Try to change classifier and check if changes will be reflected
+        # in mail source
+        self.template1.request_classifier_id = self.env.ref(
+            'generic_request.classifier_request'
+            '_type_non_ascii_demo_service_default_tech_config')
+
+        alias_defaults = dict(ast.literal_eval(ms.alias_defaults))
+        self.assertEqual(
+            alias_defaults['type_id'],
+            self.env.ref('generic_request.request_type_non_ascii').id)

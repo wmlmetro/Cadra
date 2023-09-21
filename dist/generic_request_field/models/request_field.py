@@ -32,6 +32,9 @@ class RequestField(models.Model):
     category_ids = fields.Many2many(
         'request.category', 'request_field_request_category_rel',
         string='Request Categories', index=True)
+    service_ids = fields.Many2many(
+        'generic.service', 'request_field_generic_service_rel',
+        string='Request Services', index=True)
     position = fields.Selection(selection=[
         ('before', 'Before request text'),
         ('after', 'After request text')], default='before', required=True)
@@ -70,6 +73,25 @@ class RequestField(models.Model):
                     "allowed for the request type '%(request_type)s'."
                 ) % {
                     'categories': excepted_category,
+                    'field': rec.name,
+                    'request_type': rec.request_type_id.name,
+                })
+
+    @api.constrains('service_ids')
+    def _check_service_in_request_type_service(self):
+        for rec in self:
+            fields_service = rec.service_ids
+            type_request_service = rec.request_type_id.service_ids
+            if not fields_service <= type_request_service:
+                excepted_service = (
+                    fields_service - type_request_service
+                ).mapped('display_name')
+                raise exceptions.ValidationError(_(
+                    "The request services %(services)s used in the "
+                    "'%(field)s' field do not belong to the services "
+                    "allowed for the request type '%(request_type)s'."
+                ) % {
+                    'services': excepted_service,
                     'field': rec.name,
                     'request_type': rec.request_type_id.name,
                 })

@@ -4,12 +4,17 @@
     <record id="request_type_with_task" model="request.type">
         <field name="name">Request with task</field>
         <field name="code">request_with_task</field>
-        <field name="category_ids" eval="[(4, ref('generic_request.request_category_demo_general'), 0)]"/>
         <field name="use_subtasks" eval="True"/>
         <field name="help_html">
             This is demo request type to demonstrate automatic actions and triggers on routes.
             That automatic triggers will be triggered when related task changes its stage.
         </field>
+    </record>
+
+    <!--Add request.classifier-->
+    <record id="classifier_request_type_with_task_demo_general" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_general"/>
+        <field name="type_id" ref="generic_request_project.request_type_with_task"/>
     </record>
 
     <!-- Stages -->

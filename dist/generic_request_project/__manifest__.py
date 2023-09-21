@@ -9,7 +9,7 @@
     'website': "https://crnd.pro",
 
     'category': 'Generic Request',
-    'version': '15.0.3.7.0',
+    'version': '15.0.3.18.0',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -24,6 +24,7 @@
     'data': [
         'security/ir.model.access.csv',
         'security/security.xml',
+        'data/system_event_source_handler_map.xml',
         'views/request_request.xml',
         'views/project_task.xml',
         'views/request_event.xml',
@@ -32,9 +33,12 @@
         'views/request_type.xml',
         'views/project_project.xml',
         'views/account_analytic_line.xml',
-        'wizard/work_log_wizard.xml'
+        'wizard/work_log_wizard.xml',
+
+        'reports/request_graph_reports.xml',
     ],
     'demo': [
+        'demo/hr_employee.xml',
         'demo/request_type_with_task.xml',
         'demo/project_project.xml',
     ],
@@ -43,6 +47,6 @@
     'installable': True,
     'application': False,
     'license': 'OPL-1',
-    'price': 5.0,
+    'price': 15.0,
     'currency': 'EUR',
 }

@@ -1,8 +1,6 @@
 import logging
-from typing import Any, Union
 
 from odoo import fields, models, api, _
-from odoo.models import Model
 
 from odoo.addons.generic_mixin import post_write
 from odoo.addons.generic_system_event import on_event
@@ -131,6 +129,19 @@ class RequestRequest(models.Model):
     def _filter_sla_rule_line(self, rule_line):
         """ Check if specified sla rule line is applicable for this request
         """
+        # pylint: disable=too-many-return-statements
+        # pylint: disable=too-many-branches
+        if rule_line.sudo().service_level_id:
+            if not self.service_level_id:
+                return False
+            if (self.service_level_id.id !=
+                    rule_line.sudo().service_level_id.id):
+                return False
+        if rule_line.sudo().service_id:
+            if not self.service_id:
+                return False
+            if self.service_id.id != rule_line.sudo().service_id.id:
+                return False
         if rule_line.sudo().category_ids:
             if not self.category_id:
                 return False
@@ -140,6 +151,16 @@ class RequestRequest(models.Model):
             if not self.channel_id:
                 return False
             if self.channel_id not in rule_line.sudo().request_channel_ids:
+                return False
+        if int(rule_line.sudo().priority):
+            if not self.priority:
+                return False
+            if self.priority != rule_line.sudo().priority:
+                return False
+        if rule_line.sudo().tag_id:
+            if not self.tag_ids:
+                return False
+            if rule_line.sudo().tag_id not in self.tag_ids:
                 return False
         return True
 
@@ -187,7 +208,8 @@ class RequestRequest(models.Model):
         })
         return True
 
-    @post_write('category_id', 'channel_id', priority=8)
+    @post_write('category_id', 'channel_id', 'service_id',
+                'service_level_id', 'priority', 'tag_ids', priority=8)
     def _update_request_sla_control_lines(self, changes):
         """ Update warn and limit times for SLA Control Lines of this request
         """
@@ -271,13 +293,14 @@ class RequestRequest(models.Model):
             ) % self.name,
         )
 
-    @api.model
+    @api.model_create_multi
     def create(self, vals):
-        request: Union[Model, Any] = super(RequestRequest, self).create(vals)
-        request._set_request_sla_control_lines()
-        request._update_request_sla_control_lines({})
-        request.sla_control_ids._trigger_active()
-        return request
+        requests = super().create(vals)
+        for request in requests:
+            request._set_request_sla_control_lines()
+            request._update_request_sla_control_lines({})
+        requests.mapped('sla_control_ids')._trigger_active()
+        return requests
 
     def get_sla_control_by_code(self, code):
         """ This method could be used to obtain instance of SLA Control

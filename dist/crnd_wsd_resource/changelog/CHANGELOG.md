@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 1.27.0
+
+Merged `crnd_wsd_service_resource` module.
+
+
 ## Version 1.8.0
 
 Added additional settings for resource selection on request type:

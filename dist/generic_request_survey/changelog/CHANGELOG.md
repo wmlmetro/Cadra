@@ -1,5 +1,13 @@
 # Changelog
 
+## Version 2.4.0
+
+***FR23051120***
+Added settings for allow sending surveys depending on the stage of the Request.
+Now, the Send Survey button will be visible only when the Allow Send Survey
+option is enabled at the current Request Stage.
+
+
 ## Version 2.1.0
 
 ***BUG230993***

@@ -229,6 +229,22 @@ class GenericSystemEventSourceMixin(models.AbstractModel):
                 self.trigger_event('record-unarchived')
         return super()._postprocess_write_changes(changes)
 
+    def unlink(self):
+        # We have to delete related events,
+        # before deletion event source records,
+        # to ensure no garbage data left in database.
+        event_model = self.env[
+            'generic.system.event.source'
+        ].get_event_data_model(self._name)
+
+        # We have to delete these events as superuser to avoid possible
+        # access rights issues
+        self.env[event_model].sudo().search([
+            ('event_source_record_id', 'in', self.ids)
+        ]).unlink()
+
+        return super().unlink()
+
     def action_show_related_system_events(self):
         self.ensure_one()
         event_model = self.env[

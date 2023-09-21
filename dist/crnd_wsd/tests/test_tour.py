@@ -19,8 +19,24 @@ class TestWebsiteServiceDesk(TestPhantomTour):
             'crnd_wsd.user_demo_service_desk_website')
         self.group_portal = self.env.ref('base.group_portal')
 
+        # Tests response attachments case
+        self.request_resp_attachments = self.env.ref(
+            'generic_request.request_request_type_simple_demo_1')
+        self.response_attachment1 = self.env.ref(
+            'generic_request.request_response_attachment_demo1')
+        self.response_attachment2 = self.env.ref(
+            'generic_request.request_response_attachment_demo2')
+        self.stage_sent = self.env.ref(
+            'generic_request.request_stage_type_simple_sent')
+        self.stage_confirmed = self.env.ref(
+            'generic_request.request_stage_type_simple_confirmed')
+
     def test_tour_request_base(self):
         self.assertIn(self.group_portal, self.user_demo.groups_id)
+        self.ensure_classifier(
+            category='generic_request.request_category_demo_resource',
+            request_type='generic_request.request_type_sequence',
+            website_published=True)
         self._test_phantom_tour(
             '/', 'crnd_wsd_tour_request_base',
             login=self.user_demo.login)
@@ -400,28 +416,18 @@ class TestWebsiteServiceDesk(TestPhantomTour):
         self._enable_use_services_setting()
         self.assertIn(self.group_portal, self.user_demo.groups_id)
 
-        # TODO: refactor demo data to avoid using non-demo data
-        # show on website notebook rent service
-        self.env.ref('crnd_service_desk.request_type_incident').write({
-            'website_published': True,
-            'service_ids': [(4, self.env.ref(
-                'generic_service.generic_service_default').id)],
-            'category_ids': [(4, self.env.ref(
-                'crnd_wsd.'
-                'request_category_demo_website_support').id)],
-        })
-        self.env.ref('generic_service.generic_service_rent_notebook').write({
-            'request_type_ids': [
-                (4, self.env.ref(
-                    'crnd_service_desk.request_type_incident').id),
-            ],
-            'category_ids': [
-                (4, self.env.ref(
-                    'crnd_wsd.'
-                    'request_category_demo_website_support').id),
-            ],
-            'website_published': True,
-        })
+        # Classifiers with the following parameters are expected
+        # to be created:
+        self.ensure_classifier(
+            service='generic_service.generic_service_default',
+            category='crnd_wsd.request_category_demo_website_support',
+            request_type='crnd_service_desk.request_type_incident',
+            website_published=True)
+        self.ensure_classifier(
+            service='generic_service.generic_service_rent_notebook',
+            category='crnd_wsd.request_category_demo_website_support',
+            request_type='crnd_service_desk.request_type_incident',
+            website_published=True)
 
         new_requests = self._test_phantom_tour_requests(
             '/', 'crnd_wsd_tour_request_new_with_service',
@@ -431,6 +437,67 @@ class TestWebsiteServiceDesk(TestPhantomTour):
         self.assertTrue(
             new_requests.request_text.startswith(
                 u'<h1>Test incident request</h1>'))
+        self.assertEqual(
+            new_requests.service_id,
+            self.env.ref('generic_service.generic_service_default'))
+
+    def test_tour_check_response_attachments(self):
+        # Close request and add response attachments
+        self.request_resp_attachments.write({
+            'author_id': self.env.ref('base.user_admin').id,
+            'stage_id': self.stage_sent.id,
+            'request_text': 'Test response attachments'
+        })
+        self.assertTrue(self.request_resp_attachments.can_be_closed)
+        close_route = self.env['request.stage.route'].sudo().search([
+            ('request_type_id', '=', self.request_resp_attachments.type_id.id),
+            ('stage_from_id', '=', self.request_resp_attachments.stage_id.id),
+            ('stage_to_id', '=', self.stage_confirmed.id),
+        ])
+        wizard_close = self.env['request.wizard.close'].create({
+            'request_id': self.request_resp_attachments.id,
+            'close_route_id': close_route.id,
+            'response_text': 'test-response-attachments',
+            'attachment_ids': [(4, self.response_attachment1.id),
+                               (4, self.response_attachment2.id)],
+        })
+        wizard_close.action_close_request()
+
+        # Check response attachments on website
+        self.run_js_tour(
+            "/web",
+            'tour_response_attachments',
+            login='admin',
+        )
+
+    def test_tour_request_new_service_group(self):
+        # Enable services
+        self._enable_use_services_setting()
+
+        # Enable service groups on website
+        default_website = self.env.ref('website.default_website')
+        self.assertFalse(default_website.use_service_groups)
+        default_website.use_service_groups = True
+        self.assertTrue(default_website.use_service_groups)
+
+        # Create service group for default service
+        default_service = self.env.ref(
+            'generic_service.generic_service_default')
+        default_service_group = self.env['generic.service.group'].create({
+            'name': 'Test service group',
+            'code': 'test-service-group',
+            'service_ids': [(6, 0, [default_service.id])],
+        })
+        self.assertIn(default_service, default_service_group.service_ids)
+
+        new_requests = self._test_phantom_tour_requests(
+            '/', 'crnd_wsd_tour_request_new_with_service_group',
+            login=self.user_demo.login)
+
+        self.assertEqual(len(new_requests), 1)
+        self.assertTrue(
+            new_requests.request_text.startswith(
+                u'<h1>Test service groups</h1>'))
         self.assertEqual(
             new_requests.service_id,
             self.env.ref('generic_service.generic_service_default'))

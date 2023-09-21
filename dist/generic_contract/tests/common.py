@@ -4,6 +4,7 @@ from odoo import fields
 from odoo.tests.common import TransactionCase
 from odoo.addons.generic_mixin.tests.common import (
     ReduceLoggingMixin,
+    AccessRulesFixMixinST,
 )
 
 _logger = logging.getLogger(__name__)
@@ -86,3 +87,49 @@ class TestGenericContractCommon(ReduceLoggingMixin, TransactionCase):
         ).action_confirm_contracts()
         self.env['generic.contract'].scheduler_activate_contracts()
         self.env['generic.contract'].scheduler_close_contracts()
+
+
+class GenericContractAccessRightsCase(AccessRulesFixMixinST,
+                                      ReduceLoggingMixin,
+                                      TransactionCase):
+    @classmethod
+    def setUpClass(cls):
+        super(GenericContractAccessRightsCase, cls).setUpClass()
+
+        # Users
+        cls.user_demo = cls.env.ref('base.user_demo')
+        cls.user_admin = cls.env.ref('base.user_admin')
+
+        cls.main_company = cls.env.ref('base.main_company')
+
+        # Envs
+        cls.uenv = cls.env(user=cls.user_demo)  # pylint: disable=not-callable
+        cls.menv = cls.env(user=cls.user_admin)  # pylint: disable=not-callable
+
+        # Contract view action
+        cls.contract_action = cls.env.ref(
+            'generic_contract.generic_contract_action')
+
+        # Contract groups
+        cls.group_contract_implicit = cls.env.ref(
+            'generic_contract'
+            '.group_generic_contract_user_implicit')
+        cls.group_contract_readonly = cls.env.ref(
+            'generic_contract'
+            '.group_generic_contract_user_readonly')
+        cls.group_contract_user = cls.env.ref(
+            'generic_contract'
+            '.group_generic_contract_user')
+        cls.group_contract_manager = cls.env.ref(
+            'generic_contract'
+            '.group_generic_contract_manager')
+
+    def _read_contract_fields(self, user, contract):
+        contract_fields = list(
+            self.env['generic.contract'].with_user(
+                user
+            ).load_views(
+                self.contract_action.views
+            )['fields_views']['form']['fields']
+        )
+        return contract.with_user(user).read(contract_fields)

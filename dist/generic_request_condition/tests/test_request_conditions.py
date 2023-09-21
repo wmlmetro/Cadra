@@ -3,11 +3,15 @@ import logging
 from odoo import exceptions
 from odoo.tests.common import TransactionCase
 from odoo.addons.generic_mixin.tests.common import ReduceLoggingMixin
+from odoo.addons.generic_request.tests.common import (
+    RequestClassifierUtilsMixin)
 
 _logger = logging.getLogger(__name__)
 
 
-class TestRequestConditions(ReduceLoggingMixin, TransactionCase):
+class TestRequestConditions(ReduceLoggingMixin,
+                            RequestClassifierUtilsMixin,
+                            TransactionCase):
     """Test request Simple Flow
     """
 
@@ -46,6 +50,13 @@ class TestRequestConditions(ReduceLoggingMixin, TransactionCase):
             'generic_request_condition.install_os')
         cls.set_up_workplace_condition = cls.env.ref(
             'generic_request_condition.setup_workplace')
+
+        cls.request_service_demo = cls.env.ref(
+            'generic_service.generic_service_rent_notebook')
+        cls.request_service_demo_1 = cls.env.ref(
+            'generic_service.generic_service_support_consulting')
+        cls.type_demo = cls.env.ref(
+            'generic_request_condition.request_type_conditional')
 
     def test_request_move_conditions_raise(self):
         self.assertEqual(self.request.stage_id, self.draft_stage)
@@ -282,9 +293,15 @@ class TestRequestConditions(ReduceLoggingMixin, TransactionCase):
         request_type = self.env['request.type'].create({
             'name': 'Workplace',
             'code': 'workplace',
-            'category_ids': [(4, self.install_os_categ.id),
-                             (4, self.set_up_workplace_categ.id)]
         })
+
+        # Add classifiers to type of requests
+        self.ensure_classifier(
+            category=self.install_os_categ,
+            request_type=request_type)
+        self.ensure_classifier(
+            category=self.set_up_workplace_categ,
+            request_type=request_type)
 
         # create default stages and routes
         request_type.action_create_default_stage_and_routes()
@@ -324,3 +341,55 @@ class TestRequestConditions(ReduceLoggingMixin, TransactionCase):
         # check that we already be able to route
         self.assertEqual(Route.ensure_route(request, stage_process.id),
                          draft_process_route)
+
+    def test_request_can_change_service_no_conditions(self):
+        request = self.env['request.request'].create({
+            'type_id': self.type_demo.id,
+            'request_text': 'test',
+            'service_id': self.request_service_demo.id
+        })
+        request.type_id.change_service_condition_ids = False
+        self.assertEqual(request.stage_id, self.draft_stage)
+        self.assertEqual(request.service_id, self.request_service_demo)
+        self.assertTrue(request.can_change_service)
+
+        # move request to sent stage
+        request.stage_id = self.sent_stage
+
+        # Check that changing service not allowed
+        self.assertEqual(request.stage_id, self.sent_stage)
+        self.assertEqual(request.service_id, self.request_service_demo)
+        self.assertFalse(request.can_change_service)
+
+    def test_request_can_change_service_with_conditions(self):
+        request = self.env['request.request'].create({
+            'type_id': self.type_demo.id,
+            'request_text': 'test',
+            'service_id': self.request_service_demo.id
+        })
+        self.assertEqual(request.stage_id, self.draft_stage)
+        self.assertTrue(request.can_change_service)
+
+        request.stage_id = self.sent_stage
+        self.assertEqual(request.stage_id, self.sent_stage)
+        self.assertTrue(request.can_change_service)
+
+        request.request_text = 'confirm me'
+        request.stage_id = self.confirmed_stage
+        self.assertEqual(request.stage_id, self.confirmed_stage)
+        self.assertFalse(request.can_change_service)
+
+    def test_request_type_service_change(self):
+        request = self.env['request.request'].create({
+            'type_id': self.type_demo.id,
+            'service_id': self.request_service_demo.id,
+            'request_text': 'test',
+        })
+
+        # Change service
+        request.write({'service_id': self.request_service_demo_1.id})
+        last_event = request.request_event_ids.sorted()[0]
+        self.assertEqual(last_event.event_code, 'service-changed')
+        self.assertEqual(last_event.old_service_id, self.request_service_demo)
+        self.assertEqual(
+            last_event.new_service_id, self.request_service_demo_1)

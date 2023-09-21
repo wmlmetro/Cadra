@@ -86,10 +86,10 @@ class GenericTodoMixinObject(models.AbstractModel):
             lambda t: t.state in ['canceled', 'done']
         ).action_archive()
 
-    @api.model
+    @api.model_create_multi
     def create(self, vals):
-        return super(GenericTodoMixinObject, self).create(
-            self._add_res_model_by_obj_to_vals(vals))
+        vals = [self._add_res_model_by_obj_to_vals(v) for v in vals]
+        return super(GenericTodoMixinObject, self).create(vals)
 
     def write(self, vals):
         return super(GenericTodoMixinObject, self).write(

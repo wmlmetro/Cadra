@@ -15,7 +15,7 @@ class MailThread(models.AbstractModel):
         # - fetchmail server has request creation template
         # - custom_values not provided
         #
-        # Otherway - use standard bechavior
+        # Otherwise - use standard behavior
         if model != 'request.request':
             return super(MailThread, self).message_process(
                 model, message, custom_values=custom_values,

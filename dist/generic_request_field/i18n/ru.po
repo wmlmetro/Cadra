@@ -359,6 +359,11 @@ msgid "Request Categories"
 msgstr "Категории запроса"
 
 #. module: generic_request_field
+#: model:ir.model,name:generic_request_field.model_request_classifier
+msgid "Request Classifier"
+msgstr ""
+
+#. module: generic_request_field
 #: model:ir.model,name:generic_request_field.model_request_field
 msgid "Request Field"
 msgstr "Поле запроса"
@@ -381,6 +386,11 @@ msgstr ""
 #. module: generic_request_field
 #: model:ir.model.fields,field_description:generic_request_field.field_request_request__request_has_fields_top
 msgid "Request Has Fields Top"
+msgstr ""
+
+#. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field__service_ids
+msgid "Request Services"
 msgstr ""
 
 #. module: generic_request_field
@@ -407,6 +417,17 @@ msgid "Sequence"
 msgstr "Последовательность"
 
 #. module: generic_request_field
+#: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_field_form
+msgid "Service"
+msgstr ""
+
+#. module: generic_request_field
+#: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_field_form
+#: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_field_tree
+msgid "Services"
+msgstr ""
+
+#. module: generic_request_field
 #: model:ir.model.fields,help:generic_request_field.field_request_field__code
 msgid "System field name, not translatable, ASCII-only"
 msgstr ""
@@ -428,11 +449,28 @@ msgid ""
 msgstr ""
 
 #. module: generic_request_field
-#: code:addons/generic_request_field/models/request_type.py:0
+#: code:addons/generic_request_field/models/request_field.py:0
 #, python-format
 msgid ""
-"The request categories %(categories)s used in the request fields do not "
-"belong to the categories allowed for the request type '%(request_type)s'."
+"The request services %(services)s used in the '%(field)s' field do not "
+"belong to the services allowed for the request type '%(request_type)s'."
+msgstr ""
+
+#. module: generic_request_field
+#: code:addons/generic_request_field/models/request_classifier.py:0
+#, python-format
+msgid ""
+"There are no classifiers defined for request type %(request_type)s for "
+"request categories (%(categories)s) that are used in fields of this request "
+"type."
+msgstr ""
+
+#. module: generic_request_field
+#: code:addons/generic_request_field/models/request_classifier.py:0
+#, python-format
+msgid ""
+"There are no classifiers defined for request type %(request_type)s for "
+"request services (%(services)s) that are used in fields of this request type."
 msgstr ""
 
 #. module: generic_request_field

@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:05+0000\n"
-"PO-Revision-Date: 2021-06-22 16:05+0000\n"
+"POT-Creation-Date: 2023-07-26 11:16+0000\n"
+"PO-Revision-Date: 2023-07-26 11:16+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -32,26 +32,28 @@ msgid ""
 "A Python dictionary that will be evaluated to provide default values when "
 "creating new records for this alias."
 msgstr ""
+"Python žodynas, kuris bus įvertinamas numatytųjų reikšmių nustatymui, kai "
+"šiam pseudonimui sukuriami nauji įrašai."
 
 #. module: generic_request_mail
 #: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
 msgid "Accept Emails From"
-msgstr ""
+msgstr "Priimti laiškus iš"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_needaction
 msgid "Action Needed"
-msgstr ""
+msgstr "Reikalingas veiksmas"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_id
 msgid "Alias"
-msgstr ""
+msgstr "Pseudonimas"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_contact
 msgid "Alias Contact Security"
-msgstr ""
+msgstr "Pseudonimo kontakto apsauga"
 
 #. module: generic_request_mail
 #: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
@@ -61,21 +63,27 @@ msgstr ""
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_name
 msgid "Alias Name"
-msgstr ""
+msgstr "Pseudonimo vardas"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_domain
 msgid "Alias domain"
-msgstr ""
+msgstr "Pseudonimo domenas"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_model_id
 msgid "Aliased Model"
-msgstr ""
+msgstr "Pseudonimo modelis"
 
 #. module: generic_request_mail
 #: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
 msgid "All Requests"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields.selection,name:generic_request_mail.selection__request_mail_source__mask_email_address__all
+#: model:ir.model.fields.selection,name:generic_request_mail.selection__request_mail_source__mask_email_author_name__all
+msgid "All emails"
 msgstr ""
 
 #. module: generic_request_mail
@@ -86,7 +94,7 @@ msgstr ""
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_attachment_count
 msgid "Attachment Count"
-msgstr ""
+msgstr "Prisegtukų skaičius"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_res_company__request_attach_messages_to_request_by_subject
@@ -98,7 +106,7 @@ msgstr ""
 #: model:ir.actions.act_window,name:generic_request_mail.request_canned_response_action
 #: model:ir.ui.menu,name:generic_request_mail.menu_configuration_requests_shortcode
 msgid "Canned Responses"
-msgstr ""
+msgstr "Įrašyti atsakymai"
 
 #. module: generic_request_mail
 #: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_kanban
@@ -108,12 +116,12 @@ msgstr ""
 #. module: generic_request_mail
 #: model:ir.model,name:generic_request_mail.model_res_company
 msgid "Companies"
-msgstr ""
+msgstr "Įmonės"
 
 #. module: generic_request_mail
 #: model:ir.model,name:generic_request_mail.model_res_config_settings
 msgid "Config Settings"
-msgstr ""
+msgstr "Konfigūracijos nustatymai"
 
 #. module: generic_request_mail
 #: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
@@ -130,21 +138,41 @@ msgstr ""
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__create_uid
 msgid "Created by"
-msgstr ""
+msgstr "Sukūrė"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__create_date
 msgid "Created on"
-msgstr ""
+msgstr "Sukurta"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_bounced_content
 msgid "Custom Bounced Message"
-msgstr ""
+msgstr "Pasirinktinis peradresuotas pranešimas"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_defaults
 msgid "Default Values"
+msgstr "Numatytosios reikšmės"
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__mask_email_address
+msgid ""
+"Define when system have to mask email address (for emails sent via Odoo). If "
+"set to none, then user's email will be used in From header of outgoing "
+"message; if set to internal, then only emails from internal users will be "
+"replaced with email of this mail source; if set to all, then all outgoing "
+"emails will be masked with the email of this mail source."
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__mask_email_author_name
+msgid ""
+"Define when system have to mask name of author of outgoing email (for emails "
+"sent via Odoo). If set to none, then user's name will be used in From header "
+"of outgoing message; if set to internal, then only emails from internal "
+"users will be replaced with name of this mail source; if set to all, then "
+"all outgoing emails will be masked with the name of this mail source."
 msgstr ""
 
 #. module: generic_request_mail
@@ -155,22 +183,22 @@ msgstr ""
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__display_name
 msgid "Display Name"
-msgstr ""
+msgstr "Rodomas pavadinimas"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Email"
+msgstr "El. paštas"
 
 #. module: generic_request_mail
 #: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
 msgid "Email Alias"
-msgstr ""
+msgstr "El. pašto pseudonimas"
 
 #. module: generic_request_mail
 #: model:ir.model,name:generic_request_mail.model_mail_thread
 msgid "Email Thread"
-msgstr ""
-
-#. module: generic_request_mail
-#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
-msgid "Emails"
-msgstr ""
+msgstr "El. pašto diskusija"
 
 #. module: generic_request_mail
 #: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
@@ -185,22 +213,17 @@ msgstr ""
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_follower_ids
 msgid "Followers"
-msgstr ""
+msgstr "Sekėjai"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_partner_ids
 msgid "Followers (Partners)"
-msgstr ""
-
-#. module: generic_request_mail
-#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
-msgid "General"
-msgstr ""
+msgstr "Sekėjai (partneriai)"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__has_message
 msgid "Has Message"
-msgstr ""
+msgstr "Turi žinutę"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__id
@@ -213,18 +236,20 @@ msgid ""
 "ID of the parent record holding the alias (example: project holding the task "
 "creation alias)"
 msgstr ""
+"Tėvinio įrašo ID, kuris laiko savyje dukterinį įrašą (pvz.: projektas, "
+"laikantis sukurtas užduotis)"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__message_needaction
 #: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__message_unread
 msgid "If checked, new messages require your attention."
-msgstr ""
+msgstr "Jeigu pažymėta, naujiems pranešimams reikės jūsų dėmesio."
 
 #. module: generic_request_mail
 #: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__message_has_error
 #: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__message_has_sms_error
 msgid "If checked, some messages have a delivery error."
-msgstr ""
+msgstr "Jei pažymėta, yra žinučių, turinčių pristatymo klaidų."
 
 #. module: generic_request_mail
 #: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_bounced_content
@@ -232,6 +257,8 @@ msgid ""
 "If set, this content will automatically be sent out to unauthorized users "
 "instead of the default message."
 msgstr ""
+"Jei nustatyta, šis turinys bus automatiškai išsiųstas neįgaliotiems "
+"vartotojams, vietoj numatyto pranešimo."
 
 #. module: generic_request_mail
 #: model_terms:ir.ui.view,arch_db:generic_request_mail.generic_request_res_config_settings_view_form
@@ -251,7 +278,7 @@ msgstr ""
 #. module: generic_request_mail
 #: model:ir.model,name:generic_request_mail.model_fetchmail_server
 msgid "Incoming Mail Server"
-msgstr ""
+msgstr "Įeinančio pašto serveris"
 
 #. module: generic_request_mail
 #: model_terms:ir.ui.view,arch_db:generic_request_mail.generic_request_res_config_settings_view_form
@@ -259,30 +286,41 @@ msgid "Incoming message validators"
 msgstr ""
 
 #. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Info"
+msgstr "Informacija"
+
+#. module: generic_request_mail
+#: model:ir.model.fields.selection,name:generic_request_mail.selection__request_mail_source__mask_email_address__internal
+#: model:ir.model.fields.selection,name:generic_request_mail.selection__request_mail_source__mask_email_author_name__internal
+msgid "Internal users only"
+msgstr ""
+
+#. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_is_follower
 msgid "Is Follower"
-msgstr ""
+msgstr "Yra sekėjas"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source____last_update
 msgid "Last Modified on"
-msgstr ""
+msgstr "Paskutinį kartą keista"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__write_uid
 msgid "Last Updated by"
-msgstr ""
+msgstr "Paskutinį kartą atnaujino"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__write_date
 msgid "Last Updated on"
-msgstr ""
+msgstr "Paskutinį kartą atnaujinta"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_request__mail_source_id
 #: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_request_search
 msgid "Mail Source"
-msgstr ""
+msgstr "Pašto šaltinis"
 
 #. module: generic_request_mail
 #: model:ir.actions.act_window,name:generic_request_mail.action_request_mail_source_window
@@ -293,33 +331,63 @@ msgstr ""
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_main_attachment_id
 msgid "Main Attachment"
+msgstr "Pagrindinis prisegtukas"
+
+#. module: generic_request_mail
+#: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
+msgid "Mask Author Name"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__mask_email_address
+msgid "Mask Email Address"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__mask_email_author_name
+msgid "Mask Email Author Name"
+msgstr ""
+
+#. module: generic_request_mail
+#: code:addons/generic_request_mail/models/generic_request_mail_source.py:0
+#, python-format
+msgid ""
+"Mask email address set to %(mask_address)s, thus only following values "
+"allowed for maks author name: %(allowed_mask_author_names)s. But got: "
+"%(mask_author_name_val)s."
 msgstr ""
 
 #. module: generic_request_mail
 #: model:ir.model,name:generic_request_mail.model_mail_message
 msgid "Message"
-msgstr ""
+msgstr "Žinutė"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_has_error
 msgid "Message Delivery error"
-msgstr ""
+msgstr "Žinutės pristatymo klaida"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_ids
 msgid "Messages"
-msgstr ""
+msgstr "Žinutės"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__name
 #: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
 msgid "Name"
-msgstr ""
+msgstr "Vardas"
 
 #. module: generic_request_mail
 #: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
 msgid "Navigate to"
 msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model.fields.selection,name:generic_request_mail.selection__request_mail_source__mask_email_address__none
+#: model:ir.model.fields.selection,name:generic_request_mail.selection__request_mail_source__mask_email_author_name__none
+msgid "None"
+msgstr "Nieko"
 
 #. module: generic_request_mail
 #: model_terms:request.request,stage_help_html:generic_request_mail.request_request_type_simple_demo_1
@@ -332,27 +400,27 @@ msgstr ""
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_needaction_counter
 msgid "Number of Actions"
-msgstr ""
+msgstr "Veiksmų skaičius"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_has_error_counter
 msgid "Number of errors"
-msgstr ""
+msgstr "Klaidų kiekis"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__message_needaction_counter
 msgid "Number of messages which requires an action"
-msgstr ""
+msgstr "Žinučių, kurioms reikia jūsų veiksmo, skaičius"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__message_has_error_counter
 msgid "Number of messages with delivery error"
-msgstr ""
+msgstr "Žinučių su pristatymo klaida skaičius"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__message_unread_counter
 msgid "Number of unread messages"
-msgstr ""
+msgstr "Neperskaitytų žinučių skaičius"
 
 #. module: generic_request_mail
 #: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_form
@@ -371,21 +439,23 @@ msgid ""
 "attached, even if they did not reply to it. If set, this will disable the "
 "creation of new records completely."
 msgstr ""
+"Pasirinktinis įrašo ID, prie kurio bus prisegti visi įeinantys laiškai, net "
+"jei į jį ir neatsakė. Jei nustatyta, tai visiškai išjungs naujų įrašų kūrimą."
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_user_id
 msgid "Owner"
-msgstr ""
+msgstr "Savininkas"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_parent_model_id
 msgid "Parent Model"
-msgstr ""
+msgstr "Tėvinis modelis"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_parent_thread_id
 msgid "Parent Record Thread ID"
-msgstr ""
+msgstr "Tėvinio įrašo temos ID"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_parent_model_id
@@ -394,6 +464,9 @@ msgid ""
 "necessarily the model given by alias_model_id (example: project "
 "(parent_model) and task (model))"
 msgstr ""
+"Tėvinis modelis, turintis pseudonimą. Modelis turintis pseudonimo nurodą "
+"nebūtinai yra modelis, suteiktas alias_model_id (pvz.: projektas "
+"(parent_model) ir užduotis (model))"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_contact
@@ -404,6 +477,10 @@ msgid ""
 "- followers: only followers of the related document or members of following "
 "channels\n"
 msgstr ""
+"Žinutės paskelbimo prie dokumento politika naudojant pašto serverį.\n"
+"- visi: visi gali paskelbti\n"
+"- partneriai: tik patvirtinti partneriai\n"
+"- sekėjai: tik susijusio dokumento sekėjai arba sekančių kanalų nariai\n"
 
 #. module: generic_request_mail
 #: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_request_search
@@ -413,11 +490,16 @@ msgstr ""
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__alias_force_thread_id
 msgid "Record Thread ID"
-msgstr ""
+msgstr "Įrašo temos ID"
 
 #. module: generic_request_mail
 #: model:ir.model,name:generic_request_mail.model_request_request
 msgid "Request"
+msgstr ""
+
+#. module: generic_request_mail
+#: model:ir.model,name:generic_request_mail.model_request_classifier
+msgid "Request Classifier"
 msgstr ""
 
 #. module: generic_request_mail
@@ -471,12 +553,12 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__request_ids
 #: model_terms:ir.ui.view,arch_db:generic_request_mail.view_request_mail_source_tree
 msgid "Requests"
-msgstr ""
+msgstr "Užklausos"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_has_sms_error
 msgid "SMS Delivery error"
-msgstr ""
+msgstr "SMS pristatymo klaida"
 
 #. module: generic_request_mail
 #: model_terms:ir.ui.view,arch_db:generic_request_mail.generic_request_res_config_settings_view_form
@@ -533,6 +615,9 @@ msgid ""
 "email that does not reply to an existing record will cause the creation of a "
 "new record of this model (e.g. a Project Task)"
 msgstr ""
+"Modelis (\"Odoo\" dokumento rūšis), su kuriuo susijęs šis pseudonimas. Visi "
+"gaunami laiškai, kurie neatsako į egzistuojantį įrašą, sukurs naują šio "
+"modelio įrašą (pvz. projekto užduotį)"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_name
@@ -540,6 +625,8 @@ msgid ""
 "The name of the email alias, e.g. 'jobs' if you want to catch emails for "
 "<jobs@example.odoo.com>"
 msgstr ""
+"El. pašto pseudonimo pavadinimas, pvz. \"darbai\", jei norite gauti "
+"<darbai@pavyzdys.odoo.com>"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__alias_user_id
@@ -549,6 +636,10 @@ msgid ""
 "the sender (From) address, or will use the Administrator account if no "
 "system user is found for that address."
 msgstr ""
+"Įrašų, sukuriamų gaunant laiškus šiuo vardu, šeimininkas. Jei šis laukas "
+"nėra nustatytas, sistema bandys surasti tikrąjį šeimininką pagal siuntėjo "
+"(nuo) adresą arba naudos administratoriaus paskyrą, jei tam adresui "
+"sistemoje nerandamas vartotojas."
 
 #. module: generic_request_mail
 #: model_terms:request.request,help_html:generic_request_mail.request_request_type_simple_demo_1
@@ -558,12 +649,12 @@ msgstr ""
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_unread
 msgid "Unread Messages"
-msgstr ""
+msgstr "Neperskaitytos žinutės"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__message_unread_counter
 msgid "Unread Messages Counter"
-msgstr ""
+msgstr "Neperskaitytų žinučių skaičiavimas"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,help:generic_request_mail.field_res_config_settings__request_default_mail_source_id
@@ -575,12 +666,12 @@ msgstr ""
 #. module: generic_request_mail
 #: model:ir.model.fields,field_description:generic_request_mail.field_request_mail_source__website_message_ids
 msgid "Website Messages"
-msgstr ""
+msgstr "Interneto svetainės žinutės"
 
 #. module: generic_request_mail
 #: model:ir.model.fields,help:generic_request_mail.field_request_mail_source__website_message_ids
 msgid "Website communication history"
-msgstr ""
+msgstr "Svetainės komunikacijos istorija"
 
 #. module: generic_request_mail
 #: model_terms:request.request,help_html:generic_request_mail.request_request_type_simple_demo_1

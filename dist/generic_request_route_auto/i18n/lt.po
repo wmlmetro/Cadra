@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:06+0000\n"
-"PO-Revision-Date: 2021-06-22 16:06+0000\n"
+"POT-Creation-Date: 2023-07-26 13:23+0000\n"
+"PO-Revision-Date: 2023-07-26 13:23+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -24,22 +24,22 @@ msgstr ""
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_needaction
 msgid "Action Needed"
-msgstr ""
+msgstr "Reikalingas veiksmas"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__active
 msgid "Active"
-msgstr ""
+msgstr "Aktyvus"
 
 #. module: generic_request_route_auto
 #: model_terms:ir.ui.view,arch_db:generic_request_route_auto.view_request_stage_trigger_form
 msgid "Archived"
-msgstr ""
+msgstr "Archyvuota"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_attachment_count
 msgid "Attachment Count"
-msgstr ""
+msgstr "Prisegtukų skaičius"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route__auto_only
@@ -88,12 +88,12 @@ msgstr ""
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__create_uid
 msgid "Created by"
-msgstr ""
+msgstr "Sukūrė"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__create_date
 msgid "Created on"
-msgstr ""
+msgstr "Sukurta"
 
 #. module: generic_request_route_auto
 #: model:request.stage.route.trigger,name:generic_request_route_auto.request_stage_route_trigger_cron_sent_confirmed
@@ -113,7 +113,7 @@ msgstr ""
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__date
 msgid "Date"
-msgstr ""
+msgstr "Data"
 
 #. module: generic_request_route_auto
 #: code:addons/generic_request_route_auto/models/request_stage_route_trigger.py:0
@@ -131,7 +131,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__display_name
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__display_name
 msgid "Display Name"
-msgstr ""
+msgstr "Rodomas pavadinimas"
 
 #. module: generic_request_route_auto
 #: model:request.stage,name:generic_request_route_auto.request_stage_type_auto_draft
@@ -154,7 +154,7 @@ msgstr ""
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__error
 msgid "Error"
-msgstr ""
+msgstr "Klaida"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger_event__error
@@ -169,7 +169,7 @@ msgstr ""
 #. module: generic_request_route_auto
 #: model:ir.model.fields.selection,name:generic_request_route_auto.selection__request_stage_route_trigger__trigger__event
 msgid "Event"
-msgstr ""
+msgstr "Renginys"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__event_condition_ids
@@ -179,22 +179,22 @@ msgstr ""
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__event_type_ids
 msgid "Event Type"
-msgstr ""
+msgstr "Renginio tipas"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_follower_ids
 msgid "Followers"
-msgstr ""
+msgstr "Sekėjai"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_partner_ids
 msgid "Followers (Partners)"
-msgstr ""
+msgstr "Sekėjai (partneriai)"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__route_stage_from_id
 msgid "From"
-msgstr ""
+msgstr "Nuo"
 
 #. module: generic_request_route_auto
 #: model:ir.actions.server,name:generic_request_route_auto.ir_cron_request_auto_route_daily_ir_actions_server
@@ -213,7 +213,7 @@ msgstr ""
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__has_message
 msgid "Has Message"
-msgstr ""
+msgstr "Turi žinutę"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__id
@@ -225,18 +225,18 @@ msgstr ""
 #: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__message_needaction
 #: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__message_unread
 msgid "If checked, new messages require your attention."
-msgstr ""
+msgstr "Jeigu pažymėta, naujiems pranešimams reikės jūsų dėmesio."
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__message_has_error
 #: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__message_has_sms_error
 msgid "If checked, some messages have a delivery error."
-msgstr ""
+msgstr "Jei pažymėta, yra žinučių, turinčių pristatymo klaidų."
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_is_follower
 msgid "Is Follower"
-msgstr ""
+msgstr "Yra sekėjas"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__is_stage_from
@@ -247,43 +247,43 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger____last_update
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event____last_update
 msgid "Last Modified on"
-msgstr ""
+msgstr "Paskutinį kartą keista"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__write_uid
 msgid "Last Updated by"
-msgstr ""
+msgstr "Paskutinį kartą atnaujino"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__write_date
 msgid "Last Updated on"
-msgstr ""
+msgstr "Paskutinį kartą atnaujinta"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_main_attachment_id
 msgid "Main Attachment"
-msgstr ""
+msgstr "Pagrindinis prisegtukas"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__message
 msgid "Message"
-msgstr ""
+msgstr "Žinutė"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_has_error
 msgid "Message Delivery error"
-msgstr ""
+msgstr "Žinutės pristatymo klaida"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_ids
 msgid "Messages"
-msgstr ""
+msgstr "Žinutės"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__name
 #: model_terms:ir.ui.view,arch_db:generic_request_route_auto.view_request_stage_trigger_form
 msgid "Name"
-msgstr ""
+msgstr "Vardas"
 
 #. module: generic_request_route_auto
 #: model:generic.condition,name:generic_request_route_auto.condition_event_request_text_is_confirm_me
@@ -293,27 +293,27 @@ msgstr ""
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_needaction_counter
 msgid "Number of Actions"
-msgstr ""
+msgstr "Veiksmų skaičius"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_has_error_counter
 msgid "Number of errors"
-msgstr ""
+msgstr "Klaidų kiekis"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__message_needaction_counter
 msgid "Number of messages which requires an action"
-msgstr ""
+msgstr "Žinučių, kurioms reikia jūsų veiksmo, skaičius"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__message_has_error_counter
 msgid "Number of messages with delivery error"
-msgstr ""
+msgstr "Žinučių su pristatymo klaida skaičius"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__message_unread_counter
 msgid "Number of unread messages"
-msgstr ""
+msgstr "Neperskaitytų žinučių skaičius"
 
 #. module: generic_request_route_auto
 #: model:request.stage.route,name:generic_request_route_auto.request_stage_route_type_auto_sent_rejected
@@ -335,7 +335,7 @@ msgstr ""
 #: model:ir.model,name:generic_request_route_auto.model_request_request
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__request_id
 msgid "Request"
-msgstr ""
+msgstr "Užklausa"
 
 #. module: generic_request_route_auto
 #: model:request.type,name:generic_request_route_auto.request_type_auto
@@ -366,7 +366,7 @@ msgstr ""
 #: model:ir.model,name:generic_request_route_auto.model_request_type
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__request_type_id
 msgid "Request Type"
-msgstr ""
+msgstr "Užklausos tipas"
 
 #. module: generic_request_route_auto
 #: model:ir.model,name:generic_request_route_auto.model_request_wizard_close
@@ -397,7 +397,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__route_id
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__route_id
 msgid "Route"
-msgstr ""
+msgstr "Maršrutas"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__route_sequence
@@ -422,7 +422,7 @@ msgstr ""
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_has_sms_error
 msgid "SMS Delivery error"
-msgstr ""
+msgstr "SMS pristatymo klaida"
 
 #. module: generic_request_route_auto
 #: model:request.stage.route,name:generic_request_route_auto.request_stage_route_type_auto_draft_to_sent
@@ -443,7 +443,7 @@ msgstr ""
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__sequence
 msgid "Sequence"
-msgstr ""
+msgstr "Seka"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__route_stage_from_id
@@ -453,6 +453,14 @@ msgstr ""
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__success
 msgid "Success"
+msgstr "Pavyko"
+
+#. module: generic_request_route_auto
+#: model_terms:ir.ui.view,arch_db:generic_request_route_auto.view_request_stage_route_trigger_form
+msgid ""
+"The route triggers allow to configure automatic move of request via this "
+"route\n"
+"                        on some conditions or events."
 msgstr ""
 
 #. module: generic_request_route_auto
@@ -475,7 +483,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__trigger
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__trigger_id
 msgid "Trigger"
-msgstr ""
+msgstr "Iššaukimas"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__condition_ids
@@ -496,7 +504,7 @@ msgstr ""
 #: model:ir.actions.act_window,name:generic_request_route_auto.action_request_stage_route_trigger_events
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_request__trigger_event_count
 msgid "Trigger Events"
-msgstr ""
+msgstr "Suaktyvinti įvykiai"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__sudo_enable
@@ -511,7 +519,7 @@ msgstr ""
 #. module: generic_request_route_auto
 #: model_terms:ir.ui.view,arch_db:generic_request_route_auto.view_request_request_form
 msgid "Trigger events"
-msgstr ""
+msgstr "Suaktyvinti įvykiai"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__trigger_on_write_field_ids
@@ -547,27 +555,27 @@ msgstr ""
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_unread
 msgid "Unread Messages"
-msgstr ""
+msgstr "Neperskaitytos žinutės"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__message_unread_counter
 msgid "Unread Messages Counter"
-msgstr ""
+msgstr "Neperskaitytų žinučių skaičiavimas"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger_event__user_id
 msgid "User"
-msgstr ""
+msgstr "Vartotojas"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,field_description:generic_request_route_auto.field_request_stage_route_trigger__website_message_ids
 msgid "Website Messages"
-msgstr ""
+msgstr "Interneto svetainės žinutės"
 
 #. module: generic_request_route_auto
 #: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__website_message_ids
 msgid "Website communication history"
-msgstr ""
+msgstr "Svetainės komunikacijos istorija"
 
 #. module: generic_request_route_auto
 #: model:request.type,name:generic_request_route_auto.request_type_cron

@@ -34,6 +34,27 @@
         </field>
     </record>
 
+    <record model="ir.ui.view" id="view_request_request_location_kanban">
+        <field name="model">request.request</field>
+        <field name="inherit_id"
+               ref="generic_request.view_request_request_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="/kanban" position="inside">
+                <field name="generic_location_id"/>
+            </xpath>
+            <xpath expr="/kanban/templates//div[@name='request_kanban_info_right']/div[@name='kanban_deadline_date']"
+                   position="after">
+                <div t-if="record.generic_location_id.raw_value" name="kanban_generic_location">
+                    <span class="" title="Location">
+                        <span class="fa fa-map-marker"/>
+                        <field name="generic_location_id"/>
+                    </span>
+                </div>
+
+            </xpath>
+        </field>
+    </record>
+
     <record model="ir.ui.view" id="view_request_request_location_search">
         <field name="model">request.request</field>
         <field name="inherit_id"

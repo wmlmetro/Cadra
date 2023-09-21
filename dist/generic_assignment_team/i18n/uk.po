@@ -7,14 +7,17 @@ msgstr ""
 "Project-Id-Version: Odoo Server 12.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2019-09-16 11:45+0000\n"
-"PO-Revision-Date: 2019-09-16 11:45+0000\n"
-"Last-Translator: <>\n"
-"Language-Team: \n"
-"Language: \n"
+"PO-Revision-Date: 2023-08-07 13:43+0000\n"
+"Last-Translator: Galina Prokopenko <am@crnd.pro>\n"
+"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_assignment_team/uk/>\n"
+"Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
-"Plural-Forms: \n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.3.2\n"
 
 #. module: generic_assignment_team
 #: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_assign_policy_rule__assign_team_sort_direction__asc
@@ -65,7 +68,7 @@ msgstr "Правило політики призначення"
 #. module: generic_assignment_team
 #: model_terms:ir.ui.view,arch_db:generic_assignment_team.view_generic_assign_policy_rule_team_form
 msgid "Choice conditions"
-msgstr ""
+msgstr "Умови вибору"
 
 #. module: generic_assignment_team
 #: model_terms:ir.ui.view,arch_db:generic_assignment_team.view_generic_assign_policy_rule_team_form
@@ -75,7 +78,7 @@ msgstr ""
 #. module: generic_assignment_team
 #: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_assign_policy_rule__assign_team_sort_direction__desc
 msgid "Descending"
-msgstr ""
+msgstr "Спадання"
 
 #. module: generic_assignment_team
 #: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_assign_policy_rule__assign_team_choice_type__first
@@ -91,7 +94,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_assignment_team.field_generic_wizard_assign__assign_team_leader_id
 #: model:ir.model.fields,field_description:generic_assignment_team.field_generic_wizard_assign__assign_team_task_manager_id
 msgid "ID"
-msgstr ""
+msgstr "ID"
 
 #. module: generic_assignment_team
 #: model:ir.model.fields.selection,name:generic_assignment_team.selection__generic_assign_policy_rule__assign_team_choice_type__random
@@ -101,12 +104,12 @@ msgstr ""
 #. module: generic_assignment_team
 #: model_terms:ir.ui.view,arch_db:generic_assignment_team.view_generic_assign_policy_rule_team_form
 msgid "Sort direction"
-msgstr ""
+msgstr "Напрям сортування"
 
 #. module: generic_assignment_team
 #: model_terms:ir.ui.view,arch_db:generic_assignment_team.view_generic_assign_policy_rule_team_form
 msgid "Sort field"
-msgstr ""
+msgstr "Поле сортування"
 
 #. module: generic_assignment_team
 #: model:ir.model.fields,field_description:generic_assignment_team.field_generic_assign_policy_rule__assign_team_id

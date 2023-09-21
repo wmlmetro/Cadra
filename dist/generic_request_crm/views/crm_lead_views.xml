@@ -3,15 +3,14 @@
     <record model="ir.ui.view" id="crm_kanban_view">
         <field name="model">crm.lead</field>
         <field name="inherit_id" ref="crm.crm_case_kanban_view_leads"/>
-        <field name="groups_id"
-               eval="[(4, ref('generic_request.group_request_user'))]"/>
         <field name="arch" type="xml">
-            <field name="activity_ids" position="after">
-                <field name="request_count"/>
-            </field>
+            <xpath expr="/kanban/field[@name='activity_ids']" position="after">
+                <field name="request_count" groups="generic_request.group_request_user"/>
+            </xpath>
             <xpath expr="//div[hasclass('oe_kanban_bottom_left')]" position="inside">
                 <span t-if="record.request_count.value>0"
                       title="Requests"
+                      groups="generic_request.group_request_user"
                       class="badge-pill badge-primary">
                     <i class="fa fa-fw fa-comments-o"/>
                     <t t-esc="record.request_count.value"/>
@@ -27,12 +26,14 @@
                 <button name="action_create_request"
                         string="Create request"
                         type="object"
-                        class="btn-info"/>
+                        class="btn-info"
+                        groups="generic_request.group_request_user"/>
             </xpath>
             <xpath expr="//button[@name='action_schedule_meeting']" position="after">
                 <button class="oe_stat_button"
                         type="object"
                         name="action_view_related_requests"
+                        groups="generic_request.group_request_user"
                         icon="fa-comments-o">
                     <div class="o_stat_info">
                         <field name="request_count" class="o_stat_value"/>

@@ -340,11 +340,6 @@ msgid "Request Data"
 msgstr ""
 
 #. module: generic_request_api
-#: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__request_type_id
-msgid "Request Type"
-msgstr ""
-
-#. module: generic_request_api
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__request_ids
 #: model_terms:ir.ui.view,arch_db:generic_request_api.request_api_endpoint_form
 msgid "Requests"
@@ -404,8 +399,14 @@ msgid "Test rest API endpoint (with keys)."
 msgstr ""
 
 #. module: generic_request_api
+#: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__request_type_id
 #: model:ir.model.fields,field_description:generic_request_api.field_request_api_endpoint__type
 msgid "Type"
+msgstr ""
+
+#. module: generic_request_api
+#: model:ir.model.fields,help:generic_request_api.field_request_api_endpoint__request_type_id
+msgid "Type of request"
 msgstr ""
 
 #. module: generic_request_api

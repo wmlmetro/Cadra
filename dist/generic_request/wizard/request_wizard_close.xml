@@ -19,6 +19,7 @@
                                    attrs="{'required': [('require_response', '=', True)]}"
                                    colspan="4"
                                    placeholder="Response..."/>
+                            <field name="attachment_ids" widget="many2many_binary"/>
                         </page>
                         <page string="Reopen as" name="reopen_as"
                               attrs="{'invisible': [('reopen', '=', False)]}">

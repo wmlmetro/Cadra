@@ -1,4 +1,9 @@
 from odoo import api, fields, models, exceptions, _
+from odoo.osv import expression
+
+from odoo.addons.generic_request.models.request_request import (
+    AVAILABLE_PRIORITIES
+)
 from .request_sla_rule import SLA_COMPUTE_TIME
 
 
@@ -9,8 +14,19 @@ class RequestSlaRuleLine(models.Model):
 
     sequence = fields.Integer(
         required=True, index=True, default=5)
+    priority = fields.Selection(
+        selection=AVAILABLE_PRIORITIES,
+        default=False, index=True)
+    tag_id = fields.Many2one(
+        'generic.tag',
+        domain=[('model_id.model', '=', 'request.request')]
+    )
     category_ids = fields.Many2many(
         'request.category', string='Request Categories')
+    service_id = fields.Many2one(
+        'generic.service', index=True)
+    service_level_id = fields.Many2one(
+        'generic.service.level', index=True)
     request_channel_ids = fields.Many2many(
         'request.channel', string="Request Channels"
     )
@@ -39,17 +55,28 @@ class RequestSlaRuleLine(models.Model):
                     "request SLA Rule Line '%s' have no configured "
                     "Working time!") % rec.display_name)
 
-    @api.onchange('sla_rule_id', 'category_ids', 'request_type_id')
+    @api.onchange('service_id', 'sla_rule_id', 'category_ids',
+                  'request_type_id')
     def _onchange_filter_categories(self):
         self.ensure_one()
         for category in self.category_ids:
             if category._origin not in self.request_type_id.category_ids:
                 self.category_ids -= category
+            if self.service_id and (
+                    category._origin not in self.service_id.category_ids):
+                self.category_ids -= category
+
+        category_domain = [
+            ('request_type_ids', 'in', self.request_type_id.id),
+        ]
+        if self.service_id:
+            category_domain = expression.AND([
+                category_domain,
+                [('service_ids', 'in', self.service_id.id)]
+            ])
 
         return {
             'domain': {
-                'category_ids': [
-                    ('request_type_ids', 'in', self.request_type_id.id),
-                ],
+                'category_ids': category_domain,
             },
         }

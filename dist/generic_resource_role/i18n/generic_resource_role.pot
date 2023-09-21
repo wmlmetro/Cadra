@@ -160,6 +160,12 @@ msgid "Creator Role"
 msgstr ""
 
 #. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_is_role_manager
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_is_role_manager
+msgid "Current user is role manager"
+msgstr ""
+
+#. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__ir_model_data_id
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__ir_model_data_id
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type__ir_model_data_id
@@ -601,12 +607,6 @@ msgid "Resource Act Manage Roles"
 msgstr ""
 
 #. module: generic_resource_role
-#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_is_role_manager
-#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_is_role_manager
-msgid "Resource Is Role Manager"
-msgstr ""
-
-#. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__master_model_id
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__sub_model_id
 msgid "Resource Model"
@@ -665,12 +665,6 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_permission_view_search
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_view_search
 msgid "Resource Type"
-msgstr ""
-
-#. module: generic_resource_role
-#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_user_role_ids
-#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_user_role_ids
-msgid "Resource User Role"
 msgstr ""
 
 #. module: generic_resource_role
@@ -926,6 +920,12 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link_sec_view__user_id
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_link_view_search
 msgid "User"
+msgstr ""
+
+#. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_user_role_ids
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_user_role_ids
+msgid "User roles"
 msgstr ""
 
 #. module: generic_resource_role

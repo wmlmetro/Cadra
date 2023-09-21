@@ -24,7 +24,7 @@ class GenericContractResourceLine(models.Model):
         related='contract_id.state',
         readonly=True, store=True, index=True)
     contract_date_start = fields.Date(
-        related='contract_id.date_start',
+        related='contract_id.date_begin',
         store=True, index=True, readonly=True)
     contract_date_end = fields.Date(
         related='contract_id.date_end',

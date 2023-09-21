@@ -11,18 +11,29 @@ class WSDResourceHelpers(WSDHelpers):
         """ Prepare domain for resource autocomplete on website request
             creation form
         """
-        return []
+        domain = []
+        if post.get('service_id'):
+            domain += [('service_ids.id', '=', post['service_id'])]
+        return domain
 
     def _wsd_request_resources_find_resource_types(
             self, req_type, **post):
         """ Find resource types, that have to be available
             for resource selection for current user
         """
-        resource_types = post.get('resource_types', False)
-        if resource_types:
-            return req_type.resource_type_ids.filtered(
-                lambda r: r.id in resource_types)
-        return req_type.resource_type_ids
+        resource_type_ids = post.get('resource_types', False)
+        if resource_type_ids:
+            result = req_type.resource_type_ids.filtered(
+                lambda r: r.id in resource_type_ids)
+        else:
+            result = req_type.resource_type_ids
+
+        if post.get('service_id'):
+            result = http.request.env['generic.resource.type'].search([
+                ('id', 'in', result.ids),
+                ('resource_ids.service_ids', '=', post['service_id'])])
+
+        return result
 
     def _wsd_request_iter_resources_types(
             self, req_type, **post):

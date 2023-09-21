@@ -26,6 +26,13 @@ class RequestStageRouteAction(models.Model):
         help="This user will be assigned to mail activity "
              "if policy returns no users")
 
+    subrequest_assign_policy_id = fields.Many2one(
+        'generic.assign.policy',
+        'Subrequest assign by policy',
+        ondelete='restrict',
+        domain="[('model_id.model', '=', 'request.request')]",
+        tracking=True)
+
     def _get_mail_activity_user_id(self, request):
         if self.mail_activity_assign_type == 'policy':
             policy = self.mail_activity_assign_policy_id
@@ -41,3 +48,11 @@ class RequestStageRouteAction(models.Model):
         if self.assign_type == 'policy':
             self.assign_policy_id.do_assign(request)
         return super(RequestStageRouteAction, self)._run_assign(request, event)
+
+    def _run_subrequest_postprocess_subrequest(self, request, event,
+                                               subrequest):
+        if self.subrequest_assign_policy_id:
+            self.subrequest_assign_policy_id.do_assign(subrequest)
+        return super(
+            RequestStageRouteAction, self
+        )._run_subrequest_postprocess_subrequest(request, event, subrequest)

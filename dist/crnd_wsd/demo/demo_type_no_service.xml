@@ -4,10 +4,15 @@
         <field name="name">Question without service</field>
         <field name="code">saas_question_no_service</field>
         <field name="description">This is request type that does not have related service</field>
-        <field name="category_ids" eval="[(4, ref('request_category_demo_website_general'), 0)]"/>
         <field name="kind_id" ref="request_kind_demo_wsd"/>
-        <field name="website_published" eval="True"/>
         <field name="website_request_text_help">Write here your question.</field>
+    </record>
+
+    <!--Add request.classifier-->
+    <record id="classifier_request_type_without_service_website_general" model="request.classifier">
+        <field name="category_id" ref="crnd_wsd.request_category_demo_website_general"/>
+        <field name="type_id" ref="crnd_wsd.request_type_without_service"/>
+        <field name="website_published" eval="True"/>
     </record>
 
     <!-- Generic request type stages -->

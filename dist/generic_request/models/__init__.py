@@ -1,6 +1,7 @@
 from . import (
     request_request,
     request_category,
+    request_classifier,
     request_stage,
     request_stage_type,
     request_stage_route,

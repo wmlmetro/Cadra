@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Request classifiers for request type API request -->
+    <record id="classifier_test_api_type_test_api_request_category" model="request.classifier">
+        <field name="category_id" ref="generic_request_api.test_api_request_category"/>
+        <field name="type_id" ref="generic_request_api.test_api_request_type"/>
+    </record>
+
+</odoo>

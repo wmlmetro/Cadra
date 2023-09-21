@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:09+0000\n"
-"PO-Revision-Date: 2021-06-22 16:09+0000\n"
+"POT-Creation-Date: 2023-07-26 11:14+0000\n"
+"PO-Revision-Date: 2023-07-26 11:14+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -205,12 +205,22 @@ msgid ""
 "                                    <span class=\"header-separator-splitter"
 "\"/>"
 msgstr ""
+"<span class=\"header-bg-filler\">Užklausa</span><span class=\"header-"
+"separator-splitter\"/>"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
 msgid ""
 "<span class=\"pull-right badge\" id=\"characters_left_label\" data-toggle="
 "\"tooltip\" data-placement=\"bottom\" title=\"Remaining characters.\"/>"
+msgstr ""
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+msgid ""
+"<span class=\"wsd_request header-bg-filler\">Attachments</span>\n"
+"                                    <span class=\"header-separator-splitter"
+"\"/>"
 msgstr ""
 
 #. module: crnd_wsd
@@ -238,7 +248,7 @@ msgstr ""
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_action_log
 msgid "<strong>Assigned</strong>"
-msgstr ""
+msgstr "<strong>Priskirta</strong>"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_action_log
@@ -248,7 +258,7 @@ msgstr ""
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_action_log
 msgid "<strong>Created</strong>"
-msgstr ""
+msgstr "<strong>Sukurta</strong>"
 
 #. module: crnd_wsd
 #: model:request.stage,name:crnd_wsd.request_stage_type_upgrade_accepted
@@ -264,16 +274,21 @@ msgstr ""
 #. module: crnd_wsd
 #: model:ir.model.fields,field_description:crnd_wsd.field_request_request__access_warning
 msgid "Access warning"
-msgstr ""
+msgstr "Prieigos įspėjimas"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_filterbox
 msgid "All"
-msgstr ""
+msgstr "Visi"
 
 #. module: crnd_wsd
 #: model:ir.model.fields.selection,name:crnd_wsd.selection__res_company__request_wsd_public_ui_visibility__create-request
 msgid "Allow to create request"
+msgstr ""
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "Allow to use Service Groups for Services on Website."
 msgstr ""
 
 #. module: crnd_wsd
@@ -284,12 +299,12 @@ msgstr ""
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_simplified_line
 msgid "Assigned"
-msgstr ""
+msgstr "Priskirtas"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_action_log
 msgid "Assignee"
-msgstr ""
+msgstr "Priskirta"
 
 #. module: crnd_wsd
 #: model:ir.model.fields,field_description:crnd_wsd.field_request_request__assignee_avatar
@@ -299,17 +314,17 @@ msgstr ""
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_action_log
 msgid "Author"
-msgstr ""
+msgstr "Autorius"
 
 #. module: crnd_wsd
 #: model:ir.model.fields,field_description:crnd_wsd.field_request_request__author_avatar
 msgid "Author (Avatar)"
-msgstr ""
+msgstr "Autorius"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
 msgid "Back"
-msgstr ""
+msgstr "Atgal"
 
 #. module: crnd_wsd
 #: model_terms:request.request,instruction_html:crnd_wsd.demo_request_request_printer_1
@@ -327,7 +342,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_select_param
 #, python-format
 msgid "Cancel"
-msgstr ""
+msgstr "Atšaukti"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.request_short_info
@@ -336,7 +351,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_table
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_congratulation
 msgid "Category"
-msgstr ""
+msgstr "Kategorija"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_progress
@@ -344,11 +359,13 @@ msgid ""
 "Category\n"
 "                <span/>"
 msgstr ""
+"Kategorija\n"
+"                <span/>"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
 msgid ""
-"Choose if you need to use the author`s phone on the creation page of the "
+"Choose if you need to use the author's phone on the creation page of the "
 "request."
 msgstr ""
 
@@ -359,12 +376,12 @@ msgstr ""
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
-msgid "Choose the layout style applied for request creation steps."
+msgid "Choose the kind of access for link provided in emails."
 msgstr ""
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
-msgid "Choose the the kind of access for link provided in emails."
+msgid "Choose the layout style applied for request creation steps."
 msgstr ""
 
 #. module: crnd_wsd
@@ -389,7 +406,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
 msgid "Close"
-msgstr ""
+msgstr "Uždaryti"
 
 #. module: crnd_wsd
 #: model:request.stage,name:crnd_wsd.request_stage_type_bug_report_closed
@@ -397,17 +414,17 @@ msgstr ""
 #: model:request.stage,name:crnd_wsd.request_stage_type_without_service_closed
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_filterbox
 msgid "Closed"
-msgstr ""
+msgstr "Uždaryta"
 
 #. module: crnd_wsd
 #: model:ir.model.fields,field_description:crnd_wsd.field_request_request__closed_by_avatar
 msgid "Closed By (Avatar)"
-msgstr ""
+msgstr "Uždarė"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_action_log
 msgid "Closed by"
-msgstr ""
+msgstr "Uždarė"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_action_log
@@ -418,33 +435,33 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_table
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_congratulation
 msgid "Comments"
-msgstr ""
+msgstr "Komentarai"
 
 #. module: crnd_wsd
 #: model:ir.model,name:crnd_wsd.model_res_company
 msgid "Companies"
-msgstr ""
+msgstr "Įmonės"
 
 #. module: crnd_wsd
 #: model:ir.model,name:crnd_wsd.model_res_config_settings
 msgid "Config Settings"
-msgstr ""
+msgstr "Konfigūracijos nustatymai"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
 msgid "Create"
-msgstr ""
+msgstr "Sukurti"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests
 msgid "Create request"
-msgstr ""
+msgstr "Pateikti užklausą"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_action_log
 msgid "Created by"
-msgstr ""
+msgstr "Sukūrė"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_simplified_line
@@ -459,7 +476,7 @@ msgstr ""
 #. module: crnd_wsd
 #: model:ir.model.fields,field_description:crnd_wsd.field_request_request__created_by_avatar
 msgid "Creator (Avatar)"
-msgstr ""
+msgstr "Sukurė"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
@@ -469,7 +486,7 @@ msgstr ""
 #. module: crnd_wsd
 #: model:ir.model.fields,help:crnd_wsd.field_request_request__access_url
 msgid "Customer Portal URL"
-msgstr ""
+msgstr "Klientų portalo adresas"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_action_log
@@ -506,7 +523,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_select_param__selection__radio
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_select_param__selection__tile
 msgid "Description"
-msgstr ""
+msgstr "Aprašymas"
 
 #. module: crnd_wsd
 #: model:ir.model.fields,help:crnd_wsd.field_request_type__website_comments_closed
@@ -525,7 +542,7 @@ msgstr ""
 #: code:addons/crnd_wsd/static/src/js/blockui.js:0
 #, python-format
 msgid "Don't leave yet,<br />it's still loading..."
-msgstr ""
+msgstr "Neišeikite, <br /> vis dar kraunama..."
 
 #. module: crnd_wsd
 #: model:request.stage,name:crnd_wsd.request_stage_type_bug_report_draft
@@ -538,7 +555,7 @@ msgstr ""
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
 msgid "Edit"
-msgstr ""
+msgstr "Redaguoti"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
@@ -554,7 +571,7 @@ msgstr ""
 #: code:addons/crnd_wsd/static/src/js/request_actions.js:0
 #, python-format
 msgid "Error"
-msgstr ""
+msgstr "Klaida"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_stage_route_form
@@ -598,11 +615,6 @@ msgid "Generic Question"
 msgstr ""
 
 #. module: crnd_wsd
-#: model:ir.model,name:crnd_wsd.model_generic_service
-msgid "Generic Service"
-msgstr ""
-
-#. module: crnd_wsd
 #: model:request.type,description:crnd_wsd.request_type_generic
 msgid "Generic questions about anything"
 msgstr ""
@@ -610,7 +622,7 @@ msgstr ""
 #. module: crnd_wsd
 #: model:ir.model,name:crnd_wsd.model_ir_http
 msgid "HTTP Routing"
-msgstr ""
+msgstr "HTTP nukreipimas"
 
 #. module: crnd_wsd
 #: model_terms:request.request,instruction_html:crnd_wsd.demo_request_request_printer_1
@@ -620,7 +632,7 @@ msgstr ""
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_timesheet_info
 msgid "Hours"
-msgstr ""
+msgstr "Valandos"
 
 #. module: crnd_wsd
 #: model_terms:request.request,help_html:crnd_wsd.crnd_wsd_subrequest_parent_request
@@ -644,7 +656,7 @@ msgstr ""
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_congratulation
 msgid "It will be reviewed soon"
-msgstr ""
+msgstr "ji netrukus bus peržiūrėta"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
@@ -668,7 +680,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_table
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_congratulation
 msgid "Kind"
-msgstr ""
+msgstr "Rušis"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
@@ -680,7 +692,7 @@ msgstr ""
 #: code:addons/crnd_wsd/static/src/js/blockui.js:0
 #, python-format
 msgid "Loading..."
-msgstr ""
+msgstr "Kraunama..."
 
 #. module: crnd_wsd
 #: model:ir.model.fields.selection,name:crnd_wsd.selection__res_company__request_limit_max_upload_file_size_uom__mbytes
@@ -702,27 +714,27 @@ msgstr ""
 #: code:addons/crnd_wsd/static/src/js/blockui.js:0
 #, python-format
 msgid "Maybe you should consider reloading the application by pressing F5..."
-msgstr ""
+msgstr "Vertėtų perkrauti puslapį paspaudžiant F5 mygtuką ..."
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_filterbox
 msgid "My"
-msgstr ""
+msgstr "Mano"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_navigation
 msgid "New"
-msgstr ""
+msgstr "Naujas"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_select_param
 msgid "Next"
-msgstr ""
+msgstr "Kitas"
 
 #. module: crnd_wsd
 #: model:ir.model.fields,field_description:crnd_wsd.field_request_request__activity_date_deadline
 msgid "Next Activity Deadline"
-msgstr ""
+msgstr "Kito veiksmo terminas"
 
 #. module: crnd_wsd
 #: model:ir.model.fields.selection,name:crnd_wsd.selection__res_company__request_wsd_public_use_author_phone__no-phone
@@ -740,7 +752,7 @@ msgstr ""
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_filterbox
 msgid "Open"
-msgstr ""
+msgstr "Atidaryti"
 
 #. module: crnd_wsd
 #: model:ir.model.fields.selection,name:crnd_wsd.selection__res_company__request_wsd_public_use_author_phone__optional-phone
@@ -765,7 +777,7 @@ msgstr ""
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_timesheet_info
 msgid "Planned time"
-msgstr ""
+msgstr "Planuojamas laikas"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_new_select_param
@@ -796,12 +808,12 @@ msgstr ""
 #. module: crnd_wsd
 #: model:ir.model.fields,field_description:crnd_wsd.field_request_request__access_url
 msgid "Portal Access URL"
-msgstr ""
+msgstr "Portalo prieigos nuoroda"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data_priority
 msgid "Priority"
-msgstr ""
+msgstr "Svarba"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data_priority
@@ -821,7 +833,7 @@ msgstr ""
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
 msgid "Read more"
-msgstr ""
+msgstr "Skaityti daugiau"
 
 #. module: crnd_wsd
 #: model:ir.model.fields,field_description:crnd_wsd.field_res_config_settings__request_on_request_creating_redirect_to
@@ -869,6 +881,8 @@ msgid ""
 "Request\n"
 "                <span/>"
 msgstr ""
+"Užklausa\n"
+"                <span/>"
 
 #. module: crnd_wsd
 #: model:ir.model.fields,field_description:crnd_wsd.field_res_company__request_allowed_upload_file_types
@@ -877,8 +891,8 @@ msgid "Request Allowed Upload File Types"
 msgstr ""
 
 #. module: crnd_wsd
-#: model:ir.model,name:crnd_wsd.model_request_category
-msgid "Request Category"
+#: model:ir.model,name:crnd_wsd.model_request_classifier
+msgid "Request Classifier"
 msgstr ""
 
 #. module: crnd_wsd
@@ -923,7 +937,7 @@ msgstr ""
 #. module: crnd_wsd
 #: model:ir.model,name:crnd_wsd.model_request_type
 msgid "Request Type"
-msgstr ""
+msgstr "Užklausos tipas"
 
 #. module: crnd_wsd
 #: model:ir.model.fields,field_description:crnd_wsd.field_res_company__request_wsd_public_ui_visibility
@@ -977,7 +991,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_navigation
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_portal_my_home
 msgid "Requests"
-msgstr ""
+msgstr "Užklausos"
 
 #. module: crnd_wsd
 #: model:ir.model.fields.selection,name:crnd_wsd.selection__res_company__request_mail_link_access__require-login
@@ -1010,17 +1024,17 @@ msgstr ""
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_filterbox
 msgid "Search by name, type, category or request message"
-msgstr ""
+msgstr "Ieškoti pagal pavadinimą, tipą, kategoriją arba užklauos turinį"
 
 #. module: crnd_wsd
 #: model:ir.model.fields,field_description:crnd_wsd.field_request_request__access_token
 msgid "Security Token"
-msgstr ""
+msgstr "Apsaugos prieigos raktas"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_select_category
 msgid "Select category"
-msgstr ""
+msgstr "Pasirinkite kategoriją"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_select_service
@@ -1028,26 +1042,25 @@ msgid "Select service"
 msgstr ""
 
 #. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_select_service_group
+msgid "Select service group"
+msgstr ""
+
+#. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_select_type
 msgid "Select type"
-msgstr ""
+msgstr "Pasirinkite užklausos rūšį"
 
 #. module: crnd_wsd
 #: code:addons/crnd_wsd/controllers/main.py:0
 #, python-format
-msgid "Selected request type require service!"
-msgstr ""
-
-#. module: crnd_wsd
-#: code:addons/crnd_wsd/controllers/main.py:0
-#, python-format
-msgid "Selected service and request type are incompatible!"
+msgid "Selected service, category and request type are incompatible!"
 msgstr ""
 
 #. module: crnd_wsd
 #: model:ir.model.fields.selection,name:crnd_wsd.selection__request_type__selection_priority_view__selection
 msgid "Selection"
-msgstr ""
+msgstr "Pasirinkimas"
 
 #. module: crnd_wsd
 #: model:ir.model.fields,field_description:crnd_wsd.field_request_type__selection_priority_view
@@ -1058,9 +1071,8 @@ msgstr ""
 #: model:request.stage.route,name:crnd_wsd.request_stage_route_type_bug_report_draft_to_sent
 #: model:request.stage.route,name:crnd_wsd.request_stage_route_type_generic_draft_to_sent
 #: model:request.stage.route,name:crnd_wsd.request_stage_route_type_without_service_draft_to_sent
-#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_progress
 msgid "Send"
-msgstr ""
+msgstr "Siųsti"
 
 #. module: crnd_wsd
 #: model:request.stage,name:crnd_wsd.request_stage_type_bug_report_sent
@@ -1076,7 +1088,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_table
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_congratulation
 msgid "Service"
-msgstr ""
+msgstr "Servisas"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_progress
@@ -1103,6 +1115,19 @@ msgstr ""
 #. module: crnd_wsd
 #: model:res.groups,name:crnd_wsd.group_service_desk_website_user_all_requests
 msgid "Service Desk Website user (All requests)"
+msgstr ""
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_table
+msgid "Service group"
+msgstr ""
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_progress
+msgid ""
+"Service group\n"
+"                    <span/>"
 msgstr ""
 
 #. module: crnd_wsd
@@ -1155,12 +1180,12 @@ msgstr ""
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
 msgid "Stage"
-msgstr ""
+msgstr "Etapas"
 
 #. module: crnd_wsd
 #: model:ir.model.fields.selection,name:crnd_wsd.selection__website__request_create_step_layout__standard
 msgid "Standard"
-msgstr ""
+msgstr "Standartinis"
 
 #. module: crnd_wsd
 #: model:ir.model.fields.selection,name:crnd_wsd.selection__request_type__selection_priority_view__star
@@ -1187,20 +1212,20 @@ msgstr ""
 #: code:addons/crnd_wsd/static/src/js/blockui.js:0
 #, python-format
 msgid "Still loading..."
-msgstr ""
+msgstr "Vis dar kraunama..."
 
 #. module: crnd_wsd
 #. openerp-web
 #: code:addons/crnd_wsd/static/src/js/blockui.js:0
 #, python-format
 msgid "Still loading...<br />Please be patient."
-msgstr ""
+msgstr "Vis dar kraunama...<br />Būkite kantrūs."
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_table
 msgid "Subrequests"
-msgstr ""
+msgstr "Antrinės užklausos"
 
 #. module: crnd_wsd
 #: model:request.category,name:crnd_wsd.request_category_demo_website_support
@@ -1212,7 +1237,7 @@ msgstr ""
 #: code:addons/crnd_wsd/static/src/js/blockui.js:0
 #, python-format
 msgid "Take a minute to get a coffee,<br />because it's loading..."
-msgstr ""
+msgstr "Minutėlę palaukite, išgerkite kavos,<br />kraunama..."
 
 #. module: crnd_wsd
 #: model:request.category,name:crnd_wsd.request_category_demo_website_tech
@@ -1285,7 +1310,7 @@ msgstr ""
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_timesheet_info
 msgid "Time spent"
-msgstr ""
+msgstr "Sugaišta laiko"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
@@ -1310,7 +1335,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_table
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_congratulation
 msgid "Type"
-msgstr ""
+msgstr "Tipas"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_progress
@@ -1318,6 +1343,8 @@ msgid ""
 "Type\n"
 "                <span/>"
 msgstr ""
+"Tipas\n"
+"                <span/>"
 
 #. module: crnd_wsd
 #: code:addons/crnd_wsd/controllers/main.py:0
@@ -1342,6 +1369,12 @@ msgid "Upgraded"
 msgstr ""
 
 #. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_res_config_settings__use_service_groups
+#: model:ir.model.fields,field_description:crnd_wsd.field_website__use_service_groups
+msgid "Use Service Groups"
+msgstr ""
+
+#. module: crnd_wsd
 #: model:res.groups,comment:crnd_wsd.group_service_desk_website_user_all_requests
 msgid ""
 "Users in this groups can see all requests in system, but still not have "
@@ -1356,17 +1389,13 @@ msgstr ""
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_request_form
 msgid "View on Website"
-msgstr ""
+msgstr "Peržiūrėti svetainėje"
 
 #. module: crnd_wsd
-#: model:ir.model.fields,field_description:crnd_wsd.field_generic_service__website_published
-#: model:ir.model.fields,field_description:crnd_wsd.field_request_category__website_published
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_classifier__website_published
 #: model:ir.model.fields,field_description:crnd_wsd.field_request_stage_route__website_published
-#: model:ir.model.fields,field_description:crnd_wsd.field_request_type__website_published
-#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_service_view_search
-#: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_category_search
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_classifier_search
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_stage_route_search
-#: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_type_search
 msgid "Visible in Website"
 msgstr ""
 
@@ -1377,15 +1406,13 @@ msgstr ""
 
 #. module: crnd_wsd
 #: model:ir.model,name:crnd_wsd.model_website
-#: model:ir.model.fields,field_description:crnd_wsd.field_generic_service__website_ids
-#: model:ir.model.fields,field_description:crnd_wsd.field_request_category__website_ids
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_classifier__website_ids
 #: model:ir.model.fields,field_description:crnd_wsd.field_request_request__website_id
-#: model:ir.model.fields,field_description:crnd_wsd.field_request_type__website_ids
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_stage_route_form
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_type_form
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_website_request_request_search
 msgid "Website"
-msgstr ""
+msgstr "Svetainė"
 
 #. module: crnd_wsd
 #: model:ir.model.fields,field_description:crnd_wsd.field_request_type__website_custom_congratulation_note
@@ -1477,7 +1504,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_congratulation
 msgid "Your request has been submitted."
-msgstr ""
+msgstr "Jūsų užklausa pateikta sėkmingai"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
@@ -1539,7 +1566,7 @@ msgstr ""
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_timesheet_info
 msgid "of"
-msgstr ""
+msgstr "iš"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
@@ -1555,7 +1582,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_request_data
 msgid "or"
-msgstr ""
+msgstr "arba"
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form

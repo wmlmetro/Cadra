@@ -84,9 +84,49 @@ msgstr ""
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
 msgid ""
+"<i>Priority</i>: select a priority. For requests of the selected priority, "
+"the current rule line will be active. If no priority is selected, this rule "
+"applies to requests of any priority."
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid ""
 "<i>Request Categories</i>: specify request categories. For requests of these"
 " categories, time limits of the new line will be used. If no category is "
 "selected, this condition applies to requests of any category."
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid ""
+"<i>Request Channels</i>: specify request channels. For requests of these "
+"channels, time limits of the new line will be used. If no channel is "
+"selected, this condition applies to requests of any channel."
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid ""
+"<i>Service Level</i>: specify service level. This rule line will be active "
+"for customers with a selected service level. If no service level is "
+"selected, this condition applies to requests of any service level."
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid ""
+"<i>Service</i>: select a service of requests for which this rule line will "
+"be active. If no service is selected, this condition applies to requests of "
+"any service."
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid ""
+"<i>Tag</i>: select a tag. For requests with the selected tag, the current "
+"rule line will be active. If no tag is selected, this rule applies to "
+"requests of any tags."
 msgstr ""
 
 #. module: generic_request_sla
@@ -276,6 +316,11 @@ msgid "Created on"
 msgstr ""
 
 #. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule_line__priority__5
+msgid "Critical"
+msgstr ""
+
+#. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
 msgid "Date"
 msgstr ""
@@ -346,6 +391,7 @@ msgstr ""
 
 #. module: generic_request_sla
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_event__sla_state__failed
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_report__request_sla_state__failed
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_request__sla_state__failed
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__sla_state__failed
 msgid "Failed"
@@ -363,6 +409,11 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_partner_ids
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_partner_ids
 msgid "Followers (Partners)"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule_line__priority__1
+msgid "For Information"
 msgstr ""
 
 #. module: generic_request_sla
@@ -403,6 +454,11 @@ msgstr ""
 #. module: generic_request_sla
 #: model:generic.condition,name:generic_request_sla.condition_request_has_tag_on_site_fix
 msgid "Has Tag On Site Fix"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule_line__priority__4
+msgid "High"
 msgstr ""
 
 #. module: generic_request_sla
@@ -569,6 +625,11 @@ msgid "Limits"
 msgstr ""
 
 #. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule_line__priority__2
+msgid "Low"
+msgstr ""
+
+#. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_main_attachment_id
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_main_attachment_id
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_main_attachment_id
@@ -579,6 +640,11 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_type__sla_main_rule_id
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_type__sla_compute_type__main_sla_rule
 msgid "Main SLA Rule"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule_line__priority__3
+msgid "Medium"
 msgstr ""
 
 #. module: generic_request_sla
@@ -630,6 +696,11 @@ msgid "None"
 msgstr ""
 
 #. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule_line__priority__0
+msgid "Not set"
+msgstr ""
+
+#. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_needaction_counter
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_needaction_counter
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_needaction_counter
@@ -666,6 +737,7 @@ msgstr ""
 
 #. module: generic_request_sla
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_event__sla_state__ok
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_report__request_sla_state__ok
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_request__sla_state__ok
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__sla_state__ok
 msgid "Ok"
@@ -700,6 +772,11 @@ msgstr ""
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
 msgid "Point the field name to see a tooltip. Or read the"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__priority
+msgid "Priority"
 msgstr ""
 
 #. module: generic_request_sla
@@ -749,6 +826,11 @@ msgid "Request Event"
 msgstr ""
 
 #. module: generic_request_sla
+#: model:ir.model,name:generic_request_sla.model_request_report
+msgid "Request Report"
+msgstr ""
+
+#. module: generic_request_sla
 #: model:ir.model,name:generic_request_sla.model_request_sla_control
 msgid "Request SLA Control"
 msgstr ""
@@ -792,6 +874,16 @@ msgstr ""
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
 msgid "Request category"
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
+msgid "Request service"
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
+msgid "Request service level"
 msgstr ""
 
 #. module: generic_request_sla
@@ -860,14 +952,14 @@ msgid "SLA"
 msgstr ""
 
 #. module: generic_request_sla
-#: model:ir.actions.act_window,name:generic_request_sla.action_request_sla_control_view
-#: model:ir.ui.menu,name:generic_request_sla.menu_request_sla_control
-msgid "SLA Control"
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_request__sla_control_ids
+msgid "SLA Controls"
 msgstr ""
 
 #. module: generic_request_sla
-#: model:ir.model.fields,field_description:generic_request_sla.field_request_request__sla_control_ids
-msgid "SLA Controls"
+#: model:ir.actions.act_window,name:generic_request_sla.action_request_sla_control_view
+#: model:ir.ui.menu,name:generic_request_sla.menu_request_sla_control
+msgid "SLA Controls Report"
 msgstr ""
 
 #. module: generic_request_sla
@@ -881,6 +973,7 @@ msgid "SLA Limit Date"
 msgstr ""
 
 #. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_report__request_sla_limit_date
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_request__sla_limit_date
 msgid "SLA Limit date"
 msgstr ""
@@ -977,6 +1070,7 @@ msgid "SLA Rules"
 msgstr ""
 
 #. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_report__request_sla_state
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_request__sla_state
 msgid "SLA State"
 msgstr ""
@@ -987,6 +1081,7 @@ msgid "SLA Warn"
 msgstr ""
 
 #. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_report__request_sla_warn_date
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_request__sla_warn_date
 msgid "SLA Warn date"
 msgstr ""
@@ -1055,6 +1150,28 @@ msgid ""
 "Sequence determines position of this rule in the list on the SLA Rules page.\n"
 "The lower the sequence, the higher the position.\n"
 "The first active SLA Rule in the list will be the Main SLA Rule for this type of request."
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__request_service_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__service_id
+msgid "Service"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__request_service_level_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__service_level_id
+msgid "Service Level"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__request_service_id
+msgid "Service of request"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__request_service_level_id
+msgid "Service of request. Used to compute SLA for request."
 msgstr ""
 
 #. module: generic_request_sla
@@ -1155,6 +1272,11 @@ msgstr ""
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
 msgid "State"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__tag_id
+msgid "Tag"
 msgstr ""
 
 #. module: generic_request_sla
@@ -1270,6 +1392,7 @@ msgstr ""
 
 #. module: generic_request_sla
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_event__sla_state__warning
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_report__request_sla_state__warning
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_request__sla_state__warning
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__sla_state__warning
 msgid "Warning"

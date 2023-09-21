@@ -12,10 +12,10 @@ class GenericContractTemplate(models.Model):
         'generic.contract.template.resource.line', 'contract_template_id',
         string='Resource Lines')
 
-    def _prepare_contract_values(self, partner, user, date_start, date_end):
+    def _prepare_contract_values(self, partner, user, date_begin, date_end):
         data = super(
             GenericContractTemplate, self
-        )._prepare_contract_values(partner, user, date_start, date_end)
+        )._prepare_contract_values(partner, user, date_begin, date_end)
 
         contract_resource_line_ids_data = []
         for contract_resource_line in self.contract_resource_line_ids:

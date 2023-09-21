@@ -1,5 +1,5 @@
-Generic Request Action Priority
-===============================
+Generic Request Action Priority [Obsolete]
+==========================================
 
 .. |badge2| image:: https://img.shields.io/badge/license-OPL--1-blue.png
     :target: https://www.odoo.com/documentation/user/12.0/legal/licenses/licenses.html#odoo-apps
@@ -17,12 +17,10 @@ Generic Request Action Priority
 
 |badge2| |badge4| |badge5|
 
-Generic Request Action Priority is a module of the Generic Request application. It allows you to set urgency, impact, or priority directly, depending on settings.
+This module reached the end of life and can be safely removed.
+In case of uninstallation, all functionality added by this module will be kept and updatable.
 
-Read the `Generic Request (Actions) Module Guide <https://crnd.pro/doc-bureaucrat-itsm/11.0/en/Generic_Condition_admin_eng/>`__ for more information.
-
-
-This module is part of the Bureaucrat ITSM project. 
+This module is part of the Bureaucrat ITSM project.
 You can try it by the references below.
 
 Launch your own ITSM system in 60 seconds:

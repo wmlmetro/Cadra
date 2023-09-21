@@ -1,15 +1,15 @@
 {
-    'name': "Generic Request Action Priority",
+    'name': "Generic Request Action Priority [Obsolete]",
 
     'summary': """
-        Manage request's priority via automated actions
+        This module reached the end of life and can be safely removed.
     """,
 
     'author': "Center of Research and Development",
     'website': "https://crnd.pro",
 
     'category': 'Generic Request',
-    'version': '15.0.0.3.0',
+    'version': '15.0.0.7.0',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -17,12 +17,8 @@
     ],
 
     # always loaded
-    'data': [
-        'views/request_event_action.xml',
-    ],
-    'demo': [
-        'demo/demo_request_event_action.xml',
-    ],
+    'data': [],
+    'demo': [],
 
     'images': ['static/description/banner.png'],
     'installable': True,
@@ -31,4 +27,5 @@
     'license': 'OPL-1',
     'price': 50.0,
     'currency': 'EUR',
+    'tags': ['obsolete'],
 }

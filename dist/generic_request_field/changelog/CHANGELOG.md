@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 3.29.0
+
+Merged `generic_request_field_service` module.
+
+
 ## Version 3.22.0
 
 Fixed bug due to which the request user could not edit the request field value

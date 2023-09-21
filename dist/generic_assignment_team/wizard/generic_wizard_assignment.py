@@ -23,8 +23,8 @@ class GenericWizardAssign(models.TransientModel):
         related='assign_team_id.task_manager_id.id')
 
     def _do_assign_team(self, assign_obj):
-        field_name_team = self.assign_model_id.assign_team_field_id.name
-        field_name_user = self.assign_model_id.assign_user_field_id.name
+        field_name_team = self.sudo().assign_model_id.assign_team_field_id.name
+        field_name_user = self.sudo().assign_model_id.assign_user_field_id.name
         values = {
             field_name_user: self.assign_team_user_id.id,
         }
@@ -36,7 +36,7 @@ class GenericWizardAssign(models.TransientModel):
 
     def _do_assign_user(self, assign_obj):
         # Clean up team, if we want to assign request to user
-        field_name_team = self.assign_model_id.assign_team_field_id.name
+        field_name_team = self.sudo().assign_model_id.assign_team_field_id.name
         if field_name_team:
             assign_obj.write({field_name_team: False})
         return super(GenericWizardAssign, self)._do_assign_user(assign_obj)

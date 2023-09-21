@@ -4,11 +4,16 @@
     <record id="request_type_with_survey" model="request.type">
         <field name="name">Request with survey</field>
         <field name="code">request_with_survey</field>
-        <field name="category_ids" eval="[(4, ref('generic_request.request_category_demo_general'), 0)]"/>
         <field name="help_html">
             This is demo request type to demonstrate automatic actions.
             When request moves from New to Survey Sent, survey is sent using auto-action.
         </field>
+    </record>
+
+    <!--Add request.classifier-->
+    <record id="classifier_request_type_with_survey_demo_general" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_general"/>
+        <field name="type_id" ref="generic_request_action_survey.request_type_with_survey"/>
     </record>
 
     <!-- Stages -->

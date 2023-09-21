@@ -5,10 +5,11 @@ import logging
 from operator import itemgetter
 from inspect import getmembers
 
-from datetime import datetime
+from datetime import datetime, time
 from dateutil.relativedelta import relativedelta
 from odoo import models, fields, api, tools, _, http, exceptions, SUPERUSER_ID
-from odoo.addons.generic_mixin import pre_write, post_write, pre_create
+from odoo.addons.generic_mixin import (
+    pre_write, post_write, pre_create, post_create)
 from odoo.osv import expression
 from odoo.exceptions import ValidationError
 from odoo.addons.generic_mixin.tools.x2m_agg_utils import read_counts_for_o2m
@@ -41,7 +42,7 @@ def service_level_guesser(priority=None):
         you have to apply this decorator to redefined method too.
 
         :param int priority: used to order guesser.
-            Method with lowest priority will be called first.
+            Method with the lowest priority will be called first.
     """
     if priority is not None and not isinstance(priority, int):
         raise AssertionError("priority must be int")
@@ -115,6 +116,9 @@ class RequestRequest(models.Model):
         'request.type', 'Type', ondelete='restrict',
         required=True, index=True, tracking=True,
         help="Type of request")
+    type_id_domain = fields.Char(
+        compute='_compute_service_category_type_domains'
+    )
     type_color = fields.Char(related="type_id.color", readonly=True)
     kind_id = fields.Many2one(
         'request.kind', related='type_id.kind_id',
@@ -124,6 +128,9 @@ class RequestRequest(models.Model):
         'request.category', 'Category', index=True,
         required=False, ondelete="restrict", tracking=True,
         help="Category of request")
+    category_id_domain = fields.Char(
+        compute='_compute_service_category_type_domains'
+    )
     channel_id = fields.Many2one(
         'request.channel', 'Channel', index=True, required=False,
         help="Channel of request")
@@ -194,11 +201,27 @@ class RequestRequest(models.Model):
         help="Add here internal notes related to this request. "
              "This field is not visible on website.")
     response_text = fields.Html(required=False)
+    response_attachment_ids = fields.Many2many(
+        'ir.attachment',
+        'request_response_attachment_rel',
+        'request_id',
+        'response_attachment_id',
+        'Response Attachments', copy=False)
     request_text_sample = fields.Text(
-        compute="_compute_request_text_sample", tracking=True,
-        string='Request text')
+        compute="_compute_request_text_sample",
+        string='Request text', store=True)
 
-    deadline_date = fields.Date('Deadline', tracking=True)
+    deadline_date = fields.Date(
+        string='Deadline',
+        compute='_compute_deadline_date',
+        inverse='_inverse_deadline_date',
+        store=True, index=True,
+        tracking=True)
+    deadline_date_dt = fields.Datetime(
+        string='Deadline (datetime)',
+        store=True, index=True,
+        tracking=True)
+    deadline_format = fields.Selection(related='type_id.deadline_format')
     deadline_state = fields.Selection(selection=[
         ('ok', 'Ok'),
         ('today', 'Today'),
@@ -349,6 +372,10 @@ class RequestRequest(models.Model):
     service_id = fields.Many2one(
         'generic.service', string='Service', ondelete='restrict',
         help="Service of request")
+    service_id_group = fields.Many2one(
+        comodel_name='generic.service.group',
+        related='service_id.service_group_id',
+        string='Service group', store=True, readonly=True)
 
     # NOTE: Some notes about service level field
     #       Here it is readonly and is not computed, but we have to
@@ -367,9 +394,7 @@ class RequestRequest(models.Model):
         compute='_compute_can_change_service', readonly=True, store=False)
 
     service_id_domain = fields.Text(
-        compute='_compute_service_id_domain', readonly=True, store=False,
-        help='Technical field to provide domain to filter available '
-             'request services in view.')
+        compute='_compute_service_category_type_domains')
 
     _sql_constraints = [
         ('name_uniq',
@@ -516,6 +541,33 @@ class RequestRequest(models.Model):
                 elif date_deadline == now:
                     rec.deadline_state = 'today'
 
+    @api.depends('deadline_date_dt')
+    def _compute_deadline_date(self):
+        for record in self:
+            if record.deadline_date_dt:
+                record.deadline_date = record.deadline_date_dt.date()
+            else:
+                record.deadline_date = False
+
+    def _inverse_deadline_date(self):
+        # On attempt to write to deadline_date, we have to automatically
+        # convert it to datetime, and deadline_date will be computed via
+        # compute method.
+
+        # TODO: Think about handling edge cases. But, it seems that in case
+        #       of dates, odoo does not automatically handles timezones.
+        #       For example, take a look at table below
+        # UTC Date time             | local datetime            | timezone
+        # 2023-07-20 09:21:38+00:00 | 2023-07-19 22:21:38-11:00 | Pacific/Samoa
+        # 2023-07-20 09:21:38+00:00 | 2023-07-20 12:21:38+03:00 | Europe/Kyiv
+        for record in self:
+            if record.type_id.deadline_format == 'date':
+                if record.deadline_date:
+                    record.deadline_date_dt = datetime.combine(
+                        record.deadline_date, time.max)
+                else:
+                    record.deadline_date_dt = False
+
     @api.depends('stage_id', 'stage_id.type_id')
     def _compute_stage_colors(self):
         for rec in self:
@@ -562,20 +614,20 @@ class RequestRequest(models.Model):
         return self.stage_id == self.type_id.sudo().start_stage_id
 
     @api.depends('type_id', 'stage_id', 'user_id',
-                 'partner_id', 'created_by_id', 'category_id')
+                 'partner_id', 'created_by_id', 'category_id', 'tag_ids')
     def _compute_can_change_request_text(self):
         for rec in self:
             rec.can_change_request_text = rec._hook_can_change_request_text()
 
     @api.depends('type_id', 'stage_id', 'user_id',
-                 'partner_id', 'created_by_id', 'category_id')
+                 'partner_id', 'created_by_id', 'category_id', 'tag_ids')
     def _compute_can_change_assignee(self):
         for rec in self:
             rec.can_change_assignee = rec._hook_can_change_assignee()
 
     @api.depends('type_id', 'type_id.start_stage_id', 'stage_id',
                  'user_id', 'partner_id', 'created_by_id', 'request_text',
-                 'category_id')
+                 'category_id', 'tag_ids')
     def _compute_can_change_author(self):
         for record in self:
             if not self.env.user.has_group(
@@ -584,13 +636,13 @@ class RequestRequest(models.Model):
             else:
                 record.can_change_author = record._hook_can_change_author()
 
-    @api.depends('type_id', 'type_id.start_stage_id', 'stage_id')
+    @api.depends('type_id', 'type_id.start_stage_id', 'stage_id', 'tag_ids')
     def _compute_can_change_category(self):
         for record in self:
             record.can_change_category = record._hook_can_change_category()
 
     @api.depends('type_id', 'type_id.start_stage_id', 'stage_id',
-                 'deadline_date', 'category_id')
+                 'deadline_date', 'category_id', 'tag_ids')
     def _compute_can_change_deadline(self):
         for record in self:
             record.can_change_deadline = record._hook_can_change_deadline()
@@ -660,14 +712,16 @@ class RequestRequest(models.Model):
             # search_counts per request to compute stat
             if record.id and record.author_id:
                 record.update({
-                    'author_related_request_open_count': self.search_count(
-                        [('author_id', '=', record.author_id.id),
-                         ('closed', '=', False),
-                         ('id', '!=', record.id)]),
-                    'author_related_request_closed_count': self.search_count(
-                        [('author_id', '=', record.author_id.id),
-                         ('closed', '=', True),
-                         ('id', '!=', record.id)]),
+                    'author_related_request_open_count':
+                        self.sudo().search_count([
+                            ('author_id', '=', record.author_id.id),
+                            ('closed', '=', False),
+                            ('id', '!=', record.id)]),
+                    'author_related_request_closed_count':
+                        self.sudo().search_count([
+                            ('author_id', '=', record.author_id.id),
+                            ('closed', '=', True),
+                            ('id', '!=', record.id)]),
                 })
             else:
                 record.update({
@@ -734,7 +788,7 @@ class RequestRequest(models.Model):
             else:
                 record.timesheet_start_status = 'not-started'
 
-    @api.depends('stage_id')
+    @api.depends('stage_id', 'service_id', 'category_id', 'type_id', 'tag_ids')
     def _compute_stage_route_out_json(self):
         for rec in self:
             routes = []
@@ -745,6 +799,12 @@ class RequestRequest(models.Model):
                     # We have to ignore routes that cannot be used
                     # to move request
                     pass
+                except exceptions.UserError:
+                    # In case of user error, we have to log this error,
+                    # and make this route not available for user.
+                    _logger.warning(
+                        "Cannot check availability of route %s, skipping...",
+                        route.display_name, exc_info=True)
                 else:
                     # Add route to those allowed to move
                     if route.name:
@@ -769,17 +829,16 @@ class RequestRequest(models.Model):
         for record in self:
             record.child_count = mapped_data.get(record.id, 0)
 
-    @api.depends('is_new_request', 'type_id', 'category_id')
-    def _compute_service_id_domain(self):
-        """ Compute domain for service_id field in request and encode it as
-            json string.
-
-            Later this domain will be handled in name_search method of
-            Generic Service model.
+    @api.depends('is_new_request', 'type_id', 'category_id', 'service_id')
+    def _compute_service_category_type_domains(self):
+        """ Compute domains for service_id, category_id, service_id fields in
+            request. Later this domains will be handled in js.
         """
+
         for record in self:
-            record.service_id_domain = json.dumps(
-                record._get_service_id_domain())
+            record.service_id_domain = record._get_service_id_domain()
+            record.category_id_domain = record._get_category_id_domain()
+            record.type_id_domain = record._get_type_id_domain()
 
     def _hook_can_change_service(self):
         self.ensure_one()
@@ -872,7 +931,7 @@ class RequestRequest(models.Model):
     def _add_missing_default_values(self, values):
         if values.get('created_by_id') and 'author_id' not in values:
             # This is required to be present before super call, because
-            # 'author_id' has it's own default value, and and unless it is set
+            # 'author_id' has its own default value, and unless it is set
             # explicitly, original default value (partner of current user)
             # will be used.
             create_user = self.env['res.users'].sudo().browse(
@@ -888,14 +947,22 @@ class RequestRequest(models.Model):
                 res['partner_id'] = author.commercial_partner_id.id
         return res
 
-    @api.model
-    def create(self, vals):
-        if vals.get('type_id', False):
-            r_type = self.env['request.type'].browse(vals['type_id'])
-            vals = self._create_update_from_type(r_type, vals)
+    @api.model_create_multi
+    def create(self, values):
+        values_to_write = []
+        for vals in values:
+            if vals.get('type_id', False):
+                # TODO: rewrite as pre_create hook instead.
+                values_to_write += [
+                    self._create_update_from_type(
+                        self.env['request.type'].browse(vals['type_id']),
+                        vals),
+                ]
+            else:
+                values_to_write += [vals]
 
         self_ctx = self.with_context(mail_create_nolog=False)
-        request = super(RequestRequest, self_ctx).create(vals)
+        requests = super(RequestRequest, self_ctx).create(values_to_write)
 
         # This is needed to avoid creation of requests with wrong parent by
         # accident. For example, in case of following situation:
@@ -908,11 +975,10 @@ class RequestRequest(models.Model):
         if self.env.context.get('generic_request_parent_id'):
             new_ctx = dict(self.env.context)
             new_ctx.pop('generic_request_parent_id')
-            request = request.with_env(request.env(context=new_ctx))
+            requests = requests.with_env(requests.env(context=new_ctx))
 
         self.env['res.partner'].invalidate_cache(fnames=['request_ids'])
-        request.service_level_id = request._get_service_level()
-        return request
+        return requests
 
     def unlink(self):
         res = super().unlink()
@@ -930,16 +996,72 @@ class RequestRequest(models.Model):
         )._get_generic_tracking_fields() | TRACK_FIELD_CHANGES
 
     def _get_service_id_domain(self):
-        """ This method must return domain for 'service_id' field in request.
+        """ This method must return domain for 'service_id_domain' field in
+            request.
             This method could be overridden in other addons.
 
             Also, if new dependency added to domain, then such dependency have
-            to be added also to _compute_service_id_domain method.
+            to be added also to _compute_service_category_type_domains method.
         """
         self.ensure_one()
+        classifier_domain = []
         if not self.is_new_request:
-            return [('request_type_ids', '=', self.type_id.id)]
-        return []
+            classifier_domain = expression.AND([
+                classifier_domain,
+                [('type_id', '=', self.type_id.id)], ])
+
+        classifiers = self.env['request.classifier'].search(classifier_domain)
+        service_id_domain = [('id', 'in', classifiers.mapped(
+            'service_id').ids)]
+        return service_id_domain
+
+    def _get_category_id_domain(self):
+        """ This method must return domain for 'category_id_domain'
+            field in request. This method could be overridden in other addons.
+        """
+        # If no service selected, search only classifiers without service
+        classifier_domain = [
+            ('service_id', '=', self.service_id.id),
+        ]
+        if not self.is_new_request:
+            classifier_domain = expression.AND([
+                classifier_domain,
+                [('type_id', '=', self.type_id.id)],
+            ])
+        classifiers = self.env['request.classifier'].search(
+            classifier_domain)
+        category_id_domain = [
+            ('id', 'in', classifiers.mapped('category_id').ids)]
+        return category_id_domain
+
+    def _get_type_id_domain(self):
+        """ This method must return domain for 'type_id_domain'
+            field in request. This method could be overridden in other addons.
+        """
+        start_domain = [('start_stage_id', '!=', False)]
+
+        # domain resolution for type_id depending on category_id
+        category_type_domain = (
+            [('category_id', '=', self.category_id.id)]
+            if self.category_id
+            else [('category_id', '=', False)])
+
+        # domain resolution for type_id depending on service_id
+        service_type_domain = (
+            [('service_id', '=', self.service_id.id)]
+            if self.service_id
+            else [('service_id', '=', False)])
+
+        # find the records in classifier by domains mentioned above
+        classifier_domain = expression.AND(
+            [category_type_domain, service_type_domain])
+        classifiers = self.env['request.classifier'].search(
+            classifier_domain)
+        classifier_type_ids = classifiers.mapped('type_id').ids
+
+        record_domain = expression.AND(
+            [start_domain, [('id', 'in', classifier_type_ids)]])
+        return record_domain
 
     @pre_write('active')
     def _before_active_changed(self, changes):
@@ -1073,12 +1195,35 @@ class RequestRequest(models.Model):
                 'old_urgency': old,
                 'new_urgency': new})
 
-    @post_write('deadline_date')
-    def _after_deadline_changed(self, changes):
+    @pre_create('deadline_date')
+    def _before_create_convert_deadline_date_to_date_time(self, changes):
+        # This is needed to avoid generation of 'deadline_changed' event
+        # during request creation.
+        # Because deadline_date is compute + inverse, then after record is
+        # created, inverse method will be called to automatically convert
+        # provided deadline_date to deadline_date_dt.
+        # So, we do this conversion in pre-create hook, thus inverse method
+        # will not need to be called.
         old_date, new_date = changes['deadline_date']
+        if not old_date and new_date:
+            return {
+                'deadline_date_dt': datetime.combine(new_date, time.max),
+            }
+        return {}
+
+    # Use as trigger 'deadline_date_dt' field instead of 'deadline_date'
+    # in this method as well,
+    # as it was previously not triggered when only the time changed
+    # but the date remained the same.
+    @post_write('deadline_date_dt')
+    def _after_deadline_changed(self, changes):
+        old_datetime, new_datetime = changes['deadline_date_dt']
+        new_date = new_datetime.date() if new_datetime else False
+        current_datetime = fields.Datetime.now()
+        current_date = current_datetime.date()
         self.trigger_event('deadline-changed', {
-            'old_deadline': old_date,
-            'new_deadline': new_date,
+            'old_deadline': old_datetime,
+            'new_deadline': new_datetime,
         })
 
         # Update event sent status on request
@@ -1088,16 +1233,19 @@ class RequestRequest(models.Model):
             'deadline_event_today_sent': False,
             'deadline_event_overdue_sent': False,
         }
-        if new_date and not self.closed:
+        if new_datetime and not self.closed:
             # Immediately trigger deadline-related date-based events
             # if needed. We do not trigger events on already closed request
-            if new_date == fields.Date.today():
+            if new_date == current_date and new_datetime > current_datetime:
                 self.trigger_event('deadline-today')
                 event_status['deadline_event_today_sent'] = True
-            elif new_date < fields.Date.today():
+            elif new_date == current_date and new_datetime < current_datetime:
                 self.trigger_event('deadline-overdue')
                 event_status['deadline_event_overdue_sent'] = True
-            elif new_date == fields.Date.today() + relativedelta(days=1):
+            elif new_date < current_date:
+                self.trigger_event('deadline-overdue')
+                event_status['deadline_event_overdue_sent'] = True
+            elif new_date == current_date + relativedelta(days=1):
                 self.trigger_event('deadline-tomorrow')
                 event_status['deadline_event_tomorrow_sent'] = True
         self.write(event_status)
@@ -1176,6 +1324,7 @@ class RequestRequest(models.Model):
                 'new_service_id': new_service.id,
             })
 
+    @post_create()
     @post_write('author_id', 'partner_id')
     def _update_service_level_on_write(self, changes):
         self.service_level_id = self._get_service_level()
@@ -1193,7 +1342,7 @@ class RequestRequest(models.Model):
 
         :param init_values: the original values of the record;
                             only modified fields are present in the dict
-        :type init_values: dict
+        :type init_values: dictionary
         :returns: a subtype xml_id or False if no subtype is triggered
         """
         self.ensure_one()
@@ -1236,59 +1385,52 @@ class RequestRequest(models.Model):
 
     @api.onchange('category_id', 'type_id', 'service_id', 'is_new_request')
     def _onchange_category_type(self):
-        # TODO: need to optimise this method
-        # pylint: disable=too-many-branches
+        classifier = self.env['request.classifier']
+
+        # Clear type if it does not exist
+        # for the selected category in classifier
         if self.type_id and self.category_id and self.is_new_request:
-            # Clear type if it does not in allowed type for selected category
-            # Or if request category is not selected
-            if self.type_id not in self.category_id.request_type_ids:
+            if not classifier.get_classifiers(
+                    category=self.category_id.id,
+                    request_type=self.type_id.id,
+                    limit=1):
                 self.type_id = False
 
-        res = {'domain': {}}
-        domain = res['domain']
-        if self.category_id:
-            domain['type_id'] = [
-                ('category_ids', '=', self.category_id.id),
-                ('start_stage_id', '!=', False)]
-        else:
-            domain['type_id'] = [
-                ('category_ids', '=', False),
-                ('start_stage_id', '!=', False)]
-        if not self.is_new_request:
-            domain['category_id'] = [
-                ('request_type_ids', '=', self.type_id.id)]
-        else:
-            domain['category_id'] = []
+        # Clear type if it does not exist
+        # without category in classifier
+        elif self.type_id and not self.category_id and self.is_new_request:
+            if not classifier.get_classifiers(
+                    category=False,
+                    request_type=self.type_id.id,
+                    limit=1):
+                self.type_id = False
 
+        # Clear category if it does not exist
+        # for the selected service in classifier
         if self.category_id and self.service_id:
-            if self.service_id not in self.category_id.service_ids:
+            if not classifier.get_classifiers(
+                    service=self.service_id,
+                    category=self.category_id,
+                    limit=1):
                 self.category_id = False
+
+        # Clear category if it does not exist
+        # without a service in classifiers
         elif self.category_id and not self.service_id:
-            if self.category_id.service_ids:
+            if not classifier.get_classifiers(
+                    service=False,
+                    category=self.category_id,
+                    limit=1):
                 self.category_id = False
 
+        # Clear type if it does not exist
+        # for the selected service in classifier
         if self.service_id and self.is_new_request:
-            if self.type_id not in self.service_id.request_type_ids:
-                # Clean up type only if self is not saved to database
+            if not classifier.get_classifiers(
+                    service=self.service_id,
+                    request_type=self.type_id,
+                    limit=1):
                 self.type_id = None
-
-        if self.service_id:
-            domain['type_id'] = expression.AND([
-                domain['type_id'], [('service_ids', '=', self.service_id.id)],
-            ])
-            domain['category_id'] = expression.AND([
-                domain['category_id'],
-                [('service_ids', '=', self.service_id.id)],
-            ])
-        else:
-            domain['type_id'] = expression.AND([
-                domain['type_id'], [('service_ids', '=', False)],
-            ])
-            domain['category_id'] = expression.AND([
-                domain['category_id'], [('service_ids', '=', False)],
-            ])
-
-        return res
 
     @api.onchange('author_id')
     def _onchange_author_id(self):
@@ -1299,8 +1441,8 @@ class RequestRequest(models.Model):
                 rec.partner_id = False
 
     def _onchange_update_service_level(self):
-        """ Onchange method, that will called to automatically compute service
-            level, allowing to change it in future
+        """ Onchange method, that will be called to automatically
+            compute service level, allowing to change it in future
         """
         self.service_level_id = self._get_service_level()
 
@@ -1349,15 +1491,18 @@ class RequestRequest(models.Model):
         """ Compute context for default notification
         """
         values = event.get_context()
-        values['company'] = self.env.user.company_id
+        values['company'] = self.company_id
         return values
 
     def _send_default_notification__get_msg_params(self, **kw):
         return dict(
             composition_mode='mass_mail',
+            # TODO: Make auto-delete configurable
             auto_delete=True,
             auto_delete_message=False,
             parent_id=False,  # override accidental context defaults
+            # Use mt_note, because otherwise,
+            # message will be sent to all subscribers
             subtype_id=self.env.ref('mail.mt_note').id,
             **kw,
         )
@@ -1385,7 +1530,6 @@ class RequestRequest(models.Model):
         # string.
         lazy_subject = message_data_g.pop('lazy_subject', None)
 
-        self_sudo = self.sudo()
         for partner in partners.sudo():
             # Skip partners without emails to avoid errors
             if not partner.email:
@@ -1396,9 +1540,12 @@ class RequestRequest(models.Model):
             )
 
             # Prepare base context for this notification
-            self_ctx = self_sudo
+            # We have to use sudo, because otherwise external users
+            # will not be able to create request (
+            # that requires to send notification)
+            self_ctx = self.sudo()
 
-            # remove default author from context
+            # Remove default author from context.
             # This is required to fix bug in generic_request_crm:
             # when user create new request from lead, and there is default
             # author specified in context, then all notification messages use
@@ -1418,6 +1565,7 @@ class RequestRequest(models.Model):
                 values=values)
             if lazy_subject:
                 message_data['subject'] = lazy_subject(self_ctx)
+
             self_ctx.message_post_with_view(
                 template,
                 **message_data)
@@ -1489,6 +1637,7 @@ class RequestRequest(models.Model):
             lazy_subject=lambda self: _(
                 "Your request %(request)s has been closed!"
             ) % {'request': self.name},
+            attachment_ids=[(6, 0, self.response_attachment_ids.ids)],
         )
 
     @on_event('reopened')
@@ -1809,6 +1958,21 @@ class RequestRequest(models.Model):
             activity.action_feedback(
                 _('Closing this activity because assignee was unsubscribed!'))
 
+    def _mail_track(self, tracked_fields, initial):
+        # This method is overriden to adjusts the tracked fields in the
+        # request by removing either
+        # 'deadline_date' or 'deadline_date_dt' (both with tracking=True)
+        # from tracked_fields, based on the datetime format configured for
+        # the request type.
+        deadline_format = self.type_id.deadline_format
+        if deadline_format == 'date':
+            tracked_fields.pop('deadline_date_dt', None)
+        elif deadline_format == 'datetime':
+            tracked_fields.pop('deadline_date', None)
+        changes, tracking_value_ids = super()._mail_track(tracked_fields,
+                                                          initial)
+        return changes, tracking_value_ids
+
     def api_move_request(self, route_id):
         """ This method could be used to move request via specified route.
             In case of specified route is closing route, then it will return
@@ -1847,19 +2011,33 @@ class RequestRequest(models.Model):
             - Deadline Overdue
             if needed
         """
-        today = fields.Date.today()
-        tomorrow = today + relativedelta(days=1)
+        current_datetime = fields.Datetime.now()
+        today_date = current_datetime.date()
+        today_dt_begin = datetime.combine(today_date, time.min)
+        today_dt_end = datetime.combine(today_date, time.max)
+
+        tomorrow_date = today_date + relativedelta(days=1)
+        tomorrow_dt_begin = datetime.combine(tomorrow_date, time.min)
+        tomorrow_dt_end = datetime.combine(tomorrow_date, time.max)
+
         requests_deadline_tomorrow = self.sudo().search([
             ('closed', '=', False),
-            ('deadline_date', '=', tomorrow),
+            ('deadline_date_dt', '>=', tomorrow_dt_begin),
+            ('deadline_date_dt', '<=', tomorrow_dt_end),
             ('deadline_event_tomorrow_sent', '=', False)])
         requests_deadline_today = self.sudo().search([
             ('closed', '=', False),
-            ('deadline_date', '=', today),
+            ('deadline_date_dt', '<=', today_dt_end),
+            ('deadline_date_dt', '>=', current_datetime),
             ('deadline_event_today_sent', '=', False)])
+        requests_deadline_today_overdue = self.sudo().search([
+            ('closed', '=', False),
+            ('deadline_date_dt', '>=', today_dt_begin),
+            ('deadline_date_dt', '<', current_datetime),
+            ('deadline_event_overdue_sent', '=', False)])
         requests_deadline_yesterday = self.sudo().search([
             ('closed', '=', False),
-            ('deadline_date', '<', today),
+            ('deadline_date_dt', '<', today_dt_begin),
             ('deadline_event_overdue_sent', '=', False)])
         for request in requests_deadline_tomorrow:
             request.trigger_event('deadline-tomorrow')
@@ -1867,6 +2045,9 @@ class RequestRequest(models.Model):
         for request in requests_deadline_today:
             request.trigger_event('deadline-today')
             request.deadline_event_today_sent = True
+        for request in requests_deadline_today_overdue:
+            request.trigger_event('deadline-overdue')
+            request.deadline_event_overdue_sent = True
         for request in requests_deadline_yesterday:
             request.trigger_event('deadline-overdue')
             request.deadline_event_overdue_sent = True
@@ -1987,5 +2168,25 @@ class RequestRequest(models.Model):
         action.update({
             'name': _('Subrequests'),
             'display_name': _('Subrequests'),
+        })
+        return action
+
+    def action_request_request_diagram(self):
+        self.ensure_one()
+        current_stage_id = self.stage_id.id
+        highlight_color = self.sudo().type_id.current_stage_highlight_color
+        action = self.env['generic.mixin.get.action'].get_action_by_xmlid(
+            'generic_request.action_type_window',
+            name=_('Workflow: %(request_name)s') % {
+                'request_name': self.display_name,
+            },
+            context={'highlight_node_id': current_stage_id,
+                     'highlight_node_color': highlight_color,
+                     'diagram_readonly': True},
+        )
+        action.update({
+            'res_model': 'request.type',
+            'res_id': self.type_id.id,
+            'views': [(False, 'diagram_plus')],
         })
         return action

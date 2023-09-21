@@ -2,7 +2,6 @@
 <odoo>
     <!-- Tree view for generic request sla control -->
     <record id="generic_request_sla_control_view_tree" model="ir.ui.view">
-        <field name="name">request.sla.control.tree</field>
         <field name="model">request.sla.control</field>
         <field name="arch" type="xml">
             <tree create="false" edit="false">
@@ -10,14 +9,18 @@
                 <field name="sla_rule_type_id"/>
                 <field name="sla_rule_id"/>
                 <field name="request_id"/>
-                <field name="request_type_id"/>
+                <field name="request_service_id"
+                       groups="generic_request.group_request_use_services"/>
                 <field name="request_category_id"/>
+                <field name="request_type_id"/>
                 <field name="assigned"/>
                 <field name="compute_time"/>
                 <field name="warn_date"/>
                 <field name="limit_date"/>
                 <field name="calendar_id"/>
                 <field name="user_id"/>
+                <field name="request_service_level_id"
+                       groups="generic_service.group_use_service_level"/>
                 <field name="sla_active"/>
                 <field name="sla_active_date"/>
                 <field name="sla_state"/>
@@ -26,33 +29,55 @@
     </record>
 
     <record id="generic_request_sla_control_view_search" model="ir.ui.view">
-        <field name="name">request.sla.control.search</field>
         <field name="model">request.sla.control</field>
         <field name="arch" type="xml">
             <search>
                 <field name="request_id"/>
-                <field name="request_type_id"/>
+                <field name="request_service_id"
+                       groups="generic_request.group_request_use_services"/>
                 <field name="request_category_id"/>
+                <field name="request_type_id"/>
                 <field name="sla_rule_type_id"/>
                 <field name="sla_rule_id"/>
                 <field name="user_id"/>
+                <field name="request_service_level_id"
+                       groups="generic_service.group_use_service_level"/>
                 <field name="date"/>
 
                 <group name="group_group_by" expand="0" string="Group By...">
-                     <filter name="group_by_request" string="Request" context="{'group_by': 'request_id'}"/>
-                     <filter name="group_by_request_type" string="Request type" context="{'group_by': 'request_type_id'}"/>
-                     <filter name="group_by_request_category" string="Request category" context="{'group_by': 'request_category_id'}"/>
-                     <filter name="group_by_sla_rule_type" string="SLA Rule type" context="{'group_by': 'sla_rule_type_id'}"/>
-                     <filter name="group_by_date" string="Date" context="{'group_by': 'date'}"/>
-                     <filter name="group_by_assigned" string="Assigned" context="{'group_by': 'assigned'}"/>
-                     <filter name="group_by_compute_time" string="Compute time" context="{'group_by': 'compute_time'}"/>
+                     <filter name="group_by_request"
+                             string="Request"
+                             context="{'group_by': 'request_id'}"/>
+                     <filter name="group_by_request_service"
+                             string="Request service"
+                             context="{'group_by': 'request_service_id'}"
+                             groups="generic_request.group_request_use_services"/>
+                     <filter name="group_by_request_category"
+                             string="Request category"
+                             context="{'group_by': 'request_category_id'}"/>
+                     <filter name="group_by_request_type"
+                             string="Request type"
+                             context="{'group_by': 'request_type_id'}"/>
+                     <filter name="group_by_sla_rule_type"
+                             string="SLA Rule type"
+                             context="{'group_by': 'sla_rule_type_id'}"/>
+                    <filter name="group_by_request_service_level"
+                            string="Request service level"
+                            context="{'group_by': 'request_service_level_id'}"
+                            groups="generic_service.group_use_service_level"/>
+                     <filter name="group_by_date"
+                             string="Date"
+                             context="{'group_by': 'date'}"/>
+                     <filter name="group_by_assigned"
+                             string="Assigned" context="{'group_by': 'assigned'}"/>
+                     <filter name="group_by_compute_time"
+                             string="Compute time" context="{'group_by': 'compute_time'}"/>
                 </group>
             </search>
         </field>
     </record>
 
     <record id="generic_request_sla_control_view_pivot" model="ir.ui.view">
-        <field name="name">request.sla.control.pivot</field>
         <field name="model">request.sla.control</field>
         <field name="arch" type="xml">
             <pivot>
@@ -65,7 +90,6 @@
     </record>
 
     <record id="generic_request_sla_control_view_graph" model="ir.ui.view">
-        <field name="name">request.sla.control.graph</field>
         <field name="model">request.sla.control</field>
         <field name="arch" type="xml">
             <graph>
@@ -76,7 +100,6 @@
     </record>
 
     <record id="generic_request_sla_control_form" model="ir.ui.view">
-        <field name="name">request.sla.control.form</field>
         <field name="model">request.sla.control</field>
         <field name="arch" type="xml">
             <form>
@@ -102,8 +125,12 @@
                         </group>
                         <group name="group_request_info" string="Request">
                             <field name="request_id"/>
-                            <field name="request_type_id"/>
+                            <field name="request_service_id"
+                                   groups="generic_request.group_request_use_services"/>
                             <field name="request_category_id"/>
+                            <field name="request_type_id"/>
+                            <field name="request_service_level_id"
+                                   groups="generic_service.group_use_service_level"/>
                         </group>
                     </group>
                     <group>
@@ -138,12 +165,12 @@
     </record>
 
     <record id="action_request_sla_control_view" model="ir.actions.act_window">
-      <field name="name">SLA Control</field>
+      <field name="name">SLA Controls Report</field>
       <field name="res_model">request.sla.control</field>
       <field name="view_mode">pivot,graph,tree</field>
     </record>
 
-    <menuitem name="SLA Control" id="menu_request_sla_control"
+    <menuitem name="SLA Controls Report" id="menu_request_sla_control"
               parent="generic_request.menu_request_report"
               action="action_request_sla_control_view"/>
 </odoo>

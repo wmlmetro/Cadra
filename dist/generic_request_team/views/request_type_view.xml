@@ -4,8 +4,8 @@
         <field name="model">request.type</field>
         <field name="inherit_id" ref="generic_request.view_request_type_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//table[@name='table-notification-settings']/tbody/tr[td[text()='Assigned']]" position="after">
-                <tr>
+            <xpath expr="//table[@name='table-notification-settings']/tbody/tr[@name='tr-notification-assigned']" position="after">
+                <tr name="tr-notification-assigned-team">
                     <td class="text-left">Assigned Team</td>
                     <td><field name="send_default_assigned_team_notification" style="width: 25%"/></td>
                     <td><field name="assigned_team_notification_show_request_text"/></td>

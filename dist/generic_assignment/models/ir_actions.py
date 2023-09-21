@@ -13,7 +13,7 @@ class IrActionsServer(models.Model):
         ondelete={'assign_by_policy': 'cascade'}
     )
     assign_policy_id = fields.Many2one(
-        'generic.assign.policy', 'Assign Policy', tracking=True)
+        'generic.assign.policy', 'Assign Policy')
 
     @api.model
     def _run_action_assign_by_policy(self, eval_context=None):

@@ -296,11 +296,13 @@ class TestRequestField(TestRequestFieldCase):
         self.assertIs(request.get_field_value(
             'comment', FIELD_NOT_FOUND), '')
 
-        # Add categories to type of requests
-        self.field_type.write({
-            'category_ids': [(4, self.request_category_demo.id),
-                             (4, self.request_category_demo_technical.id)]
-        })
+        # Add classifiers to type of requests
+        self.ensure_classifier(
+            category=self.request_category_demo,
+            request_type=self.field_type)
+        self.ensure_classifier(
+            category=self.request_category_demo_technical,
+            request_type=self.field_type)
 
         # Add category to memory field
         self.request_field_memory.write({
@@ -340,12 +342,13 @@ class TestRequestField(TestRequestFieldCase):
         )
 
     def test_show_data_with_category_in_field_and_request(self):
-
-        # Add categories to type of requests
-        self.field_type.write({
-            'category_ids': [(4, self.request_category_demo.id),
-                             (4, self.request_category_demo_technical.id)]
-        })
+        # Add classifiers to type of requests
+        self.ensure_classifier(
+            category=self.request_category_demo,
+            request_type=self.field_type)
+        self.ensure_classifier(
+            category=self.request_category_demo_technical,
+            request_type=self.field_type)
 
         Request = self.env['request.request']
         # Create request with field_type
@@ -420,11 +423,10 @@ class TestRequestField(TestRequestFieldCase):
         )
 
     def test_constrains_category_in_field(self):
-
-        # Add categories to type of requests
-        self.field_type.write({
-            'category_ids': [(4, self.request_category_demo.id)]
-        })
+        # Add classifiers to type of requests
+        self.ensure_classifier(
+            category=self.request_category_demo,
+            request_type=self.field_type)
 
         Request = self.env['request.request']
         # Create request with field_type
@@ -453,10 +455,10 @@ class TestRequestField(TestRequestFieldCase):
         self.request_field_memory.write({'category_ids': [(5, )]})
         self.assertEqual(self.request_field_memory.category_ids.ids, [])
 
-        # Add categories to type of requests
-        self.field_type.write({
-            'category_ids': [(4, self.request_category_demo_technical.id)]
-        })
+        # Add classifiers to type of requests
+        self.ensure_classifier(
+            category=self.request_category_demo_technical,
+            request_type=self.field_type)
 
         # Add category to memory field
         self.request_field_memory.write({
@@ -470,11 +472,13 @@ class TestRequestField(TestRequestFieldCase):
         )
 
     def test_constrains_category_in_request_type(self):
-        # Add categories to type of requests
-        self.field_type.write({
-            'category_ids': [(4, self.request_category_demo.id),
-                             (4, self.request_category_demo_technical.id)]
-        })
+        # Add classifiers to type of requests
+        self.ensure_classifier(
+            category=self.request_category_demo,
+            request_type=self.field_type)
+        self.ensure_classifier(
+            category=self.request_category_demo_technical,
+            request_type=self.field_type)
 
         Request = self.env['request.request']
         # Create request with field_type
@@ -498,11 +502,10 @@ class TestRequestField(TestRequestFieldCase):
             'category_ids': [(4, self.request_category_demo_technical.id)]
         })
 
-        # Ensure ValidationError if remove category from type of requests
         with self.assertRaises(exceptions.ValidationError):
-            self.field_type.write({
-                'category_ids': [(3, self.request_category_demo_technical.id)]
-            })
+            self.field_type.classifier_ids.filtered(
+                lambda c: c.category_id == self.request_category_demo_technical
+            ).unlink()
 
     def test_fields_default_jinja_template_onchanges(self):
         self.request_field_comment.default = (
@@ -538,6 +541,9 @@ class TestRequestField(TestRequestFieldCase):
         self.assertEqual(
             request.get_field_value('cpu'),
             "%s Cores" % self.env.user.id)
+
+        # Note, that this test have to be run with module mail_bot installed,
+        # because that module changes the name of base.user_root to OdooBot
         self.assertEqual(
             request.get_field_value('comment'),
             "Current user's name = OdooBot")

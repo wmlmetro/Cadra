@@ -19,3 +19,6 @@ class RequestType(models.Model):
     change_author_condition_ids = fields.Many2many(
         'generic.condition', 'request_type_change_author_cond_rel',
         'type_id', 'condition_id', string='Can change author')
+    change_service_condition_ids = fields.Many2many(
+        'generic.condition', 'request_type_change_service_cond_rel',
+        'type_id', 'condition_id', string='Can change service')

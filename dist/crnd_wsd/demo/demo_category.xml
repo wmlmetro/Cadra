@@ -6,7 +6,6 @@
         <field name="description">
             SaAS related requests
         </field>
-        <field name="website_published" eval="True"/>
     </record>
 
     <record id="request_category_demo_website_tech" model="request.category">
@@ -15,7 +14,6 @@
         <field name="description">
             Technical requests
         </field>
-        <field name="website_published" eval="True"/>
         <field name="parent_id" ref="request_category_demo_website"/>
     </record>
 
@@ -23,19 +21,24 @@
         <field name="name">Support</field>
         <field name="code">saas-support</field>
         <field name="description">Website support related requests</field>
-        <field name="website_published" eval="True"/>
         <field name="parent_id" ref="request_category_demo_website"/>
-        <field name="request_type_ids"
-               eval="[(4, ref('crnd_service_desk.request_type_incident'))]"/>
     </record>
 
     <record id="request_category_demo_website_general" model="request.category">
         <field name="name">General</field>
         <field name="code">saas-general</field>
         <field name="description">General website requests</field>
-        <field name="website_published" eval="True"/>
         <field name="parent_id" ref="request_category_demo_website"/>
-        <field name="request_type_ids"
-               eval="[(4, ref('crnd_service_desk.request_type_incident'))]"/>
+    </record>
+
+    <!--Add request.classifier-->
+    <record id="classifier_request_type_incident_website_support" model="request.classifier">
+        <field name="category_id" ref="crnd_wsd.request_category_demo_website_support"/>
+        <field name="type_id" ref="crnd_service_desk.request_type_incident"/>
+        <field name="website_published" eval="True"/>
+    </record>
+    <record id="classifier_request_type_incident_website_general" model="request.classifier">
+        <field name="category_id" ref="crnd_wsd.request_category_demo_website_general"/>
+        <field name="type_id" ref="crnd_service_desk.request_type_incident"/>
     </record>
 </odoo>

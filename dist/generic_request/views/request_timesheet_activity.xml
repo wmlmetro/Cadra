@@ -9,17 +9,28 @@
                         <h1>
                             <field name="name" placeholder="The name of timesheet activity..."/>
                         </h1>
-                        <h2>
-                            <field name="code"/>
-                        </h2>
-                        <h3>
-                            <field name="request_type_ids"
-                                   widget="many2many_tags"
-                                   placeholder="Request types..."/>
-                        </h3>
                     </div>
-                    <field name="description"
-                           placeholder="Describe this timesheet activity"/>
+                    <notebook>
+                        <page name="page_info" string="Info">
+                            <group name="group_info_root" colspan="4">
+                                <group name="group_info_left">
+                                    <field name="code"/>
+                                    <field name="require_description"/>
+                                </group>
+                                <group name="group_info_right"></group>
+                            </group>
+                            <group colspan="4" string="Description">
+                                <field name="description"
+                                       nolabel="1"
+                                       placeholder="Describe this timesheet activity"/>
+                            </group>
+                        </page>
+                        <page name="page_request_types" string="Request Types">
+                            <field name="request_type_ids"
+                                   nolabel="1"
+                                   placeholder="Request types..."/>
+                        </page>
+                    </notebook>
                 </sheet>
             </form>
         </field>
@@ -44,6 +55,9 @@
                 <field name="name"/>
 
                 <separator/>
+                <filter name="filter_active"
+                        string="Active"
+                        domain="[('active', '=', True)]"/>
                 <filter name="filter_archived"
                         string="Archived"
                         domain="[('active', '=', False)]"/>

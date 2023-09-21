@@ -2,6 +2,8 @@ import logging
 import collections
 from odoo import models, fields, api
 
+from ..tools.event_handler_path import EventHandlerPath
+
 _logger = logging.getLogger(__name__)
 
 
@@ -42,10 +44,30 @@ class GenericSystemEventSourceHandlerMap(models.Model):
 
     @property
     def _source_handler_path_map(self):
+        """ This property builds mapping that describes how to reach
+            target records from source records.
+
+            In terms of this property:
+            source - record that generated event
+            target - records that have to handle event
+            path - path that describes how to reach target records
+                from source records
+
+            The resuld of this proerty is dictionary of following format:
+                {
+                    'handler model': {
+                        'source model': EventPath,
+                    }
+                }
+        """
         res = collections.defaultdict(dict)
+        # TODO: replace with search_read. possibly it could be faster
         for rec in self.sudo().search([]):
-            res[rec.event_handler_model_name][rec.event_source_model] = (
+            path = EventHandlerPath(
+                rec.event_source_model,
+                rec.event_handler_model_name,
                 rec.source_to_handler_path)
+            res[path.target_model][path.source_model] = path
 
         # Memoize result on class
         type(self)._source_handler_path_map = dict(res)
@@ -67,7 +89,9 @@ class GenericSystemEventSourceHandlerMap(models.Model):
         if not src_model.system_event_source_id:
             # Source is not event handler
             _logger.warning(
-                "Attempt to add path from model that is not event source")
+                "Attempt to add path from model (%s) to model (%s) as %s, "
+                "but source model (%s) is not event source!",
+                source_model, handler_model, path, source_model)
             return
 
         self.env.cr.execute("""

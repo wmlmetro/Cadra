@@ -100,7 +100,7 @@ class ContractInvoicingTest(TestGenericContractCommon):
                 'partner_id': self.partner_customer.id,
                 'template_id': self.template_basic_support.id,
                 'user_id': self.env.user.id,
-                'date_start': fields.Date.from_string('2019-05-14'),
+                'date_begin': fields.Date.from_string('2019-05-14'),
             })
             contract = wizard._create_contract()
             contract.action_confirm()

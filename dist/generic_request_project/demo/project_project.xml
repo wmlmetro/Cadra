@@ -46,7 +46,7 @@
     </record>
     <record id="working_hours_analyse" model="account.analytic.line">
         <field name="name">Requirements analysis and specification</field>
-        <field name="user_id" ref='base.user_root'/>
+        <field name="user_id" ref='base.user_demo'/>
         <field name="date" eval="(DateTime.now() + relativedelta(days=-1)).strftime('%Y-%m-%d')"/>
         <field name="unit_amount">2.00</field>
         <field name="project_id" ref="project_functional_support"/>
@@ -63,7 +63,7 @@
     </record>
     <record id="working_hours_update_docs" model="account.analytic.line">
         <field name="name">Added description of 'SLA per resource' feature to product documentation</field>
-        <field name="user_id" ref='base.user_root'/>
+        <field name="user_id" ref='base.user_demo'/>
         <field name="date" eval="(DateTime.now() + relativedelta(days=-1)).strftime('%Y-%m-%d')"/>
         <field name="unit_amount">4.00</field>
         <field name="project_id" ref="project_functional_support"/>
@@ -81,7 +81,7 @@
     </record>
     <record id="working_hours_task_development" model="account.analytic.line">
         <field name="name">Creating tasks for technical team</field>
-        <field name="user_id" ref='base.user_root'/>
+        <field name="user_id" ref='base.user_demo'/>
         <field name="date" eval="(DateTime.now() + relativedelta(days=-1)).strftime('%Y-%m-%d')"/>
         <field name="unit_amount">1.00</field>
         <field name="project_id" ref="project_functional_support"/>
@@ -99,7 +99,7 @@
     </record>
     <record id="working_hours_task_development_basic_models" model="account.analytic.line">
         <field name="name">Create basic models and UI</field>
-        <field name="user_id" ref='base.user_root'/>
+        <field name="user_id" ref='base.user_demo'/>
         <field name="date" eval="DateTime.now().strftime('%Y-%m-%d')"/>
         <field name="unit_amount">1.00</field>
         <field name="project_id" ref="project_technical_support"/>
@@ -108,7 +108,7 @@
     </record>
     <record id="working_hours_task_development_add_logic" model="account.analytic.line">
         <field name="name">Added logic. Everything seems to be working.</field>
-        <field name="user_id" ref='base.user_root'/>
+        <field name="user_id" ref='base.user_demo'/>
         <field name="date" eval="DateTime.now().strftime('%Y-%m-%d')"/>
         <field name="unit_amount">4.00</field>
         <field name="project_id" ref="project_technical_support"/>
@@ -117,7 +117,7 @@
     </record>
     <record id="working_hours_task_development_testing" model="account.analytic.line">
         <field name="name">Testing, minor fixes.</field>
-        <field name="user_id" ref='base.user_root'/>
+        <field name="user_id" ref='base.user_demo'/>
         <field name="date" eval="DateTime.now().strftime('%Y-%m-%d')"/>
         <field name="unit_amount">1.00</field>
         <field name="project_id" ref="project_technical_support"/>
@@ -134,7 +134,7 @@
     </record>
     <record id="working_hours_task_development_automated_tests" model="account.analytic.line">
         <field name="name">Added automated tests, fixed few bugs.</field>
-        <field name="user_id" ref='base.user_root'/>
+        <field name="user_id" ref='base.user_demo'/>
         <field name="date" eval="(DateTime.now() + relativedelta(days=+1)).strftime('%Y-%m-%d')"/>
         <field name="unit_amount">3.00</field>
         <field name="project_id" ref="project_technical_support"/>

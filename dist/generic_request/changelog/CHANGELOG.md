@@ -1,5 +1,82 @@
 # Changelog
 
+## Version 4.7.0
+
+- Introducing a new feature: Requests now supports using of Service Groups in web interface.
+- This addition allows users to conveniently organize requests by service groups using filter and grouping.
+
+This option is configurable on Request Settings level.
+
+
+## Version 4.2.0
+
+Added ability to use Datetime format for Deadline field.
+This option is configurable on Request Type level.
+
+
+## Version 4.0.0
+
+This release changes the way of configuration of relations between
+services, categories and types of request.
+In previous versions, it was required to configure these relations in few different places:
+
+- *request type - request category* was configurable from both sides (type and category), but not from service.
+- *request type - service* was configurable from both sides (type and service), but not from category.
+- *request category - service* was configurable from both sides (category and service), but not from type.
+
+Thus, it was difficult to understand what service is related to what type and categories.
+With this version, we introduce new entity *Request Classifier*, that
+represents triple relation (service, category, type) in single row.
+
+Starting from this version, the Classifiers table is the only place to set up
+relations between services, categories and type. This way, it will be possible
+to look at all allowed combinations of service, category and type in single place.
+Also, all classifiers related to specific request type will be displayed,
+on request type's form view.
+
+This update includes automatic migration, so all data from previous relations,
+have to be automatically migrated during module update.
+
+But, ***it is recommended to take backup of your database before applying this update***.
+
+
+## Version 3.33.0
+
+Added ability to make description field required in timelog for certain timesheet activities.
+
+
+## Version 3.32.0
+
+Added a diagram view feature to visualize the request workflow.
+
+
+## Version 3.17.0
+
+Fixed count of opened/closed author related requests on request form.
+Now displays the valid number of author requests regardless of user rights.
+Implemented within request BUG231020.
+
+
+## Version 3.15.0
+
+Added few warnings to wizard that pops-up when user stop tracking time.
+- In case when amount to be logged is between 8 and 12 hour,
+  the yellow warning will be shown, that asks user to check if entered amount is correct.
+- In case when amount to be logged is greater than 12 hours,
+  then danger (red) warning will be shown, that asks user to double-check entered amount.
+- When user starts work on new request, but have unfinished work
+  (time tracking started, but not completed) on other request,
+  then warning will be shown, that asks user to carefully review info in wizard,
+  noting, that this is wizard related to unfinished request.
+
+This should help to reduce amount if incorrectly logged time.
+
+
+## Version 3.3.0
+
+Add response attachment files when closing requests.
+
+
 ## Version 3.0.0
 
 - Merged services into the core

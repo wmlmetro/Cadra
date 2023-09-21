@@ -14,6 +14,14 @@ msgstr ""
 "Plural-Forms: \n"
 
 #. module: generic_request_message_status
+#: model:res.groups,comment:generic_request_message_status.group_request_message_status
+msgid ""
+"\n"
+"            User can see message status notification in kanban and tree view.\n"
+"        "
+msgstr ""
+
+#. module: generic_request_message_status
 #: model:ir.model.fields,help:generic_request_message_status.field_request_request__request_messaging_date
 msgid "Date of the last message posted on the record."
 msgstr ""
@@ -46,6 +54,11 @@ msgstr ""
 #. module: generic_request_message_status
 #: model:ir.model.fields,field_description:generic_request_message_status.field_request_request__request_messaging_state_highlight
 msgid "Request Messaging State Highlight"
+msgstr ""
+
+#. module: generic_request_message_status
+#: model:res.groups,name:generic_request_message_status.group_request_message_status
+msgid "Show message status"
 msgstr ""
 
 #. module: generic_request_message_status

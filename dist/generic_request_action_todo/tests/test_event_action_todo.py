@@ -1,7 +1,7 @@
-from odoo.tests.common import SavepointCase
+from odoo.tests.common import TransactionCase
 
 
-class TestToDoActions(SavepointCase):
+class TestToDoActions(TransactionCase):
 
     @classmethod
     def setUpClass(cls):

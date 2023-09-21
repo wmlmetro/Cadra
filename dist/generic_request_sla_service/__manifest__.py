@@ -1,15 +1,15 @@
 {
-    'name': "Generic Request SLA (Service)",
+    'name': "Generic Request SLA (Service) [Obsolete]",
 
     'summary': """
-        Allows you to use different SLA limits and warning times per service.
+        This module reached the end of life and can be safely removed.
     """,
 
     'author': "Center of Research and Development",
     'website': "https://crnd.pro",
 
     'category': 'Generic Request',
-    'version': '15.0.0.9.0',
+    'version': '15.0.0.13.0',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -18,11 +18,8 @@
 
     # always loaded
     'data': [
-        'views/request_sla_rule_view.xml',
-        'views/request_sla_control_view.xml',
     ],
     'demo': [
-        'demo/request_sla_rule_line.xml'
     ],
     'images': [
         'static/description/banner.png',
@@ -33,4 +30,5 @@
     'license': 'OPL-1',
     'price': 50.0,
     'currency': 'EUR',
+    'tags': ['obsolete'],
 }

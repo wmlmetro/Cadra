@@ -9,10 +9,6 @@
                       groups="generic_request.group_request_use_services">
                     <field name="request_type_ids"/>
                 </page>
-                <page string="Categories"
-                      groups="generic_request.group_request_use_services">
-                    <field name="category_ids"/>
-                </page>
             </xpath>
             <xpath expr="//div[@name='button_box']" position="inside">
                 <button class="oe_stat_button" type="object"
@@ -20,6 +16,12 @@
                         icon="fa-weixin"
                         groups="generic_request.group_request_use_services">
                     <field string="Requests" name="request_count" widget="statinfo"/>
+                </button>
+                <button class="oe_stat_button" type="object"
+                        name="action_show_classifiers"
+                        icon="fa-folder-open"
+                        groups="generic_request.group_request_use_services">
+                    <field string="Classifiers" name="request_classifier_count" widget="statinfo"/>
                 </button>
             </xpath>
         </field>
@@ -53,6 +55,7 @@
                     <span class="fa fa-hashtag"/>
                     <span><t t-esc="record.request_type_count.raw_value"/></span>
                 </a>
+                <!--TODO: do we need this button?-->
                 <a name="action_show_service_categories"
                    type="object"
                    title="Request Categories"

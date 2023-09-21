@@ -219,6 +219,16 @@ msgid ""
 msgstr ""
 
 #. module: generic_system_event
+#: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__resource_type_id
+msgid "Generic Resource Type"
+msgstr ""
+
+#. module: generic_system_event
+#: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__resource_type_ids
+msgid "Generic Resource Types"
+msgstr ""
+
+#. module: generic_system_event
 #: model:ir.model,name:generic_system_event.model_generic_system_event
 #: model:ir.model,name:generic_system_event.model_generic_system_event_type
 msgid "Generic System Event"
@@ -241,7 +251,9 @@ msgstr ""
 
 #. module: generic_system_event
 #: model:ir.model,name:generic_system_event.model_generic_system_event_source
+#: model:ir.model.fields,field_description:generic_system_event.field_generic_resource_type__system_event_source_id
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__system_event_source_id
+#: model:ir.model.fields,field_description:generic_system_event.field_generic_tag_model__system_event_source_id
 #: model:ir.model.fields,field_description:generic_system_event.field_ir_model__system_event_source_id
 msgid "Generic System Event Source"
 msgstr ""
@@ -257,7 +269,9 @@ msgid "Generic System Event Source: Handler Map"
 msgstr ""
 
 #. module: generic_system_event
+#: model:ir.model.fields,field_description:generic_system_event.field_generic_resource_type__system_event_source_ids
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__system_event_source_ids
+#: model:ir.model.fields,field_description:generic_system_event.field_generic_tag_model__system_event_source_ids
 #: model:ir.model.fields,field_description:generic_system_event.field_ir_model__system_event_source_ids
 msgid "Generic System Event Sources"
 msgstr ""
@@ -315,6 +329,11 @@ msgstr ""
 #. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__inherited_model_ids
 msgid "Inherited models"
+msgstr ""
+
+#. module: generic_system_event
+#: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__is_generic_resource
+msgid "Is Generic Resource"
 msgstr ""
 
 #. module: generic_system_event
@@ -518,6 +537,11 @@ msgstr ""
 #. module: generic_system_event
 #: model:ir.model.fields.selection,name:generic_system_event.selection__generic_system_event_source__vacuum_time_uom__weeks
 msgid "Weeks"
+msgstr ""
+
+#. module: generic_system_event
+#: model:ir.model.fields,help:generic_system_event.field_generic_system_event_source__is_generic_resource
+msgid "Whether this model is Generic Resource."
 msgstr ""
 
 #. module: generic_system_event

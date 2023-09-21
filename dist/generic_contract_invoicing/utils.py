@@ -7,6 +7,10 @@ from odoo.tools.safe_eval import safe_eval, wrap_module
 from odoo.addons.generic_mixin import render_jinja_string
 from odoo.addons.generic_mixin.tools.utils import removeprefix
 
+# Import here for backward compatibility
+# pylint: disable=unused-import
+from odoo.addons.generic_contract.utils import get_recurring_next_date  # noqa
+
 _logger = logging.getLogger(__name__)
 
 mods = ['parser', 'relativedelta', 'rrule', 'tz']
@@ -23,43 +27,6 @@ _relativedelta = dateutil.relativedelta.relativedelta
 _time = wrap_module(
     __import__('time'), ['time', 'strptime', 'strftime'])
 _timezone = pytz.timezone
-
-
-def get_recurring_next_date(date_start, recurring_type, recurring_period):
-    """ Generate next recurring date starting from 'date_start'
-
-        :param Date date_start: starting date for recurrence
-        :param str recurring_type: One of predefined values.
-                                   See below for details.
-        :param int recurring_period: Recurring interval.
-
-        Following recurring types available:
-            - 'dayly'
-            - 'weekly'
-            - 'monthly'
-            - 'monthly-last-day'
-            - 'yearly'
-    """
-    if recurring_type == 'daily':
-        delta = _relativedelta(days=recurring_period)
-    elif recurring_type == 'weekly':
-        delta = _relativedelta(weeks=recurring_period)
-    elif recurring_type == 'monthly':
-        delta = _relativedelta(months=recurring_period)
-    elif recurring_type == 'monthly-last-day':
-        if date_start.month == (date_start + _relativedelta(days=1)).month:
-            # date start is not last day of month
-            # (if we can add 1 day and month will not be changed)
-            # In this case we have to use same month for next recurring date
-            delta = _relativedelta(months=recurring_period - 1, day=31)
-        else:
-            delta = _relativedelta(months=recurring_period, day=31)
-    elif recurring_type == 'yearly':
-        delta = _relativedelta(years=recurring_period)
-    else:
-        delta = _relativedelta()
-
-    return date_start + delta
 
 
 # TODO: move to separate module and add documentation

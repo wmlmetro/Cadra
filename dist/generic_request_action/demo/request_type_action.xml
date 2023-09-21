@@ -4,7 +4,16 @@
     <record id="request_type_action" model="request.type">
         <field name="name">Action Request</field>
         <field name="code">action</field>
-        <field name="category_ids" eval="[(4, ref('generic_request.request_category_demo_general'), 0)]"/>
+    </record>
+
+    <!--Add request.classifier-->
+    <record id="classifier_request_type_action_demo_general" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_general"/>
+        <field name="type_id" ref="generic_request_action.request_type_action"/>
+    </record>
+    <record id="classifier_request_type_action_demo_auto_change_deadline" model="request.classifier">
+        <field name="category_id" ref="generic_request_action.request_category_demo_auto_change_deadline"/>
+        <field name="type_id" ref="generic_request_action.request_type_action"/>
     </record>
 
     <!-- Action request type stages -->
@@ -140,6 +149,19 @@
         <field name="created_by_id" ref="generic_request.user_demo_request"/>
         <field name="author_id" ref="base.res_partner_address_2"/>
         <field name="category_id" ref="generic_request.request_category_demo_general"></field>
+    </record>
+
+    <record id="request_request_type_action_demo_2" model="request.request">
+        <field name="request_text"><![CDATA[
+            <h1>Action Request</h1>
+
+            <p>This is demo request to demonstrate how automated action 'Demo / Auto change deadline'
+                work after assigning a responsible person request.</p>
+        ]]></field>
+        <field name="type_id" ref="request_type_action"/>
+        <field name="created_by_id" ref="generic_request.user_demo_request"/>
+        <field name="author_id" ref="base.res_partner_address_2"/>
+        <field name="category_id" ref="generic_request_action.request_category_demo_auto_change_deadline"></field>
     </record>
 
 </odoo>

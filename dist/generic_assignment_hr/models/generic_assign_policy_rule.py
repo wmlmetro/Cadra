@@ -81,10 +81,10 @@ class GenericAssignPolicyRule(models.Model):
 
             choice_type = self.assign_department_choice_type or 'random'
             order = None
-            if self.assign_department_sort_field_id:
+            if self.sudo().assign_department_sort_field_id:
                 order = ("%s %s" % (
-                    self.assign_department_sort_field_id.name,
-                    self.assign_department_sort_direction))
+                    self.sudo().assign_department_sort_field_id.name,
+                    self.sudo().assign_department_sort_direction))
 
             employee = self._choose_record(employees, choice_type, order)
             if employee:

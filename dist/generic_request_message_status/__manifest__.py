@@ -9,13 +9,15 @@
     'website': "https://crnd.pro",
 
     'category': 'Generic Request',
-    'version': '15.0.0.6.1',
+    'version': '15.0.0.11.0',
 
     'depends': [
         'generic_request',
     ],
 
     'data': [
+        'security/security.xml',
+
         'views/request_request_view.xml',
     ],
 
@@ -30,4 +32,6 @@
     'installable': True,
     'auto_install': True,
     'license': 'OPL-1',
+    'price': 20.0,
+    'currency': 'EUR',
 }

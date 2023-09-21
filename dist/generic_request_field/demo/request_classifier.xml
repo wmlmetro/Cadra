@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Request classifiers for type Create VM -->
+    <record id="classifier_request_type_field_service_default_tech_config" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_default"/>
+        <field name="category_id" ref="generic_request.request_category_demo_technical_configuration"/>
+        <field name="type_id" ref="generic_request_field.request_type_field"/>
+    </record>
+    <record id="classifier_request_type_field_no_service_no_category" model="request.classifier">
+        <field name="type_id" ref="generic_request_field.request_type_field"/>
+    </record>
+
+    <!-- Request classifiers for type Create LXC -->
+    <record id="classifier_request_type_lxc_service_default_tech_config" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_default"/>
+        <field name="category_id" ref="generic_request.request_category_demo_technical_configuration"/>
+        <field name="type_id" ref="generic_request_field.request_type__create_lxc"/>
+    </record>
+    <record id="classifier_request_type_lxc_no_service_tech_config" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_technical_configuration"/>
+        <field name="type_id" ref="generic_request_field.request_type__create_lxc"/>
+    </record>
+
+</odoo>

@@ -1,5 +1,5 @@
-Generic Request Action Subrequest Assignment
-============================================
+Generic Request Action Subrequest Assignment [Obsolete]
+=======================================================
 
 .. |badge2| image:: https://img.shields.io/badge/license-OPL--1-blue.png
     :target: https://www.odoo.com/documentation/user/12.0/legal/licenses/licenses.html#odoo-apps
@@ -14,9 +14,8 @@ Generic Request Action Subrequest Assignment
 
 |badge2| |badge5|
 
-Generic Request (Action Subrequest Assignment) is a module of the Generic Request application. It provides integration between the Generic Request Action Subrequest and Generic Assignment modules. 
-
-Read the `Generic Request (Action Subrequest) <https://crnd.pro/doc-bureaucrat-itsm/11.0/en/Generic_Request_Action_Subrequest_admin_eng/>`__ Module Guide for more information.
+This module reached the end of life and can be safely removed.
+In case of uninstallation, all functionality added by this module will be kept and updatable.
 
 This module is part of the Bureaucrat ITSM project. 
 You can try it by the references below.

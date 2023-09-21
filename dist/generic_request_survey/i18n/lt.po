@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-11-07 23:16+0000\n"
-"PO-Revision-Date: 2021-11-07 23:16+0000\n"
+"POT-Creation-Date: 2023-07-26 11:14+0000\n"
+"PO-Revision-Date: 2023-07-26 11:14+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -30,6 +30,25 @@ msgid ""
 "<p>Thanks for your participation!</p>\n"
 "            \n"
 "        "
+msgstr ""
+"\n"
+"            \n"
+"<p>Sveiki</p>\n"
+"<p>Mes atliekame apklausą, ir jūsų atsakymas būtų labai vertingas.</p>\n"
+"<p><a style=\"margin-left: 85px; padding:5px 10px; border-radius: 3px; "
+"background-color:#875A7B; text-align:center; text-decoration:none; color:"
+"#F7FBFD;\" target=\"_blank\" href=\"__URL__\">Prašome spausti čia, jei "
+"norite pradėti apklausą</a></p>\n"
+"<p>Dėkojame už dalyvavimą!</p>\n"
+"            \n"
+"        "
+
+#. module: generic_request_survey
+#: model:ir.model.fields,help:generic_request_survey.field_request_request__stage_allow_send_survey
+#: model:ir.model.fields,help:generic_request_survey.field_request_stage__allow_send_survey
+msgid ""
+"\"Send Survey\" button will be visible only when this option is enabled at "
+"the current Request stage."
 msgstr ""
 
 #. module: generic_request_survey
@@ -54,12 +73,18 @@ msgstr ""
 #. module: generic_request_survey
 #: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
 msgid "Add existing contacts..."
+msgstr "Pridėti egzistuojančias sutartis..."
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_request__stage_allow_send_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_stage__allow_send_survey
+msgid "Allow Send Survey"
 msgstr ""
 
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_request__answer_count
 msgid "Answer Count"
-msgstr ""
+msgstr "Atsakymų skaičius"
 
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_request__answer_ids
@@ -67,7 +92,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_request_survey.view_request_request_survey_answer
 #: model_terms:ir.ui.view,arch_db:generic_request_survey.view_request_type_survey_answer
 msgid "Answers"
-msgstr ""
+msgstr "Atsakymai"
 
 #. module: generic_request_survey
 #: model:survey.question,title:generic_request_survey.environment_4
@@ -82,7 +107,7 @@ msgstr ""
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__attachment_ids
 msgid "Attachments"
-msgstr ""
+msgstr "Prisegtukai"
 
 #. module: generic_request_survey
 #: model:survey.question,title:generic_request_survey.configuration_1
@@ -97,7 +122,7 @@ msgstr ""
 #. module: generic_request_survey
 #: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
 msgid "Cancel"
-msgstr ""
+msgstr "Atšaukti"
 
 #. module: generic_request_survey
 #: model:survey.question,title:generic_request_survey.configuration
@@ -107,22 +132,22 @@ msgstr ""
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__body
 msgid "Contents"
-msgstr ""
+msgstr "Turinys"
 
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__create_uid
 msgid "Created by"
-msgstr ""
+msgstr "Sukūrė"
 
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__create_date
 msgid "Created on"
-msgstr ""
+msgstr "Sukurta"
 
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__display_name
 msgid "Display Name"
-msgstr ""
+msgstr "Rodomas pavadinimas"
 
 #. module: generic_request_survey
 #: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
@@ -238,17 +263,17 @@ msgstr ""
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey____last_update
 msgid "Last Modified on"
-msgstr ""
+msgstr "Paskutinį kartą keista"
 
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__write_uid
 msgid "Last Updated by"
-msgstr ""
+msgstr "Paskutinį kartą atnaujino"
 
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__write_date
 msgid "Last Updated on"
-msgstr ""
+msgstr "Paskutinį kartą atnaujinta"
 
 #. module: generic_request_survey
 #: model:survey.question.answer,value:generic_request_survey.environment_1_choice_3
@@ -288,7 +313,7 @@ msgstr ""
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__partner_ids
 msgid "Partners"
-msgstr ""
+msgstr "Partneriai"
 
 #. module: generic_request_survey
 #: code:addons/generic_request_survey/wizard/request_send_survey.py:0
@@ -309,7 +334,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__request_id
 #: model:ir.model.fields,field_description:generic_request_survey.field_survey_user_input__request_id
 msgid "Request"
-msgstr ""
+msgstr "Užklausa"
 
 #. module: generic_request_survey
 #: model:ir.model,name:generic_request_survey.model_request_event
@@ -317,15 +342,20 @@ msgid "Request Event"
 msgstr ""
 
 #. module: generic_request_survey
+#: model:ir.model,name:generic_request_survey.model_request_stage
+msgid "Request Stage"
+msgstr ""
+
+#. module: generic_request_survey
 #: model:ir.model,name:generic_request_survey.model_request_type
 #: model:ir.model.fields,field_description:generic_request_survey.field_survey_user_input__request_type_id
 msgid "Request Type"
-msgstr ""
+msgstr "Užklausos tipas"
 
 #. module: generic_request_survey
 #: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
 msgid "Send"
-msgstr ""
+msgstr "Siųsti"
 
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__send_assignee
@@ -351,7 +381,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
 #: model_terms:ir.ui.view,arch_db:generic_request_survey.view_request_request_survey_answer
 msgid "Send Survey"
-msgstr ""
+msgstr "Siųsti apklausą"
 
 #. module: generic_request_survey
 #: model:ir.actions.act_window,name:generic_request_survey.request_request_send_survey_action
@@ -376,18 +406,18 @@ msgstr ""
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__subject
 msgid "Subject"
-msgstr ""
+msgstr "Tema"
 
 #. module: generic_request_survey
 #: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
 msgid "Subject..."
-msgstr ""
+msgstr "Tema..."
 
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_event__survey_id
 #: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
 msgid "Survey"
-msgstr ""
+msgstr "Apklausa"
 
 #. module: generic_request_survey
 #: model:mail.template,name:generic_request_survey.email_template_survey
@@ -423,7 +453,7 @@ msgstr ""
 #: model:ir.model,name:generic_request_survey.model_survey_user_input
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_event__survey_user_input_id
 msgid "Survey User Input"
-msgstr ""
+msgstr "Apklausos vartotojo įvestis"
 
 #. module: generic_request_survey
 #: model:mail.template,subject:generic_request_survey.email_template_survey
@@ -483,12 +513,12 @@ msgstr ""
 #. module: generic_request_survey
 #: model:ir.model.fields,help:generic_request_survey.field_survey_user_input__request_type_id
 msgid "Type of request"
-msgstr ""
+msgstr "Užklausos tipas"
 
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__template_id
 msgid "Use template"
-msgstr ""
+msgstr "Naudoti šabloną"
 
 #. module: generic_request_survey
 #: model:survey.question.answer,value:generic_request_survey.bug_priority_3_choice_1

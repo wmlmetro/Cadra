@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:03+0000\n"
-"PO-Revision-Date: 2021-06-22 16:03+0000\n"
+"POT-Creation-Date: 2023-07-26 11:15+0000\n"
+"PO-Revision-Date: 2023-07-26 11:15+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -24,22 +24,22 @@ msgstr ""
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__access_ids
 msgid "Access"
-msgstr ""
+msgstr "Prieiga"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__request_action_name
 msgid "Action Name"
-msgstr ""
+msgstr "Veiksmo pavadinimas"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__active
 msgid "Active"
-msgstr ""
+msgstr "Aktyvus"
 
 #. module: generic_request_related_doc
 #: model_terms:ir.ui.view,arch_db:generic_request_related_doc.view_request_related_document_type_form
 msgid "Archived"
-msgstr ""
+msgstr "Archyvuota"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__assignment_model_ids
@@ -54,7 +54,7 @@ msgstr ""
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__comment
 msgid "Comment"
-msgstr ""
+msgstr "Komentaras"
 
 #. module: generic_request_related_doc
 #: model_terms:ir.ui.view,arch_db:generic_request_related_doc.view_request_related_document_form
@@ -64,7 +64,7 @@ msgstr ""
 #. module: generic_request_related_doc
 #: model:request.related.document.type,name:generic_request_related_doc.related_document_type__res_partner
 msgid "Contact"
-msgstr ""
+msgstr "Kontaktai"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__count
@@ -75,29 +75,29 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__create_uid
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__create_uid
 msgid "Created by"
-msgstr ""
+msgstr "Sukūrė"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__create_date
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__create_date
 msgid "Created on"
-msgstr ""
+msgstr "Sukurta"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__display_name
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__display_name
 msgid "Display Name"
-msgstr ""
+msgstr "Rodomas pavadinimas"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__doc_id
 msgid "Document"
-msgstr ""
+msgstr "Dokumentas"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__model_id
 msgid "Document Model"
-msgstr ""
+msgstr "Dokumento modelis"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__doc_type_id
@@ -108,7 +108,7 @@ msgstr ""
 #: model:ir.actions.act_window,name:generic_request_related_doc.action_doc_in_request
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_request__related_doc_ids
 msgid "Documents"
-msgstr ""
+msgstr "Dokumentai"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_request__related_docs_count
@@ -118,12 +118,12 @@ msgstr ""
 #. module: generic_request_related_doc
 #: model:request.stage,name:generic_request_related_doc.request_stage_type_sale_problem_draft
 msgid "Draft"
-msgstr ""
+msgstr "Šablonas"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__field_id
 msgid "Fields"
-msgstr ""
+msgstr "Laukai"
 
 #. module: generic_request_related_doc
 #: model:request.stage,name:generic_request_related_doc.request_stage_type_sale_problem_fixed
@@ -173,17 +173,17 @@ msgstr ""
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__modules
 msgid "In Apps"
-msgstr ""
+msgstr "Programose"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__info
 msgid "Information"
-msgstr ""
+msgstr "Informacija"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__inherited_model_ids
 msgid "Inherited models"
-msgstr ""
+msgstr "Paveldėti modeliai"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__is_generic_resource
@@ -194,19 +194,19 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document____last_update
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type____last_update
 msgid "Last Modified on"
-msgstr ""
+msgstr "Paskutinį kartą keista"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__write_uid
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__write_uid
 msgid "Last Updated by"
-msgstr ""
+msgstr "Paskutinį kartą atnaujino"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__write_date
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__write_date
 msgid "Last Updated on"
-msgstr ""
+msgstr "Paskutinį kartą atnaujinta"
 
 #. module: generic_request_related_doc
 #: model_terms:ir.ui.view,arch_db:generic_request_related_doc.view_request_related_document_form
@@ -223,7 +223,7 @@ msgstr ""
 #. module: generic_request_related_doc
 #: model:ir.model.fields,help:generic_request_related_doc.field_request_related_document_type__modules
 msgid "List of modules in which the object is defined or inherited"
-msgstr ""
+msgstr "Modulių sąrašas, kuriame objektas yra apibrėžtas arba paveldėtas"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__is_mail_activity
@@ -233,12 +233,12 @@ msgstr ""
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__is_mail_blacklist
 msgid "Mail Blacklist"
-msgstr ""
+msgstr "Pašto juodasis sąrašas"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__is_mail_thread
 msgid "Mail Thread"
-msgstr ""
+msgstr "El. pašto susirašinėjimas"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__is_mail_thread_sms
@@ -249,12 +249,12 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__model_id
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__model
 msgid "Model"
-msgstr ""
+msgstr "Šablonas"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__doc_model
 msgid "Model Name"
-msgstr ""
+msgstr "Modelio pavadinimas"
 
 #. module: generic_request_related_doc
 #: model:ir.model.constraint,message:generic_request_related_doc.constraint_request_related_document_type_model_id_uniq
@@ -266,7 +266,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_request_related_doc.view_request_related_document_form
 #: model_terms:ir.ui.view,arch_db:generic_request_related_doc.view_request_related_document_tree
 msgid "Name"
-msgstr ""
+msgstr "Vardas"
 
 #. module: generic_request_related_doc
 #: model_terms:ir.ui.view,arch_db:generic_request_related_doc.view_request_related_document_form
@@ -276,22 +276,22 @@ msgstr ""
 #. module: generic_request_related_doc
 #: model_terms:ir.ui.view,arch_db:generic_request_related_doc.view_request_related_document_tree
 msgid "Open Document"
-msgstr ""
+msgstr "Atidaryti dokumentą"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__order
 msgid "Order"
-msgstr ""
+msgstr "Užsakymas"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__rule_ids
 msgid "Record Rules"
-msgstr ""
+msgstr "Įrašo taisyklės"
 
 #. module: generic_request_related_doc
 #: model:request.stage,name:generic_request_related_doc.request_stage_type_sale_problem_rejected
 msgid "Rejected"
-msgstr ""
+msgstr "Atšaukta"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_request__related_doc_search
@@ -308,7 +308,7 @@ msgstr ""
 #: model:ir.model,name:generic_request_related_doc.model_request_request
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__request_id
 msgid "Request"
-msgstr ""
+msgstr "Užklausa"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__request_action_id
@@ -328,7 +328,7 @@ msgstr ""
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document__request_type_id
 msgid "Request Type"
-msgstr ""
+msgstr "Užklausos tipas"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,help:generic_request_related_doc.field_request_related_document_type__order
@@ -357,27 +357,27 @@ msgstr ""
 #. module: generic_request_related_doc
 #: model:ir.model.fields,help:generic_request_related_doc.field_request_related_document_type__inherited_model_ids
 msgid "The list of models that extends the current model."
-msgstr ""
+msgstr "Sąrašas modulių, praplėčiančių dabartinį modulį."
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,help:generic_request_related_doc.field_request_related_document_type__count
 msgid "Total number of records in this model"
-msgstr ""
+msgstr "Visas šio modelio įrašų skaičius"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__transient
 msgid "Transient Model"
-msgstr ""
+msgstr "Laikinas modelis"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__state
 msgid "Type"
-msgstr ""
+msgstr "Tipas"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,help:generic_request_related_doc.field_request_related_document__request_type_id
 msgid "Type of request"
-msgstr ""
+msgstr "Užklausos tipas"
 
 #. module: generic_request_related_doc
 #: code:addons/generic_request_related_doc/models/request_related_document.py:0
@@ -394,7 +394,7 @@ msgstr ""
 #. module: generic_request_related_doc
 #: model:ir.model.fields,field_description:generic_request_related_doc.field_request_related_document_type__view_ids
 msgid "Views"
-msgstr ""
+msgstr "Peržiūros"
 
 #. module: generic_request_related_doc
 #: model:ir.model.fields,help:generic_request_related_doc.field_request_related_document_type__is_generic_resource
@@ -419,7 +419,7 @@ msgstr ""
 #. module: generic_request_related_doc
 #: model:ir.model.fields,help:generic_request_related_doc.field_request_related_document_type__is_mail_thread
 msgid "Whether this model supports messages and notifications."
-msgstr ""
+msgstr "Ar šis modelis palaiko žinutes ir pranešimus."
 
 #. module: generic_request_related_doc
 #: model_terms:request.request,help_html:generic_request_related_doc.request_request_type_sale_problem_demo_1

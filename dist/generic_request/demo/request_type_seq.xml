@@ -36,10 +36,6 @@
             </ol>
         ]]></field>
         <field name="sequence_id" ref="seq_resource_request_demo"/>
-        <field name="service_ids" eval="[(4, ref('generic_service.generic_service_default'))]"/>
-        <field name="category_ids"
-               eval="[(6, 0, [ref('generic_request.request_category_demo_resource'),
-                              ref('generic_request.request_category_demo_technical_configuration')])]"/>
         <field name="kind_id" ref="request_kind_demo"/>
         <field name="tag_category_ids"
                eval="[(4, ref('generic_request.tag_category_severity')), (4, ref('generic_request.tag_category_priority'))]"/>

@@ -14,6 +14,13 @@ class TestWebsiteServiceDeskField(TestPhantomTour):
         deactivate_records_for_model(self.env, 'ir.rule')
         self._disable_use_services_setting()
 
+        # Classifiers with the following parameters are expected
+        # to be created:
+        self.ensure_classifier(
+            category='crnd_wsd.request_category_demo_website_tech',
+            request_type='generic_request_field.request_type_field',
+            website_published=True)
+
     def test_tour_request_new(self):
         self.assertIn(self.group_portal, self.user_demo.groups_id)
 
@@ -87,3 +94,18 @@ class TestWebsiteServiceDeskField(TestPhantomTour):
         self.env.user.company_id.request_wsd_public_ui_visibility = 'redirect'
         self._test_phantom_tour(
             '/', 'crnd_wsd_fields_tour_request_public_user_redirect')
+
+    def test_tour_request_new_with_service(self):
+        self._enable_use_services_setting()
+        self.assertIn(self.group_portal, self.user_demo.groups_id)
+
+        # Run tour
+        new_requests = self._test_phantom_tour_requests(
+            '/', 'crnd_wsd_field_service_tour_request_new_with_fields_service',
+            login=self.user_demo.login)
+
+        self.assertEqual(len(new_requests), 1)
+        self.assertTrue(
+            new_requests.request_text.startswith(
+                u'<h1>Test create-vm request</h1>'))
+        self.assertEqual(new_requests.get_field_value('cpu'), '2 Cores')

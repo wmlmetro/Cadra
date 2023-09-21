@@ -159,7 +159,10 @@ class TestRequestFieldJSON(TestRequestFieldCase):
     def test_request_fields_json_validation_categ(self):
         Request = self.env['request.request']
 
-        self.field_type.category_ids += self.request_category_demo
+        # Add classifiers to type of requests
+        self.ensure_classifier(
+            category=self.request_category_demo,
+            request_type=self.field_type)
 
         self.request_field_cpu.category_ids = self.request_category_demo
         self.assertTrue(self.request_field_cpu.mandatory)
@@ -294,7 +297,6 @@ class TestRequestFieldJSON(TestRequestFieldCase):
             'cpu': '2 cores',
             'os': 'Ubuntu',
         })
-        request.invalidate_cache()
 
         values = json.loads(request.request_field_values_json)
         self.assertEqual(values['memory'], '4 GB')
@@ -308,13 +310,19 @@ class TestRequestFieldJSON(TestRequestFieldCase):
         category1 = self.env['request.category'].create({
             'name': 'Test Categ 1',
             'code': 'test-f-categ-1',
-            'request_type_ids': [(4, self.field_type.id)]
         })
         category2 = self.env['request.category'].create({
             'name': 'Test Categ 2',
             'code': 'test-f-categ-2',
-            'request_type_ids': [(4, self.field_type.id)],
         })
+
+        # Add classifiers to type of requests
+        self.ensure_classifier(
+            category=category1,
+            request_type=self.field_type)
+        self.ensure_classifier(
+            category=category2,
+            request_type=self.field_type)
         self.request_field_cpu.write({
             'category_ids': [(6, 0, (category1.id, category2.id))],
         })
@@ -505,7 +513,6 @@ class TestRequestFieldJSON(TestRequestFieldCase):
         request.request_fields_json_bottom = fields_bottom.to_json()
 
         # Check that only request comment updated
-        request.invalidate_cache()
         values = request.get_fields_data()
         self.assertEqual(values['memory'], '4 GB')
         self.assertEqual(values['cpu'], '3 Cores')

@@ -45,6 +45,11 @@
                             name="group_by_act_sudo_user"
                             context="{'group_by': 'act_sudo_user_id'}"/>
                 </group>
+
+                <searchpanel>
+                    <field name="act_type" string="Action Type"/>
+                    <field name="request_type_id" string="Request Type"/>
+                </searchpanel>
             </search>
         </field>
     </record>
@@ -113,13 +118,18 @@
                                    widget="many2many_tags"
                                    context="{'default_based_on': 'request.event'}"
                                    options="{'no_quick_create': True, 'open': True}"/>
-                            <field name="act_type"/>
                         </group>
                         <group name="group_sudo">
                             <field name="act_sudo"/>
                             <field name="act_sudo_user_id"
                                    attrs="{'invisible': [('act_sudo', '=', False)]}"/>
                             <p colspan="2">You can use <a href="http://jinja.pocoo.org/" target="_blank">jinja2</a> placeholders in action fields. For example, use {{request.name}} template to specify the name of the current request in the Summary field of Scheduled Activity. For more info, read the <a href="https://crnd.pro/doc-bureaucrat-itsm/11.0/en/Generic_Request_Actions_admin_eng/" target="_blank">documentation</a>.</p>
+                        </group>
+                        <group name="group_act_type">
+                            <field name="act_type"/>
+                        </group>
+                        <group name="group_sequence">
+                            <field name="sequence"/>
                         </group>
                     </group>
                     <notebook name="notebook_action">
@@ -142,6 +152,7 @@
                                     <field name="send_email_template_id"
                                            attrs="{'required': [('act_type', '=', 'send_email')]}"
                                            context="{'default_model_id': helper_request_model_id, 'default_name': name}"/>
+                                    <field name="send_response_attachments" widget="boolean_toggle"/>
                                 </group>
                             </group>
                         </page>
@@ -206,7 +217,7 @@
                               string="Kanban state"
                               attrs="{'invisible': [('act_type', '!=', 'kanban_state')]}">
                             <group>
-                                <group name="group_action_send_email">
+                                <group name="group_action_kanban_state">
                                     <field name="kanban_state" required="True"/>
                                 </group>
                             </group>
@@ -220,9 +231,100 @@
                                        widget="many2many_tags"
                                        context="{'default_based_on': 'request.request'}"
                                        options="{'no_quick_create': True, 'open': True}"
-                                       attrs="{'required': [('act_type', '=', 'validate')]}"/>
+                                       attrs="{'required': [('act_type', '=', 'validate'),('validate_event_condition_ids', '=', [])]}"/>
+                                <field name="validate_event_condition_ids"
+                                       domain="[('model_id.model', '=', 'request.event')]"
+                                       widget="many2many_tags"
+                                       context="{'default_based_on': 'request.event'}"
+                                       options="{'no_quick_create': True, 'open': True}"
+                                       attrs="{'required': [('act_type', '=', 'validate'),('validate_condition_ids', '=', [])]}"/>
                                 <field name="validate_error_msg"
                                        attrs="{'required': [('act_type', '=', 'validate')]}"/>
+                            </group>
+                        </page>
+                        <page name="page_action_increase_deadline_date"
+                              string="Deadline Date"
+                              attrs="{'invisible': [('act_type', '!=', 'change_deadline')]}">
+                            <group>
+                                <group name="group_action_increase_deadline_date">
+                                    <field name="change_deadline_type" string="Type" required="True"/>
+                                    <field name="change_deadline_calendar_id"
+                                           attrs="{'required': [('act_type', '=', 'change_deadline'), ('change_deadline_type', '=', 'working_days')],
+                                                   'invisible': [('change_deadline_type', '!=', 'working_days')]}"/>
+                                    <field name="change_deadline_from" required="True"/>
+                                    <field name="change_deadline_from_field_date"
+                                           context="{'default_model_id': helper_request_model_id}"
+                                           domain="[('model_id', '=', helper_request_model_id),('ttype', 'in', ('datetime', 'date'))]"
+                                           options="{'no_edit': true, 'no_create': true, 'no_open': true}"
+                                           attrs="{'required': [('act_type', '=', 'change_deadline'), ('change_deadline_from', '=', 'field')],
+                                                   'invisible': [('change_deadline_from', '!=', 'field')]}"/>
+                                    <field name="change_deadline_value" required="True"/>
+                                    <div colspan="2"
+                                         class="alert alert-info"
+                                         attrs="{'invisible': [('change_deadline_from', '!=', 'field')]}"
+                                         role="alert">
+                                        If there is no value in the specified field when performing the action, the current time will be used for calculations.</div>
+                                </group>
+                            </group>
+                        </page>
+                        <page name="page_action_priority"
+                              string="Priority"
+                              attrs="{'invisible': [('act_type', '!=', 'set_priority')]}">
+                            <field name="act_priority_is_priority_complex" invisible="1"/>
+                            <group>
+                                <group>
+                                    <field name="act_priority_type"/>
+                                    <field name="act_priority_priority" attrs="{'invisible': ['|', ('act_priority_type', '!=', 'set'), ('act_priority_is_priority_complex', '!=', False)]}"/>
+                                    <field name="act_priority_priority_modifier" attrs="{'invisible': ['|', ('act_priority_type', '=', 'set'), ('act_priority_is_priority_complex', '!=', False)]}"/>
+
+                                    <field name="act_priority_impact" attrs="{'invisible': ['|', ('act_priority_type', '!=', 'set'), ('act_priority_is_priority_complex', '=', False)]}"/>
+                                    <field name="act_priority_impact_modifier" attrs="{'invisible': ['|', ('act_priority_type', '=', 'set'), ('act_priority_is_priority_complex', '=', False)]}"/>
+
+                                    <field name="act_priority_urgency" attrs="{'invisible': ['|', ('act_priority_type', '!=', 'set'), ('act_priority_is_priority_complex', '=', False)]}"/>
+                                    <field name="act_priority_urgency_modifier" attrs="{'invisible': ['|', ('act_priority_type', '=', 'set'), ('act_priority_is_priority_complex', '=', False)]}"/>
+                                </group>
+                                <group/>
+                            </group>
+                        </page>
+                        <page name="page_action_tag"
+                              string="Tag"
+                              attrs="{'invisible': [('act_type', '!=', 'tag')]}">
+                            <group>
+                                <field name="tag_add_tag_ids"
+                                       widget="many2many_tags"
+                                       string="Add"/>
+                                <field name="tag_remove_tag_ids"
+                                       widget="many2many_tags"
+                                       string="Remove"/>
+                            </group>
+                        </page>
+                        <page name="page_action_subrequest"
+                              string="Subrequest"
+                              attrs="{'invisible': [('act_type', '!=', 'subrequest')]}">
+                            <group>
+                                <group>
+                                    <field name="subrequest_template_id"
+                                           attrs="{'required': [('act_type', '=', 'subrequest')]}"/>
+                                    <field name="subrequest_type_id"/>
+                                    <field name="subrequest_category_id"/>
+                                    <field name="subrequest_same_author"
+                                           string="Use same author for subrequest"/>
+                                    <field name="subrequest_same_deadline"
+                                           string="Use same deadline for subrequest"/>
+                                    <field name="subrequest_transfer_field_ids"
+                                           string="Transfer fields to subrequest"
+                                           widget="many2many_tags"/>
+
+                                    <!-- Trigger route -->
+                                    <field name="subrequest_start_stage_id" invisible="1"/>
+                                    <field name="subrequest_trigger_route_id"
+                                           domain="[('stage_from_id', '=', subrequest_start_stage_id)]"/>
+                                    <field name="subrequest_text_template_id"/>
+                                </group>
+                                <group name="group_action_subrequest">
+                                    <field name="subrequest_subscribe_partner_ids" widget="many2many_tags"/>
+                                </group>
+                                <field name="subrequest_text" colspan="4" attrs="{'invisible': [('subrequest_text_template_id', '!=', False)]}"/>
                             </group>
                         </page>
                     </notebook>

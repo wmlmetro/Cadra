@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record model="ir.ui.view" id="view_request_timesheet_activity_form">
+        <field name="model">request.timesheet.activity</field>
+        <field name="inherit_id" ref="generic_request.view_request_timesheet_activity_form"/>
+        <field name="arch" type="xml">
+            <group name="group_info_left" position="inside">
+                <field name="is_billable"/>
+            </group>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_timesheet_activity_tree">
+        <field name="model">request.timesheet.activity</field>
+        <field name="inherit_id" ref="generic_request.view_request_timesheet_activity_tree"/>
+        <field name="arch" type="xml">
+            <field name="active" position="before">
+                <field name="is_billable"/>
+            </field>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_timesheet_activity_search">
+        <field name="model">request.timesheet.activity</field>
+        <field name="inherit_id" ref="generic_request.view_request_timesheet_activity_search"/>
+        <field name="arch" type="xml">
+            <search>
+                <filter name="filter_archived" position="after">
+                    <separator/>
+                    <filter name="filter_is_billable"
+                            string="Billable"
+                            domain="[('is_billable', '=', True)]"/>
+                    <filter name="filter_is_not_billable"
+                            string="Not Billable"
+                            domain="[('is_billable', '=', False)]"/>
+                </filter>
+            </search>
+        </field>
+    </record>
+</odoo>

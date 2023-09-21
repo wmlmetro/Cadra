@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-07-09 11:05+0000\n"
-"PO-Revision-Date: 2021-07-09 11:05+0000\n"
+"POT-Creation-Date: 2023-07-26 11:13+0000\n"
+"PO-Revision-Date: 2023-07-26 11:13+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -17,23 +17,20 @@ msgstr ""
 "Plural-Forms: \n"
 
 #. module: generic_location
-#: model:ir.model.fields,field_description:generic_location.field_generic_location___city
-msgid " City"
+#: model_terms:ir.ui.view,arch_db:generic_location.generic_location_form_view
+msgid ""
+"<span class=\"oe_inline\"> ( </span>\n"
+"                                        <span> Lat : </span>"
 msgstr ""
 
 #. module: generic_location
-#: model:ir.model.fields,field_description:generic_location.field_generic_location___street
-msgid " Street"
+#: model_terms:ir.ui.view,arch_db:generic_location.generic_location_form_view
+msgid "<span> : Long : </span>"
 msgstr ""
 
 #. module: generic_location
-#: model:ir.model.fields,field_description:generic_location.field_generic_location___street2
-msgid " Street2"
-msgstr ""
-
-#. module: generic_location
-#: model:ir.model.fields,field_description:generic_location.field_generic_location___zip
-msgid " Zip"
+#: model_terms:ir.ui.view,arch_db:generic_location.generic_location_form_view
+msgid "<span>) </span>"
 msgstr ""
 
 #. module: generic_location
@@ -52,19 +49,19 @@ msgstr ""
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__message_needaction
 msgid "Action Needed"
-msgstr ""
+msgstr "Reikalingas veiksmas"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__active
 #: model:ir.model.fields,field_description:generic_location.field_generic_location_type__active
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_search_view
 msgid "Active"
-msgstr ""
+msgstr "Aktyvus"
 
 #. module: generic_location
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_form_view
 msgid "Address"
-msgstr ""
+msgstr "Adresas"
 
 #. module: generic_location
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_form_view
@@ -76,6 +73,7 @@ msgstr ""
 msgid ""
 "Administrative divisions of a country. E.g. Fed. State, Departement, Canton"
 msgstr ""
+"Valstybės administracinis vienetas. Pvz. savivaldybė, valstija, kantonas"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__child_all_ids
@@ -91,12 +89,12 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_search_view
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_type_search_view
 msgid "Archived"
-msgstr ""
+msgstr "Archyvuota"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__message_attachment_count
 msgid "Attachment Count"
-msgstr ""
+msgstr "Prisegtukų skaičius"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__child_all_count
@@ -111,56 +109,66 @@ msgstr ""
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__city
 #: model:ir.model.fields,field_description:generic_location.field_generic_location_address_mixin__city
+#: model:ir.model.fields,field_description:generic_location.field_generic_location_mixin__city
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_form_view
 msgid "City"
-msgstr ""
+msgstr "Miestas"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location_type__code
 msgid "Code"
-msgstr ""
+msgstr "Kodas"
 
 #. module: generic_location
 #: model:ir.model,name:generic_location.model_res_config_settings
 msgid "Config Settings"
-msgstr ""
+msgstr "Konfigūracijos nustatymai"
 
 #. module: generic_location
 #: model:ir.ui.menu,name:generic_location.menu_configuration
 msgid "Configuration"
-msgstr ""
+msgstr "Konfigūracija"
 
 #. module: generic_location
 #: model:ir.model,name:generic_location.model_res_partner
 msgid "Contact"
-msgstr ""
+msgstr "Kontaktai"
 
 #. module: generic_location
-#: model:ir.model.fields,field_description:generic_location.field_generic_location___country_id
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__country_id
-#: model:ir.model.fields,field_description:generic_location.field_generic_location__country_name
 #: model:ir.model.fields,field_description:generic_location.field_generic_location_address_mixin__country_id
+#: model:ir.model.fields,field_description:generic_location.field_generic_location_mixin__country_id
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_form_view
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_search_view
 msgid "Country"
-msgstr ""
+msgstr "Valstybė"
+
+#. module: generic_location
+#: model:ir.model.fields,field_description:generic_location.field_generic_location__country_name
+msgid "Country Name"
+msgstr "Valstybės pavadinimas"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__create_uid
 #: model:ir.model.fields,field_description:generic_location.field_generic_location_type__create_uid
 msgid "Created by"
-msgstr ""
+msgstr "Sukūrė"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__create_date
 #: model:ir.model.fields,field_description:generic_location.field_generic_location_type__create_date
 msgid "Created on"
+msgstr "Sukurta"
+
+#. module: generic_location
+#: model:generic.tag,name:generic_location.simple_tag_location_1
+msgid "Darnitsa"
 msgstr ""
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__description
 msgid "Description"
-msgstr ""
+msgstr "Aprašymas"
 
 #. module: generic_location
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_form_view
@@ -171,7 +179,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__display_name
 #: model:ir.model.fields,field_description:generic_location.field_generic_location_type__display_name
 msgid "Display Name"
-msgstr ""
+msgstr "Rodomas pavadinimas"
 
 #. module: generic_location
 #: model_terms:ir.ui.view,arch_db:generic_location.res_config_settings_view_form
@@ -183,14 +191,24 @@ msgid ""
 msgstr ""
 
 #. module: generic_location
+#: model:ir.model.fields,help:generic_location.field_generic_location__search_tag_id
+msgid "Find all records that contain this tag"
+msgstr ""
+
+#. module: generic_location
+#: model:ir.model.fields,help:generic_location.field_generic_location__search_no_tag_id
+msgid "Find all records that have no this tag"
+msgstr ""
+
+#. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__message_follower_ids
 msgid "Followers"
-msgstr ""
+msgstr "Sekėjai"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__message_partner_ids
 msgid "Followers (Partners)"
-msgstr ""
+msgstr "Sekėjai (partneriai)"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_res_partner__generic_location_ids
@@ -199,6 +217,11 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_form_view
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_typeform_view
 msgid "Generic Location"
+msgstr ""
+
+#. module: generic_location
+#: model:ir.model,name:generic_location.model_generic_location_address_mixin
+msgid "Generic Location Address Mixin"
 msgstr ""
 
 #. module: generic_location
@@ -238,14 +261,19 @@ msgid "Generic location user (implicit)"
 msgstr ""
 
 #. module: generic_location
+#: model_terms:ir.ui.view,arch_db:generic_location.generic_location_form_view
+msgid "Geolocation"
+msgstr ""
+
+#. module: generic_location
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_search_view
 msgid "Group by..."
-msgstr ""
+msgstr "Grupuoti pagal..."
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__has_message
 msgid "Has Message"
-msgstr ""
+msgstr "Turi žinutę"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__id
@@ -257,67 +285,75 @@ msgstr ""
 #: model:ir.model.fields,help:generic_location.field_generic_location__message_needaction
 #: model:ir.model.fields,help:generic_location.field_generic_location__message_unread
 msgid "If checked, new messages require your attention."
-msgstr ""
+msgstr "Jeigu pažymėta, naujiems pranešimams reikės jūsų dėmesio."
 
 #. module: generic_location
 #: model:ir.model.fields,help:generic_location.field_generic_location__message_has_error
 msgid "If checked, some messages have a delivery error."
-msgstr ""
+msgstr "Jei pažymėta, yra žinučių, turinčių pristatymo klaidų."
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__image_1920
 msgid "Image"
-msgstr ""
+msgstr "Paveikslėlis"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__image_1024
 msgid "Image 1024"
-msgstr ""
+msgstr "Paveikslėlis "
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__image_128
 msgid "Image 128"
-msgstr ""
+msgstr "Paveikslėlis 128"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__image_256
 msgid "Image 256"
-msgstr ""
+msgstr "Paveikslėlis 256"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__image_512
 msgid "Image 512"
-msgstr ""
+msgstr "Paveikslėlis 512"
 
 #. module: generic_location
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_form_view
 msgid "Info"
-msgstr ""
+msgstr "Informacija"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__message_is_follower
 msgid "Is Follower"
-msgstr ""
+msgstr "Yra sekėjas"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location____last_update
 #: model:ir.model.fields,field_description:generic_location.field_generic_location_type____last_update
 msgid "Last Modified on"
-msgstr ""
+msgstr "Paskutinį kartą keista"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__write_uid
 #: model:ir.model.fields,field_description:generic_location.field_generic_location_type__write_uid
 msgid "Last Updated by"
-msgstr ""
+msgstr "Paskutinį kartą atnaujino"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__write_date
 #: model:ir.model.fields,field_description:generic_location.field_generic_location_type__write_date
 msgid "Last Updated on"
+msgstr "Paskutinį kartą atnaujinta"
+
+#. module: generic_location
+#: model:ir.model.fields,field_description:generic_location.field_generic_location__latitude
+#: model:ir.model.fields,field_description:generic_location.field_generic_location_address_mixin__latitude
+#: model:ir.model.fields,field_description:generic_location.field_generic_location_mixin__latitude
+msgid "Latitude"
 msgstr ""
 
 #. module: generic_location
+#: model:generic.tag.model,name:generic_location.generic_location_tag_model
 #: model:ir.actions.act_window,name:generic_location.generic_location_action
 #: model:ir.model,name:generic_location.model_generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location_address_mixin__location_id
@@ -325,6 +361,14 @@ msgstr ""
 #: model:ir.ui.menu,name:generic_location.menu_generic_location
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_typeform_view
 msgid "Location"
+msgstr "Vieta"
+
+#. module: generic_location
+#: model:ir.actions.act_window,name:generic_location.action_generic_location_tags_view
+#: model:ir.ui.menu,name:generic_location.menu_location_tags
+#: model:ir.ui.menu,name:generic_location.menu_tags_location_tags
+#: model:ir.ui.menu,name:generic_location.menu_tags_location_tags_action
+msgid "Location Tags"
 msgstr ""
 
 #. module: generic_location
@@ -347,9 +391,16 @@ msgid "Locations"
 msgstr ""
 
 #. module: generic_location
+#: model:ir.model.fields,field_description:generic_location.field_generic_location__longitude
+#: model:ir.model.fields,field_description:generic_location.field_generic_location_address_mixin__longitude
+#: model:ir.model.fields,field_description:generic_location.field_generic_location_mixin__longitude
+msgid "Longitude"
+msgstr ""
+
+#. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__message_main_attachment_id
 msgid "Main Attachment"
-msgstr ""
+msgstr "Pagrindinis prisegtukas"
 
 #. module: generic_location
 #: model:res.groups,comment:generic_location.group_generic_location_manager
@@ -359,42 +410,52 @@ msgstr ""
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__message_has_error
 msgid "Message Delivery error"
-msgstr ""
+msgstr "Žinutės pristatymo klaida"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__message_ids
 msgid "Messages"
-msgstr ""
+msgstr "Žinutės"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__name
 #: model:ir.model.fields,field_description:generic_location.field_generic_location_type__name
 msgid "Name"
+msgstr "Vardas"
+
+#. module: generic_location
+#: model:ir.model.fields,field_description:generic_location.field_generic_location__search_no_tag_id
+msgid "No tag"
 msgstr ""
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__message_needaction_counter
 msgid "Number of Actions"
-msgstr ""
+msgstr "Veiksmų skaičius"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__message_has_error_counter
 msgid "Number of errors"
-msgstr ""
+msgstr "Klaidų kiekis"
 
 #. module: generic_location
 #: model:ir.model.fields,help:generic_location.field_generic_location__message_needaction_counter
 msgid "Number of messages which requires an action"
-msgstr ""
+msgstr "Žinučių, kurioms reikia jūsų veiksmo, skaičius"
 
 #. module: generic_location
 #: model:ir.model.fields,help:generic_location.field_generic_location__message_has_error_counter
 msgid "Number of messages with delivery error"
-msgstr ""
+msgstr "Žinučių su pristatymo klaida skaičius"
 
 #. module: generic_location
 #: model:ir.model.fields,help:generic_location.field_generic_location__message_unread_counter
 msgid "Number of unread messages"
+msgstr "Neperskaitytų žinučių skaičius"
+
+#. module: generic_location
+#: model:generic.tag,name:generic_location.simple_tag_location_3
+msgid "Osocorki"
 msgstr ""
 
 #. module: generic_location
@@ -406,7 +467,7 @@ msgstr ""
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__parent_path
 msgid "Parent Path"
-msgstr ""
+msgstr "Tėvinis kelias"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__parent_ids
@@ -417,7 +478,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__partner_id
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_search_view
 msgid "Partner"
-msgstr ""
+msgstr "Partneris"
 
 #. module: generic_location
 #: model:ir.model.fields,help:generic_location.field_generic_location__partner_id
@@ -435,42 +496,58 @@ msgid "Partner or customer..."
 msgstr ""
 
 #. module: generic_location
-#: model:ir.actions.act_window,name:generic_location.generic_location_action_location_settings
-#: model:ir.ui.menu,name:generic_location.menu_settings_generic_location
-msgid "Settings"
+#: model:generic.tag,name:generic_location.simple_tag_location_2
+msgid "Poznyaki"
 msgstr ""
 
 #. module: generic_location
-#: model:ir.model.fields,field_description:generic_location.field_generic_location___state_id
+#: model:generic.tag,name:generic_location.simple_tag_location_4
+msgid "Rusanovka"
+msgstr ""
+
+#. module: generic_location
+#: model:ir.actions.act_window,name:generic_location.generic_location_action_location_settings
+#: model:ir.ui.menu,name:generic_location.menu_settings_generic_location
+msgid "Settings"
+msgstr "Nustatymai"
+
+#. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__state_id
-#: model:ir.model.fields,field_description:generic_location.field_generic_location__state_name
 #: model:ir.model.fields,field_description:generic_location.field_generic_location_address_mixin__state_id
+#: model:ir.model.fields,field_description:generic_location.field_generic_location_mixin__state_id
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_form_view
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_search_view
 msgid "State"
-msgstr ""
+msgstr "Regionas"
+
+#. module: generic_location
+#: model:ir.model.fields,field_description:generic_location.field_generic_location__state_name
+msgid "State Name"
+msgstr "Savivaldybės pavadinimas"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__street
 #: model:ir.model.fields,field_description:generic_location.field_generic_location_address_mixin__street
+#: model:ir.model.fields,field_description:generic_location.field_generic_location_mixin__street
 msgid "Street"
-msgstr ""
+msgstr "Gatvė"
 
 #. module: generic_location
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_form_view
 msgid "Street 2..."
-msgstr ""
+msgstr "Gatvė 2..."
 
 #. module: generic_location
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_form_view
 msgid "Street..."
-msgstr ""
+msgstr "Gatvė..."
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__street2
 #: model:ir.model.fields,field_description:generic_location.field_generic_location_address_mixin__street2
+#: model:ir.model.fields,field_description:generic_location.field_generic_location_mixin__street2
 msgid "Street2"
-msgstr ""
+msgstr "Gatvė 2"
 
 #. module: generic_location
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_form_view
@@ -485,9 +562,55 @@ msgid "Sublocations"
 msgstr ""
 
 #. module: generic_location
+#: model:ir.model.fields,field_description:generic_location.field_generic_location___city
+msgid "System City"
+msgstr ""
+
+#. module: generic_location
+#: model:ir.model.fields,field_description:generic_location.field_generic_location___country_id
+msgid "System Country"
+msgstr ""
+
+#. module: generic_location
+#: model:ir.model.fields,field_description:generic_location.field_generic_location___state_id
+msgid "System State"
+msgstr ""
+
+#. module: generic_location
+#: model:ir.model.fields,field_description:generic_location.field_generic_location___street
+msgid "System Street"
+msgstr ""
+
+#. module: generic_location
+#: model:ir.model.fields,field_description:generic_location.field_generic_location___street2
+msgid "System Street2"
+msgstr ""
+
+#. module: generic_location
+#: model:ir.model.fields,field_description:generic_location.field_generic_location___zip
+msgid "System Zip"
+msgstr ""
+
+#. module: generic_location
+#: model:ir.model.fields,field_description:generic_location.field_generic_location__search_tag_id
+msgid "Tag"
+msgstr "Tagas"
+
+#. module: generic_location
+#: model:ir.model.fields,field_description:generic_location.field_generic_location__tag_ids
+msgid "Tags"
+msgstr "Žymos"
+
+#. module: generic_location
+#: model_terms:ir.ui.view,arch_db:generic_location.generic_location_form_view
+#: model_terms:ir.ui.view,arch_db:generic_location.generic_location_tree_view
+msgid "Tags..."
+msgstr "Žymos..."
+
+#. module: generic_location
 #: model:ir.model.fields,help:generic_location.field_generic_location__country_name
 msgid "The full name of the country."
-msgstr ""
+msgstr "Pilnas valstybės pavadinimas"
 
 #. module: generic_location
 #: model:ir.model.constraint,message:generic_location.constraint_generic_location_name_description_check
@@ -498,7 +621,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__type_id
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_search_view
 msgid "Type"
-msgstr ""
+msgstr "Tipas"
 
 #. module: generic_location
 #: model:ir.model.fields,help:generic_location.field_generic_location__type_id
@@ -551,12 +674,12 @@ msgstr ""
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__message_unread
 msgid "Unread Messages"
-msgstr ""
+msgstr "Neperskaitytos žinutės"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__message_unread_counter
 msgid "Unread Messages Counter"
-msgstr ""
+msgstr "Neperskaitytų žinučių skaičiavimas"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__city_use_parent
@@ -603,15 +726,11 @@ msgstr ""
 #. module: generic_location
 #: model_terms:ir.ui.view,arch_db:generic_location.generic_location_form_view
 msgid "ZIP"
-msgstr ""
+msgstr "Pašto kodas"
 
 #. module: generic_location
 #: model:ir.model.fields,field_description:generic_location.field_generic_location__zip
 #: model:ir.model.fields,field_description:generic_location.field_generic_location_address_mixin__zip
+#: model:ir.model.fields,field_description:generic_location.field_generic_location_mixin__zip
 msgid "Zip"
-msgstr ""
-
-#. module: generic_location
-#: model:ir.model,name:generic_location.model_generic_location_address_mixin
-msgid "generic.location.address.mixin"
-msgstr ""
+msgstr "Pašto kodas"

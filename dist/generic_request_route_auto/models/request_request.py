@@ -48,13 +48,16 @@ class RequestRequest(models.Model):
     def _on_any_event__trigger_request_routes(self, event):
         trigger_domain = [
             ('trigger', '=', 'event'),
-            ('event_type_ids', '=', event.event_type_id.id),
-            ('route_stage_from_id', '=', self.stage_id.id),
-            ('request_type_id', '=', self.type_id.id),
+            ('event_type_ids.id', '=', event.sudo().event_type_id.id),
+            ('route_stage_from_id', '=', self.sudo().stage_id.id),
+            ('request_type_id', '=', self.sudo().type_id.id),
         ]
 
-        triggers = self.env['request.stage.route.trigger'].search(
-            trigger_domain)
+        triggers = self.env['request.stage.route.trigger'].sudo().search(
+            trigger_domain,
+        )
+        # Run triggers in original env
+        triggers = self.env['request.stage.route.trigger'].browse(triggers.ids)
         for trigger in triggers:
             if trigger._trigger(self, event):
                 # After first trigger have success, there is no sens

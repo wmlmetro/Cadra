@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:05+0000\n"
-"PO-Revision-Date: 2021-06-22 16:05+0000\n"
+"POT-Creation-Date: 2023-07-26 11:14+0000\n"
+"PO-Revision-Date: 2023-07-26 11:14+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -20,7 +20,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field__active
 #: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_field_search
 msgid "Active"
-msgstr ""
+msgstr "Aktyvus"
 
 #. module: generic_request_field
 #: model:ir.model.fields.selection,name:generic_request_field.selection__request_field__position__after
@@ -31,7 +31,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_field_form
 #: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_field_search
 msgid "Archived"
-msgstr ""
+msgstr "Archyvuota"
 
 #. module: generic_request_field
 #: model:ir.model.fields.selection,name:generic_request_field.selection__request_field__position__before
@@ -47,12 +47,12 @@ msgstr ""
 #. module: generic_request_field
 #: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_field_form
 msgid "Categories"
-msgstr ""
+msgstr "Kategorijos"
 
 #. module: generic_request_field
 #: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_field_form
 msgid "Category"
-msgstr ""
+msgstr "Kategorija"
 
 #. module: generic_request_field
 #: model:request.stage,name:generic_request_field.request_stage__create_lxc_closed
@@ -63,7 +63,7 @@ msgstr ""
 #. module: generic_request_field
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field__code
 msgid "Code"
-msgstr ""
+msgstr "Kodas"
 
 #. module: generic_request_field
 #: model:request.field,name:generic_request_field.request_stage_field_comment
@@ -100,19 +100,19 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__create_uid
 #: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__create_uid
 msgid "Created by"
-msgstr ""
+msgstr "Sukūrė"
 
 #. module: generic_request_field
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field__create_date
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__create_date
 #: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__create_date
 msgid "Created on"
-msgstr ""
+msgstr "Sukurta"
 
 #. module: generic_request_field
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field__default
 msgid "Default"
-msgstr ""
+msgstr "Numatytasis"
 
 #. module: generic_request_field
 #: model:ir.model.fields,help:generic_request_field.field_request_field__default
@@ -128,7 +128,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__display_name
 #: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__display_name
 msgid "Display Name"
-msgstr ""
+msgstr "Rodomas pavadinimas"
 
 #. module: generic_request_field
 #: model:request.field,name:generic_request_field.request__create_lxc_field_domain_name
@@ -144,7 +144,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__field_id
 #: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__field_id
 msgid "Field"
-msgstr ""
+msgstr "Laukas"
 
 #. module: generic_request_field
 #: code:addons/generic_request_field/models/request_field_value.py:0
@@ -160,7 +160,7 @@ msgstr ""
 #. module: generic_request_field
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field__field_help
 msgid "Field Help"
-msgstr ""
+msgstr "Pagalbos laukas"
 
 #. module: generic_request_field
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field__field_placeholder
@@ -206,7 +206,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_request_field.request_type_field_view_dashboard
 #: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_type_form
 msgid "Fields"
-msgstr ""
+msgstr "Laukai"
 
 #. module: generic_request_field
 #: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close__wizard_fields_json_bottom
@@ -272,21 +272,21 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field_value____last_update
 #: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value____last_update
 msgid "Last Modified on"
-msgstr ""
+msgstr "Paskutinį kartą keista"
 
 #. module: generic_request_field
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field__write_uid
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__write_uid
 #: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__write_uid
 msgid "Last Updated by"
-msgstr ""
+msgstr "Paskutinį kartą atnaujino"
 
 #. module: generic_request_field
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field__write_date
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__write_date
 #: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__write_date
 msgid "Last Updated on"
-msgstr ""
+msgstr "Paskutinį kartą atnaujinta"
 
 #. module: generic_request_field
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field__mandatory
@@ -306,7 +306,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__field_name
 #: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__field_name
 msgid "Name"
-msgstr ""
+msgstr "Vardas"
 
 #. module: generic_request_field
 #: model:request.stage,name:generic_request_field.request_stage__create_lxc_new
@@ -327,7 +327,7 @@ msgstr ""
 #. module: generic_request_field
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field__position
 msgid "Position"
-msgstr ""
+msgstr "Pareigos"
 
 #. module: generic_request_field
 #: model:request.field,name:generic_request_field.request__create_lxc_field_priviledged
@@ -349,11 +349,16 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__request_id
 #: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__request_id
 msgid "Request"
-msgstr ""
+msgstr "Užklausa"
 
 #. module: generic_request_field
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field__category_ids
 msgid "Request Categories"
+msgstr ""
+
+#. module: generic_request_field
+#: model:ir.model,name:generic_request_field.model_request_classifier
+msgid "Request Classifier"
 msgstr ""
 
 #. module: generic_request_field
@@ -382,10 +387,15 @@ msgid "Request Has Fields Top"
 msgstr ""
 
 #. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field__service_ids
+msgid "Request Services"
+msgstr ""
+
+#. module: generic_request_field
 #: model:ir.model,name:generic_request_field.model_request_type
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field__request_type_id
 msgid "Request Type"
-msgstr ""
+msgstr "Užklausos tipas"
 
 #. module: generic_request_field
 #: model:ir.model,name:generic_request_field.model_request_wizard_close
@@ -402,7 +412,18 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__sequence
 #: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__sequence
 msgid "Sequence"
-msgstr ""
+msgstr "Seka"
+
+#. module: generic_request_field
+#: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_field_form
+msgid "Service"
+msgstr "Servisas"
+
+#. module: generic_request_field
+#: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_field_form
+#: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_field_tree
+msgid "Services"
+msgstr "Paslaugos"
 
 #. module: generic_request_field
 #: model:ir.model.fields,help:generic_request_field.field_request_field__code
@@ -426,11 +447,28 @@ msgid ""
 msgstr ""
 
 #. module: generic_request_field
-#: code:addons/generic_request_field/models/request_type.py:0
+#: code:addons/generic_request_field/models/request_field.py:0
 #, python-format
 msgid ""
-"The request categories %(categories)s used in the request fields do not "
-"belong to the categories allowed for the request type '%(request_type)s'."
+"The request services %(services)s used in the '%(field)s' field do not "
+"belong to the services allowed for the request type '%(request_type)s'."
+msgstr ""
+
+#. module: generic_request_field
+#: code:addons/generic_request_field/models/request_classifier.py:0
+#, python-format
+msgid ""
+"There are no classifiers defined for request type %(request_type)s for "
+"request categories (%(categories)s) that are used in fields of this request "
+"type."
+msgstr ""
+
+#. module: generic_request_field
+#: code:addons/generic_request_field/models/request_classifier.py:0
+#, python-format
+msgid ""
+"There are no classifiers defined for request type %(request_type)s for "
+"request services (%(services)s) that are used in fields of this request type."
 msgstr ""
 
 #. module: generic_request_field
@@ -451,18 +489,18 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field_value__value
 #: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__value
 msgid "Value"
-msgstr ""
+msgstr "Reikšmė"
 
 #. module: generic_request_field
 #: model:ir.model.fields,field_description:generic_request_field.field_request_request__value_ids
 #: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close__value_ids
 msgid "Values"
-msgstr ""
+msgstr "Reikšmės"
 
 #. module: generic_request_field
 #: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__wizard_id
 msgid "Wizard"
-msgstr ""
+msgstr "Vedlys"
 
 #. module: generic_request_field
 #: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close__wizard_has_fields_bottom

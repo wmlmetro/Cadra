@@ -10,10 +10,11 @@
     'author': "Center of Research and Development",
     'website': "https://crnd.pro",
     'license': 'OPL-1',
-    'version': '15.0.1.25.0',
+    'version': '15.0.1.29.1',
     'depends': [
         'crnd_wsd',
-        'generic_request_resource'
+        'generic_request_resource',
+        'generic_service_resource',
     ],
     'data': [
         'views/generic_resource_type.xml',
@@ -30,16 +31,12 @@
             'crnd_wsd_resource/static/src/js/request_new.js',
         ],
         'web.assets_tests': [
-            'crnd_wsd_resource/static/src/js/tours/request_new_with_resource.js',
-            'crnd_wsd_resource/static/src/js/tours/request_public_user.js',
-            'crnd_wsd_resource/static/src/js/tours/request_public_user_create_req.js',
-            'crnd_wsd_resource/static/src/js/tours/request_public_user_redirect.js',
-            'crnd_wsd_resource/static/src/js/tours/request_new_with_resource_http_parameter.js',
+            'crnd_wsd_resource/static/src/js/tours/*',
         ],
     },
     'images': ['static/description/banner.png'],
     'installable': True,
     'auto_install': False,
-    'price': 50.0,
+    'price': 80.0,
     'currency': 'EUR',
 }

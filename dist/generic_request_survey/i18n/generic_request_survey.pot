@@ -27,6 +27,14 @@ msgid ""
 msgstr ""
 
 #. module: generic_request_survey
+#: model:ir.model.fields,help:generic_request_survey.field_request_request__stage_allow_send_survey
+#: model:ir.model.fields,help:generic_request_survey.field_request_stage__allow_send_survey
+msgid ""
+"\"Send Survey\" button will be visible only when this option is enabled at "
+"the current Request stage."
+msgstr ""
+
+#. module: generic_request_survey
 #: model:survey.question,description:generic_request_survey.bug_classification
 #: model:survey.question,description:generic_request_survey.bug_priority
 #: model:survey.question,description:generic_request_survey.configuration
@@ -48,6 +56,12 @@ msgstr ""
 #. module: generic_request_survey
 #: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
 msgid "Add existing contacts..."
+msgstr ""
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_request__stage_allow_send_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_stage__allow_send_survey
+msgid "Allow Send Survey"
 msgstr ""
 
 #. module: generic_request_survey
@@ -308,6 +322,11 @@ msgstr ""
 #. module: generic_request_survey
 #: model:ir.model,name:generic_request_survey.model_request_event
 msgid "Request Event"
+msgstr ""
+
+#. module: generic_request_survey
+#: model:ir.model,name:generic_request_survey.model_request_stage
+msgid "Request Stage"
 msgstr ""
 
 #. module: generic_request_survey

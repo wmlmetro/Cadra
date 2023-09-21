@@ -10,7 +10,7 @@
     'website': "https://crnd.pro",
 
     'category': 'Generic Request',
-    'version': '15.0.2.3.0',
+    'version': '15.0.2.9.1',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -26,6 +26,8 @@
         'views/request_type_view.xml',
         'data/system_event_type.xml',
         'views/request_event.xml',
+
+        'reports/request_graph_reports.xml',
     ],
     'demo': [
         'demo/request_type_seq.xml',

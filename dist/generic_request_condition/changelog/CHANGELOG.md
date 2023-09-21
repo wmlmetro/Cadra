@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 1.18.0
+
+Merge the `generic_request_condition_service` module into the `generic_request_condition` module
+
+
 ## Version 1.12.0
 
 Added ability to select conditions operator

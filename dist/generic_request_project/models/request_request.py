@@ -3,6 +3,7 @@ from odoo import models, fields, api, _
 from odoo.addons.generic_mixin import post_write
 from odoo.addons.generic_mixin.tools.sql import create_sql_view
 from odoo.addons.generic_mixin.tools.x2m_agg_utils import read_counts_for_o2m
+from odoo.addons.generic_system_event import on_event
 
 _logger = logging.getLogger(__name__)
 
@@ -111,17 +112,36 @@ class RequestRequest(models.Model):
             context['default_user_ids'] = [self.user_id.id]
         return context
 
+    @on_event('stage-changed', event_source='project.task')
+    def _on_project_task_stage_changed(self, event):
+
+        old_stage = event.old_stage_id
+        new_stage = event.new_stage_id
+        self.trigger_event('task-stage-changed', {
+            'task_id': event.event_source_record_id,
+            'task_old_stage_id': old_stage.id,
+            'task_new_stage_id': new_stage.id})
+        if not old_stage.fold and new_stage.fold:
+            self.trigger_event('task-closed', {
+                'task_id': event.event_source_record_id,
+                'task_old_stage_id': old_stage.id,
+                'task_new_stage_id': new_stage.id})
+            if (self.sudo().project_task_ids and
+                    all(task.stage_id.fold
+                        for task in self.sudo().project_task_ids)):
+                self.trigger_event('task-all-tasks-closed', {})
+
     def action_show_related_tasks(self):
         self.ensure_one()
         return self.env['generic.mixin.get.action'].get_action_by_xmlid(
-            'project.action_view_task',
+            'project.act_project_project_2_project_task_all',
             context=self._prepare_action_related_tasks_context(),
             domain=[('request_id', '=', self.id)])
 
     def action_create_task(self):
         self.ensure_one()
         return self.env['generic.mixin.get.action'].get_form_action_by_xmlid(
-            'project.action_view_task',
+            'project.act_project_project_2_project_task_all',
             context=self._prepare_action_related_tasks_context())
 
     def action_request_work_log(self):

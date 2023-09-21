@@ -1,34 +1,192 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
 
-    <record id="_report_graph_view" model="ir.ui.view">
-        <field name="name">monthly.report.graph</field>
-        <field name="model">request.request</field>
+    <record id="view_request_report_tree_view" model="ir.ui.view">
+        <field name="model">request.report</field>
+        <field name="arch" type="xml">
+            <tree>
+                <button name="action_view_report_requests"
+                        type="object" icon="fa-external-link-square">
+                </button>
+                <field name="request_name"/>
+                <field name="request_service_id"
+                       optional="show"
+                       groups="generic_request.group_request_use_services"/>
+                <field name="request_service_level_id"
+                       optional="hide"
+                       groups="generic_request.group_request_use_services"/>
+                <field name="request_category_id"
+                       optional="show"/>
+                <field name="request_type_id"
+                       optional="show"/>
+                <field name="request_kind_id"
+                       optional="hide"
+                       groups="generic_request.group_request_use_kind"/>
+                <field name="request_priority"
+                       optional="show"/>
+                <field name="request_deadline_date"
+                       optional="hide"/>
+                <field name="request_request_text_sample"
+                       optional="show"
+                       widget="dynamic_popover_text"
+                       options="{'max_width': '450px', 'line_clamp': '3'}"/>
+                <field name="request_stage_id"
+                       optional="show"/>
+                <field name="request_stage_type_id"
+                       optional="hide"/>
+                <field name="request_kanban_state"
+                       optional="hide"/>
+                <field name="request_author_id"
+                       optional="show"/>
+                <field name="request_partner_id"
+                       optional="show"/>
+
+                <field name="request_date_created"
+                       optional="show"/>
+                <field name="request_created_by_id"
+                       optional="show"/>
+                <field name="request_is_user_assigned"
+                       optional="hide"/>
+                <field name="request_user_id"
+                       optional="show"/>
+                <field name="request_is_closed"
+                       optional="hide"/>
+                <field name="request_date_closed"
+                       optional="show"/>
+                <field name="request_closed_by"
+                       optional="show"/>
+
+                <field name="request_channel_id"
+                       optional="hide"/>
+                <field name="request_company_id"
+                       optional="hide"/>
+                <field name="remaining_amount"
+                       optional="show"/>
+                <field name="total_amount"
+                       optional="hide"/>
+                <field name="planned_amount"
+                       optional="hide"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_request_report_graph_view" model="ir.ui.view">
+        <field name="model">request.report</field>
         <field name="arch" type="xml">
             <graph type="line">
-                <field name="date_created"/>
+                <field name="request_date_created"/>
+                <field name="request_service_id"
+                       groups="generic_request.group_request_use_services"/>
             </graph>
         </field>
     </record>
 
-    <!-- Daily reports -->
-    <record id="action_graph_report_by_count" model="ir.actions.act_window">
-        <field name="name">Report Requests By Count</field>
-        <field name="res_model">request.request</field>
-        <field name="view_mode">graph</field>
-        <field name="context">{'search_default_filter_month': 1, 'search_default_filter_group_by_creation_date': 1}</field>
+    <record model="ir.ui.view" id="view_request_report_pivot_view">
+        <field name="model">request.report</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="request_stage_type_id" type="col"/>
+                <field name="request_service_id" type="row"
+                       groups="generic_request.group_request_use_services"/>
+                <field name="request_category_id" type="row"/>
+                <field name="request_type_id" type="row"/>
+            </pivot>
+        </field>
     </record>
 
-    <menuitem name="Requests"
+    <record id="view_request_report_search" model="ir.ui.view">
+        <field name="model">request.report</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="request_name"/>
+                <field name="request_service_id"
+                       groups="generic_request.group_request_use_services"/>
+                <field name="request_category_id"/>
+                <field name="request_type_id"/>
+                <field name="request_kind_id"
+                       groups="generic_request.group_request_use_kind"/>
+                <field name="request_channel_id"/>
+                <field name="request_partner_id"/>
+
+                <separator/>
+                <filter name="filter_assigned"
+                        string="Assigned"
+                        domain="[('request_is_user_assigned', '=', True)]"/>
+                <filter name="filter_unassigned"
+                        string="Unassigned"
+                        domain="[('request_is_user_assigned', '=', False)]"/>
+
+                <separator/>
+                <filter name="filter_open"
+                        string="Open"
+                        domain="[('request_is_closed', '=', False)]"/>
+                <filter name="filter_closed"
+                        string="Closed"
+                        domain="[('request_is_closed', '=', True)]"/>
+
+                <separator/>
+                <filter name="filter_week"
+                        string="Week"
+                        domain="[('request_date_created', '&gt;=', (datetime.datetime.combine(context_today() - relativedelta(weeks=1), datetime.time(0,0,0)).to_utc()).strftime('%Y-%m-%d %H:%M:%S'))]"/>
+                <filter name="filter_month"
+                        string="Month"
+                        domain="[('request_date_created', '&gt;=', (datetime.datetime.combine(context_today() - relativedelta(months=1), datetime.time(0,0,0)).to_utc()).strftime('%Y-%m-%d %H:%M:%S'))]"/>
+                <filter name="filter_year"
+                        string="Year"
+                        domain="[('request_date_created', '&gt;=', (datetime.datetime.combine(context_today() - relativedelta(years=1), datetime.time(0,0,0)).to_utc()).strftime('%Y-%m-%d %H:%M:%S'))]"/>
+                <separator/>
+
+                <group string="Group By" name="groupby">
+                    <filter name="filter_group_by_creation_date"
+                            string="Creation date" context="{'group_by': 'request_date_created'}"/>
+                    <filter name="request_service_groupby"
+                            string="Service"
+                            context="{'group_by': 'request_service_id'}"
+                            groups="generic_request.group_request_use_services"/>
+                    <filter name="request_service_level_groupby"
+                            string="Service Level"
+                            context="{'group_by': 'request_service_level_id'}"
+                            groups="generic_request.group_request_use_services"/>
+                    <filter name="request_category_groupby"
+                            string="Category"
+                            context="{'group_by': 'request_category_id'}"/>
+                    <filter name="request_type_groupby"
+                            string="Type"
+                            context="{'group_by': 'request_type_id'}"/>
+                    <filter name="request_kind_groupby"
+                            string="Kind"
+                            context="{'group_by': 'request_kind_id'}"
+                            groups="generic_request.group_request_use_kind"/>
+                    <filter name="request_stage_groupby"
+                            string="Stage"
+                            context="{'group_by': 'request_stage_id'}"/>
+                    <filter name="request_channel_groupby"
+                            string="Channel"
+                            context="{'group_by': 'request_channel_id'}"/>
+                    <filter name="request_author_groupby"
+                            string="Author"
+                            context="{'group_by': 'request_author_id'}"/>
+                    <filter name="request_partner_groupby"
+                            string="Partner"
+                            context="{'group_by': 'request_partner_id'}"/>
+                    <filter name="filter_group_by_is_closed"
+                            string="Is request closed" context="{'group_by': 'request_is_closed'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_request_report_view" model="ir.actions.act_window">
+        <field name="name">Requests Report</field>
+        <field name="res_model">request.report</field>
+        <field name="view_mode">pivot,graph,tree</field>
+    </record>
+
+    <menuitem name="Requests Report"
               id="menu_graph_requests_report"
               parent="generic_request.menu_request_report"
               groups="generic_request.group_request_manager"
-              sequence="100"/>
+              sequence="100"
+              action="action_request_report_view"/>
 
-    <menuitem name="Requests"
-              id="menu_graph_report_requests_by_count"
-              parent="generic_request.menu_graph_requests_report"
-              groups="generic_request.group_request_manager"
-              sequence="10"
-              action="action_graph_report_by_count"/>
 </odoo>

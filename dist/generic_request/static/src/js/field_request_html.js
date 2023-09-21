@@ -8,6 +8,7 @@ odoo.define('generic_request.field_request_html', function (require) {
 
     var FieldRequestHtml = require('web_editor.field.html').extend({
         className: 'oe_form_field oe_form_field_html_text request-html-field',
+        isQuickEditable: false,
 
         init: function () {
             var self = this;

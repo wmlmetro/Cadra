@@ -1,7 +1,6 @@
 from . import (
-    generic_service,
     request_request,
-    request_category,
+    request_classifier,
     request_type,
     request_kind,
     request_stage_route,

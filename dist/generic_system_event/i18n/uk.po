@@ -7,19 +7,22 @@ msgstr ""
 "Project-Id-Version: Odoo Server 14.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-09-12 20:08+0000\n"
-"PO-Revision-Date: 2021-09-12 20:08+0000\n"
-"Last-Translator: \n"
-"Language-Team: \n"
-"Language: \n"
+"PO-Revision-Date: 2023-08-07 13:43+0000\n"
+"Last-Translator: Galina Prokopenko <am@crnd.pro>\n"
+"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_system_event/uk/>\n"
+"Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
-"Plural-Forms: \n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.3.2\n"
 
 #. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__access_ids
 msgid "Access"
-msgstr ""
+msgstr "Доступ"
 
 #. module: generic_system_event
 #: model:generic.system.event.category,name:generic_system_event.system_event_category_basic
@@ -31,7 +34,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_category__code
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_type__code
 msgid "Code"
-msgstr ""
+msgstr "Код"
 
 #. module: generic_system_event
 #: model:ir.model.constraint,message:generic_system_event.constraint_generic_system_event_type_code_uniq
@@ -52,21 +55,21 @@ msgstr ""
 #. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__count
 msgid "Count (Incl. Archived)"
-msgstr ""
+msgstr "Кількість (включаючи архівні)"
 
 #. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_category__create_uid
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__create_uid
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_type__create_uid
 msgid "Created by"
-msgstr ""
+msgstr "Ким створено"
 
 #. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_category__create_date
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__create_date
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_type__create_date
 msgid "Created on"
-msgstr ""
+msgstr "Як створено"
 
 #. module: generic_system_event
 #: model_terms:ir.ui.view,arch_db:generic_system_event.view_generic_system_event_source_search
@@ -85,7 +88,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source_handler_map__display_name
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_type__display_name
 msgid "Display Name"
-msgstr ""
+msgstr "Відображати як"
 
 #. module: generic_system_event
 #: model:ir.model.fields,help:generic_system_event.field_generic_system_event_source__vacuum_enable
@@ -96,7 +99,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_data_mixin__event_id
 #: model_terms:ir.ui.view,arch_db:generic_system_event.view_generic_system_event_form
 msgid "Event"
-msgstr ""
+msgstr "Подія"
 
 #. module: generic_system_event
 #: model:ir.ui.menu,name:generic_system_event.system_event_category_menu
@@ -113,7 +116,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event__event_data_id
 #: model_terms:ir.ui.view,arch_db:generic_system_event.view_generic_system_event_form
 msgid "Event Data"
-msgstr ""
+msgstr "Дата події"
 
 #. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__event_data_model_id
@@ -129,7 +132,7 @@ msgstr ""
 #. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event__event_date
 msgid "Event Date"
-msgstr ""
+msgstr "Дата події"
 
 #. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__event_handler_ids
@@ -151,7 +154,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_system_event.view_generic_system_event_form
 #: model_terms:ir.ui.view,arch_db:generic_system_event.view_generic_system_event_type_search
 msgid "Event Source"
-msgstr ""
+msgstr "Джерело події"
 
 #. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event__event_source_model_id
@@ -159,18 +162,18 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source_handler_map__event_source_model
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_type__event_source_model_id
 msgid "Event Source Model"
-msgstr ""
+msgstr "Модель джерела події"
 
 #. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event__event_source_model_name
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_type__event_source_model_name
 msgid "Event Source Model (Name)"
-msgstr ""
+msgstr "Модель джерела події (назва)"
 
 #. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event__event_source_record_id
 msgid "Event Source Record"
-msgstr ""
+msgstr "Запис джерела події"
 
 #. module: generic_system_event
 #: model:ir.ui.menu,name:generic_system_event.system_event_source_menu
@@ -182,7 +185,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event__event_type_id
 #: model_terms:ir.ui.view,arch_db:generic_system_event.view_generic_generic_system_event_search
 msgid "Event Type"
-msgstr ""
+msgstr "Тип події"
 
 #. module: generic_system_event
 #: model:ir.ui.menu,name:generic_system_event.system_event_type_menu
@@ -205,7 +208,7 @@ msgstr ""
 #: model:ir.ui.menu,name:generic_system_event.system_event_menu
 #, python-format
 msgid "Events"
-msgstr ""
+msgstr "Події"
 
 #. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__field_id
@@ -219,10 +222,20 @@ msgid ""
 msgstr ""
 
 #. module: generic_system_event
+#: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__resource_type_id
+msgid "Generic Resource Type"
+msgstr "Загальний тип ресурсу"
+
+#. module: generic_system_event
+#: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__resource_type_ids
+msgid "Generic Resource Types"
+msgstr "Загальні типи ресурсів"
+
+#. module: generic_system_event
 #: model:ir.model,name:generic_system_event.model_generic_system_event
 #: model:ir.model,name:generic_system_event.model_generic_system_event_type
 msgid "Generic System Event"
-msgstr ""
+msgstr "Загальна системна подія"
 
 #. module: generic_system_event
 #: model:ir.model,name:generic_system_event.model_generic_system_event_category
@@ -241,10 +254,12 @@ msgstr ""
 
 #. module: generic_system_event
 #: model:ir.model,name:generic_system_event.model_generic_system_event_source
+#: model:ir.model.fields,field_description:generic_system_event.field_generic_resource_type__system_event_source_id
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__system_event_source_id
+#: model:ir.model.fields,field_description:generic_system_event.field_generic_tag_model__system_event_source_id
 #: model:ir.model.fields,field_description:generic_system_event.field_ir_model__system_event_source_id
 msgid "Generic System Event Source"
-msgstr ""
+msgstr "Загальне джерело системної події"
 
 #. module: generic_system_event
 #: model:ir.model,name:generic_system_event.model_generic_system_event_source_mixin
@@ -257,10 +272,12 @@ msgid "Generic System Event Source: Handler Map"
 msgstr ""
 
 #. module: generic_system_event
+#: model:ir.model.fields,field_description:generic_system_event.field_generic_resource_type__system_event_source_ids
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__system_event_source_ids
+#: model:ir.model.fields,field_description:generic_system_event.field_generic_tag_model__system_event_source_ids
 #: model:ir.model.fields,field_description:generic_system_event.field_ir_model__system_event_source_ids
 msgid "Generic System Event Sources"
-msgstr ""
+msgstr "Загальні джерела системних подій"
 
 #. module: generic_system_event
 #: model:ir.actions.server,name:generic_system_event.ir_cron_vacuum_events_ir_actions_server
@@ -288,7 +305,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source_handler_map__id
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_type__id
 msgid "ID"
-msgstr ""
+msgstr "ID"
 
 #. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__modules
@@ -318,27 +335,32 @@ msgid "Inherited models"
 msgstr ""
 
 #. module: generic_system_event
+#: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__is_generic_resource
+msgid "Is Generic Resource"
+msgstr ""
+
+#. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event____last_update
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_category____last_update
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source____last_update
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source_handler_map____last_update
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_type____last_update
 msgid "Last Modified on"
-msgstr ""
+msgstr "Востаннє змінено"
 
 #. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_category__write_uid
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__write_uid
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_type__write_uid
 msgid "Last Updated by"
-msgstr ""
+msgstr "Востаннє оновлено"
 
 #. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_category__write_date
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__write_date
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_type__write_date
 msgid "Last Updated on"
-msgstr ""
+msgstr "Востаннє оновлено"
 
 #. module: generic_system_event
 #: model:ir.model.fields,help:generic_system_event.field_generic_system_event_source__modules
@@ -353,7 +375,7 @@ msgstr ""
 #. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__is_mail_blacklist
 msgid "Mail Blacklist"
-msgstr ""
+msgstr "Чорний список пошти"
 
 #. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__is_mail_thread
@@ -364,7 +386,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event__event_data_model_name
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__model
 msgid "Model"
-msgstr ""
+msgstr "Модель"
 
 #. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__name
@@ -385,7 +407,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_category__name
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_type__name
 msgid "Name"
-msgstr ""
+msgstr "Ім'я"
 
 #. module: generic_system_event
 #: model:ir.model.constraint,message:generic_system_event.constraint_generic_system_event_type_name_uniq
@@ -434,6 +456,8 @@ msgid ""
 "SQL expression for ordering records in the model; e.g. \"x_sequence asc, id "
 "desc\""
 msgstr ""
+"SQL-вираз для впорядкування записів у моделі; напр. \"x_sequence asc, id "
+"desc\""
 
 #. module: generic_system_event
 #: model_terms:ir.ui.view,arch_db:generic_system_event.view_generic_system_event_source_search
@@ -448,7 +472,7 @@ msgstr ""
 #. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source_mixin__generic_event_count
 msgid "System Events"
-msgstr ""
+msgstr "Системні події"
 
 #. module: generic_system_event
 #: model:ir.model.fields,help:generic_system_event.field_generic_system_event_source__inherited_model_ids
@@ -488,12 +512,12 @@ msgstr ""
 #. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event__user_id
 msgid "User"
-msgstr ""
+msgstr "Користувач"
 
 #. module: generic_system_event
 #: model:ir.model.fields,help:generic_system_event.field_generic_system_event__user_id
 msgid "User that triggered this event."
-msgstr ""
+msgstr "Користувач, який ініціював цю подію."
 
 #. module: generic_system_event
 #: model:ir.model.fields,field_description:generic_system_event.field_generic_system_event_source__vacuum_enable
@@ -518,6 +542,11 @@ msgstr ""
 #. module: generic_system_event
 #: model:ir.model.fields.selection,name:generic_system_event.selection__generic_system_event_source__vacuum_time_uom__weeks
 msgid "Weeks"
+msgstr ""
+
+#. module: generic_system_event
+#: model:ir.model.fields,help:generic_system_event.field_generic_system_event_source__is_generic_resource
+msgid "Whether this model is Generic Resource."
 msgstr ""
 
 #. module: generic_system_event

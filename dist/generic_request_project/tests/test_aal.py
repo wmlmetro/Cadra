@@ -34,6 +34,12 @@ class AnalyticLineTest(TransactionCase):
         })
         self.request_manager = self.env.ref(
             'generic_request.user_demo_request_manager')
+
+        # Create env for request manager to trigger with it
+        # wizard action 'Start Work' to set 'user_id' in timesheet properly
+        # (backport compatibility for v.16)
+        self.menv = self.env(user=self.request_manager)
+
         self.request_user = self.env.ref('generic_request.user_demo_request')
         self.partner = self.env.ref('base.res_partner_10')
         self.partner_2 = self.env.ref('base.res_partner_1')
@@ -58,13 +64,13 @@ class AnalyticLineTest(TransactionCase):
 
         with freeze_time('2021-08-04 09:44:00'):
             # Create by pressing Start Work button on request form
-            self.request.action_start_work()
+            self.request.with_env(self.menv).action_start_work()
             self.assertEqual(len(self.request.timesheet_line_ids), 2)
             self.assertEqual(len(self.env['account.analytic.line'].search([(
                 'request_id', '=', self.request.id)])), 0)
 
         with freeze_time('2021-08-04 11:14:00'):
-            action = self.request.action_stop_work()
+            action = self.request.with_env(self.menv).action_stop_work()
             wizard = self.env[action['res_model']].with_context(
                 **action['context']
             ).create({'activity_id': self.activity_call.id, })
@@ -101,7 +107,7 @@ class AnalyticLineTest(TransactionCase):
         self.assertEqual(aal_2.amount, 0.00)
         self.assertEqual(aal_2.company_id.name, 'YourCompany')
         self.assertFalse(aal_2.partner_id)
-        self.assertEqual(aal_2.user_id.name, 'OdooBot')
+        self.assertEqual(aal_2.user_id.name, 'Demo Request Manager')
 
         # Create with defined analytic account
         with freeze_time('2021-08-05 10:04:00'):
@@ -138,6 +144,7 @@ class AnalyticLineTest(TransactionCase):
         with freeze_time('2021-08-06 11:04:00'):
             # Create request_timesheet_line manually ("add a line")
             self.env['request.timesheet.line'].create({
+                'user_id': self.request_manager.id,
                 'request_id': self.request.id,
                 'activity_id': self.activity_call.id,
                 'amount': 3.5, })
@@ -155,7 +162,7 @@ class AnalyticLineTest(TransactionCase):
             self.assertEqual(
                 aal_4.company_id.name, 'YourCompany')
             self.assertFalse(aal_4.partner_id)
-            self.assertEqual(aal_4.user_id.name, 'OdooBot')
+            self.assertEqual(aal_4.user_id.name, 'Demo Request Manager')
 
     def test_update_aal(self):
         # pylint: disable=too-many-statements

@@ -9,7 +9,7 @@
     'website': "https://crnd.pro",
 
     'category': 'Generic Request',
-    'version': '15.0.2.3.0',
+    'version': '15.0.2.13.0',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -35,6 +35,8 @@
         'views/request_sla_control_view.xml',
         'views/request_event.xml',
         'views/mail_templates.xml',
+
+        'reports/request_graph_reports.xml',
     ],
     'demo': [
         'demo/resource_calendar.xml',
@@ -43,12 +45,13 @@
         'demo/request_type_sla_complex.xml',
         'demo/request_type_sla_2.xml',
         'demo/request_type_sla_condition.xml',
+        'demo/request_sla_rule_line.xml',
     ],
     'images': ['static/description/banner.gif'],
     'installable': True,
     'auto_install': False,
     'application': False,
     'license': 'OPL-1',
-    'price': 100.0,
+    'price': 200.0,
     'currency': 'EUR',
 }

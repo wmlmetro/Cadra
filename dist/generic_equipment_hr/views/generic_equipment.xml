@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_generic_equipment_tree" model="ir.ui.view">
+        <field name="model">generic.equipment</field>
+        <field name="inherit_id" ref="generic_equipment.view_generic_equipment_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='date_purchase']" position="before">
+                <field name="in_use_by_department_id"
+                       optional="show"/>
+                <field name="in_use_by_employee_id"
+                       optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_generic_equipment_form" model="ir.ui.view">
+        <field name="model">generic.equipment</field>
+        <field name="inherit_id" ref="generic_equipment.view_generic_equipment_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='page_info']/group[@name='group_info_root']/group[@name='group_info_general']"
+                   position="after">
+                <group name="group_in_use" string="In Use">
+                    <field name="in_use_by_department_id"
+                           string="By Department"/>
+                    <field name="in_use_by_employee_id"
+                           string="By Employee"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_generic_equipment_search">
+        <field name="model">generic.equipment</field>
+        <field name="inherit_id" ref="generic_equipment.view_generic_equipment_search"/>
+        <field name="arch" type="xml">
+            <search>
+                <field name="model_id" position="after">
+                    <field name="in_use_by_department_id"/>
+                    <field name="in_use_by_employee_id"/>
+                </field>
+            </search>
+        </field>
+    </record>
+</odoo>

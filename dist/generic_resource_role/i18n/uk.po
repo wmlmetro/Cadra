@@ -7,17 +7,17 @@ msgstr ""
 "Project-Id-Version: Odoo Server 12.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2019-09-16 11:43+0000\n"
-"PO-Revision-Date: 2020-07-28 12:23+0000\n"
-"Last-Translator: Ostap Yakovenko <ceo@crnd.pro>\n"
-"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/bureaucrat-"
-"itsm-13/generic_resource_role/uk/>\n"
+"PO-Revision-Date: 2023-08-07 13:43+0000\n"
+"Last-Translator: Galina Prokopenko <am@crnd.pro>\n"
+"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_resource_role/uk/>\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 3.10.3\n"
+"X-Generator: Weblate 4.3.2\n"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,help:generic_resource_role.field_generic_resource_role__role_code
@@ -29,12 +29,12 @@ msgstr "Лише ASCII короткий код для типу ролі."
 #: model:ir.model.fields.selection,name:generic_resource_role.selection__generic_resource__resource_visibility__role-based
 #: model:ir.model.fields.selection,name:generic_resource_role.selection__generic_resource_type__resource_visibility__role-based
 msgid "Access restricted by roles"
-msgstr "Доступ заборонений ролями"
+msgstr "Доступ обмежено ролями"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles__action
 msgid "Action"
-msgstr ""
+msgstr "Дія"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__message_needaction
@@ -46,12 +46,12 @@ msgstr "Необхідні дії"
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__active
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type__active
 msgid "Active"
-msgstr "Активно"
+msgstr "Активний"
 
 #. module: generic_resource_role
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_view_form
 msgid "Add new role link"
-msgstr ""
+msgstr "Додати нове посилання на роль"
 
 #. module: generic_resource_role
 #: model:generic.resource.role,name:generic_resource_role.generic_resource_simple_role_admin
@@ -62,24 +62,24 @@ msgstr "Адміністратор"
 #. module: generic_resource_role
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_view_form
 msgid "Also, you can"
-msgstr ""
+msgstr "Також, ви можете"
 
 #. module: generic_resource_role
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_wizard_manage_roles_form_view
 msgid "Apply"
-msgstr ""
+msgstr "Застосувати"
 
 #. module: generic_resource_role
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_link_view_form
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_type_view_form
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_view_form
 msgid "Archived"
-msgstr ""
+msgstr "Заархівовано"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__message_attachment_count
 msgid "Attachment Count"
-msgstr "Підрахунок прикріплення"
+msgstr "Кількість вкладень"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__can_manage_roles
@@ -111,7 +111,7 @@ msgstr "Може записувати"
 #. module: generic_resource_role
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_wizard_manage_roles_form_view
 msgid "Cancel"
-msgstr ""
+msgstr "Відмінити"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__child_ids
@@ -148,7 +148,7 @@ msgstr "Контакт"
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__create_uid
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles__create_uid
 msgid "Created by"
-msgstr "Створив"
+msgstr "Ким створено"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_permission__create_date
@@ -158,7 +158,7 @@ msgstr "Створив"
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__create_date
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles__create_date
 msgid "Created on"
-msgstr "Створено"
+msgstr "Як створено"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_type__creator_role_id
@@ -166,12 +166,18 @@ msgid "Creator Role"
 msgstr "Роль творця"
 
 #. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_is_role_manager
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_is_role_manager
+msgid "Current user is role manager"
+msgstr ""
+
+#. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__ir_model_data_id
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__ir_model_data_id
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type__ir_model_data_id
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__ir_model_data_id
 msgid "Data record"
-msgstr ""
+msgstr "Запис даних"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__ir_model_data_ids
@@ -179,7 +185,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type__ir_model_data_ids
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__ir_model_data_ids
 msgid "Data records"
-msgstr ""
+msgstr "Записи даних"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__date_end
@@ -189,7 +195,7 @@ msgstr "Дата закінчення"
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles__date_expire
 msgid "Date Expire"
-msgstr ""
+msgstr "Дата прострочення"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__date_start
@@ -212,7 +218,7 @@ msgstr "Опис"
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__display_name
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles__display_name
 msgid "Display Name"
-msgstr "Назва для відображення"
+msgstr "Відображати як"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__doc_model
@@ -222,7 +228,7 @@ msgstr "Модель документа"
 #. module: generic_resource_role
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_view_form
 msgid "Expire Role Link"
-msgstr ""
+msgstr "Простроченна роль"
 
 #. module: generic_resource_role
 #: model:generic.resource.role.type,name:generic_resource_role.generic_resource_role_type_follower
@@ -247,17 +253,17 @@ msgstr "Універсальний ресурс"
 #. module: generic_resource_role
 #: model:ir.model,name:generic_resource_role.model_generic_resource_permission
 msgid "Generic Resource Permission"
-msgstr ""
+msgstr "Дозвололи загальних ресурсів"
 
 #. module: generic_resource_role
 #: model:ir.model,name:generic_resource_role.model_generic_resource_type
 msgid "Generic Resource Type"
-msgstr "Тип універсального ресурсу"
+msgstr "Загальний тип ресурсу"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__resource_id
 msgid "Generic resource"
-msgstr ""
+msgstr "Загальні ресурси"
 
 #. module: generic_resource_role
 #: model:res.groups,name:generic_resource_role.group_generic_resource_manage_roles
@@ -267,7 +273,7 @@ msgstr "Універсальний ресурс: менеджер ролей"
 #. module: generic_resource_role
 #: model:ir.model.fields.selection,name:generic_resource_role.selection__generic_resource_wizard_manage_roles__action__grant
 msgid "Grant"
-msgstr ""
+msgstr "Надати права"
 
 #. module: generic_resource_role
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_permission_view_search
@@ -283,7 +289,7 @@ msgstr "Групувати за..."
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__has_message
 msgid "Has Message"
-msgstr ""
+msgstr "Є повідомлення"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_permission__id
@@ -332,12 +338,14 @@ msgid ""
 "Incorrect configuration of subrole %(subrole)s!\n"
 "Incorrect field type %(field)s: %(field_type)s"
 msgstr ""
+"Некоректно сконфігурована під роль %(subrole)s!\n"
+"Некоректний тип поля %(field)s: %(field_type)s"
 
 #. module: generic_resource_role
 #: code:addons/generic_resource_role/models/generic_resource_sub_role.py:0
 #, python-format
 msgid "Incorrect subfield (%(subfield)s) type: %(subfield_type)s"
-msgstr ""
+msgstr "Некоректно вказанbq тип %(subfield_type)s підполя %(subfield)s"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,help:generic_resource_role.field_generic_resource_role__ir_model_data_no_update
@@ -349,6 +357,10 @@ msgid ""
 "set to True, the record will not be overriden on module update, if set to "
 "False, thenrecord will be overridden by module update"
 msgstr ""
+"Вказує, чи буде цей запис оновлено за допомогою оновлення модуля чи ні. Якщо "
+"встановлено значення True, запис не буде перевизначено під час оновлення "
+"модуля, якщо встановлено значення False, запис буде перевизначено оновленням "
+"модуля"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__message_is_follower
@@ -388,7 +400,7 @@ msgstr "Заборонено видаляти ролі, сгенеровані �
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role____last_update
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles____last_update
 msgid "Last Modified on"
-msgstr "Остання модифікація"
+msgstr "Востаннє змінено"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_permission__write_uid
@@ -398,7 +410,7 @@ msgstr "Остання модифікація"
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__write_uid
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles__write_uid
 msgid "Last Updated by"
-msgstr "Востаннє оновив"
+msgstr "Востаннє оновлено"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_permission__write_date
@@ -408,7 +420,7 @@ msgstr "Востаннє оновив"
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__write_date
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles__write_date
 msgid "Last Updated on"
-msgstr "Останнє оновлення"
+msgstr "Востаннє оновлено"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__message_main_attachment_id
@@ -419,7 +431,7 @@ msgstr "Основне прикріплення"
 #: model:ir.actions.act_window,name:generic_resource_role.action_resource_open_wizard_manage_roles
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_view_form
 msgid "Manage Roles"
-msgstr ""
+msgstr "Управління ролями"
 
 #. module: generic_resource_role
 #: model:res.groups,comment:generic_resource_role.group_generic_resource_manage_roles
@@ -427,22 +439,25 @@ msgid ""
 "Manage generic resource's roles. This group allows users to edit roles on "
 "resources where they (users) has Manage Roles access role."
 msgstr ""
+"Керуйте ролями загального ресурсу. Ця група дозволяє користувачам редагувати "
+"ролі на ресурсах, де вони (користувачі) мають роль доступу до керування "
+"ролями."
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_role_manager_ids
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_role_manager_ids
 msgid "Manager Role Links"
-msgstr ""
+msgstr "Посилання на роль курівника"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__master_type_id
 msgid "Master Resource Type"
-msgstr ""
+msgstr "Головний тип ресурсу"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__master_role_id
 msgid "Master Role"
-msgstr ""
+msgstr "Основна роль"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__message_has_error
@@ -463,7 +478,7 @@ msgstr "Повідомлення"
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_view_form
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_view_tree
 msgid "Name"
-msgstr "Назва"
+msgstr "Ім'я"
 
 #. module: generic_resource_role
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_role_type_view_form
@@ -477,7 +492,7 @@ msgstr "Назва..."
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_type__ir_model_data_no_update
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__ir_model_data_no_update
 msgid "Non Updatable"
-msgstr ""
+msgstr "Не оновлюємий"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__message_needaction_counter
@@ -487,7 +502,7 @@ msgstr "Кількість дій"
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__message_has_error_counter
 msgid "Number of errors"
-msgstr ""
+msgstr "Номер помилки"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,help:generic_resource_role.field_generic_resource_sub_role__message_needaction_counter
@@ -507,7 +522,7 @@ msgstr "Кількість непрочитаних повідомлень"
 #. module: generic_resource_role
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_view_form
 msgid "Open Role Link"
-msgstr ""
+msgstr "Відкрити роль"
 
 #. module: generic_resource_role
 #: code:addons/generic_resource_role/models/generic_resource.py:0
@@ -516,6 +531,7 @@ msgid ""
 "Operation '%(operation)s' is not allowed for this resource(s) "
 "(%(resources)s) !"
 msgstr ""
+"Операція '%(operation)s' не дозволена для цього ресурсу (%(resources)s) !"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__doc_id
@@ -549,7 +565,7 @@ msgstr "Партнер"
 #. module: generic_resource_role
 #: model:ir.actions.act_window,name:generic_resource_role.generic_resource_permission_action_view
 msgid "Permission"
-msgstr ""
+msgstr "Дозволи"
 
 #. module: generic_resource_role
 #: code:addons/generic_resource_role/models/generic_resource.py:0
@@ -558,16 +574,17 @@ msgid ""
 "Permission '%(permission)s' is not allowed for this resource(s) "
 "(%(resources)s) !"
 msgstr ""
+"Дозволи '%(permission)s' не наданіі для цього ресурсу (%(resources)s) !"
 
 #. module: generic_resource_role
 #: model:ir.model.constraint,message:generic_resource_role.constraint_generic_resource_permission_permission_code_uniq
 msgid "Permission code must be uniq for resource type"
-msgstr ""
+msgstr "Код дозволу має бути унікальним для типу ресурсу"
 
 #. module: generic_resource_role
 #: model:ir.model.constraint,message:generic_resource_role.constraint_generic_resource_permission_permission_name_uniq
 msgid "Permission name must be uniq for resource type"
-msgstr ""
+msgstr "Код дозволу має бути унікальним для типу ресурсу"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_type__resource_permission_count
@@ -575,7 +592,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_type_view_form
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.view_generic_resource_type_kanban
 msgid "Permissions"
-msgstr ""
+msgstr "Дозволи"
 
 #. module: generic_resource_role
 #: model:generic.resource.role,name:generic_resource_role.generic_resource_simple_role_readonly
@@ -604,24 +621,18 @@ msgstr "Ресурс"
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_type__resource_act_manage_roles_id
 msgid "Resource Act Manage Roles"
-msgstr ""
-
-#. module: generic_resource_role
-#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_is_role_manager
-#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_is_role_manager
-msgid "Resource Is Role Manager"
-msgstr ""
+msgstr "Ролі управління ресурсами"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__master_model_id
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__sub_model_id
 msgid "Resource Model"
-msgstr ""
+msgstr "Модель ресурсу"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__resource_permission_ids
 msgid "Resource Permissions"
-msgstr ""
+msgstr "Дозволи ресурсу"
 
 #. module: generic_resource_role
 #: model:ir.model,name:generic_resource_role.model_generic_resource_role
@@ -636,19 +647,19 @@ msgstr "Зв'язок ролі ресурсу"
 #. module: generic_resource_role
 #: model:ir.model,name:generic_resource_role.model_generic_resource_role_link_sec_view
 msgid "Resource Role Link (Sec View)"
-msgstr ""
+msgstr "Актуальні ролі ресурсів"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_res_partner__resource_role_link_count
 #: model:ir.model.fields,field_description:generic_resource_role.field_res_users__resource_role_link_count
 msgid "Resource Role Link Count"
-msgstr ""
+msgstr "Кількість застасованих ролей"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_role_sec_view_ids
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_role_sec_view_ids
 msgid "Resource Role Sec View"
-msgstr ""
+msgstr "Актуальні ролі ресурса"
 
 #. module: generic_resource_role
 #: model:ir.model,name:generic_resource_role.model_generic_resource_role_type
@@ -674,28 +685,22 @@ msgid "Resource Type"
 msgstr "Тип ресурсу"
 
 #. module: generic_resource_role
-#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_user_role_ids
-#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_user_role_ids
-msgid "Resource User Role"
-msgstr ""
-
-#. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_visibility
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_visibility
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_type__resource_visibility
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_wizard_manage_roles__resource_visibility
 msgid "Resource Visibility"
-msgstr ""
+msgstr "Видимість ресурсу"
 
 #. module: generic_resource_role
 #: model:ir.model,name:generic_resource_role.model_generic_resource_wizard_manage_roles
 msgid "Resource Wizard: Manage Roles"
-msgstr ""
+msgstr "Майстер ресурсів: Керування ролями"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__resource_res_model
 msgid "Resource model"
-msgstr ""
+msgstr "Модель ресурсу"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_permission__resource_type_id
@@ -712,6 +717,8 @@ msgstr "Тип ресурсу"
 msgid ""
 "Resource visibility determines users that have read access for this resource."
 msgstr ""
+"Видимість ресурсу визначає користувачів, які мають доступ на читання для "
+"цього ресурсу."
 
 #. module: generic_resource_role
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.view_partner_form
@@ -722,7 +729,7 @@ msgstr "Ресурси"
 #. module: generic_resource_role
 #: model:ir.model.fields.selection,name:generic_resource_role.selection__generic_resource_wizard_manage_roles__action__revoke
 msgid "Revoke"
-msgstr ""
+msgstr "Відкликати"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role_link__role_id
@@ -766,7 +773,7 @@ msgstr "Ролі-звʼязки"
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_role_link_count
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_role_link_count
 msgid "Role links (Count)"
-msgstr ""
+msgstr "Ролі (Кількість)"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_role__role_type_id
@@ -820,7 +827,7 @@ msgstr "Роль, яку має поточний користувач для ц�
 #. module: generic_resource_role
 #: model:ir.model.fields.selection,name:generic_resource_role.selection__generic_resource_wizard_manage_roles__action__set_visibility
 msgid "Set Visibility"
-msgstr ""
+msgstr "Встановити видимість"
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__sub_field_id
@@ -891,12 +898,14 @@ msgid ""
 "Technical field to determine if current user is role manager. This field "
 "mostly use for UI."
 msgstr ""
+"Технічне поле для визначення, чи є поточний користувач менеджером ролей. Це "
+"поле переважно використовується для інтерфейсу користувача."
 
 #. module: generic_resource_role
 #: code:addons/generic_resource_role/models/generic_resource_role_link.py:0
 #, python-format
 msgid "The start date can not exceed the end date."
-msgstr ""
+msgstr "Дата початку не може перевищувати дату завершення."
 
 #. module: generic_resource_role
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_wizard_manage_roles_form_view
@@ -905,11 +914,13 @@ msgid ""
 "                        Please, select only resources of single resource "
 "type!"
 msgstr ""
+"Ця дія може бути застосована лише для ресурсів одного типу.\n"
+"                         Будь ласка, обирайте лише ресурси одного типу!"
 
 #. module: generic_resource_role
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_view_form
 msgid "This list displays only active roles."
-msgstr ""
+msgstr "Цей список відображає лише активні ролі."
 
 #. module: generic_resource_role
 #: model:ir.model.fields,help:generic_resource_role.field_generic_resource_type__creator_role_id
@@ -936,6 +947,12 @@ msgid "User"
 msgstr "Користувач"
 
 #. module: generic_resource_role
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource__resource_user_role_ids
+#: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_simple__resource_user_role_ids
+msgid "User roles"
+msgstr ""
+
+#. module: generic_resource_role
 #: model:ir.model,name:generic_resource_role.model_res_users
 msgid "Users"
 msgstr "Користувачі"
@@ -954,7 +971,7 @@ msgstr ""
 #: model:ir.model.fields,help:generic_resource_role.field_generic_resource_role_type__ir_model_data_xmlid
 #: model:ir.model.fields,help:generic_resource_role.field_generic_resource_sub_role__ir_model_data_xmlid
 msgid "XML ID for this record."
-msgstr ""
+msgstr "Ідентифікатор XML для цього запису."
 
 #. module: generic_resource_role
 #: model:ir.model.fields,field_description:generic_resource_role.field_generic_resource_sub_role__master_model
@@ -964,7 +981,13 @@ msgstr ""
 #. module: generic_resource_role
 #: model_terms:ir.ui.view,arch_db:generic_resource_role.generic_resource_view_form
 msgid "open full list of roles"
-msgstr ""
+msgstr "відкрити повний список ролей"
+
+#~ msgid "Resource Is Role Manager"
+#~ msgstr "Ресурс керується ролями"
+
+#~ msgid "Resource User Role"
+#~ msgstr "Користувацькі ролі"
 
 #~ msgid "Followers (Channels)"
 #~ msgstr "Підписники (Канали)"

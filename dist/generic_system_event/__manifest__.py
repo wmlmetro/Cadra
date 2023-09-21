@@ -7,7 +7,7 @@
     'author': "Center of Research and Development",
     'website': "https://crnd.pro",
     'category': 'Generic System Event',
-    'version': '15.0.0.23.0',
+    'version': '15.0.0.29.0',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -33,5 +33,5 @@
     'images': [],
     'installable': True,
     'application': False,
-    'license': 'LGPL-3',
+    'license': 'OPL-1',
 }

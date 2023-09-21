@@ -1,0 +1,18 @@
+<odoo>
+    <!-- Equipment Models for Dell XPS Series -->
+    <record model="generic.equipment.model" id="generic_equipment_model_dell_xps_13_9310">
+      <field name="name">Dell XPS 13 (9310)</field>
+      <field name="series_id" ref="generic_equipment_series_dell_xps13"/>
+      <field name="brand_id" ref="generic_equipment_brand_dell_xps"/>
+      <field name="vendor_id" ref="generic_equipment_vendor_dell"/>
+    </record>
+
+    <!-- Equipment Models for Logitech MX Series -->
+    <record model="generic.equipment.model" id="generic_equipment_model_logitech_mx_master_3">
+      <field name="name">Logitech MX Master 3</field>
+      <field name="series_id" ref="generic_equipment_series_logitech_mx_master"/>
+      <field name="brand_id" ref="generic_equipment_brand_logitech_mx"/>
+      <field name="vendor_id" ref="generic_equipment_vendor_logitech"/>
+    </record>
+
+</odoo>

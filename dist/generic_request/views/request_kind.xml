@@ -371,6 +371,7 @@
 
     <menuitem id="menu_generic_configuration_kinds"
               parent="generic_request.menu_configuration_requests"
+              groups="generic_request.group_request_use_kind"
               action="action_request_kind"/>
 
 </odoo>

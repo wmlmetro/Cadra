@@ -10,7 +10,7 @@
     'website': "https://crnd.pro",
 
     'category': 'Generic Request',
-    'version': '15.0.2.6.0',
+    'version': '15.0.2.10.2',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -29,7 +29,7 @@
 
     'images': ['static/description/banner.png'],
     'installable': True,
-    'application': True,
+    'application': False,
     'auto_install': True,
     'license': 'OPL-1',
 }

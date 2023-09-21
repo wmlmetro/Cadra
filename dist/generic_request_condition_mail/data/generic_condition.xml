@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="condition_event_message_from_request_assignee" model="generic.condition">
+        <field name="name">Mail message authored by assignee of the request</field>
+        <field name="model_id" ref="generic_request.model_request_event"/>
+        <field name="type">eval</field>
+        <field name="description">Mail message authored by assignee of the request.</field>
+        <field name="condition_eval">(
+    # Check event code.
+    # Compare author of mail message with assignee of the request.
+    record.event_code == 'mail-comment' and
+    record.mail_message_id.author_id == record.request_id.user_id.partner_id
+)</field>
+        <field name="with_sudo" eval="True"/>
+    </record>
+
+    <record id="condition_event_message_not_from_request_assignee" model="generic.condition">
+        <field name="name">Mail message IS NOT authored by assignee</field>
+        <field name="model_id" ref="generic_request.model_request_event"/>
+        <field name="type">condition</field>
+        <field name="description">Mail message IS NOT authored by assignee of the request.</field>
+        <field name="condition_condition_id" ref="condition_event_message_from_request_assignee"/>
+        <field name="invert" eval="True"/>
+    </record>
+
+    <record id="condition_event_message_from_request_author" model="generic.condition">
+        <field name="name">Mail message by author of the request</field>
+        <field name="model_id" ref="generic_request.model_request_event"/>
+        <field name="type">eval</field>
+        <field name="description">Mail message is created by the author of the request.</field>
+        <field name="condition_eval">(
+    # Check event code.
+    # Compare author of mail message with author of the request.
+    record.event_code == 'mail-comment' and
+    record.mail_message_id.author_id == record.request_id.author_id
+)</field>
+        <field name="with_sudo" eval="True"/>
+    </record>
+
+</odoo>

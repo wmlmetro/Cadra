@@ -4,7 +4,12 @@
     <record id="request_type_cron" model="request.type">
         <field name="name">cron Request</field>
         <field name="code">cron</field>
-        <field name="category_ids" eval="[(4, ref('generic_request.request_category_demo_general'), 0)]"/>
+    </record>
+
+    <!--Add request.classifier-->
+    <record id="classifier_request_type_cron_category_demo_general" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_general"/>
+        <field name="type_id" ref="generic_request_route_auto.request_type_cron"/>
     </record>
 
     <!-- cron request type stages -->

@@ -9,13 +9,14 @@
     'website': "https://crnd.pro",
 
     'category': 'Generic Request',
-    'version': '15.0.4.2.1',
+    'version': '15.0.4.17.0',
 
     # any module necessary for this one to work correctly
     'depends': [
         'generic_request',
         'generic_condition',
         'mail',
+        'resource',
     ],
 
     # always loaded
@@ -27,9 +28,12 @@
     ],
     'demo': [
         'demo/mail_template.xml',
-        'demo/request_event_action.xml',
+        'demo/request_category_demo.xml',
         'demo/request_type_action.xml',
         'demo/generic_condition.xml',
+        'demo/request_event_action.xml',
+        'demo/request_creation_template.xml',
+        'demo/demo_request_template_text.xml',
     ],
 
     'images': ['static/description/banner.png'],
@@ -37,6 +41,6 @@
     'auto_install': False,
     'application': False,
     'license': 'OPL-1',
-    'price': 100.0,
+    'price': 230.0,
     'currency': 'EUR',
 }

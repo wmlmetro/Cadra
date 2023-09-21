@@ -12,7 +12,7 @@
                 <field name="partner_type"/>
                 <field name="user_id"/>
                 <field name="date"/>
-                <field name="date_start"/>
+                <field name="date_begin"/>
                 <field name="date_end"/>
                 <field name="date_closed"/>
                 <field name="state"/>
@@ -58,7 +58,7 @@
                     </div>
                     <div class="oe_title">
                         <h1>
-                            <field name="name" default_focus="1" placeholder="Name" />
+                            <field name="name" placeholder="Name" />
                         </h1>
                         <h2>
                             <field name="number"
@@ -75,10 +75,8 @@
                     </div>
                     <group name="main_contract_group">
                         <group name="group_contract_main_left">
-                            <field name="company_id"
-                                   readonly="1"/>
+                            <field name="company_id"/>
                             <field name="partner_id"
-                                   attrs="{'readonly': [('state', '!=', 'draft')]}"
                                    placeholder="Partner"/>
                             <field name="partner_type"/>
                             <field name="ref"/>
@@ -86,7 +84,7 @@
                         </group>
                         <group name="group_contract_main_right">
                             <field name="date"/>
-                            <field name="date_start"/>
+                            <field name="date_begin"/>
                             <field name="date_end"/>
                             <field name="date_closed"
                                    attrs="{'invisible': [('state', '!=', 'closed')]}"/>
@@ -157,16 +155,18 @@
                         domain="[('state', '=', 'closed')]"/>
                 <separator/>
                 <filter name="group_by_partner_type" string="Partner type"
-                            context="{'group_by': 'partner_type'}"/>
+                        context="{'group_by': 'partner_type'}"/>
                 <filter name="group_by_template" string="Template"
-                            context="{'group_by': 'template_id'}"/>
+                        context="{'group_by': 'template_id'}"/>
                 <filter name="group_by_company" string="Company"
-                            context="{'group_by': 'company_id'}"
-                            groups="base.group_multi_company"/>
+                        context="{'group_by': 'company_id'}"
+                        groups="base.group_multi_company"/>
                 <filter name="group_by_partner" string="Partner"
-                            context="{'group_by': 'partner_id'}"/>
+                        context="{'group_by': 'partner_id'}"/>
                 <filter name="group_by_user" string="Responsible user"
-                            context="{'group_by': 'user_id'}"/>
+                        context="{'group_by': 'user_id'}"/>
+                <filter name="group_by_state" string="State"
+                        context="{'group_by': 'state'}"/>
             </search>
         </field>
     </record>

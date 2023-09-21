@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 2.2.0
+
+Merged `generic_location_tag` module.
+
+
 ## Version 2.0.0
 
 Module `generic_location_address` was merged into the `generic_location`

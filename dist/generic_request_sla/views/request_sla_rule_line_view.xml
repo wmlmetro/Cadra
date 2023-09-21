@@ -1,15 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="generic_request_sla_rule_line_view_tree" model="ir.ui.view">
-        <field name="name">request.sla.rule.line.tree</field>
         <field name="model">request.sla.rule.line</field>
         <field name="arch" type="xml">
             <tree>
                 <field name="sequence" widget="handle"/>
+                <field name="priority" widget="priority"/>
+                <field name="tag_id"/>
+                <field name="service_id"
+                       domain="[('request_type_ids', 'in', request_type_id)]"
+                       groups="generic_request.group_request_use_services"/>
+                <field name="category_ids" widget="many2many_tags" options="{'open': True}"/>
                 <field name="request_type_id"/>
                 <field name="sla_rule_id"/>
-                <field name="category_ids" widget="many2many_tags" options="{'open': True}"/>
                 <field name="request_channel_ids" widget="many2many_tags"/>
+                <field name="service_level_id"
+                       groups="generic_service.group_use_service_level"/>
                 <field name="compute_time"/>
                 <field name="sla_calendar_id"
                        attrs="{'invisible': [('compute_time', '!=', 'calendar')]}"/>
@@ -20,17 +26,23 @@
     </record>
 
     <record id="generic_request_sla_rule_line_view_form" model="ir.ui.view">
-        <field name="name">request.sla.rule.line.form</field>
         <field name="model">request.sla.rule.line</field>
         <field name="arch" type="xml">
             <form>
                 <group>
                     <group name="group_left">
                         <field name="sequence"/>
+                        <field name="priority" widget="priority"/>
+                        <field name="tag_id"/>
+                        <field name="service_id"
+                               domain="[('request_type_ids', 'in', request_type_id)]"
+                               groups="generic_request.group_request_use_services"/>
+                        <field name="category_ids" widget="many2many_tags" options="{'open': True}"/>
                         <field name="request_type_id"/>
                         <field name="sla_rule_id"/>
-                        <field name="category_ids" widget="many2many_tags" options="{'open': True}"/>
                         <field name="request_channel_ids" widget="many2many_tags"/>
+                        <field name="service_level_id"
+                               groups="generic_service.group_use_service_level"/>
                     </group>
                     <group name="group_right">
                         <field name="compute_time"/>

@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:10+0000\n"
-"PO-Revision-Date: 2021-06-22 16:10+0000\n"
+"POT-Creation-Date: 2023-07-26 11:14+0000\n"
+"PO-Revision-Date: 2023-07-26 11:14+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -59,7 +59,7 @@ msgstr ""
 #. module: generic_assignment_hr
 #: model:ir.model.fields,field_description:generic_assignment_hr.field_generic_assign_policy_rule__assign_department_id
 msgid "Department"
-msgstr ""
+msgstr "Skyrius"
 
 #. module: generic_assignment_hr
 #: model:ir.model.fields.selection,name:generic_assignment_hr.selection__generic_assign_policy_rule__assign_type__department_employee
@@ -79,12 +79,12 @@ msgstr ""
 #. module: generic_assignment_hr
 #: model:ir.model.fields.selection,name:generic_assignment_hr.selection__generic_assign_policy_rule__assign_department_choice_type__first
 msgid "First"
-msgstr ""
+msgstr "Pirmas"
 
 #. module: generic_assignment_hr
 #: model:ir.model.fields,field_description:generic_assignment_hr.field_generic_assign_policy_rule__assign_department_job_id
 msgid "Job"
-msgstr ""
+msgstr "Darbo pozicija"
 
 #. module: generic_assignment_hr
 #: model:ir.model.fields.selection,name:generic_assignment_hr.selection__generic_assign_policy_rule__assign_department_choice_type__random
@@ -104,4 +104,4 @@ msgstr ""
 #. module: generic_assignment_hr
 #: model:ir.model.fields,field_description:generic_assignment_hr.field_generic_assign_policy_rule__assign_type
 msgid "Type"
-msgstr ""
+msgstr "Tipas"

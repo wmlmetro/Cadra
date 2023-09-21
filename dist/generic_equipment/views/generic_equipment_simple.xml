@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_generic_equipment_simple_tree" model="ir.ui.view">
+        <field name="model">generic.equipment.simple</field>
+        <field name="inherit_id" ref="view_generic_equipment_tree"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <tree position="attributes">
+                <attribute name="edit">true</attribute>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_generic_equipment_simple_form" model="ir.ui.view">
+        <field name="model">generic.equipment.simple</field>
+        <field name="inherit_id" ref="view_generic_equipment_form"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <xpath expr="/form" position="attributes">
+                <attribute name="create">true</attribute>
+                <attribute name="delete">true</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_generic_equipment_simple_search">
+        <field name="model">generic.equipment.simple</field>
+        <field name="inherit_id" ref="view_generic_equipment_search"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <xpath expr="/search" position="attributes">
+                <attribute name="string">Search equipment</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="generic_equipment_simple_action_window" model="ir.actions.act_window">
+        <field name="name">Simple Equipment</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">generic.equipment.simple</field>
+    </record>
+
+    <record id="generic_equipment_simple_action_view_tree"
+            model="ir.actions.act_window.view">
+        <field name="sequence" eval="5"/>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="generic_equipment.view_generic_equipment_simple_tree"/>
+        <field name="act_window_id" ref="generic_equipment.generic_equipment_simple_action_window"/>
+    </record>
+
+    <record id="generic_equipment_simple_action_view_form"
+            model="ir.actions.act_window.view">
+        <field name="sequence" eval="10"/>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="generic_equipment.view_generic_equipment_simple_form"/>
+        <field name="act_window_id" ref="generic_equipment.generic_equipment_simple_action_window"/>
+    </record>
+
+    <menuitem id="menu_generic_equipment_simple"
+              name="Simple Equipment"
+              parent="menu_generic_equipment_root"
+              sequence="10"
+              action="generic_equipment_simple_action_window"/>
+</odoo>

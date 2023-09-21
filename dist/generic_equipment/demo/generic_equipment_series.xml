@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Series for Dell XPS -->
+    <record model="generic.equipment.series" id="generic_equipment_series_dell_xps13">
+      <field name="name">XPS 13</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_dell"/>
+      <field name="brand_id" ref="generic_equipment_brand_dell_xps"/>
+    </record>
+    <record model="generic.equipment.series" id="generic_equipment_series_dell_xps15">
+      <field name="name">XPS 15</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_dell"/>
+      <field name="brand_id" ref="generic_equipment_brand_dell_xps"/>
+    </record>
+
+    <!-- Series for Dell Inspiron -->
+    <record model="generic.equipment.series" id="generic_equipment_series_dell_inspiron3000">
+      <field name="name">Inspiron 3000</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_dell"/>
+      <field name="brand_id" ref="generic_equipment_brand_dell_inspiron"/>
+    </record>
+    <record model="generic.equipment.series" id="generic_equipment_series_dell_inspiron5000">
+      <field name="name">Inspiron 5000</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_dell"/>
+      <field name="brand_id" ref="generic_equipment_brand_dell_inspiron"/>
+    </record>
+
+    <!-- Series for HP Pavilion -->
+    <record model="generic.equipment.series" id="generic_equipment_series_hp_pavilion14">
+      <field name="name">Pavilion 14</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_hp"/>
+      <field name="brand_id" ref="generic_equipment_brand_hp_pavilion"/>
+    </record>
+    <record model="generic.equipment.series" id="generic_equipment_series_hp_pavilion15">
+      <field name="name">Pavilion 15</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_hp"/>
+      <field name="brand_id" ref="generic_equipment_brand_hp_pavilion"/>
+    </record>
+
+    <!-- Series for HP EliteBook -->
+    <record model="generic.equipment.series" id="generic_equipment_series_hp_elitebook840">
+      <field name="name">EliteBook 840</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_hp"/>
+      <field name="brand_id" ref="generic_equipment_brand_hp_elitebook"/>
+    </record>
+    <record model="generic.equipment.series" id="generic_equipment_series_hp_elitebook1040">
+      <field name="name">EliteBook 1040</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_hp"/>
+      <field name="brand_id" ref="generic_equipment_brand_hp_elitebook"/>
+    </record>
+
+    <!-- Series for Lenovo ThinkPad -->
+    <record model="generic.equipment.series" id="generic_equipment_series_lenovo_thinkpadx1">
+      <field name="name">ThinkPad X1</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_lenovo"/>
+      <field name="brand_id" ref="generic_equipment_brand_lenovo_thinkpad"/>
+    </record>
+    <record model="generic.equipment.series" id="generic_equipment_series_lenovo_thinkpadt14">
+      <field name="name">ThinkPad T14</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_lenovo"/>
+      <field name="brand_id" ref="generic_equipment_brand_lenovo_thinkpad"/>
+    </record>
+
+    <!-- Series for Apple MacBook -->
+    <record model="generic.equipment.series" id="generic_equipment_series_apple_macbook_air">
+      <field name="name">MacBook Air</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_apple"/>
+      <field name="brand_id" ref="generic_equipment_brand_apple_macbook"/>
+    </record>
+    <record model="generic.equipment.series" id="generic_equipment_series_apple_macbook_pro">
+      <field name="name">MacBook Pro</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_apple"/>
+      <field name="brand_id" ref="generic_equipment_brand_apple_macbook"/>
+    </record>
+
+    <!-- Series for Logitech MX -->
+    <record model="generic.equipment.model" id="generic_equipment_series_logitech_mx_master">
+        <field name="name">Logitech MX Master</field>
+        <field name="brand_id" ref="generic_equipment_brand_logitech_mx"/>
+        <field name="vendor_id" ref="generic_equipment_vendor_logitech"/>
+    </record>
+
+</odoo>

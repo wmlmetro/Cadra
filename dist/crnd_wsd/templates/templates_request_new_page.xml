@@ -3,6 +3,13 @@
 
     <template id="wsd_requests_new_progress" name="New request (progress)">
         <ul class="flow mb16">
+            <t t-if="request.website.use_service_groups">
+                <li id="step_service_group" t-att-class="(step=='service_group' and 'active') or 'text-muted'"
+                    groups="generic_request.group_request_use_services">
+                    Service group
+                    <span/>
+                </li>
+            </t>
             <li id="step_service" t-att-class="(step=='service' and 'active') or 'text-muted'"
                 groups="generic_request.group_request_use_services">
                 Service
@@ -19,9 +26,6 @@
             <li id="step_data" t-att-class="(step=='data' and 'active') or 'text-muted'">
                 Request
                 <span/>
-            </li>
-            <li id="step_congrat" t-att-class="(step=='congrat' and 'active') or 'text-muted'">
-                Send
             </li>
         </ul>
     </template>
@@ -63,7 +67,8 @@
                           class="fa fa-question text-muted"
                           t-attf-data-content="{{ req_type.description }}"/>
                 </div>
-                <div t-if="req_type and req_type.kind_id" id="request-kind">
+                <div t-if="req_type and req_type.kind_id" id="request-kind"
+                     groups="generic_request.group_request_use_kind">
                     <span class="fa fa-square mr4" title="Kind"/>
                     <span t-field="req_type.kind_id.display_name" title="Kind"/>
                     <span t-if="req_type.kind_id.description"
@@ -456,10 +461,6 @@
                 <t t-call="crnd_wsd.wsd_request_navigation">
                     <t t-if="req" t-set="request_name" t-value="req.name"/>
                     <t t-else="" t-set="request_name" t-value="'new'"/>
-
-                    <t t-call="crnd_wsd.wsd_requests_new_progress">
-                        <t t-set="step" t-value="'congrat'"/>
-                    </t>
                 </t>
                 <div class="row">
                     <div class="col-md-8 offset-md-2 mb16" align="center">
@@ -490,7 +491,7 @@
                                                 </t>
                                                 <t t-else="">
                                                     <a class="request-name"
-                                                       t-attf-href="/requests/request/{{req.id}}">
+                                                       t-attf-href="/requests/request/n/{{req.name}}">
                                                         <t t-esc="req.name"/>
                                                     </a>
                                                 </t>
@@ -567,7 +568,8 @@
 
                                                     </div>
 
-                                                    <div t-if="req.kind_id" class="content-info-kind">
+                                                    <div t-if="req.kind_id" class="content-info-kind"
+                                                         groups="generic_request.group_request_use_kind">
                                                         <span class="fa fa-square mr4" title="Kind"/>
                                                         <span t-field="req.kind_id.display_name" title="Kind"/>
                                                         <span t-if="req.kind_id.description"

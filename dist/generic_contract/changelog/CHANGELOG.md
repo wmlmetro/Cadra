@@ -1,5 +1,16 @@
 # Changelog
 
+## Version 2.9.0
+
+Added the ability to edit the company on the contract.
+Related to Bug Request BUG231013
+
+
+## Version 2.7.0
+
+Contract's field `date_start` renamed to `date_begin`
+
+
 ## Version 2.0.0
 
 Merged `generic_contract_service` module to `generic_contract`.

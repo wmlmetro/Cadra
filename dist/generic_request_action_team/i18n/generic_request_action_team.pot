@@ -24,6 +24,11 @@ msgid "Assign to Team"
 msgstr ""
 
 #. module: generic_request_action_team
+#: model:ir.model.fields,field_description:generic_request_action_team.field_request_event_action__assign_team_user_id
+msgid "Assign to team member"
+msgstr ""
+
+#. module: generic_request_action_team
 #: model:ir.model,name:generic_request_action_team.model_request_event_action
 msgid "Request Event Action"
 msgstr ""
@@ -31,4 +36,10 @@ msgstr ""
 #. module: generic_request_action_team
 #: model:ir.model.fields.selection,name:generic_request_action_team.selection__request_event_action__assign_type__team
 msgid "Team"
+msgstr ""
+
+#. module: generic_request_action_team
+#: code:addons/generic_request_action_team/models/request_event_action.py:0
+#, python-format
+msgid "User '%(user)s' is not a member of team '%(team)s'."
 msgstr ""

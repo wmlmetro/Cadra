@@ -7,32 +7,24 @@
             <group name="group_settings_priority" position="inside">
                 <field name="selection_priority_view"/>
             </group>
-            <div name="button_box" position="inside">
-                <button class="oe_stat_button" name="website_publish_button"
-                        type="object" icon="fa-globe">
-                    <field name="website_published" widget="website_publish_button"/>
-                </button>
-            </div>
             <group name="group_settings" position="inside">
                 <group name="group_settings_website" string="Website">
-                    <field name="website_ids" widget="many2many_tags"/>
                     <field name="website_request_text_help"/>
                     <field name="website_request_title"/>
                     <field name="website_custom_label_editor"/>
                     <field name="website_custom_congratulation_note"/>
                 </group>
             </group>
-        </field>
-    </record>
-    <record model="ir.ui.view" id="view_request_type_search">
-        <field name="model">request.type</field>
-        <field name="inherit_id" ref="generic_request.view_request_type_search"/>
-        <field name="arch" type="xml">
-            <filter name="filter_archived" position="after">
-                <filter name="filter_website_published"
-                        string="Visible in Website"
-                        domain="[('website_published', '=', True)]"/>
-            </filter>
+            <xpath expr="//page[@name='page_classifiers']/field[@name='classifier_ids']/tree/field[@name='category_id']"
+                   position="after">
+                <field name="website_published"/>
+                <field name="website_ids" widget="many2many_tags"/>
+            </xpath>
+            <xpath expr="//page[@name='page_classifiers']/field[@name='classifier_ids']/form//group[@name='group_info_right']"
+                   position="inside">
+                <field name="website_published"/>
+                <field name="website_ids" widget="many2many_tags"/>
+            </xpath>
         </field>
     </record>
 
@@ -46,7 +38,6 @@
                 <field name="website_comments_closed"/>
                 <separator/>
            </xpath>
-
        </field>
    </record>
 </odoo>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="demo_request_manager_employee" model="hr.employee">
+        <field name="name">Demo Request Manager</field>
+        <field name="user_id" ref="generic_request.user_demo_request_manager"/>
+    </record>
+
+    <record id="demo_request_user_employee" model="hr.employee">
+        <field name="name">Demo Request User</field>
+        <field name="user_id" ref="generic_request.user_demo_request"/>
+    </record>
+</odoo>

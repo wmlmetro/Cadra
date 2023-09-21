@@ -2,6 +2,10 @@
     display: inline-flex;
 }
 
+.request_navigation_right > ul {
+    display: -webkit-inline-box;
+}
+
 /* stylelint-disable-next-line at-rule-no-unknown */
 @include media-breakpoint-up(lg, $o-extra-grid-breakpoints) {
     .request_navigation_right > * {
@@ -131,6 +135,7 @@ $request_parameter_font_color: transparentize(theme-color('dark'), 0.3);
         }
 
         .header-bg-filler {
+            font-size: 20px;
             padding-right: 18px;
             padding-left: 18px;
             padding-top: 2px;

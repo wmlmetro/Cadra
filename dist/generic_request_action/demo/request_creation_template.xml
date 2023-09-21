@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="demo_request_creation_template_for_action"
+             model="request.creation.template">
+        <field name="name">Demo (type=sequence, categ=general)</field>
+        <field name="request_classifier_id"
+               ref="generic_request.classifier_request_type_sequence_no_service_demo_general"/>
+        <field name="request_text">Demo request creation template</field>
+    </record>
+</odoo>

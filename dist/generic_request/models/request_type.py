@@ -2,6 +2,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from odoo import models, fields, api, _
 from odoo.addons.generic_mixin.tools.x2m_agg_utils import read_counts_for_o2m
+from odoo.addons.generic_mixin.tools.sql import create_sql_view
 from .request_request import (AVAILABLE_PRIORITIES,
                               AVAILABLE_IMPACTS,
                               AVAILABLE_URGENCIES)
@@ -30,10 +31,16 @@ class RequestType(models.Model):
     instruction_html = fields.Html(translate=True)
     default_request_text = fields.Html(translate=True)
     help_html = fields.Html(translate=True)
-    category_ids = fields.Many2many(
+    category_ids = fields.Many2manyView(
         'request.category',
-        'request_type_category_rel', 'type_id', 'category_id',
-        'Categories', required=False, index=True)
+        'request_type_category_view', 'type_id', 'category_id',
+        'Categories',
+        readonly=True, copy=False)
+    classifier_ids = fields.One2many(
+        'request.classifier', 'type_id',
+        'Classifiers', required=False, index=True)
+    classifier_count = fields.Integer(
+        compute='_compute_classifier_count')
 
     tag_category_ids = fields.Many2many(
         'generic.tag.category', 'request_type_tag_category_rel',
@@ -41,6 +48,18 @@ class RequestType(models.Model):
         domain=[('model_id.model', '=', 'request.request')],
         help='Restrict available tags for requests of this type '
              'by these categories')
+
+    deadline_format = fields.Selection(
+        selection=[
+            ('date', 'Date format'),
+            ('datetime', 'Datetime format')],
+        required=True,
+        default='date',
+        help="Specify the format for the deadline. "
+             "Use 'Date format' if you only need to specify the date. "
+             "Choose 'Datetime format' "
+             "if you want to set a deadline with both date and time details."
+    )
 
     # Priority configuration
     complex_priority = fields.Boolean(
@@ -75,6 +94,9 @@ class RequestType(models.Model):
              "on the Stages page, click the crossed arrows icon and drag "
              "the desired stage to the top of the list.")
     color = fields.Char(default='rgba(240,240,240,1)')
+    current_stage_highlight_color = fields.Char(
+        default='rgba(0,91,187,1)',
+        help='The color to highlight the current stage on request flow')
 
     # Routes
     route_ids = fields.One2many(
@@ -92,7 +114,7 @@ class RequestType(models.Model):
         'res.groups', string='Access groups',
         help="If user belongs to one of groups specified in this field,"
              " then he will be able to select this type during request"
-             " creation, even if this category is not published."
+             " creation, even if this type is not published."
     )
     # Requests
     request_ids = fields.One2many(
@@ -171,8 +193,8 @@ class RequestType(models.Model):
         column1='request_type_id',
         column2='activity_id')
 
-    service_ids = fields.Many2many(
-        'generic.service', 'generic_service_request_type_rel',
+    service_ids = fields.Many2manyView(
+        'generic.service', 'generic_service_request_type_view',
         'type_id', 'service_id', string='Service')
 
     _sql_constraints = [
@@ -183,6 +205,21 @@ class RequestType(models.Model):
          'UNIQUE (code)',
          'Code must be unique.'),
     ]
+
+    @api.model
+    def init(self):
+        res = super().init()
+
+        create_sql_view(
+            self._cr, 'request_type_category_view',
+            """
+                SELECT DISTINCT type_id,
+                       category_id
+                FROM request_classifier
+                WHERE type_id IS NOT NULL AND category_id IS NOT NULL
+                    AND active = TRUE
+            """)
+        return res
 
     @api.depends('request_ids')
     def _compute_request_count(self):
@@ -341,6 +378,14 @@ class RequestType(models.Model):
             else:
                 rtype.start_stage_id = False
 
+    @api.depends('classifier_ids')
+    def _compute_classifier_count(self):
+        mapped_data = read_counts_for_o2m(
+            records=self,
+            field_name='classifier_ids')
+        for record in self:
+            record.classifier_count = mapped_data.get(record.id, 0)
+
     def _create_default_stages_and_routes(self):
         self.ensure_one()
         stage_new = self.env['request.stage'].create({
@@ -367,15 +412,17 @@ class RequestType(models.Model):
             'request_type_id': self.id,
         })
 
-    @api.model
+    @api.model_create_multi
     def create(self, vals):
-        r_type = super(RequestType, self).create(vals)
+        request_types = super().create(vals)
 
-        if not r_type.start_stage_id and self.env.context.get(
-                'create_default_stages'):
-            r_type._create_default_stages_and_routes()
+        if self.env.context.get('create_default_stages'):
+            # TODO: rewrite to prepare values for type's create method
+            for r_type in request_types:
+                if not r_type.start_stage_id:
+                    r_type._create_default_stages_and_routes()
 
-        return r_type
+        return request_types
 
     def action_create_default_stage_and_routes(self):
         self._create_default_stages_and_routes()
@@ -530,3 +577,11 @@ class RequestType(models.Model):
             domain=[
                 ('user_id', '=', False),
                 ('type_id', '=', self.id)])
+
+    def action_show_classifiers(self):
+        self.ensure_one()
+        return self.env['generic.mixin.get.action'].get_action_by_xmlid(
+            'generic_request.action_classifier_window',
+            context={'default_type_id': self.id},
+            domain=[('type_id', '=', self.id)],
+        )

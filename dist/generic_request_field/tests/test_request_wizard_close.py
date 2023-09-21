@@ -4,6 +4,7 @@ import logging
 from odoo.tests.common import Form
 
 from odoo.addons.generic_request_field.tests.common import TestRequestFieldCase
+from odoo.addons.generic_mixin.tests.common import deactivate_records_for_model
 
 from ..tools.field_utils import FieldsUIHelper
 
@@ -32,7 +33,9 @@ class TestRequestReopenWithFields(TestRequestFieldCase):
             'generic_request_field.request_request_type_field_new_vm')
 
     def test_request_wizard_close_reopen_with_new_values_fields(self):
+        # pylint: disable=too-many-statements
         # Add request type to rejected route
+        deactivate_records_for_model(self.env, 'request.classifier')
         self.assertIn(
             self.request_type__create_lxc,
             self.new_to_rejected.reopen_as_type_ids)
@@ -64,18 +67,35 @@ class TestRequestReopenWithFields(TestRequestFieldCase):
         # Check stage of the request.
         self.assertEqual(request.stage_id.code, 'new')
 
-        # Remove Default Service from category
+        # Ensure, we have classifier without service for this type and categ,
+        # thus, this combination could be selected without service.
+        classifier = self.ensure_classifier(
+            category=self.new_request_category,
+            request_type=self.request_type__create_lxc,
+            active=True,  # Because classifier defined in crnd_wsd_field mod.
+        )
+        self.assertTrue(classifier.active)
+        self.assertFalse(classifier.service_id)
+        # And also, ensure that we do not have any classifiers with service
+        # for this type and for this category
+        self.env['request.classifier'].search([
+            ('service_id', '!=', False),
+            '|', ('type_id', '=', self.request_type__create_lxc.id),
+            ('category_id', '=', self.new_request_category.id),
+        ]).write({'active': False})
+        self.env['request.classifier'].flush()
+        self.assertFalse(self.new_request_category.service_ids)
+        self.assertFalse(self.request_type__create_lxc.service_ids)
         self.assertIn(
-            self.default_service, self.new_request_category.service_ids)
-        self.new_request_category.write({
-            'service_ids': [(5, 0)]
-        })
-        self.assertNotIn(
-            self.default_service, self.new_request_category.service_ids)
+            self.new_request_category,
+            self.request_type__create_lxc.category_ids)
 
-        # Create wizard for closing the request.
-        wiz_close_f = Form(self.env['request.wizard.close'])
-        wiz_close_f.request_id = request
+        # In Odoo 16 we cannot change invisible and readonly fields (such as
+        # invisible field request_id in this case) in tests using Form class.
+        # So pass it through context.
+        wiz_close = self.env['request.wizard.close'].with_context(
+            default_request_id=request.id)
+        wiz_close_f = Form(wiz_close)
         wiz_close_f.close_route_id = self.new_to_rejected
         wiz_close_f.new_request_category_id = self.new_request_category
         wiz_close_f.new_request_type_id = self.request_type__create_lxc
@@ -128,6 +148,7 @@ class TestRequestReopenWithFields(TestRequestFieldCase):
 
     def test_request_wizard_close_reopen_with_old_values_fields_1(self):
         # Add request type to rejected route
+        deactivate_records_for_model(self.env, 'request.classifier')
         self.assertIn(
             self.request_type__create_lxc,
             self.new_to_rejected.reopen_as_type_ids)
@@ -161,17 +182,31 @@ class TestRequestReopenWithFields(TestRequestFieldCase):
         self.assertEqual(request.stage_id.code, 'new')
 
         # Remove Default Service from category
-        self.assertIn(
-            self.default_service, self.new_request_category.service_ids)
-        self.new_request_category.write({
-            'service_ids': [(5, 0)]
-        })
+        # Ensure, we have classifier without service for this type and categ,
+        # thus, this combination could be selected without service.
+        self.ensure_classifier(
+            category=self.new_request_category,
+            request_type=self.request_type__create_lxc,
+            active=True,  # Because classifier defined in crnd_wsd_field mod.
+        )
+        # And also, ensure that we do not have any classifiers with service
+        # for this type and for this categoru
+        self.env['request.classifier'].search([
+            ('service_id', '!=', False),
+            '|', ('type_id', '=', self.request_type__create_lxc.id),
+            ('category_id', '=', self.new_request_category.id),
+        ]).write({'active': False})
+        self.env['request.classifier'].flush()
+
         self.assertNotIn(
             self.default_service, self.new_request_category.service_ids)
 
-        # Create wizard for closing the request.
-        wiz_close_f = Form(self.env['request.wizard.close'])
-        wiz_close_f.request_id = request
+        # In Odoo 16 we cannot change invisible and readonly fields (such as
+        # invisible field request_id in this case) in tests using Form class.
+        # So pass it through context.
+        wiz_close = self.env['request.wizard.close'].with_context(
+            default_request_id=request.id)
+        wiz_close_f = Form(wiz_close)
         wiz_close_f.close_route_id = self.new_to_rejected
         wiz_close_f.new_request_category_id = self.new_request_category
         wiz_close_f.new_request_type_id = self.request_type__create_lxc
@@ -218,7 +253,9 @@ class TestRequestReopenWithFields(TestRequestFieldCase):
         self.assertFalse(values['expose-port'])
 
     def test_request_wizard_close_reopen_with_old_values_fields_2(self):
+        # pylint: disable=too-many-statements
         # Add request type to rejected route
+        deactivate_records_for_model(self.env, 'request.classifier')
         self.assertIn(
             self.request_type__create_lxc,
             self.new_to_rejected.reopen_as_type_ids)
@@ -249,18 +286,31 @@ class TestRequestReopenWithFields(TestRequestFieldCase):
         # Check stage of the request.
         self.assertEqual(request.stage_id.code, 'new')
 
-        # Remove Default Service from category
-        self.assertIn(
-            self.default_service, self.new_request_category.service_ids)
-        self.new_request_category.write({
-            'service_ids': [(5, 0)]
-        })
+        # Ensure, we have classifier without service for this type and categ,
+        # thus, this combination could be selected without service.
+        self.ensure_classifier(
+            category=self.new_request_category,
+            request_type=self.request_type__create_lxc,
+            active=True,  # Because classifier defined in crnd_wsd_field mod.
+        )
+        # And also, ensure that we do not have any classifiers with service
+        # for this type and for this categoru
+        self.env['request.classifier'].search([
+            ('service_id', '!=', False),
+            '|', ('type_id', '=', self.request_type__create_lxc.id),
+            ('category_id', '=', self.new_request_category.id),
+        ]).write({'active': False})
+        self.env['request.classifier'].flush()
+
         self.assertNotIn(
             self.default_service, self.new_request_category.service_ids)
 
-        # Create wizard for closing the request.
-        wiz_close_f = Form(self.env['request.wizard.close'])
-        wiz_close_f.request_id = request
+        # In Odoo 16 we cannot change invisible and readonly fields (such as
+        # invisible field request_id in this case) in tests using Form class.
+        # So pass it through context.
+        wiz_close = self.env['request.wizard.close'].with_context(
+            default_request_id=request.id)
+        wiz_close_f = Form(wiz_close)
         wiz_close_f.close_route_id = self.new_to_rejected
         wiz_close_f.new_request_category_id = self.new_request_category
         wiz_close_f.new_request_type_id = self.request_type__create_lxc

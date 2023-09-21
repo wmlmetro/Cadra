@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--        This is demo request text template to check extra context rendered Qweb-->
+    <record id="request_text_template_test" model="ir.ui.view">
+        <field name="name">Request text t template</field>
+        <field name="type">qweb</field>
+        <field name="key">generic_request_action.request_text_t_template</field>
+        <field name="arch" type="xml">
+            <t t-name='generic_request_action.request_text_t_template'>
+                <p>Request name: <t t-esc='request.name'/></p>
+                <p>Today time: <t t-esc='time.strftime("%H:%M:%S", time.localtime(time.time()))'/></p>
+                <p>Today date: <t t-esc='datetime.datetime.now().strftime("%Y-%m-%d")'/></p>
+            </t>
+        </field>
+    </record>
+</odoo>

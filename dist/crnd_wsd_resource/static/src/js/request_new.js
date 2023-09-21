@@ -202,11 +202,14 @@ odoo.define('crnd_wsd_resource.new_request', function (require) {
 
         _get_resource_search_params: function (
             term, request_type_id, lang, resource_types) {
+            var $service = this.$target.find('input[name="service_id"]');
+            var service_id = parseInt($service.val(), 10);
             return {
                 'term': term,
                 'request_type_id': request_type_id,
                 'lang': lang,
                 'resource_types': resource_types,
+                'service_id': service_id,
             };
         },
     });

@@ -1,6 +1,7 @@
 from . import (
     generic_request,
     request_event,
+    request_classifier,
     generic_request_mail_source,
     mail_thread,
     mail_message,

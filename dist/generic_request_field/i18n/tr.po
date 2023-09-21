@@ -9,8 +9,8 @@ msgstr ""
 "POT-Creation-Date: 2023-02-15 16:20+0000\n"
 "PO-Revision-Date: 2023-02-28 17:32+0000\n"
 "Last-Translator: Huseyin <hkpostam@gmail.com>\n"
-"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
-"bureaucrat-itsm-15-0/generic_request_field/tr/>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-15-0/generic_request_field/tr/>\n"
 "Language: tr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -369,6 +369,11 @@ msgid "Request Categories"
 msgstr "İstek Kategorileri"
 
 #. module: generic_request_field
+#: model:ir.model,name:generic_request_field.model_request_classifier
+msgid "Request Classifier"
+msgstr ""
+
+#. module: generic_request_field
 #: model:ir.model,name:generic_request_field.model_request_field
 msgid "Request Field"
 msgstr "Talep Alanı"
@@ -394,6 +399,11 @@ msgid "Request Has Fields Top"
 msgstr "İstekte Alanlar Var Yukarıda"
 
 #. module: generic_request_field
+#: model:ir.model.fields,field_description:generic_request_field.field_request_field__service_ids
+msgid "Request Services"
+msgstr ""
+
+#. module: generic_request_field
 #: model:ir.model,name:generic_request_field.model_request_type
 #: model:ir.model.fields,field_description:generic_request_field.field_request_field__request_type_id
 msgid "Request Type"
@@ -415,6 +425,17 @@ msgstr "İstek Sihirbazı: Kapat (alan değeri)"
 #: model:ir.model.fields,field_description:generic_request_field.field_request_wizard_close_field_value__sequence
 msgid "Sequence"
 msgstr "Sıra"
+
+#. module: generic_request_field
+#: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_field_form
+msgid "Service"
+msgstr ""
+
+#. module: generic_request_field
+#: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_field_form
+#: model_terms:ir.ui.view,arch_db:generic_request_field.view_request_field_tree
+msgid "Services"
+msgstr ""
 
 #. module: generic_request_field
 #: model:ir.model.fields,help:generic_request_field.field_request_field__code
@@ -443,14 +464,29 @@ msgstr ""
 "'%(request_type)s' istek türü için izin verilen kategorilere ait değil."
 
 #. module: generic_request_field
-#: code:addons/generic_request_field/models/request_type.py:0
+#: code:addons/generic_request_field/models/request_field.py:0
 #, python-format
 msgid ""
-"The request categories %(categories)s used in the request fields do not "
-"belong to the categories allowed for the request type '%(request_type)s'."
+"The request services %(services)s used in the '%(field)s' field do not "
+"belong to the services allowed for the request type '%(request_type)s'."
 msgstr ""
-"İstek alanlarında kullanılan %(categories)s istek kategorileri, "
-"'%(request_type)s' istek türü için izin verilen kategorilere ait değil."
+
+#. module: generic_request_field
+#: code:addons/generic_request_field/models/request_classifier.py:0
+#, python-format
+msgid ""
+"There are no classifiers defined for request type %(request_type)s for "
+"request categories (%(categories)s) that are used in fields of this request "
+"type."
+msgstr ""
+
+#. module: generic_request_field
+#: code:addons/generic_request_field/models/request_classifier.py:0
+#, python-format
+msgid ""
+"There are no classifiers defined for request type %(request_type)s for "
+"request services (%(services)s) that are used in fields of this request type."
+msgstr ""
 
 #. module: generic_request_field
 #: code:addons/generic_request_field/models/request_request.py:0
@@ -501,3 +537,10 @@ msgstr "Sihirbazın Yukarda Alanları Var"
 #: model:ir.model.fields,help:generic_request_field.field_request_field__grid_classes
 msgid "You can use bootstrap grid classes, that could be applied to this field"
 msgstr "Bu alana uygulanabilecek önyükleme grid sınıflarını kullanabilirsiniz"
+
+#~ msgid ""
+#~ "The request categories %(categories)s used in the request fields do not "
+#~ "belong to the categories allowed for the request type '%(request_type)s'."
+#~ msgstr ""
+#~ "İstek alanlarında kullanılan %(categories)s istek kategorileri, "
+#~ "'%(request_type)s' istek türü için izin verilen kategorilere ait değil."

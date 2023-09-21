@@ -144,9 +144,9 @@ class GenericResourceSubRole(models.Model):
                 'role_id': self.sub_role_id.id,
             })
 
-    @api.model
+    @api.model_create_multi
     def create(self, vals):
-        sub_roles = super(GenericResourceSubRole, self).create(vals)
+        sub_roles = super().create(vals)
         sub_roles.mapped(
             'master_role_id.role_link_ids')._subrole__update_subroles()
         return sub_roles

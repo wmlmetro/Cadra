@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="request_category_demo_auto_change_deadline" model="request.category">
+        <field name="name">Demo / Auto change deadline</field>
+        <field name="code">demo-auto-change-deadline</field>
+        <field name="description">
+            This category is for demo requsets and demonstration
+            of the automatic deadline date change action.
+        </field>
+    </record>
+</odoo>

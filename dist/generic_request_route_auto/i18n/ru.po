@@ -462,6 +462,14 @@ msgid "Success"
 msgstr "Успешно"
 
 #. module: generic_request_route_auto
+#: model_terms:ir.ui.view,arch_db:generic_request_route_auto.view_request_stage_route_trigger_form
+msgid ""
+"The route triggers allow to configure automatic move of request via this "
+"route\n"
+"                        on some conditions or events."
+msgstr ""
+
+#. module: generic_request_route_auto
 #: model:ir.model.fields,help:generic_request_route_auto.field_request_stage_route_trigger__condition_ids
 msgid "This conditions will be checked before triggering request move"
 msgstr "Эти условия будут проверены перед перемещением запроса этим тригером"

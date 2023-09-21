@@ -38,33 +38,32 @@
                                 <div class="priority_group_container">
                                     <label class="label_icon">
                                         <i class="fa fa-star-half-o"
-                                           title="Impact"></i>
+                                           title="Impact"/>
                                     </label>
                                     <div id="impact_priority_group"
                                          class="priority_group">
                                         <t t-foreach="request_impact_priority_list" t-as="priority">
-                                            <t t-if="priority[0]=='0'">
-                                                <input class="d-none"
-                                                       type="radio"
-                                                       name="request_impact_priority"
-                                                       t-attf-id="impact_priority_#{priority[0]}"
-                                                       t-attf-value="{{priority[0]}}"
-                                                       t-attf-aria-label="{{priority[1]}}"
-                                                       checked="true"/>
-                                            </t>
-                                            <t t-else="">
-                                                <input class="d-none"
-                                                       type="radio"
-                                                       name="request_impact_priority"
-                                                       t-attf-id="impact_priority_#{priority[0]}"
-                                                       t-attf-value="{{priority[0]}}"
-                                                       t-attf-aria-label="{{priority[1]}}"/>
-                                                <label class=""
-                                                       t-attf-for="impact_priority_#{priority[0]}"
-                                                       t-attf-value="{{priority[0]}}">
-                                                    <i class="fa fa-star-o"></i>
-                                                </label>
-                                            </t>
+                                            <input t-if="priority[0] == request_impact_priority"
+                                                   class="d-none"
+                                                   type="radio"
+                                                   name="request_impact_priority"
+                                                   t-attf-id="impact_priority_#{priority[0]}"
+                                                   t-attf-value="{{priority[0]}}"
+                                                   t-attf-aria-label="{{priority[1]}}"
+                                                   checked="true"/>
+                                            <input t-else=""
+                                                   class="d-none"
+                                                   type="radio"
+                                                   name="request_impact_priority"
+                                                   t-attf-id="impact_priority_#{priority[0]}"
+                                                   t-attf-value="{{priority[0]}}"
+                                                   t-attf-aria-label="{{priority[1]}}"/>
+                                            <label t-if="priority[0] != '0'"
+                                                   class=""
+                                                   t-attf-for="impact_priority_#{priority[0]}"
+                                                   t-attf-value="{{priority[0]}}">
+                                                <i class="fa fa-star-o"/>
+                                            </label>
                                         </t>
                                     </div>
                                 </div>
@@ -72,39 +71,38 @@
                                  <div class="priority_group_container">
                                     <label class="label_icon">
                                         <i class="fa fa-clock-o"
-                                           title="Urgency"></i>
+                                           title="Urgency"/>
                                     </label>
                                  <div id="urgency_priority_group"
                                       class="priority_group">
                                      <t t-foreach="request_urgency_priority_list" t-as="priority">
-                                         <t t-if="priority[0]=='0'">
-                                             <input class="d-none"
-                                                    type="radio"
-                                                    name="request_urgency_priority"
-                                                    t-attf-id="urgency_priority_#{priority[0]}"
-                                                    t-attf-value="{{priority[0]}}"
-                                                    t-attf-aria-label="{{priority[1]}}"
-                                                    checked="true"/>
-                                         </t>
-                                         <t t-else="">
-                                             <input class="d-none"
-                                                    type="radio"
-                                                    name="request_urgency_priority"
-                                                    t-attf-id="urgency_priority_#{priority[0]}"
-                                                    t-attf-value="{{priority[0]}}"
-                                                    t-attf-aria-label="{{priority[1]}}"/>
-                                             <label class=""
-                                                    t-attf-for="urgency_priority_#{priority[0]}">
-                                                 <i class="fa fa-star-o"></i>
-                                             </label>
-                                         </t>
+                                         <input t-if="priority[0] == request_urgency_priority"
+                                                class="d-none"
+                                                type="radio"
+                                                name="request_urgency_priority"
+                                                t-attf-id="urgency_priority_#{priority[0]}"
+                                                t-attf-value="{{priority[0]}}"
+                                                t-attf-aria-label="{{priority[1]}}"
+                                                checked="true"/>
+                                         <input t-else=""
+                                                class="d-none"
+                                                type="radio"
+                                                name="request_urgency_priority"
+                                                t-attf-id="urgency_priority_#{priority[0]}"
+                                                t-attf-value="{{priority[0]}}"
+                                                t-attf-aria-label="{{priority[1]}}"/>
+                                         <label t-if="priority[0] != '0'"
+                                                class=""
+                                                t-attf-for="urgency_priority_#{priority[0]}">
+                                             <i class="fa fa-star-o"/>
+                                         </label>
                                      </t>
                                  </div>
                              </div>
                              </div>
                              <div class="arrow_right">
                                  <i class="fa fa-arrow-right"
-                                    title="Priority"></i>
+                                    title="Priority"/>
                              </div>
                          </t>
 
@@ -112,27 +110,26 @@
                          <div>
                              <div id="priority_group" class="priority_group">
                                  <t t-foreach="request_priority_list" t-as="priority">
-                                     <t t-if="priority[0]=='0'">
-                                         <input class="d-none"
-                                                type="radio"
-                                                name="request_priority"
-                                                t-attf-id="priority_#{priority[0]}"
-                                                t-attf-value="{{priority[0]}}"
-                                                t-attf-aria-label="{{priority[1]}}"
-                                                checked="true"/>
-                                     </t>
-                                     <t t-else="">
-                                         <input class="d-none"
-                                                type="radio"
-                                                name="request_priority"
-                                                t-attf-id="priority_#{priority[0]}"
-                                                t-attf-value="{{priority[0]}}"
-                                                t-attf-aria-label="{{priority[1]}}"/>
-                                         <label class=""
-                                                t-attf-for="priority_#{priority[0]}">
-                                             <i class="fa fa-star-o"></i>
-                                         </label>
-                                     </t>
+                                      <input t-if="priority[0] == request_priority"
+                                             class="d-none"
+                                             type="radio"
+                                             name="request_priority"
+                                             t-attf-id="priority_#{priority[0]}"
+                                             t-attf-value="{{priority[0]}}"
+                                             t-attf-aria-label="{{priority[1]}}"
+                                             checked="true"/>
+                                      <input t-else=""
+                                             class="d-none"
+                                             type="radio"
+                                             name="request_priority"
+                                             t-attf-id="priority_#{priority[0]}"
+                                             t-attf-value="{{priority[0]}}"
+                                             t-attf-aria-label="{{priority[1]}}"/>
+                                      <label t-if="priority[0] != '0'"
+                                             class=""
+                                             t-attf-for="priority_#{priority[0]}">
+                                          <i class="fa fa-star-o"/>
+                                      </label>
                                  </t>
                              </div>
                          </div>
@@ -145,14 +142,19 @@
                         <div class="form-group col-sm-5 col-md-4 col-lg-3 col-xl-2 mt-1 mb-2 p-0 selection_container">
                             <label class="label_icon">
                                 <i class="fa fa-star-half-o"
-                                   title="Impact"></i>
+                                   title="Impact"/>
                             </label>
                             <select name="request_impact_priority"
                                      id="request_impact_priority"
                                      class="form-control form-control-sm"
                                      placeholder="Priority...">
                                 <t t-foreach="request_impact_priority_list" t-as="priority">
-                                    <option t-att-value="priority[0]"
+                                    <option t-if="priority[0] == request_impact_priority"
+                                            t-att-value="priority[0]"
+                                            t-esc="priority[1]"
+                                            selected="selected"/>
+                                    <option t-if="priority[0] != request_impact_priority"
+                                            t-att-value="priority[0]"
                                             t-esc="priority[1]"/>
                                 </t>
                             </select>
@@ -160,14 +162,19 @@
                         <div class="form-group col-sm-5 col-md-4 col-lg-3 col-xl-2 mb-2 p-0 selection_container">
                             <label class="label_icon">
                                 <i class="fa fa-clock-o"
-                                   title="Urgency"></i>
+                                   title="Urgency"/>
                             </label>
                             <select name="request_urgency_priority"
                                      id="request_urgency_priority"
                                      class="form-control form-control-sm"
                                      placeholder="Priority...">
                                 <t t-foreach="request_urgency_priority_list" t-as="priority">
-                                    <option t-att-value="priority[0]"
+                                    <option t-if="priority[0] == request_urgency_priority"
+                                            t-att-value="priority[0]"
+                                            t-esc="priority[1]"
+                                            selected="selected"/>
+                                    <option t-if="priority[0] != request_urgency_priority"
+                                            t-att-value="priority[0]"
                                             t-esc="priority[1]"/>
                                 </t>
                             </select>
@@ -181,7 +188,12 @@
                                     class="form-control form-control-sm"
                                     placeholder="Priority...">
                                 <t t-foreach="request_priority_list" t-as="priority">
-                                    <option t-att-value="priority[0]"
+                                    <option t-if="priority[0] == request_priority"
+                                            t-att-value="priority[0]"
+                                            t-esc="priority[1]"
+                                            selected="selected"/>
+                                    <option t-if="priority[0] != request_priority"
+                                            t-att-value="priority[0]"
                                             t-esc="priority[1]"/>
                                 </t>
                             </select>

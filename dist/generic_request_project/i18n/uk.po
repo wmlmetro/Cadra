@@ -7,10 +7,10 @@ msgstr ""
 "Project-Id-Version: Odoo Server 12.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2019-09-16 11:45+0000\n"
-"PO-Revision-Date: 2022-01-25 13:01+0000\n"
-"Last-Translator: Валерия <valittle@ukr.net>\n"
-"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/bureaucrat-"
-"itsm-14-0/generic_request_project/uk/>\n"
+"PO-Revision-Date: 2023-08-07 13:43+0000\n"
+"Last-Translator: Galina Prokopenko <am@crnd.pro>\n"
+"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_project/uk/>\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -48,12 +48,12 @@ msgstr ""
 #: model:project.task,legend_blocked:generic_request_project.request_with_task_task_1
 #: model:project.task,legend_blocked:generic_request_project.request_with_task_task_2
 msgid "Blocked"
-msgstr ""
+msgstr "Заблоковано"
 
 #. module: generic_request_project
 #: model_terms:ir.ui.view,arch_db:generic_request_project.request_wizard_work_log_form_view
 msgid "Cancel"
-msgstr ""
+msgstr "Відмінити"
 
 #. module: generic_request_project
 #: model:ir.model.fields,help:generic_request_project.field_project_task__request_category_id
@@ -73,17 +73,17 @@ msgstr ""
 #. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__create_uid
 msgid "Created by"
-msgstr ""
+msgstr "Ким створено"
 
 #. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__create_date
 msgid "Created on"
-msgstr ""
+msgstr "Як створено"
 
 #. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__display_name
 msgid "Display Name"
-msgstr "Відображуване ім’я"
+msgstr "Відображати як"
 
 #. module: generic_request_project
 #: model:request.stage,name:generic_request_project.request_stage_type_with_task_done
@@ -134,17 +134,17 @@ msgstr "В процесі"
 #. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard____last_update
 msgid "Last Modified on"
-msgstr "Остання модифікація"
+msgstr "Востаннє змінено"
 
 #. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__write_uid
 msgid "Last Updated by"
-msgstr ""
+msgstr "Востаннє оновлено"
 
 #. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__write_date
 msgid "Last Updated on"
-msgstr ""
+msgstr "Востаннє оновлено"
 
 #. module: generic_request_project
 #: model_terms:ir.ui.view,arch_db:generic_request_project.view_generic_request_project_task_request_request
@@ -178,6 +178,7 @@ msgstr ""
 
 #. module: generic_request_project
 #: model:ir.model,name:generic_request_project.model_project_project
+#: model:ir.model.fields,field_description:generic_request_project.field_request_report__request_project_id
 #: model:ir.model.fields,field_description:generic_request_project.field_request_request__project_id
 #: model:ir.model.fields,field_description:generic_request_project.field_work_log_wizard__project_id
 #: model_terms:ir.ui.view,arch_db:generic_request_project.request_type_form_inherit
@@ -247,10 +248,20 @@ msgid "Request Event"
 msgstr "Подія запиту"
 
 #. module: generic_request_project
+#: model_terms:ir.ui.view,arch_db:generic_request_project.view_request_report_search
+msgid "Request Project"
+msgstr ""
+
+#. module: generic_request_project
+#: model:ir.model,name:generic_request_project.model_request_report
+msgid "Request Report"
+msgstr "Звіт по Запитах"
+
+#. module: generic_request_project
 #: model:ir.model.fields,field_description:generic_request_project.field_project_task__request_service_id
 #: model_terms:ir.ui.view,arch_db:generic_request_project.view_task_search_form
 msgid "Request Service"
-msgstr ""
+msgstr "Запит по Сервісу"
 
 #. module: generic_request_project
 #: model:ir.actions.act_window,name:generic_request_project.action_show_request_tasks
@@ -309,7 +320,7 @@ msgstr ""
 #. module: generic_request_project
 #: model:ir.model.fields,help:generic_request_project.field_project_task__request_service_id
 msgid "Service of request"
-msgstr ""
+msgstr "Сервіс Запиту"
 
 #. module: generic_request_project
 #: model:generic.system.event.source,name:generic_request_project.system_event_source__project_task

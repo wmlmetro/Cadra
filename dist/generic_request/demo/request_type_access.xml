@@ -10,9 +10,6 @@
         <field name="default_request_text"><![CDATA[
             Here must be default request text...
         ]]></field>
-        <field name="service_ids" eval="[(4, ref('generic_service.generic_service_default'))]"/>
-        <field name="category_ids"
-               eval="[(6, 0, [ref('generic_request.request_category_demo_technical_configuration')])]"/>
         <field name="kind_id" ref="request_kind_demo"/>
         <field name="tag_category_ids"
                eval="[(4, ref('generic_request.tag_category_severity')), (4, ref('generic_request.tag_category_priority'))]"/>
@@ -71,6 +68,7 @@
         <field name="stage_from_id" ref="request_stage_type_access_sent"/>
         <field name="stage_to_id" ref="request_stage_type_access_granted"/>
         <field name="request_type_id" ref="request_type_access"/>
+        <field name="button_style">success</field>
     </record>
     <record id="request_stage_route_type_access_sent_to_rejected"
             model="request.stage.route">
@@ -82,6 +80,7 @@
         <field name="default_response_text"><![CDATA[
             Here must be default response text...
         ]]></field>
+        <field name="button_style">danger</field>
     </record>
     <record id="request_stage_route_type_sequence_sent_to_grant"
             model="request.stage.route">

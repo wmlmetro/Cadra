@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 1.18.0
+
+Merged `crnd_wsd_field_service` module.
+
+
 ## Version 1.5.0
 
 - Added ability to specify help text for request fields

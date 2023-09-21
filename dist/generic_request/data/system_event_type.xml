@@ -43,7 +43,7 @@
         <field name="event_source_id" ref="system_event_source__request_request"/>
     </record>
     <record id="request_event_type_changed" model="generic.system.event.type">
-        <field name="name">Changed</field>
+        <field name="name">Description changed</field>
         <field name="code">changed</field>
         <field name="event_category_id" ref="system_event_category_request_events"/>
         <field name="event_source_id" ref="system_event_source__request_request"/>
@@ -108,6 +108,7 @@
         <field name="event_category_id" ref="system_event_category_request_events"/>
         <field name="event_source_id" ref="system_event_source__request_request"/>
     </record>
+    <!-- TODO: Add event for timesheet line logged -->
     <record id="request_event_type_author_changed" model="generic.system.event.type">
         <field name="name">Author Changed</field>
         <field name="code">author-changed</field>

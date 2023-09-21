@@ -37,8 +37,8 @@ class RequestEvent(models.Model):
     new_text = fields.Html(readonly=True)
 
     # Change request deadline
-    old_deadline = fields.Date()
-    new_deadline = fields.Date()
+    old_deadline = fields.Datetime()
+    new_deadline = fields.Datetime()
 
     # Request stage change
     route_id = fields.Many2one('request.stage.route', readonly=True)
@@ -110,12 +110,12 @@ class RequestEvent(models.Model):
     def _get_selection_kanban_state(self):
         return self.env['request.request']._fields['kanban_state'].selection
 
-    @api.model
+    @api.model_create_multi
     def create(self, vals):
-        event = super().create(vals)
-        event.request_id.invalidate_cache(
+        events = super().create(vals)
+        events.mapped('request_id').invalidate_cache(
             ['request_event_ids', 'request_event_count'])
-        return event
+        return events
 
     def unlink(self):
         to_invalidate_cache = self.mapped('request_id')

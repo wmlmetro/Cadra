@@ -27,7 +27,7 @@
                 </button>
             </xpath>
             <xpath expr="//group[@name='group_time_log_footer']" position="inside">
-                <div class="col-1" name="div_make_all_billable_or_not_billable">
+                <div class="col-2" name="div_make_all_billable_or_not_billable">
                     <button name="action_make_all_billable"
                             type="object"
                             class="oe_link"

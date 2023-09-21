@@ -9,7 +9,7 @@
     'website': "https://crnd.pro",
 
     'category': 'Generic Team',
-    'version': '15.0.0.6.0',
+    'version': '15.0.0.8.1',
 
     "depends": [
         'generic_request_sla_log',

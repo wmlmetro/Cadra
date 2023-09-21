@@ -4,7 +4,6 @@
     <record id="request_type_with_complex_priority" model="request.type">
         <field name="name">Request with complex priority</field>
         <field name="code">request_with_complex_priority</field>
-        <field name="category_ids" eval="[(4, ref('generic_request.request_category_demo_general'), 0)]"/>
         <field name="complex_priority" eval="True"/>
         <field name="default_impact">2</field>
         <field name="default_urgency">2</field>
@@ -18,6 +17,11 @@
             (4, ref('request_timesheet_activity_analysis')),
             (4, ref('request_timesheet_activity_call')),
         ]"/>
+    </record>
+    <!--Add record request.classifier-->
+    <record id="classifier_request_type_with_complex_priority_demo_general" model="request.classifier">
+        <field name="category_id" ref="generic_request.request_category_demo_general"/>
+        <field name="type_id" ref="generic_request.request_type_with_complex_priority"/>
     </record>
 
     <!-- Stages -->
@@ -54,6 +58,7 @@
         <field name="stage_from_id" ref="request_type_with_complex_priority_in_progress"/>
         <field name="stage_to_id" ref="request_type_with_complex_priority_done"/>
         <field name="request_type_id" ref="request_type_with_complex_priority"/>
+        <field name="button_style">success</field>
     </record>
 
     <!--demo request -->

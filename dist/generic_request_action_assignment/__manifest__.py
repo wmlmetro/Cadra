@@ -8,7 +8,7 @@
     'author': "Center of Research and Development",
     'website': "https://crnd.pro",
     'category': 'Generic Request',
-    'version': '15.0.1.2.4',
+    'version': '15.0.1.5.1',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -29,6 +29,6 @@
     'application': False,
     'auto_install': True,
     'license': 'OPL-1',
-    'price': 50.0,
+    'price': 90.0,
     'currency': 'EUR',
 }

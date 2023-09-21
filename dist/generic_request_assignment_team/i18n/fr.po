@@ -14,3 +14,8 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
 "Plural-Forms: \n"
+
+#. module: generic_request_assignment_team
+#: model:ir.model,name:generic_request_assignment_team.model_request_request
+msgid "Request"
+msgstr ""

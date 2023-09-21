@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<odoo>
-    <menuitem
-        id="generic_team.menu_generic_team_root"
-        name="Teams"
-        groups="generic_team.group_generic_team_user"
-        web_icon="crnd_service_desk_team,static/description/menu.png"
-        sequence="75"/>
-</odoo>

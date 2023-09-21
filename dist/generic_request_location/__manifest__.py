@@ -9,7 +9,7 @@
     'website': "https://crnd.pro",
 
     'category': 'Generic Request',
-    'version': '15.0.0.8.0',
+    'version': '15.0.0.13.1',
 
     'depends': [
         'generic_request',
@@ -19,6 +19,8 @@
     'data': [
         'views/generic_location_views.xml',
         'views/request_request.xml',
+
+        'reports/request_graph_reports.xml',
     ],
     'images': [
         'static/description/banner.png'

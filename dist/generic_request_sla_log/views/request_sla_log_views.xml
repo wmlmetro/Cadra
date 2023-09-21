@@ -72,19 +72,19 @@
     </record>
 
     <record id="action_request_sla_log_view" model="ir.actions.act_window">
-      <field name="name">SLA Log</field>
+      <field name="name">SLA Logs Report</field>
       <field name="res_model">request.sla.log</field>
       <field name="view_mode">pivot,graph,tree</field>
     </record>
 
     <!-- This action could be used to show log lines related to some object -->
     <record id="action_request_sla_log_view__tree_first" model="ir.actions.act_window">
-        <field name="name">SLA Log</field>
+        <field name="name">SLA Logs Report</field>
         <field name="res_model">request.sla.log</field>
         <field name="view_mode">tree,pivot,graph</field>
     </record>
 
-    <menuitem name="SLA Log" id="menu_request_sla_log"
+    <menuitem name="SLA Logs Report" id="menu_request_sla_log"
               parent="generic_request.menu_request_report"
               action="action_request_sla_log_view"/>
 </odoo>

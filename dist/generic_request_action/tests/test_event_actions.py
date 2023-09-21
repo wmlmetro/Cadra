@@ -1,4 +1,9 @@
+# pylint:disable=too-many-lines
+from datetime import date
+
 from odoo import exceptions
+from odoo.addons.generic_mixin.tests.common import FindNew
+from odoo.addons.generic_request.tests.common import freeze_time
 from .common import RouteActionsTestCase
 
 
@@ -404,3 +409,506 @@ class TestRouteActions(RouteActionsTestCase):
             'request_text': 'valid',
         })
         self.assertTrue(request)
+
+    def test_action_validate_event(self):
+        self.env['request.event.action'].create({
+            'name': 'Validate Request Event',
+            'event_type_ids': [(6, 0, [self.env.ref(
+                'generic_request.request_event_type_changed').id])],
+            'act_type': 'validate',
+            'validate_event_condition_ids': [
+                (6, 0, [
+                    self.env.ref(
+                        'generic_request_action.'
+                        'condition_request_event_new_text_is_valid'
+                    ).id,
+                ]),
+            ],
+            'validate_error_msg': 'Request is not valida because 42',
+        })
+
+        request = self.env['request.request'].with_user(
+            self.demo_manager
+        ).create({
+            'type_id': self.request_type.id,
+            'category_id': self.request_category.id,
+            'request_text': 'Test request',
+        })
+
+        # Ensure valid request text passes condition
+        request.write({'request_text': 'valid'})
+
+        # But invalid request text throws validation error
+        with self.assertRaisesRegex(
+                exceptions.ValidationError,
+                'Request is not valida because 42'):
+            request.write({'request_text': 'Some invalid text'})
+
+    def test_action_send_email_with_response_attachments(self):
+
+        # link attachment to demo request
+        self.request_attachment.write({
+            'res_model': 'request.request',
+            'res_id': self.demo_request.id,
+        })
+
+        # create mail template to send via action and link attachment to it
+        mail_template = self.env['mail.template'].create({
+            'name': 'Request closed',
+            'model_id': self.env.ref(
+                'generic_request.model_request_request').id,
+            'body_html': 'The request was closed',
+            'attachment_ids': [(4, self.template_attachment.id)],
+        })
+
+        # Check template attachment was added properly to mail template
+        self.assertIn(self.template_attachment, mail_template.attachment_ids)
+        self.assertEqual(len(mail_template.attachment_ids), 1)
+
+        # Check request attachment was added properly to demo request
+        self.assertIn(self.request_attachment,
+                      self.demo_request.attachment_ids)
+        self.assertEqual(len(self.demo_request.attachment_ids), 1)
+
+        # Create action to send mail template on request close event
+        self.env['request.event.action'].create({
+            'name': 'Send mail when request closed',
+            'event_type_ids': [(6, 0, [self.env.ref(
+                'generic_request.request_event_type_closed').id])],
+            'act_type': 'send_email',
+            'send_email_template_id': mail_template.id,
+            'send_response_attachments': True
+        })
+
+        # Prepare request for closing
+        self.assertEqual(self.demo_request.stage_id.code, 'draft')
+        self.demo_request.stage_id = self.stage_sent
+        self.assertEqual(self.demo_request.stage_id.code, 'sent')
+
+        # Create wizard for closing the request, link attachment to it
+        wizard_close = self.env['request.wizard.close'].create({
+            'request_id': self.demo_request.id,
+            'close_route_id': self.route_confirmed.id,
+            'response_text': 'test-reponse-attachments',
+            'attachment_ids': [(4, self.response_attachment.id)],
+        })
+        self.assertIn(self.response_attachment, wizard_close.attachment_ids)
+
+        # Close request
+        with FindNew(self.env, 'mail.mail') as nr:
+            wizard_close.action_close_request()
+        self.assertEqual(self.demo_request.stage_id.code, 'confirmed')
+
+        # Check mail created
+        action_mail = nr['mail.mail'].filtered(
+            lambda x: x.body == '<p>%s</p>' % mail_template.body_html)
+
+        # Check response attachment was properly added
+        self.assertEqual(len(self.demo_request.attachment_ids), 2)
+        self.assertEqual(len(self.demo_request.response_attachment_ids), 1)
+        self.assertIn(self.request_attachment.datas,
+                      self.demo_request.attachment_ids.mapped('datas'))
+        self.assertIn(
+            self.response_attachment.datas,
+            self.demo_request.response_attachment_ids.mapped('datas'))
+        self.assertIn(
+            self.response_attachment.datas,
+            self.demo_request.attachment_ids.mapped('datas'))
+
+        # Check mail has response attachment and mail template attachment
+        self.assertEqual(len(action_mail.attachment_ids), 2)
+        self.assertIn(self.response_attachment.datas,
+                      action_mail.attachment_ids.mapped('datas'))
+        self.assertIn(self.template_attachment.datas,
+                      action_mail.attachment_ids.mapped('datas'))
+
+        # Check template attachments didn't change
+        self.assertEqual(len(mail_template.attachment_ids), 1)
+        self.assertIn(self.template_attachment, mail_template.attachment_ids)
+
+    def test_action_change_deadline__increase_calendar_days_1(self):
+        self.action_auto_change_deadline.write({
+            'event_type_ids': [
+                (4, self.env.ref(
+                    'generic_request.request_event_type_reassigned').id)],
+            'change_deadline_type': 'calendar_days',
+            'change_deadline_from_field_date': self.env.ref(
+                'generic_request.field_request_request__deadline_date').id,
+            'change_deadline_value': 1,
+        })
+
+        self.assertFalse(self.demo_request_deadline.user_id)
+
+        self.demo_request_deadline.deadline_date = '2020-03-20'
+
+        self.assertEqual(
+            self.demo_request_deadline.deadline_date, date(2020, 3, 20))
+
+        with freeze_time('2020-03-10'):
+            self.demo_request_deadline.invalidate_cache()
+
+            self.demo_request_deadline.write({
+                'user_id': self.demo_manager.id,
+            })
+            self.assertEqual(
+                self.demo_request_deadline.deadline_date, date(2020, 3, 21))
+
+        with freeze_time('2020-03-12'):
+            self.demo_request_deadline.invalidate_cache()
+
+            self.demo_request_deadline.write({
+                'user_id': self.demo_manager_2.id,
+            })
+            self.assertEqual(
+                self.demo_request_deadline.deadline_date, date(2020, 3, 22))
+
+    def test_action_change_deadline__increase_calendar_days_2(self):
+        self.action_auto_change_deadline.write({
+            'event_type_ids': [
+                (4, self.env.ref(
+                    'generic_request.request_event_type_reassigned').id)],
+            'change_deadline_type': 'calendar_days',
+            'change_deadline_from_field_date': self.env.ref(
+                'generic_request.field_request_request__deadline_date').id,
+            'change_deadline_value': 2,
+        })
+
+        self.assertFalse(self.demo_request_deadline.user_id)
+
+        self.demo_request_deadline.deadline_date = '2020-03-20'
+
+        self.assertEqual(
+            self.demo_request_deadline.deadline_date, date(2020, 3, 20))
+
+        with freeze_time('2020-03-10'):
+            self.demo_request_deadline.invalidate_cache()
+
+            self.demo_request_deadline.write({
+                'user_id': self.demo_manager.id,
+            })
+            self.assertEqual(
+                self.demo_request_deadline.deadline_date, date(2020, 3, 22))
+
+        with freeze_time('2020-03-12'):
+            self.demo_request_deadline.invalidate_cache()
+
+            self.demo_request_deadline.write({
+                'user_id': self.demo_manager_2.id,
+            })
+            self.assertEqual(
+                self.demo_request_deadline.deadline_date, date(2020, 3, 24))
+
+    def test_action_change_deadline__decrease_calendar_days_1(self):
+        self.action_auto_change_deadline.write({
+            'event_type_ids': [
+                (4, self.env.ref(
+                    'generic_request.request_event_type_reassigned').id)],
+            'change_deadline_type': 'calendar_days',
+            'change_deadline_from_field_date': self.env.ref(
+                'generic_request.field_request_request__deadline_date').id,
+            'change_deadline_value': -1,
+        })
+
+        self.assertFalse(self.demo_request_deadline.user_id)
+
+        self.demo_request_deadline.deadline_date = '2020-03-23'
+
+        self.assertEqual(
+            self.demo_request_deadline.deadline_date, date(2020, 3, 23))
+
+        with freeze_time('2020-03-10'):
+            self.demo_request_deadline.invalidate_cache()
+
+            self.demo_request_deadline.write({
+                'user_id': self.demo_manager.id,
+            })
+            self.assertEqual(
+                self.demo_request_deadline.deadline_date, date(2020, 3, 22))
+
+        with freeze_time('2020-03-12'):
+            self.demo_request_deadline.invalidate_cache()
+
+            self.demo_request_deadline.write({
+                'user_id': self.demo_manager_2.id,
+            })
+            self.assertEqual(
+                self.demo_request_deadline.deadline_date, date(2020, 3, 21))
+
+    def test_action_change_deadline__decrease_calendar_days_2(self):
+        self.action_auto_change_deadline.write({
+            'event_type_ids': [
+                (4, self.env.ref(
+                    'generic_request.request_event_type_reassigned').id)],
+            'change_deadline_type': 'calendar_days',
+            'change_deadline_from_field_date': self.env.ref(
+                'generic_request.field_request_request__deadline_date').id,
+            'change_deadline_value': -2,
+        })
+
+        self.assertFalse(self.demo_request_deadline.user_id)
+
+        self.demo_request_deadline.deadline_date = '2020-03-23'
+
+        self.assertEqual(
+            self.demo_request_deadline.deadline_date, date(2020, 3, 23))
+
+        with freeze_time('2020-03-10'):
+            self.demo_request_deadline.invalidate_cache()
+
+            self.demo_request_deadline.write({
+                'user_id': self.demo_manager.id,
+            })
+            self.assertEqual(
+                self.demo_request_deadline.deadline_date, date(2020, 3, 21))
+
+        with freeze_time('2020-03-12'):
+            self.demo_request_deadline.invalidate_cache()
+
+            self.demo_request_deadline.write({
+                'user_id': self.demo_manager_2.id,
+            })
+            self.assertEqual(
+                self.demo_request_deadline.deadline_date, date(2020, 3, 19))
+
+    def test_action_change_deadline_increase__by_working_days_1(self):
+        self.action_auto_change_deadline.write({
+            'event_type_ids': [
+                (4, self.env.ref(
+                    'generic_request.request_event_type_reassigned').id)],
+            'change_deadline_from_field_date': self.env.ref(
+                'generic_request.field_request_request__deadline_date').id,
+            'change_deadline_value': 1,
+        })
+
+        self.assertFalse(self.demo_request_deadline.user_id)
+
+        self.demo_request_deadline.deadline_date = '2020-03-20'
+
+        self.assertEqual(
+            self.demo_request_deadline.deadline_date, date(2020, 3, 20))
+
+        with freeze_time('2020-03-10'):
+            self.demo_request_deadline.invalidate_cache()
+
+            self.demo_request_deadline.write({
+                'user_id': self.demo_manager.id,
+            })
+            self.assertEqual(
+                self.demo_request_deadline.deadline_date, date(2020, 3, 23))
+
+        with freeze_time('2020-03-12'):
+            self.demo_request_deadline.invalidate_cache()
+
+            self.demo_request_deadline.write({
+                'user_id': self.demo_manager_2.id,
+            })
+            self.assertEqual(
+                self.demo_request_deadline.deadline_date, date(2020, 3, 24))
+
+    def test_action_change_deadline_increase__by_working_days_2(self):
+        self.action_auto_change_deadline.write({
+            'event_type_ids': [
+                (4, self.env.ref(
+                    'generic_request.request_event_type_reassigned').id)],
+            'change_deadline_from_field_date': self.env.ref(
+                'generic_request.field_request_request__deadline_date').id,
+            'change_deadline_value': 2,
+        })
+
+        self.assertFalse(self.demo_request_deadline.user_id)
+
+        self.demo_request_deadline.deadline_date = '2020-03-20'
+
+        self.assertEqual(
+            self.demo_request_deadline.deadline_date, date(2020, 3, 20))
+
+        with freeze_time('2020-03-10'):
+            self.demo_request_deadline.invalidate_cache()
+
+            self.demo_request_deadline.write({
+                'user_id': self.demo_manager.id,
+            })
+            self.assertEqual(
+                self.demo_request_deadline.deadline_date, date(2020, 3, 24))
+
+        with freeze_time('2020-03-12'):
+            self.demo_request_deadline.invalidate_cache()
+
+            self.demo_request_deadline.write({
+                'user_id': self.demo_manager_2.id,
+            })
+            self.assertEqual(
+                self.demo_request_deadline.deadline_date, date(2020, 3, 26))
+
+    def test_action_change_deadline_decrease__by_working_days_1(self):
+        self.action_auto_change_deadline.write({
+            'event_type_ids': [
+                (4, self.env.ref(
+                    'generic_request.request_event_type_reassigned').id)],
+            'change_deadline_from_field_date': self.env.ref(
+                'generic_request.field_request_request__deadline_date').id,
+            'change_deadline_value': -1,
+        })
+
+        self.assertFalse(self.demo_request_deadline.user_id)
+
+        self.demo_request_deadline.deadline_date = '2020-03-30'
+
+        self.assertEqual(
+            self.demo_request_deadline.deadline_date, date(2020, 3, 30))
+
+        with freeze_time('2020-03-10'):
+            self.demo_request_deadline.invalidate_cache()
+
+            self.demo_request_deadline.write({
+                'user_id': self.demo_manager.id,
+            })
+            self.assertEqual(
+                self.demo_request_deadline.deadline_date, date(2020, 3, 27))
+
+        with freeze_time('2020-03-12'):
+            self.demo_request_deadline.invalidate_cache()
+
+            self.demo_request_deadline.write({
+                'user_id': self.demo_manager_2.id,
+            })
+            self.assertEqual(
+                self.demo_request_deadline.deadline_date, date(2020, 3, 26))
+
+    def test_action_change_deadline_decrease__by_working_days_2(self):
+        self.action_auto_change_deadline.write({
+            'event_type_ids': [
+                (4, self.env.ref(
+                    'generic_request.request_event_type_reassigned').id)],
+            'change_deadline_from_field_date': self.env.ref(
+                'generic_request.field_request_request__deadline_date').id,
+            'change_deadline_value': -2,
+        })
+
+        self.assertFalse(self.demo_request_deadline.user_id)
+
+        self.demo_request_deadline.deadline_date = '2020-03-30'
+
+        self.assertEqual(
+            self.demo_request_deadline.deadline_date, date(2020, 3, 30))
+
+        with freeze_time('2020-03-10'):
+            self.demo_request_deadline.invalidate_cache()
+
+            self.demo_request_deadline.write({
+                'user_id': self.demo_manager.id,
+            })
+            self.assertEqual(
+                self.demo_request_deadline.deadline_date, date(2020, 3, 26))
+
+        with freeze_time('2020-03-12'):
+            self.demo_request_deadline.invalidate_cache()
+
+            self.demo_request_deadline.write({
+                'user_id': self.demo_manager_2.id,
+            })
+            self.assertEqual(
+                self.demo_request_deadline.deadline_date, date(2020, 3, 24))
+
+    def test_action_change_deadline_increase__by_working_days_1_datetime(self):
+        self.action_auto_change_deadline.write({
+            'change_deadline_value': 1,
+        })
+
+        self.assertFalse(self.demo_request_deadline.user_id)
+        self.assertFalse(self.demo_request_deadline.date_assigned)
+
+        self.demo_request_deadline.deadline_date = '2020-03-20'
+
+        self.assertEqual(
+            self.demo_request_deadline.deadline_date, date(2020, 3, 20))
+
+        with freeze_time('2020-03-6 13:33:12'):
+            self.demo_request_deadline.invalidate_cache()
+
+            self.demo_request_deadline.write({
+                'user_id': self.demo_manager.id,
+            })
+            self.assertEqual(
+                self.demo_request_deadline.deadline_date, date(2020, 3, 9))
+
+    def test_action_change_deadline_increase__by_working_days_2_datetime(self):
+        self.action_auto_change_deadline.write({
+            'change_deadline_value': 2,
+        })
+
+        self.assertFalse(self.demo_request_deadline.user_id)
+        self.assertFalse(self.demo_request_deadline.date_assigned)
+
+        self.demo_request_deadline.deadline_date = '2020-03-20'
+
+        self.assertEqual(
+            self.demo_request_deadline.deadline_date, date(2020, 3, 20))
+
+        with freeze_time('2020-03-06 13:33:12'):
+            self.demo_request_deadline.invalidate_cache()
+
+            self.demo_request_deadline.write({
+                'user_id': self.demo_manager.id,
+            })
+            self.assertEqual(
+                self.demo_request_deadline.deadline_date, date(2020, 3, 10))
+
+    def test_action_change_deadline_decrease__by_working_days_1_datetime(self):
+        self.action_auto_change_deadline.write({
+            'change_deadline_value': -1,
+        })
+
+        self.assertFalse(self.demo_request_deadline.user_id)
+        self.assertFalse(self.demo_request_deadline.date_assigned)
+
+        self.demo_request_deadline.deadline_date = '2020-03-20'
+
+        self.assertEqual(
+            self.demo_request_deadline.deadline_date, date(2020, 3, 20))
+
+        with freeze_time('2020-03-09 13:33:12'):
+            self.demo_request_deadline.invalidate_cache()
+
+            self.demo_request_deadline.write({
+                'user_id': self.demo_manager.id,
+            })
+            self.assertEqual(
+                self.demo_request_deadline.deadline_date, date(2020, 3, 6))
+
+    def test_action_change_deadline_decrease__by_working_days_2_datetime(self):
+        self.action_auto_change_deadline.write({
+            'change_deadline_value': -2,
+        })
+
+        self.assertFalse(self.demo_request_deadline.user_id)
+        self.assertFalse(self.demo_request_deadline.date_assigned)
+
+        self.demo_request_deadline.deadline_date = '2020-03-20'
+
+        self.assertEqual(
+            self.demo_request_deadline.deadline_date, date(2020, 3, 20))
+
+        with freeze_time('2020-03-09 13:33:12'):
+            self.demo_request_deadline.invalidate_cache()
+
+            self.demo_request_deadline.write({
+                'user_id': self.demo_manager.id,
+            })
+            self.assertEqual(
+                self.demo_request_deadline.deadline_date, date(2020, 3, 5))
+
+    def test_action_tag(self):
+        request = self.env['request.request'].with_user(
+            self.demo_manager
+        ).create({
+            'type_id': self.request_type.id,
+            'category_id': self.request_category.id,
+            'request_text': 'Test request',
+        })
+        self.assertEqual(request.stage_id, self.stage_draft)
+        self.assertEqual(len(request.tag_ids), 2)
+
+        request.stage_id = self.stage_sent
+        self.assertEqual(request.stage_id, self.stage_sent)
+        self.assertEqual(len(request.tag_ids), 1)

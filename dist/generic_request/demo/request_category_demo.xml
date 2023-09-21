@@ -51,9 +51,5 @@
         <field name="parent_id" ref="request_category_demo_technical"/>
         <field name="description">Security related requests</field>
     </record>
-    <record id="generic_service.generic_service_default" model="generic.service">
-        <field name="category_ids"
-               eval="[(6, 0, [ref('generic_request.request_category_demo_technical_configuration'),
-                              ref('generic_request.request_category_demo_resource')])]"/>
-    </record>
+
 </odoo>

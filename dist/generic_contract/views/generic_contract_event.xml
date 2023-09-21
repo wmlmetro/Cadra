@@ -26,7 +26,7 @@
                    position="inside">
                 <group string="Assignee Changed"
                        name="group_assignee_changed"
-                       attrs="{'invisible': [('event_code', '!=', 'crm-lead-assignee-changed')]}">
+                       attrs="{'invisible': [('event_code', '!=', 'assignee-changed')]}">
                     <field name="old_user_id"/>
                     <field name="new_user_id"/>
                 </group>

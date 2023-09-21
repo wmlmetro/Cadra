@@ -1,9 +1,27 @@
 from odoo.addons.generic_mixin.tests.common import WebTourCase
+from odoo.addons.generic_request.tests.common import (
+    RequestClassifierUtilsMixin)
 
 from odoo.addons.generic_mixin.tests.common import deactivate_records_for_model
 
 
-class TestPhantomTour(WebTourCase):
+class TestPhantomTour(RequestClassifierUtilsMixin, WebTourCase):
+
+    def ensure_classifier(self, *, service=None, category=None,
+                          request_type=None, active=None,
+                          website_published=None, **kw):
+        classifier = super().ensure_classifier(
+            service=service,
+            category=category,
+            request_type=request_type,
+            active=active,
+            **kw)
+
+        if website_published is not None and (
+                website_published != classifier.website_published):
+            classifier.write({'website_published': website_published})
+
+        return classifier
 
     def setUp(self):
         super(TestPhantomTour, self).setUp()
@@ -38,17 +56,11 @@ class TestPhantomTour(WebTourCase):
             ]
         })
 
-        # Also, clear Services from all Categories and Types
-        # this is needed for tests that do not expect serivices.
-        request_category_ids = self.env['request.category'].search([])
-        request_type_ids = self.env['request.type'].search([])
-
-        request_category_ids.write({
-            'service_ids': [(5, 0)]
-        })
-        request_type_ids.write({
-            'service_ids': [(5, 0)]
-        })
+        # Also, we have to clear service from classifiers
+        # TODO: possibly it have sense to switch to removal of classifiers
+        self.env['request.classifier'].search(
+            [('service_id', '!=', False)],
+        ).write({'service_id': False})
 
     def _test_phantom_tour(self, start_url, tour_name, **kw):
         """ Wrapper to run web tours

@@ -47,13 +47,13 @@
                             <div class="request_top">
                                 <span class="request-title">
                                     <t t-if="req.parent_id">
-                                        <a t-attf-href="/requests/request/{{ req.parent_id.id }}"
+                                        <a t-attf-href="/requests/request/n/{{ req.parent_id.name }}"
                                            class="request-parent"
                                            title="Parent Request"
                                            t-esc="req.parent_id.name"/> /
                                     </t>
                                     <a class="request-name"
-                                       t-attf-href="/requests/request/{{req.id}}">
+                                       t-attf-href="/requests/request/n/{{req.name}}">
                                         <t t-esc="req.name"/>
                                     </a>
                                 </span>
@@ -78,7 +78,12 @@
                                               class="text-warning fa fa-clock-o"/>
                                         <span t-if="req.deadline_state == 'overdue'"
                                               class="text-danger fa fa-clock-o"/>
-                                        <span t-field="req.deadline_date" class="text-muted"/>
+                                        <span t-if="req.type_id.deadline_format == 'date'"
+                                              t-field="req.deadline_date"
+                                              class="text-muted"/>
+                                        <span t-if="req.type_id.deadline_format == 'datetime'"
+                                              t-field="req.deadline_date_dt"
+                                              class="text-muted"/>
                                     </span>
                                     <span class="badge"
                                           t-attf-style="background-color: {{req.stage_bg_color}}; color: {{req.stage_label_color}}">
@@ -96,6 +101,18 @@
                                         <div t-if="req.service_id" class="content-info-service"
                                              groups="generic_request.group_request_use_services">
                                             <span class="fa fa-square-o mr4" title="Service"/>
+                                            <t t-if="req.service_id_group and request.website.use_service_groups">
+                                                <span title="Service group"
+                                                      t-esc="req.service_id_group.display_name"/>
+                                                <span t-if="req.service_id_group.description"
+                                                      role="button" data-toggle="popover"
+                                                      title="Service group"
+                                                      data-placement="right"
+                                                      data-trigger="hover"
+                                                      class="fa fa-question text-muted"
+                                                      t-attf-data-content="{{ req.service_id_group.description }}"/>
+                                                <a>/</a>
+                                            </t>
                                             <span t-field="req.service_id.display_name" title="Service"/>
                                             <span t-if="req.service_id.description"
                                                   role="button" data-toggle="popover"
@@ -133,7 +150,8 @@
 
                                         </div>
 
-                                        <div t-if="req.kind_id" class="content-info-kind">
+                                        <div t-if="req.kind_id" class="content-info-kind"
+                                             groups="generic_request.group_request_use_kind">
                                             <span class="fa fa-square mr4" title="Kind"/>
                                             <span t-field="req.kind_id.display_name" title="Kind"/>
                                             <span t-if="req.kind_id.description"
@@ -279,7 +297,8 @@
                 <span class="fa fa-hashtag mr4" title="Type"/>
                 <span t-field="rel_req.type_id.display_name" title="Type"/>
             </div>
-            <div t-if="rel_req.kind_id" class="content-info-kind">
+            <div t-if="rel_req.kind_id" class="content-info-kind"
+                 groups="generic_request.group_request_use_kind">
                 <span class="fa fa-square mr4" title="Kind"/>
                 <span t-field="rel_req.kind_id.display_name" title="Kind"/>
             </div>
@@ -296,7 +315,7 @@
                     <span class="request-title request_title_subrequest mr4">
                         <t t-if="can_read_request(rel_req)">
                             <a class="request-name mr8"
-                               t-attf-href="/requests/request/{{rel_req.id}}">
+                               t-attf-href="/requests/request/n/{{rel_req.name}}">
                             <t t-esc="rel_req.name"/>
                             </a>
                         </t>
@@ -387,6 +406,29 @@
                 <t t-set="wsd_step_form_item_id_prefix" t-value="'service'"/>
                 <t t-set="wsd_step_form_selected_item" t-value="req_service_sel"/>
                 <t t-set="wsd_step_form_sel_field_id" t-value="'service_id'"/>
+                <t t-call="crnd_wsd.wsd_request_new_select_param"/>
+            </div>
+        </t>
+    </template>
+
+    <template id="wsd_requests_new_select_service_group"
+              name="New request (select service group)">
+        <t t-call="crnd_wsd.wsd_layout">
+            <div class="container wsd_request_new">
+                <t t-call="crnd_wsd.wsd_request_navigation">
+                    <t t-set="request_name" t-value="'new'"/>
+                    <t t-call="crnd_wsd.wsd_requests_new_progress">
+                        <t t-set="step" t-value="'service_group'"/>
+                    </t>
+                </t>
+
+                <t t-set="wsd_step_form_id" t-value="'request_service_group'"/>
+                <t t-set="wsd_step_form_action" t-value="'/requests/new/step/service_group'"/>
+                <t t-set="wsd_step_form_title">Select service group</t>
+                <t t-set="wsd_step_form_items" t-value="req_service_groups"/>
+                <t t-set="wsd_step_form_item_id_prefix" t-value="'service_group'"/>
+                <t t-set="wsd_step_form_selected_item" t-value="req_service_group_sel"/>
+                <t t-set="wsd_step_form_sel_field_id" t-value="'service_group_id'"/>
                 <t t-call="crnd_wsd.wsd_request_new_select_param"/>
             </div>
         </t>

@@ -22,7 +22,7 @@ class TestGenericContractResource(TestGenericContractResourceCommon):
             'date_end': False,
         })
         cls.customer_contract.write({
-            'date_start': fields.Date.from_string('2018-04-03'),
+            'date_begin': fields.Date.from_string('2018-04-03'),
             'date_end': fields.Date.from_string('2019-01-03'),
         })
 

@@ -6,17 +6,19 @@ from odoo.addons.crnd_wsd.controllers.main import WebsiteRequest
 class WebsiteRequestFields(WebsiteRequest):
 
     def _request_new_fields_get_search_context(self, req_type,
-                                               req_category=False, **post):
+                                               req_category=None, **post):
         """ Prepare context to find request fields
 
             :param req_type: record representing type of request
             :param req_category: record, containing category of request
-            :return Record(request.request): new (not commited to db) record
-            that could be used to find fields needed to display
+            :return Record(request.request): new (not committed to db) record
+                that could be used to find fields needed to display
         """
+        service = self._id_to_record('generic.service', post.get('service_id'))
         return http.request.env['request.request'].new({
             'type_id': req_type.id,
             'category_id': req_category.id,
+            'service_id': service.id,
         })
 
     def _request_new_get_request_fields(self, req_type, req_category=False,

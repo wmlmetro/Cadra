@@ -7,6 +7,10 @@
                 <field name="sequence" widget="handle"/>
                 <field name="name"/>
                 <field name="code"/>
+                <field name="service_ids"
+                       widget="many2many_tags"
+                       string="Services"
+                       groups="generic_request.group_request_use_services"/>
                 <field name="category_ids"
                        widget="many2many_tags"/>
                 <field name="mandatory"/>
@@ -36,6 +40,13 @@
                     <group name="group_main">
                         <group name="group_main_left">
                             <field name="code" placeholder="Field code"/>
+                            <field name="service_ids"
+                                   string="Services"
+                                   widget="many2many_tags"
+                                   domain="[('request_type_ids', '=', request_type_id)]"
+                                   options="{'no_create': True, 'no_quick_create': True}"
+                                   placeholder="Service"
+                                   groups="generic_request.group_request_use_services"/>
                             <field name="category_ids"
                                    string="Categories"
                                    widget="many2many_tags"

@@ -91,7 +91,7 @@ class GenericAssignPolicyRule(models.Model):
         ondelete='restrict',
         tracking=True,
         domain="[('id', '!=', policy_id),"
-               "('model_id.model', '=', assign_related_policy_field_model_id)]"
+               "('model_name', '=', assign_related_policy_field_model_id)]"
     )
     assign_related_policy_sort_field_id = fields.Many2one(
         'ir.model.fields', ondelete='cascade',
@@ -238,10 +238,10 @@ class GenericAssignPolicyRule(models.Model):
             # and add/leave a default value to the field attributes
             choice_type = self.assign_user_field_choice_type or 'first'
             order = None
-            if self.assign_user_field_sort_field_id:
+            if self.sudo().assign_user_field_sort_field_id:
                 order = ("%s %s" % (
-                    self.assign_user_field_sort_field_id.name,
-                    self.assign_user_field_sort_direction))
+                    self.sudo().assign_user_field_sort_field_id.name,
+                    self.sudo().assign_user_field_sort_direction))
             user = self._choose_record(
                 users, choice_type, order)
             return {'user_id': user.id}
@@ -286,10 +286,10 @@ class GenericAssignPolicyRule(models.Model):
         # and add/leave a default value to the field attributes
         choice_type = self.assign_related_policy_choice_type or 'first'
         order = None
-        if self.assign_related_policy_sort_field_id:
+        if self.sudo().assign_related_policy_sort_field_id:
             order = ("%s %s" % (
-                self.assign_related_policy_sort_field_id.name,
-                self.assign_related_policy_sort_direction))
+                self.sudo().assign_related_policy_sort_field_id.name,
+                self.sudo().assign_related_policy_sort_direction))
         related_records = self._choose_record(
             related_records, choice_type, order)
         if not related_records:

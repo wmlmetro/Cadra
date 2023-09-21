@@ -7,10 +7,10 @@ msgstr ""
 "Project-Id-Version: Odoo Server 12.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2019-09-16 11:44+0000\n"
-"PO-Revision-Date: 2022-01-25 13:01+0000\n"
-"Last-Translator: Валерия <valittle@ukr.net>\n"
-"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/bureaucrat-"
-"itsm-14-0/generic_request_survey/uk/>\n"
+"PO-Revision-Date: 2023-08-07 13:43+0000\n"
+"Last-Translator: Galina Prokopenko <am@crnd.pro>\n"
+"Language-Team: Ukrainian <http://weblate.crnd.pro/projects/"
+"bureaucrat-itsm-15-0/generic_request_survey/uk/>\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -47,6 +47,14 @@ msgstr ""
 "        "
 
 #. module: generic_request_survey
+#: model:ir.model.fields,help:generic_request_survey.field_request_request__stage_allow_send_survey
+#: model:ir.model.fields,help:generic_request_survey.field_request_stage__allow_send_survey
+msgid ""
+"\"Send Survey\" button will be visible only when this option is enabled at "
+"the current Request stage."
+msgstr ""
+
+#. module: generic_request_survey
 #: model:survey.question,description:generic_request_survey.bug_classification
 #: model:survey.question,description:generic_request_survey.bug_priority
 #: model:survey.question,description:generic_request_survey.configuration
@@ -69,6 +77,12 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
 msgid "Add existing contacts..."
 msgstr "Додайте існуючі контакти..."
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_request__stage_allow_send_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_stage__allow_send_survey
+msgid "Allow Send Survey"
+msgstr ""
 
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_request__answer_count
@@ -111,7 +125,7 @@ msgstr "Чи можете ви навмисно повторити цю поми
 #. module: generic_request_survey
 #: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
 msgid "Cancel"
-msgstr "Скасувати"
+msgstr "Відмінити"
 
 #. module: generic_request_survey
 #: model:survey.question,title:generic_request_survey.configuration
@@ -126,17 +140,17 @@ msgstr "Містить"
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__create_uid
 msgid "Created by"
-msgstr "Створив"
+msgstr "Ким створено"
 
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__create_date
 msgid "Created on"
-msgstr "Дата створення"
+msgstr "Як створено"
 
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__display_name
 msgid "Display Name"
-msgstr "Відображуване ім’я"
+msgstr "Відображати як"
 
 #. module: generic_request_survey
 #: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
@@ -252,17 +266,17 @@ msgstr "Це частково заважає моїй роботі"
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey____last_update
 msgid "Last Modified on"
-msgstr "Остання модифікація"
+msgstr "Востаннє змінено"
 
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__write_uid
 msgid "Last Updated by"
-msgstr "Востаннє оновив"
+msgstr "Востаннє оновлено"
 
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_send_survey__write_date
 msgid "Last Updated on"
-msgstr "Останнє оновлення"
+msgstr "Востаннє оновлено"
 
 #. module: generic_request_survey
 #: model:survey.question.answer,value:generic_request_survey.environment_1_choice_3
@@ -333,10 +347,15 @@ msgid "Request Event"
 msgstr "Подія запиту"
 
 #. module: generic_request_survey
+#: model:ir.model,name:generic_request_survey.model_request_stage
+msgid "Request Stage"
+msgstr ""
+
+#. module: generic_request_survey
 #: model:ir.model,name:generic_request_survey.model_request_type
 #: model:ir.model.fields,field_description:generic_request_survey.field_survey_user_input__request_type_id
 msgid "Request Type"
-msgstr ""
+msgstr "Тип запиту"
 
 #. module: generic_request_survey
 #: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey

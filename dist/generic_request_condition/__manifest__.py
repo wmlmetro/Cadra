@@ -1,3 +1,4 @@
+# flake8: noqa: E501
 {
     'name': "Generic Request (Conditions)",
 
@@ -10,7 +11,7 @@
     'website': "https://crnd.pro",
 
     'category': 'Generic Request',
-    'version': '15.0.1.14.0',
+    'version': '15.0.1.19.1',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -29,6 +30,11 @@
         'demo/generic_condition.xml',
         'demo/request_type_conditional.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            '/generic_request_condition/static/src/scss/condition_operator.scss',
+        ],
+    },
 
     'images': ['static/description/banner.png'],
     'installable': True,

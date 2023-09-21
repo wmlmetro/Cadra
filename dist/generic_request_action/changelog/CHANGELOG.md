@@ -1,5 +1,32 @@
 # Changelog
 
+## Version 4.11.0
+
+Added ability to validate request event.
+
+
+## Version 4.10.0
+
+Merge `generic_request_action_subrequest` module
+
+
+## Version 4.9.0
+
+Merged `generic_request_action_priority` module.
+
+
+## Version 4.8.0
+
+Fixed access right issue, when user who triggered event does not have access to request that handles the event.
+This happens for example, when some user that does not have access to request, changes stage of project task related to request.
+Related to Q2305561
+
+
+## Version 4.3.0
+
+Added a new setting called ```Send response attachments``` to the 'Send Email' action type, allowing to include response attachments in email.
+
+
 ## Version 4.2.0
 
 Added functionality that allows you to configure the automatic removal from the followers at the request of a previosly assigned user.

@@ -33,14 +33,14 @@ class TestGenericAssignPolicy(models.TransientModel):
 
     def get_record(self):
         self.ensure_one()
-        TestModel = self.env[self.assign_policy_id.model_id.model]
+        TestModel = self.env[self.assign_policy_id.sudo().model_id.model]
         record = TestModel.search([('id', '=', self.res_id)], limit=1)
 
         if not record:
             raise exceptions.ValidationError(_(
                 'Object (model: %(model)s; id: %(res_id)s) not found'
             ) % {
-                'model': self.assign_policy_id.model_id.model,
+                'model': self.assign_policy_id.sudo().model_id.model,
                 'res_id': self.res_id,
             })
         return record

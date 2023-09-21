@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:05+0000\n"
-"PO-Revision-Date: 2021-06-22 16:05+0000\n"
+"POT-Creation-Date: 2023-07-26 11:12+0000\n"
+"PO-Revision-Date: 2023-07-26 11:12+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -20,7 +20,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__assignee_id
 #: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
 msgid "Assignee"
-msgstr ""
+msgstr "Priskirta"
 
 #. module: generic_request_sla_log
 #: model:request.stage,name:generic_request_sla_log.request_stage_type_sla_confirmed
@@ -30,18 +30,18 @@ msgstr ""
 #. module: generic_request_sla_log
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__create_uid
 msgid "Created by"
-msgstr ""
+msgstr "Sukūrė"
 
 #. module: generic_request_sla_log
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__create_date
 msgid "Created on"
-msgstr ""
+msgstr "Sukurta"
 
 #. module: generic_request_sla_log
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__date
 #: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
 msgid "Date"
-msgstr ""
+msgstr "Data"
 
 #. module: generic_request_sla_log
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__date_prev
@@ -51,7 +51,7 @@ msgstr ""
 #. module: generic_request_sla_log
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__display_name
 msgid "Display Name"
-msgstr ""
+msgstr "Rodomas pavadinimas"
 
 #. module: generic_request_sla_log
 #: model:request.stage,name:generic_request_sla_log.request_stage_type_sla_draft
@@ -61,7 +61,7 @@ msgstr ""
 #. module: generic_request_sla_log
 #: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
 msgid "Group By..."
-msgstr ""
+msgstr "Grupuoti pagal..."
 
 #. module: generic_request_sla_log
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__id
@@ -72,22 +72,22 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__kanban_state
 #: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
 msgid "Kanban State"
-msgstr ""
+msgstr "Kanban būsena"
 
 #. module: generic_request_sla_log
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log____last_update
 msgid "Last Modified on"
-msgstr ""
+msgstr "Paskutinį kartą keista"
 
 #. module: generic_request_sla_log
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__write_uid
 msgid "Last Updated by"
-msgstr ""
+msgstr "Paskutinį kartą atnaujino"
 
 #. module: generic_request_sla_log
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__write_date
 msgid "Last Updated on"
-msgstr ""
+msgstr "Paskutinį kartą atnaujinta"
 
 #. module: generic_request_sla_log
 #: model:request.stage,name:generic_request_sla_log.request_stage_type_sla_rejected
@@ -99,7 +99,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__request_id
 #: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
 msgid "Request"
-msgstr ""
+msgstr "Užklausa"
 
 #. module: generic_request_sla_log
 #: model:ir.model,name:generic_request_sla_log.model_request_sla_log
@@ -110,7 +110,7 @@ msgstr ""
 #: model:ir.model,name:generic_request_sla_log.model_request_type
 #: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
 msgid "Request Type"
-msgstr ""
+msgstr "Užklausos tipas"
 
 #. module: generic_request_sla_log
 #: model_terms:ir.ui.view,arch_db:generic_request_sla_log.inherited_view_request_request_form_inherit_request_sla_log
@@ -120,16 +120,20 @@ msgstr ""
 
 #. module: generic_request_sla_log
 #: model:ir.actions.act_window,name:generic_request_sla_log.action_generic_request_type_2_request_sla_log
-#: model:ir.actions.act_window,name:generic_request_sla_log.action_request_sla_log_view
-#: model:ir.actions.act_window,name:generic_request_sla_log.action_request_sla_log_view__tree_first
-#: model:ir.ui.menu,name:generic_request_sla_log.menu_request_sla_log
 #: model_terms:ir.ui.view,arch_db:generic_request_sla_log.inherited_view_request_type_form_inherit_request_sla_log
 msgid "SLA Log"
-msgstr ""
+msgstr "SLA logas"
 
 #. module: generic_request_sla_log
 #: model_terms:ir.ui.view,arch_db:generic_request_sla_log.inherited_view_request_request_form_inherit_request_sla_log
 msgid "SLA Log lines"
+msgstr "SLA logo eilutės"
+
+#. module: generic_request_sla_log
+#: model:ir.actions.act_window,name:generic_request_sla_log.action_request_sla_log_view
+#: model:ir.actions.act_window,name:generic_request_sla_log.action_request_sla_log_view__tree_first
+#: model:ir.ui.menu,name:generic_request_sla_log.menu_request_sla_log
+msgid "SLA Logs Report"
 msgstr ""
 
 #. module: generic_request_sla_log
@@ -146,24 +150,24 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_request__sla_log_ids
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_type__sla_log_ids
 msgid "Sla Log"
-msgstr ""
+msgstr "SLA logas"
 
 #. module: generic_request_sla_log
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_request__sla_log_count
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_type__sla_log_count
 msgid "Sla Log Count"
-msgstr ""
+msgstr "SLA log skaičius"
 
 #. module: generic_request_sla_log
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__stage_id
 #: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
 msgid "Stage"
-msgstr ""
+msgstr "Etapas"
 
 #. module: generic_request_sla_log
 #: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
 msgid "Stage Type"
-msgstr ""
+msgstr "Etapo tipas"
 
 #. module: generic_request_sla_log
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__stage_type_id
@@ -183,18 +187,18 @@ msgstr ""
 #. module: generic_request_sla_log
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__request_type_id
 msgid "Type"
-msgstr ""
+msgstr "Tipas"
 
 #. module: generic_request_sla_log
 #: model:ir.model.fields,help:generic_request_sla_log.field_request_sla_log__request_type_id
 msgid "Type of request"
-msgstr ""
+msgstr "Užklausos tipas"
 
 #. module: generic_request_sla_log
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__user_id
 #: model_terms:ir.ui.view,arch_db:generic_request_sla_log.request_sla_log_view_search
 msgid "User"
-msgstr ""
+msgstr "Vartotojas"
 
 #. module: generic_request_sla_log
 #: model_terms:ir.ui.view,arch_db:generic_request_sla_log.inherited_view_request_type_form_inherit_request_sla_log
@@ -211,4 +215,4 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_sla_log__calendar_id
 #: model:ir.model.fields,field_description:generic_request_sla_log.field_request_type__sla_calendar_id
 msgid "Working time"
-msgstr ""
+msgstr "Darbo laikas"

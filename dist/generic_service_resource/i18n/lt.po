@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:04+0000\n"
-"PO-Revision-Date: 2021-06-22 16:04+0000\n"
+"POT-Creation-Date: 2023-07-26 11:12+0000\n"
+"PO-Revision-Date: 2023-07-26 11:12+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -19,12 +19,12 @@ msgstr ""
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__action
 msgid "Action"
-msgstr ""
+msgstr "Veiksmas"
 
 #. module: generic_service_resource
 #: model_terms:ir.ui.view,arch_db:generic_service_resource.generic_resource_wizard_link_service_form_view
 msgid "Cancel"
-msgstr ""
+msgstr "Atšaukti"
 
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource__service_count
@@ -35,12 +35,12 @@ msgstr ""
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__create_uid
 msgid "Created by"
-msgstr ""
+msgstr "Sukūrė"
 
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__create_date
 msgid "Created on"
-msgstr ""
+msgstr "Sukurta"
 
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_type__default_service_ids
@@ -50,7 +50,7 @@ msgstr ""
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__display_name
 msgid "Display Name"
-msgstr ""
+msgstr "Rodomas pavadinimas"
 
 #. module: generic_service_resource
 #: model:ir.model,name:generic_service_resource.model_generic_resource
@@ -75,23 +75,23 @@ msgstr ""
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service____last_update
 msgid "Last Modified on"
-msgstr ""
+msgstr "Paskutinį kartą keista"
 
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__write_uid
 msgid "Last Updated by"
-msgstr ""
+msgstr "Paskutinį kartą atnaujino"
 
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__write_date
 msgid "Last Updated on"
-msgstr ""
+msgstr "Paskutinį kartą atnaujinta"
 
 #. module: generic_service_resource
 #: model:ir.model.fields.selection,name:generic_service_resource.selection__generic_resource_wizard_link_service__action__link
 #: model_terms:ir.ui.view,arch_db:generic_service_resource.generic_resource_wizard_link_service_form_view
 msgid "Link"
-msgstr ""
+msgstr "Nuoroda"
 
 #. module: generic_service_resource
 #: model:ir.actions.act_window,name:generic_service_resource.action_resource_open_wizard_link_service
@@ -101,12 +101,12 @@ msgstr ""
 #. module: generic_service_resource
 #: model:ir.model.fields.selection,name:generic_service_resource.selection__generic_resource_wizard_link_service__action__remove
 msgid "Remove"
-msgstr ""
+msgstr "Pašalinti"
 
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__resource_ids
 msgid "Resource"
-msgstr ""
+msgstr "Išteklius"
 
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_type__resource_act_link_services_id
@@ -133,19 +133,19 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_service_resource.inherited_generic_service_view_form_inherit_service_resource
 #: model_terms:ir.ui.view,arch_db:generic_service_resource.view_resource_generic_service_kanban
 msgid "Resources"
-msgstr ""
+msgstr "Ištekliai"
 
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_wizard_link_service__service_ids
 msgid "Service"
-msgstr ""
+msgstr "Servisas"
 
 #. module: generic_service_resource
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource__service_ids
 #: model:ir.model.fields,field_description:generic_service_resource.field_generic_resource_simple__service_ids
 #: model_terms:ir.ui.view,arch_db:generic_service_resource.inherited_generic_resource_view_form_inherit_service_resource
 msgid "Services"
-msgstr ""
+msgstr "Paslaugos"
 
 #. module: generic_service_resource
 #: model:ir.model.fields.selection,name:generic_service_resource.selection__generic_resource_wizard_link_service__action__set

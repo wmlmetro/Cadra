@@ -54,6 +54,12 @@ msgid ""
 msgstr ""
 
 #. module: generic_resource_location
+#: model:ir.model.fields,field_description:generic_resource_location.field_generic_resource__latitude
+#: model:ir.model.fields,field_description:generic_resource_location.field_generic_resource_simple__latitude
+msgid "Latitude"
+msgstr ""
+
+#. module: generic_resource_location
 #: model:ir.model.fields,field_description:generic_resource_location.field_generic_location__located_resource_ids
 msgid "Located Resources"
 msgstr "Ресурсы"
@@ -69,6 +75,12 @@ msgstr "Расположен в"
 #: model_terms:ir.ui.view,arch_db:generic_resource_location.inherited_generic_resource_view_form_inheritgeneric_resource_location
 msgid "Location"
 msgstr "Локация"
+
+#. module: generic_resource_location
+#: model:ir.model.fields,field_description:generic_resource_location.field_generic_resource__longitude
+#: model:ir.model.fields,field_description:generic_resource_location.field_generic_resource_simple__longitude
+msgid "Longitude"
+msgstr ""
 
 #. module: generic_resource_location
 #: model:ir.actions.act_window,name:generic_resource_location.action_view_generic_resource_related_location

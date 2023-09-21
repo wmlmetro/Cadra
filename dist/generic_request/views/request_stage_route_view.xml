@@ -76,9 +76,6 @@
                                     <field name="stage_to_id"
                                         options="{'no_create': True, 'no_create_edit': True}"
                                         domain="[('request_type_id', '=', request_type_id), ('id','!=', stage_from_id)]"/>
-                                    <field name="reopen_as_type_ids"
-                                           widget="many2many_tags"
-                                           attrs="{'invisible': [('close', '=', False)]}"/>
                                     <field name="close"/>
                                     <field name="require_response"
                                         attrs="{'invisible': [('close', '=', False)]}"/>
@@ -86,17 +83,45 @@
                                         string="Button Style"/>
                                 </group>
                                 <group name="group_access"
-                                    string="Access">
+                                       string="Access">
                                     <field name="allowed_user_ids"
                                         widget="many2many_tags"/>
                                     <field name="allowed_group_ids"
                                         widget="many2many_tags"/>
+                                </group>
+                                <group name="group_reopen"
+                                       attrs="{'invisible': [('close', '=', False)]}"
+                                       string="Reopen as different type">
+                                    <div class="alert alert-info" role="status" colspan="2">
+                                        <p>
+                                            When closing request, it is possible to require user to reopen it with different type, category and service.
+                                            This feature mostly used when it is needed to reclassify request.
+                                        </p>
+                                        <p>
+                                            If at least one request type specified in <i>Reopen with types</i> field,
+                                            then it will be required to choose new request service, type, category and fields (if installed)
+                                            to reopen request with.
+                                        </p>
+                                        <p>
+                                            Reopened request is a copy of original requesst with new service, category, type,
+                                            fields (selected in closing wizard) and new request name.
+                                        </p>
+                                    </div>
+                                    <field name="reopen_as_type_ids"
+                                           string="Reopen with types"
+                                           widget="many2many_tags"/>
                                 </group>
                             </group>
                         </page>
                         <page string="Default response"
                               name="page_route_default_response"
                               attrs="{'invisible': ['|', ('close', '=', False), ('require_response', '=', False)]}">
+                            <div class="alert alert-info" role="status" colspan="2">
+                                <p class="mb0">
+                                    Default response will be used as default value for <i>Response</i> field
+                                    in <i>request close wizard</i> when this route is used to close request.
+                                </p>
+                            </div>
                             <field name="default_response_text"/>
                         </page>
                     </notebook>

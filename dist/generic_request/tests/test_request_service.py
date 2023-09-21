@@ -1,5 +1,5 @@
-from odoo.osv import expression
-from odoo.tests.common import TransactionCase
+from ast import literal_eval
+from odoo.tests.common import TransactionCase, Form
 from odoo.addons.generic_mixin.tests.common import (
     AccessRulesFixMixinST,
     ReduceLoggingMixin,
@@ -13,6 +13,7 @@ class RequestServiceCase(ReduceLoggingMixin,
     @classmethod
     def setUpClass(cls):
         super(RequestServiceCase, cls).setUpClass()
+        cls.Classifier = cls.env['request.classifier']
         cls.service_level_1 = cls.env.ref(
             'generic_service.generic_service_level_1')
         cls.service_level_2 = cls.env.ref(
@@ -326,65 +327,66 @@ class RequestServiceCase(ReduceLoggingMixin,
             'generic_request.request_category_demo_technical_configuration')
 
         # Create new (empty) request
-        request = self.Request.new({})
-        self.assertFalse(request.stage_id)
-        self.assertFalse(request.type_id)
-        self.assertFalse(request.category_id)
-        self.assertFalse(request.service_id)
+        with Form(self.env['request.request']) as request_form:
+            self.assertFalse(request_form.stage_id)
+            self.assertFalse(request_form.type_id)
+            self.assertFalse(request_form.category_id)
+            self.assertFalse(request_form.service_id)
 
-        res = request._onchange_category_type()
+            expected_classifier_type_ids = self.Classifier.search(
+                [('category_id', '=', False),
+                 ('service_id', '=', False)]).mapped('type_id').ids
 
-        self.assertEqual(
-            res['domain']['type_id'],
-            expression.AND([
-                [('category_ids', '=', False),
-                 ('start_stage_id', '!=', False)],
-                [('service_ids', '=', False)],
-            ])
-        )
-        self.assertEqual(
-            res['domain']['category_id'],
-            expression.AND([
-                [], [('service_ids', '=', False)],
-            ])
-        )
+            self.assertListEqual(
+                literal_eval(request_form.type_id_domain),
+                ['&', ('start_stage_id', '!=', False),
+                 ('id', 'in', expected_classifier_type_ids)])
 
-        # Set service 'Default for request
-        request.service_id = self.default_service
-        res = request._onchange_category_type()
+            expected_classifier_category_ids = self.Classifier.search([
+                ('service_id', '=', False)]).mapped('category_id').ids
+            self.assertListEqual(
+                literal_eval(request_form.category_id_domain),
+                [('id', 'in', expected_classifier_category_ids)])
 
-        # Ensure that request type was cleared (it is not allowed for selected
-        # service)
-        self.assertEqual(request.service_id, self.default_service)
-        self.assertFalse(request.category_id)
-        self.assertFalse(request.type_id)
+            # Set service 'Default for request
+            request_form.service_id = self.default_service
 
-        request.category_id = category_tech
-        res = request._onchange_category_type()
-        self.assertEqual(request.service_id, self.default_service)
-        self.assertFalse(request.type_id)
-        self.assertEqual(request.category_id, category_tech)
+            # Ensure that request type was cleared
+            # (it is not allowed for selected service)
+            self.assertEqual(request_form.service_id, self.default_service)
+            self.assertFalse(request_form.category_id)
+            self.assertFalse(request_form.type_id)
 
-        self.assertEqual(
-            res['domain']['type_id'],
-            expression.AND([
-                [('category_ids', '=', category_tech.id),
-                 ('start_stage_id', '!=', False)],
-                [('service_ids', '=', self.default_service.id)],
-            ])
-        )
-        self.assertEqual(
-            res['domain']['category_id'],
-            expression.AND([
-                [],
-                [('service_ids', '=', self.default_service.id)],
-            ])
-        )
+            request_form.category_id = category_tech
+            self.assertEqual(request_form.service_id, self.default_service)
+            self.assertFalse(request_form.type_id)
+            self.assertEqual(request_form.category_id, category_tech)
+
+            expected_classifier_type_ids = self.Classifier.search([
+                ('category_id', '=', category_tech.id),
+                ('service_id', '=', self.default_service.id)]).mapped(
+                'type_id').ids
+
+            self.assertListEqual(
+                literal_eval(request_form.type_id_domain),
+                ['&', ('start_stage_id', '!=', False),
+                 ('id', 'in', expected_classifier_type_ids)])
+
+            expected_classifier_category_ids = self.Classifier.search(
+                [('service_id', '=', self.default_service.id)]).mapped(
+                'category_id').ids
+
+            self.assertListEqual(
+                literal_eval(request_form.category_id_domain),
+                [('id', 'in', expected_classifier_category_ids)])
+
+            # needed to properly save the form
+            request_form.type_id = self.new_request_type
+            request_form.save()
 
     def test_request_service_change(self):
         rent_service = self.env.ref(
             'generic_service.generic_service_rent_notebook')
-        self.type_simple.service_ids += rent_service
 
         request = self.Request.create({
             'type_id': self.type_simple.id,
@@ -525,35 +527,33 @@ class RequestServiceCase(ReduceLoggingMixin,
         self.assertEqual(request.can_change_service, False)
 
     def test_service_id_domain_new_record(self):
-        request = self.Request.new({
-            'request_text': 'test',
-        })
-        self.assertEqual(
-            request.service_id_domain, "[]")
+        with Form(self.env['request.request']) as request_form:
+            expected_classifier_service_ids = self.Classifier.search(
+                []).mapped('service_id').ids
+            self.assertListEqual(
+                literal_eval(request_form.service_id_domain),
+                [('id', 'in', expected_classifier_service_ids)])
 
-        request.type_id = self.type_simple
-        self.assertEqual(
-            request.service_id_domain, "[]")
+            request_form.type_id = self.type_simple
+            self.assertEqual(request_form.type_id, self.type_simple)
+            self.assertListEqual(
+                literal_eval(request_form.service_id_domain),
+                [('id', 'in', expected_classifier_service_ids)])
+
+            # needed to properly save the form
+            request_form.request_text = 'test'
+            request_form.save()
 
     def test_service_id_domain_created_record(self):
         request = self.Request.create({
             'request_text': 'test',
             'type_id': self.type_simple.id,
         })
-        self.assertEqual(
-            request.service_id_domain,
-            '[["request_type_ids", "=", %s]]' % self.type_simple.id)
-
-        search_res = self.env['generic.service'].with_context(
-            request_service_id_domain=request.service_id_domain,
-        ).name_search()
-        expected_res = self.env['generic.service'].search(
-            [('request_type_ids', '=', self.type_simple.id)],
-        )
-
-        self.assertEqual(
-            {s[0] for s in search_res},
-            set(expected_res.ids))
+        expected_classifier_service_ids = self.Classifier.search(
+            [('type_id', '=', self.type_simple.id)]).mapped('service_id').ids
+        self.assertListEqual(
+            literal_eval(request.service_id_domain),
+            [('id', 'in', expected_classifier_service_ids)])
 
     def test_request_service_level_changed_event_created(self):
         request = self.Request.create({

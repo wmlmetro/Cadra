@@ -5,7 +5,11 @@ from odoo.addons.portal.controllers.mail import (
 )
 
 
-class PortalRequestChatter(PortalChatter):
+# We have to inherit this controller from http.Controller,
+# or, at least, http.Controller have to be available in globals,
+# to ensure that this controller is registered, otherwise,
+# chatter may not work because Odoo cannot find this route
+class PortalRequestChatter(PortalChatter, http.Controller):
 
     # Based on /mail/chatter_post
     # implemented to avoid html escapes

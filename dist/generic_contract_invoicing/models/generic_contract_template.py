@@ -100,10 +100,10 @@ class GenericContractTemplate(models.Model):
                 self.journal_id.currency_id,
                 self.env.user.company_id.currency_id])
 
-    def _prepare_contract_values(self, partner, user, date_start, date_end):
+    def _prepare_contract_values(self, partner, user, date_begin, date_end):
         data = super(
             GenericContractTemplate, self
-        )._prepare_contract_values(partner, user, date_start, date_end)
+        )._prepare_contract_values(partner, user, date_begin, date_end)
 
         if not self.recurring_invoices:
             return data
@@ -113,7 +113,7 @@ class GenericContractTemplate(models.Model):
             'recurring_type': self.recurring_type,
             'recurring_period': self.recurring_period,
             'recurring_next_date': get_recurring_next_date(
-                date_start,
+                date_begin,
                 self.recurring_type,
                 self.recurring_period),
             'recurring_invoice_line_ids': [],

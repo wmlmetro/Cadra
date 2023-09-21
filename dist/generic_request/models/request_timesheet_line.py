@@ -23,6 +23,8 @@ class RequestTimesheetLine(models.Model):
     activity_id = fields.Many2one(
         'request.timesheet.activity', required=False,
         index=True, ondelete='restrict')
+    is_description_required = fields.Boolean(
+        related='activity_id.require_description', store=False, readonly=True)
     request_type_id = fields.Many2one(
         related='request_id.type_id', store=True, readonly=True)
     amount = fields.Float(required=False, string='Time spent')

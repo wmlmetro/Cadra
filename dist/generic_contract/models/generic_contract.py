@@ -1,24 +1,11 @@
-import datetime
 import logging
 
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError, UserError
 
-from odoo.addons.generic_mixin import post_write
+from odoo.addons.generic_mixin import post_write, post_create
 
 _logger = logging.getLogger(__name__)
-
-
-def to_dt(date):
-    """ Convert date (str) to datetime object
-        It is sefe to pass datetime instance too.
-        In this case it will be returned unchanged.
-    """
-    if isinstance(date, datetime.date):
-        return date
-    if isinstance(date, str):
-        return fields.Date.from_string(date)
-    return False
 
 
 class GenericContract(models.Model):
@@ -41,7 +28,9 @@ class GenericContract(models.Model):
         states={'draft': [('readonly', False)]})
     company_id = fields.Many2one(
         'res.company', string='Company', index=True,
-        required=True, default=lambda self: self.env.company)
+        required=True, readonly=True,
+        states={'draft': [('readonly', False)]},
+        default=lambda self: self.env.company)
     partner_type = fields.Selection(
         required=True, default='customer',
         selection=[('customer', 'Customer'),
@@ -70,7 +59,8 @@ class GenericContract(models.Model):
     date = fields.Date(
         index=True, required=True, default=fields.Date.today, readonly=True,
         tracking=True, states={'draft': [('readonly', False)]})
-    date_start = fields.Date(
+    # TODO: Rename to date_begin
+    date_begin = fields.Date(
         index=True, required=True, default=fields.Date.today, readonly=True,
         tracking=True, states={'draft': [('readonly', False)]})
     date_end = fields.Date(
@@ -106,36 +96,34 @@ class GenericContract(models.Model):
         'state')
     def _compute_contracts_service_line_ids(self):
         for rec in self:
-            # TODO: Add services from lines
             rec.contracts_service_ids = (
                 rec.service_contract_line_ids.mapped('service_id')
             )
 
-    @api.constrains('date_start', 'date_end', 'state')
-    def _check_date_start_date_end_order(self):
+    @api.constrains('date_begin', 'date_end', 'state')
+    def _check_date_begin_date_end_order(self):
         for rec in self:
-            if rec.date_end and to_dt(rec.date_end) < to_dt(rec.date_start):
+            d_begin = fields.Date.to_date(rec.date_begin)
+            d_end = fields.Date.to_date(rec.date_end)
+            if rec.date_end and d_end < d_begin:
                 raise ValidationError(
-                    _('Date start can`t be less than date end of contract!'
+                    _('Date begin can`t be less than date end of contract!'
                       ' Check it, please'))
 
-    @api.model
-    def create(self, vals):
-        contract = super(GenericContract, self).create(vals)
+    @post_create()
+    def _after_create_update_contract_number(self, changes):
         number_sequence_map = {
             'customer': self.env.ref(
                 'generic_contract.seq_generic_contract_customer_contracts'),
             'supplier': self.env.ref(
                 'generic_contract.seq_generic_contract_supplier_contracts'),
         }
-        if contract.template_id and contract.template_id.number_sequence_id:
-            contract['number'] =\
-                contract.template_id.number_sequence_id.next_by_id()
-        elif number_sequence_map.get(contract.partner_type):
-            contract['number'] =\
-                number_sequence_map[contract.partner_type].next_by_id()
-
-        return contract
+        if self.template_id and self.template_id.number_sequence_id:
+            self.number =\
+                self.template_id.number_sequence_id.next_by_id()
+        elif number_sequence_map.get(self.partner_type):
+            self.number =\
+                number_sequence_map[self.partner_type].next_by_id()
 
     def unlink(self):
         for contract in self:
@@ -180,42 +168,30 @@ class GenericContract(models.Model):
             order='contract_state',
             limit=1)
 
-    def add_service_line(self, service, service_level=None, date=None):
-        """ This method have to be used to add new service line to contract by
-            other modules.
-        """
-        self.ensure_one()
-        service_line = self.get_service_line_for(service)
-        if service_line and service_level:
-            service_line.service_level_id = service_level
-        elif not service_line:
-            service_line = self.env['generic.contract.service.line'].create({
-                'contract_id': self.id,
-                'service_id': service.id,
-                'service_level_id': (
-                    service_level.id if service_level is not None else False),
-                'date_added': (
-                    date if date is not None else fields.Datetime.now()),
-            })
-        return service_line
-
     def activate_contract(self):
         for contract in self:
-            if (to_dt(contract.date_start) <= to_dt(fields.Date.today()) and
-                    contract.state == 'pending'):
+            d_start = fields.Date.to_date(contract.date_begin)
+            if d_start <= fields.Date.today() and contract.state == 'pending':
                 contract.state = 'active'
+                contract.trigger_event('contract-activated')
         return True
 
-    def _close_contract(self, date_closed):
+    def close_contract(self, date_closed=None):
+        """ This method closes contract with provided date_closed (if provided)
+
+            It is assumed that this method could be called from scheduler.
+
+            If contract was closed, it returns true, otherwise, returns False.
+        """
         self.ensure_one()
-        date_closed = date_closed or self.date_end or fields.Date.today()
+        date_closed = fields.Date.to_date(
+            date_closed or self.date_end or fields.Date.today())
         if self.state == 'closed':
             return True
         if self.state in ('draft', 'pending'):
             # Contract not started, so we do not need to close it.
             return False
-        if (to_dt(date_closed) <= to_dt(fields.Date.today()) and
-                self.state == 'active'):
+        if date_closed <= fields.Date.today() and self.state == 'active':
             self.write({
                 'state': 'closed',
                 'date_end': self.date_end or date_closed,
@@ -223,13 +199,12 @@ class GenericContract(models.Model):
             })
             self.trigger_event('contract-closed')
             return True
+        # Contract was not closed, returning False
         return False
 
-    def close_contract(self, date_closed=None):
-        self.ensure_one()
-        return self._close_contract(date_closed=date_closed)
-
     def close_contracts(self):
+        """ Try to close multiple contracts
+        """
         for contract in self:
             contract.close_contract()
         return True
@@ -237,13 +212,13 @@ class GenericContract(models.Model):
     def confirm_contract(self):
         self.ensure_one()
         if self.state == 'draft':
-            if to_dt(self.date_start) <= to_dt(fields.Date.today()):
+            if fields.Date.to_date(self.date_begin) <= fields.Date.today():
                 self.state = 'active'
                 self.trigger_event('contract-confirmed')
                 self.trigger_event('contract-activated')
             else:
-                self.trigger_event('contract-confirmed')
                 self.state = 'pending'
+                self.trigger_event('contract-confirmed')
             return True
         return False
 
@@ -286,7 +261,7 @@ class GenericContract(models.Model):
     def scheduler_activate_contracts(self):
         return self.search([
             ('state', '=', 'pending'),
-            ('date_start', '<=', fields.Date.today()),
+            ('date_begin', '<=', fields.Date.today()),
         ]).activate_contract()
 
     @api.model

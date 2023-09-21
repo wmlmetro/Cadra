@@ -2,7 +2,8 @@
 <odoo>
     <record id="test_rct_api_internal_endpoint_create_vm" model="request.creation.template">
         <field name="name">API: test Create VM API</field>
-        <field name="request_type_id" ref="generic_request_field.request_type_field"/>
+        <field name="request_classifier_id"
+               ref="generic_request_field.classifier_request_type_field_no_service_no_category"/>
         <field name="request_text">create virtual machine</field>
     </record>
 

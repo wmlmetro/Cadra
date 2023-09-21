@@ -7,7 +7,7 @@
 
     'author': "Center of Research and Development",
     'website': "https://crnd.pro",
-    'version': '15.0.1.6.0',
+    'version': '15.0.1.9.1',
     'category': 'Service Desk',
 
     # any module necessary for this one to work correctly
@@ -17,9 +17,7 @@
         'generic_request_team',
         'generic_rule',
         'generic_request_sla',
-        'generic_request_sla_service',
         'generic_request_sla_log',
-        'generic_request_sla_priority',
         'generic_request_crm',
         'generic_request_invoicing',
         'generic_request_project',
@@ -53,6 +51,5 @@
 
     'price': 1.0,
     'currency': 'EUR',
-    "live_test_url": "https://yodoo.systems/saas/"
-                     "template/bureaucrat-servicedesk-pro-14-0-demo-256",
+    "live_test_url": "https://yodoo.systems/saas/templates",
 }

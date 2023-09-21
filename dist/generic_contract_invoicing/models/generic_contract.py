@@ -159,17 +159,17 @@ class GenericContract(models.Model):
                 raise exceptions.ValidationError(_(
                     "Recurring Period (Repeat Every) must be greater then 0"))
 
-    @api.constrains('date_start', 'recurring_next_date', 'recurring_invoices')
+    @api.constrains('date_begin', 'recurring_next_date', 'recurring_invoices')
     def _check_recurring_dates(self):
         for rec in self:
             if not rec.recurring_invoices:
                 continue
             if not rec.recurring_next_date:
                 continue
-            if not rec.date_start:
+            if not rec.date_begin:
                 continue
 
-            if rec.date_start > rec.recurring_next_date:
+            if rec.date_begin > rec.recurring_next_date:
                 raise exceptions.ValidationError(
                     _("Next Invoicing Date of the contract '[%s]' can`t be"
                       " less than Date Start! Check it, please.") % rec.name)
@@ -209,14 +209,14 @@ class GenericContract(models.Model):
                 self.journal_id.currency_id,
                 self.env.user.company_id.currency_id])
 
-    @api.onchange('date_start')
-    def _onchange_date_start(self):
+    @api.onchange('date_begin')
+    def _onchange_date_begin(self):
         for record in self:
-            if record.date_start and not record.recurring_next_date:
-                record.recurring_next_date = record.date_start
-            elif record.date_start and record.recurring_next_date:
+            if record.date_begin and not record.recurring_next_date:
+                record.recurring_next_date = record.date_begin
+            elif record.date_begin and record.recurring_next_date:
                 record.recurring_next_date = max(
-                    record.date_start, record.recurring_next_date)
+                    record.date_begin, record.recurring_next_date)
 
     def _validate_field_by_name(
             self, field_model, field_name, field_types=None):
@@ -241,14 +241,14 @@ class GenericContract(models.Model):
         return field
 
     def _validate_date_range(
-            self, date_field_model, date_field, date_start, date_end):
+            self, date_field_model, date_field, date_begin, date_end):
         """
         Checks date_field exist and returns tuple of synchronized to the same
-            type (date or datetime) date_start and date_end.
+            type (date or datetime) date_begin and date_end.
 
             :param date_field_model: string: name of model of date_field
             :param date_field: string: name of date_field
-            :param date_start: datetime.date instance
+            :param date_begin: datetime.date instance
             :param date_end: datetime.date instance
 
             :return: tuple of
@@ -258,21 +258,21 @@ class GenericContract(models.Model):
         date_field_valid = self._validate_field_by_name(
             date_field_model, date_field, ('datetime', 'date'))
         if date_field_valid.ttype == 'datetime':
-            date_start = datetime.combine(date_start, datetime.min.time())
+            date_begin = datetime.combine(date_begin, datetime.min.time())
             date_end = datetime.combine(date_end, datetime.max.time())
-        return date_start, date_end
+        return date_begin, date_end
 
     def _get_data_for_period(
-            self, model, date_field, date_start, date_end, domain=None,
+            self, model, date_field, date_begin, date_end, domain=None,
             contract_field='contract_id'):
         """
             Returns recordset of 'model' restricted of
-                date_start and date_end dates range by date_field of 'model'
+                date_begin and date_end dates range by date_field of 'model'
                 and restricted by domain.
 
             :param model: string: name of model where searched
             :param date_field: string: name of date field of 'model'
-            :param date_start: datetime.date instance
+            :param date_begin: datetime.date instance
             :param date_end: datetime.date instance
             :param domain: list, domain to be added to base domain
             :param contract_field: name of field that points to contract.
@@ -280,11 +280,11 @@ class GenericContract(models.Model):
 
             :return: recordset of model with records that have to be invoiced
         """
-        range_date_start, range_date_end = self._validate_date_range(
-            model, date_field, date_start, date_end)
+        range_date_begin, range_date_end = self._validate_date_range(
+            model, date_field, date_begin, date_end)
         res_domain = [
             (date_field, '<', range_date_end),
-            (date_field, '>=', range_date_start),
+            (date_field, '>=', range_date_begin),
             (contract_field, '=', self.id),
         ]
         if domain is not None:
@@ -312,11 +312,11 @@ class GenericContract(models.Model):
         else:
             delta = relativedelta()
 
-        date_start = date_end - delta
-        if date_start < self.date_start:
-            date_start = self.date_start
+        date_begin = date_end - delta
+        if date_begin < self.date_begin:
+            date_begin = self.date_begin
 
-        return date_start, date_end
+        return date_begin, date_end
 
     def _validate_employee(self, employee):
         """
@@ -380,13 +380,13 @@ class GenericContract(models.Model):
         self.ensure_one()
         ContractInvoiceLine = self.env['generic.contract.invoice.line']
 
-        date_start, date_end = self._calc_period_dates(
+        date_begin, date_end = self._calc_period_dates(
             self.recurring_next_date)
         template_ctx = {
             'contract': self,
             'invoice': invoice,
             'invoice_date': self.recurring_next_invoice_date,
-            'period_date_start': date_start,
+            'period_date_start': date_begin,
             'period_date_end': date_end,
         }
         processor = StackProcessor(
@@ -429,7 +429,7 @@ class GenericContract(models.Model):
             'journal_id': self.journal_id.id,
             'invoice_date': self.recurring_next_invoice_date,
             'invoice_origin': self.name,
-            'company_id': self.env.user.company_id.id,
+            'company_id': self.company_id.id,
             'generic_contract_id': self.id,
             'invoice_user_id': self.user_id.id,
             'invoice_payment_term_id': self.payment_term_id.id,
@@ -529,6 +529,23 @@ class GenericContract(models.Model):
 
     def action_generic_contract_account_invoice(self):
         self.ensure_one()
-        return self.env['generic.mixin.get.action'].get_action_by_xmlid(
-            'generic_contract_invoicing.action_generic_contract_invoices',
-            domain=[('generic_contract_id', '=', self.id)])
+        if self.partner_type == 'customer':
+            return self.env['generic.mixin.get.action'].get_action_by_xmlid(
+                'account.action_move_out_invoice_type',
+                domain=[('generic_contract_id', '=', self.id)],
+                context={
+                    'default_generic_contract_id': self.id,
+                    'default_type': 'out_invoice',
+                })
+        if self.partner_type == 'supplier':
+            return self.env['generic.mixin.get.action'].get_action_by_xmlid(
+                'account.action_move_in_invoice_type',
+                domain=[('generic_contract_id', '=', self.id)],
+                context={
+                    'default_generic_contract_id': self.id,
+                    'default_type': 'in_invoice',
+                })
+        raise exceptions.UserError(_(
+            "Unsupported partner type '%(partner_type)s'") % {
+                'partner_type': self.partner_type,
+            })

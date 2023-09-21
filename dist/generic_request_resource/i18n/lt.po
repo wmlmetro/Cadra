@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:05+0000\n"
-"PO-Revision-Date: 2021-06-22 16:05+0000\n"
+"POT-Creation-Date: 2023-07-26 11:13+0000\n"
+"PO-Revision-Date: 2023-07-26 11:13+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -27,6 +27,8 @@ msgid "<span class=\"oe_form_field oe_inline\">/</span>"
 msgstr ""
 
 #. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_equipment__resource_request_count
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_equipment_simple__resource_request_count
 #: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource__resource_request_count
 #: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource_simple__resource_request_count
 msgid "All Requests"
@@ -34,10 +36,12 @@ msgstr ""
 
 #. module: generic_request_resource
 #: model:ir.model,name:generic_request_resource.model_generic_resource
+#: model_terms:ir.ui.view,arch_db:generic_request_resource.inherited_view_request_request_search_inherit_request_resource
 msgid "Generic Resource"
 msgstr ""
 
 #. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_report__request_resource_id
 #: model:ir.model.fields,field_description:generic_request_resource.field_request_request__resource_id
 msgid "Generic resource"
 msgstr ""
@@ -65,6 +69,8 @@ msgid "Old Resource"
 msgstr ""
 
 #. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_equipment__resource_request_open_count
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_equipment_simple__resource_request_open_count
 #: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource__resource_request_open_count
 #: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource_simple__resource_request_open_count
 msgid "Open requests"
@@ -81,23 +87,38 @@ msgid "Request Event"
 msgstr ""
 
 #. module: generic_request_resource
-#: model:ir.model,name:generic_request_resource.model_request_type
-msgid "Request Type"
+#: model:ir.model,name:generic_request_resource.model_request_report
+msgid "Request Report"
 msgstr ""
 
 #. module: generic_request_resource
-#: code:addons/generic_request_resource/models/generic_resource.py:0
+#: model_terms:ir.ui.view,arch_db:generic_request_resource.view_request_report_search
+msgid "Request Resource"
+msgstr ""
+
+#. module: generic_request_resource
+#: model_terms:ir.ui.view,arch_db:generic_request_resource.view_request_report_search
+msgid "Request Resource Type"
+msgstr ""
+
+#. module: generic_request_resource
+#: model:ir.model,name:generic_request_resource.model_request_type
+msgid "Request Type"
+msgstr "Užklausos tipas"
+
+#. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_equipment__resource_request_ids
+#: model:ir.model.fields,field_description:generic_request_resource.field_generic_equipment_simple__resource_request_ids
 #: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource__resource_request_ids
 #: model:ir.model.fields,field_description:generic_request_resource.field_generic_resource_simple__resource_request_ids
-#, python-format
 msgid "Requests"
-msgstr ""
+msgstr "Užklausos"
 
 #. module: generic_request_resource
 #: model:ir.model.fields,field_description:generic_request_resource.field_request_request__resource_res_id
 #: model_terms:ir.ui.view,arch_db:generic_request_resource.inherited_view_request_type_form_inherit_request_resource
 msgid "Resource"
-msgstr ""
+msgstr "Išteklius"
 
 #. module: generic_request_resource
 #: model:generic.system.event.type,name:generic_request_resource.request_event_type_resource_changed
@@ -116,6 +137,7 @@ msgid "Resource model"
 msgstr ""
 
 #. module: generic_request_resource
+#: model:ir.model.fields,field_description:generic_request_resource.field_request_report__request_resource_type_id
 #: model:ir.model.fields,field_description:generic_request_resource.field_request_request__resource_type_id
 msgid "Resource type"
 msgstr ""

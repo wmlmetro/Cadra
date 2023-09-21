@@ -40,6 +40,12 @@ class RequestSlaControl(models.Model):
     request_category_id = fields.Many2one(
         'request.category', readonly=True,
         related='request_id.category_id', store=True)
+    request_service_id = fields.Many2one(
+        'generic.service', readonly=True,
+        related='request_id.service_id', store=True)
+    request_service_level_id = fields.Many2one(
+        'generic.service.level', readonly=True,
+        related='request_id.service_level_id', store=True)
     sla_active = fields.Boolean(
         index=True, readonly=True, default=False)
     sla_active_date = fields.Datetime(

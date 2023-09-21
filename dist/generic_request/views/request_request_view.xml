@@ -32,6 +32,12 @@
                             <field string="Subrequests" name="child_count"
                                    widget="statinfo"/>
                         </button>
+                        <button name="action_request_request_diagram"
+                                type="object"
+                                string="View Flow"
+                                class="oe_stat_button"
+                                icon="fa-code-fork">
+                        </button>
                     </div>
                     <div name="title" class="oe_title request_title">
                         <div style=" display: flex; align-items: center;">
@@ -92,13 +98,20 @@
                                  class="request-head-info-item"
                                  groups="generic_request.group_request_use_services">
                                 <span class="field-with-icon">
-                                    <span title="Service"
-                                          class="field-icon fa fa-square-o oe_inline"/>
+                                    <span class="field-icon fa fa-square-o oe_inline"
+                                          title="Service"/>
+                                    <div groups="generic_request.group_request_use_service_groups"
+                                         attrs="{'invisible': [('service_id_group', '=', False)]}">
+                                        <field name="service_id_group"
+                                               readonly="1"
+                                               class="oe_inline w_auto"
+                                               groups="generic_request.group_request_use_service_groups"/>
+                                        <span class="mr4 ml4">/</span>
+                                    </div>
                                     <field name="service_id" placeholder="Service..."
                                            attrs="{'readonly': [('id', '!=', False), ('can_change_service', '=', False)]}"
-                                           options="{'no_create': true, 'no_quick_create': true}"
-                                           context="{'request_service_id_domain': service_id_domain}"
-                                           class="oe_inline"/>
+                                           options="{'no_create': true, 'no_quick_create': true, 'domain_field': 'service_id_domain'}"
+                                           class="oe_inline w_auto"/>
                                 </span>
                             </div>
                             <div colspan="2" name="header_category" class="request-head-info-item">
@@ -106,10 +119,11 @@
                                     <span class="field-icon fa fa-bars oe_inline"
                                         title="Category"
                                         aria-label="Category"/>
+                                    <field name="category_id_domain" invisible="1"/>
                                     <field name="category_id" placeholder="Category..."
                                         domain="['|', (is_new_request, '=', 1), ('request_type_ids', '=', type_id)]"
                                         attrs="{'readonly': [('id', '!=', False), ('can_change_category', '=', False)]}"
-                                        options="{'no_create': true, 'no_quick_create': true}"
+                                        options="{'no_create': true, 'no_quick_create': true, 'domain_field': 'category_id_domain'}"
                                         class="oe_inline"/>
                                 </span>
                             </div>
@@ -118,14 +132,17 @@
                                     <span class="field-icon fa fa-hashtag oe_inline"
                                         title="Type"
                                         aria-label="Type"/>
+                                    <field name="type_id_domain" invisible="1"/>
                                     <field name="type_id" placeholder="Type..."
                                         domain="[('start_stage_id', '!=', False), ('category_ids', '=', category_id)]"
                                         attrs="{'readonly': [('id', '!=', False)]}"
-                                        options="{'no_create': true, 'no_quick_create': true}"
+                                        options="{'no_create': true, 'no_quick_create': true, 'domain_field': 'type_id_domain'}"
                                         class="oe_inline"/>
                                 </span>
                             </div>
-                            <div colspan="2" name="header_kind" class="request-head-info-item">
+                            <div colspan="2" name="header_kind"
+                                 class="request-head-info-item"
+                                 groups="generic_request.group_request_use_kind">
                                 <span class="field-with-icon" attrs="{'invisible': [('kind_id', '=', False)]}">
                                     <span class="field-icon fa fa-square oe_inline"
                                         title="Kind"
@@ -174,6 +191,7 @@
                             </div>
                             <div colspan="2" name="header_deadline" class="request-head-info-item">
                                 <field name="deadline_state" invisible="1"/>
+                                <field name="deadline_format" invisible="1"/>
                                 <span class="field-with-icon">
                                     <span class="field-icon fa fa-clock-o text-success oe_inline"
                                           title="Deadline"
@@ -188,7 +206,12 @@
                                           title="Deadline"
                                           attrs="{'invisible': [('deadline_state', '!=', False)]}"/>
                                     <field name="deadline_date"
-                                           attrs="{'readonly': [('can_change_deadline', '=', False)]}"
+                                           attrs="{'readonly': [('can_change_deadline', '=', False)],
+                                           'invisible': [('deadline_format', '=', 'datetime')]}"
+                                           class="oe_inline"/>
+                                    <field name="deadline_date_dt"
+                                           attrs="{'readonly': [('can_change_deadline', '=', False)],
+                                           'invisible': [('deadline_format', '=', 'date')]}"
                                            class="oe_inline"/>
                                 </span>
                             </div>
@@ -290,19 +313,38 @@
                                    readonly="1"
                                    widget="request_html"
                                    attrs="{'invisible': [('response_text', '=', False)]}"/>
+                            <div class="request-separator request-separator-request-response"
+                                 name="request_response_separator"
+                                 attrs="{'invisible': [('response_attachment_ids', '=', [])]}">
+                                <span class="request-separator-text">Response attachments</span>
+                            </div>
+                            <field name="response_attachment_ids"
+                                   widget="many2many_binary"
+                                   readonly="1"/>
                         </page>
                         <page name="page_internal_note" string="Internal notes">
+                            <div class="alert alert-info" role="status" colspan="2">
+                                <p>
+                                    This is the place to keep internal notes on request,
+                                    to avoid need to search for info in long discussions in chatter.
+                                </p>
+                                <p>
+                                    The content of this field is visible only in internal interface.
+                                </p>
+                            </div>
                             <field name="internal_note_text"/>
                         </page>
                         <page string="Time log" name ="page_timelog" attrs="{'invisible': [('use_timesheet', '=', False)]}">
                             <field name="timesheet_line_ids">
                                 <tree editable="bottom">
+                                    <field name="is_description_required" invisible="1" readonly="1"/>
                                     <field name="date_start" invisible="1" readonly="1"/>
                                     <field name="date_end" invisible="1" readonly="1"/>
                                     <field name="activity_id" required="1"/>
                                     <field name="date"/>
                                     <field name="user_id"/>
-                                    <field name="description"/>
+                                    <field name="description"
+                                           attrs="{'required': [('is_description_required', '=', True)]}"/>
                                     <field name="amount"
                                            required="1"
                                            widget="float_time"
@@ -519,6 +561,9 @@
                 <field name="service_id"
                        optional="show"
                        groups="generic_request.group_request_use_services"/>
+                <field name="service_id_group"
+                       optional="show"
+                       groups="generic_request.group_request_use_service_groups"/>
                 <field name="type_id"
                        optional="show"/>
                 <field name="category_id"
@@ -593,7 +638,8 @@
                        groups="generic_request.group_request_use_services"/>
                 <field name="type_id"/>
                 <field name="type_color"/>
-                <field name="kind_id"/>
+                <field name="kind_id"
+                       groups="generic_request.group_request_use_kind"/>
                 <field name="category_id"/>
                 <field name="created_by_id"/>
                 <field name="user_id"/>
@@ -715,6 +761,12 @@
                                         <div groups="generic_request.group_request_use_services">
                                             <span class="text-muted" title="Service">
                                                 <span class="fa fa-square-o mr4"/>
+                                                <t groups="generic_request.group_request_use_service_groups">
+                                                    <t t-if="record.service_id_group.raw_value">
+                                                        <field name="service_id_group"/>
+                                                        <a>/</a>
+                                                    </t>
+                                                </t>
                                                 <t t-if="record.service_id.raw_value">
                                                     <field name="service_id"/>
                                                 </t>
@@ -740,7 +792,7 @@
                                                 <field name="type_id"/>
                                             </span>
                                         </div>
-                                        <div>
+                                        <div groups="generic_request.group_request_use_kind">
                                             <span class="" title="Kind" name="kanban_request_kind">
                                                 <span class="fa fa-square mr4"/>
                                                 <t t-if="record.kind_id.raw_value">
@@ -841,10 +893,12 @@
                 <field name="name"/>
                 <field name="service_id"
                        groups="generic_request.group_request_use_services"/>
+                <field name="service_id_group"
+                       groups="generic_request.group_request_use_service_groups"/>
                 <field name="service_level_id" groups="generic_service.group_use_service_level"/>
                 <field name="type_id"/>
                 <field name="parent_id"/>
-                <field name="kind_id"/>
+                <field name="kind_id" groups="generic_request.group_request_use_kind"/>
                 <field name="category_id"/>
                 <field name="stage_type_id"/>
                 <field name="partner_id"/>
@@ -924,6 +978,15 @@
                 <filter string="Has Subrequests"
                         name="has_subrequest"
                         domain="[('child_ids', '!=', False)]"/>
+                <separator/>
+                <filter string="Has Service Group"
+                        name="has_service_group"
+                        domain="[('service_id_group', '!=', False)]"
+                        groups="generic_request.group_request_use_service_groups"/>
+                <filter string="Not Service Group"
+                        name="not_service_group"
+                        domain="[('service_id_group', '=', False)]"
+                        groups="generic_request.group_request_use_service_groups"/>
 
                 <group name="group_group_by" expand="0" string="Group by...">
                     <filter name="filter_group_by_creation_date"
@@ -931,7 +994,8 @@
                     <filter name="filter_group_by_type"
                             string="Type" context="{'group_by': 'type_id'}"/>
                     <filter name="filter_group_by_kind"
-                            string="Kind" context="{'group_by': 'kind_id'}"/>
+                            string="Kind" context="{'group_by': 'kind_id'}"
+                            groups="generic_request.group_request_use_kind"/>
                     <filter name="filter_group_by_category"
                             string="Category" context="{'group_by': 'category_id'}"/>
                     <filter name="filter_group_by_stage"
@@ -966,6 +1030,10 @@
                             string="Service"
                             context="{'group_by': 'service_id'}"
                             groups="generic_request.group_request_use_services"/>
+                    <filter name="filter_group_by_service_group"
+                            string="Service Group"
+                            context="{'group_by': 'service_id_group'}"
+                            groups="generic_request.group_request_use_service_groups"/>
                     <filter name="filter_group_by_service_level"
                             string="Service Level"
                             context="{'group_by': 'service_level_id'}"
@@ -988,7 +1056,8 @@
         <field name="arch" type="xml">
             <pivot>
                 <field name="stage_type_id" type="col"/>
-                <field name="kind_id" type="row"/>
+                <field name="kind_id" type="row"
+                       groups="generic_request.group_request_use_kind"/>
                 <field name="type_id" type="row"/>
             </pivot>
         </field>
@@ -1025,6 +1094,26 @@
                     <field name="channel_id" string="Channel"/>
                 </searchpanel>
             </xpath>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_request_request_diagram">
+        <field name="model">request.request</field>
+        <field name="type">diagram_plus</field>
+        <field name="arch" type="xml">
+            <diagram_plus auto_layout="false">
+                <node object="request.stage"
+                      bgcolor="gray:closed"
+                      bg_color_field="res_bg_color"
+                      fg_color_field="res_label_color"
+                      d_position_field="diagram_position">
+                </node>
+                <arrow object="request.stage.route"
+                       source="stage_from_id"
+                       destination="stage_to_id"
+                       label="['name']">
+                </arrow>
+            </diagram_plus>
         </field>
     </record>
 

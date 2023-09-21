@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 1.11.0
+
+Merge the `generic_request_condition_service` module into the `generic_request_condition` module
+
+
 ## Version 1.7.0
 
 Added alongside with functionality of ***bureaucrat_helpdesk_lite***:

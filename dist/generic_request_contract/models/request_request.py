@@ -157,25 +157,24 @@ class RequestRequest(models.Model):
                 return service_line.service_level_id
         return self.env['generic.service.level'].browse()
 
-    def _get_service_id_domain(self):
+    @api.depends('contract_id')
+    def _compute_service_category_type_domains(self):
         # Required to modify domain for service field in request
-        domain = super(RequestRequest, self)._get_service_id_domain()
+        res = super(
+            RequestRequest, self)._compute_service_category_type_domains()
+        return res
 
+    def _get_service_id_domain(self):
+        service_domain = super(RequestRequest, self)._get_service_id_domain()
         if self.contract_id:
             allowed_services = (
                 self.contract_id.contracts_service_ids
             )
-            domain = expression.AND([
-                domain,
+            service_domain = expression.AND([
+                service_domain,
                 [('id', 'in', allowed_services.ids)],
             ])
-
-        return domain
-
-    @api.depends('contract_id')
-    def _compute_service_id_domain(self):
-        # Required to modify domain for service field in request
-        return super(RequestRequest, self)._compute_service_id_domain()
+        return service_domain
 
     @api.onchange('service_id', 'is_new_request', 'contract_id', 'type_id')
     def _onchange_contract_id_restrict_service(self):

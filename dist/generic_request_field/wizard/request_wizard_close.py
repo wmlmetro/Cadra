@@ -68,8 +68,10 @@ class RequestWizardClose(models.TransientModel):
             values += fields_bottom.to_values_wizard()
             record.value_ids = values
 
-    @api.onchange('request_id', 'new_request_type_id',
+    @api.onchange('request_id',
+                  'new_request_type_id',
                   'new_request_category_id',
+                  'new_request_service_id',
                   'wizard_fields_json_top', 'wizard_fields_json_bottom')
     def _onchange_wizard_fields(self):
         for record in self:

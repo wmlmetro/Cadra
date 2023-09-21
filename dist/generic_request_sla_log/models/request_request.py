@@ -24,7 +24,7 @@ class RequestRequest(models.Model):
             'stage_type_id': self.stage_id.type_id.id,
             'assignee_id': self.user_id.id,
             'user_id': self.env.user.id,
-            'calendar_id': self.type_id.sla_calendar_id.id,
+            'calendar_id': self.sudo().type_id.sla_calendar_id.id,
             'kanban_state': self.kanban_state
         }
         return vals

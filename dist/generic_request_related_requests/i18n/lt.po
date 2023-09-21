@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:07+0000\n"
-"PO-Revision-Date: 2021-06-22 16:07+0000\n"
+"POT-Creation-Date: 2023-07-26 11:10+0000\n"
+"PO-Revision-Date: 2023-07-26 11:10+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -24,22 +24,22 @@ msgstr ""
 #. module: generic_request_related_requests
 #: model_terms:ir.ui.view,arch_db:generic_request_related_requests.request_wizard_manage_related_requests_form_view
 msgid "Cancel"
-msgstr ""
+msgstr "Atšaukti"
 
 #. module: generic_request_related_requests
 #: model:ir.model.fields,field_description:generic_request_related_requests.field_request_wizard_manage_related_requests__create_uid
 msgid "Created by"
-msgstr ""
+msgstr "Sukūrė"
 
 #. module: generic_request_related_requests
 #: model:ir.model.fields,field_description:generic_request_related_requests.field_request_wizard_manage_related_requests__create_date
 msgid "Created on"
-msgstr ""
+msgstr "Sukurta"
 
 #. module: generic_request_related_requests
 #: model:ir.model.fields,field_description:generic_request_related_requests.field_request_wizard_manage_related_requests__display_name
 msgid "Display Name"
-msgstr ""
+msgstr "Rodomas pavadinimas"
 
 #. module: generic_request_related_requests
 #: model:ir.model.fields,field_description:generic_request_related_requests.field_request_wizard_manage_related_requests__id
@@ -49,17 +49,17 @@ msgstr ""
 #. module: generic_request_related_requests
 #: model:ir.model.fields,field_description:generic_request_related_requests.field_request_wizard_manage_related_requests____last_update
 msgid "Last Modified on"
-msgstr ""
+msgstr "Paskutinį kartą keista"
 
 #. module: generic_request_related_requests
 #: model:ir.model.fields,field_description:generic_request_related_requests.field_request_wizard_manage_related_requests__write_uid
 msgid "Last Updated by"
-msgstr ""
+msgstr "Paskutinį kartą atnaujino"
 
 #. module: generic_request_related_requests
 #: model:ir.model.fields,field_description:generic_request_related_requests.field_request_wizard_manage_related_requests__write_date
 msgid "Last Updated on"
-msgstr ""
+msgstr "Paskutinį kartą atnaujinta"
 
 #. module: generic_request_related_requests
 #: model:ir.actions.act_window,name:generic_request_related_requests.request_wizard_manage_related_requests_action
@@ -84,7 +84,7 @@ msgstr ""
 #. module: generic_request_related_requests
 #: model:ir.model.fields,field_description:generic_request_related_requests.field_request_request__related_request_count
 msgid "Related Request Count"
-msgstr ""
+msgstr "Susijusių užklausų kiekis"
 
 #. module: generic_request_related_requests
 #: model:ir.model.fields,field_description:generic_request_related_requests.field_request_request__related_request_total_count
@@ -106,7 +106,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_related_requests.field_request_wizard_manage_related_requests__related_request_ids
 #: model_terms:ir.ui.view,arch_db:generic_request_related_requests.request_wizard_manage_related_requests_form_view
 msgid "Related requests"
-msgstr ""
+msgstr "Susijusios užklausos"
 
 #. module: generic_request_related_requests
 #: model:ir.model.fields,field_description:generic_request_related_requests.field_request_request__related_reverse_request_ids
@@ -122,7 +122,7 @@ msgstr ""
 #: model:ir.model,name:generic_request_related_requests.model_request_request
 #: model:ir.model.fields,field_description:generic_request_related_requests.field_request_wizard_manage_related_requests__request_id
 msgid "Request"
-msgstr ""
+msgstr "Užklausa"
 
 #. module: generic_request_related_requests
 #: model:ir.model,name:generic_request_related_requests.model_request_wizard_close

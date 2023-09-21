@@ -1,13 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Make default service website published -->
-    <record id="generic_service.generic_service_default" model="generic.service">
-        <field name="website_published" eval="True"/>
-        <field name="category_ids" eval="[(4, ref('crnd_wsd.request_category_demo_website_support')),(4, ref('crnd_wsd.request_category_demo_website_tech'))]"/>
+    <!-- Link request types to default service -->
+    <!--Add request.classifier-->
+    <record id="classifier_request_type_incident_service_default" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_default"/>
+        <field name="type_id" ref="crnd_service_desk.request_type_incident"/>
     </record>
 
-    <!-- Link request types to default service -->
-    <record id="crnd_service_desk.request_type_incident" model="request.type">
-        <field name="service_ids" eval="[(4, ref('generic_service.generic_service_default'))]"/>
+    <!--Classifiers for "test_tour_request_new_service"-->
+    <record id="classifier_request_type_incident_demo_website_support_default" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_default"/>
+        <field name="category_id" ref="crnd_wsd.request_category_demo_website_support"/>
+        <field name="type_id" ref="crnd_service_desk.request_type_incident"/>
+        <field name="website_published" eval="True"/>
+    </record>
+    <record id="classifier_request_type_incident_demo_website_support_rent_notebook" model="request.classifier">
+        <field name="service_id" ref="generic_service.generic_service_rent_notebook"/>
+        <field name="category_id" ref="crnd_wsd.request_category_demo_website_support"/>
+        <field name="type_id" ref="crnd_service_desk.request_type_incident"/>
+        <field name="website_published" eval="True"/>
     </record>
 </odoo>

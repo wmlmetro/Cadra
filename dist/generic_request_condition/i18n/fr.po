@@ -59,6 +59,11 @@ msgid "Can change request text"
 msgstr ""
 
 #. module: generic_request_condition
+#: model:ir.model.fields,field_description:generic_request_condition.field_request_type__change_service_condition_ids
+msgid "Can change service"
+msgstr ""
+
+#. module: generic_request_condition
 #: model:generic.condition,name:generic_request_condition.condition_request_category_is_not_set
 msgid "Category is not set"
 msgstr ""

@@ -227,6 +227,14 @@ msgstr ""
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
 msgid ""
+"<span class=\"wsd_request header-bg-filler\">Attachments</span>\n"
+"                                    <span class=\"header-separator-splitter"
+"\"/>"
+msgstr ""
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+msgid ""
 "<span class=\"wsd_request header-bg-filler\">Response</span>\n"
 "                                    <span class=\"header-separator-splitter"
 "\"/>"
@@ -285,6 +293,11 @@ msgstr "Все"
 #. module: crnd_wsd
 #: model:ir.model.fields.selection,name:crnd_wsd.selection__res_company__request_wsd_public_ui_visibility__create-request
 msgid "Allow to create request"
+msgstr ""
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
+msgid "Allow to use Service Groups for Services on Website."
 msgstr ""
 
 #. module: crnd_wsd
@@ -362,7 +375,7 @@ msgstr ""
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
 msgid ""
-"Choose if you need to use the author`s phone on the creation page of the "
+"Choose if you need to use the author's phone on the creation page of the "
 "request."
 msgstr ""
 
@@ -373,12 +386,12 @@ msgstr "Выберите принтер, к которому хотите пол
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
-msgid "Choose the layout style applied for request creation steps."
+msgid "Choose the kind of access for link provided in emails."
 msgstr ""
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
-msgid "Choose the the kind of access for link provided in emails."
+msgid "Choose the layout style applied for request creation steps."
 msgstr ""
 
 #. module: crnd_wsd
@@ -610,11 +623,6 @@ msgstr ""
 #: model:request.type,name:crnd_wsd.request_type_generic
 msgid "Generic Question"
 msgstr "Общий вопрос"
-
-#. module: crnd_wsd
-#: model:ir.model,name:crnd_wsd.model_generic_service
-msgid "Generic Service"
-msgstr ""
 
 #. module: crnd_wsd
 #: model:request.type,description:crnd_wsd.request_type_generic
@@ -893,9 +901,9 @@ msgid "Request Allowed Upload File Types"
 msgstr ""
 
 #. module: crnd_wsd
-#: model:ir.model,name:crnd_wsd.model_request_category
-msgid "Request Category"
-msgstr "Категория запроса"
+#: model:ir.model,name:crnd_wsd.model_request_classifier
+msgid "Request Classifier"
+msgstr ""
 
 #. module: crnd_wsd
 #: model:ir.model.fields,field_description:crnd_wsd.field_res_config_settings__request_create_step_layout
@@ -1044,6 +1052,11 @@ msgid "Select service"
 msgstr ""
 
 #. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_select_service_group
+msgid "Select service group"
+msgstr ""
+
+#. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_select_type
 msgid "Select type"
 msgstr "Выберите тип"
@@ -1051,13 +1064,7 @@ msgstr "Выберите тип"
 #. module: crnd_wsd
 #: code:addons/crnd_wsd/controllers/main.py:0
 #, python-format
-msgid "Selected request type require service!"
-msgstr ""
-
-#. module: crnd_wsd
-#: code:addons/crnd_wsd/controllers/main.py:0
-#, python-format
-msgid "Selected service and request type are incompatible!"
+msgid "Selected service, category and request type are incompatible!"
 msgstr ""
 
 #. module: crnd_wsd
@@ -1074,7 +1081,6 @@ msgstr ""
 #: model:request.stage.route,name:crnd_wsd.request_stage_route_type_bug_report_draft_to_sent
 #: model:request.stage.route,name:crnd_wsd.request_stage_route_type_generic_draft_to_sent
 #: model:request.stage.route,name:crnd_wsd.request_stage_route_type_without_service_draft_to_sent
-#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_progress
 msgid "Send"
 msgstr "Отправить"
 
@@ -1120,6 +1126,19 @@ msgstr "Пользователь службы поддержки вебсайт�
 #: model:res.groups,name:crnd_wsd.group_service_desk_website_user_all_requests
 msgid "Service Desk Website user (All requests)"
 msgstr "Service Desk пользователь вебсайта (Все запросы)"
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_body
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_request_table
+msgid "Service group"
+msgstr ""
+
+#. module: crnd_wsd
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.wsd_requests_new_progress
+msgid ""
+"Service group\n"
+"                    <span/>"
+msgstr ""
 
 #. module: crnd_wsd
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_request_res_config_settings_view_form
@@ -1368,6 +1387,12 @@ msgid "Upgraded"
 msgstr "Обновлено"
 
 #. module: crnd_wsd
+#: model:ir.model.fields,field_description:crnd_wsd.field_res_config_settings__use_service_groups
+#: model:ir.model.fields,field_description:crnd_wsd.field_website__use_service_groups
+msgid "Use Service Groups"
+msgstr ""
+
+#. module: crnd_wsd
 #: model:res.groups,comment:crnd_wsd.group_service_desk_website_user_all_requests
 msgid ""
 "Users in this groups can see all requests in system, but still not have "
@@ -1387,14 +1412,10 @@ msgid "View on Website"
 msgstr "Посмотреть на вебсайте"
 
 #. module: crnd_wsd
-#: model:ir.model.fields,field_description:crnd_wsd.field_generic_service__website_published
-#: model:ir.model.fields,field_description:crnd_wsd.field_request_category__website_published
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_classifier__website_published
 #: model:ir.model.fields,field_description:crnd_wsd.field_request_stage_route__website_published
-#: model:ir.model.fields,field_description:crnd_wsd.field_request_type__website_published
-#: model_terms:ir.ui.view,arch_db:crnd_wsd.generic_service_view_search
-#: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_category_search
+#: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_classifier_search
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_stage_route_search
-#: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_type_search
 msgid "Visible in Website"
 msgstr "Видимый на сайте"
 
@@ -1405,10 +1426,8 @@ msgstr ""
 
 #. module: crnd_wsd
 #: model:ir.model,name:crnd_wsd.model_website
-#: model:ir.model.fields,field_description:crnd_wsd.field_generic_service__website_ids
-#: model:ir.model.fields,field_description:crnd_wsd.field_request_category__website_ids
+#: model:ir.model.fields,field_description:crnd_wsd.field_request_classifier__website_ids
 #: model:ir.model.fields,field_description:crnd_wsd.field_request_request__website_id
-#: model:ir.model.fields,field_description:crnd_wsd.field_request_type__website_ids
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_stage_route_form
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_type_form
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.view_request_website_request_request_search
@@ -1634,6 +1653,9 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:crnd_wsd.priority_bar
 msgid "{{priority_inv[1]}}"
 msgstr ""
+
+#~ msgid "Request Category"
+#~ msgstr "Категория запроса"
 
 #~ msgid "Button Style"
 #~ msgstr "Стиль кнопки"

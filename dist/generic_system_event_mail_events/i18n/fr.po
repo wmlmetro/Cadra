@@ -27,9 +27,11 @@ msgid "Generic System Event"
 msgstr ""
 
 #. module: generic_system_event_mail_events
+#: model:ir.model.fields,field_description:generic_system_event_mail_events.field_generic_contract_event__mail_activity_id
 #: model:ir.model.fields,field_description:generic_system_event_mail_events.field_generic_process_event_data__mail_activity_id
 #: model:ir.model.fields,field_description:generic_system_event_mail_events.field_generic_system_event__mail_activity_id
 #: model:ir.model.fields,field_description:generic_system_event_mail_events.field_hr_event_data__mail_activity_id
+#: model:ir.model.fields,field_description:generic_system_event_mail_events.field_request_event__mail_activity_id
 msgid "Mail Activity"
 msgstr ""
 
@@ -49,9 +51,11 @@ msgid "Mail Activity Done"
 msgstr ""
 
 #. module: generic_system_event_mail_events
+#: model:ir.model.fields,field_description:generic_system_event_mail_events.field_generic_contract_event__mail_activity_type_id
 #: model:ir.model.fields,field_description:generic_system_event_mail_events.field_generic_process_event_data__mail_activity_type_id
 #: model:ir.model.fields,field_description:generic_system_event_mail_events.field_generic_system_event__mail_activity_type_id
 #: model:ir.model.fields,field_description:generic_system_event_mail_events.field_hr_event_data__mail_activity_type_id
+#: model:ir.model.fields,field_description:generic_system_event_mail_events.field_request_event__mail_activity_type_id
 msgid "Mail Activity Type"
 msgstr ""
 
@@ -66,9 +70,11 @@ msgid "Mail Events"
 msgstr ""
 
 #. module: generic_system_event_mail_events
+#: model:ir.model.fields,field_description:generic_system_event_mail_events.field_generic_contract_event__mail_message_id
 #: model:ir.model.fields,field_description:generic_system_event_mail_events.field_generic_process_event_data__mail_message_id
 #: model:ir.model.fields,field_description:generic_system_event_mail_events.field_generic_system_event__mail_message_id
 #: model:ir.model.fields,field_description:generic_system_event_mail_events.field_hr_event_data__mail_message_id
+#: model:ir.model.fields,field_description:generic_system_event_mail_events.field_request_event__mail_message_id
 msgid "Mail Message"
 msgstr ""
 

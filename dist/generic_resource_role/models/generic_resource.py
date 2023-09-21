@@ -19,7 +19,8 @@ class GenericResource(models.Model):
         'Role links (Count)', compute='_compute_resource_role_link_count',
         readonly=True, compute_sudo=False)
     resource_user_role_ids = fields.Many2many(
-        'generic.resource.role', 'User roles',
+        comodel_name='generic.resource.role',
+        string='User roles',
         compute='_compute_resource_user_roles',
         readonly=True, compute_sudo=False,
         help="Roles that have current user for this resource")
@@ -49,6 +50,7 @@ class GenericResource(models.Model):
         readonly=True, copy=False)
     resource_is_role_manager = fields.Boolean(
         compute='_compute_resource_is_role_manager',
+        string="Current user is role manager",
         readonly=True,
         help="Technical field to determine if current user is role manager. "
              "This field mostly use for UI."
@@ -180,16 +182,17 @@ class GenericResource(models.Model):
                 'resources': ", ".join([r.display_name for r in self]),
             })
 
-    @api.model
+    @api.model_create_multi
     def create(self, vals):
-        # Postprocess role links (do not create subroles during resource
+        # Post-process role links (do not create sub-roles during resource
         # creation
-        return super(
+        resources = super(
             GenericResource,
             self.with_context(__post_process_role_links__=True)).create(vals)
+        return resources
 
     def on_resource_created(self):
-        # TODO: test this method withour sudo
+        # TODO: test this method without sudo
         self.ensure_one()
         res = super(GenericResource, self).on_resource_created()
 

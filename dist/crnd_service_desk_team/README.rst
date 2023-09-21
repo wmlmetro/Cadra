@@ -1,5 +1,5 @@
-Service Desk Team
-=================
+Service Desk Team [Obsolete]
+============================
 
 .. |badge2| image:: https://img.shields.io/badge/license-OPL--1-blue.png
     :target: https://www.odoo.com/documentation/user/12.0/legal/licenses/licenses.html#odoo-apps
@@ -14,7 +14,8 @@ Service Desk Team
 
 |badge2| |badge5|
 
-This addon provides integration between the Website Service Desk and Generic Team addons. It allows you to use teams in the Website Service Desk application.
+The functionality of this module was merged into the core,
+Thus, this module could be safely removed.
 
 This module is part of the Bureaucrat ITSM project. 
 You can try it by the references below.
@@ -45,4 +46,3 @@ This module is maintained by the Center of Research & Development company.
 We can provide you further Odoo Support, Odoo implementation, Odoo customization, Odoo 3rd Party development and integration software, consulting services. Our main goal is to provide the best quality product for you. 
 
 For any questions `contact us <mailto:info@crnd.pro>`__.
-

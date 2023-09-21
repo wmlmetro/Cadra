@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Brands for Canon -->
+    <record model="generic.equipment.brand" id="generic_equipment_brand_canon_pixma">
+      <field name="name">PIXMA</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_canon"/>
+    </record>
+
+    <!-- Brands for Cisco -->
+    <record model="generic.equipment.brand" id="generic_equipment_brand_cisco_catalyst">
+      <field name="name">Catalyst</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_cisco"/>
+    </record>
+    <record model="generic.equipment.brand" id="generic_equipment_brand_cisco_asa">
+      <field name="name">ASA</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_cisco"/>
+    </record>
+
+    <!-- Brands for Dell -->
+    <record model="generic.equipment.brand" id="generic_equipment_brand_dell_xps">
+      <field name="name">XPS</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_dell"/>
+    </record>
+    <record model="generic.equipment.brand" id="generic_equipment_brand_dell_inspiron">
+      <field name="name">Inspiron</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_dell"/>
+    </record>
+
+    <!-- Brands for Epson -->
+    <record model="generic.equipment.brand" id="generic_equipment_brand_epson_ecotank">
+      <field name="name">EcoTank</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_epson"/>
+    </record>
+
+    <!-- Brands for Ford -->
+    <record model="generic.equipment.brand" id="generic_equipment_brand_ford_mustang">
+      <field name="name">Mustang</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_ford"/>
+    </record>
+
+    <!-- Brands for HP -->
+    <record model="generic.equipment.brand" id="generic_equipment_brand_hp_pavilion">
+      <field name="name">Pavilion</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_hp"/>
+    </record>
+    <record model="generic.equipment.brand" id="generic_equipment_brand_hp_elitebook">
+      <field name="name">EliteBook</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_hp"/>
+    </record>
+
+    <!-- Brands for IKEA -->
+    <record model="generic.equipment.brand" id="generic_equipment_brand_ikea_poang">
+      <field name="name">POÄNG</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_ikea"/>
+    </record>
+
+    <!-- Brands for Lenovo -->
+    <record model="generic.equipment.brand" id="generic_equipment_brand_lenovo_thinkpad">
+      <field name="name">ThinkPad</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_lenovo"/>
+    </record>
+    <record model="generic.equipment.brand" id="generic_equipment_brand_lenovo_ideapad">
+      <field name="name">IdeaPad</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_lenovo"/>
+    </record>
+
+    <!-- Brands for Apple -->
+    <record model="generic.equipment.brand" id="generic_equipment_brand_apple_macbook">
+        <field name="name">Macbook</field>
+        <field name="vendor_id" ref="generic_equipment_vendor_apple"/>
+    </record>
+    <record model="generic.equipment.brand" id="generic_equipment_brand_apple_iphone">
+        <field name="name">iPhone</field>
+        <field name="vendor_id" ref="generic_equipment_vendor_apple"/>
+    </record>
+
+    <!-- Brands for Logitech -->
+    <record model="generic.equipment.brand" id="generic_equipment_brand_logitech_mx">
+      <field name="name">MX</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_logitech"/>
+    </record>
+
+    <!-- Brands for Microsoft -->
+    <record model="generic.equipment.brand" id="generic_equipment_brand_microsoft_surface">
+      <field name="name">Surface</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_microsoft"/>
+    </record>
+
+    <!-- Brands for Steelcase -->
+    <record model="generic.equipment.brand" id="generic_equipment_brand_steelcase_leap">
+      <field name="name">Leap</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_steelcase"/>
+    </record>
+
+    <!-- Brands for TP-Link -->
+    <record model="generic.equipment.brand" id="generic_equipment_brand_tplink_archer">
+      <field name="name">Archer</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_tp_link"/>
+    </record>
+
+    <!-- Brands for Toyota -->
+    <record model="generic.equipment.brand" id="generic_equipment_brand_toyota_corolla">
+      <field name="name">Corolla</field>
+      <field name="vendor_id" ref="generic_equipment_vendor_toyota"/>
+    </record>
+</odoo>

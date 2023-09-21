@@ -268,9 +268,13 @@ class WebsiteRequest(WSDControllerMixin, http.Controller):
                 result += route
         return result
 
-    @http.route(["/requests/request/<int:req_id>"],
+    @http.route(["/requests/request/<int:req_id>",
+                 "/requests/request/n/<string:req_name>"],
                 type='http', auth="public", website=True)
-    def request(self, req_id, **kw):
+    def request(self, req_id=None, req_name=None, **kw):
+        if req_name:
+            req_id = http.request.env['request.request'].sudo().search(
+                [('name', '=', req_name)], limit=1).id
         req = self._id_to_record(
             'request.request', req_id,
             access_token=kw.get('access_token'))
@@ -282,6 +286,10 @@ class WebsiteRequest(WSDControllerMixin, http.Controller):
         disable_new_comments = (
             req.closed and req.sudo().type_id.website_comments_closed
         )
+        # Generate access tokens if needed, to ensure attachments are
+        # accessible with access tokens inside template for portal
+        if req.response_attachment_ids:
+            req.sudo().response_attachment_ids.generate_access_token()
 
         values = {
             'req': req.sudo(),
@@ -307,33 +315,62 @@ class WebsiteRequest(WSDControllerMixin, http.Controller):
                 methods=['GET'], website=True)
     @guard_access
     def request_new(self, **kwargs):
-        # Start request creation process from service
-        if http.request.env.user.has_group(
-                'generic_request.group_request_use_services'):
-            # Redirect to selection of services only when we enable usage
-            # of services in settings
-            return request.redirect(QueryURL(
-                '/requests/new/step/service', [])(**kwargs))
+        use_service_groups = http.request.website.use_service_groups
+        use_services = http.request.env.user.has_group(
+            'generic_request.group_request_use_services')
 
-        return request.redirect(QueryURL(
-            '/requests/new/step/category', [])(**kwargs))
+        if use_service_groups and use_services:
+            # Start request creation process from service group selection
+            redirect_url = '/requests/new/step/service_group'
+        elif use_services:
+            # Start request creation process from service selection
+            redirect_url = '/requests/new/step/service'
+        else:
+            # Start request creation process from category selection
+            redirect_url = '/requests/new/step/category'
+
+        return request.redirect(QueryURL(redirect_url, [])(**kwargs))
+
+    def _request_new_get_public_classifiers_base_domain(self, **post):
+        """ Compute base domain for request classifiers
+        """
+        if http.request.env.user.has_group(GROUP_USER_ADVANCED):
+            # If user has group Advanced, then, we do not limit classifiers
+            # by published state
+            domain = []
+        else:
+            # For other users we display only published classifiers
+            domain = [('website_published', '=', True)]
+
+        # Show only classifiers related to current website (
+        # or not related to website at all)
+        return expression.AND([
+            domain,
+            ['|',
+             ('website_ids', '=', False),
+             ('website_ids', 'in', http.request.website.id)]
+        ])
 
     def _request_new_get_public_categs_domain(self, category_id=None,
                                               service_id=None, **post):
-        if http.request.env.user.has_group(GROUP_USER_ADVANCED):
-            return []
-        domain = [
-            '&', ('website_published', '=', True),
-            '|', ('website_ids', '=', False),
-            ('website_ids', 'in', http.request.website.id)]
+        classifiers_domain = (
+            self._request_new_get_public_classifiers_base_domain())
+
+        # Restrict visible categories by service
         service = self._id_to_record('generic.service', service_id)
         if service:
-            return expression.AND([
-                domain,
-                [('service_ids.id', '=', service.id)]])
-        return expression.AND([
-            domain,
-            [('service_ids', '=', False)]])
+            classifiers_domain = expression.AND([
+                classifiers_domain,
+                [('service_id', '=', service.id)]])
+        else:
+            classifiers_domain = expression.AND([
+                classifiers_domain,
+                [('service_id', '=', False)]])
+
+        classifiers = request.env['request.classifier'].search(
+            classifiers_domain)
+        domain = [('id', 'in', classifiers.mapped('category_id').ids)]
+        return domain
 
     def _request_new_get_public_categs(self, category_id=None,
                                        service_id=None, **post):
@@ -346,17 +383,14 @@ class WebsiteRequest(WSDControllerMixin, http.Controller):
         return result
 
     def _request_new_get_public_services_domain(self, **post):
+        classifiers = request.env['request.classifier'].search(
+            self._request_new_get_public_classifiers_base_domain())
         return [
-            '&', ('website_published', '=', True),
-            '|', ('website_ids', '=', False),
-            ('website_ids', 'in', request.website.id),
+            ('id', 'in', classifiers.mapped('service_id').ids),
         ]
 
     def _request_new_get_public_services(self, **post):
-        if request.env.user.has_group(GROUP_USER_ADVANCED):
-            return request.env['generic.service'].search([])
         domain = self._request_new_get_public_services_domain(**post)
-
         result = request.env['generic.service'].search(domain)
         return result
 
@@ -381,6 +415,10 @@ class WebsiteRequest(WSDControllerMixin, http.Controller):
             ) or self._request_new_get_public_types(
                 service_id=r.id, **kwargs)
         )
+        service_group_id = kwargs.get('service_group_id')
+        if service_group_id:
+            public_services = public_services.filtered(
+                lambda r: r.service_group_id.id == int(service_group_id))
 
         if len(public_services) <= 1 and not http.request.session.debug:
             return request.redirect(keep(
@@ -396,6 +434,39 @@ class WebsiteRequest(WSDControllerMixin, http.Controller):
 
         return request.render(
             "crnd_wsd.wsd_requests_new_select_service",
+            values)
+
+    @http.route(["/requests/new/step/service_group"], type='http',
+                auth="public",
+                methods=['GET', 'POST'], website=True)
+    @guard_access
+    def request_new_select_service_group(self, service_group_id=None,
+                                         **kwargs):
+        service_group = self._id_to_record('generic.service.group',
+                                           service_group_id)
+        keep = QueryURL('', [], service_group_id=service_group_id, **kwargs)
+        if request.httprequest.method == 'POST':
+            return request.redirect(keep(
+                '/requests/new/step/service',
+                service_group_id=service_group.id, **kwargs))
+
+        public_services = self._request_new_get_public_services(**kwargs)
+        public_services = public_services.filtered(
+            lambda r: self._request_new_get_public_categs(
+                service_id=r.id, **kwargs
+            ) or self._request_new_get_public_types(
+                service_id=r.id, **kwargs)
+        )
+        service_groups = public_services.mapped('service_group_id')
+
+        values = {
+            'req_service_groups': service_groups,
+            'req_service_group_sel': service_group,
+            'keep': keep,
+        }
+
+        return request.render(
+            "crnd_wsd.wsd_requests_new_select_service_group",
             values)
 
     @http.route(["/requests/new/step/category"], type='http', auth="public",
@@ -437,29 +508,39 @@ class WebsiteRequest(WSDControllerMixin, http.Controller):
     def _request_new_get_public_types_domain(self, type_id=None,
                                              category_id=None,
                                              service_id=None, **kwargs):
-        domain = []
-        if not http.request.env.user.has_group(GROUP_USER_ADVANCED):
-            domain += [('website_published', '=', True)]
+        classifiers_domain = (
+            self._request_new_get_public_classifiers_base_domain())
 
-        if category_id:
-            domain += [('category_ids.id', '=', category_id)]
-        else:
-            domain += [('category_ids', '=', False)]
-
-        domain += [
-            '|', ('website_ids', '=', False),
-            ('website_ids', 'in', http.request.website.id)]
-
+        # Restrict visible categories by service
         service = self._id_to_record('generic.service', service_id)
         if service:
-            return expression.AND([
-                domain,
-                [('service_ids.id', '=', service.id)],
+            classifiers_domain = expression.AND([
+                classifiers_domain,
+                [('service_id', '=', service.id)]])
+        else:
+            classifiers_domain = expression.AND([
+                classifiers_domain,
+                [('service_id', '=', False)]])
+
+        if category_id:
+            # If we have pre-selected cateoory, then we have to show only
+            # request classifiers related to this category
+            classifiers_domain = expression.AND([
+                classifiers_domain,
+                [('category_id', '=', category_id)],
             ])
-        return expression.AND([
-            domain,
-            [('service_ids', '=', False)],
-        ])
+        else:
+            # Otherwise, we show only request classifiers that
+            # are not related to any category
+            classifiers_domain = expression.AND([
+                classifiers_domain,
+                [('category_id', '=', False)],
+            ])
+
+        classifiers = request.env['request.classifier'].search(
+            classifiers_domain)
+        domain = [('id', 'in', classifiers.mapped('type_id').ids)]
+        return domain
 
     def _request_new_get_public_types(self, type_id=None,
                                       category_id=None,
@@ -523,6 +604,12 @@ class WebsiteRequest(WSDControllerMixin, http.Controller):
                 'request_priority_list': AVAILABLE_PRIORITIES,
                 'request_impact_priority_list': AVAILABLE_IMPACTS,
                 'request_urgency_priority_list': AVAILABLE_URGENCIES,
+                'request_impact_priority': post.get(
+                    'request_impact_priority', req_type.default_impact),
+                'request_urgency_priority': post.get(
+                    'request_urgency_priority', req_type.default_urgency),
+                'request_priority': post.get(
+                    'request_priority', req_type.default_priority),
             })
         return values
 
@@ -555,15 +642,15 @@ class WebsiteRequest(WSDControllerMixin, http.Controller):
                         'error_text': _(
                             "Please, specify your phone number!")}})
         service_id = data.get('service_id', None)
-        if service_id and service_id not in req_type.service_ids.ids:
+        classifier_record = request.env['request.classifier'].get_classifiers(
+            service=service_id if service_id else False,
+            category=req_category.id if req_category else False,
+            request_type=req_type.id)
+        if not classifier_record:
             errors['service_id'] = {
                 'error_text': _(
-                    "Selected service and request type are incompatible!"),
-            }
-        elif not service_id and req_type.service_ids:
-            errors['service_id'] = {
-                'error_text': _(
-                    "Selected request type require service!"),
+                    "Selected service, category and request type are "
+                    "incompatible!"),
             }
         return errors
 
@@ -579,9 +666,12 @@ class WebsiteRequest(WSDControllerMixin, http.Controller):
         if self._is_view_active(
                 'crnd_wsd.wsd_requests_new_request_data_priority'):
             res.update({
-                'impact': post.get('request_impact_priority', False),
-                'urgency': post.get('request_urgency_priority', False),
-                'priority': post.get('request_priority', False),
+                'impact': post.get(
+                    'request_impact_priority', req_type.default_impact),
+                'urgency': post.get(
+                    'request_urgency_priority', req_type.default_urgency),
+                'priority': post.get(
+                    'request_priority', req_type.default_priority),
             })
 
         channel_website = http.request.env.ref(

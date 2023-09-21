@@ -19,6 +19,11 @@
         ]]></field>
     </record>
 
+    <!--Add request.classifier-->
+    <record id="classifier_request_type_incident" model="request.classifier" forcecreate="False">
+        <field name="type_id" ref="crnd_service_desk.request_type_incident"/>
+    </record>
+
     <!-- Incident request type stages -->
     <record id="request_stage_type_incident_draft" model="request.stage" forcecreate="False">
         <field name="sequence" eval="1"/>

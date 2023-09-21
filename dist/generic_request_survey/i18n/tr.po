@@ -9,8 +9,8 @@ msgstr ""
 "POT-Creation-Date: 2023-02-15 16:15+0000\n"
 "PO-Revision-Date: 2023-02-28 17:33+0000\n"
 "Last-Translator: Huseyin <hkpostam@gmail.com>\n"
-"Language-Team: Turkish <http://weblate.crnd.pro/projects/"
-"bureaucrat-itsm-15-0/generic_request_survey/tr/>\n"
+"Language-Team: Turkish <http://weblate.crnd.pro/projects/bureaucrat-"
+"itsm-15-0/generic_request_survey/tr/>\n"
 "Language: tr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -38,12 +38,20 @@ msgstr ""
 "<p>Merhaba,</p>\n"
 "<p>Bir anket yürütüyoruz ve yanıtınız için teşekkür ederiz.</p>\n"
 "<p><a style=\"margin-left: 85px; padding:5px 10px; border-radius: 3px; "
-"background-color:#875A7B; text-align:center; text-decoration:none; "
-"color:#F7FBFD;\" target=\"_blank\" href=\"__URL__\">Ankete başlamak için "
-"lütfen burayı tıklayın</a></p>\n"
+"background-color:#875A7B; text-align:center; text-decoration:none; color:"
+"#F7FBFD;\" target=\"_blank\" href=\"__URL__\">Ankete başlamak için lütfen "
+"burayı tıklayın</a></p>\n"
 "<p>Katılımınız için teşekkürler!</p>\n"
 "            \n"
 "        "
+
+#. module: generic_request_survey
+#: model:ir.model.fields,help:generic_request_survey.field_request_request__stage_allow_send_survey
+#: model:ir.model.fields,help:generic_request_survey.field_request_stage__allow_send_survey
+msgid ""
+"\"Send Survey\" button will be visible only when this option is enabled at "
+"the current Request stage."
+msgstr ""
 
 #. module: generic_request_survey
 #: model:survey.question,description:generic_request_survey.bug_classification
@@ -68,6 +76,12 @@ msgstr "<span title=\"Yanıtlar\" class=\"fa fa-list-alt mr4\"/>"
 #: model_terms:ir.ui.view,arch_db:generic_request_survey.request_send_survey
 msgid "Add existing contacts..."
 msgstr "Mevcut kişileri ekle..."
+
+#. module: generic_request_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_request__stage_allow_send_survey
+#: model:ir.model.fields,field_description:generic_request_survey.field_request_stage__allow_send_survey
+msgid "Allow Send Survey"
+msgstr ""
 
 #. module: generic_request_survey
 #: model:ir.model.fields,field_description:generic_request_survey.field_request_request__answer_count
@@ -330,6 +344,11 @@ msgstr "İstek"
 #: model:ir.model,name:generic_request_survey.model_request_event
 msgid "Request Event"
 msgstr "Etkinlik İste"
+
+#. module: generic_request_survey
+#: model:ir.model,name:generic_request_survey.model_request_stage
+msgid "Request Stage"
+msgstr ""
 
 #. module: generic_request_survey
 #: model:ir.model,name:generic_request_survey.model_request_type

@@ -13,7 +13,7 @@
                                domain="[(partner_type, '=', True)]"/>
                     </group>
                     <group>
-                        <field name="date_start"/>
+                        <field name="date_begin"/>
                         <field name="date_end"/>
                     </group>
                 </group>

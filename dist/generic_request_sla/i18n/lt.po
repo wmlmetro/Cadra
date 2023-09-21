@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 14.0\n"
+"Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:08+0000\n"
-"PO-Revision-Date: 2021-06-22 16:08+0000\n"
+"POT-Creation-Date: 2023-07-26 11:16+0000\n"
+"PO-Revision-Date: 2023-07-26 11:16+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: \n"
@@ -92,9 +92,49 @@ msgstr ""
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
 msgid ""
+"<i>Priority</i>: select a priority. For requests of the selected priority, "
+"the current rule line will be active. If no priority is selected, this rule "
+"applies to requests of any priority."
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid ""
 "<i>Request Categories</i>: specify request categories. For requests of these "
 "categories, time limits of the new line will be used. If no category is "
 "selected, this condition applies to requests of any category."
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid ""
+"<i>Request Channels</i>: specify request channels. For requests of these "
+"channels, time limits of the new line will be used. If no channel is "
+"selected, this condition applies to requests of any channel."
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid ""
+"<i>Service Level</i>: specify service level. This rule line will be active "
+"for customers with a selected service level. If no service level is "
+"selected, this condition applies to requests of any service level."
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid ""
+"<i>Service</i>: select a service of requests for which this rule line will "
+"be active. If no service is selected, this condition applies to requests of "
+"any service."
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
+msgid ""
+"<i>Tag</i>: select a tag. For requests with the selected tag, the current "
+"rule line will be active. If no tag is selected, this rule applies to "
+"requests of any tags."
 msgstr ""
 
 #. module: generic_request_sla
@@ -109,7 +149,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_needaction
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_needaction
 msgid "Action Needed"
-msgstr ""
+msgstr "Reikalingas veiksmas"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__active
@@ -118,7 +158,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__active
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_search
 msgid "Active"
-msgstr ""
+msgstr "Aktyvus"
 
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_type_from_request_sla_rule_form
@@ -138,7 +178,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_search
 msgid "Archived"
-msgstr ""
+msgstr "Archyvuota"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__assigned
@@ -147,7 +187,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_search
 msgid "Assigned"
-msgstr ""
+msgstr "Priskirtas"
 
 #. module: generic_request_sla
 #: model:request.sla.rule,name:generic_request_sla.request_sla_rule_assignment_time_2h
@@ -159,7 +199,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_attachment_count
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_attachment_count
 msgid "Attachment Count"
-msgstr ""
+msgstr "Prisegtukų skaičius"
 
 #. module: generic_request_sla
 #: model:request.stage,name:generic_request_sla.request_stage_type_sla_2_cancelled
@@ -186,12 +226,12 @@ msgstr ""
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__request_category_id
 msgid "Category"
-msgstr ""
+msgstr "Kategorija"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__request_category_id
 msgid "Category of request"
-msgstr ""
+msgstr "Užklausos kategorija"
 
 #. module: generic_request_sla
 #: model_terms:ir.actions.act_window,help:generic_request_sla.action_request_sla_rule_type_view
@@ -207,7 +247,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__code
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__code
 msgid "Code"
-msgstr ""
+msgstr "Kodas"
 
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_type_view_form
@@ -226,13 +266,13 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__compute_time
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__compute_time
 msgid "Compute Time"
-msgstr ""
+msgstr "Apskaičiuojamas laikas"
 
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_search
 msgid "Compute time"
-msgstr ""
+msgstr "Apskaičiuojamas laikas"
 
 #. module: generic_request_sla
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_type__sla_compute_type__conditional
@@ -242,7 +282,7 @@ msgstr ""
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__condition_ids
 msgid "Conditions"
-msgstr ""
+msgstr "Sąlygos"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__sequence
@@ -263,7 +303,7 @@ msgstr ""
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__date
 msgid "Created"
-msgstr ""
+msgstr "Sukurta"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__create_uid
@@ -272,7 +312,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__create_uid
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__create_uid
 msgid "Created by"
-msgstr ""
+msgstr "Sukūrė"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__create_date
@@ -281,34 +321,39 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__create_date
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__create_date
 msgid "Created on"
-msgstr ""
+msgstr "Sukurta"
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule_line__priority__5
+msgid "Critical"
+msgstr "Kritinis"
 
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
 msgid "Date"
-msgstr ""
+msgstr "Data"
 
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
 msgid "Deadline"
-msgstr ""
+msgstr "Terminas"
 
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.message_request_sla_failed
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.message_request_sla_warning
 msgid "Dear"
-msgstr ""
+msgstr "Gerb."
 
 #. module: generic_request_sla
 #: model:request.sla.rule.type,name:generic_request_sla.request_sla_rule_type_default
 msgid "Default"
-msgstr ""
+msgstr "Numatytasis"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__description
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__description
 msgid "Description"
-msgstr ""
+msgstr "Aprašymas"
 
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_condition_view_form
@@ -323,14 +368,14 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__display_name
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__display_name
 msgid "Display Name"
-msgstr ""
+msgstr "Rodomas pavadinimas"
 
 #. module: generic_request_sla
 #: model_terms:ir.actions.act_window,help:generic_request_sla.action_request_sla_rule_type_view
 #: model_terms:ir.actions.act_window,help:generic_request_sla.generic_request_sla_rule_action
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
 msgid "Documentation"
-msgstr ""
+msgstr "Dokumentacija"
 
 #. module: generic_request_sla
 #: model:request.stage,name:generic_request_sla.request_stage_type_sla_condition_done
@@ -354,23 +399,29 @@ msgstr ""
 
 #. module: generic_request_sla
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_event__sla_state__failed
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_report__request_sla_state__failed
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_request__sla_state__failed
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__sla_state__failed
 msgid "Failed"
-msgstr ""
+msgstr "Nepavyko"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_follower_ids
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_follower_ids
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_follower_ids
 msgid "Followers"
-msgstr ""
+msgstr "Sekėjai"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_partner_ids
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_partner_ids
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_partner_ids
 msgid "Followers (Partners)"
+msgstr "Sekėjai (partneriai)"
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule_line__priority__1
+msgid "For Information"
 msgstr ""
 
 #. module: generic_request_sla
@@ -394,14 +445,14 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_search
 msgid "Group By..."
-msgstr ""
+msgstr "Grupuoti pagal..."
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__has_message
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__has_message
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__has_message
 msgid "Has Message"
-msgstr ""
+msgstr "Turi žinutę"
 
 #. module: generic_request_sla
 #: model:generic.condition,name:generic_request_sla.condition_request_has_no_tag_on_site_fix
@@ -412,6 +463,11 @@ msgstr ""
 #: model:generic.condition,name:generic_request_sla.condition_request_has_tag_on_site_fix
 msgid "Has Tag On Site Fix"
 msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule_line__priority__4
+msgid "High"
+msgstr "Aukštas"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__id
@@ -430,7 +486,7 @@ msgstr ""
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__message_needaction
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__message_unread
 msgid "If checked, new messages require your attention."
-msgstr ""
+msgstr "Jeigu pažymėta, naujiems pranešimams reikės jūsų dėmesio."
 
 #. module: generic_request_sla
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__message_has_error
@@ -440,7 +496,7 @@ msgstr ""
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__message_has_error
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__message_has_sms_error
 msgid "If checked, some messages have a delivery error."
-msgstr ""
+msgstr "Jei pažymėta, yra žinučių, turinčių pristatymo klaidų."
 
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
@@ -481,14 +537,14 @@ msgstr ""
 #: model:request.stage,name:generic_request_sla.request_stage_type_sla_complex_in_progress
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_tree
 msgid "In Progress"
-msgstr ""
+msgstr "Vykdoma"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_is_follower
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_is_follower
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_is_follower
 msgid "Is Follower"
-msgstr ""
+msgstr "Yra sekėjas"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__kanban_state_normal
@@ -520,7 +576,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line____last_update
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type____last_update
 msgid "Last Modified on"
-msgstr ""
+msgstr "Paskutinį kartą keista"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__write_uid
@@ -529,7 +585,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__write_uid
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__write_uid
 msgid "Last Updated by"
-msgstr ""
+msgstr "Paskutinį kartą atnaujino"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__write_date
@@ -538,7 +594,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__write_date
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__write_date
 msgid "Last Updated on"
-msgstr ""
+msgstr "Paskutinį kartą atnaujinta"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__user_id
@@ -553,7 +609,7 @@ msgstr ""
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__limit_date
 msgid "Limit Date"
-msgstr ""
+msgstr "Terminas"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__limit_time
@@ -578,11 +634,16 @@ msgid "Limits"
 msgstr ""
 
 #. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule_line__priority__2
+msgid "Low"
+msgstr "Žemas"
+
+#. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_main_attachment_id
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_main_attachment_id
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_main_attachment_id
 msgid "Main Attachment"
-msgstr ""
+msgstr "Pagrindinis prisegtukas"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_type__sla_main_rule_id
@@ -591,18 +652,23 @@ msgid "Main SLA Rule"
 msgstr ""
 
 #. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule_line__priority__3
+msgid "Medium"
+msgstr "Vidutinis"
+
+#. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_has_error
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_has_error
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_has_error
 msgid "Message Delivery error"
-msgstr ""
+msgstr "Žinutės pristatymo klaida"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_ids
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_ids
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_ids
 msgid "Messages"
-msgstr ""
+msgstr "Žinutės"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__name
@@ -610,7 +676,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__name
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_tree
 msgid "Name"
-msgstr ""
+msgstr "Vardas"
 
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_condition_view_form
@@ -630,12 +696,17 @@ msgstr ""
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__assigned__no
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule__assigned__no
 msgid "No"
-msgstr ""
+msgstr "Ne"
 
 #. module: generic_request_sla
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__assigned__none
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule__assigned__none
 msgid "None"
+msgstr "Nieko"
+
+#. module: generic_request_sla
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule_line__priority__0
+msgid "Not set"
 msgstr ""
 
 #. module: generic_request_sla
@@ -643,42 +714,43 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_needaction_counter
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_needaction_counter
 msgid "Number of Actions"
-msgstr ""
+msgstr "Veiksmų skaičius"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_has_error_counter
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_has_error_counter
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_has_error_counter
 msgid "Number of errors"
-msgstr ""
+msgstr "Klaidų kiekis"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__message_needaction_counter
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__message_needaction_counter
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__message_needaction_counter
 msgid "Number of messages which requires an action"
-msgstr ""
+msgstr "Žinučių, kurioms reikia jūsų veiksmo, skaičius"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__message_has_error_counter
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__message_has_error_counter
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__message_has_error_counter
 msgid "Number of messages with delivery error"
-msgstr ""
+msgstr "Žinučių su pristatymo klaida skaičius"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__message_unread_counter
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__message_unread_counter
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__message_unread_counter
 msgid "Number of unread messages"
-msgstr ""
+msgstr "Neperskaitytų žinučių skaičius"
 
 #. module: generic_request_sla
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_event__sla_state__ok
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_report__request_sla_state__ok
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_request__sla_state__ok
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__sla_state__ok
 msgid "Ok"
-msgstr ""
+msgstr "Gerai"
 
 #. module: generic_request_sla
 #: model:generic.tag,name:generic_request_sla.tag_on_site_fix
@@ -712,6 +784,11 @@ msgid "Point the field name to see a tooltip. Or read the"
 msgstr ""
 
 #. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__priority
+msgid "Priority"
+msgstr "Svarba"
+
+#. module: generic_request_sla
 #: model:request.sla.rule.type,name:generic_request_sla.request_sla_rule_type_reaction_time
 msgid "Reaction Time"
 msgstr ""
@@ -724,7 +801,7 @@ msgstr ""
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_tree
 msgid "Ready"
-msgstr ""
+msgstr "Paruošta"
 
 #. module: generic_request_sla
 #: model:request.sla.rule.condition,name:generic_request_sla.sla_rule_condition_remoute_fix
@@ -740,7 +817,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.message_request_sla_failed
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.message_request_sla_warning
 msgid "Request"
-msgstr ""
+msgstr "Užklausa"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__category_ids
@@ -755,6 +832,11 @@ msgstr ""
 #. module: generic_request_sla
 #: model:ir.model,name:generic_request_sla.model_request_event
 msgid "Request Event"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model,name:generic_request_sla.model_request_report
+msgid "Request Report"
 msgstr ""
 
 #. module: generic_request_sla
@@ -791,7 +873,7 @@ msgstr ""
 #. module: generic_request_sla
 #: model:ir.model,name:generic_request_sla.model_request_type
 msgid "Request Type"
-msgstr ""
+msgstr "Užklausos tipas"
 
 #. module: generic_request_sla
 #: model:ir.model.constraint,message:generic_request_sla.constraint_request_sla_control_request_rule_uniq
@@ -801,6 +883,16 @@ msgstr ""
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
 msgid "Request category"
+msgstr "\tUžklausos kategorija"
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
+msgid "Request service"
+msgstr ""
+
+#. module: generic_request_sla
+#: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
+msgid "Request service level"
 msgstr ""
 
 #. module: generic_request_sla
@@ -839,7 +931,7 @@ msgstr ""
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__user_id
 msgid "Responsible User"
-msgstr ""
+msgstr "Atsakingas vartotojas"
 
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
@@ -861,7 +953,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_type_view_form
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_form
 msgid "Rules"
-msgstr ""
+msgstr "Taisyklės"
 
 #. module: generic_request_sla
 #: model:ir.ui.menu,name:generic_request_sla.menu_request_configuration_sla
@@ -869,14 +961,14 @@ msgid "SLA"
 msgstr ""
 
 #. module: generic_request_sla
-#: model:ir.actions.act_window,name:generic_request_sla.action_request_sla_control_view
-#: model:ir.ui.menu,name:generic_request_sla.menu_request_sla_control
-msgid "SLA Control"
-msgstr ""
-
-#. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_request__sla_control_ids
 msgid "SLA Controls"
+msgstr "SLA kontrolė"
+
+#. module: generic_request_sla
+#: model:ir.actions.act_window,name:generic_request_sla.action_request_sla_control_view
+#: model:ir.ui.menu,name:generic_request_sla.menu_request_sla_control
+msgid "SLA Controls Report"
 msgstr ""
 
 #. module: generic_request_sla
@@ -890,15 +982,16 @@ msgid "SLA Limit Date"
 msgstr ""
 
 #. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_report__request_sla_limit_date
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_request__sla_limit_date
 msgid "SLA Limit date"
-msgstr ""
+msgstr "SLA pabaigos terminas"
 
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_request_sla_form
 msgid "SLA Log"
-msgstr ""
+msgstr "SLA logas"
 
 #. module: generic_request_sla
 #: model:request.type,name:generic_request_sla.request_type_sla_complex
@@ -918,18 +1011,18 @@ msgstr ""
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_request_sla_form
 msgid "SLA Responsible"
-msgstr ""
+msgstr "SLA atsakingas"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_request__sla_user_id
 msgid "SLA Responsible User"
-msgstr ""
+msgstr "SLA atsakingas darbuotojas"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_rule_id
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__sla_rule_id
 msgid "SLA Rule"
-msgstr ""
+msgstr "SLA taisyklė"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_rule_code
@@ -951,7 +1044,7 @@ msgstr ""
 #: model:ir.actions.act_window,name:generic_request_sla.action_request_sla_rule_type_view
 #: model:ir.ui.menu,name:generic_request_sla.menu_request_sla_rule_type
 msgid "SLA Rule Type"
-msgstr ""
+msgstr "SLA taisyklės tipas"
 
 #. module: generic_request_sla
 #: model_terms:ir.actions.act_window,help:generic_request_sla.action_request_sla_rule_type_view
@@ -974,7 +1067,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_view_search
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_rule_view_search
 msgid "SLA Rule type"
-msgstr ""
+msgstr "SLA taisyklės tipas"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__sla_rule_ids
@@ -983,22 +1076,24 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.request_type_view_dashboard
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_type_from_request_sla_rule_form
 msgid "SLA Rules"
-msgstr ""
+msgstr "SLA taisyklės"
 
 #. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_report__request_sla_state
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_request__sla_state
 msgid "SLA State"
-msgstr ""
+msgstr "SLA būklė"
 
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_type_from_request_sla_rule_form
 msgid "SLA Warn"
-msgstr ""
+msgstr "SLA perspėjimas"
 
 #. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_report__request_sla_warn_date
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_request__sla_warn_date
 msgid "SLA Warn date"
-msgstr ""
+msgstr "SLA įspėjimo data"
 
 #. module: generic_request_sla
 #: model:generic.system.event.type,name:generic_request_sla.event_type_sla_warning
@@ -1022,7 +1117,7 @@ msgstr ""
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.view_request_type_from_request_sla_rule_form
 msgid "SLA limit"
-msgstr ""
+msgstr "SLA terminas"
 
 #. module: generic_request_sla
 #: model_terms:ir.actions.act_window,help:generic_request_sla.generic_request_sla_rule_action
@@ -1040,7 +1135,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_has_sms_error
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_has_sms_error
 msgid "SMS Delivery error"
-msgstr ""
+msgstr "SMS pristatymo klaida"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_type__send_default_notification_sla_limit
@@ -1057,7 +1152,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__sequence
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__sequence
 msgid "Sequence"
-msgstr ""
+msgstr "Seka"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__sequence
@@ -1070,9 +1165,31 @@ msgid ""
 msgstr ""
 
 #. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__request_service_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__service_id
+msgid "Service"
+msgstr "Servisas"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__request_service_level_id
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__service_level_id
+msgid "Service Level"
+msgstr "Serviso lygis"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__request_service_id
+msgid "Service of request"
+msgstr ""
+
+#. module: generic_request_sla
+#: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__request_service_level_id
+msgid "Service of request. Used to compute SLA for request."
+msgstr ""
+
+#. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_active
 msgid "Sla Active"
-msgstr ""
+msgstr "SLA Aktyvus"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_active_date
@@ -1102,18 +1219,18 @@ msgstr ""
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_log_ids
 msgid "Sla Log"
-msgstr ""
+msgstr "SLA logas"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_log_count
 msgid "Sla Log Count"
-msgstr ""
+msgstr "SLA log skaičius"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_event__sla_rule_id
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__sla_rule_id
 msgid "Sla Rule"
-msgstr ""
+msgstr "SLA taisyklė"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__sla_rule_count
@@ -1125,7 +1242,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_event__sla_state
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__sla_state
 msgid "Sla State"
-msgstr ""
+msgstr "SLA būklė"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_type__sla_warn_notification_show_request_text
@@ -1157,7 +1274,7 @@ msgstr ""
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__request_stage_ids
 msgid "Stages"
-msgstr ""
+msgstr "Etapai"
 
 #. module: generic_request_sla
 #: model:request.sla.rule,name:generic_request_sla.request_sla_rule_standart_fix_time_remoute
@@ -1167,6 +1284,11 @@ msgstr ""
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
 msgid "State"
+msgstr "Regionas"
+
+#. module: generic_request_sla
+#: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_line__tag_id
+msgid "Tag"
 msgstr ""
 
 #. module: generic_request_sla
@@ -1237,7 +1359,7 @@ msgstr ""
 #. module: generic_request_sla
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_control__request_type_id
 msgid "Type of request"
-msgstr ""
+msgstr "Užklausos tipas"
 
 #. module: generic_request_sla
 #: model:request.sla.rule.type,name:generic_request_sla.request_sla_rule_type_unassigned
@@ -1249,14 +1371,14 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_unread
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_unread
 msgid "Unread Messages"
-msgstr ""
+msgstr "Neperskaitytos žinutės"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule__message_unread_counter
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__message_unread_counter
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__message_unread_counter
 msgid "Unread Messages Counter"
-msgstr ""
+msgstr "Neperskaitytų žinučių skaičiavimas"
 
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.generic_request_sla_control_form
@@ -1267,7 +1389,7 @@ msgstr ""
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__warn_date
 msgid "Warn Date"
-msgstr ""
+msgstr "Įspėjimo data"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__warn_time
@@ -1283,10 +1405,11 @@ msgstr ""
 
 #. module: generic_request_sla
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_event__sla_state__warning
+#: model:ir.model.fields.selection,name:generic_request_sla.selection__request_report__request_sla_state__warning
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_request__sla_state__warning
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__sla_state__warning
 msgid "Warning"
-msgstr ""
+msgstr "Įspėjimas"
 
 #. module: generic_request_sla
 #: code:addons/generic_request_sla/models/request_request.py:0
@@ -1305,14 +1428,14 @@ msgstr ""
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_condition__website_message_ids
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_rule_type__website_message_ids
 msgid "Website Messages"
-msgstr ""
+msgstr "Interneto svetainės žinutės"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule__website_message_ids
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_condition__website_message_ids
 #: model:ir.model.fields,help:generic_request_sla.field_request_sla_rule_type__website_message_ids
 msgid "Website communication history"
-msgstr ""
+msgstr "Svetainės komunikacijos istorija"
 
 #. module: generic_request_sla
 #: model:ir.model.fields,field_description:generic_request_sla.field_request_sla_control__calendar_id
@@ -1322,13 +1445,13 @@ msgstr ""
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule__compute_time__calendar
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule_line__compute_time__calendar
 msgid "Working time"
-msgstr ""
+msgstr "Darbo laikas"
 
 #. module: generic_request_sla
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_control__assigned__yes
 #: model:ir.model.fields.selection,name:generic_request_sla.selection__request_sla_rule__assigned__yes
 msgid "Yes"
-msgstr ""
+msgstr "Taip"
 
 #. module: generic_request_sla
 #: model_terms:ir.ui.view,arch_db:generic_request_sla.message_request_sla_failed

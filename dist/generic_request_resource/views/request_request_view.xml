@@ -26,4 +26,18 @@
             </xpath>
         </field>
     </record>
+    <record id="inherited_view_request_request_search_inherit_request_resource" model="ir.ui.view">
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <field name="resource_id" filter_domain="[('resource_id', 'ilike', self)]"/>
+            </xpath>
+            <xpath expr="//group[@name='group_group_by']" position="inside">
+                <filter name="filter_group_by_resource_id"
+                        string="Generic Resource"
+                        context="{'group_by': 'resource_id'}"/>
+            </xpath>
+        </field>
+    </record>
 </odoo>

@@ -23,7 +23,7 @@
                    position="after">
                 <label for="condition_operator" string="Conditions"/>
                 <div class="d-flex">
-                    <field name="condition_operator" class="oe_inline mr-2 align-self-center"/>
+                    <field name="condition_operator" class="oe_inline mr-2 align-self-center condition-operator"/>
                     <field name="condition_ids"
                            domain="[('model_id.model', '=', 'request.request')]"
                            widget="many2many_tags"

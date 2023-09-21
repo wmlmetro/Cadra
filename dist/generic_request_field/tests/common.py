@@ -2,11 +2,15 @@ import logging
 
 from odoo.tests.common import TransactionCase
 from odoo.addons.generic_mixin.tests.common import ReduceLoggingMixin
+from odoo.addons.generic_request.tests.common import (
+    RequestClassifierUtilsMixin)
 
 _logger = logging.getLogger(__name__)
 
 
-class TestRequestFieldCase(ReduceLoggingMixin, TransactionCase):
+class TestRequestFieldCase(ReduceLoggingMixin,
+                           RequestClassifierUtilsMixin,
+                           TransactionCase):
 
     @classmethod
     def setUpClass(cls):
@@ -50,3 +54,16 @@ class TestRequestFieldCase(ReduceLoggingMixin, TransactionCase):
             'generic_request.request_category_demo')
         cls.request_category_demo_technical = cls.env.ref(
             'generic_request.request_category_demo_technical')
+
+    def _enable_use_services_setting(self):
+        (
+            self.env.ref('base.group_user') +
+            self.env.ref('base.group_portal') +
+            self.env.ref('base.group_public')
+        ).write({
+            'implied_ids': [
+                (4,
+                 self.env.ref(
+                     'generic_request.group_request_use_services').id),
+            ]
+        })

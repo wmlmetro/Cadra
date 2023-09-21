@@ -8,7 +8,7 @@
         <field name="target">new</field>
         <field name="context">{
             'default_res_id': active_id,
-            'default_assign_model': 'project.task'}"</field>
+            'default_assign_model': 'project.task'}</field>
     </record>
 
     <record id="action_project_project_assign" model="ir.actions.act_window">

@@ -21,6 +21,9 @@ class RouteActionsTestCase(ReduceLoggingMixin, TransactionCase):
         cls.route_send = cls.env.ref(
             'generic_request_action.'
             'request_stage_route_type_action_draft_to_sent')
+        cls.route_confirmed = cls.env.ref(
+            "generic_request_action"
+            ".request_stage_route_type_action_sent_confirmed")
 
         cls.action_set_response = cls.env.ref(
             'generic_request_action'
@@ -29,6 +32,8 @@ class RouteActionsTestCase(ReduceLoggingMixin, TransactionCase):
         cls.action_assign = cls.env.ref(
             'generic_request_action.'
             'request_stage_route_type_action_draft_to_sent_assign')
+        cls.action_auto_change_deadline = cls.env.ref(
+            'generic_request_action.request_action_auto_change_deadline')
         cls.condition_do_assign = cls.env.ref(
             'generic_request_action.'
             'condition_request_text_is_do_assign')
@@ -45,3 +50,13 @@ class RouteActionsTestCase(ReduceLoggingMixin, TransactionCase):
         # Demo request
         cls.demo_request = cls.env.ref(
             'generic_request_action.request_request_type_action_demo_1')
+        cls.demo_request_deadline = cls.env.ref(
+            'generic_request_action.request_request_type_action_demo_2')
+
+        # Attachments
+        cls.template_attachment = cls.env.ref(
+            'generic_request.request_response_attachment_demo1')
+        cls.request_attachment = cls.env.ref(
+            'generic_request.request_response_attachment_demo2')
+        cls.response_attachment = cls.env.ref(
+            'generic_request.request_response_attachment_demo3')

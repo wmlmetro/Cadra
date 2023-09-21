@@ -10,7 +10,7 @@
     'website': "https://crnd.pro",
 
     'category': 'Generic Request',
-    'version': '15.0.1.10.0',
+    'version': '15.0.1.15.1',
 
     # any module necessary for this one to work correctly
     'depends': [
