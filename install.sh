@@ -216,12 +216,12 @@ echo -e "\n${BLUE}[Step 8/10]${NC} Setting up custom addons..."
 mkdir -p ${ODOO_HOME}/custom_addons
 mkdir -p /var/log/${ODOO_USER}
 
-# Clone CRND repository
-sudo -u ${ODOO_USER} git clone ${REPO_URL} ${ODOO_HOME}/custom_addons/crnd
-
-# Set permissions
+# Set permissions BEFORE cloning
 chown -R ${ODOO_USER}:${ODOO_USER} ${ODOO_HOME}
 chown -R ${ODOO_USER}:${ODOO_USER} /var/log/${ODOO_USER}
+
+# Clone CRND repository as odoo user
+sudo -u ${ODOO_USER} git clone ${REPO_URL} ${ODOO_HOME}/custom_addons/crnd
 
 #--------------------------------------------------
 # Step 9: Create Odoo Configuration File
