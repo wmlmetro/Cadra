@@ -211,6 +211,10 @@ print("\n" + "-" * 70)
 print("  STEP 4: REQUEST TYPES")
 print("-" * 70)
 
+# Introspect available fields on request.type
+rt_fields = list(env['request.type']._fields.keys())
+print(f"  Available fields (subset): category={'category_ids' in rt_fields and 'category_ids' or 'category_id' if 'category_id' in rt_fields else 'NONE'}, kind={'kind_id' if 'kind_id' in rt_fields else 'NONE'}")
+
 # (name, code, category_code, kind_code, description)
 REQUEST_TYPES = [
 
@@ -323,8 +327,15 @@ for name, code, cat_code, kind_code, desc in REQUEST_TYPES:
     existing = env['request.type'].search([('code','=',code)], limit=1)
     if not existing:
         vals = {'name': name, 'code': code, 'active': True}
-        if cat_id:  vals['category_id'] = cat_id
-        if kind_id: vals['kind_id']      = kind_id
+        # Try many2many category_ids first, fall back to many2one category_id
+        if cat_id:
+            if 'category_ids' in env['request.type']._fields:
+                vals['category_ids'] = [(4, cat_id)]
+            elif 'category_id' in env['request.type']._fields:
+                vals['category_id'] = cat_id
+        # Try kind_id (many2one)
+        if kind_id and 'kind_id' in env['request.type']._fields:
+            vals['kind_id'] = kind_id
         rec = env['request.type'].create(vals)
         type_map[code] = rec.id
         print(f"  + {name} ({code})")
@@ -467,9 +478,11 @@ if svc_model:
         if svc_code and svc_code in service_map:
             try:
                 rtype = env['request.type'].browse(type_id)
-                svc   = env[svc_model].browse(service_map[svc_code])
-                if hasattr(rtype, 'service_ids'):
+                if 'service_ids' in env['request.type']._fields:
                     rtype.write({'service_ids': [(4, service_map[svc_code])]})
+                    linked += 1
+                elif 'service_id' in env['request.type']._fields:
+                    rtype.write({'service_id': service_map[svc_code]})
                     linked += 1
             except Exception:
                 pass
