@@ -18386,10 +18386,115 @@ print(f"\n  ✓ {len(brand_map)} brands | {len(model_map)} models ready")
 
 
 # ================================================================
-# STEP 3: CREATE TAGS (SCO LOCATIONS + DEPARTMENTS)
+
+
+# ================================================================
+# STEP 3: DRIVERS & POOL PARTNERS
 # ================================================================
 print("\n" + "-" * 70)
-print("  STEP 3: TAGS (SCO LOCATIONS & DEPARTMENTS)")
+print("  STEP 3: DRIVERS & POOL PARTNERS")
+print("-" * 70)
+
+# Keywords that indicate pool/department rather than a named person
+POOL_KEYWORDS = [
+    'POOL', 'AWAIT', 'YET TO', 'ACCIDENT', 'RETRIEVE', 'DECOMMISSION',
+    'UNALLOCATED', 'VACANT', 'NOT ALLOCATED', 'MSTO', 'GBTO', 'SCO',
+    'UNIT', 'DEPT', 'DIVISION', 'MANAGEMENT', 'PROCUREMENT', 'GROUNDED',
+    'ESCORT COMMANDER', 'FUELLING', 'JOURNEY', 'INTELLIGENCE', 'ISOLO',
+    'BARBEACH', 'FAULTY', 'RETRIEVED', 'GENERAL FLEET', 'FLEET POOL',
+    'GENERAL POOL'
+]
+
+# Get NRS company partner for linking
+nrs_company = env['res.partner'].search([('name', 'ilike', 'Nigeria Revenue')], limit=1)
+nrs_company_id = nrs_company.id if nrs_company else None
+
+def is_pool_entry(name):
+    n = name.strip().upper()
+    if not n or n == 'NAN':
+        return True
+    return any(kw in n for kw in POOL_KEYWORDS)
+
+def normalise_name(name):
+    """Title-case and collapse whitespace."""
+    return ' '.join(name.strip().title().split())
+
+def get_or_create_driver(name, dept, sco):
+    """Get or create a res.partner for a named driver."""
+    norm = normalise_name(name)
+    existing = env['res.partner'].search([
+        ('name', '=', norm),
+        ('employee', '=', True),
+    ], limit=1)
+    if existing:
+        return existing.id
+    vals = {
+        'name':         norm,
+        'company_type': 'person',
+        'employee':     True,
+        'comment':      f"NRS Staff | Dept: {dept} | SCO: {sco}",
+    }
+    if nrs_company_id:
+        vals['parent_id'] = nrs_company_id
+    p = env['res.partner'].create(vals)
+    return p.id
+
+def get_or_create_pool(raw_name, dept, sco):
+    """Get or create a res.partner for a department pool."""
+    dept_title = ' '.join(dept.strip().title().split())
+    sco_upper  = sco.strip().upper()
+    label = f"Fleet Pool — {sco_upper} / {dept_title}" if dept_title else f"Fleet Pool — {sco_upper}"
+    existing = env['res.partner'].search([('name', '=', label)], limit=1)
+    if existing:
+        return existing.id
+    vals = {
+        'name':         label,
+        'company_type': 'person',
+        'comment':      f"Department pool vehicle | SCO: {sco_upper} | Dept: {dept_title}",
+    }
+    if nrs_company_id:
+        vals['parent_id'] = nrs_company_id
+    p = env['res.partner'].create(vals)
+    return p.id
+
+# Pre-build driver_id map keyed by license_plate
+driver_id_map = {}   # plate → partner_id
+driver_created = 0
+pool_created   = 0
+
+for v in VEHICLES:
+    plate    = v['license_plate'].strip()
+    raw      = v['driver_name'].strip()
+    dept     = v['department'].strip()
+    sco      = v['sco'].strip()
+
+    if not plate or plate.upper() == 'NAN':
+        continue
+
+    if not raw or raw.upper() == 'NAN':
+        # No driver info — create generic pool for SCO
+        pid = get_or_create_pool('', dept, sco)
+        driver_id_map[plate] = pid
+        pool_created += 1
+    elif is_pool_entry(raw):
+        pid = get_or_create_pool(raw, dept, sco)
+        driver_id_map[plate] = pid
+        pool_created += 1
+    else:
+        pid = get_or_create_driver(raw, dept, sco)
+        driver_id_map[plate] = pid
+        driver_created += 1
+
+env.cr.commit()
+print(f"  ✓ Named drivers created/linked: {driver_created}")
+print(f"  ✓ Pool partners created/linked: {pool_created}")
+
+
+# ================================================================
+# STEP 4: TAGS (SCO LOCATIONS)
+# ================================================================
+print("\n" + "-" * 70)
+print("  STEP 4: TAGS (SCO LOCATIONS)")
 print("-" * 70)
 
 tag_map = {}
@@ -18407,21 +18512,22 @@ def get_or_create_tag(name):
         tag_map[name] = existing.id
     return tag_map[name]
 
-# Create SCO location tags
-sco_locations = sorted(set(v['sco'] for v in VEHICLES if v['sco'] and v['sco'] != 'nan'))
+sco_locations = sorted(set(
+    v['sco'] for v in VEHICLES if v['sco'] and v['sco'] != 'nan'
+))
 for sco in sco_locations:
     get_or_create_tag(f"SCO:{sco}")
     print(f"  + Tag: SCO:{sco}")
 
 env.cr.commit()
-print(f"  ✓ {len(tag_map)} tags created")
+print(f"  ✓ {len(tag_map)} SCO tags ready")
 
 
 # ================================================================
-# STEP 4: IMPORT VEHICLES
+# STEP 5: IMPORT VEHICLES
 # ================================================================
 print("\n" + "-" * 70)
-print("  STEP 4: IMPORTING VEHICLES")
+print("  STEP 5: IMPORTING VEHICLES")
 print("-" * 70)
 
 created  = 0
@@ -18436,17 +18542,17 @@ for i, v in enumerate(VEHICLES, 1):
         brand    = v['brand']
         model    = v['model']
         vin      = v['vin_sn']
-        eng_no   = v['engine_no']
         location = v['location']
         dept     = v['department']
-        driver   = v['driver_name']
         sco      = v['sco']
 
         if not plate or plate.upper() == 'NAN':
             skipped += 1
             continue
 
-        model_id = model_map.get((brand, model))
+        model_id  = model_map.get((brand, model))
+        driver_id = driver_id_map.get(plate)
+
         if not model_id:
             skipped += 1
             print(f"  ! No model for {plate} ({brand} {model})")
@@ -18465,8 +18571,9 @@ for i, v in enumerate(VEHICLES, 1):
             'location':      f"{location} | {dept}".strip(' |'),
             'tag_ids':       [(6, 0, tag_ids)] if tag_ids else [],
         }
+        if driver_id:
+            vals['driver_id'] = driver_id
 
-        # Check if vehicle already exists
         existing = env['fleet.vehicle'].search(
             [('license_plate', '=', plate)], limit=1)
 
@@ -18479,7 +18586,6 @@ for i, v in enumerate(VEHICLES, 1):
             existing.write(vals)
             updated += 1
 
-        # Commit in batches
         if i % BATCH == 0:
             env.cr.commit()
             print(f"  [committed batch at {i}/{len(VEHICLES)}]")
@@ -18492,14 +18598,13 @@ env.cr.commit()
 print(f"\n  ✓ Created: {created} | Updated: {updated} | Skipped: {skipped} | Errors: {errors}")
 
 
-
-
 # ================================================================
 # PART D — MASTER SUMMARY
 # ================================================================
 total_vehicles = env['fleet.vehicle'].search_count([])
 total_types    = env['request.type'].search_count([])
 total_cats     = env['request.category'].search_count([])
+total_drivers  = env['res.partner'].search_count([('employee', '=', True)])
 
 print()
 print("=" * 70)
@@ -18519,14 +18624,19 @@ print("  Fleet:")
 print(f"    Brands:         {len(brand_map)}")
 print(f"    Models:         {len(model_map)}")
 print(f"    Vehicles:       {total_vehicles}")
+print(f"    Named Drivers:  {driver_created}")
+print(f"    Pool Partners:  {pool_created}")
+print(f"    Total Partners: {total_drivers}")
 print()
 print("  Next Steps:")
 print("  1. http://myservice.com.ng → log in → verify data")
 print("  2. Settings → Company → upload NRS logo")
 print("  3. Settings → Users → create team leads per domain")
-print("  4. Fleet → Vehicles → assign drivers to non-POOL vehicles")
-print("  5. ITSM → Configuration → set SLA rules per kind")
-print("  6. Settings → Email → configure outbound mail server")
+print("  4. Fleet → Vehicles → filter by driver to review assignments")
+print("  5. Fleet → Vehicles → filter by tag (SCO) to review by location")
+print("  6. ITSM → Configuration → set SLA rules per kind")
+print("  7. Settings → Email → configure outbound mail server")
+print("  8. When employee IDs available → match partners to hr.employee")
 print()
 print("  WestMetro Limited | www.westmetrong.com | +234 806 902 0996")
 print("=" * 70)
