@@ -320,21 +320,17 @@ REQUEST_TYPES = [
     ("Budget Query",                   "HELP-BUDGET-SVC", "CAT-BUDGET",   "SERVICE-REQUEST","Budget approval or cost query"),
 ]
 
+
 type_map = {}
+type_cat_map = {}  # type_code → cat_code (for classifier creation in Step 6)
+
 for name, code, cat_code, kind_code, desc in REQUEST_TYPES:
-    cat_id  = cat_map.get(cat_code)
     kind_id = kind_map.get(kind_code)
     existing = env['request.type'].search([('code','=',code)], limit=1)
     if not existing:
         vals = {'name': name, 'code': code, 'active': True}
-        # Try many2many category_ids first, fall back to many2one category_id
-        if cat_id:
-            if 'category_ids' in env['request.type']._fields:
-                vals['category_ids'] = [(4, cat_id)]
-            elif 'category_id' in env['request.type']._fields:
-                vals['category_id'] = cat_id
-        # Try kind_id (many2one)
-        if kind_id and 'kind_id' in env['request.type']._fields:
+        # kind_id only on create — category/service linked via classifier in Step 6
+        if kind_id:
             vals['kind_id'] = kind_id
         rec = env['request.type'].create(vals)
         type_map[code] = rec.id
@@ -342,11 +338,10 @@ for name, code, cat_code, kind_code, desc in REQUEST_TYPES:
     else:
         type_map[code] = existing.id
         print(f"  o {name} ({code})")
+    type_cat_map[code] = cat_code
 
 env.cr.commit()
 print(f"\n  ✓ {len(type_map)} request types ready")
-
-
 # ================================================================
 # STEP 5: STAGES + ROUTES (per request type)
 # ================================================================
@@ -453,11 +448,12 @@ env.cr.commit()
 print(f"\n  ✓ Stages/routes: {ok_count} OK | {err_count} errors")
 
 
+
 # ================================================================
-# STEP 6: LINK SERVICES TO REQUEST TYPES
+# STEP 6: CREATE CLASSIFIERS (Service → Category → Type)
 # ================================================================
 print("\n" + "-" * 70)
-print("  STEP 6: LINK SERVICES TO REQUEST TYPES")
+print("  STEP 6: CLASSIFIERS (Service → Category → Type)")
 print("-" * 70)
 
 # Map domain prefix → service code
@@ -470,26 +466,46 @@ DOMAIN_SERVICE_MAP = {
     "HELP":  "SVC-HELP",
 }
 
-if svc_model:
-    linked = 0
-    for type_code, type_id in type_map.items():
-        prefix = type_code.split("-")[0]
-        svc_code = DOMAIN_SERVICE_MAP.get(prefix)
-        if svc_code and svc_code in service_map:
-            try:
-                rtype = env['request.type'].browse(type_id)
-                if 'service_ids' in env['request.type']._fields:
-                    rtype.write({'service_ids': [(4, service_map[svc_code])]})
-                    linked += 1
-                elif 'service_id' in env['request.type']._fields:
-                    rtype.write({'service_id': service_map[svc_code]})
-                    linked += 1
-            except Exception:
-                pass
-    env.cr.commit()
-    print(f"  ✓ Linked {linked} types to services")
-else:
-    print("  ! generic.service not available — link services manually")
+classifier_ok  = 0
+classifier_err = 0
+
+for type_code, type_id in type_map.items():
+    prefix   = type_code.split("-")[0]
+    svc_code = DOMAIN_SERVICE_MAP.get(prefix)
+    cat_code = type_cat_map.get(type_code)
+    svc_id   = service_map.get(svc_code) if svc_code else None
+    cat_id   = cat_map.get(cat_code) if cat_code else None
+
+    if not svc_id or not cat_id:
+        print(f"  ! Skipping {type_code} — missing service or category")
+        continue
+
+    # Check if classifier already exists
+    existing = env['request.classifier'].search([
+        ('service_id', '=', svc_id),
+        ('category_id', '=', cat_id),
+        ('type_id', '=', type_id),
+    ], limit=1)
+
+    if not existing:
+        try:
+            env['request.classifier'].create({
+                'service_id':  svc_id,
+                'category_id': cat_id,
+                'type_id':     type_id,
+                'active':      True,
+            })
+            classifier_ok += 1
+            print(f"  + Classifier: {svc_code} → {cat_code} → {type_code}")
+        except Exception as e:
+            classifier_err += 1
+            print(f"  ✗ Failed: {type_code} — {e}")
+    else:
+        classifier_ok += 1
+        print(f"  o Exists: {svc_code} → {cat_code} → {type_code}")
+
+env.cr.commit()
+print(f"\n  ✓ Classifiers: {classifier_ok} OK | {classifier_err} errors")
 
 
 # ================================================================
@@ -504,6 +520,7 @@ print(f"  Services:      {len(service_map) if service_map else 'N/A'}")
 print(f"  Categories:    {len(cat_map)}")
 print(f"  Request Types: {len(type_map)}")
 print(f"  Stages/Routes: {ok_count} types configured (7 stages, 9 routes each)")
+print(f"  Classifiers:   {classifier_ok} (Service → Category → Type)")
 print()
 print("  Next Steps:")
 print("  1. Settings → Company → Upload NRS logo")
