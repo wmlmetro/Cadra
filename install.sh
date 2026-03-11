@@ -1,279 +1,413 @@
 #!/bin/bash
-################################################################################
-# Odoo 15 Complete Installation Script
-# Repository: https://github.com/sojiabolarin/CRND
-# 
-# This script:
-# 1. Installs Odoo 15 using official CRND Deploy (with odoo-helper-scripts)
-# 2. Fetches and links custom modules from this repository's dist folder
+# ==============================================================================
+# NRS myservice.com.ng — Full Server Install Script
+# Ubuntu 22.04 LTS · Odoo 15 · Bureaucrat ITSM
 #
 # Usage:
-#   git clone https://github.com/sojiabolarin/CRND
-#   cd CRND
-#   sudo ./install.sh
+#   sudo bash install.sh
 #
-# WestMetro Limited
-# Phone: +234 806 902 0996
-# Email: info@westmetrong.com
-# Website: www.westmetrong.com
-################################################################################
+# What this does (in order):
+#   1.  System packages & dependencies
+#   2.  PostgreSQL setup
+#   3.  Odoo 15 user & directory structure
+#   4.  Python virtualenv & Odoo requirements
+#   5.  Odoo 15 source from CRND (includes Bureaucrat ITSM)
+#   6.  wkhtmltopdf (PDF reports)
+#   7.  odoo.conf from config/odoo.conf template
+#   8.  Systemd service
+#   9.  Nginx reverse proxy
+#   10. Database creation
+#   11. Bureaucrat ITSM module installation
+#   12. ITSM structure seed  (Groups / Services / Categories / Types)
+#   13. Location skeleton    (Zones / States / Cities)
+#   14. Portal homepage      (web/index.html → Odoo website assets)
+#
+# After install:
+#   - Access Odoo at http://myservice.com.ng
+#   - Add SSL:  certbot --nginx -d myservice.com.ng
+#   - Load offices:  OFFICES_CSV=/path/to/file.csv bash scripts/load_all.sh
+# ==============================================================================
 
-set -e
+set -euo pipefail
 
-# Configuration - Modify these as needed
-ODOO_VERSION="15.0"
-WORKERS=2
-INSTALL_MODE="git"
+# ------------------------------------------------------------------------------
+# CONFIG — edit these before running
+# ------------------------------------------------------------------------------
+DOMAIN="myservice.com.ng"
+DB_NAME="myservice"
+DB_USER="odoo"
+DB_PASS="$(openssl rand -base64 24)"          # auto-generated, saved to /etc/odoo/.dbpass
+ODOO_USER="odoo"
+ODOO_HOME="/opt/odoo"
+ODOO_VENV="${ODOO_HOME}/venv"
+ODOO_CONF="/etc/odoo/odoo.conf"
+ODOO_LOG="/var/log/odoo/odoo.log"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ADMIN_PASS="$(openssl rand -base64 16)"       # Odoo master password
 
-# Repository info
-REPO_URL="https://github.com/sojiabolarin/CRND"
-CRND_DEPLOY_URL="https://github.com/crnd-inc/crnd-deploy.git"
+# Bureaucrat ITSM modules to install (order matters)
+ITSM_MODULES=(
+    "generic_location"
+    "generic_request"
+    "generic_request_field"
+    "generic_request_service"
+    "generic_service"
+    "generic_service_group"
+    "generic_request_kind"
+    "generic_request_sla"
+    "generic_request_sla_log"
+    "generic_team"
+    "website_service_desk"
+    "bureaucrat_servicedesk_ultimate"
+)
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+# ------------------------------------------------------------------------------
+# HELPERS
+# ------------------------------------------------------------------------------
+GREEN='\033[0;32m'; ORANGE='\033[0;33m'; RED='\033[0;31m'; NC='\033[0m'
 
-echo -e "${GREEN}"
-echo "================================================================================"
-echo "   Odoo ${ODOO_VERSION} Complete Installation"
-echo "   Custom Modules: ${REPO_URL}"
-echo "   WestMetro Limited"
-echo "================================================================================"
-echo -e "${NC}"
+log()  { echo -e "${GREEN}[$(date '+%H:%M:%S')] ✅  $1${NC}"; }
+warn() { echo -e "${ORANGE}[$(date '+%H:%M:%S')] ⚠️   $1${NC}"; }
+die()  { echo -e "${RED}[$(date '+%H:%M:%S')] ❌  $1${NC}"; exit 1; }
+step() { echo -e "\n${ORANGE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"; \
+         echo -e "${ORANGE}  STEP $1${NC}"; \
+         echo -e "${ORANGE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"; }
 
-# Check if running as root
-if [[ $EUID -ne 0 ]]; then
-   echo -e "${RED}This script must be run as root (use sudo)${NC}" 
-   exit 1
-fi
+[[ $EUID -ne 0 ]] && die "Run as root: sudo bash install.sh"
 
-# Detect OS
-if [ -f /etc/os-release ]; then
-    . /etc/os-release
-    OS=$ID
-    VERSION=$VERSION_ID
+# ------------------------------------------------------------------------------
+# STEP 1 — System packages
+# ------------------------------------------------------------------------------
+step "1/14 — System packages"
+apt-get update -qq
+apt-get install -y -qq \
+    python3 python3-pip python3-dev python3-venv \
+    postgresql postgresql-client \
+    libxml2-dev libxslt1-dev libevent-dev libsasl2-dev libldap2-dev \
+    libpq-dev libjpeg-dev libfreetype6-dev zlib1g-dev \
+    build-essential git curl wget gnupg2 ca-certificates \
+    fonts-liberation fonts-noto-cjk \
+    node-less npm nginx certbot python3-certbot-nginx
+log "System packages installed"
+
+# ------------------------------------------------------------------------------
+# STEP 2 — PostgreSQL
+# ------------------------------------------------------------------------------
+step "2/14 — PostgreSQL"
+systemctl enable --now postgresql
+
+sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='${DB_USER}'" | grep -q 1 || \
+    sudo -u postgres createuser --createdb --no-superuser --no-createrole "${DB_USER}"
+sudo -u postgres psql -c "ALTER USER ${DB_USER} WITH PASSWORD '${DB_PASS}';"
+
+mkdir -p /etc/odoo
+echo "${DB_PASS}" > /etc/odoo/.dbpass
+chmod 600 /etc/odoo/.dbpass
+log "PostgreSQL configured. DB password saved to /etc/odoo/.dbpass"
+
+# ------------------------------------------------------------------------------
+# STEP 3 — Odoo system user & directories
+# ------------------------------------------------------------------------------
+step "3/14 — Odoo user & directories"
+id -u "${ODOO_USER}" &>/dev/null || useradd -m -d "${ODOO_HOME}" -s /bin/bash "${ODOO_USER}"
+mkdir -p "${ODOO_HOME}" /var/log/odoo /etc/odoo
+chown -R "${ODOO_USER}:${ODOO_USER}" "${ODOO_HOME}" /var/log/odoo
+log "Odoo user and directories ready"
+
+# ------------------------------------------------------------------------------
+# STEP 4 — Odoo 15 source (CRND fork with Bureaucrat ITSM)
+# ------------------------------------------------------------------------------
+step "4/14 — Odoo 15 source"
+if [ ! -d "${ODOO_HOME}/odoo" ]; then
+    sudo -u "${ODOO_USER}" git clone \
+        --depth=1 --branch=15.0 \
+        https://github.com/odoo/odoo.git \
+        "${ODOO_HOME}/odoo"
+    log "Odoo 15 source cloned"
 else
-    echo -e "${RED}Cannot detect OS. This script supports Ubuntu 20.04/22.04/24.04${NC}"
-    exit 1
+    warn "Odoo source already exists — skipping clone"
 fi
 
-echo -e "${BLUE}Detected OS:${NC} $OS $VERSION"
-
-#--------------------------------------------------
-# Step 1: Install Basic Dependencies
-#--------------------------------------------------
-echo -e "\n${BLUE}[Step 1/7]${NC} Installing basic dependencies..."
-
-apt-get update
-apt-get install -y git wget curl sudo
-
-#--------------------------------------------------
-# Step 2: Clone Official CRND Deploy
-#--------------------------------------------------
-echo -e "\n${BLUE}[Step 2/7]${NC} Downloading CRND Deploy installer..."
-
-cd /tmp
-rm -rf crnd-deploy-official
-git clone ${CRND_DEPLOY_URL} crnd-deploy-official
-
-# Verify the script exists
-if [ ! -f "/tmp/crnd-deploy-official/crnd-deploy.bash" ]; then
-    echo -e "${RED}ERROR: crnd-deploy.bash not found!${NC}"
-    exit 1
-fi
-
-#--------------------------------------------------
-# Step 3: Run CRND Deploy to Install Odoo
-#--------------------------------------------------
-echo -e "\n${BLUE}[Step 3/7]${NC} Installing Odoo ${ODOO_VERSION} with CRND Deploy..."
-echo -e "${YELLOW}This will install Odoo, PostgreSQL, Nginx, and odoo-helper-scripts${NC}"
-
-bash /tmp/crnd-deploy-official/crnd-deploy.bash \
-    --odoo-version ${ODOO_VERSION} \
-    --install-mode ${INSTALL_MODE} \
-    --local-postgres \
-    --local-nginx \
-    --proxy-mode \
-    --workers ${WORKERS}
-
-#--------------------------------------------------
-# Step 4: Start Services
-#--------------------------------------------------
-echo -e "\n${BLUE}[Step 4/7]${NC} Starting services..."
-
-service postgresql start
-service odoo start
-
-#--------------------------------------------------
-# Step 5: Configure Nginx
-#--------------------------------------------------
-echo -e "\n${BLUE}[Step 5/7]${NC} Configuring Nginx..."
-
-cd /etc/nginx/sites-enabled
-rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
-
-HOSTNAME_SHORT=$(hostname -s)
-if [ -f "/etc/nginx/sites-available/${HOSTNAME_SHORT}.conf" ]; then
-    ln -sf "/etc/nginx/sites-available/${HOSTNAME_SHORT}.conf" ./
-    service nginx restart
-    echo -e "${GREEN}Nginx configured with ${HOSTNAME_SHORT}.conf${NC}"
+# CRND / Bureaucrat ITSM addons
+if [ ! -d "${ODOO_HOME}/bureaucrat" ]; then
+    sudo -u "${ODOO_USER}" git clone \
+        --depth=1 --branch=15.0 \
+        https://github.com/crnd-inc/generic-addons.git \
+        "${ODOO_HOME}/bureaucrat"
+    log "Bureaucrat ITSM addons cloned"
 else
-    echo -e "${YELLOW}Nginx config not found at expected path - may need manual configuration${NC}"
+    warn "Bureaucrat addons already exist — skipping clone"
 fi
 
-#--------------------------------------------------
-# Step 6: Fetch Custom Modules Repository
-#--------------------------------------------------
-echo -e "\n${BLUE}[Step 6/7]${NC} Fetching custom modules from repository..."
-
-cd /opt/odoo
-
-# Create repositories directory if it doesn't exist
-mkdir -p /opt/odoo/repositories
-chown odoo:odoo /opt/odoo/repositories
-
-# Fetch the custom CRND repository using odoo-helper
-echo -e "${BLUE}Running: odoo-helper fetch --repo ${REPO_URL}${NC}"
-sudo -u odoo odoo-helper fetch --repo ${REPO_URL} || true
-
-# Wait a moment for fetch to complete
-sleep 2
-
-# Find the dist folder - check all possible paths
-DIST_PATH=""
-
-if [ -d "/opt/odoo/repositories/sojiabolarin/CRND/dist" ]; then
-    DIST_PATH="/opt/odoo/repositories/sojiabolarin/CRND/dist"
-    echo -e "${GREEN}Found dist at: ${DIST_PATH}${NC}"
-elif [ -d "/opt/odoo/repositories/CRND/dist" ]; then
-    DIST_PATH="/opt/odoo/repositories/CRND/dist"
-    echo -e "${GREEN}Found dist at: ${DIST_PATH}${NC}"
+# myservicenrs repo (this repo)
+if [ ! -d "${ODOO_HOME}/myservicenrs" ]; then
+    sudo -u "${ODOO_USER}" git clone \
+        https://github.com/sojiabolarin/myservicenrs.git \
+        "${ODOO_HOME}/myservicenrs"
+    log "myservicenrs repo cloned"
 else
-    # Search for dist folder anywhere in repositories
-    DIST_PATH=$(find /opt/odoo/repositories -type d -name "dist" 2>/dev/null | head -1)
-    if [ -n "$DIST_PATH" ]; then
-        echo -e "${GREEN}Found dist at: ${DIST_PATH}${NC}"
-    fi
+    warn "myservicenrs repo already exists — skipping clone"
+    sudo -u "${ODOO_USER}" git -C "${ODOO_HOME}/myservicenrs" pull
 fi
 
-# If still not found, clone directly
-if [ -z "$DIST_PATH" ] || [ ! -d "$DIST_PATH" ]; then
-    echo -e "${YELLOW}Dist folder not found via odoo-helper, cloning directly...${NC}"
-    
-    cd /opt/odoo/repositories
-    rm -rf CRND
-    sudo -u odoo git clone ${REPO_URL} CRND
-    
-    if [ -d "/opt/odoo/repositories/CRND/dist" ]; then
-        DIST_PATH="/opt/odoo/repositories/CRND/dist"
-        echo -e "${GREEN}Found dist at: ${DIST_PATH}${NC}"
-    fi
+# ------------------------------------------------------------------------------
+# STEP 5 — Python virtualenv
+# ------------------------------------------------------------------------------
+step "5/14 — Python virtualenv"
+if [ ! -d "${ODOO_VENV}" ]; then
+    sudo -u "${ODOO_USER}" python3 -m venv "${ODOO_VENV}"
 fi
+sudo -u "${ODOO_USER}" "${ODOO_VENV}/bin/pip" install --upgrade pip wheel -q
+sudo -u "${ODOO_USER}" "${ODOO_VENV}/bin/pip" install -r "${ODOO_HOME}/odoo/requirements.txt" -q
+# gevent pin for Python 3.10 compatibility
+sudo -u "${ODOO_USER}" "${ODOO_VENV}/bin/pip" install "gevent==21.12.0" "greenlet==1.1.3" -q
+log "Python virtualenv ready"
 
-# Link modules from dist folder to custom_addons
-if [ -n "$DIST_PATH" ] && [ -d "$DIST_PATH" ]; then
-    echo -e "${BLUE}Linking modules from ${DIST_PATH} to /opt/odoo/custom_addons/${NC}"
-    
-    # Create custom_addons if it doesn't exist
-    mkdir -p /opt/odoo/custom_addons
-    chown odoo:odoo /opt/odoo/custom_addons
-    
-    # Create symlinks for each module in dist folder
-    MODULE_COUNT=0
-    for module_dir in ${DIST_PATH}/*/; do
-        if [ -d "$module_dir" ]; then
-            module_name=$(basename "$module_dir")
-            # Remove trailing slash from module_dir
-            module_dir="${module_dir%/}"
-            
-            # Remove existing symlink if present
-            rm -f /opt/odoo/custom_addons/${module_name}
-            
-            # Create new symlink
-            sudo -u odoo ln -sf "${module_dir}" /opt/odoo/custom_addons/${module_name}
-            echo -e "  ✓ Linked: ${module_name}"
-            MODULE_COUNT=$((MODULE_COUNT + 1))
-        fi
-    done
-    
-    echo -e "${GREEN}Successfully linked ${MODULE_COUNT} modules${NC}"
+# ------------------------------------------------------------------------------
+# STEP 6 — wkhtmltopdf
+# ------------------------------------------------------------------------------
+step "6/14 — wkhtmltopdf"
+if ! command -v wkhtmltopdf &>/dev/null; then
+    wget -q https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-2/wkhtmltox_0.12.6.1-2.jammy_amd64.deb \
+        -O /tmp/wkhtmltox.deb
+    apt-get install -y /tmp/wkhtmltox.deb
+    rm /tmp/wkhtmltox.deb
+    log "wkhtmltopdf installed"
 else
-    echo -e "${RED}ERROR: Could not find dist folder!${NC}"
-    echo -e "${YELLOW}Please manually run:${NC}"
-    echo -e "  cd /opt/odoo/repositories"
-    echo -e "  sudo -u odoo git clone ${REPO_URL}"
-    echo -e "  # Then create symlinks from dist folder to custom_addons"
+    warn "wkhtmltopdf already installed"
 fi
 
-#--------------------------------------------------
-# Step 7: Update Addons List and Restart
-#--------------------------------------------------
-echo -e "\n${BLUE}[Step 7/7]${NC} Finalizing installation..."
+# ------------------------------------------------------------------------------
+# STEP 7 — odoo.conf
+# ------------------------------------------------------------------------------
+step "7/14 — odoo.conf"
+cat > "${ODOO_CONF}" << EOF
+[options]
+addons_path = ${ODOO_HOME}/odoo/addons,${ODOO_HOME}/bureaucrat,${ODOO_HOME}/myservicenrs/addons
+admin_passwd = ${ADMIN_PASS}
+db_host = localhost
+db_port = 5432
+db_user = ${DB_USER}
+db_password = ${DB_PASS}
+db_name = ${DB_NAME}
+http_port = 8069
+longpolling_port = 8072
+logfile = ${ODOO_LOG}
+log_level = info
+workers = 2
+max_cron_threads = 1
+limit_memory_hard = 2684354560
+limit_memory_soft = 2147483648
+limit_request = 8192
+limit_time_cpu = 600
+limit_time_real = 1200
+proxy_mode = True
+without_demo = True
+EOF
+chown "${ODOO_USER}:${ODOO_USER}" "${ODOO_CONF}"
+chmod 640 "${ODOO_CONF}"
 
-cd /opt/odoo
+# Save admin password
+echo "${ADMIN_PASS}" > /etc/odoo/.masterpass
+chmod 600 /etc/odoo/.masterpass
+log "odoo.conf written. Master password saved to /etc/odoo/.masterpass"
 
-# Verify symlinks were created
-echo -e "${BLUE}Verifying symlinks in custom_addons:${NC}"
-ls -la /opt/odoo/custom_addons/ | grep "^l" || echo "No symlinks found"
+# ------------------------------------------------------------------------------
+# STEP 8 — Systemd service
+# ------------------------------------------------------------------------------
+step "8/14 — Systemd service"
+cat > /etc/systemd/system/odoo.service << EOF
+[Unit]
+Description=Odoo 15 — NRS myservice
+After=network.target postgresql.service
+Wants=postgresql.service
 
-# Update the addons list
-echo -e "${BLUE}Updating addons list...${NC}"
-sudo -u odoo odoo-helper addons update-list || true
+[Service]
+Type=simple
+User=${ODOO_USER}
+Group=${ODOO_USER}
+ExecStart=${ODOO_VENV}/bin/python ${ODOO_HOME}/odoo/odoo-bin -c ${ODOO_CONF}
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=odoo
 
-# Restart Odoo to pick up new modules
-echo -e "${BLUE}Restarting Odoo...${NC}"
-service odoo restart
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl daemon-reload
+systemctl enable odoo
+log "Systemd service configured"
 
-#--------------------------------------------------
-# Print Summary
-#--------------------------------------------------
-SERVER_IP=$(hostname -I | awk '{print $1}')
+# ------------------------------------------------------------------------------
+# STEP 9 — Nginx
+# ------------------------------------------------------------------------------
+step "9/14 — Nginx"
+cat > /etc/nginx/sites-available/myservice << EOF
+upstream odoo {
+    server 127.0.0.1:8069;
+}
+upstream odoochat {
+    server 127.0.0.1:8072;
+}
 
-echo -e "\n${GREEN}"
-echo "================================================================================"
-echo "                    Installation Complete!"
-echo "================================================================================"
-echo -e "${NC}"
+server {
+    listen 80;
+    server_name ${DOMAIN} www.${DOMAIN};
+
+    # Redirect www to bare domain
+    if (\$host = www.${DOMAIN}) {
+        return 301 http://${DOMAIN}\$request_uri;
+    }
+
+    access_log /var/log/nginx/myservice.access.log;
+    error_log  /var/log/nginx/myservice.error.log;
+
+    proxy_read_timeout 720s;
+    proxy_connect_timeout 720s;
+    proxy_send_timeout 720s;
+
+    # Longpolling
+    location /longpolling {
+        proxy_pass http://odoochat;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_set_header X-Forwarded-For  \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Real-IP \$remote_addr;
+    }
+
+    location / {
+        proxy_pass http://odoo;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_set_header X-Forwarded-For  \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_redirect off;
+    }
+
+    # Static files cache
+    location ~* /web/static/ {
+        proxy_cache_valid 200 90m;
+        proxy_buffering on;
+        expires 864000;
+        proxy_pass http://odoo;
+    }
+
+    gzip on;
+    gzip_min_length 1100;
+    gzip_buffers 4 32k;
+    gzip_types text/plain text/xml text/css application/javascript;
+    gzip_vary on;
+}
+EOF
+
+ln -sf /etc/nginx/sites-available/myservice /etc/nginx/sites-enabled/myservice
+rm -f /etc/nginx/sites-enabled/default
+nginx -t && systemctl enable --now nginx
+log "Nginx configured for ${DOMAIN}"
+
+# ------------------------------------------------------------------------------
+# STEP 10 — Database creation & Odoo init
+# ------------------------------------------------------------------------------
+step "10/14 — Database creation"
+systemctl start odoo
+sleep 8   # allow Odoo to start
+
+sudo -u "${ODOO_USER}" "${ODOO_VENV}/bin/python" "${ODOO_HOME}/odoo/odoo-bin" \
+    -c "${ODOO_CONF}" \
+    -d "${DB_NAME}" \
+    --init base,web,mail \
+    --without-demo=all \
+    --stop-after-init \
+    --logfile /dev/null
+log "Database ${DB_NAME} initialised"
+
+# ------------------------------------------------------------------------------
+# STEP 11 — Install Bureaucrat ITSM modules
+# ------------------------------------------------------------------------------
+step "11/14 — Bureaucrat ITSM modules"
+MODULE_LIST=$(IFS=,; echo "${ITSM_MODULES[*]}")
+sudo -u "${ODOO_USER}" "${ODOO_VENV}/bin/python" "${ODOO_HOME}/odoo/odoo-bin" \
+    -c "${ODOO_CONF}" \
+    -d "${DB_NAME}" \
+    --init "${MODULE_LIST}" \
+    --without-demo=all \
+    --stop-after-init \
+    --logfile /dev/null
+log "Bureaucrat ITSM modules installed"
+
+# ------------------------------------------------------------------------------
+# STEP 12 — ITSM structure seed
+# ------------------------------------------------------------------------------
+step "12/14 — ITSM structure seed"
+sudo -u "${ODOO_USER}" "${ODOO_VENV}/bin/python" "${ODOO_HOME}/odoo/odoo-bin" shell \
+    -c "${ODOO_CONF}" \
+    -d "${DB_NAME}" \
+    --no-http << 'PYEOF'
+exec(open('/opt/odoo/myservicenrs/data/itsm_structure.py').read())
+PYEOF
+log "ITSM structure loaded"
+
+# ------------------------------------------------------------------------------
+# STEP 13 — Location skeleton
+# ------------------------------------------------------------------------------
+step "13/14 — Location skeleton"
+sudo -u "${ODOO_USER}" "${ODOO_VENV}/bin/python" "${ODOO_HOME}/odoo/odoo-bin" shell \
+    -c "${ODOO_CONF}" \
+    -d "${DB_NAME}" \
+    --no-http << 'PYEOF'
+exec(open('/opt/odoo/myservicenrs/data/load_locations.py').read())
+PYEOF
+log "Location skeleton loaded"
+
+# ------------------------------------------------------------------------------
+# STEP 14 — Portal homepage
+# ------------------------------------------------------------------------------
+step "14/14 — Portal homepage"
+# Copy web assets to Odoo's static directory so they're served directly by Nginx
+STATIC_DIR="${ODOO_HOME}/myservicenrs/web"
+if [ -f "${STATIC_DIR}/index.html" ]; then
+    cp "${STATIC_DIR}/index.html" /var/www/html/index.html
+    log "Portal homepage deployed to /var/www/html/index.html"
+fi
+
+# Nginx: serve / from static, proxy /web /odoo /api to Odoo
+cat >> /etc/nginx/sites-available/myservice << 'EOF'
+
+# Serve static portal homepage
+location = / {
+    root /var/www/html;
+    index index.html;
+    try_files $uri $uri/ @odoo;
+}
+location @odoo {
+    proxy_pass http://odoo;
+}
+EOF
+nginx -t && systemctl reload nginx
+log "Portal homepage live at http://${DOMAIN}"
+
+# ------------------------------------------------------------------------------
+# DONE
+# ------------------------------------------------------------------------------
+systemctl restart odoo
+
 echo ""
-echo "Odoo ${ODOO_VERSION} installed with odoo-helper-scripts!"
-echo ""
-echo -e "${YELLOW}Installation Details:${NC}"
-echo "  - Odoo Home:          /opt/odoo"
-echo "  - Config File:        /opt/odoo/odoo.conf"
-echo "  - Custom Addons:      /opt/odoo/custom_addons"
-echo "  - Module Source:      ${DIST_PATH:-'Not found - check manually'}"
-echo ""
-echo -e "${YELLOW}Access Odoo:${NC}"
-echo "  - Direct URL:  http://${SERVER_IP}:8069"
-echo "  - Via Nginx:   http://${SERVER_IP}"
-echo ""
-echo -e "${YELLOW}Master Password:${NC} admin"
-echo -e "${RED}  ⚠ CHANGE THIS IN PRODUCTION!${NC}"
-echo "  Edit: /opt/odoo/odoo.conf → admin_passwd"
-echo ""
-echo -e "${YELLOW}Service Commands:${NC}"
-echo "  sudo service odoo start|stop|restart|status"
-echo ""
-echo -e "${YELLOW}odoo-helper Commands (run from /opt/odoo):${NC}"
-echo "  cd /opt/odoo"
-echo "  sudo -u odoo odoo-helper server status"
-echo "  sudo -u odoo odoo-helper server restart"
-echo "  sudo -u odoo odoo-helper server log"
-echo "  sudo -u odoo odoo-helper db list"
-echo "  sudo -u odoo odoo-helper addons list"
-echo "  sudo -u odoo odoo-helper addons update-list"
-echo "  sudo -u odoo odoo-helper addons install -d <database> <module_name>"
-echo ""
-echo -e "${YELLOW}Next Steps:${NC}"
-echo "  1. Open http://${SERVER_IP}:8069"
-echo "  2. Create your first database (master password: admin)"
-echo "  3. Go to Settings → Activate Developer Mode"
-echo "  4. Go to Apps → Update Apps List"
-echo "  5. Remove 'Apps' filter in search bar"
-echo "  6. Search and install your custom modules"
-echo ""
-echo -e "${GREEN}Thank you for using WestMetro Limited solutions!${NC}"
+echo -e "${GREEN}╔══════════════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║  NRS myservice install complete                      ║${NC}"
+echo -e "${GREEN}╠══════════════════════════════════════════════════════╣${NC}"
+echo -e "${GREEN}║  URL         : http://${DOMAIN}                 ║${NC}"
+echo -e "${GREEN}║  DB name     : ${DB_NAME}                             ║${NC}"
+echo -e "${GREEN}║  Master pass : $(cat /etc/odoo/.masterpass)   ║${NC}"
+echo -e "${GREEN}║  DB password : see /etc/odoo/.dbpass                 ║${NC}"
+echo -e "${GREEN}╠══════════════════════════════════════════════════════╣${NC}"
+echo -e "${GREEN}║  Next steps:                                         ║${NC}"
+echo -e "${GREEN}║  1. Add SSL:                                         ║${NC}"
+echo -e "${GREEN}║     certbot --nginx -d ${DOMAIN}            ║${NC}"
+echo -e "${GREEN}║  2. Load office sites:                               ║${NC}"
+echo -e "${GREEN}║     OFFICES_CSV=/path/to/offices.csv \\               ║${NC}"
+echo -e "${GREEN}║     bash scripts/load_all.sh                         ║${NC}"
+echo -e "${GREEN}║  3. Log in at http://${DOMAIN}/web            ║${NC}"
+echo -e "${GREEN}╚══════════════════════════════════════════════════════╝${NC}"
 echo ""
