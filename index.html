@@ -1,729 +1,660 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>myservice — NRS Facilities Service Desk</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyService — NRS Facilities Management Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
 <style>
-  /* ── Reset & Variables ─────────────────────────────────────── */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
   :root {
-    --ink:      #0f1117;
-    --ink-2:    #3a3d4a;
-    --ink-3:    #7c8091;
-    --surface:  #f7f6f3;
-    --white:    #ffffff;
-    --accent:   #c8410b;
-    --accent-2: #e8622a;
-    --gold:     #d4a843;
-    --border:   #e2e0da;
-    --radius:   12px;
-    --shadow:   0 2px 12px rgba(15,17,23,.08);
-    --shadow-lg:0 8px 40px rgba(15,17,23,.14);
+    --red:         #C83B1F;
+    --red-dark:    #A02F16;
+    --red-light:   #FBF0ED;
+    --red-mid:     #E04E30;
+    --grey:        #70757A;
+    --grey-light:  #F4F4F5;
+    --grey-mid:    #E8E8EA;
+    --text:        #1A1A1A;
+    --text-mid:    #4A4A4F;
+    --text-light:  #8A8A90;
+    --white:       #FFFFFF;
+    --off-white:   #F8F8F8;
+    --border:      #E2E2E5;
+    --shadow:      0 2px 16px rgba(0,0,0,0.07);
+    --shadow-lg:   0 8px 40px rgba(0,0,0,0.10);
   }
 
-  html { font-size: 16px; scroll-behavior: smooth; }
-
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
   body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--surface);
-    color: var(--ink);
-    min-height: 100vh;
+    font-family: 'Outfit', sans-serif;
+    color: var(--text);
+    background: var(--white);
     overflow-x: hidden;
   }
 
-  /* ── Noise texture overlay ─────────────────────────────────── */
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 0;
+  /* TOPBAR */
+  .topbar {
+    background: #1A1A1A;
+    color: rgba(255,255,255,0.6);
+    font-size: 11.5px;
+    letter-spacing: 0.02em;
+    padding: 7px 0;
   }
+  .topbar-inner {
+    max-width: 1200px; margin: 0 auto; padding: 0 32px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 8px; }
+  .topbar-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--red); animation: blink 2s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .topbar-links { display: flex; gap: 20px; }
+  .topbar-links a { color: rgba(255,255,255,0.55); text-decoration: none; transition: color 0.2s; }
+  .topbar-links a:hover { color: rgba(255,255,255,0.9); }
 
-  /* ── Header ────────────────────────────────────────────────── */
-  header {
+  /* NAVBAR */
+  nav {
+    background: var(--white);
+    border-bottom: 2px solid var(--red);
     position: sticky; top: 0; z-index: 100;
-    background: rgba(247,246,243,.92);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-    padding: 0 2rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
   }
-  .header-inner {
-    max-width: 1200px; margin: 0 auto;
-    height: 64px;
-    display: flex; align-items: center; justify-content: space-between;
+  .nav-inner {
+    max-width: 1200px; margin: 0 auto; padding: 0 32px;
+    height: 72px; display: flex; align-items: center; justify-content: space-between;
   }
-  .logo {
-    display: flex; align-items: center; gap: .6rem;
-    text-decoration: none; color: var(--ink);
+  .nav-logo img { height: 32px; display: block; }
+  .nav-links { display: flex; align-items: center; gap: 4px; list-style: none; }
+  .nav-links a {
+    font-size: 14px; font-weight: 500; color: var(--text-mid);
+    text-decoration: none; padding: 8px 16px; border-radius: 6px; transition: all 0.2s;
   }
-  .logo-mark {
-    width: 36px; height: 36px; border-radius: 8px;
-    background: var(--accent);
-    display: grid; place-items: center;
-    color: #fff; font-family: 'DM Serif Display', serif;
-    font-size: 1.1rem; letter-spacing: -.02em;
+  .nav-links a:hover { color: var(--red); background: var(--red-light); }
+  .nav-cta {
+    background: var(--red) !important; color: white !important;
+    font-weight: 600 !important; padding: 9px 20px !important;
   }
-  .logo-text { font-size: .95rem; font-weight: 600; letter-spacing: -.01em; }
-  .logo-sub  { font-size: .75rem; color: var(--ink-3); font-weight: 400; }
+  .nav-cta:hover { background: var(--red-dark) !important; }
 
-  nav { display: flex; align-items: center; gap: .25rem; }
-  nav a {
-    font-size: .85rem; font-weight: 500; color: var(--ink-2);
-    text-decoration: none; padding: .4rem .75rem; border-radius: 6px;
-    transition: background .15s, color .15s;
-  }
-  nav a:hover { background: var(--border); color: var(--ink); }
-  .btn-primary {
-    background: var(--accent); color: #fff !important;
-    padding: .45rem 1rem !important; border-radius: 8px !important;
-    font-weight: 600 !important;
-    transition: background .15s !important;
-  }
-  .btn-primary:hover { background: var(--accent-2) !important; }
-
-  /* ── Hero ──────────────────────────────────────────────────── */
+  /* HERO */
   .hero {
-    position: relative; z-index: 1;
-    max-width: 1200px; margin: 0 auto;
-    padding: 5rem 2rem 3rem;
-  }
-  .hero-tag {
-    display: inline-flex; align-items: center; gap: .4rem;
-    background: #fff; border: 1px solid var(--border);
-    border-radius: 100px; padding: .3rem .8rem;
-    font-size: .78rem; font-weight: 500; color: var(--ink-3);
-    margin-bottom: 1.5rem;
-  }
-  .hero-tag span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
-  .hero h1 {
-    font-family: 'DM Serif Display', serif;
-    font-size: clamp(2.4rem, 5vw, 4rem);
-    line-height: 1.1; letter-spacing: -.03em;
-    color: var(--ink); max-width: 700px;
-  }
-  .hero h1 em { font-style: italic; color: var(--accent); }
-  .hero p {
-    margin-top: 1rem; font-size: 1.05rem; color: var(--ink-2);
-    max-width: 520px; line-height: 1.65; font-weight: 300;
-  }
-
-  /* ── Search ────────────────────────────────────────────────── */
-  .search-wrap {
-    margin-top: 2.5rem; max-width: 640px;
-    position: relative;
-  }
-  .search-box {
-    display: flex; align-items: center;
     background: var(--white);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    overflow: hidden;
-    transition: border-color .2s, box-shadow .2s;
-  }
-  .search-box:focus-within {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(200,65,11,.1), var(--shadow);
-  }
-  .search-icon {
-    padding: 0 1rem;
-    color: var(--ink-3);
-    flex-shrink: 0;
-  }
-  .search-input {
-    flex: 1; padding: 1rem 0; border: none; outline: none;
-    font-family: 'DM Sans', sans-serif;
-    font-size: .95rem; color: var(--ink);
-    background: transparent;
-  }
-  .search-input::placeholder { color: var(--ink-3); }
-  .search-btn {
-    margin: .4rem; padding: .55rem 1.2rem;
-    background: var(--accent); color: #fff;
-    border: none; border-radius: 8px; cursor: pointer;
-    font-family: 'DM Sans', sans-serif;
-    font-size: .88rem; font-weight: 600;
-    transition: background .15s;
-    white-space: nowrap;
-  }
-  .search-btn:hover { background: var(--accent-2); }
-
-  /* Search results dropdown */
-  .search-results {
-    position: absolute; top: calc(100% + 6px); left: 0; right: 0;
-    background: var(--white);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-lg);
-    max-height: 360px; overflow-y: auto;
-    z-index: 200;
-    display: none;
-  }
-  .search-results.open { display: block; }
-  .result-item {
-    display: flex; align-items: flex-start;
-    gap: .75rem; padding: .85rem 1rem;
-    text-decoration: none; color: var(--ink);
     border-bottom: 1px solid var(--border);
-    transition: background .12s;
-    cursor: pointer;
+    position: relative; overflow: hidden;
+    padding: 88px 32px 80px;
   }
-  .result-item:last-child { border-bottom: none; }
-  .result-item:hover { background: var(--surface); }
-  .result-badge {
-    flex-shrink: 0; margin-top: 2px;
-    font-size: .7rem; font-weight: 600; letter-spacing: .04em;
-    padding: .2rem .5rem; border-radius: 4px;
-    background: var(--surface); color: var(--ink-3);
-    border: 1px solid var(--border); text-transform: uppercase;
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 50% 80% at 100% 60%, rgba(200,59,31,0.05) 0%, transparent 65%);
   }
-  .result-badge.open    { background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; }
-  .result-badge.pending { background: #fff8e1; color: #f57f17; border-color: #ffe082; }
-  .result-badge.closed  { background: #f5f5f5; color: #757575; border-color: #e0e0e0; }
-  .result-name { font-size: .92rem; font-weight: 500; line-height: 1.3; }
-  .result-meta { font-size: .78rem; color: var(--ink-3); margin-top: .15rem; }
-  .search-empty {
-    padding: 1.5rem; text-align: center;
-    font-size: .88rem; color: var(--ink-3);
+  .hero-stripe {
+    position: absolute; top: 0; left: 0; bottom: 0; width: 4px;
+    background: var(--red);
   }
-  .search-loading {
-    padding: 1.2rem; text-align: center;
-    font-size: .85rem; color: var(--ink-3);
-    display: flex; align-items: center; justify-content: center; gap: .5rem;
+  .hero-inner {
+    max-width: 1200px; margin: 0 auto; position: relative; z-index: 1;
+    display: grid; grid-template-columns: 1fr 400px; gap: 64px; align-items: center;
   }
-  .spinner {
-    width: 16px; height: 16px; border-radius: 50%;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    animation: spin .6s linear infinite;
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--red-light); border: 1px solid rgba(200,59,31,0.2);
+    color: var(--red); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 5px 14px; border-radius: 100px; margin-bottom: 22px;
   }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(38px, 5vw, 58px);
+    line-height: 1.08; color: var(--text); margin-bottom: 20px;
+  }
+  .hero h1 em { font-style: italic; color: var(--red); }
+  .hero-lead {
+    font-size: 16.5px; line-height: 1.7;
+    color: var(--text-mid); max-width: 500px; margin-bottom: 36px;
+    font-weight: 300;
+  }
+  .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 
-  /* Auth prompt */
-  .auth-prompt {
-    padding: 1.2rem 1rem; text-align: center;
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--red); color: white;
+    font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600;
+    padding: 13px 26px; border-radius: 7px; text-decoration: none;
+    border: none; cursor: pointer; transition: all 0.2s; letter-spacing: 0.02em;
   }
-  .auth-prompt p { font-size: .88rem; color: var(--ink-2); margin-bottom: .75rem; }
-  .auth-prompt a {
-    display: inline-block;
-    background: var(--accent); color: #fff;
-    text-decoration: none; font-size: .85rem; font-weight: 600;
-    padding: .5rem 1.2rem; border-radius: 8px;
-    transition: background .15s;
+  .btn-primary:hover { background: var(--red-dark); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(200,59,31,0.35); }
+  .btn-ghost {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: transparent; color: var(--text-mid);
+    font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 500;
+    padding: 13px 26px; border-radius: 7px; text-decoration: none;
+    border: 1px solid var(--border); cursor: pointer; transition: all 0.2s;
   }
-  .auth-prompt a:hover { background: var(--accent-2); }
+  .btn-ghost:hover { background: var(--grey-light); border-color: var(--grey); color: var(--text); }
 
-  /* ── Stats strip ───────────────────────────────────────────── */
-  .stats {
+  /* Hero card */
+  .hero-card {
+    background: var(--off-white); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px;
+  }
+  .hero-card-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--text-light); margin-bottom: 14px;
+  }
+  .track-row { display: flex; gap: 8px; margin-bottom: 20px; }
+  .track-input {
+    flex: 1; background: white;
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 11px 14px; font-family: 'Outfit', sans-serif;
+    font-size: 13px; color: var(--text); outline: none; transition: border-color 0.2s;
+  }
+  .track-input::placeholder { color: var(--text-light); }
+  .track-input:focus { border-color: var(--red); }
+  .track-btn {
+    background: var(--red); border: none; border-radius: 8px;
+    padding: 11px 18px; color: white; font-family: 'Outfit', sans-serif;
+    font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s;
+  }
+  .track-btn:hover { background: var(--red-dark); }
+  .card-divider { border: none; border-top: 1px solid var(--border); margin-bottom: 18px; }
+  .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .quick-item {
+    display: flex; align-items: center; gap: 10px;
+    background: white; border: 1px solid var(--border);
+    border-radius: 10px; padding: 11px 12px; text-decoration: none;
+    transition: all 0.2s; cursor: pointer;
+  }
+  .quick-item:hover { background: var(--red-light); border-color: rgba(200,59,31,0.3); }
+  .qi-icon {
+    width: 30px; height: 30px; border-radius: 7px;
+    background: var(--red-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+  .qi-name { font-size: 12px; font-weight: 600; color: var(--text); display: block; line-height: 1.2; }
+  .qi-sub { font-size: 10px; color: var(--text-light); display: block; margin-top: 1px; }
+
+  /* STATS */
+  .stats-bar { background: var(--red); }
+  .stats-inner {
     max-width: 1200px; margin: 0 auto;
-    padding: 0 2rem 3rem;
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;
+    display: grid; grid-template-columns: repeat(4, 1fr);
   }
-  .stat-card {
-    background: var(--white); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 1.25rem 1.5rem;
-    box-shadow: var(--shadow);
+  .stat-item {
+    padding: 24px 0; text-align: center;
+    border-right: 1px solid rgba(255,255,255,0.2);
   }
+  .stat-item:last-child { border-right: none; }
   .stat-num {
-    font-family: 'DM Serif Display', serif;
-    font-size: 2.2rem; line-height: 1; color: var(--ink);
+    font-family: 'Playfair Display', serif;
+    font-size: 34px; font-weight: 700; color: white;
+    display: block; line-height: 1; margin-bottom: 4px;
   }
-  .stat-label { font-size: .8rem; color: var(--ink-3); margin-top: .3rem; font-weight: 500; }
+  .stat-label { font-size: 11.5px; color: rgba(255,255,255,0.7); letter-spacing: 0.04em; }
 
-  /* ── Service Groups ────────────────────────────────────────── */
-  .section {
+  /* ALERT */
+  .alert { background: #FEF9F8; border-left: 4px solid var(--red); padding: 16px 32px; }
+  .alert-inner {
     max-width: 1200px; margin: 0 auto;
-    padding: 0 2rem 4rem;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .alert-icon { font-size: 18px; flex-shrink: 0; }
+  .alert-text { font-size: 13.5px; color: var(--text-mid); line-height: 1.5; flex: 1; }
+  .alert-text strong { color: var(--red); }
+  .alert-btn {
+    font-size: 13px; font-weight: 600; color: var(--red);
+    text-decoration: none; white-space: nowrap;
+    padding: 7px 16px; border: 1px solid var(--red);
+    border-radius: 6px; transition: all 0.2s; flex-shrink: 0;
+  }
+  .alert-btn:hover { background: var(--red); color: white; }
+
+  /* SECTIONS */
+  section { padding: 80px 32px; }
+  .section-inner { max-width: 1200px; margin: 0 auto; }
+  .section-eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--red); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-eyebrow::before {
+    content: ''; display: block;
+    width: 24px; height: 2px; background: var(--red);
   }
   .section-title {
-    font-family: 'DM Serif Display', serif;
-    font-size: 1.5rem; letter-spacing: -.02em;
-    margin-bottom: 1.25rem;
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 3.5vw, 42px);
+    color: var(--text); line-height: 1.12; margin-bottom: 14px;
   }
+  .section-lead {
+    font-size: 16px; color: var(--text-mid); line-height: 1.65;
+    max-width: 540px; font-weight: 300;
+  }
+  .section-header { margin-bottom: 52px; }
 
-  .groups-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.25rem;
+  /* SERVICES */
+  .services-bg { background: var(--off-white); }
+  .services-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+  .svc-card {
+    background: white; border: 1px solid var(--border);
+    border-radius: 12px; padding: 28px; text-decoration: none;
+    color: inherit; display: block; position: relative; overflow: hidden;
+    transition: all 0.25s;
   }
+  .svc-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--red); transform: scaleX(0); transform-origin: left; transition: transform 0.3s;
+  }
+  .svc-card:hover { border-color: var(--red); box-shadow: var(--shadow-lg); transform: translateY(-3px); }
+  .svc-card:hover::before { transform: scaleX(1); }
+  .svc-icon {
+    width: 46px; height: 46px; border-radius: 10px;
+    background: var(--red-light); display: flex; align-items: center;
+    justify-content: center; font-size: 20px; margin-bottom: 16px;
+  }
+  .svc-arrow {
+    position: absolute; top: 28px; right: 24px; color: var(--border);
+    font-size: 18px; transition: all 0.2s;
+  }
+  .svc-card:hover .svc-arrow { color: var(--red); transform: translateX(3px); }
+  .svc-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px; color: var(--text); margin-bottom: 8px;
+  }
+  .svc-desc { font-size: 13px; color: var(--text-mid); line-height: 1.6; margin-bottom: 14px; font-weight: 300; }
+  .svc-count { font-size: 11px; font-weight: 700; color: var(--red); letter-spacing: 0.06em; text-transform: uppercase; }
 
-  .group-card {
-    background: var(--white);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    box-shadow: var(--shadow);
-    transition: transform .2s, box-shadow .2s;
-    cursor: pointer; text-decoration: none; color: inherit;
-    display: block;
+  /* HOW IT WORKS */
+  .steps-wrap { position: relative; }
+  .steps-line {
+    position: absolute; top: 32px; left: calc(12.5% + 32px); right: calc(12.5% + 32px);
+    height: 1px; background: var(--border); z-index: 0;
   }
-  .group-card:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-lg);
+  .steps-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; position: relative; z-index: 1; }
+  .step { padding: 0 28px; text-align: center; }
+  .step-num {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: white; border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px;
+    font-family: 'Playfair Display', serif; font-size: 22px; color: var(--text-light);
+    transition: all 0.3s; position: relative; z-index: 1;
   }
-  .group-header {
-    padding: 1.5rem;
-    display: flex; align-items: flex-start; gap: 1rem;
+  .step:hover .step-num {
+    background: var(--red); border-color: var(--red); color: white;
+    box-shadow: 0 0 0 8px var(--red-light);
   }
-  .group-icon {
-    width: 48px; height: 48px; border-radius: 10px;
-    display: grid; place-items: center;
-    font-size: 1.4rem; flex-shrink: 0;
-  }
-  .group-icon.fm   { background: #fef3ea; }
-  .group-icon.ss   { background: #fce8e2; }
-  .group-icon.fl   { background: #e8f0fe; }
-  .group-name { font-weight: 600; font-size: 1rem; line-height: 1.3; }
-  .group-desc { font-size: .82rem; color: var(--ink-3); margin-top: .2rem; line-height: 1.4; }
-  .group-services {
-    padding: 0 1.5rem 1.25rem;
-    display: flex; flex-wrap: wrap; gap: .4rem;
-  }
-  .svc-chip {
-    font-size: .72rem; font-weight: 500; color: var(--ink-2);
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 100px; padding: .2rem .6rem;
-  }
-  .group-footer {
-    padding: .85rem 1.5rem;
-    border-top: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .group-footer span { font-size: .8rem; color: var(--ink-3); }
-  .group-footer .arrow {
-    font-size: .8rem; font-weight: 600; color: var(--accent);
-  }
+  .step-title { font-weight: 600; font-size: 15px; color: var(--text); margin-bottom: 8px; }
+  .step-desc { font-size: 13px; color: var(--text-mid); line-height: 1.6; font-weight: 300; }
 
-  /* ── Quick actions ─────────────────────────────────────────── */
-  .quick-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
+  /* CTA */
+  .cta-section { background: var(--white); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); position: relative; overflow: hidden; padding: 80px 32px; }
+  .cta-section::after {
+    content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 40%;
+    background: radial-gradient(ellipse at right center, rgba(200,59,31,0.06) 0%, transparent 70%);
   }
-  .quick-card {
-    background: var(--white); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 1.25rem 1.5rem;
-    box-shadow: var(--shadow);
-    display: flex; align-items: center; gap: 1rem;
-    text-decoration: none; color: var(--ink);
-    transition: border-color .15s, box-shadow .15s;
-  }
-  .quick-card:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); }
-  .quick-icon {
-    width: 40px; height: 40px; border-radius: 8px;
-    background: var(--surface); display: grid; place-items: center;
-    font-size: 1.1rem; flex-shrink: 0;
-  }
-  .quick-label { font-weight: 600; font-size: .9rem; }
-  .quick-sub   { font-size: .78rem; color: var(--ink-3); margin-top: .1rem; }
-
-  /* ── Footer ────────────────────────────────────────────────── */
-  footer {
-    border-top: 1px solid var(--border);
-    background: var(--white);
-    padding: 2rem;
-    margin-top: 2rem;
-  }
-  .footer-inner {
+  .cta-inner {
     max-width: 1200px; margin: 0 auto;
-    display: flex; align-items: center; justify-content: space-between;
-    flex-wrap: wrap; gap: 1rem;
+    display: grid; grid-template-columns: 1fr auto;
+    align-items: center; gap: 48px; position: relative; z-index: 1;
   }
-  .footer-copy { font-size: .8rem; color: var(--ink-3); }
-  .footer-links { display: flex; gap: 1.5rem; }
-  .footer-links a { font-size: .8rem; color: var(--ink-3); text-decoration: none; }
-  .footer-links a:hover { color: var(--accent); }
+  .cta-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(26px,3vw,40px); color: var(--text); line-height: 1.12; margin-bottom: 12px;
+  }
+  .cta-sub { font-size: 15px; color: var(--text-mid); line-height: 1.65; font-weight: 300; }
+  .cta-btns { display: flex; gap: 12px; flex-direction: column; align-items: flex-end; }
 
-  /* ── Responsive ────────────────────────────────────────────── */
-  @media (max-width: 900px) {
-    .groups-grid { grid-template-columns: 1fr; }
-    .stats { grid-template-columns: repeat(2,1fr); }
-    .quick-grid { grid-template-columns: 1fr; }
+  /* FOOTER */
+  footer { background: #111111; color: rgba(255,255,255,0.5); padding: 56px 32px 28px; }
+  .footer-inner { max-width: 1200px; margin: 0 auto; }
+  .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 48px; }
+  .footer-logo { height: 28px; margin-bottom: 14px; display: block; }
+  .footer-desc { font-size: 13px; line-height: 1.7; margin-bottom: 20px; font-weight: 300; }
+  .footer-powered {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; color: rgba(255,255,255,0.3); text-decoration: none;
+    border: 1px solid rgba(255,255,255,0.08); padding: 6px 12px; border-radius: 6px;
+    transition: all 0.2s;
   }
-  @media (max-width: 600px) {
-    .hero h1 { font-size: 2rem; }
-    nav .hide-mobile { display: none; }
-    .stats { grid-template-columns: repeat(2,1fr); }
+  .footer-powered:hover { border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.6); }
+  .footer-col-title {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: rgba(255,255,255,0.28); margin-bottom: 16px;
   }
+  .footer-links { list-style: none; }
+  .footer-links li { margin-bottom: 10px; }
+  .footer-links a { font-size: 13px; color: rgba(255,255,255,0.45); text-decoration: none; transition: color 0.2s; font-weight: 300; }
+  .footer-links a:hover { color: white; }
+  .footer-hr { border: none; border-top: 1px solid rgba(255,255,255,0.07); margin-bottom: 22px; }
+  .footer-bottom { display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; }
+  .footer-bottom a { color: rgba(255,255,255,0.35); text-decoration: none; }
+  .footer-bottom a:hover { color: rgba(255,255,255,0.6); }
 
-  /* ── Toast ─────────────────────────────────────────────────── */
-  .toast {
-    position: fixed; bottom: 2rem; right: 2rem;
-    background: var(--ink); color: #fff;
-    padding: .75rem 1.25rem; border-radius: var(--radius);
-    font-size: .85rem; box-shadow: var(--shadow-lg);
-    transform: translateY(80px); opacity: 0;
-    transition: transform .3s, opacity .3s;
-    z-index: 999;
+  /* ANIMATIONS */
+  .fade-up { opacity: 0; transform: translateY(22px); transition: opacity 0.6s ease, transform 0.6s ease; }
+  .fade-up.in { opacity: 1; transform: translateY(0); }
+
+  /* RESPONSIVE */
+  @media(max-width:960px){
+    .hero-inner { grid-template-columns: 1fr; }
+    .hero-card { display: none; }
+    .services-grid { grid-template-columns: 1fr 1fr; }
+    .steps-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+    .steps-line { display: none; }
+    .stats-inner { grid-template-columns: 1fr 1fr; }
+    .footer-grid { grid-template-columns: 1fr 1fr; }
+    .cta-inner { grid-template-columns: 1fr; }
+    .cta-btns { align-items: flex-start; flex-direction: row; }
   }
-  .toast.show { transform: translateY(0); opacity: 1; }
+  @media(max-width:600px){
+    section { padding: 56px 20px; }
+    .nav-inner,.topbar-inner { padding: 0 20px; }
+    .services-grid { grid-template-columns: 1fr; }
+    .steps-grid { grid-template-columns: 1fr; }
+    .footer-grid { grid-template-columns: 1fr; }
+    .topbar-links { display: none; }
+    .stats-inner { grid-template-columns: 1fr 1fr; }
+  }
 </style>
 </head>
 <body>
 
-<!-- ── Header ─────────────────────────────────────────────────── -->
-<header>
-  <div class="header-inner">
-    <a href="/" class="logo">
-      <div class="logo-mark">ms</div>
-      <div>
-        <div class="logo-text">myservice</div>
-        <div class="logo-sub">NRS Facilities</div>
-      </div>
-    </a>
-    <nav>
-      <a href="/web#action=&model=request.request&view_type=list" class="hide-mobile">My Requests</a>
-      <a href="/web#action=&model=request.request&view_type=form" class="hide-mobile">New Request</a>
-      <a href="/web/login" class="btn-primary">Sign In</a>
-    </nav>
-  </div>
-</header>
-
-<!-- ── Hero ───────────────────────────────────────────────────── -->
-<section class="hero">
-  <div class="hero-tag"><span></span> NRS Facilities Service Desk</div>
-  <h1>Raise, track &amp; resolve<br/><em>service requests</em> faster.</h1>
-  <p>Log facility, security, and fleet requests from any of our 400+ office locations across Nigeria. Track status in real time.</p>
-
-  <!-- Search -->
-  <div class="search-wrap">
-    <div class="search-box">
-      <div class="search-icon">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-        </svg>
-      </div>
-      <input
-        class="search-input"
-        id="searchInput"
-        type="text"
-        placeholder="Search requests by name, reference or category…"
-        autocomplete="off"
-      />
-      <button class="search-btn" id="searchBtn">Search</button>
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="topbar-left">
+      <span class="topbar-dot"></span>
+      <span>Nigeria Revenue Service — Facilities Management Division</span>
     </div>
-    <div class="search-results" id="searchResults"></div>
-  </div>
-</section>
-
-<!-- ── Stats ──────────────────────────────────────────────────── -->
-<div class="stats" id="statsStrip">
-  <div class="stat-card">
-    <div class="stat-num" id="statOpen">—</div>
-    <div class="stat-label">Open Requests</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-num" id="statProgress">—</div>
-    <div class="stat-label">In Progress</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-num" id="statClosed">—</div>
-    <div class="stat-label">Closed This Month</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-num" id="statLocations">400+</div>
-    <div class="stat-label">Office Locations</div>
+    <div class="topbar-links">
+      <a href="/web/service-desk/new">Emergency: 0800-NRS-HELP</a>
+      <a href="/web/login">Staff Login</a>
+      <a href="/web/service-desk/new?service_id=8">Contact Us</a>
+    </div>
   </div>
 </div>
 
-<!-- ── Service Groups ─────────────────────────────────────────── -->
-<section class="section">
-  <div class="section-title">Service Groups</div>
-  <div class="groups-grid">
-
-    <a class="group-card" href="/web#action=&model=request.request&view_type=form&default_service_group_id=FM">
-      <div class="group-header">
-        <div class="group-icon fm">🏢</div>
-        <div>
-          <div class="group-name">Facility Management</div>
-          <div class="group-desc">Building ops, cleaning, lifts and generator services</div>
-        </div>
-      </div>
-      <div class="group-services">
-        <span class="svc-chip">Building Ops</span>
-        <span class="svc-chip">Cleaning & Janitorial</span>
-        <span class="svc-chip">Lift Services</span>
-        <span class="svc-chip">Generator Services</span>
-      </div>
-      <div class="group-footer">
-        <span>4 services · 23 categories</span>
-        <span class="arrow">Submit →</span>
-      </div>
+<!-- NAVBAR -->
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTM4IiBoZWlnaHQ9IjM1IiB2aWV3Qm94PSIwIDAgMTM4IDM1IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNMTMxLjA3NyAyMS43NzM0SDEzNC42MjdWMjIuODgwOUgxMzIuMzA2VjIzLjk1NjFIMTM0LjYyN1YyNS4wNDMzSDEzMi4zMDZWMjYuNjA3NkgxMzQuNjI3VjI3LjcxOTFIMTMxLjA3N1YyMS43NzM0WiIgZmlsbD0iI0M4M0IxRiIvPgo8cGF0aCBkPSJNMTI5Ljk5NCAyMi44MTM2TDEyOS4xMjcgMjMuNTY5NEMxMjguNTM4IDIzLjAwMDkgMTI3Ljg3NCAyMi43MTY2IDEyNy4xMzggMjIuNzE2NkMxMjYuNTE2IDIyLjcxNjYgMTI1Ljk5MSAyMi45MTA2IDEyNS41NjQgMjMuMjk4NkMxMjUuMTM5IDIzLjY4NjYgMTI0LjkyNyAyNC4xNjQ5IDEyNC45MjcgMjQuNzMzNUMxMjQuOTI3IDI1LjEyOTYgMTI1LjAyMSAyNS40ODEzIDEyNS4yMSAyNS43ODg0QzEyNS4zOTggMjYuMDk1NiAxMjUuNjY1IDI2LjMzNjggMTI2LjAxIDI2LjUxMTlDMTI2LjM1NSAyNi42ODcxIDEyNi43MzggMjYuNzc0NyAxMjcuMTYgMjYuNzc0N0MxMjcuNTE5IDI2Ljc3NDcgMTI3Ljg0OCAyNi43MTQgMTI4LjE0NiAyNi41OTI4QzEyOC40NDMgMjYuNDY4OCAxMjguNzcgMjYuMjQ1MiAxMjkuMTI3IDI1LjkyMThMMTI5Ljk2NyAyNi43MjIxQzEyOS40ODcgMjcuMTUwNiAxMjkuMDMzIDI3LjQ0ODMgMTI4LjYwNSAyNy42MTU0QzEyOC4xNzggMjcuNzc5OCAxMjcuNjkgMjcuODYxOSAxMjcuMTQyIDI3Ljg2MTlDMTI2LjEzMSAyNy44NjE5IDEyNS4zMDMgMjcuNTY5NiAxMjQuNjU3IDI2Ljk4NDhDMTI0LjAxNSAyNi4zOTc0IDEyMy42OTMgMjUuNjQ1NiAxMjMuNjkzIDI0LjcyOTVDMTIzLjY5MyAyNC4xMzY2IDEyMy44MzkgMjMuNjA5OSAxMjQuMTMxIDIzLjE0OTFDMTI0LjQyNiAyMi42ODgzIDEyNC44NDYgMjIuMzE3OCAxMjUuMzkxIDIyLjAzNzVDMTI1LjkzOSAyMS43NTczIDEyNi41MjkgMjEuNjE3MiAxMjcuMTYgMjEuNjE3MkMxMjcuNjk2IDIxLjYxNzIgMTI4LjIxMiAyMS43MjA5IDEyOC43MDcgMjEuOTI4NEMxMjkuMjA1IDIyLjEzNTkgMTI5LjYzNCAyMi40MzEgMTI5Ljk5NCAyMi44MTM2WiIgZmlsbD0iI0M4M0IxRiIvPgo8cGF0aCBkPSJNMTIxLjM4OSAyMS43NzM0SDEyMi42MThWMjcuNzE5MUgxMjEuMzg5VjIxLjc3MzRaIiBmaWxsPSIjQzgzQjFGIi8+CjxwYXRoIGQ9Ik0xMTQuNjQyIDIxLjc3MzRIMTE1LjkxNUwxMTcuNTUxIDI1Ljk5NzJMMTE5LjIwOSAyMS43NzM0SDEyMC40ODJMMTE4LjEzOSAyNy43MTkxSDExNi45NDVMMTE0LjY0MiAyMS43NzM0WiIgZmlsbD0iI0M4M0IxRiIvPgo8cGF0aCBkPSJNMTA5Ljk3MiAyMS43NzM0SDExMS4yODVDMTEyLjAwNCAyMS43NzM0IDExMi41MTUgMjEuODMyNyAxMTIuODE5IDIxLjk1MTNDMTEzLjEyNSAyMi4wNjcxIDExMy4zNzIgMjIuMjYxMiAxMTMuNTU3IDIyLjUzMzNDMTEzLjc0MyAyMi44MDU1IDExMy44MzYgMjMuMTI3NSAxMTMuODM2IDIzLjQ5OTNDMTEzLjgzNiAyMy44OTAxIDExMy43MzMgMjQuMjE3NCAxMTMuNTI2IDI0LjQ4MTVDMTEzLjMyMyAyNC43NDI5IDExMy4wMTUgMjQuOTQwOSAxMTIuNjAyIDI1LjA3NTdMMTE0LjE0MSAyNy43MTkxSDExMi43ODhMMTExLjMyNSAyNS4yMDFIMTExLjIxVjI3LjcxOTFIMTA5Ljk3MlYyMS43NzM0Wk0xMTEuMjEgMjQuMDk3NUgxMTEuNTk5QzExMS45OTQgMjQuMDk3NSAxMTIuMjY1IDI0LjA1MDQgMTEyLjQxMiAyMy45NTYxQzExMi41NjMgMjMuODYxOCAxMTIuNjM4IDIzLjcwNTUgMTEyLjYzOCAyMy40ODcyQzExMi42MzggMjMuMzU3OSAxMTIuNjAxIDIzLjI0NiAxMTIuNTI3IDIzLjE1MTdDMTEyLjQ1MyAyMy4wNTQ3IDExMi4zNTUgMjIuOTg2IDExMi4yMzEgMjIuOTQ1NkMxMTIuMTA3IDIyLjkwMjUgMTExLjg4IDIyLjg4MDkgMTExLjU1IDIyLjg4MDlIMTExLjIxVjI0LjA5NzVaIiBmaWxsPSIjQzgzQjFGIi8+CjxwYXRoIGQ9Ik0xMDUuMTc4IDIxLjc3MzRIMTA4LjcyOFYyMi44ODA5SDEwNi40MDdWMjMuOTU2MUgxMDguNzI4VjI1LjA0MzNIMTA2LjQwN1YyNi42MDc2SDEwOC43MjhWMjcuNzE5MUgxMDUuMTc4VjIxLjc3MzRaIiBmaWxsPSIjQzgzQjFGIi8+CjxwYXRoIGQ9Ik0xMDMuODY0IDIyLjU3NTFMMTAyLjk0OSAyMy4zMTQ4QzEwMi42MjcgMjIuOTA1MiAxMDIuMyAyMi43MDA0IDEwMS45NjcgMjIuNzAwNEMxMDEuODA1IDIyLjcwMDQgMTAxLjY3MiAyMi43NDA4IDEwMS41NjkgMjIuODIxN0MxMDEuNDY2IDIyLjg5OTggMTAxLjQxNCAyMi45ODg3IDEwMS40MTQgMjMuMDg4NEMxMDEuNDE0IDIzLjE4ODEgMTAxLjQ1MSAyMy4yODI1IDEwMS41MjUgMjMuMzcxNEMxMDEuNjI1IDIzLjQ4OTkgMTAxLjkyNyAyMy43NDQ2IDEwMi40MzEgMjQuMTM1M0MxMDIuOTAzIDI0LjQ5NjQgMTAzLjE4OSAyNC43MjQxIDEwMy4yODkgMjQuODE4NEMxMDMuNTQgMjUuMDUwMSAxMDMuNzE2IDI1LjI3MjQgMTAzLjgyIDI1LjQ4NTNDMTAzLjkyNiAyNS42OTU1IDEwMy45NzkgMjUuOTI1OSAxMDMuOTc5IDI2LjE3NjVDMTAzLjk3OSAyNi42NjQyIDEwMy43OTUgMjcuMDY3IDEwMy40MjYgMjcuMzg1QzEwMy4wNTggMjcuNzAzIDEwMi41NzcgMjcuODYxOSAxMDEuOTg1IDI3Ljg2MTlDMTAxLjUyMiAyNy44NjE5IDEwMS4xMTggMjcuNzU4MiAxMDAuNzczIDI3LjU1MDdDMTAwLjQzMSAyNy4zNDMyIDEwMC4xMzggMjcuMDE3MiA5OS44OTM2IDI2LjU3MjZMMTAwLjkzMyAyNS45OTg2QzEwMS4yNDUgMjYuNTI0MSAxMDEuNjA1IDI2Ljc4NjggMTAyLjAxMSAyNi43ODY4QzEwMi4yMjQgMjYuNzg2OCAxMDIuNDAyIDI2LjczMDIgMTAyLjU0NiAyNi42MTdDMTAyLjY5MSAyNi41MDM5IDEwMi43NjMgMjYuMzczMiAxMDIuNzYzIDI2LjIyNUMxMDIuNzYzIDI2LjA5MDIgMTAyLjcwOCAyNS45NTU1IDEwMi41OTkgMjUuODIwOEMxMDIuNDkgMjUuNjg2IDEwMi4yNSAyNS40Nzk5IDEwMS44NzkgMjUuMjAyNEMxMDEuMTcxIDI0LjY3NDIgMTAwLjcxNCAyNC4yNjczIDEwMC41MDggMjMuOTgxN0MxMDAuMzAyIDIzLjY5MzQgMTAwLjE5OSAyMy40MDY0IDEwMC4xOTkgMjMuMTIwOEMxMDAuMTk5IDIyLjcwODUgMTAwLjM3IDIyLjM1NTUgMTAwLjcxMSAyMi4wNjE4QzEwMS4wNTYgMjEuNzY1NCAxMDEuNDgxIDIxLjYxNzIgMTAxLjk4NSAyMS42MTcyQzEwMi4zMDkgMjEuNjE3MiAxMDIuNjE3IDIxLjY4NTkgMTAyLjkwOSAyMS44MjMzQzEwMy4yMDQgMjEuOTYwOCAxMDMuNTIyIDIyLjIxMTMgMTAzLjg2NCAyMi41NzUxWiIgZmlsbD0iI0M4M0IxRiIvPgo8cGF0aCBkPSJNMTMzLjk4IDExLjY0ODRIMTM3LjUzMVYxMi43NTU5SDEzNS4yMVYxMy44MzExSDEzNy41MzFWMTQuOTE4M0gxMzUuMjFWMTYuNDgyNkgxMzcuNTMxVjE3LjU5NDFIMTMzLjk4VjExLjY0ODRaIiBmaWxsPSIjQzgzQjFGIi8+CjxwYXRoIGQ9Ik0xMjguMTM3IDExLjY0ODRIMTI5LjM3OVYxNS40OTYzQzEyOS4zNzkgMTUuODI3OCAxMjkuNDEgMTYuMDYyMiAxMjkuNDcyIDE2LjE5OTZDMTI5LjUzNyAxNi4zMzcxIDEyOS42NDEgMTYuNDQ3NSAxMjkuNzg2IDE2LjUzMTFDMTI5LjkzMyAxNi42MTE5IDEzMC4xMSAxNi42NTIzIDEzMC4zMTYgMTYuNjUyM0MxMzAuNTM1IDE2LjY1MjMgMTMwLjcyMiAxNi42MDY1IDEzMC44NzggMTYuNTE0OUMxMzEuMDM3IDE2LjQyMzMgMTMxLjE0NiAxNi4zMDc0IDEzMS4yMDUgMTYuMTY3M0MxMzEuMjY3IDE2LjAyNDUgMTMxLjI5OCAxNS43NTM3IDEzMS4yOTggMTUuMzU0OVYxMS42NDg0SDEzMi41NFYxNS4xOTMyQzEzMi41NCAxNS43OTE0IDEzMi41MDMgMTYuMjA2NCAxMzIuNDMgMTYuNDM4MUMxMzIuMzU2IDE2LjY2OTggMTMyLjIxNSAxNi44OTM1IDEzMi4wMDUgMTcuMTA5MUMxMzEuNzk5IDE3LjMyNDYgMTMxLjU2IDE3LjQ4NSAxMzEuMjg5IDE3LjU5QzEzMS4wMTggMTcuNjkyNCAxMzAuNzAzIDE3Ljc0MzYgMTMwLjM0MyAxNy43NDM2QzEyOS44NzEgMTcuNzQzNiAxMjkuNDYgMTcuNjQ1MyAxMjkuMTA5IDE3LjQ0ODZDMTI4Ljc2MiAxNy4yNDkyIDEyOC41MTMgMTcuMDAxMyAxMjguMzYyIDE2LjcwNDlDMTI4LjIxMiAxNi40MDU4IDEyOC4xMzcgMTUuOTAxOSAxMjguMTM3IDE1LjE5MzJWMTEuNjQ4NFoiIGZpbGw9IiNDODNCMUYiLz4KPHBhdGggZD0iTTEyMS40NzUgMTEuNjQ4NEgxMjIuNjZMMTI1LjQ0OSAxNS41NjFWMTEuNjQ4NEgxMjYuNjg3VjE3LjU5NDFIMTI1LjQ5OEwxMjIuNzEzIDEzLjY5MzZWMTcuNTk0MUgxMjEuNDc1VjExLjY0ODRaIiBmaWxsPSIjQzgzQjFGIi8+CjxwYXRoIGQ9Ik0xMTYuNzYxIDExLjY0ODRIMTIwLjMxMVYxMi43NTU5SDExNy45OVYxMy44MzExSDEyMC4zMTFWMTQuOTE4M0gxMTcuOTlWMTYuNDgyNkgxMjAuMzExVjE3LjU5NDFIMTE2Ljc2MVYxMS42NDg0WiIgZmlsbD0iI0M4M0IxRiIvPgo8cGF0aCBkPSJNMTA5LjkyOSAxMS42NDg0SDExMS4yMDJMMTEyLjgzOCAxNS44NzIyTDExNC40OTYgMTEuNjQ4NEgxMTUuNzY5TDExMy40MjYgMTcuNTk0MUgxMTIuMjMyTDEwOS45MjkgMTEuNjQ4NFoiIGZpbGw9IiNDODNCMUYiLz4KPHBhdGggZD0iTTEwNS43MSAxMS42NDg0SDEwOS4yNlYxMi43NTU5SDEwNi45MzlWMTMuODMxMUgxMDkuMjZWMTQuOTE4M0gxMDYuOTM5VjE2LjQ4MjZIMTA5LjI2VjE3LjU5NDFIMTA1LjcxVjExLjY0ODRaIiBmaWxsPSIjQzgzQjFGIi8+CjxwYXRoIGQ9Ik0xMDAuNTQgMTEuNjQ4NEgxMDEuODUzQzEwMi41NzIgMTEuNjQ4NCAxMDMuMDg0IDExLjcwNzcgMTAzLjM4NyAxMS44MjYzQzEwMy42OTQgMTEuOTQyMSAxMDMuOTQgMTIuMTM2MiAxMDQuMTI2IDEyLjQwODNDMTA0LjMxMSAxMi42ODA1IDEwNC40MDQgMTMuMDAyNSAxMDQuNDA0IDEzLjM3NDNDMTA0LjQwNCAxMy43NjUxIDEwNC4zMDEgMTQuMDkyNCAxMDQuMDk1IDE0LjM1NjVDMTAzLjg5MSAxNC42MTc5IDEwMy41ODMgMTQuODE1OSAxMDMuMTcxIDE0Ljk1MDdMMTA0LjcwOSAxNy41OTQxSDEwMy4zNTZMMTAxLjg5MyAxNS4wNzZIMTAxLjc3OFYxNy41OTQxSDEwMC41NFYxMS42NDg0Wk0xMDEuNzc4IDEzLjk3MjVIMTAyLjE2N0MxMDIuNTYyIDEzLjk3MjUgMTAyLjgzMyAxMy45MjU0IDEwMi45ODEgMTMuODMxMUMxMDMuMTMxIDEzLjczNjggMTAzLjIwNiAxMy41ODA1IDEwMy4yMDYgMTMuMzYyMkMxMDMuMjA2IDEzLjIzMjkgMTAzLjE2OSAxMy4xMjEgMTAzLjA5NiAxMy4wMjY3QzEwMy4wMjIgMTIuOTI5NyAxMDIuOTIzIDEyLjg2MSAxMDIuNzk5IDEyLjgyMDZDMTAyLjY3NSAxMi43Nzc1IDEwMi40NDkgMTIuNzU1OSAxMDIuMTE4IDEyLjc1NTlIMTAxLjc3OFYxMy45NzI1WiIgZmlsbD0iI0M4M0IxRiIvPgo8cGF0aCBkPSJNMTMxLjc4OCAxLjUzMTI1SDEzMy4wNDRMMTM1LjU0NiA3LjQ3NjlIMTM0LjI2TDEzMy43NTEgNi4yNTIySDEzMS4wOThMMTMwLjU2OCA3LjQ3NjlIMTI5LjI4MUwxMzEuNzg4IDEuNTMxMjVaTTEzMi40MjUgMy4xMDc2TDEzMS41NTggNS4xNDg3NkgxMzMuMjg3TDEzMi40MjUgMy4xMDc2WiIgZmlsbD0iI0M4M0IxRiIvPgo8cGF0aCBkPSJNMTI3LjE4MSAxLjUzMTI1SDEyOC40MVY3LjQ3NjlIMTI3LjE4MVYxLjUzMTI1WiIgZmlsbD0iI0M4M0IxRiIvPgo8cGF0aCBkPSJNMTIyLjA5NyAxLjUzMTI1SDEyMy40MUMxMjQuMTI5IDEuNTMxMjUgMTI0LjY0IDEuNTkwNTMgMTI0Ljk0NCAxLjcwOTA5QzEyNS4yNSAxLjgyNDk2IDEyNS40OTcgMi4wMTg5NyAxMjUuNjgyIDIuMjkxMTNDMTI1Ljg2OCAyLjU2MzI4IDEyNS45NjEgMi44ODUyOSAxMjUuOTYxIDMuMjU3MTVDMTI1Ljk2MSAzLjY0Nzg2IDEyNS44NTggMy45NzUyNiAxMjUuNjUxIDQuMjM5MzNDMTI1LjQ0OCA0LjUwMDcxIDEyNS4xNCA0LjY5ODc2IDEyNC43MjcgNC44MzM0OUwxMjYuMjY2IDcuNDc2OUgxMjQuOTEzTDEyMy40NSA0Ljk1ODc5SDEyMy4zMzVWNy40NzY5SDEyMi4wOTdWMS41MzEyNVpNMTIzLjMzNSAzLjg1NTM1SDEyMy43MjRDMTI0LjExOSAzLjg1NTM1IDEyNC4zOSAzLjgwODE5IDEyNC41MzcgMy43MTM4OEMxMjQuNjg4IDMuNjE5NTcgMTI0Ljc2MyAzLjQ2MzI4IDEyNC43NjMgMy4yNDUwMkMxMjQuNzYzIDMuMTE1NjggMTI0LjcyNiAzLjAwMzg1IDEyNC42NTIgMi45MDk1NEMxMjQuNTc4IDIuODEyNTQgMTI0LjQ4IDIuNzQzODIgMTI0LjM1NiAyLjcwMzRDMTI0LjIzMiAyLjY2MDI5IDEyNC4wMDUgMi42Mzg3MyAxMjMuNjc1IDIuNjM4NzNIMTIzLjMzNVYzLjg1NTM1WiIgZmlsbD0iI0M4M0IxRiIvPgo8cGF0aCBkPSJNMTE3LjMwOCAxLjUzMTI1SDEyMC44NThWMi42Mzg3M0gxMTguNTM3VjMuNzEzODhIMTIwLjg1OFY0LjgwMTE2SDExOC41MzdWNi4zNjUzOEgxMjAuODU4VjcuNDc2OUgxMTcuMzA4VjEuNTMxMjVaIiBmaWxsPSIjQzgzQjFGIi8+CjxwYXRoIGQ9Ik0xMTUuNzAyIDIuNTAyNDJMMTE0LjgzMSAzLjI5MDZDMTE0LjI4IDIuNzU3MDYgMTEzLjYzNyAyLjQ5MDMgMTEyLjkwMyAyLjQ5MDNDMTEyLjI2NCAyLjQ5MDMgMTExLjcyNyAyLjY4NDMxIDExMS4yOTQgMy4wNzIzM0MxMTAuODY0IDMuNDYwMzYgMTEwLjY0OSAzLjkzMTkxIDExMC42NDkgNC40ODdDMTEwLjY0OSA1LjA2MDk1IDExMC44NzMgNS41NDczMyAxMTEuMzIxIDUuOTQ2MTNDMTExLjc2OSA2LjM0NDkzIDExMi4zMjEgNi41NDQzMyAxMTIuOTc5IDYuNTQ0MzNDMTEzLjQwNiA2LjU0NDMzIDExMy43NjYgNi40NjIxNSAxMTQuMDU3IDYuMjk3NzhDMTE0LjM1MiA2LjEzMzQxIDExNC41ODkgNS44NzYwNyAxMTQuNzY5IDUuNTI1NzdIMTEyLjg4NlY0LjQ2Mjc1SDExNi4xNTdMMTE2LjE2NiA0LjcxMzM1QzExNi4xNjYgNS4yMzM0MSAxMTYuMDE5IDUuNzI2NTIgMTE1LjcyNCA2LjE5MjY5QzExNS40MjkgNi42NTg4NiAxMTUuMDQ4IDcuMDE0NTQgMTE0LjU3OSA3LjI1OTc1QzExNC4xMSA3LjUwNDk2IDExMy41NjEgNy42Mjc1NyAxMTIuOTMgNy42Mjc1N0MxMTIuMjU1IDcuNjI3NTcgMTExLjY1MiA3LjQ5NDE4IDExMS4xMjIgNy4yMjc0MkMxMTAuNTk0IDYuOTU3OTYgMTEwLjE3NiA2LjU3NTMyIDEwOS44NjYgNi4wNzk1MUMxMDkuNTYgNS41ODM3MSAxMDkuNDA2IDUuMDQ4ODMgMTA5LjQwNiA0LjQ3NDg4QzEwOS40MDYgMy42ODgwNSAxMDkuNjkxIDMuMDAzNjIgMTEwLjI2IDIuNDIxNThDMTEwLjkzNSAxLjcyOTA3IDExMS44MTMgMS4zODI4MSAxMTIuODk1IDEuMzgyODFDMTEzLjQ2MSAxLjM4MjgxIDExMy45OSAxLjQ3ODQ3IDExNC40ODIgMS42Njk3OUMxMTQuODk3IDEuODMxNDYgMTE1LjMwNCAyLjEwOTAxIDExNS43MDIgMi41MDI0MloiIGZpbGw9IiNDODNCMUYiLz4KPHBhdGggZD0iTTEwNy4wNjggMS41MzEyNUgxMDguMjk3VjcuNDc2OUgxMDcuMDY4VjEuNTMxMjVaIiBmaWxsPSIjQzgzQjFGIi8+CjxwYXRoIGQ9Ik0xMDAuNDY0IDEuNTMxMjVIMTAxLjY0OUwxMDQuNDM5IDUuNDQzODJWMS41MzEyNUgxMDUuNjc3VjcuNDc2OUgxMDQuNDg3TDEwMS43MDIgMy41NzY0NlY3LjQ3NjlIMTAwLjQ2NFYxLjUzMTI1WiIgZmlsbD0iI0M4M0IxRiIvPgo8cGF0aCBkPSJNMi40MDQ4OSAyNy43NjE0SDYuMTYyMzZDNi44MjY0NSAyNy43NjE0IDcuMzY0ODEgMjcuMjIzIDcuMzY0ODEgMjYuNTU4OVYxMi40NjQ3TDIwLjQwMjkgMjYuMjU1M0MyMS4zMTE4IDI3LjIxNjcgMjIuNTc2NCAyNy43NjE0IDIzLjg5OTQgMjcuNzYxNEMyNi4wMjUzIDI3Ljc2MTQgMjcuNzQ4NyAyNi4wMzggMjcuNzQ4NyAyMy45MTJWMi40MDQ4OUMyNy43NDg3IDEuMDc2NzEgMjYuNjcyIDAgMjUuMzQzOSAwSDIxLjk5NjNDMjEuMzMyMyAwIDIwLjc5MzkgMC41MzgzNTQgMjAuNzkzOSAxLjIwMjQ1VjE1LjQyMzVMOC4xOTM3MiAxLjcyMzNDNy4xODM2IDAuNjI1MDAxIDUuNzU5NjQgMCA0LjI2NzQ2IDBDMS45MTA2MSAwIDAgMS45MTA2IDAgNC4yNjc0NlYyNS4zNTY1QzAgMjYuNjg0NyAxLjA3NjcxIDI3Ljc2MTQgMi40MDQ4OSAyNy43NjE0WiIgZmlsbD0iIzcwNzU3QSIvPgo8cGF0aCBkPSJNNTEuNDE0MSAwLjE3MTg3NUM1NC43MzQ1IDAuMTcxODc1IDU3LjQyNjggMi44NjQxMSA1Ny40MjY4IDYuMTg0NTdWMTMuMTg2NUM1Ny40MjY4IDE1Ljc5NTggNTUuMzExNCAxNy45MTEgNTIuNzAyMSAxNy45MTExTDU5IDI3Ljg4MzhINTIuNDI1OEM1MC43NzU2IDI3Ljg4MzggNDkuMjQwNyAyNy4wMzc3IDQ4LjM1OTQgMjUuNjQyNkw0NC44OTI2IDIwLjE1MzNDNDQuMDExNCAxOC43NTgxIDQyLjQ3NjQgMTcuOTExMyA0MC44MjYyIDE3LjkxMTFIMzkuNzVDMzkuMDg1OSAxNy45MTExIDM4LjU0NjkgMTguNDUwMiAzOC41NDY5IDE5LjExNDNWMjYuNjgxNkMzOC41NDY3IDI3LjM0NTUgMzguMDA5NiAyNy44ODM3IDM3LjM0NTcgMjcuODgzOEgzMy44MjAzQzMyLjQ5MjIgMjcuODgzNyAzMS40MTYgMjYuODA2NiAzMS40MTYgMjUuNDc4NVYxLjM3NUMzMS40MTYgMC43MTA5MDcgMzEuOTU0MSAwLjE3MTg3NSAzMi42MTgyIDAuMTcxODc1SDUxLjQxNDFaTTM5LjEwOTQgNy41NTY2NEMzOC40NDUzIDcuNTU2NjQgMzcuOTA2MiA4LjA5NTY3IDM3LjkwNjIgOC43NTk3N1YxMC4wOTI4QzM3LjkwNjIgMTAuNzU2OSAzOC40NDUzIDExLjI5NDkgMzkuMTA5NCAxMS4yOTQ5SDQ5LjI5OThDNDkuOTYzOSAxMS4yOTQ5IDUwLjUwMiAxMC43NTY5IDUwLjUwMiAxMC4wOTI4VjguNzU5NzdDNTAuNTAyIDguMDk1NjcgNDkuOTYzOSA3LjU1NjY0IDQ5LjI5OTggNy41NTY2NEgzOS4xMDk0WiIgZmlsbD0iIzcwNzU3QSIvPgo8cGF0aCBkPSJNODguOTgzMSA2Ljk0OTMzVjEuMzY2NTFDODguOTgzMSAwLjcwMjQxNiA4OC40NDQ4IDAuMTY0MDYyIDg3Ljc4MDcgMC4xNjQwNjJINjcuMzIwM0M2NC4wMTc4IDAuMTY0MDYyIDYxLjMzMzUgMi44Mjc4MyA2MS4zMDgyIDYuMTMwMjFMNjEuMjY4MSAxMS4zNjI2QzYxLjI0MjUgMTQuNzAwOSA2My45NDE3IDE3LjQyMDkgNjcuMjgwMiAxNy40MjA5SDgwLjE5MzRDODAuODAxMyAxNy40MjA5IDgxLjMwMzYgMTcuODk1MSA4MS4zMzg2IDE4LjUwMkM4MS4zNzY2IDE5LjE2MDQgODAuODUyOSAxOS43MTUxIDgwLjE5MzQgMTkuNzE1MUg2Mi41NTY0QzYxLjg5MjMgMTkuNzE1MSA2MS4zNTQgMjAuMjUzNSA2MS4zNTQgMjAuOTE3NlYyNi41MDA1QzYxLjM1NCAyNy4xNjQ2IDYxLjg5MjMgMjcuNzAyOSA2Mi41NTY0IDI3LjcwMjlIODIuOTcwOUM4Ni4yOTE0IDI3LjcwMjkgODguOTgzMSAyNS4wMTExIDg4Ljk4MzEgMjEuNjkwN1YxNi42NzQ1Qzg4Ljk4MzEgMTMuMzU0MSA4Ni4yOTE0IDEwLjY2MjMgODIuOTcwOSAxMC42NjIzSDY5LjU0NzhDNjguODgzNyAxMC42NjIzIDY4LjM0NTMgMTAuMTIzOSA2OC4zNDUzIDkuNDU5ODRWOS4zNTQyM0M2OC4zNDUzIDguNjkwMTMgNjguODgzNyA4LjE1MTc4IDY5LjU0NzggOC4xNTE3OEg4Ny43ODA3Qzg4LjQ0NDggOC4xNTE3OCA4OC45ODMxIDcuNjEzNDMgODguOTgzMSA2Ljk0OTMzWiIgZmlsbD0iIzcwNzU3QSIvPgo8cGF0aCBkPSJNOTQuMzQ4NiAwLjU3ODEyNVYyOC42NDM0IiBzdHJva2U9IiM3MDc1N0EiIHN0cm9rZS13aWR0aD0iMS4yMDI0NSIvPgo8cGF0aCBkPSJNNTAuODE2IDM0LjI3MDFIMC4xMjMwNDdWMzAuMDIzNEg0OC4xMzQ4TDUwLjgxNiAzNC4yNzAxWk0wLjQyNDY3NCAzMy45OTQ0SDUwLjI5MzNMNDcuOTU5OSAzMC4yOTkySDAuNDI0Njc0VjMzLjk5NDRaIiBmaWxsPSIjNzA3NTdBIi8+CjxwYXRoIGQ9Ik01NC4wMTEgMzQuMjcwMUw1MS4zMjkxIDMwLjAyMzRINjEuMzcxM0w2NC4wNTMyIDM0LjI3MDFINTQuMDExWiIgZmlsbD0iI0M4M0IxRiIvPgo8L3N2Zz4K" alt="NRS">
     </a>
+    <ul class="nav-links">
+      <li><a href="#services">Services</a></li>
+      <li><a href="#how-it-works">How It Works</a></li>
+      <li><a href="/my/requests">Track Request</a></li>
+      <li><a href="/web" class="nav-cta">Staff Login →</a></li>
+    </ul>
+  </div>
+</nav>
 
-    <a class="group-card" href="/web#action=&model=request.request&view_type=form&default_service_group_id=SS">
-      <div class="group-header">
-        <div class="group-icon ss">🛡️</div>
-        <div>
-          <div class="group-name">Security & Safety</div>
-          <div class="group-desc">Access control, surveillance, incidents and compliance</div>
-        </div>
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-stripe"></div>
+  <div class="hero-inner">
+    <div>
+      <div class="hero-badge">
+        <span style="width:5px;height:5px;border-radius:50%;background:var(--red);display:inline-block;"></span>
+        Portal Active — 24/7 Service
       </div>
-      <div class="group-services">
-        <span class="svc-chip">Access Control</span>
-        <span class="svc-chip">Surveillance & Patrol</span>
-        <span class="svc-chip">Incident Management</span>
-        <span class="svc-chip">Safety & Compliance</span>
+      <h1>Facilities Support,<br><em>When You Need It</em></h1>
+      <p class="hero-lead">Submit maintenance requests, track resolution progress, and access all NRS facility services — building, fleet, security and more — in one unified portal.</p>
+      <div class="hero-actions">
+        <a href="/web/service-desk/new" class="btn-primary">
+          Submit a Request
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="#how-it-works" class="btn-ghost">How It Works</a>
       </div>
-      <div class="group-footer">
-        <span>4 services · 23 categories</span>
-        <span class="arrow">Submit →</span>
+    </div>
+    <div class="hero-card">
+      <p class="hero-card-label">Track Your Request</p>
+      <div class="track-row">
+        <input class="track-input" id="trackInput" type="text" placeholder="Enter ref. e.g. REQ-0042">
+        <button class="track-btn" id="trackBtn">Track →</button>
       </div>
-    </a>
-
-    <a class="group-card" href="/web#action=&model=request.request&view_type=form&default_service_group_id=FL">
-      <div class="group-header">
-        <div class="group-icon fl">🚗</div>
-        <div>
-          <div class="group-name">Fleet Management</div>
-          <div class="group-desc">Drivers, fuel, insurance, trips and vehicle maintenance</div>
-        </div>
+      <hr class="card-divider">
+      <p class="hero-card-label">Quick Access</p>
+      <div class="quick-grid">
+        <a href="/web/service-desk/new?service_id=3" class="quick-item">
+          <div class="qi-icon">🏗️</div>
+          <div><span class="qi-name">Building</span><span class="qi-sub">Civil & electrical</span></div>
+        </a>
+        <a href="/web/service-desk/new?service_id=7" class="quick-item">
+          <div class="qi-icon">🚗</div>
+          <div><span class="qi-name">Fleet</span><span class="qi-sub">Vehicles & drivers</span></div>
+        </a>
+        <a href="/web/service-desk/new?service_id=5" class="quick-item">
+          <div class="qi-icon">⚙️</div>
+          <div><span class="qi-name">Plant</span><span class="qi-sub">Generators & lifts</span></div>
+        </a>
+        <a href="/web/service-desk/new?service_id=6" class="quick-item">
+          <div class="qi-icon">🛡️</div>
+          <div><span class="qi-name">Security</span><span class="qi-sub">Access & CCTV</span></div>
+        </a>
       </div>
-      <div class="group-services">
-        <span class="svc-chip">Driver Management</span>
-        <span class="svc-chip">Fuel & Lubricants</span>
-        <span class="svc-chip">Fleet Operations</span>
-        <span class="svc-chip">Vehicle Maintenance</span>
-        <span class="svc-chip">Vehicle Registration</span>
-      </div>
-      <div class="group-footer">
-        <span>6 services · 34 categories</span>
-        <span class="arrow">Submit →</span>
-      </div>
-    </a>
-
+    </div>
   </div>
 </section>
 
-<!-- ── Quick Actions ──────────────────────────────────────────── -->
-<section class="section">
-  <div class="section-title">Quick Actions</div>
-  <div class="quick-grid">
-    <a class="quick-card" href="/web#action=&model=request.request&view_type=form">
-      <div class="quick-icon">➕</div>
-      <div>
-        <div class="quick-label">New Request</div>
-        <div class="quick-sub">Log a new facility, security or fleet request</div>
-      </div>
-    </a>
-    <a class="quick-card" href="/web#action=&model=request.request&view_type=list">
-      <div class="quick-icon">📋</div>
-      <div>
-        <div class="quick-label">My Requests</div>
-        <div class="quick-sub">View and track all requests you have submitted</div>
-      </div>
-    </a>
-    <a class="quick-card" href="/web#action=&model=request.request&view_type=list&search=%5B%5B%22stage_type%22%2C%22%3D%22%2C%22opened%22%5D%5D">
-      <div class="quick-icon">🔴</div>
-      <div>
-        <div class="quick-label">Open Requests</div>
-        <div class="quick-sub">All requests currently awaiting action</div>
-      </div>
-    </a>
-    <a class="quick-card" href="/web/login">
-      <div class="quick-icon">🔐</div>
-      <div>
-        <div class="quick-label">Staff Portal</div>
-        <div class="quick-sub">Sign in to access full request management</div>
-      </div>
-    </a>
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat-item"><span class="stat-num" data-target="6">6</span><span class="stat-label">Service Domains</span></div>
+    <div class="stat-item"><span class="stat-num" data-target="83">83</span><span class="stat-label">Request Types</span></div>
+    <div class="stat-item"><span class="stat-num" data-target="1617">1,617</span><span class="stat-label">Fleet Vehicles</span></div>
+    <div class="stat-item"><span class="stat-num">24/7</span><span class="stat-label">Portal Availability</span></div>
+  </div>
+</div>
+
+<!-- ALERT -->
+<div class="alert">
+  <div class="alert-inner">
+    <span class="alert-icon">📋</span>
+    <p class="alert-text"><strong>Portal Launch:</strong> All facility maintenance requests are now managed through this portal. Register your staff account to submit and track requests.</p>
+    <a href="/web/signup" class="alert-btn">Register Now →</a>
+  </div>
+</div>
+
+<!-- SERVICES -->
+<section class="services-bg" id="services">
+  <div class="section-inner">
+    <div class="section-header fade-up">
+      <p class="section-eyebrow">Our Services</p>
+      <h2 class="section-title">What Can We Help<br>You With Today?</h2>
+      <p class="section-lead">Select a service domain to browse available request types and submit a new request.</p>
+    </div>
+    <div class="services-grid">
+      <a href="/web/service-desk/new?service_id=3" class="svc-card fade-up" style="transition-delay:.04s">
+        <div class="svc-icon">🏗️</div>
+        <div class="svc-arrow">→</div>
+        <h3 class="svc-name">Building Services</h3>
+        <p class="svc-desc">Civil works, electrical systems, HVAC, painting, roofing, carpentry, cleaning and grounds maintenance.</p>
+        <span class="svc-count">19 Request Types</span>
+      </a>
+      <a href="/web/service-desk/new?service_id=4" class="svc-card fade-up" style="transition-delay:.08s">
+        <div class="svc-icon">🔩</div>
+        <div class="svc-arrow">→</div>
+        <h3 class="svc-name">Plumbing & Drainage</h3>
+        <p class="svc-desc">Water supply, drainage, sanitation, pump systems, hot water and pipe works across all facilities.</p>
+        <span class="svc-count">11 Request Types</span>
+      </a>
+      <a href="/web/service-desk/new?service_id=5" class="svc-card fade-up" style="transition-delay:.12s">
+        <div class="svc-icon">⚙️</div>
+        <div class="svc-arrow">→</div>
+        <h3 class="svc-name">Plant & Machinery</h3>
+        <p class="svc-desc">Generators, UPS, lifts, HVAC plant, compressors, water treatment and building management systems.</p>
+        <span class="svc-count">16 Request Types</span>
+      </a>
+      <a href="/web/service-desk/new?service_id=6" class="svc-card fade-up" style="transition-delay:.16s">
+        <div class="svc-icon">🛡️</div>
+        <div class="svc-arrow">→</div>
+        <h3 class="svc-name">Security & Safety</h3>
+        <p class="svc-desc">Access control, CCTV, fire systems, guard management, HSE incidents and perimeter security.</p>
+        <span class="svc-count">18 Request Types</span>
+      </a>
+      <a href="/web/service-desk/new?service_id=7" class="svc-card fade-up" style="transition-delay:.20s">
+        <div class="svc-icon">🚗</div>
+        <div class="svc-arrow">→</div>
+        <h3 class="svc-name">Fleet Management</h3>
+        <p class="svc-desc">Vehicle maintenance, fuelling, driver scheduling, registration, insurance and procurement requests.</p>
+        <span class="svc-count">12 Request Types</span>
+      </a>
+      <a href="/web/service-desk/new?service_id=8" class="svc-card fade-up" style="transition-delay:.24s">
+        <div class="svc-icon">💬</div>
+        <div class="svc-arrow">→</div>
+        <h3 class="svc-name">Facilities Helpdesk</h3>
+        <p class="svc-desc">General enquiries, complaints, asset requests, space allocation, vendor issues and budget queries.</p>
+        <span class="svc-count">7 Request Types</span>
+      </a>
+    </div>
   </div>
 </section>
 
-<!-- ── Footer ─────────────────────────────────────────────────── -->
+<!-- HOW IT WORKS -->
+<section id="how-it-works">
+  <div class="section-inner">
+    <div class="section-header fade-up" style="text-align:center;max-width:520px;margin:0 auto 52px;">
+      <p class="section-eyebrow" style="justify-content:center;">How It Works</p>
+      <h2 class="section-title">Four Simple Steps</h2>
+      <p class="section-lead" style="margin:0 auto;">From submitting your request to resolution — here's what to expect.</p>
+    </div>
+    <div class="steps-wrap fade-up">
+      <div class="steps-line"></div>
+      <div class="steps-grid">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h4 class="step-title">Choose a Service</h4>
+          <p class="step-desc">Select the service domain that matches your issue — building, fleet, security or more.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h4 class="step-title">Describe the Issue</h4>
+          <p class="step-desc">Fill in the request form with details, your location, and attach any relevant photos.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h4 class="step-title">Get Assigned</h4>
+          <p class="step-desc">Your request is routed to the right team and you receive a confirmation with a tracking number.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <h4 class="step-title">Track & Resolve</h4>
+          <p class="step-desc">Follow progress in real-time, communicate with the assigned team, and confirm resolution.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="track">
+  <div class="cta-inner">
+    <div>
+      <h2 class="cta-title">Ready to Submit<br>a Request?</h2>
+      <p class="cta-sub">Log in with your NRS staff credentials or register a new account to get started. All requests are tracked and resolved within defined SLA timelines.</p>
+    </div>
+    <div class="cta-btns">
+      <a href="/web/service-desk/new" class="btn-primary">Submit a Request →</a>
+      <a href="/web/login" style="display:inline-flex;align-items:center;gap:8px;background:transparent;color:var(--text-mid);font-family:'Outfit',sans-serif;font-size:14px;font-weight:500;padding:13px 26px;border-radius:7px;text-decoration:none;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-mid)'">Staff Login</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
 <footer>
   <div class="footer-inner">
-    <div class="footer-copy">© 2025 NRS Facilities Service Manager · Powered by myservice.com.ng</div>
-    <div class="footer-links">
-      <a href="/web/login">Staff Login</a>
-      <a href="/web#action=mail.action_discuss">Support Chat</a>
-      <a href="mailto:helpdesk@nrs.gov.ng">Contact</a>
+    <div class="footer-grid">
+      <div>
+        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTM4IiBoZWlnaHQ9IjM1IiB2aWV3Qm94PSIwIDAgMTM4IDM1IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNMTMxLjA3NyAyMS43NzM0SDEzNC42MjdWMjIuODgwOUgxMzIuMzA2VjIzLjk1NjFIMTM0LjYyN1YyNS4wNDMzSDEzMi4zMDZWMjYuNjA3NkgxMzQuNjI3VjI3LjcxOTFIMTMxLjA3N1YyMS43NzM0WiIgZmlsbD0iI0ZGRkZGRiIvPgo8cGF0aCBkPSJNMTI5Ljk5NCAyMi44MTM2TDEyOS4xMjcgMjMuNTY5NEMxMjguNTM4IDIzLjAwMDkgMTI3Ljg3NCAyMi43MTY2IDEyNy4xMzggMjIuNzE2NkMxMjYuNTE2IDIyLjcxNjYgMTI1Ljk5MSAyMi45MTA2IDEyNS41NjQgMjMuMjk4NkMxMjUuMTM5IDIzLjY4NjYgMTI0LjkyNyAyNC4xNjQ5IDEyNC45MjcgMjQuNzMzNUMxMjQuOTI3IDI1LjEyOTYgMTI1LjAyMSAyNS40ODEzIDEyNS4yMSAyNS43ODg0QzEyNS4zOTggMjYuMDk1NiAxMjUuNjY1IDI2LjMzNjggMTI2LjAxIDI2LjUxMTlDMTI2LjM1NSAyNi42ODcxIDEyNi43MzggMjYuNzc0NyAxMjcuMTYgMjYuNzc0N0MxMjcuNTE5IDI2Ljc3NDcgMTI3Ljg0OCAyNi43MTQgMTI4LjE0NiAyNi41OTI4QzEyOC40NDMgMjYuNDY4OCAxMjguNzcgMjYuMjQ1MiAxMjkuMTI3IDI1LjkyMThMMTI5Ljk2NyAyNi43MjIxQzEyOS40ODcgMjcuMTUwNiAxMjkuMDMzIDI3LjQ0ODMgMTI4LjYwNSAyNy42MTU0QzEyOC4xNzggMjcuNzc5OCAxMjcuNjkgMjcuODYxOSAxMjcuMTQyIDI3Ljg2MTlDMTI2LjEzMSAyNy44NjE5IDEyNS4zMDMgMjcuNTY5NiAxMjQuNjU3IDI2Ljk4NDhDMTI0LjAxNSAyNi4zOTc0IDEyMy42OTMgMjUuNjQ1NiAxMjMuNjkzIDI0LjcyOTVDMTIzLjY5MyAyNC4xMzY2IDEyMy44MzkgMjMuNjA5OSAxMjQuMTMxIDIzLjE0OTFDMTI0LjQyNiAyMi42ODgzIDEyNC44NDYgMjIuMzE3OCAxMjUuMzkxIDIyLjAzNzVDMTI1LjkzOSAyMS43NTczIDEyNi41MjkgMjEuNjE3MiAxMjcuMTYgMjEuNjE3MkMxMjcuNjk2IDIxLjYxNzIgMTI4LjIxMiAyMS43MjA5IDEyOC43MDcgMjEuOTI4NEMxMjkuMjA1IDIyLjEzNTkgMTI5LjYzNCAyMi40MzEgMTI5Ljk5NCAyMi44MTM2WiIgZmlsbD0iI0ZGRkZGRiIvPgo8cGF0aCBkPSJNMTIxLjM4OSAyMS43NzM0SDEyMi42MThWMjcuNzE5MUgxMjEuMzg5VjIxLjc3MzRaIiBmaWxsPSIjRkZGRkZGIi8+CjxwYXRoIGQ9Ik0xMTQuNjQyIDIxLjc3MzRIMTE1LjkxNUwxMTcuNTUxIDI1Ljk5NzJMMTE5LjIwOSAyMS43NzM0SDEyMC40ODJMMTE4LjEzOSAyNy43MTkxSDExNi45NDVMMTE0LjY0MiAyMS43NzM0WiIgZmlsbD0iI0ZGRkZGRiIvPgo8cGF0aCBkPSJNMTA5Ljk3MiAyMS43NzM0SDExMS4yODVDMTEyLjAwNCAyMS43NzM0IDExMi41MTUgMjEuODMyNyAxMTIuODE5IDIxLjk1MTNDMTEzLjEyNSAyMi4wNjcxIDExMy4zNzIgMjIuMjYxMiAxMTMuNTU3IDIyLjUzMzNDMTEzLjc0MyAyMi44MDU1IDExMy44MzYgMjMuMTI3NSAxMTMuODM2IDIzLjQ5OTNDMTEzLjgzNiAyMy44OTAxIDExMy43MzMgMjQuMjE3NCAxMTMuNTI2IDI0LjQ4MTVDMTEzLjMyMyAyNC43NDI5IDExMy4wMTUgMjQuOTQwOSAxMTIuNjAyIDI1LjA3NTdMMTE0LjE0MSAyNy43MTkxSDExMi43ODhMMTExLjMyNSAyNS4yMDFIMTExLjIxVjI3LjcxOTFIMTA5Ljk3MlYyMS43NzM0Wk0xMTEuMjEgMjQuMDk3NUgxMTEuNTk5QzExMS45OTQgMjQuMDk3NSAxMTIuMjY1IDI0LjA1MDQgMTEyLjQxMiAyMy45NTYxQzExMi41NjMgMjMuODYxOCAxMTIuNjM4IDIzLjcwNTUgMTEyLjYzOCAyMy40ODcyQzExMi42MzggMjMuMzU3OSAxMTIuNjAxIDIzLjI0NiAxMTIuNTI3IDIzLjE1MTdDMTEyLjQ1MyAyMy4wNTQ3IDExMi4zNTUgMjIuOTg2IDExMi4yMzEgMjIuOTQ1NkMxMTIuMTA3IDIyLjkwMjUgMTExLjg4IDIyLjg4MDkgMTExLjU1IDIyLjg4MDlIMTExLjIxVjI0LjA5NzVaIiBmaWxsPSIjRkZGRkZGIi8+CjxwYXRoIGQ9Ik0xMDUuMTc4IDIxLjc3MzRIMTA4LjcyOFYyMi44ODA5SDEwNi40MDdWMjMuOTU2MUgxMDguNzI4VjI1LjA0MzNIMTA2LjQwN1YyNi42MDc2SDEwOC43MjhWMjcuNzE5MUgxMDUuMTc4VjIxLjc3MzRaIiBmaWxsPSIjRkZGRkZGIi8+CjxwYXRoIGQ9Ik0xMDMuODY0IDIyLjU3NTFMMTAyLjk0OSAyMy4zMTQ4QzEwMi42MjcgMjIuOTA1MiAxMDIuMyAyMi43MDA0IDEwMS45NjcgMjIuNzAwNEMxMDEuODA1IDIyLjcwMDQgMTAxLjY3MiAyMi43NDA4IDEwMS41NjkgMjIuODIxN0MxMDEuNDY2IDIyLjg5OTggMTAxLjQxNCAyMi45ODg3IDEwMS40MTQgMjMuMDg4NEMxMDEuNDE0IDIzLjE4ODEgMTAxLjQ1MSAyMy4yODI1IDEwMS41MjUgMjMuMzcxNEMxMDEuNjI1IDIzLjQ4OTkgMTAxLjkyNyAyMy43NDQ2IDEwMi40MzEgMjQuMTM1M0MxMDIuOTAzIDI0LjQ5NjQgMTAzLjE4OSAyNC43MjQxIDEwMy4yODkgMjQuODE4NEMxMDMuNTQgMjUuMDUwMSAxMDMuNzE2IDI1LjI3MjQgMTAzLjgyIDI1LjQ4NTNDMTAzLjkyNiAyNS42OTU1IDEwMy45NzkgMjUuOTI1OSAxMDMuOTc5IDI2LjE3NjVDMTAzLjk3OSAyNi42NjQyIDEwMy43OTUgMjcuMDY3IDEwMy40MjYgMjcuMzg1QzEwMy4wNTggMjcuNzAzIDEwMi41NzcgMjcuODYxOSAxMDEuOTg1IDI3Ljg2MTlDMTAxLjUyMiAyNy44NjE5IDEwMS4xMTggMjcuNzU4MiAxMDAuNzczIDI3LjU1MDdDMTAwLjQzMSAyNy4zNDMyIDEwMC4xMzggMjcuMDE3MiA5OS44OTM2IDI2LjU3MjZMMTAwLjkzMyAyNS45OTg2QzEwMS4yNDUgMjYuNTI0MSAxMDEuNjA1IDI2Ljc4NjggMTAyLjAxMSAyNi43ODY4QzEwMi4yMjQgMjYuNzg2OCAxMDIuNDAyIDI2LjczMDIgMTAyLjU0NiAyNi42MTdDMTAyLjY5MSAyNi41MDM5IDEwMi43NjMgMjYuMzczMiAxMDIuNzYzIDI2LjIyNUMxMDIuNzYzIDI2LjA5MDIgMTAyLjcwOCAyNS45NTU1IDEwMi41OTkgMjUuODIwOEMxMDIuNDkgMjUuNjg2IDEwMi4yNSAyNS40Nzk5IDEwMS44NzkgMjUuMjAyNEMxMDEuMTcxIDI0LjY3NDIgMTAwLjcxNCAyNC4yNjczIDEwMC41MDggMjMuOTgxN0MxMDAuMzAyIDIzLjY5MzQgMTAwLjE5OSAyMy40MDY0IDEwMC4xOTkgMjMuMTIwOEMxMDAuMTk5IDIyLjcwODUgMTAwLjM3IDIyLjM1NTUgMTAwLjcxMSAyMi4wNjE4QzEwMS4wNTYgMjEuNzY1NCAxMDEuNDgxIDIxLjYxNzIgMTAxLjk4NSAyMS42MTcyQzEwMi4zMDkgMjEuNjE3MiAxMDIuNjE3IDIxLjY4NTkgMTAyLjkwOSAyMS44MjMzQzEwMy4yMDQgMjEuOTYwOCAxMDMuNTIyIDIyLjIxMTMgMTAzLjg2NCAyMi41NzUxWiIgZmlsbD0iI0ZGRkZGRiIvPgo8cGF0aCBkPSJNMTMzLjk4IDExLjY0ODRIMTM3LjUzMVYxMi43NTU5SDEzNS4yMVYxMy44MzExSDEzNy41MzFWMTQuOTE4M0gxMzUuMjFWMTYuNDgyNkgxMzcuNTMxVjE3LjU5NDFIMTMzLjk4VjExLjY0ODRaIiBmaWxsPSIjRkZGRkZGIi8+CjxwYXRoIGQ9Ik0xMjguMTM3IDExLjY0ODRIMTI5LjM3OVYxNS40OTYzQzEyOS4zNzkgMTUuODI3OCAxMjkuNDEgMTYuMDYyMiAxMjkuNDcyIDE2LjE5OTZDMTI5LjUzNyAxNi4zMzcxIDEyOS42NDEgMTYuNDQ3NSAxMjkuNzg2IDE2LjUzMTFDMTI5LjkzMyAxNi42MTE5IDEzMC4xMSAxNi42NTIzIDEzMC4zMTYgMTYuNjUyM0MxMzAuNTM1IDE2LjY1MjMgMTMwLjcyMiAxNi42MDY1IDEzMC44NzggMTYuNTE0OUMxMzEuMDM3IDE2LjQyMzMgMTMxLjE0NiAxNi4zMDc0IDEzMS4yMDUgMTYuMTY3M0MxMzEuMjY3IDE2LjAyNDUgMTMxLjI5OCAxNS43NTM3IDEzMS4yOTggMTUuMzU0OVYxMS42NDg0SDEzMi41NFYxNS4xOTMyQzEzMi41NCAxNS43OTE0IDEzMi41MDMgMTYuMjA2NCAxMzIuNDMgMTYuNDM4MUMxMzIuMzU2IDE2LjY2OTggMTMyLjIxNSAxNi44OTM1IDEzMi4wMDUgMTcuMTA5MUMxMzEuNzk5IDE3LjMyNDYgMTMxLjU2IDE3LjQ4NSAxMzEuMjg5IDE3LjU5QzEzMS4wMTggMTcuNjkyNCAxMzAuNzAzIDE3Ljc0MzYgMTMwLjM0MyAxNy43NDM2QzEyOS44NzEgMTcuNzQzNiAxMjkuNDYgMTcuNjQ1MyAxMjkuMTA5IDE3LjQ0ODZDMTI4Ljc2MiAxNy4yNDkyIDEyOC41MTMgMTcuMDAxMyAxMjguMzYyIDE2LjcwNDlDMTI4LjIxMiAxNi40MDU4IDEyOC4xMzcgMTUuOTAxOSAxMjguMTM3IDE1LjE5MzJWMTEuNjQ4NFoiIGZpbGw9IiNGRkZGRkYiLz4KPHBhdGggZD0iTTEyMS40NzUgMTEuNjQ4NEgxMjIuNjZMMTI1LjQ0OSAxNS41NjFWMTEuNjQ4NEgxMjYuNjg3VjE3LjU5NDFIMTI1LjQ5OEwxMjIuNzEzIDEzLjY5MzZWMTcuNTk0MUgxMjEuNDc1VjExLjY0ODRaIiBmaWxsPSIjRkZGRkZGIi8+CjxwYXRoIGQ9Ik0xMTYuNzYxIDExLjY0ODRIMTIwLjMxMVYxMi43NTU5SDExNy45OVYxMy44MzExSDEyMC4zMTFWMTQuOTE4M0gxMTcuOTlWMTYuNDgyNkgxMjAuMzExVjE3LjU5NDFIMTE2Ljc2MVYxMS42NDg0WiIgZmlsbD0iI0ZGRkZGRiIvPgo8cGF0aCBkPSJNMTA5LjkyOSAxMS42NDg0SDExMS4yMDJMMTEyLjgzOCAxNS44NzIyTDExNC40OTYgMTEuNjQ4NEgxMTUuNzY5TDExMy40MjYgMTcuNTk0MUgxMTIuMjMyTDEwOS45MjkgMTEuNjQ4NFoiIGZpbGw9IiNGRkZGRkYiLz4KPHBhdGggZD0iTTEwNS43MSAxMS42NDg0SDEwOS4yNlYxMi43NTU5SDEwNi45MzlWMTMuODMxMUgxMDkuMjZWMTQuOTE4M0gxMDYuOTM5VjE2LjQ4MjZIMTA5LjI2VjE3LjU5NDFIMTA1LjcxVjExLjY0ODRaIiBmaWxsPSIjRkZGRkZGIi8+CjxwYXRoIGQ9Ik0xMDAuNTQgMTEuNjQ4NEgxMDEuODUzQzEwMi41NzIgMTEuNjQ4NCAxMDMuMDg0IDExLjcwNzcgMTAzLjM4NyAxMS44MjYzQzEwMy42OTQgMTEuOTQyMSAxMDMuOTQgMTIuMTM2MiAxMDQuMTI2IDEyLjQwODNDMTA0LjMxMSAxMi42ODA1IDEwNC40MDQgMTMuMDAyNSAxMDQuNDA0IDEzLjM3NDNDMTA0LjQwNCAxMy43NjUxIDEwNC4zMDEgMTQuMDkyNCAxMDQuMDk1IDE0LjM1NjVDMTAzLjg5MSAxNC42MTc5IDEwMy41ODMgMTQuODE1OSAxMDMuMTcxIDE0Ljk1MDdMMTA0LjcwOSAxNy41OTQxSDEwMy4zNTZMMTAxLjg5MyAxNS4wNzZIMTAxLjc3OFYxNy41OTQxSDEwMC41NFYxMS42NDg0Wk0xMDEuNzc4IDEzLjk3MjVIMTAyLjE2N0MxMDIuNTYyIDEzLjk3MjUgMTAyLjgzMyAxMy45MjU0IDEwMi45ODEgMTMuODMxMUMxMDMuMTMxIDEzLjczNjggMTAzLjIwNiAxMy41ODA1IDEwMy4yMDYgMTMuMzYyMkMxMDMuMjA2IDEzLjIzMjkgMTAzLjE2OSAxMy4xMjEgMTAzLjA5NiAxMy4wMjY3QzEwMy4wMjIgMTIuOTI5NyAxMDIuOTIzIDEyLjg2MSAxMDIuNzk5IDEyLjgyMDZDMTAyLjY3NSAxMi43Nzc1IDEwMi40NDkgMTIuNzU1OSAxMDIuMTE4IDEyLjc1NTlIMTAxLjc3OFYxMy45NzI1WiIgZmlsbD0iI0ZGRkZGRiIvPgo8cGF0aCBkPSJNMTMxLjc4OCAxLjUzMTI1SDEzMy4wNDRMMTM1LjU0NiA3LjQ3NjlIMTM0LjI2TDEzMy43NTEgNi4yNTIySDEzMS4wOThMMTMwLjU2OCA3LjQ3NjlIMTI5LjI4MUwxMzEuNzg4IDEuNTMxMjVaTTEzMi40MjUgMy4xMDc2TDEzMS41NTggNS4xNDg3NkgxMzMuMjg3TDEzMi40MjUgMy4xMDc2WiIgZmlsbD0iI0ZGRkZGRiIvPgo8cGF0aCBkPSJNMTI3LjE4MSAxLjUzMTI1SDEyOC40MVY3LjQ3NjlIMTI3LjE4MVYxLjUzMTI1WiIgZmlsbD0iI0ZGRkZGRiIvPgo8cGF0aCBkPSJNMTIyLjA5NyAxLjUzMTI1SDEyMy40MUMxMjQuMTI5IDEuNTMxMjUgMTI0LjY0IDEuNTkwNTMgMTI0Ljk0NCAxLjcwOTA5QzEyNS4yNSAxLjgyNDk2IDEyNS40OTcgMi4wMTg5NyAxMjUuNjgyIDIuMjkxMTNDMTI1Ljg2OCAyLjU2MzI4IDEyNS45NjEgMi44ODUyOSAxMjUuOTYxIDMuMjU3MTVDMTI1Ljk2MSAzLjY0Nzg2IDEyNS44NTggMy45NzUyNiAxMjUuNjUxIDQuMjM5MzNDMTI1LjQ0OCA0LjUwMDcxIDEyNS4xNCA0LjY5ODc2IDEyNC43MjcgNC44MzM0OUwxMjYuMjY2IDcuNDc2OUgxMjQuOTEzTDEyMy40NSA0Ljk1ODc5SDEyMy4zMzVWNy40NzY5SDEyMi4wOTdWMS41MzEyNVpNMTIzLjMzNSAzLjg1NTM1SDEyMy43MjRDMTI0LjExOSAzLjg1NTM1IDEyNC4zOSAzLjgwODE5IDEyNC41MzcgMy43MTM4OEMxMjQuNjg4IDMuNjE5NTcgMTI0Ljc2MyAzLjQ2MzI4IDEyNC43NjMgMy4yNDUwMkMxMjQuNzYzIDMuMTE1NjggMTI0LjcyNiAzLjAwMzg1IDEyNC42NTIgMi45MDk1NEMxMjQuNTc4IDIuODEyNTQgMTI0LjQ4IDIuNzQzODIgMTI0LjM1NiAyLjcwMzRDMTI0LjIzMiAyLjY2MDI5IDEyNC4wMDUgMi42Mzg3MyAxMjMuNjc1IDIuNjM4NzNIMTIzLjMzNVYzLjg1NTM1WiIgZmlsbD0iI0ZGRkZGRiIvPgo8cGF0aCBkPSJNMTE3LjMwOCAxLjUzMTI1SDEyMC44NThWMi42Mzg3M0gxMTguNTM3VjMuNzEzODhIMTIwLjg1OFY0LjgwMTE2SDExOC41MzdWNi4zNjUzOEgxMjAuODU4VjcuNDc2OUgxMTcuMzA4VjEuNTMxMjVaIiBmaWxsPSIjRkZGRkZGIi8+CjxwYXRoIGQ9Ik0xMTUuNzAyIDIuNTAyNDJMMTE0LjgzMSAzLjI5MDZDMTE0LjI4IDIuNzU3MDYgMTEzLjYzNyAyLjQ5MDMgMTEyLjkwMyAyLjQ5MDNDMTEyLjI2NCAyLjQ5MDMgMTExLjcyNyAyLjY4NDMxIDExMS4yOTQgMy4wNzIzM0MxMTAuODY0IDMuNDYwMzYgMTEwLjY0OSAzLjkzMTkxIDExMC42NDkgNC40ODdDMTEwLjY0OSA1LjA2MDk1IDExMC44NzMgNS41NDczMyAxMTEuMzIxIDUuOTQ2MTNDMTExLjc2OSA2LjM0NDkzIDExMi4zMjEgNi41NDQzMyAxMTIuOTc5IDYuNTQ0MzNDMTEzLjQwNiA2LjU0NDMzIDExMy43NjYgNi40NjIxNSAxMTQuMDU3IDYuMjk3NzhDMTE0LjM1MiA2LjEzMzQxIDExNC41ODkgNS44NzYwNyAxMTQuNzY5IDUuNTI1NzdIMTEyLjg4NlY0LjQ2Mjc1SDExNi4xNTdMMTE2LjE2NiA0LjcxMzM1QzExNi4xNjYgNS4yMzM0MSAxMTYuMDE5IDUuNzI2NTIgMTE1LjcyNCA2LjE5MjY5QzExNS40MjkgNi42NTg4NiAxMTUuMDQ4IDcuMDE0NTQgMTE0LjU3OSA3LjI1OTc1QzExNC4xMSA3LjUwNDk2IDExMy41NjEgNy42Mjc1NyAxMTIuOTMgNy42Mjc1N0MxMTIuMjU1IDcuNjI3NTcgMTExLjY1MiA3LjQ5NDE4IDExMS4xMjIgNy4yMjc0MkMxMTAuNTk0IDYuOTU3OTYgMTEwLjE3NiA2LjU3NTMyIDEwOS44NjYgNi4wNzk1MUMxMDkuNTYgNS41ODM3MSAxMDkuNDA2IDUuMDQ4ODMgMTA5LjQwNiA0LjQ3NDg4QzEwOS40MDYgMy42ODgwNSAxMDkuNjkxIDMuMDAzNjIgMTEwLjI2IDIuNDIxNThDMTEwLjkzNSAxLjcyOTA3IDExMS44MTMgMS4zODI4MSAxMTIuODk1IDEuMzgyODFDMTEzLjQ2MSAxLjM4MjgxIDExMy45OSAxLjQ3ODQ3IDExNC40ODIgMS42Njk3OUMxMTQuODk3IDEuODMxNDYgMTE1LjMwNCAyLjEwOTAxIDExNS43MDIgMi41MDI0MloiIGZpbGw9IiNGRkZGRkYiLz4KPHBhdGggZD0iTTEwNy4wNjggMS41MzEyNUgxMDguMjk3VjcuNDc2OUgxMDcuMDY4VjEuNTMxMjVaIiBmaWxsPSIjRkZGRkZGIi8+CjxwYXRoIGQ9Ik0xMDAuNDY0IDEuNTMxMjVIMTAxLjY0OUwxMDQuNDM5IDUuNDQzODJWMS41MzEyNUgxMDUuNjc3VjcuNDc2OUgxMDQuNDg3TDEwMS43MDIgMy41NzY0NlY3LjQ3NjlIMTAwLjQ2NFYxLjUzMTI1WiIgZmlsbD0iI0ZGRkZGRiIvPgo8cGF0aCBkPSJNMi40MDQ4OSAyNy43NjE0SDYuMTYyMzZDNi44MjY0NSAyNy43NjE0IDcuMzY0ODEgMjcuMjIzIDcuMzY0ODEgMjYuNTU4OVYxMi40NjQ3TDIwLjQwMjkgMjYuMjU1M0MyMS4zMTE4IDI3LjIxNjcgMjIuNTc2NCAyNy43NjE0IDIzLjg5OTQgMjcuNzYxNEMyNi4wMjUzIDI3Ljc2MTQgMjcuNzQ4NyAyNi4wMzggMjcuNzQ4NyAyMy45MTJWMi40MDQ4OUMyNy43NDg3IDEuMDc2NzEgMjYuNjcyIDAgMjUuMzQzOSAwSDIxLjk5NjNDMjEuMzMyMyAwIDIwLjc5MzkgMC41MzgzNTQgMjAuNzkzOSAxLjIwMjQ1VjE1LjQyMzVMOC4xOTM3MiAxLjcyMzNDNy4xODM2IDAuNjI1MDAxIDUuNzU5NjQgMCA0LjI2NzQ2IDBDMS45MTA2MSAwIDAgMS45MTA2IDAgNC4yNjc0NlYyNS4zNTY1QzAgMjYuNjg0NyAxLjA3NjcxIDI3Ljc2MTQgMi40MDQ4OSAyNy43NjE0WiIgZmlsbD0iI0ZGRkZGRiIvPgo8cGF0aCBkPSJNNTEuNDE0MSAwLjE3MTg3NUM1NC43MzQ1IDAuMTcxODc1IDU3LjQyNjggMi44NjQxMSA1Ny40MjY4IDYuMTg0NTdWMTMuMTg2NUM1Ny40MjY4IDE1Ljc5NTggNTUuMzExNCAxNy45MTEgNTIuNzAyMSAxNy45MTExTDU5IDI3Ljg4MzhINTIuNDI1OEM1MC43NzU2IDI3Ljg4MzggNDkuMjQwNyAyNy4wMzc3IDQ4LjM1OTQgMjUuNjQyNkw0NC44OTI2IDIwLjE1MzNDNDQuMDExNCAxOC43NTgxIDQyLjQ3NjQgMTcuOTExMyA0MC44MjYyIDE3LjkxMTFIMzkuNzVDMzkuMDg1OSAxNy45MTExIDM4LjU0NjkgMTguNDUwMiAzOC41NDY5IDE5LjExNDNWMjYuNjgxNkMzOC41NDY3IDI3LjM0NTUgMzguMDA5NiAyNy44ODM3IDM3LjM0NTcgMjcuODgzOEgzMy44MjAzQzMyLjQ5MjIgMjcuODgzNyAzMS40MTYgMjYuODA2NiAzMS40MTYgMjUuNDc4NVYxLjM3NUMzMS40MTYgMC43MTA5MDcgMzEuOTU0MSAwLjE3MTg3NSAzMi42MTgyIDAuMTcxODc1SDUxLjQxNDFaTTM5LjEwOTQgNy41NTY2NEMzOC40NDUzIDcuNTU2NjQgMzcuOTA2MiA4LjA5NTY3IDM3LjkwNjIgOC43NTk3N1YxMC4wOTI4QzM3LjkwNjIgMTAuNzU2OSAzOC40NDUzIDExLjI5NDkgMzkuMTA5NCAxMS4yOTQ5SDQ5LjI5OThDNDkuOTYzOSAxMS4yOTQ5IDUwLjUwMiAxMC43NTY5IDUwLjUwMiAxMC4wOTI4VjguNzU5NzdDNTAuNTAyIDguMDk1NjcgNDkuOTYzOSA3LjU1NjY0IDQ5LjI5OTggNy41NTY2NEgzOS4xMDk0WiIgZmlsbD0iI0ZGRkZGRiIvPgo8cGF0aCBkPSJNODguOTgzMSA2Ljk0OTMzVjEuMzY2NTFDODguOTgzMSAwLjcwMjQxNiA4OC40NDQ4IDAuMTY0MDYyIDg3Ljc4MDcgMC4xNjQwNjJINjcuMzIwM0M2NC4wMTc4IDAuMTY0MDYyIDYxLjMzMzUgMi44Mjc4MyA2MS4zMDgyIDYuMTMwMjFMNjEuMjY4MSAxMS4zNjI2QzYxLjI0MjUgMTQuNzAwOSA2My45NDE3IDE3LjQyMDkgNjcuMjgwMiAxNy40MjA5SDgwLjE5MzRDODAuODAxMyAxNy40MjA5IDgxLjMwMzYgMTcuODk1MSA4MS4zMzg2IDE4LjUwMkM4MS4zNzY2IDE5LjE2MDQgODAuODUyOSAxOS43MTUxIDgwLjE5MzQgMTkuNzE1MUg2Mi41NTY0QzYxLjg5MjMgMTkuNzE1MSA2MS4zNTQgMjAuMjUzNSA2MS4zNTQgMjAuOTE3NlYyNi41MDA1QzYxLjM1NCAyNy4xNjQ2IDYxLjg5MjMgMjcuNzAyOSA2Mi41NTY0IDI3LjcwMjlIODIuOTcwOUM4Ni4yOTE0IDI3LjcwMjkgODguOTgzMSAyNS4wMTExIDg4Ljk4MzEgMjEuNjkwN1YxNi42NzQ1Qzg4Ljk4MzEgMTMuMzU0MSA4Ni4yOTE0IDEwLjY2MjMgODIuOTcwOSAxMC42NjIzSDY5LjU0NzhDNjguODgzNyAxMC42NjIzIDY4LjM0NTMgMTAuMTIzOSA2OC4zNDUzIDkuNDU5ODRWOS4zNTQyM0M2OC4zNDUzIDguNjkwMTMgNjguODgzNyA4LjE1MTc4IDY5LjU0NzggOC4xNTE3OEg4Ny43ODA3Qzg4LjQ0NDggOC4xNTE3OCA4OC45ODMxIDcuNjEzNDMgODguOTgzMSA2Ljk0OTMzWiIgZmlsbD0iI0ZGRkZGRiIvPgo8cGF0aCBkPSJNOTQuMzQ4NiAwLjU3ODEyNVYyOC42NDM0IiBzdHJva2U9IiNGRkZGRkYiIHN0cm9rZS13aWR0aD0iMS4yMDI0NSIvPgo8cGF0aCBkPSJNNTAuODE2IDM0LjI3MDFIMC4xMjMwNDdWMzAuMDIzNEg0OC4xMzQ4TDUwLjgxNiAzNC4yNzAxWk0wLjQyNDY3NCAzMy45OTQ0SDUwLjI5MzNMNDcuOTU5OSAzMC4yOTkySDAuNDI0Njc0VjMzLjk5NDRaIiBmaWxsPSIjRkZGRkZGIi8+CjxwYXRoIGQ9Ik01NC4wMTEgMzQuMjcwMUw1MS4zMjkxIDMwLjAyMzRINjEuMzcxM0w2NC4wNTMyIDM0LjI3MDFINTQuMDExWiIgZmlsbD0iI0ZGRkZGRiIvPgo8L3N2Zz4K" alt="NRS" class="footer-logo">
+        <p class="footer-desc">The official facilities management self-service portal for Nigeria Revenue Service staff. Submit requests, track progress, and stay informed.</p>
+        <a href="https://www.westmetrong.com" target="_blank" class="footer-powered">⚡ Powered by WestMetro Limited</a>
+      </div>
+      <div>
+        <p class="footer-col-title">Services</p>
+        <ul class="footer-links">
+          <li><a href="/web/service-desk/new?service_id=3">Building Services</a></li>
+          <li><a href="/web/service-desk/new?service_id=4">Plumbing & Drainage</a></li>
+          <li><a href="/web/service-desk/new?service_id=5">Plant & Machinery</a></li>
+          <li><a href="/web/service-desk/new?service_id=6">Security & Safety</a></li>
+          <li><a href="/web/service-desk/new?service_id=7">Fleet Management</a></li>
+          <li><a href="/web/service-desk/new?service_id=8">Facilities Helpdesk</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="footer-col-title">Portal</p>
+        <ul class="footer-links">
+          <li><a href="/web/login">Staff Login</a></li>
+          <li><a href="/web/signup">Register</a></li>
+          <li><a href="/my/requests">Track Request</a></li>
+          <li><a href="/knowledge">Knowledge Base</a></li>
+          <li><a href="/knowledge">Service Charter</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="footer-col-title">Support</p>
+        <ul class="footer-links">
+          <li><a href="/knowledge">Help & FAQ</a></li>
+          <li><a href="tel:0800677435">Emergency Line</a></li>
+          <li><a href="/web/service-desk/new?service_id=8">Contact Helpdesk</a></li>
+          <li><a href="/web/service-desk/new?service_id=8">Report an Issue</a></li>
+          <li><a href="/web/service-desk/new">Privacy Policy</a></li>
+        </ul>
+      </div>
+    </div>
+    <hr class="footer-hr">
+    <div class="footer-bottom">
+      <span>© 2026 Nigeria Revenue Service — Facilities Management Division. All rights reserved.</span>
+      <span>Built & managed by <a href="https://www.westmetrong.com">WestMetro Limited</a></span>
     </div>
   </div>
 </footer>
 
-<!-- Toast -->
-<div class="toast" id="toast"></div>
-
 <script>
-// ── Config ──────────────────────────────────────────────────────
-const ODOO_BASE = window.location.origin;  // same origin — Nginx proxies to Odoo
-let sessionUid  = null;
-let searchTimer = null;
+  // Fade-up on scroll
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('in'); });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.fade-up').forEach(el => obs.observe(el));
 
-// ── Helpers ─────────────────────────────────────────────────────
-function toast(msg, duration = 3000) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), duration);
-}
-
-async function rpc(method, params) {
-  const res = await fetch(`${ODOO_BASE}/web/dataset/call_kw`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({
-      jsonrpc: '2.0', method: 'call', id: Date.now(),
-      params: {
-        model:  params.model,
-        method: method,
-        args:   params.args   || [],
-        kwargs: params.kwargs || {},
-      }
-    })
+  // Track request
+  document.getElementById('trackBtn').addEventListener('click', function() {
+    const v = document.getElementById('trackInput').value.trim();
+    if(v) window.location.href = `/web#action=generic_request&search=${encodeURIComponent(v)}`;
   });
-  const json = await res.json();
-  if (json.error) throw new Error(json.error.data?.message || json.error.message);
-  return json.result;
-}
+  document.getElementById('trackInput').addEventListener('keydown', function(e) {
+    if(e.key === 'Enter') document.getElementById('trackBtn').click();
+  });
 
-// ── Session check ────────────────────────────────────────────────
-async function checkSession() {
-  try {
-    const res = await fetch(`${ODOO_BASE}/web/session/get_session_info`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ jsonrpc:'2.0', method:'call', id:1, params:{} })
-    });
-    const json = await res.json();
-    sessionUid = json.result?.uid || null;
-  } catch(e) {
-    sessionUid = null;
+  // Animate stat counters
+  function countUp(el, target) {
+    let start = null;
+    const step = ts => {
+      if(!start) start = ts;
+      const p = Math.min((ts - start) / 1600, 1);
+      const ease = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.floor(ease * target).toLocaleString();
+      if(p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
-}
-
-// ── Stats ────────────────────────────────────────────────────────
-async function loadStats() {
-  if (!sessionUid) return;
-  try {
-    const now = new Date();
-    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-      .toISOString().split('T')[0];
-
-    const [openCount, progressCount, closedCount] = await Promise.all([
-      rpc('search_count', { model:'request.request', args:[[['stage_type_id.code','=','opened']]] }),
-      rpc('search_count', { model:'request.request', args:[[['stage_type_id.code','=','in_progress']]] }),
-      rpc('search_count', { model:'request.request', args:[[['stage_type_id.code','=','closed'],['date_closed','>=',firstOfMonth]]] }),
-    ]);
-    document.getElementById('statOpen').textContent     = openCount.toLocaleString();
-    document.getElementById('statProgress').textContent = progressCount.toLocaleString();
-    document.getElementById('statClosed').textContent   = closedCount.toLocaleString();
-  } catch(e) {
-    // silently skip stats if model fields differ
-  }
-}
-
-// ── Search ────────────────────────────────────────────────────────
-const searchInput   = document.getElementById('searchInput');
-const searchResults = document.getElementById('searchResults');
-const searchBtn     = document.getElementById('searchBtn');
-
-function statusClass(stage) {
-  const s = (stage || '').toLowerCase();
-  if (s.includes('open') || s.includes('new'))      return 'open';
-  if (s.includes('progress') || s.includes('pend')) return 'pending';
-  if (s.includes('close') || s.includes('done'))    return 'closed';
-  return '';
-}
-
-function renderResults(records) {
-  searchResults.innerHTML = '';
-  if (!records.length) {
-    searchResults.innerHTML = '<div class="search-empty">No requests found matching your search.</div>';
-  } else {
-    records.forEach(r => {
-      const cls  = statusClass(r.stage_id?.[1] || '');
-      const item = document.createElement('a');
-      item.className = 'result-item';
-      item.href = `${ODOO_BASE}/web#model=request.request&id=${r.id}&view_type=form`;
-      item.innerHTML = `
-        <span class="result-badge ${cls}">${r.stage_id?.[1] || 'Unknown'}</span>
-        <div>
-          <div class="result-name">${r.name || r.request_text || 'Untitled'}</div>
-          <div class="result-meta">${r.service_id?.[1] || ''} ${r.category_id?.[1] ? '· ' + r.category_id[1] : ''} · #${r.id}</div>
-        </div>`;
-      searchResults.appendChild(item);
-    });
-  }
-  searchResults.classList.add('open');
-}
-
-function renderAuthPrompt() {
-  searchResults.innerHTML = `
-    <div class="auth-prompt">
-      <p>Sign in to search your service requests.</p>
-      <a href="/web/login?redirect=${encodeURIComponent(window.location.href)}">Sign In →</a>
-    </div>`;
-  searchResults.classList.add('open');
-}
-
-function renderLoading() {
-  searchResults.innerHTML = '<div class="search-loading"><div class="spinner"></div> Searching…</div>';
-  searchResults.classList.add('open');
-}
-
-async function doSearch(q) {
-  if (!q.trim()) { searchResults.classList.remove('open'); return; }
-
-  if (!sessionUid) { renderAuthPrompt(); return; }
-
-  renderLoading();
-  try {
-    const domain = ['|', '|',
-      ['name', 'ilike', q],
-      ['request_text', 'ilike', q],
-      ['id', '=', isNaN(q) ? 0 : parseInt(q)]
-    ];
-    const records = await rpc('search_read', {
-      model: 'request.request',
-      args:  [domain],
-      kwargs: {
-        fields: ['id','name','request_text','stage_id','service_id','category_id','type_id'],
-        limit: 10,
-        order: 'id desc',
+  const statsObs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if(e.isIntersecting) {
+        document.querySelectorAll('.stat-num[data-target]').forEach(el => {
+          countUp(el, parseInt(el.dataset.target));
+        });
+        statsObs.disconnect();
       }
     });
-    renderResults(records);
-  } catch(e) {
-    searchResults.innerHTML = `<div class="search-empty">Error: ${e.message}</div>`;
-    searchResults.classList.add('open');
-  }
-}
-
-searchInput.addEventListener('input', () => {
-  clearTimeout(searchTimer);
-  const q = searchInput.value;
-  if (!q.trim()) { searchResults.classList.remove('open'); return; }
-  searchTimer = setTimeout(() => doSearch(q), 380);
-});
-
-searchBtn.addEventListener('click', () => doSearch(searchInput.value));
-
-searchInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter') doSearch(searchInput.value);
-  if (e.key === 'Escape') searchResults.classList.remove('open');
-});
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('.search-wrap')) {
-    searchResults.classList.remove('open');
-  }
-});
-
-// ── Init ─────────────────────────────────────────────────────────
-(async () => {
-  await checkSession();
-  await loadStats();
-})();
+  }, { threshold: 0.5 });
+  const statsBar = document.querySelector('.stats-bar');
+  if(statsBar) statsObs.observe(statsBar);
 </script>
 </body>
 </html>
