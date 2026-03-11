@@ -25,7 +25,7 @@
 # After install:
 #   - Access Odoo at http://myservice.com.ng
 #   - Add SSL:  certbot --nginx -d myservice.com.ng
-#   - Load offices:  OFFICES_CSV=/path/to/file.csv bash scripts/load_all.sh
+#   - Load offices:  OFFICES_CSV=/path/to/file.csv bash /opt/odoo/myservicenrs/load_all.sh
 # ==============================================================================
 
 set -euo pipefail
@@ -160,7 +160,7 @@ fi
 sudo -u "${ODOO_USER}" "${ODOO_VENV}/bin/pip" install --upgrade pip wheel -q
 sudo -u "${ODOO_USER}" "${ODOO_VENV}/bin/pip" install -r "${ODOO_HOME}/odoo/requirements.txt" -q
 # gevent pin for Python 3.10 compatibility
-sudo -u "${ODOO_USER}" "${ODOO_VENV}/bin/pip" install "gevent==21.12.0" "greenlet==1.1.3" -q
+sudo -u "${ODOO_USER}" "${ODOO_VENV}/bin/pip" install "gevent==22.10.2" "greenlet==2.0.2" -q
 log "Python virtualenv ready"
 
 # ------------------------------------------------------------------------------
@@ -345,7 +345,7 @@ sudo -u "${ODOO_USER}" "${ODOO_VENV}/bin/python" "${ODOO_HOME}/odoo/odoo-bin" sh
     -c "${ODOO_CONF}" \
     -d "${DB_NAME}" \
     --no-http << 'PYEOF'
-exec(open('/opt/odoo/myservicenrs/data/itsm_structure.py').read())
+exec(open('/opt/odoo/myservicenrs/itsm_structure.py').read())
 PYEOF
 log "ITSM structure loaded"
 
@@ -357,7 +357,7 @@ sudo -u "${ODOO_USER}" "${ODOO_VENV}/bin/python" "${ODOO_HOME}/odoo/odoo-bin" sh
     -c "${ODOO_CONF}" \
     -d "${DB_NAME}" \
     --no-http << 'PYEOF'
-exec(open('/opt/odoo/myservicenrs/data/load_locations.py').read())
+exec(open('/opt/odoo/myservicenrs/load_locations.py').read())
 PYEOF
 log "Location skeleton loaded"
 
@@ -366,7 +366,7 @@ log "Location skeleton loaded"
 # ------------------------------------------------------------------------------
 step "14/14 — Portal homepage"
 # Copy web assets to Odoo's static directory so they're served directly by Nginx
-STATIC_DIR="${ODOO_HOME}/myservicenrs/web"
+STATIC_DIR="${ODOO_HOME}/myservicenrs"
 if [ -f "${STATIC_DIR}/index.html" ]; then
     cp "${STATIC_DIR}/index.html" /var/www/html/index.html
     log "Portal homepage deployed to /var/www/html/index.html"
@@ -407,7 +407,7 @@ echo -e "${GREEN}║  1. Add SSL:                                         ║${N
 echo -e "${GREEN}║     certbot --nginx -d ${DOMAIN}            ║${NC}"
 echo -e "${GREEN}║  2. Load office sites:                               ║${NC}"
 echo -e "${GREEN}║     OFFICES_CSV=/path/to/offices.csv \\               ║${NC}"
-echo -e "${GREEN}║     bash scripts/load_all.sh                         ║${NC}"
+echo -e "${GREEN}║     bash /opt/odoo/myservicenrs/load_all.sh                         ║${NC}"
 echo -e "${GREEN}║  3. Log in at http://${DOMAIN}/web            ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════════════╝${NC}"
 echo ""
