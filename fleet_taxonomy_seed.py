@@ -28,13 +28,24 @@ print("=" * 70)
 
 # ── Helpers ────────────────────────────────────────────────────────────
 
+def make_code(name):
+    """Generate a short uppercase code from service name."""
+    import re
+    words = re.findall(r'[A-Za-z]+', name)
+    if len(words) >= 2:
+        code = ''.join(w[0] for w in words[:4]).upper()
+    else:
+        code = name[:6].upper().replace(' ', '')
+    return code
+
 def get_or_create_service(name, group_id, existing_id=None):
     if existing_id:
         rec = env['generic.service'].browse(existing_id)
         if rec.exists():
             if rec.name != name:
+                old_name = rec.name
                 rec.write({'name': name})
-                print(f"  ~ Service RENAMED: '{rec.name}' → '{name}' (ID:{existing_id})")
+                print(f"  ~ Service RENAMED: '{old_name}' → '{name}' (ID:{existing_id})")
             else:
                 print(f"  o Service EXISTS:  '{name}' (ID:{existing_id})")
             return rec
@@ -42,8 +53,15 @@ def get_or_create_service(name, group_id, existing_id=None):
     if existing:
         print(f"  o Service EXISTS:  '{name}' (ID:{existing.id})")
         return existing
-    rec = env['generic.service'].create({'name': name, 'service_group_id': group_id})
-    print(f"  + Service NEW:     '{name}' (ID:{rec.id})")
+    # Generate unique code
+    base_code = make_code(name)
+    code = base_code
+    suffix = 1
+    while env['generic.service'].search([('code','=',code)], limit=1):
+        code = f"{base_code}{suffix}"
+        suffix += 1
+    rec = env['generic.service'].create({'name': name, 'service_group_id': group_id, 'code': code})
+    print(f"  + Service NEW:     '{name}' code:{code} (ID:{rec.id})")
     return rec
 
 def get_or_create_category(name, service_ids, existing_id=None):
