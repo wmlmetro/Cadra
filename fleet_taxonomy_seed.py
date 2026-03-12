@@ -121,8 +121,9 @@ def get_or_create_type(name, existing_id=None):
     if ex:
         print(f"    o EXISTS  type: '{name}' (ID:{ex.id})")
         return ex
-    rec = env['request.type'].create({'name': name})
-    print(f"    + NEW     type: '{name}' (ID:{rec.id})")
+    code = _unique_code(name, 'request.type')
+    rec = env['request.type'].create({'name': name, 'code': code})
+    print(f"    + NEW     type: '{name}' [{code}] (ID:{rec.id})")
     return rec
 
 
