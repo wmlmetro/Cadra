@@ -75,8 +75,16 @@
   .nav-cta {
     background: var(--red) !important; color: white !important;
     font-weight: 600 !important; padding: 9px 20px !important;
+    border: none !important;
   }
-  .nav-cta:hover { background: var(--red-dark) !important; }
+  .nav-cta:hover { background: var(--red-dark) !important; box-shadow: 0 4px 14px rgba(200,59,31,0.35) !important; transform: translateY(-1px); }
+  .nav-ghost {
+    background: transparent !important; color: var(--text-mid) !important;
+    font-weight: 500 !important; padding: 8px 18px !important;
+    border: 1px solid var(--border) !important;
+  }
+  .nav-ghost:hover { border-color: var(--red) !important; color: var(--red) !important; background: var(--red-light) !important; }
+  .nav-actions { display: flex; align-items: center; gap: 8px; }
 
   /* HERO */
   .hero {
@@ -349,6 +357,10 @@
     .footer-grid { grid-template-columns: 1fr 1fr; }
     .cta-inner { grid-template-columns: 1fr; }
     .cta-btns { align-items: flex-start; flex-direction: row; }
+    .nav-ghost { display: none; }
+  }
+  @media(max-width:600px){
+    .nav-links { display: none; }
   }
   @media(max-width:600px){
     section { padding: 56px 20px; }
@@ -371,9 +383,9 @@
       <span>Nigeria Revenue Service — Facilities Management Division</span>
     </div>
     <div class="topbar-links">
-      <a href="/web/service-desk/new">Emergency: 0800-NRS-HELP</a>
+      <a href="/requests/new/step/service_group"">Emergency: 0800-NRS-HELP</a>
       <a href="/web/login">Staff Login</a>
-      <a href="/web/service-desk/new?service_id=8">Contact Us</a>
+      <a href="/requests/new/step/category?service_id=8&service_group_id=3">Contact Us</a>
     </div>
   </div>
 </div>
@@ -388,8 +400,16 @@
       <li><a href="#services">Services</a></li>
       <li><a href="#how-it-works">How It Works</a></li>
       <li><a href="/my/requests">Track Request</a></li>
-      <li><a href="/web" class="nav-cta">Staff Login →</a></li>
     </ul>
+    <div class="nav-actions">
+      <a href="/requests/new/step/service_group" class="nav-cta" style="display:inline-flex;align-items:center;gap:7px;border-radius:7px;font-family:'Outfit',sans-serif;font-size:14px;text-decoration:none;cursor:pointer;transition:all 0.2s;white-space:nowrap;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Submit a Request
+      </a>
+      <a href="/web/login" class="nav-ghost" style="display:inline-flex;align-items:center;gap:7px;border-radius:7px;font-family:'Outfit',sans-serif;font-size:14px;text-decoration:none;cursor:pointer;transition:all 0.2s;white-space:nowrap;">
+        Staff Login →
+      </a>
+    </div>
   </div>
 </nav>
 
@@ -405,7 +425,7 @@
       <h1>Facilities Support,<br><em>When You Need It</em></h1>
       <p class="hero-lead">Submit maintenance requests, track resolution progress, and access all NRS facility services — building, fleet, security and more — in one unified portal.</p>
       <div class="hero-actions">
-        <a href="/web/service-desk/new" class="btn-primary">
+        <a href="/requests/new/step/service_group" class="btn-primary">
           Submit a Request
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </a>
@@ -421,19 +441,19 @@
       <hr class="card-divider">
       <p class="hero-card-label">Quick Access</p>
       <div class="quick-grid">
-        <a href="/web/service-desk/new?service_id=3" class="quick-item">
+        <a href="/requests/new/step/category?service_id=3&service_group_id=3" class="quick-item">
           <div class="qi-icon">🏗️</div>
           <div><span class="qi-name">Building</span><span class="qi-sub">Civil & electrical</span></div>
         </a>
-        <a href="/web/service-desk/new?service_id=7" class="quick-item">
+        <a href="/requests/new/step/category?service_id=7&service_group_id=5" class="quick-item">
           <div class="qi-icon">🚗</div>
           <div><span class="qi-name">Fleet</span><span class="qi-sub">Vehicles & drivers</span></div>
         </a>
-        <a href="/web/service-desk/new?service_id=5" class="quick-item">
+        <a href="/requests/new/step/category?service_id=5&service_group_id=3" class="quick-item">
           <div class="qi-icon">⚙️</div>
           <div><span class="qi-name">Plant</span><span class="qi-sub">Generators & lifts</span></div>
         </a>
-        <a href="/web/service-desk/new?service_id=6" class="quick-item">
+        <a href="/requests/new/step/category?service_id=6&service_group_id=4" class="quick-item">
           <div class="qi-icon">🛡️</div>
           <div><span class="qi-name">Security</span><span class="qi-sub">Access & CCTV</span></div>
         </a>
@@ -470,42 +490,42 @@
       <p class="section-lead">Select a service domain to browse available request types and submit a new request.</p>
     </div>
     <div class="services-grid">
-      <a href="/web/service-desk/new?service_id=3" class="svc-card fade-up" style="transition-delay:.04s">
+      <a href="/requests/new/step/category?service_id=3&service_group_id=3" class="svc-card fade-up" style="transition-delay:.04s">
         <div class="svc-icon">🏗️</div>
         <div class="svc-arrow">→</div>
         <h3 class="svc-name">Building Services</h3>
         <p class="svc-desc">Civil works, electrical systems, HVAC, painting, roofing, carpentry, cleaning and grounds maintenance.</p>
         <span class="svc-count">19 Request Types</span>
       </a>
-      <a href="/web/service-desk/new?service_id=4" class="svc-card fade-up" style="transition-delay:.08s">
+      <a href="/requests/new/step/category?service_id=4&service_group_id=3" class="svc-card fade-up" style="transition-delay:.08s">
         <div class="svc-icon">🔩</div>
         <div class="svc-arrow">→</div>
         <h3 class="svc-name">Plumbing & Drainage</h3>
         <p class="svc-desc">Water supply, drainage, sanitation, pump systems, hot water and pipe works across all facilities.</p>
         <span class="svc-count">11 Request Types</span>
       </a>
-      <a href="/web/service-desk/new?service_id=5" class="svc-card fade-up" style="transition-delay:.12s">
+      <a href="/requests/new/step/category?service_id=5&service_group_id=3" class="svc-card fade-up" style="transition-delay:.12s">
         <div class="svc-icon">⚙️</div>
         <div class="svc-arrow">→</div>
         <h3 class="svc-name">Plant & Machinery</h3>
         <p class="svc-desc">Generators, UPS, lifts, HVAC plant, compressors, water treatment and building management systems.</p>
         <span class="svc-count">16 Request Types</span>
       </a>
-      <a href="/web/service-desk/new?service_id=6" class="svc-card fade-up" style="transition-delay:.16s">
+      <a href="/requests/new/step/category?service_id=6&service_group_id=4" class="svc-card fade-up" style="transition-delay:.16s">
         <div class="svc-icon">🛡️</div>
         <div class="svc-arrow">→</div>
         <h3 class="svc-name">Security & Safety</h3>
         <p class="svc-desc">Access control, CCTV, fire systems, guard management, HSE incidents and perimeter security.</p>
         <span class="svc-count">18 Request Types</span>
       </a>
-      <a href="/web/service-desk/new?service_id=7" class="svc-card fade-up" style="transition-delay:.20s">
+      <a href="/requests/new/step/category?service_id=7&service_group_id=5" class="svc-card fade-up" style="transition-delay:.20s">
         <div class="svc-icon">🚗</div>
         <div class="svc-arrow">→</div>
         <h3 class="svc-name">Fleet Management</h3>
         <p class="svc-desc">Vehicle maintenance, fuelling, driver scheduling, registration, insurance and procurement requests.</p>
         <span class="svc-count">12 Request Types</span>
       </a>
-      <a href="/web/service-desk/new?service_id=8" class="svc-card fade-up" style="transition-delay:.24s">
+      <a href="/requests/new/step/category?service_id=8&service_group_id=3" class="svc-card fade-up" style="transition-delay:.24s">
         <div class="svc-icon">💬</div>
         <div class="svc-arrow">→</div>
         <h3 class="svc-name">Facilities Helpdesk</h3>
@@ -560,7 +580,7 @@
       <p class="cta-sub">Log in with your NRS staff credentials or register a new account to get started. All requests are tracked and resolved within defined SLA timelines.</p>
     </div>
     <div class="cta-btns">
-      <a href="/web/service-desk/new" class="btn-primary">Submit a Request →</a>
+      <a href="/requests/new/step/service_group" class="btn-primary">Submit a Request →</a>
       <a href="/web/login" style="display:inline-flex;align-items:center;gap:8px;background:transparent;color:var(--text-mid);font-family:'Outfit',sans-serif;font-size:14px;font-weight:500;padding:13px 26px;border-radius:7px;text-decoration:none;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-mid)'">Staff Login</a>
     </div>
   </div>
@@ -578,12 +598,12 @@
       <div>
         <p class="footer-col-title">Services</p>
         <ul class="footer-links">
-          <li><a href="/web/service-desk/new?service_id=3">Building Services</a></li>
-          <li><a href="/web/service-desk/new?service_id=4">Plumbing & Drainage</a></li>
-          <li><a href="/web/service-desk/new?service_id=5">Plant & Machinery</a></li>
-          <li><a href="/web/service-desk/new?service_id=6">Security & Safety</a></li>
-          <li><a href="/web/service-desk/new?service_id=7">Fleet Management</a></li>
-          <li><a href="/web/service-desk/new?service_id=8">Facilities Helpdesk</a></li>
+          <li><a href="/requests/new/step/category?service_id=3&service_group_id=3">Building Services</a></li>
+          <li><a href="/requests/new/step/service_group"">Plumbing & Drainage</a></li>
+          <li><a href="/requests/new/step/service_group"">Plant & Machinery</a></li>
+          <li><a href="/requests/new/step/service_group"">Security & Safety</a></li>
+          <li><a href="/requests/new/step/category?service_id=7&service_group_id=5">Fleet Management</a></li>
+          <li><a href="/requests/new/step/category?service_id=8&service_group_id=3">Facilities Helpdesk</a></li>
         </ul>
       </div>
       <div>
@@ -601,9 +621,9 @@
         <ul class="footer-links">
           <li><a href="/knowledge">Help & FAQ</a></li>
           <li><a href="tel:0800677435">Emergency Line</a></li>
-          <li><a href="/web/service-desk/new?service_id=8">Contact Helpdesk</a></li>
-          <li><a href="/web/service-desk/new?service_id=8">Report an Issue</a></li>
-          <li><a href="/web/service-desk/new">Privacy Policy</a></li>
+          <li><a href="/requests/new/step/category?service_id=8&service_group_id=3">Contact Helpdesk</a></li>
+          <li><a href="/requests/new/step/category?service_id=8&service_group_id=3">Report an Issue</a></li>
+          <li><a href="/requests/new/step/service_group"">Privacy Policy</a></li>
         </ul>
       </div>
     </div>

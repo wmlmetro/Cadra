@@ -1,0 +1,416 @@
+[
+  {
+    "service_group": "Fleet Management",
+    "service_group_id": 5,
+    "status": "EXISTING",
+    "services": [
+      {
+        "name": "Fleet Operations Management",
+        "status": "NEW",
+        "note": "New service. Trip Scheduling (ID:37) & Type Trip Booking (ID:75) RELOCATED here.",
+        "categories": [
+          {
+            "name": "Vehicle Allocation & Dispatch",
+            "status": "NEW",
+            "types": [
+              {"name": "Vehicle request not assigned", "status": "NEW"},
+              {"name": "No vehicle available", "status": "NEW"},
+              {"name": "Vehicle booking conflict", "status": "NEW"},
+              {"name": "Driver unavailable", "status": "NEW"},
+              {"name": "Last minute transport request", "status": "NEW"},
+              {"name": "Vehicle reassignment", "status": "NEW"},
+              {"name": "Trip cancellation", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Transport Request Management",
+            "existing_id": 37,
+            "status": "MERGED",
+            "note": "Replaces Category 'Trip Scheduling' (ID:37). Broader scope.",
+            "types": [
+              {"name": "Trip Booking", "existing_id": 75, "status": "EXISTING"},
+              {"name": "Staff transport request", "status": "NEW"},
+              {"name": "Logistics transport request", "status": "NEW"},
+              {"name": "Airport pickup request", "status": "NEW"},
+              {"name": "VIP transport request", "status": "NEW"},
+              {"name": "Urgent transport request", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Route Planning & Optimization",
+            "status": "NEW",
+            "types": [
+              {"name": "Route inefficiency", "status": "NEW"},
+              {"name": "Traffic disruption", "status": "NEW"},
+              {"name": "Driver route deviation", "status": "NEW"},
+              {"name": "Delivery delay due to routing", "status": "NEW"},
+              {"name": "Route redesign request", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Vehicle Utilization Monitoring",
+            "status": "NEW",
+            "types": [
+              {"name": "Vehicle underutilization", "status": "NEW"},
+              {"name": "Excessive idle time", "status": "NEW"},
+              {"name": "Unauthorized vehicle use", "status": "NEW"},
+              {"name": "Missing trip logs", "status": "NEW"},
+              {"name": "Fleet capacity shortage", "status": "NEW"}
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Driver Management",
+        "status": "RELOCATED",
+        "note": "Category 'Driver Management' (ID:34) PROMOTED to Service. Types Driver Complaint (ID:71) and Driver Scheduling Request (ID:72) redistributed to sub-categories.",
+        "categories": [
+          {
+            "name": "Driver Administration",
+            "status": "NEW",
+            "types": [
+              {"name": "Driver license expired", "status": "NEW"},
+              {"name": "Missing driver documentation", "status": "NEW"},
+              {"name": "Driver onboarding", "status": "NEW"},
+              {"name": "Driver record update", "status": "NEW"},
+              {"name": "Driver contract renewal", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Driver Scheduling",
+            "status": "NEW",
+            "note": "Absorbs Type 'Driver Scheduling Request' (ID:72) from old Driver Management category.",
+            "types": [
+              {"name": "Driver Scheduling Request", "existing_id": 72, "status": "EXISTING"},
+              {"name": "Driver shift conflict", "status": "NEW"},
+              {"name": "Driver absence", "status": "NEW"},
+              {"name": "Driver overtime approval", "status": "NEW"},
+              {"name": "Driver replacement", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Driver Safety Programs",
+            "status": "NEW",
+            "types": [
+              {"name": "Unsafe driving complaint", "status": "NEW"},
+              {"name": "Driver safety violation", "status": "NEW"},
+              {"name": "Driver training required", "status": "NEW"},
+              {"name": "Safety awareness request", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Driver Performance Monitoring",
+            "status": "NEW",
+            "note": "Absorbs Type 'Driver Complaint' (ID:71) — renamed for clarity.",
+            "types": [
+              {"name": "Driver behavior complaint", "existing_id": 71, "status": "MERGED", "old_name": "Driver Complaint"},
+              {"name": "Speeding violation", "status": "NEW"},
+              {"name": "Harsh braking alert", "status": "NEW"},
+              {"name": "Driver disciplinary review", "status": "NEW"}
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Vehicle Maintenance",
+        "existing_id": 32,
+        "status": "RELOCATED",
+        "note": "Category 'Vehicle Maintenance' (ID:32) PROMOTED to Service. All 4 existing types preserved.",
+        "categories": [
+          {
+            "name": "Preventive Maintenance",
+            "status": "NEW",
+            "note": "Absorbs Type 'Vehicle Preventive Service' (ID:67).",
+            "types": [
+              {"name": "Scheduled vehicle service", "existing_id": 67, "status": "MERGED", "old_name": "Vehicle Preventive Service"},
+              {"name": "Oil change required", "status": "NEW"},
+              {"name": "Tire replacement", "status": "NEW"},
+              {"name": "Brake servicing", "status": "NEW"},
+              {"name": "Battery replacement", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Corrective Maintenance",
+            "status": "NEW",
+            "note": "Absorbs Types Vehicle Breakdown Report (ID:65) and Vehicle Corrective Repair (ID:66).",
+            "types": [
+              {"name": "Vehicle breakdown", "existing_id": 65, "status": "MERGED", "old_name": "Vehicle Breakdown Report"},
+              {"name": "Vehicle corrective repair", "existing_id": 66, "status": "EXISTING"},
+              {"name": "Engine malfunction", "status": "NEW"},
+              {"name": "Electrical fault", "status": "NEW"},
+              {"name": "Cooling system failure", "status": "NEW"},
+              {"name": "Transmission issue", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Maintenance Planning",
+            "status": "NEW",
+            "note": "Absorbs Type 'Vehicle Inspection' (ID:68).",
+            "types": [
+              {"name": "Vehicle inspection", "existing_id": 68, "status": "EXISTING"},
+              {"name": "Missed maintenance schedule", "status": "NEW"},
+              {"name": "Maintenance backlog", "status": "NEW"},
+              {"name": "Maintenance record update", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Spare Parts Management",
+            "status": "NEW",
+            "types": [
+              {"name": "Spare part unavailable", "status": "NEW"},
+              {"name": "Wrong spare part installed", "status": "NEW"},
+              {"name": "Spare part procurement", "status": "NEW"},
+              {"name": "Spare parts inventory shortage", "status": "NEW"}
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Fuel Management",
+        "status": "RELOCATED",
+        "note": "Category 'Fuel & Lubricants' (ID:33) PROMOTED to Service and renamed. Types Fuel Request (ID:69) and Fuel Reconciliation (ID:70) redistributed.",
+        "categories": [
+          {
+            "name": "Fuel Monitoring",
+            "status": "NEW",
+            "types": [
+              {"name": "High fuel consumption", "status": "NEW"},
+              {"name": "Missing fuel data", "status": "NEW"},
+              {"name": "Fuel efficiency drop", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Fuel Fraud Detection",
+            "status": "NEW",
+            "types": [
+              {"name": "Suspected fuel theft", "status": "NEW"},
+              {"name": "Fuel receipt mismatch", "status": "NEW"},
+              {"name": "Fuel card misuse", "status": "NEW"},
+              {"name": "Fuel quantity discrepancy", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Fuel Procurement",
+            "status": "NEW",
+            "note": "Absorbs Type 'Fuel Request' (ID:69).",
+            "types": [
+              {"name": "Fuel request", "existing_id": 69, "status": "EXISTING"},
+              {"name": "Fuel supply delay", "status": "NEW"},
+              {"name": "Vendor fuel shortage", "status": "NEW"},
+              {"name": "Fuel price discrepancy", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Fuel Reporting",
+            "status": "NEW",
+            "note": "Absorbs Type 'Fuel Reconciliation' (ID:70).",
+            "types": [
+              {"name": "Fuel reconciliation issue", "existing_id": 70, "status": "MERGED", "old_name": "Fuel Reconciliation"},
+              {"name": "Fuel report request", "status": "NEW"},
+              {"name": "Missing fuel logs", "status": "NEW"}
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Compliance & Regulatory Management",
+        "status": "NEW",
+        "note": "New service. Absorbs Categories Vehicle Registration (ID:35) and Insurance & Licensing (ID:36) and their types.",
+        "categories": [
+          {
+            "name": "Vehicle Licensing",
+            "existing_id": 35,
+            "status": "MERGED",
+            "note": "Renames Category 'Vehicle Registration' (ID:35) to broader 'Vehicle Licensing'.",
+            "types": [
+              {"name": "Vehicle registration renewal", "existing_id": 73, "status": "EXISTING"},
+              {"name": "Registration expired", "status": "NEW"},
+              {"name": "Missing vehicle documents", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Insurance Management",
+            "existing_id": 36,
+            "status": "MERGED",
+            "note": "Renames Category 'Insurance & Licensing' (ID:36) to 'Insurance Management'. Licensing moved to Vehicle Licensing above.",
+            "types": [
+              {"name": "Insurance renewal", "existing_id": 74, "status": "EXISTING"},
+              {"name": "Insurance expired", "status": "NEW"},
+              {"name": "Insurance claim", "status": "NEW"},
+              {"name": "Accident insurance processing", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Regulatory Compliance",
+            "status": "NEW",
+            "types": [
+              {"name": "Roadworthiness expired", "status": "NEW"},
+              {"name": "Inspection failure", "status": "NEW"},
+              {"name": "Safety compliance violation", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Driver Compliance",
+            "status": "NEW",
+            "types": [
+              {"name": "Driver license expired", "status": "NEW"},
+              {"name": "Medical certificate expired", "status": "NEW"},
+              {"name": "Compliance breach", "status": "NEW"}
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Fleet Safety & Risk Management",
+        "status": "NEW",
+        "categories": [
+          {
+            "name": "Incident Management",
+            "status": "NEW",
+            "types": [
+              {"name": "Vehicle accident", "status": "NEW"},
+              {"name": "Minor collision", "status": "NEW"},
+              {"name": "Accident investigation", "status": "NEW"},
+              {"name": "Vehicle damage report", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Safety Monitoring",
+            "status": "NEW",
+            "types": [
+              {"name": "Speed violation", "status": "NEW"},
+              {"name": "Dangerous driving alert", "status": "NEW"},
+              {"name": "Safety complaint", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Risk Mitigation",
+            "status": "NEW",
+            "types": [
+              {"name": "High risk driver", "status": "NEW"},
+              {"name": "Safety policy violation", "status": "NEW"},
+              {"name": "Risk mitigation intervention", "status": "NEW"}
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Telematics & Technology Services",
+        "status": "NEW",
+        "categories": [
+          {
+            "name": "GPS Tracking",
+            "status": "NEW",
+            "types": [
+              {"name": "GPS device failure", "status": "NEW"},
+              {"name": "Location not updating", "status": "NEW"},
+              {"name": "GPS signal lost", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Telematics Data Analytics",
+            "status": "NEW",
+            "types": [
+              {"name": "Missing telematics data", "status": "NEW"},
+              {"name": "Reporting error", "status": "NEW"},
+              {"name": "Incorrect vehicle data", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Fleet Monitoring Dashboards",
+            "status": "NEW",
+            "types": [
+              {"name": "Dashboard not updating", "status": "NEW"},
+              {"name": "KPI reporting error", "status": "NEW"},
+              {"name": "Missing metrics", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "IoT Sensor Integration",
+            "status": "NEW",
+            "types": [
+              {"name": "Tire pressure sensor failure", "status": "NEW"},
+              {"name": "Engine health sensor issue", "status": "NEW"},
+              {"name": "IoT connectivity problem", "status": "NEW"}
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Reporting & Analytics Services",
+        "status": "NEW",
+        "categories": [
+          {
+            "name": "Operational Reports",
+            "status": "NEW",
+            "types": [
+              {"name": "Fleet utilization report", "status": "NEW"},
+              {"name": "Trip history report", "status": "NEW"},
+              {"name": "Driver report request", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Financial Reports",
+            "status": "NEW",
+            "types": [
+              {"name": "Fleet expense report", "status": "NEW"},
+              {"name": "Maintenance cost analysis", "status": "NEW"},
+              {"name": "Fuel cost summary", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Performance Analytics",
+            "status": "NEW",
+            "types": [
+              {"name": "Driver performance analysis", "status": "NEW"},
+              {"name": "Fleet efficiency analysis", "status": "NEW"},
+              {"name": "Cost per kilometer analysis", "status": "NEW"}
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Emergency & Support Services",
+        "status": "NEW",
+        "categories": [
+          {
+            "name": "Roadside Assistance",
+            "status": "NEW",
+            "types": [
+              {"name": "Vehicle breakdown", "status": "NEW", "note": "Distinct from Corrective Maintenance breakdown — this is roadside/emergency context"},
+              {"name": "Flat tire", "status": "NEW"},
+              {"name": "Battery failure", "status": "NEW"}
+            ]
+          },
+          {
+            "name": "Emergency Response",
+            "status": "NEW",
+            "types": [
+              {"name": "Vehicle accident emergency", "status": "NEW"},
+              {"name": "Driver medical emergency", "status": "NEW"},
+              {"name": "Emergency vehicle dispatch", "status": "NEW"}
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Vehicle Procurement",
+        "existing_id": 38,
+        "status": "RELOCATED",
+        "note": "Category 'Vehicle Procurement' (ID:38) PROMOTED to Service. Type Vehicle Procurement Request (ID:76) preserved.",
+        "categories": [
+          {
+            "name": "Procurement Requests",
+            "status": "NEW",
+            "types": [
+              {"name": "Vehicle procurement request", "existing_id": 76, "status": "EXISTING"},
+              {"name": "Vehicle replacement request", "status": "NEW"},
+              {"name": "New vehicle specification", "status": "NEW"},
+              {"name": "Vendor evaluation request", "status": "NEW"}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]
