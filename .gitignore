@@ -4,4 +4,4 @@
 *~
 .ropeproject/
 .coverage
-htmlcov
+htmlcov.DS_Store

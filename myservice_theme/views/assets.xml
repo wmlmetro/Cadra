@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Backend CSS injected via manifest assets -->
+    <!-- Backend CSS injected via manifest assets — this file is a placeholder
+         kept for compatibility. The actual asset registration is in __manifest__.py -->
 </odoo>
