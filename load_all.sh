@@ -22,11 +22,11 @@ EOF
     echo "  ✅  $1 done."; echo ""
 }
 
-[ "${SKIP_STRUCT:-0}" != "1" ] && run_py "ITSM Structure" "${REPO_DIR}/data/itsm_structure.py"
-[ "${SKIP_LOCS:-0}"   != "1" ] && run_py "Location Skeleton" "${REPO_DIR}/data/load_locations.py"
+[ "${SKIP_STRUCT:-0}" != "1" ] && run_py "ITSM Structure" "${REPO_DIR}/myservicenrs/itsm_structure.py"
+[ "${SKIP_LOCS:-0}"   != "1" ] && run_py "Location Skeleton" "${REPO_DIR}/myservicenrs/load_locations.py"
 
 if [ -n "${OFFICES_CSV:-}" ] && [ -f "${OFFICES_CSV}" ]; then
-    run_py "Office Sites" "${REPO_DIR}/data/load_offices.py" "OFFICES_CSV='${OFFICES_CSV}'"
+    run_py "Office Sites" "${REPO_DIR}/myservicenrs/load_offices.py" "OFFICES_CSV='${OFFICES_CSV}'"
 else
     echo "  ℹ️  Set OFFICES_CSV=/path/to/file.csv to load office sites."
 fi
