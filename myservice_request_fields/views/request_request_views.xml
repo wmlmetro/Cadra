@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Backend form view: add vehicle + enforce location ── -->
+    <record id="view_request_request_form_vehicle_location" model="ir.ui.view">
+        <field name="name">request.request.form.vehicle.location</field>
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.request_request_view_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Insert after the type_id field in the main form sheet -->
+            <xpath expr="//field[@name='category_id']" position="after">
+
+                <!-- Location — always visible, required -->
+                <field
+                    name="generic_location_id"
+                    string="Location"
+                    required="1"
+                    options="{'no_create': True, 'no_open': True}"
+                    placeholder="Search by office, state or zone…"
+                    attrs="{'invisible': [('id', '=', False)]}"
+                />
+
+                <!-- Vehicle — visible only for Fleet service group -->
+                <field
+                    name="vehicle_id"
+                    string="Vehicle"
+                    options="{'no_create': True, 'no_open': True}"
+                    placeholder="Search by plate, chassis or tag…"
+                    attrs="{
+                        'invisible': [('service_id_group', '!=', 'Fleet Management')],
+                        'required': [('service_id_group', '=', 'Fleet Management')]
+                    }"
+                />
+
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ── Backend list view: add columns ── -->
+    <record id="view_request_request_list_vehicle_location" model="ir.ui.view">
+        <field name="name">request.request.list.vehicle.location</field>
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.request_request_view_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='stage_id']" position="before">
+                <field name="generic_location_id" string="Location" optional="show"/>
+                <field name="vehicle_id" string="Vehicle" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

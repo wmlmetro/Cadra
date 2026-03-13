@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<!--
+    Portal request new/edit form — inject location and vehicle fields.
+    The Bureaucrat portal wizard has steps; we inject into step 5 (Request).
+    We also inject into the request detail page for editing.
+-->
+
+<!-- ── Step 5: Request form (new request wizard) ── -->
+<template
+    id="portal_request_fields_step5"
+    inherit_id="generic_request.request_wizard_step_request"
+    name="myservice: Location + Vehicle on Request Step">
+
+    <xpath expr="//div[hasclass('o_portal_request_priority')]" position="before">
+
+        <!-- LOCATION — always required -->
+        <div class="ms-field-group mb-3">
+            <label for="generic_location_id" class="ms-label">
+                <span class="ms-required-star">*</span> Office / Location
+            </label>
+            <select
+                name="generic_location_id"
+                id="generic_location_id"
+                class="form-control ms-select2"
+                required="required">
+                <option value="">— Select your location —</option>
+                <t t-foreach="locations" t-as="loc">
+                    <option
+                        t-att-value="loc.id"
+                        t-att-selected="request.generic_location_id.id == loc.id and 'selected' or None">
+                        <t t-esc="loc.complete_name or loc.name"/>
+                    </option>
+                </t>
+            </select>
+            <small class="form-text text-muted">Select the FIRS office or facility this request is for.</small>
+        </div>
+
+        <!-- VEHICLE — only shown for Fleet service group -->
+        <div class="ms-field-group mb-3" t-if="request.service_id.service_group_id.name == 'Fleet Management'">
+            <label for="vehicle_id" class="ms-label">
+                <span class="ms-required-star">*</span> Vehicle
+            </label>
+            <select
+                name="vehicle_id"
+                id="vehicle_id"
+                class="form-control ms-select2"
+                t-att-required="request.service_id.service_group_id.name == 'Fleet Management' and 'required' or None">
+                <option value="">— Search by plate, chassis or tag —</option>
+                <t t-foreach="fleet_vehicles" t-as="v">
+                    <option
+                        t-att-value="v.id"
+                        t-att-selected="request.vehicle_id.id == v.id and 'selected' or None">
+                        [<t t-esc="v.license_plate or v.vin_sn or '—'"/>] <t t-esc="v.name"/>
+                    </option>
+                </t>
+            </select>
+            <small class="form-text text-muted">Search by license plate, chassis number or vehicle tag.</small>
+        </div>
+
+    </xpath>
+</template>
+
+
+<!-- ── Controller data injection via website controller override ── -->
+<!-- We pass locations + fleet_vehicles to the template via a controller
+     extension — see controllers/portal.py -->
+
+</odoo>

@@ -1,0 +1,61 @@
+/* myservice Portal — Location & Vehicle field styles */
+
+.ms-field-group {
+    margin-bottom: 1.2rem;
+}
+
+.ms-label {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: #1A1A1A;
+    margin-bottom: 6px;
+    display: block;
+}
+
+.ms-required-star {
+    color: #E85426;
+    margin-right: 3px;
+}
+
+.ms-select2 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    border: 1.5px solid #ddd;
+    border-radius: 6px;
+    padding: 8px 12px;
+    width: 100%;
+    color: #1C1C1C;
+    background-color: #fff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    appearance: auto;
+}
+
+.ms-select2:focus {
+    border-color: #E85426;
+    box-shadow: 0 0 0 3px rgba(232, 84, 38, 0.15);
+    outline: none;
+}
+
+/* Select2 JS enhancement (if Select2 is available on portal) */
+.select2-container--default .select2-selection--single {
+    border: 1.5px solid #ddd;
+    border-radius: 6px;
+    height: 40px;
+    padding: 4px 8px;
+}
+
+.select2-container--default.select2-container--focus .select2-selection--single,
+.select2-container--default.select2-container--open .select2-selection--single {
+    border-color: #E85426;
+    box-shadow: 0 0 0 3px rgba(232, 84, 38, 0.15);
+}
+
+.select2-container--default .select2-results__option--highlighted {
+    background-color: #E85426 !important;
+}
+
+.select2-container--default .select2-search__field:focus {
+    border-color: #E85426 !important;
+    outline: none;
+}
