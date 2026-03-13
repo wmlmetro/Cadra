@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --ms-orange:       #E85426;
+    --ms-orange-dark:  #c94420;
+    --ms-orange-light: #fdf1ed;
+    --ms-dark:         #1A1A1A;
+    --ms-body:         #1C1C1C;
+    --ms-gray:         #F4F4F4;
+    --ms-white:        #FFFFFF;
+}
+
+body, .o_web_client, .o_action_manager, .o_form_view, .o_list_view, .o_kanban_view {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    color: var(--ms-body);
+}
+.o_main_navbar { background-color: var(--ms-dark) !important; border-bottom: 3px solid var(--ms-orange) !important; color: var(--ms-white) !important; height: 50px !important; }
+.o_main_navbar .o_menu_brand { color: var(--ms-white) !important; font-family: 'Outfit', sans-serif !important; font-weight: 600 !important; font-size: 16px !important; }
+.o_main_navbar .o_menu_toggle, .o_main_navbar .o_navbar_apps_menu, .o_main_navbar > ul > li > a, .o_main_navbar .o_user_menu > a { color: rgba(255,255,255,0.85) !important; }
+.o_main_navbar .o_menu_toggle:hover, .o_main_navbar .o_navbar_apps_menu:hover, .o_main_navbar > ul > li > a:hover, .o_main_navbar .o_user_menu > a:hover { color: var(--ms-orange) !important; background-color: rgba(232,84,38,0.12) !important; }
+.o_home_menu { background-color: var(--ms-dark) !important; }
+.o_home_menu .o_app:hover .o_app_icon, .o_home_menu .o_app.o_focused .o_app_icon { border: 2px solid var(--ms-orange) !important; box-shadow: 0 0 0 3px rgba(232,84,38,0.25) !important; }
+.o_home_menu .o_app .o_caption { color: var(--ms-white) !important; font-family: 'Outfit', sans-serif !important; }
+.o_menu_sections .o_nav_entry:hover, .o_menu_sections > .o_dropdown:hover > .o_dropdown_toggler, .o_menu_sections .o_nav_entry.active { color: var(--ms-orange) !important; background-color: rgba(232,84,38,0.08) !important; border-bottom: 2px solid var(--ms-orange) !important; }
+.btn-primary, .o_form_button_save, .o_statusbar_buttons .btn-primary { background-color: var(--ms-orange) !important; border-color: var(--ms-orange) !important; color: var(--ms-white) !important; font-family: 'Outfit', sans-serif !important; font-weight: 600 !important; border-radius: 6px !important; }
+.btn-primary:hover, .o_form_button_save:hover { background-color: var(--ms-orange-dark) !important; border-color: var(--ms-orange-dark) !important; }
+.btn-primary:focus, .o_form_button_save:focus { box-shadow: 0 0 0 3px rgba(232,84,38,0.3) !important; }
+.btn-secondary { border-color: var(--ms-orange) !important; color: var(--ms-orange) !important; background-color: transparent !important; font-family: 'Outfit', sans-serif !important; font-weight: 500 !important; border-radius: 6px !important; }
+.btn-secondary:hover { background-color: var(--ms-orange-light) !important; }
+.o_form_view .o_form_sheet { border-radius: 8px !important; box-shadow: 0 2px 12px rgba(0,0,0,0.07) !important; }
+.o_field_widget input:focus, .o_field_widget textarea:focus, .o_field_widget select:focus { border-color: var(--ms-orange) !important; box-shadow: 0 0 0 2px rgba(232,84,38,0.2) !important; outline: none !important; }
+.o_list_view thead th { background-color: var(--ms-dark) !important; color: var(--ms-white) !important; font-family: 'Outfit', sans-serif !important; font-weight: 600 !important; font-size: 12.5px !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; }
+.o_list_view tbody tr:hover td { background-color: var(--ms-orange-light) !important; }
+.o_list_view .o_data_row.o_selected_row td { background-color: rgba(232,84,38,0.1) !important; }
+.o_kanban_record { border-radius: 8px !important; border-top: 3px solid transparent !important; transition: border-color 0.2s, box-shadow 0.2s !important; }
+.o_kanban_record:hover { border-top-color: var(--ms-orange) !important; box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important; }
+.o_breadcrumb .o_back_button, .o_breadcrumb .breadcrumb-item a { color: var(--ms-orange) !important; font-family: 'Outfit', sans-serif !important; }
+.o_breadcrumb .breadcrumb-item.active { color: var(--ms-body) !important; font-family: 'Outfit', sans-serif !important; font-weight: 600 !important; }
+.o_mail_thread .o_message_author { color: var(--ms-orange) !important; font-weight: 600 !important; }
+.o_searchview .o_searchview_input:focus { border-color: var(--ms-orange) !important; box-shadow: 0 0 0 2px rgba(232,84,38,0.2) !important; }
+.o_searchview .o_facet_label { background-color: var(--ms-orange) !important; color: var(--ms-white) !important; border-radius: 4px !important; }
+.badge.badge-primary, .o_tag.o_tag_color_0 { background-color: var(--ms-orange) !important; color: var(--ms-white) !important; }
+a, .o_form_uri { color: var(--ms-orange) !important; }
+a:hover, .o_form_uri:hover { color: var(--ms-orange-dark) !important; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--ms-gray); }
+::-webkit-scrollbar-thumb { background: var(--ms-orange); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ms-orange-dark); }
