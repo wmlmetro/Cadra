@@ -1,27 +1,11 @@
 from odoo import http
 from odoo.http import request
-from odoo.addons.generic_request.controllers.website_request import WebsiteRequestController
 
 
-class MyServiceRequestController(WebsiteRequestController):
+class MyServiceRequestController(http.Controller):
     """
-    Extend the Bureaucrat portal controller to inject:
-    - locations: all generic.location records (for dropdown)
-    - fleet_vehicles: all fleet.vehicle records (for dropdown)
-    into the request wizard template context.
+    Portal controller extension placeholder.
+    Vehicle and location fields are handled via backend form views.
+    Portal injection to be added when Bureaucrat portal controller is identified.
     """
-
-    def _get_request_wizard_context(self, req, **kw):
-        ctx = super()._get_request_wizard_context(req, **kw)
-
-        # All locations — ordered by complete_name for grouped display
-        ctx['locations'] = request.env['generic.location'].sudo().search(
-            [], order='complete_name asc'
-        )
-
-        # All fleet vehicles — ordered by license plate
-        ctx['fleet_vehicles'] = request.env['fleet.vehicle'].sudo().search(
-            [], order='license_plate asc'
-        )
-
-        return ctx
+    pass
