@@ -1,20 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-
-    <!-- Service Vendors under Fleet menu -->
     <menuitem
         id="menu_fleet_service_vendors"
         name="Service Vendors"
-        parent="fleet.fleet_root"
+        parent="fleet.menu_root"
         action="action_fleet_service_vendor"
         sequence="30"/>
 
-    <!-- Maintenance Dashboard under Fleet menu -->
     <menuitem
         id="menu_fleet_maintenance_dashboard"
         name="Maintenance Due"
-        parent="fleet.fleet_root"
+        parent="fleet.menu_root"
         action="action_fleet_maintenance_dashboard"
         sequence="25"/>
-
 </odoo>
