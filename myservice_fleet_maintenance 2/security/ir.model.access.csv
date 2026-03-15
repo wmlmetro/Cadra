@@ -1,4 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_fleet_service_vendor_manager,fleet.service.vendor manager,model_fleet_service_vendor,fleet.fleet_group_manager,1,1,1,1
-access_fleet_service_vendor_user,fleet.service.vendor user,model_fleet_service_vendor,fleet.fleet_group_user,1,0,0,0
-access_fleet_service_vendor_public,fleet.service.vendor public,model_fleet_service_vendor,,1,0,0,0
