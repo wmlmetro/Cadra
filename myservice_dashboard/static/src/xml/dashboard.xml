@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates>
+
+<t t-name="myservice_dashboard.Dashboard">
+    <div class="ms-dashboard">
+
+        <!-- Header -->
+        <div class="ms-dash-header">
+            <div>
+                <h1><span>myservice</span> Operations Dashboard</h1>
+                <div class="ms-dash-subtitle">NRS Facilities Management Platform</div>
+            </div>
+            <button class="ms-dash-refresh" t-on-click="loadData">
+                <i class="fa fa-refresh"/> Refresh
+            </button>
+        </div>
+
+        <!-- KPI Row -->
+        <div class="ms-kpi-row">
+            <div class="ms-kpi-card orange" t-on-click="() => openList('fleet.vehicle', [])">
+                <div class="ms-kpi-value" t-esc="state.kpis.fleet.total || 0"/>
+                <div class="ms-kpi-label">Total Vehicles</div>
+                <i class="fa fa-car ms-kpi-icon"/>
+            </div>
+            <div class="ms-kpi-card red" t-on-click="() => openList('fleet.vehicle', [['maintenance_status','=','overdue']])">
+                <div class="ms-kpi-value" t-esc="state.kpis.fleet.overdue || 0"/>
+                <div class="ms-kpi-label">Maintenance Overdue</div>
+                <i class="fa fa-exclamation-triangle ms-kpi-icon"/>
+            </div>
+            <div class="ms-kpi-card orange" t-on-click="() => openList('fleet.vehicle', [['maintenance_status','=','due_soon']])">
+                <div class="ms-kpi-value" t-esc="state.kpis.fleet.due_soon || 0"/>
+                <div class="ms-kpi-label">Due Soon</div>
+                <i class="fa fa-clock-o ms-kpi-icon"/>
+            </div>
+            <div class="ms-kpi-card blue" t-on-click="() => openList('generic.location', [])">
+                <div class="ms-kpi-value" t-esc="state.kpis.locations.total || 0"/>
+                <div class="ms-kpi-label">FIRS Locations</div>
+                <i class="fa fa-map-marker ms-kpi-icon"/>
+            </div>
+            <div class="ms-kpi-card teal" t-on-click="() => openList('request.request', [['stage_id.closed','=',false]])">
+                <div class="ms-kpi-value" t-esc="state.kpis.requests.open || 0"/>
+                <div class="ms-kpi-label">Open Requests</div>
+                <i class="fa fa-ticket ms-kpi-icon"/>
+            </div>
+            <div class="ms-kpi-card green" t-on-click="() => openList('fleet.service.vendor', [['is_approved','=',true]])">
+                <div class="ms-kpi-value" t-esc="state.kpis.vendors.approved || 0"/>
+                <div class="ms-kpi-label">Approved Vendors</div>
+                <i class="fa fa-wrench ms-kpi-icon"/>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="ms-dash-body">
+
+            <!-- Map Panel -->
+            <div class="ms-map-panel">
+                <div class="ms-map-toolbar">
+                    <span><i class="fa fa-globe"/> Nigeria Operations Map</span>
+                    <button class="ms-filter-btn all active" data-filter="all">All</button>
+                    <button class="ms-filter-btn location" data-filter="location">FIRS Offices</button>
+                    <button class="ms-filter-btn vehicle" data-filter="vehicle">Fleet</button>
+                </div>
+                <div id="ms-map">
+                    <div class="ms-loading">
+                        <div class="ms-spinner"/>
+                        Loading map...
+                    </div>
+                </div>
+                <div class="ms-legend">
+                    <div class="ms-legend-item">
+                        <div class="ms-legend-dot" style="background:#007bff"/>
+                        FIRS Office
+                    </div>
+                    <div class="ms-legend-item">
+                        <div class="ms-legend-dot" style="background:#28a745"/>
+                        Vehicle OK
+                    </div>
+                    <div class="ms-legend-item">
+                        <div class="ms-legend-dot" style="background:#ffc107"/>
+                        Maintenance Due
+                    </div>
+                    <div class="ms-legend-item">
+                        <div class="ms-legend-dot" style="background:#dc3545"/>
+                        Overdue
+                    </div>
+                    <div class="ms-legend-item">
+                        <div class="ms-legend-dot" style="background:#6c757d"/>
+                        No Schedule
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side Panel -->
+            <div class="ms-side-panel">
+
+                <!-- Fleet Status -->
+                <div class="ms-panel-card">
+                    <div class="ms-panel-title">
+                        <i class="fa fa-car"/> Fleet Status
+                    </div>
+                    <div class="ms-status-bar">
+                        <div class="ms-status-row">
+                            <span>
+                                <span class="ms-status-dot" style="background:#28a745"/>
+                                OK / Active
+                            </span>
+                            <span class="ms-status-count" t-esc="state.kpis.fleet.ok || 0"/>
+                        </div>
+                        <div class="ms-status-row">
+                            <span>
+                                <span class="ms-status-dot" style="background:#ffc107"/>
+                                Due Soon
+                            </span>
+                            <span class="ms-status-count" t-esc="state.kpis.fleet.due_soon || 0"/>
+                        </div>
+                        <div class="ms-status-row">
+                            <span>
+                                <span class="ms-status-dot" style="background:#dc3545"/>
+                                Overdue
+                            </span>
+                            <span class="ms-status-count" t-esc="state.kpis.fleet.overdue || 0"/>
+                        </div>
+                        <div class="ms-status-row">
+                            <span>
+                                <span class="ms-status-dot" style="background:#6c757d"/>
+                                No Schedule
+                            </span>
+                            <span class="ms-status-count" t-esc="state.kpis.fleet.no_schedule || 0"/>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Location Coverage -->
+                <div class="ms-panel-card">
+                    <div class="ms-panel-title">
+                        <i class="fa fa-map-marker"/> Location Coverage
+                    </div>
+                    <div class="ms-status-bar">
+                        <div class="ms-status-row">
+                            <span>Total Locations</span>
+                            <span class="ms-status-count" t-esc="state.kpis.locations.total || 0"/>
+                        </div>
+                        <div class="ms-status-row">
+                            <span>Mapped on GPS</span>
+                            <span class="ms-status-count" t-esc="state.kpis.locations.mapped || 0"/>
+                        </div>
+                        <div class="ms-status-row">
+                            <span>Open Requests</span>
+                            <span class="ms-status-count" t-esc="state.kpis.requests.open || 0"/>
+                        </div>
+                        <div class="ms-status-row">
+                            <span>Today's Requests</span>
+                            <span class="ms-status-count" t-esc="state.kpis.requests.today || 0"/>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Requests -->
+                <div class="ms-panel-card" style="flex:1; overflow:hidden; display:flex; flex-direction:column;">
+                    <div class="ms-panel-title">
+                        <i class="fa fa-ticket"/> Recent Open Requests
+                    </div>
+                    <div class="ms-request-list" style="overflow-y:auto; flex:1;">
+                        <t t-if="state.mapData.recent_requests and state.mapData.recent_requests.length">
+                            <t t-foreach="state.mapData.recent_requests" t-as="req" t-key="req.id">
+                                <div class="ms-request-item" t-on-click="() => openRecord('request.request', req.id)">
+                                    <div class="ms-request-name">
+                                        <t t-esc="req.name"/>
+                                        <t t-if="req.is_maintenance">
+                                            <span class="ms-request-badge">MAINT</span>
+                                        </t>
+                                    </div>
+                                    <div class="ms-request-meta">
+                                        <t t-esc="req.service"/> •
+                                        <t t-esc="req.location || 'No location'"/> •
+                                        <t t-esc="req.date"/>
+                                    </div>
+                                </div>
+                            </t>
+                        </t>
+                        <t t-else="">
+                            <div style="padding:16px; text-align:center; color:#888; font-size:13px;">
+                                No open requests
+                            </div>
+                        </t>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</t>
+
+</templates>

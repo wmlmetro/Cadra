@@ -1,0 +1,339 @@
+/* ================================================================
+   myservice Operations Dashboard
+   NRS Facilities Management | WestMetro Limited
+   ================================================================ */
+
+.ms-dashboard {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #F4F4F4;
+    min-height: 100vh;
+    padding: 0;
+}
+
+/* ── Header ─────────────────────────────────────────────────────── */
+.ms-dash-header {
+    background: #1A1A1A;
+    border-bottom: 3px solid #E85426;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.ms-dash-header h1 {
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: 0.3px;
+}
+.ms-dash-header h1 span {
+    color: #E85426;
+}
+.ms-dash-header .ms-dash-subtitle {
+    color: rgba(255,255,255,0.5);
+    font-size: 12px;
+    margin-top: 2px;
+}
+.ms-dash-refresh {
+    background: rgba(232,84,38,0.15);
+    border: 1px solid #E85426;
+    color: #E85426;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+.ms-dash-refresh:hover {
+    background: #E85426;
+    color: #fff;
+}
+
+/* ── KPI Cards ──────────────────────────────────────────────────── */
+.ms-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    padding: 16px 24px 8px;
+}
+@media (max-width: 1200px) {
+    .ms-kpi-row { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 768px) {
+    .ms-kpi-row { grid-template-columns: repeat(2, 1fr); }
+}
+.ms-kpi-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 16px 18px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    border-left: 4px solid #E85426;
+    position: relative;
+    overflow: hidden;
+}
+.ms-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+.ms-kpi-card.orange { border-left-color: #E85426; }
+.ms-kpi-card.red    { border-left-color: #dc3545; }
+.ms-kpi-card.green  { border-left-color: #28a745; }
+.ms-kpi-card.blue   { border-left-color: #007bff; }
+.ms-kpi-card.teal   { border-left-color: #20c997; }
+.ms-kpi-card.gray   { border-left-color: #6c757d; }
+
+.ms-kpi-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1A1A1A;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+.ms-kpi-label {
+    font-size: 12px;
+    color: #666;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.ms-kpi-icon {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 32px;
+    opacity: 0.08;
+    color: #1A1A1A;
+}
+
+/* ── Main layout ─────────────────────────────────────────────────── */
+.ms-dash-body {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 12px;
+    padding: 8px 24px 24px;
+    height: calc(100vh - 180px);
+}
+@media (max-width: 1100px) {
+    .ms-dash-body { grid-template-columns: 1fr; }
+}
+
+/* ── Map ─────────────────────────────────────────────────────────── */
+.ms-map-panel {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.ms-map-toolbar {
+    padding: 10px 14px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.ms-map-toolbar span {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1A1A1A;
+    margin-right: 8px;
+}
+.ms-filter-btn {
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1.5px solid #ddd;
+    background: #fff;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+}
+.ms-filter-btn.active,
+.ms-filter-btn:hover {
+    border-color: #E85426;
+    color: #E85426;
+    background: #fdf1ed;
+}
+.ms-filter-btn.all.active { border-color: #1A1A1A; color: #1A1A1A; background: #f0f0f0; }
+.ms-filter-btn.location.active { border-color: #007bff; color: #007bff; background: #e8f0fe; }
+.ms-filter-btn.vehicle.active { border-color: #28a745; color: #28a745; background: #e8f5e9; }
+
+#ms-map {
+    flex: 1;
+    min-height: 400px;
+}
+
+/* ── Legend ──────────────────────────────────────────────────────── */
+.ms-legend {
+    padding: 8px 14px;
+    border-top: 1px solid #eee;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.ms-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #555;
+}
+.ms-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* ── Side panel ──────────────────────────────────────────────────── */
+.ms-side-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+}
+.ms-panel-card {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    overflow: hidden;
+}
+.ms-panel-title {
+    padding: 10px 14px;
+    border-bottom: 1px solid #eee;
+    font-size: 13px;
+    font-weight: 700;
+    color: #1A1A1A;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.ms-panel-title .fa {
+    color: #E85426;
+}
+
+/* Fleet status breakdown */
+.ms-status-bar {
+    padding: 12px 14px;
+}
+.ms-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid #f5f5f5;
+    font-size: 13px;
+}
+.ms-status-row:last-child { border-bottom: none; }
+.ms-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+}
+.ms-status-count {
+    font-weight: 700;
+    color: #1A1A1A;
+}
+
+/* Recent requests */
+.ms-request-list {
+    padding: 8px 0;
+}
+.ms-request-item {
+    padding: 8px 14px;
+    border-bottom: 1px solid #f5f5f5;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+.ms-request-item:hover { background: #fdf1ed; }
+.ms-request-item:last-child { border-bottom: none; }
+.ms-request-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1A1A1A;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ms-request-meta {
+    font-size: 11px;
+    color: #888;
+    margin-top: 2px;
+}
+.ms-request-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    background: #fdf1ed;
+    color: #E85426;
+    margin-left: 4px;
+}
+
+/* Loading spinner */
+.ms-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #888;
+    font-size: 14px;
+    gap: 10px;
+}
+.ms-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #eee;
+    border-top-color: #E85426;
+    border-radius: 50%;
+    animation: ms-spin 0.8s linear infinite;
+}
+@keyframes ms-spin { to { transform: rotate(360deg); } }
+
+/* Leaflet popup customization */
+.ms-popup { font-family: 'Outfit', sans-serif; min-width: 180px; }
+.ms-popup-title {
+    font-weight: 700;
+    font-size: 13px;
+    color: #1A1A1A;
+    border-bottom: 2px solid #E85426;
+    padding-bottom: 4px;
+    margin-bottom: 8px;
+}
+.ms-popup-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    padding: 2px 0;
+    color: #444;
+}
+.ms-popup-row strong { color: #1A1A1A; }
+.ms-popup-btn {
+    display: block;
+    margin-top: 8px;
+    padding: 5px 10px;
+    background: #E85426;
+    color: #fff;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+.ms-popup-btn:hover { background: #c94420; color: #fff; }
+
+/* Status colors */
+.status-ok         { color: #28a745; }
+.status-due_soon   { color: #ffc107; }
+.status-overdue    { color: #dc3545; }
+.status-no_schedule { color: #6c757d; }
