@@ -1,0 +1,26 @@
+{
+    'name': 'myservice Fleet Maintenance',
+    'version': '15.0.1.0.0',
+    'summary': 'Preventive maintenance alerts, vendor registry and auto ITSM ticket creation',
+    'author': 'WestMetro Limited',
+    'website': 'https://westmetrong.com',
+    'category': 'Fleet',
+    'depends': [
+        'fleet',
+        'generic_request',
+        'generic_location',
+        'myservice_request_fields',
+        'mail',
+    ],
+    'data': [
+        'security/ir.model.access.csv',
+        'data/ir_cron.xml',
+        'data/mail_templates.xml',
+        'views/fleet_service_vendor_views.xml',
+        'views/fleet_vehicle_views.xml',
+        'views/menu.xml',
+    ],
+    'installable': True,
+    'auto_install': False,
+    'license': 'LGPL-3',
+}

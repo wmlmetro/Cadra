@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── List view ── -->
+    <record id="view_fleet_service_vendor_list" model="ir.ui.view">
+        <field name="name">fleet.service.vendor.list</field>
+        <field name="model">fleet.service.vendor</field>
+        <field name="arch" type="xml">
+            <tree string="Service Vendors" decoration-muted="not is_approved">
+                <field name="name"/>
+                <field name="specialisation"/>
+                <field name="phone"/>
+                <field name="email"/>
+                <field name="location_ids" widget="many2many_tags"/>
+                <field name="is_approved" widget="boolean_toggle"/>
+                <field name="vehicle_count"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- ── Form view ── -->
+    <record id="view_fleet_service_vendor_form" model="ir.ui.view">
+        <field name="name">fleet.service.vendor.form</field>
+        <field name="model">fleet.service.vendor</field>
+        <field name="arch" type="xml">
+            <form string="Service Vendor">
+                <header>
+                    <button name="action_view_vehicles"
+                        type="object"
+                        string="View Vehicles"
+                        class="btn-secondary"
+                        attrs="{'invisible': [('vehicle_count', '=', 0)]}"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_vehicles"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-car">
+                            <field name="vehicle_count" widget="statinfo" string="Vehicles"/>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Workshop / Vendor Name"/></h1>
+                    </div>
+
+                    <group>
+                        <group string="Contact">
+                            <field name="partner_id"/>
+                            <field name="email"/>
+                            <field name="phone"/>
+                        </group>
+                        <group string="Classification">
+                            <field name="specialisation"/>
+                            <field name="is_approved" widget="boolean_toggle"/>
+                        </group>
+                    </group>
+
+                    <group string="Service Coverage (Locations)">
+                        <field name="location_ids"
+                            widget="many2many_tags"
+                            options="{'no_create': True}"
+                            placeholder="Select states or zones this vendor covers…"
+                            nolabel="1"/>
+                    </group>
+
+                    <group string="Notes">
+                        <field name="notes" nolabel="1" placeholder="Additional notes about this vendor…"/>
+                    </group>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── Search view ── -->
+    <record id="view_fleet_service_vendor_search" model="ir.ui.view">
+        <field name="name">fleet.service.vendor.search</field>
+        <field name="model">fleet.service.vendor</field>
+        <field name="arch" type="xml">
+            <search string="Search Vendors">
+                <field name="name"/>
+                <field name="specialisation"/>
+                <field name="location_ids"/>
+                <filter name="approved" string="Approved" domain="[('is_approved','=',True)]"/>
+                <filter name="active" string="Active" domain="[('active','=',True)]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_specialisation" string="Specialisation"
+                        context="{'group_by': 'specialisation'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ── Action ── -->
+    <record id="action_fleet_service_vendor" model="ir.actions.act_window">
+        <field name="name">Service Vendors</field>
+        <field name="res_model">fleet.service.vendor</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_fleet_service_vendor_search"/>
+        <field name="context">{'search_default_approved': 1}</field>
+    </record>
+
+</odoo>
