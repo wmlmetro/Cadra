@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates id="template" xml:space="preserve">
+<t name="Security Dashboard" t-name="myservice_security_dashboard.Dashboard">
+    <div class="ms-sec-dashboard">
+        <div class="ms-sec-header">
+            <div>
+                <h1><span>myservice</span> Security &amp; Safety Dashboard</h1>
+                <div class="subtitle">NRS Facilities Management Platform</div>
+            </div>
+            <button class="ms-sec-refresh"><i class="fa fa-refresh"/> Refresh</button>
+        </div>
+        <div class="ms-sec-kpi-row">
+            <div class="ms-sec-kpi red" data-model="security.incident" data-filter="open">
+                <div class="ms-sec-kpi-val sec-kpi-open">0</div>
+                <div class="ms-sec-kpi-lbl">Open Incidents</div>
+            </div>
+            <div class="ms-sec-kpi red" data-model="security.incident" data-filter="critical">
+                <div class="ms-sec-kpi-val sec-kpi-critical">0</div>
+                <div class="ms-sec-kpi-lbl">Critical</div>
+            </div>
+            <div class="ms-sec-kpi orange" data-model="security.incident" data-filter="today">
+                <div class="ms-sec-kpi-val sec-kpi-today">0</div>
+                <div class="ms-sec-kpi-lbl">Today's Incidents</div>
+            </div>
+            <div class="ms-sec-kpi green" data-model="security.duty.roster" data-filter="onduty">
+                <div class="ms-sec-kpi-val sec-kpi-onduty">0</div>
+                <div class="ms-sec-kpi-lbl">Guards on Duty</div>
+            </div>
+            <div class="ms-sec-kpi blue" data-model="security.access.log" data-filter="today">
+                <div class="ms-sec-kpi-val sec-kpi-access">0</div>
+                <div class="ms-sec-kpi-lbl">Access Entries Today</div>
+            </div>
+            <div class="ms-sec-kpi purple" data-model="security.watchlist" data-filter="active">
+                <div class="ms-sec-kpi-val sec-kpi-watchlist">0</div>
+                <div class="ms-sec-kpi-lbl">Watchlist Entries</div>
+            </div>
+        </div>
+        <div class="ms-sec-body">
+            <div class="ms-sec-map-panel">
+                <div class="ms-sec-map-toolbar">
+                    <span><i class="fa fa-shield"/> Security Operations Map</span>
+                    <button class="ms-sec-filter-btn active" data-filter="all">All</button>
+                    <button class="ms-sec-filter-btn" data-filter="incidents">Incidents</button>
+                    <button class="ms-sec-filter-btn" data-filter="guards">Guards</button>
+                </div>
+                <div id="ms-sec-map">
+                    <div class="ms-sec-loading"><div class="ms-sec-spinner"/>Loading map...</div>
+                </div>
+                <div class="ms-sec-legend">
+                    <div class="ms-sec-legend-item"><div class="ms-sec-legend-dot" style="background:#dc3545"/>Critical Incident</div>
+                    <div class="ms-sec-legend-item"><div class="ms-sec-legend-dot" style="background:#E85426"/>High</div>
+                    <div class="ms-sec-legend-item"><div class="ms-sec-legend-dot" style="background:#ffc107"/>Medium</div>
+                    <div class="ms-sec-legend-item"><div class="ms-sec-legend-dot" style="background:#28a745"/>Low</div>
+                    <div class="ms-sec-legend-item"><div class="ms-sec-legend-dot" style="background:#007bff"/>Guard on Duty</div>
+                </div>
+            </div>
+            <div class="ms-sec-side">
+                <!-- Incident Severity -->
+                <div class="ms-sec-card">
+                    <div class="ms-sec-card-title"><i class="fa fa-exclamation-triangle"/>Incidents by Severity</div>
+                    <div class="ms-sec-row"><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#dc3545;margin-right:6px"/>Critical</span><span class="ms-sec-row-count sec-sev-critical">0</span></div>
+                    <div class="ms-sec-row"><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#E85426;margin-right:6px"/>High</span><span class="ms-sec-row-count sec-sev-high">0</span></div>
+                    <div class="ms-sec-row"><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ffc107;margin-right:6px"/>Medium</span><span class="ms-sec-row-count sec-sev-medium">0</span></div>
+                    <div class="ms-sec-row"><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#28a745;margin-right:6px"/>Low</span><span class="ms-sec-row-count sec-sev-low">0</span></div>
+                </div>
+                <!-- Guards -->
+                <div class="ms-sec-card">
+                    <div class="ms-sec-card-title"><i class="fa fa-user-secret"/>Guard Status</div>
+                    <div class="ms-sec-row"><span>Total Active Guards</span><span class="ms-sec-row-count sec-guards-total">0</span></div>
+                    <div class="ms-sec-row"><span>On Duty Now</span><span class="ms-sec-row-count sec-guards-duty">0</span></div>
+                    <div class="ms-sec-row"><span>Access Flagged Today</span><span class="ms-sec-row-count sec-access-flagged" style="color:#dc3545">0</span></div>
+                </div>
+                <!-- Watchlist Alert -->
+                <div class="ms-sec-card">
+                    <div class="ms-sec-card-title"><i class="fa fa-eye"/>Watchlist</div>
+                    <div class="ms-sec-row"><span>Critical Threats</span><span class="ms-sec-row-count sec-watch-critical" style="color:#dc3545">0</span></div>
+                    <div class="ms-sec-row"><span>High Threats</span><span class="ms-sec-row-count sec-watch-high" style="color:#E85426">0</span></div>
+                    <div class="ms-sec-row"><span>Total on Watchlist</span><span class="ms-sec-row-count sec-watch-total">0</span></div>
+                </div>
+                <!-- Recent Incidents -->
+                <div class="ms-sec-card" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+                    <div class="ms-sec-card-title"><i class="fa fa-list"/>Recent Incidents</div>
+                    <div class="ms-sec-inc-list" style="overflow-y:auto;flex:1;">
+                        <div style="padding:16px;text-align:center;color:#888;font-size:13px;">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</t>
+</templates>

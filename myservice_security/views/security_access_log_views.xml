@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_security_access_log_list" model="ir.ui.view">
+        <field name="name">security.access.log.list</field>
+        <field name="model">security.access.log</field>
+        <field name="arch" type="xml">
+            <tree string="Access Log" decoration-danger="flagged==True">
+                <field name="datetime"/>
+                <field name="location_id"/>
+                <field name="person_name"/>
+                <field name="id_number"/>
+                <field name="direction" widget="badge"
+                    decoration-success="direction=='in'"
+                    decoration-secondary="direction=='out'"/>
+                <field name="purpose"/>
+                <field name="vehicle_plate"/>
+                <field name="guard_id"/>
+                <field name="authorized" widget="boolean_toggle"/>
+                <field name="flagged" widget="boolean_toggle"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_security_access_log_form" model="ir.ui.view">
+        <field name="name">security.access.log.form</field>
+        <field name="model">security.access.log</field>
+        <field name="arch" type="xml">
+            <form string="Access Log Entry">
+                <sheet>
+                    <div class="alert alert-danger"
+                        attrs="{'invisible': [('flagged','=',False)]}">
+                        <strong>⚠️ FLAGGED ENTRY</strong> — This person matches a watchlist entry or has been flagged as suspicious.
+                    </div>
+                    <group>
+                        <group string="Entry Details">
+                            <field name="location_id" options="{'no_create': True}"/>
+                            <field name="datetime"/>
+                            <field name="direction"/>
+                            <field name="guard_id" options="{'no_create': True}"/>
+                        </group>
+                        <group string="Person Details">
+                            <field name="person_name"/>
+                            <field name="id_type"/>
+                            <field name="id_number"/>
+                            <field name="phone"/>
+                            <field name="vehicle_plate"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Visit Details">
+                            <field name="purpose"/>
+                            <field name="host_name"/>
+                            <field name="authorized" widget="boolean_toggle"/>
+                        </group>
+                        <group string="Flag">
+                            <field name="flagged" widget="boolean_toggle"/>
+                            <field name="watchlist_match_id"
+                                options="{'no_create': True}"
+                                attrs="{'invisible': [('flagged','=',False)]}"/>
+                        </group>
+                    </group>
+                    <group string="Notes">
+                        <field name="notes" nolabel="1"/>
+                    </group>
+                    <group string="Photo">
+                        <field name="photo" widget="image" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_security_access_log" model="ir.actions.act_window">
+        <field name="name">Access Log</field>
+        <field name="res_model">security.access.log</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('datetime','&gt;=',context_today().strftime('%Y-%m-%d'))]</field>
+    </record>
+
+    <record id="action_security_access_log_all" model="ir.actions.act_window">
+        <field name="name">All Access Logs</field>
+        <field name="res_model">security.access.log</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

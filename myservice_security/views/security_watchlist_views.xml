@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_security_watchlist_list" model="ir.ui.view">
+        <field name="name">security.watchlist.list</field>
+        <field name="model">security.watchlist</field>
+        <field name="arch" type="xml">
+            <tree string="Watchlist" decoration-danger="threat_level=='critical'"
+                  decoration-warning="threat_level=='high'"
+                  decoration-muted="approval_state!='approved'">
+                <field name="name"/>
+                <field name="category"/>
+                <field name="threat_level" widget="badge"
+                    decoration-danger="threat_level=='critical'"
+                    decoration-warning="threat_level=='high'"
+                    decoration-info="threat_level=='medium'"
+                    decoration-secondary="threat_level=='low'"/>
+                <field name="id_number"/>
+                <field name="vehicle_plate"/>
+                <field name="last_sighted"/>
+                <field name="last_sighted_location_id"/>
+                <field name="incident_count"/>
+                <field name="approval_state" widget="badge"
+                    decoration-success="approval_state=='approved'"
+                    decoration-warning="approval_state=='pending'"
+                    decoration-danger="approval_state=='rejected'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_security_watchlist_form" model="ir.ui.view">
+        <field name="name">security.watchlist.form</field>
+        <field name="model">security.watchlist</field>
+        <field name="arch" type="xml">
+            <form string="Watchlist Entry">
+                <header>
+                    <button name="action_approve" string="Approve"
+                        type="object" class="btn-success"
+                        groups="myservice_security.group_security_admin"
+                        attrs="{'invisible': [('approval_state','!=','pending')]}"/>
+                    <button name="action_reject" string="Reject"
+                        type="object"
+                        groups="myservice_security.group_security_admin"
+                        attrs="{'invisible': [('approval_state','!=','pending')]}"/>
+                    <field name="approval_state" widget="statusbar"
+                        statusbar_visible="pending,approved"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_incidents" type="object"
+                            class="oe_stat_button" icon="fa-exclamation-triangle"
+                            attrs="{'invisible': [('incident_count','=',0)]}">
+                            <field name="incident_count" widget="statinfo" string="Incidents"/>
+                        </button>
+                    </div>
+                    <field name="photo" widget="image" class="oe_avatar"/>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <div class="alert alert-danger mb8"
+                        attrs="{'invisible': [('threat_level','!=','critical')]}">
+                        <strong>⛔ CRITICAL THREAT — Do NOT engage. Contact Police immediately.</strong>
+                    </div>
+                    <group>
+                        <group string="Identity">
+                            <field name="id_type"/>
+                            <field name="id_number"/>
+                            <field name="date_of_birth"/>
+                            <field name="nationality"/>
+                            <field name="phone"/>
+                            <field name="address"/>
+                        </group>
+                        <group string="Threat Assessment">
+                            <field name="category"/>
+                            <field name="threat_level"/>
+                            <field name="date_added"/>
+                            <field name="added_by"/>
+                            <field name="approved_by"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Aliases">
+                            <field name="alias_ids">
+                                <tree editable="bottom">
+                                    <field name="alias"/>
+                                    <field name="notes"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Vehicle">
+                            <group>
+                                <field name="vehicle_description"/>
+                                <field name="vehicle_plate"/>
+                                <field name="vehicle_notes"/>
+                            </group>
+                        </page>
+                        <page string="Associates">
+                            <field name="associate_ids" widget="many2many_tags"
+                                options="{'no_create': True}"/>
+                        </page>
+                        <page string="Flagged Locations">
+                            <field name="location_ids" widget="many2many_tags"
+                                options="{'no_create': True}"/>
+                        </page>
+                        <page string="Sighting">
+                            <group>
+                                <field name="last_sighted"/>
+                                <field name="last_sighted_location_id"
+                                    options="{'no_create': True}"/>
+                            </group>
+                        </page>
+                        <page string="OSINT Notes">
+                            <field name="social_media"/>
+                            <field name="osint_notes" widget="html"/>
+                        </page>
+                        <page string="Reason for Listing">
+                            <field name="reason" widget="html" nolabel="1"/>
+                        </page>
+                        <page string="Related Incidents">
+                            <field name="incident_ids" widget="many2many_tags"
+                                options="{'no_create': True}"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_security_watchlist" model="ir.actions.act_window">
+        <field name="name">Watchlist</field>
+        <field name="res_model">security.watchlist</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_approved': 1}</field>
+    </record>
+
+</odoo>

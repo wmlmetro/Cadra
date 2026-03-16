@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_security_incident_list" model="ir.ui.view">
+        <field name="name">security.incident.list</field>
+        <field name="model">security.incident</field>
+        <field name="arch" type="xml">
+            <tree string="Security Incidents" decoration-danger="severity=='critical'"
+                  decoration-warning="severity=='high'" decoration-muted="state=='closed'">
+                <field name="name"/>
+                <field name="incident_type"/>
+                <field name="severity" widget="badge"
+                    decoration-danger="severity=='critical'"
+                    decoration-warning="severity=='high'"
+                    decoration-info="severity=='medium'"
+                    decoration-secondary="severity=='low'"/>
+                <field name="location_id"/>
+                <field name="date_incident"/>
+                <field name="reported_by"/>
+                <field name="state" widget="badge"
+                    decoration-danger="state=='escalated'"
+                    decoration-warning="state=='investigating'"
+                    decoration-success="state=='resolved'"
+                    decoration-secondary="state in ('new','closed')"/>
+                <field name="assigned_to"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_security_incident_form" model="ir.ui.view">
+        <field name="name">security.incident.form</field>
+        <field name="model">security.incident</field>
+        <field name="arch" type="xml">
+            <form string="Security Incident">
+                <header>
+                    <button name="action_investigate" string="Start Investigation"
+                        type="object" class="btn-primary"
+                        attrs="{'invisible': [('state','!=','new')]}"/>
+                    <button name="action_escalate" string="Escalate"
+                        type="object" class="btn-warning"
+                        attrs="{'invisible': [('state','not in',['new','investigating'])]}"/>
+                    <button name="action_resolve" string="Mark Resolved"
+                        type="object" class="btn-success"
+                        attrs="{'invisible': [('state','not in',['investigating','escalated'])]}"/>
+                    <button name="action_close" string="Close"
+                        type="object"
+                        attrs="{'invisible': [('state','!=','resolved')]}"/>
+                    <button name="action_reopen" string="Reopen"
+                        type="object"
+                        attrs="{'invisible': [('state','not in',['resolved','closed'])]}"/>
+                    <field name="state" widget="statusbar"
+                        statusbar_visible="new,investigating,escalated,resolved,closed"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_incidents" type="object"
+                            class="oe_stat_button" icon="fa-exclamation-triangle"
+                            attrs="{'invisible': [('id','=',False)]}">
+                            <field name="id" widget="statinfo" string="Ref"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Incident Details">
+                            <field name="incident_type"/>
+                            <field name="severity"/>
+                            <field name="location_id" options="{'no_create': True}"/>
+                            <field name="date_incident"/>
+                            <field name="date_reported"/>
+                            <field name="is_portal_report" widget="boolean_toggle"/>
+                        </group>
+                        <group string="Assignment">
+                            <field name="reported_by" options="{'no_create': True}"/>
+                            <field name="assigned_to"/>
+                            <field name="guard_id" options="{'no_create': True}"/>
+                            <field name="date_resolved" attrs="{'invisible': [('state','not in',['resolved','closed'])]}"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Description">
+                            <field name="description" widget="html"/>
+                        </page>
+                        <page string="Suspect / Evidence">
+                            <group>
+                                <field name="suspect_description"/>
+                                <field name="items_stolen"/>
+                                <field name="witness_ids" widget="many2many_tags"/>
+                            </group>
+                            <field name="attachment_ids" widget="many2many_binary"/>
+                        </page>
+                        <page string="Police / Legal">
+                            <group>
+                                <field name="police_report_number"/>
+                                <field name="police_station"/>
+                            </group>
+                        </page>
+                        <page string="Watchlist Links">
+                            <field name="watchlist_ids" widget="many2many_tags"
+                                options="{'no_create': True}"/>
+                        </page>
+                        <page string="Resolution" attrs="{'invisible': [('state','not in',['resolved','closed'])]}">
+                            <field name="resolution_notes" widget="html"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_security_incident_search" model="ir.ui.view">
+        <field name="name">security.incident.search</field>
+        <field name="model">security.incident</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="location_id"/>
+                <field name="incident_type"/>
+                <filter name="open" string="Open" domain="[('state','not in',['resolved','closed'])]"/>
+                <filter name="critical" string="Critical" domain="[('severity','=','critical')]"/>
+                <filter name="high" string="High" domain="[('severity','=','high')]"/>
+                <filter name="today" string="Today" domain="[('date_incident','&gt;=',datetime.date.today().strftime('%Y-%m-%d'))]"/>
+                <group expand="0" string="Group By">
+                    <filter name="by_type" string="Type" context="{'group_by':'incident_type'}"/>
+                    <filter name="by_severity" string="Severity" context="{'group_by':'severity'}"/>
+                    <filter name="by_location" string="Location" context="{'group_by':'location_id'}"/>
+                    <filter name="by_state" string="Status" context="{'group_by':'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_security_incident" model="ir.actions.act_window">
+        <field name="name">Incidents</field>
+        <field name="res_model">security.incident</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_security_incident_search"/>
+        <field name="context">{'search_default_open': 1}</field>
+    </record>
+
+</odoo>

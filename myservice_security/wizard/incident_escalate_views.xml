@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_security_incident_escalate_form" model="ir.ui.view">
+        <field name="name">security.incident.escalate.form</field>
+        <field name="model">security.incident.escalate</field>
+        <field name="arch" type="xml">
+            <form string="Escalate Incident">
+                <group>
+                    <field name="incident_id" readonly="1"/>
+                    <field name="escalate_to"/>
+                    <field name="reason" widget="text" required="1"/>
+                    <field name="notify_police" widget="boolean_toggle"/>
+                    <field name="police_station"
+                        attrs="{'invisible': [('notify_police','=',False)]}"/>
+                    <field name="police_report_number"
+                        attrs="{'invisible': [('notify_police','=',False)]}"/>
+                </group>
+                <footer>
+                    <button name="action_escalate" string="Escalate"
+                        type="object" class="btn-warning"/>
+                    <button string="Cancel" class="btn-secondary"
+                        special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

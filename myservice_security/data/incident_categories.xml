@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <!-- Request categories for security via ITSM -->
+        <record id="request_category_security_incident" model="request.category">
+            <field name="name">Security Incident Report</field>
+            <field name="code">SEC-INC</field>
+        </record>
+        <record id="request_category_security_access" model="request.category">
+            <field name="name">Access Control Issue</field>
+            <field name="code">SEC-ACC</field>
+        </record>
+        <record id="request_category_security_cctv" model="request.category">
+            <field name="name">CCTV / Surveillance Request</field>
+            <field name="code">SEC-CCTV</field>
+        </record>
+        <record id="request_category_security_emergency" model="request.category">
+            <field name="name">Emergency Response</field>
+            <field name="code">SEC-EMRG</field>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_security_root" name="Security"
+        sequence="5"
+        action="action_security_dashboard"
+        web_icon="myservice_security,static/src/img/icon.svg"/>
+
+    <menuitem id="menu_security_dashboard" name="Dashboard"
+        parent="menu_security_root" sequence="1"
+        action="action_security_dashboard"/>
+
+    <menuitem id="menu_security_incidents" name="Incidents"
+        parent="menu_security_root" sequence="10"
+        action="action_security_incident"/>
+
+    <menuitem id="menu_security_access_today" name="Access Log — Today"
+        parent="menu_security_root" sequence="20"
+        action="action_security_access_log"/>
+
+    <menuitem id="menu_security_access_all" name="All Access Logs"
+        parent="menu_security_root" sequence="21"
+        action="action_security_access_log_all"/>
+
+    <menuitem id="menu_security_duty_today" name="Duty Roster — Today"
+        parent="menu_security_root" sequence="30"
+        action="action_security_duty_roster"/>
+
+    <menuitem id="menu_security_duty_all" name="All Rosters"
+        parent="menu_security_root" sequence="31"
+        action="action_security_duty_roster_all"/>
+
+    <menuitem id="menu_security_guards" name="Guards"
+        parent="menu_security_root" sequence="40"
+        action="action_security_guard"/>
+
+    <menuitem id="menu_security_watchlist" name="Watchlist"
+        parent="menu_security_root" sequence="50"
+        action="action_security_watchlist"
+        groups="myservice_security.group_security_manager"/>
+</odoo>

@@ -1,0 +1,4 @@
+/* myservice Security Portal */
+.security-incident-form .form-group { margin-bottom: 1.2rem; }
+.security-incident-form label { font-weight: 600; color: #1A1A1A; }
+.security-incident-form .form-control:focus { border-color: #dc3545; box-shadow: 0 0 0 3px rgba(220,53,69,0.15); }

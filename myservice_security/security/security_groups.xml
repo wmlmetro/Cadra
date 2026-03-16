@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="module_category_security" model="ir.module.category">
+            <field name="name">myservice Security</field>
+            <field name="sequence">20</field>
+        </record>
+
+        <record id="group_security_officer" model="res.groups">
+            <field name="name">Security Officer</field>
+            <field name="category_id" ref="module_category_security"/>
+            <field name="comment">Can log incidents, manage access logs, view watchlist</field>
+        </record>
+
+        <record id="group_security_manager" model="res.groups">
+            <field name="name">Security Manager</field>
+            <field name="category_id" ref="module_category_security"/>
+            <field name="implied_ids" eval="[(4, ref('group_security_officer'))]"/>
+            <field name="comment">Full security access including watchlist management and guard roster</field>
+        </record>
+
+        <record id="group_security_admin" model="res.groups">
+            <field name="name">Security Administrator</field>
+            <field name="category_id" ref="module_category_security"/>
+            <field name="implied_ids" eval="[(4, ref('group_security_manager'))]"/>
+            <field name="users" eval="[(4, ref('base.user_admin'))]"/>
+            <field name="comment">Full admin including watchlist approval and OSINT</field>
+        </record>
+    </data>
+</odoo>
