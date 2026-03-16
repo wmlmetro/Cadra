@@ -85,7 +85,7 @@ odoo.define('myservice_dashboard.Dashboard', function (require) {
             if (!container) return;
             container.innerHTML = '';
             if (!this.map) {
-                this.map = window.L.map('ms-map', { center:[9.082,8.675], zoom:6 });
+                this.map = window.L.map('ms-map', { center:[9.5,8.0], zoom:7 });
                 window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                     { attribution:'© OpenStreetMap contributors', maxZoom:18 }).addTo(this.map);
             } else {
