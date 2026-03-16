@@ -59,11 +59,22 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
         },
         start: async function() {
             await this._super.apply(this, arguments);
-            loadStyle(L_CSS); loadStyle(CL_CSS); loadStyle(CL_DEF);
-            await loadScript(L_JS); await loadScript(CL_JS);
             this._startClock();
+            // Load data immediately without waiting for Leaflet
             await this._loadData();
             this._refreshTimer = setInterval(this._loadData.bind(this), 300000);
+            // Load Leaflet in background then render map
+            loadStyle(L_CSS); loadStyle(CL_CSS); loadStyle(CL_DEF);
+            loadScript(L_JS).then(function() {
+                return loadScript(CL_JS);
+            }).then(function() {
+                // Re-render map now that Leaflet is ready
+                this._renderMap();
+            }.bind(this)).catch(function(e) {
+                console.warn('Leaflet CDN failed to load:', e);
+                var c = document.getElementById('ms-soc-map');
+                if (c) c.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#7d8590;font-size:12px">Map unavailable — check CDN access</div>';
+            });
         },
         destroy: function() {
             if (this._clockTimer)   clearInterval(this._clockTimer);
@@ -175,7 +186,15 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
             this.map.addLayer(this.incLayer);
             this.map.addLayer(this.guardLayer);
             this._applyFilter();
-            setTimeout(function(){ self.map && self.map.invalidateSize(); }, 200);
+            setTimeout(function(){
+                if (self.map) {
+                    self.map.invalidateSize();
+                    // Force re-center on Nigeria if no markers visible
+                    if ((self.mapData.incidents||[]).length === 0 && (self.mapData.guards||[]).length === 0) {
+                        self.map.setView([9.5, 8.0], 6);
+                    }
+                }
+            }, 500);
         },
         _applyFilter: function() {
             if (!this.map || !this.incLayer || !this.guardLayer) return;
@@ -191,8 +210,39 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
             }
         },
         _renderWatchlist: function() {
+            var self = this;
             var w = this.kpis.watchlist || {};
             this.$('.soc-watch-count').text((w.total||0)+' active');
+            // Fetch actual watchlist entries
+            rpc.query({
+                model: 'security.watchlist',
+                method: 'search_read',
+                args: [[['approval_state','=','approved']]],
+                kwargs: {
+                    fields: ['name','threat_level','category','last_sighted'],
+                    limit: 8,
+                    order: 'threat_level desc',
+                }
+            }).then(function(entries) {
+                var $list = self.$('.soc-watch-list');
+                $list.empty();
+                if (!entries.length) {
+                    $list.append('<div style="padding:10px 12px;font-size:11px;color:#7d8590">No approved watchlist entries</div>');
+                    return;
+                }
+                entries.forEach(function(e) {
+                    var tl = e.threat_level || 'medium';
+                    var initials = e.name.split(' ').map(function(w){return w[0]}).join('').substring(0,2).toUpperCase();
+                    $list.append($('<div class="ms-soc-watch-item" data-id="'+e.id+'">' +
+                        '<div class="ms-soc-avatar '+tl+'">'+initials+'</div>'+
+                        '<div style="flex:1;min-width:0">'+
+                        '<div class="ms-soc-wname">'+e.name+'</div>'+
+                        '<div class="ms-soc-wmeta">'+(e.category||'')+(e.last_sighted?' • Last seen: '+e.last_sighted:'')+'</div>'+
+                        '</div>'+
+                        '<span class="ms-soc-tbadge '+tl+'">'+tl+'</span>'+
+                        '</div>'));
+                });
+            });
         },
         _renderSeverityBars: function() {
             var i = this.kpis.incidents || {};

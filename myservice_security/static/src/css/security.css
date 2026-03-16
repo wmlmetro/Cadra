@@ -1,8 +1,6 @@
 /* ================================================================
    myservice Security Operations Centre — Dark Theme
    ================================================================ */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
-
 .ms-soc {
     font-family: 'Outfit', sans-serif;
     background: #0d1117;
@@ -288,3 +286,11 @@
 .leaflet-popup-content-wrapper { background: #161b22; border: 1px solid #30363d; color: #e6edf3; border-radius: 8px; }
 .leaflet-popup-tip { background: #161b22; }
 .leaflet-popup-close-button { color: #7d8590 !important; }
+
+#ms-soc-map {
+    height: 400px !important;
+    min-height: 400px !important;
+}
+.ms-soc-map-panel {
+    min-height: 500px;
+}
