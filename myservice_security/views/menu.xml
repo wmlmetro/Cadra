@@ -37,4 +37,14 @@
         parent="menu_security_root" sequence="50"
         action="action_security_watchlist"
         groups="myservice_security.group_security_manager"/>
+
+    <menuitem id="menu_security_osint" name="OSINT Feed"
+        parent="menu_security_root" sequence="60"
+        action="action_security_osint"
+        groups="myservice_security.group_security_manager"/>
+
+    <menuitem id="menu_security_state_threats" name="State Threats"
+        parent="menu_security_root" sequence="61"
+        action="action_security_state_threats"
+        groups="myservice_security.group_security_manager"/>
 </odoo>
