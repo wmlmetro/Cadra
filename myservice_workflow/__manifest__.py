@@ -1,0 +1,28 @@
+{
+    'name': 'myservice Workflow Integration',
+    'version': '15.0.1.0.0',
+    'summary': 'Bidirectional integration between myservice and NRS Workflow approval system',
+    'author': 'WestMetro Limited',
+    'website': 'https://westmetrong.com',
+    'category': 'Technical',
+    'depends': [
+        'web',
+        'mail',
+        'generic_request',
+        'myservice_request_fields',
+    ],
+    'data': [
+        'security/security_groups.xml',
+        'security/ir.model.access.csv',
+        'data/workflow_stages.xml',
+        'views/workflow_config_views.xml',
+        'views/workflow_dispatch_log_views.xml',
+        'views/request_request_views.xml',
+        'views/menu.xml',
+        'wizard/workflow_send_views.xml',
+    ],
+    'installable': True,
+    'auto_install': False,
+    'application': False,
+    'license': 'LGPL-3',
+}

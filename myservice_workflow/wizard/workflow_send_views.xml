@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_workflow_send_wizard_form" model="ir.ui.view">
+        <field name="name">workflow.send.wizard.form</field>
+        <field name="model">workflow.send.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Send to NRS Workflow">
+                <sheet>
+                    <div class="alert alert-info mb16" role="alert">
+                        This request will be sent to the NRS Workflow system for executive approval.
+                        The approver will receive the full request details.
+                    </div>
+                    <group>
+                        <field name="request_id" readonly="1"/>
+                        <field name="request_type" readonly="1"/>
+                        <field name="request_stage" readonly="1"/>
+                        <field name="workflow_status" readonly="1"/>
+                    </group>
+                    <group string="Send Options">
+                        <field name="note" placeholder="Add context for the approver (optional)..."/>
+                        <field name="resend" widget="boolean_toggle"
+                            attrs="{'invisible': [('workflow_status','!=','pending')]}"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_send" string="Send to Workflow"
+                        type="object" class="btn-warning"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

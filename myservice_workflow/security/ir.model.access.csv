@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_workflow_config_admin,workflow.config admin,model_workflow_config,group_workflow_admin,1,1,1,1
+access_workflow_config_user,workflow.config user,model_workflow_config,,1,0,0,0
+access_workflow_dispatch_log_admin,workflow.dispatch.log admin,model_workflow_dispatch_log,group_workflow_admin,1,1,1,0
+access_workflow_dispatch_log_user,workflow.dispatch.log user,model_workflow_dispatch_log,,1,0,1,0
+access_workflow_send_wizard,workflow.send.wizard all,model_workflow_send_wizard,,1,1,1,1

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_workflow_root" name="Workflow"
+        parent="generic_request.request_menu_root"
+        sequence="90"/>
+    <menuitem id="menu_workflow_log" name="Dispatch Log"
+        parent="menu_workflow_root" sequence="10"
+        action="action_workflow_dispatch_log"/>
+    <menuitem id="menu_workflow_config" name="Integration Settings"
+        parent="menu_workflow_root" sequence="20"
+        action="action_workflow_config"
+        groups="myservice_workflow.group_workflow_admin"/>
+</odoo>

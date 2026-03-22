@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Add Workflow button and status to request form -->
+    <record id="view_request_workflow_form" model="ir.ui.view">
+        <field name="name">request.request.workflow.form</field>
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request.view_request_request_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Send to Workflow button in header -->
+            <xpath expr="//header" position="inside">
+                <button name="action_send_to_workflow"
+                    string="Send to Workflow"
+                    type="object"
+                    class="btn-warning"
+                    icon="fa-share-square"
+                    attrs="{'invisible': [('workflow_status','in',['approved'])]}"/>
+            </xpath>
+
+            <!-- Workflow status smart button -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_workflow_log"
+                    type="object"
+                    class="oe_stat_button"
+                    icon="fa-exchange"
+                    attrs="{'invisible': [('workflow_dispatch_count','=',0)]}">
+                    <field name="workflow_dispatch_count" widget="statinfo" string="Workflow"/>
+                </button>
+            </xpath>
+
+            <!-- Workflow status + refs in form body -->
+            <xpath expr="//field[@name='stage_id']" position="after">
+                <field name="workflow_status" readonly="1"
+                    widget="badge"
+                    decoration-success="workflow_status=='approved'"
+                    decoration-danger="workflow_status=='rejected'"
+                    decoration-warning="workflow_status in ('pending','queried')"
+                    decoration-secondary="workflow_status=='not_sent'"/>
+                <field name="workflow_ref" readonly="1"
+                    attrs="{'invisible': [('workflow_ref','=',False)]}"/>
+                <field name="workflow_payment_ref" readonly="1"
+                    attrs="{'invisible': [('workflow_payment_ref','=',False)]}"/>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>
