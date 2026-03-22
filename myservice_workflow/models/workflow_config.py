@@ -8,15 +8,15 @@ _logger = logging.getLogger(__name__)
 
 class WorkflowConfig(models.Model):
     """
-    Stores the connection configuration for the NRS Workflow system.
+    Stores the connection configuration for the NRS WorkSpace.
     One active config at a time. Adapter type is swappable here.
     """
     _name = 'workflow.config'
-    _description = 'NRS Workflow Integration Configuration'
+    _description = 'NRS WorkSpace Integration Configuration'
     _rec_name = 'name'
 
     name = fields.Char(string='Configuration Name', required=True,
-                       default='NRS Workflow')
+                       default='NRS WorkSpace')
     active = fields.Boolean(default=True)
 
     # ── Adapter type ──────────────────────────────────────────────────
@@ -26,7 +26,7 @@ class WorkflowConfig(models.Model):
         ('email', 'Email-based (structured email)'),
         ('stub',  'Stub / Test mode (no real send)'),
     ], string='Adapter Type', required=True, default='stub',
-       help='Select once the NRS IT team confirms the Workflow system interface.')
+       help='Select once the NRS IT team confirms the NRS WorkSpace interface.')
 
     # ── REST adapter settings ─────────────────────────────────────────
     rest_base_url = fields.Char(
@@ -73,7 +73,7 @@ class WorkflowConfig(models.Model):
         comodel_name='request.stage',
         relation='workflow_config_trigger_stage_rel',
         string='Auto-trigger Stages',
-        help='Requests entering these stages are automatically sent to Workflow')
+        help='Requests entering these stages are automatically sent to WorkSpace')
     approved_stage_id = fields.Many2one(
         comodel_name='request.stage',
         string='Approved → Move to Stage',
@@ -101,7 +101,7 @@ class WorkflowConfig(models.Model):
             rec.callback_url_hint = f"{base}/myservice/workflow/callback"
 
     def action_test_connection(self):
-        """Test the connection to the Workflow system."""
+        """Test the connection to the NRS WorkSpace."""
         self.ensure_one()
         if self.adapter_type == 'stub':
             return self._notify('Stub mode — no real connection. Change adapter type when ready.')
@@ -126,7 +126,7 @@ class WorkflowConfig(models.Model):
             'type': 'ir.actions.client',
             'tag': 'display_notification',
             'params': {
-                'title': 'Workflow Integration',
+                'title': 'WorkSpace Integration',
                 'message': msg,
                 'type': 'success',
                 'sticky': False,
@@ -139,7 +139,7 @@ class WorkflowConfig(models.Model):
         if not cfg:
             raise UserError(
                 'No active Workflow integration configuration found. '
-                'Please configure one under Settings → Workflow Integration.')
+                'Please configure one under Settings → WorkSpace Integration.')
         return cfg
 
 
@@ -165,7 +165,7 @@ class WorkflowStubAdapter:
         _logger.info("STUB payload: %s", json.dumps(payload, indent=2, default=str))
         return {
             'ok': True,
-            'workflow_ref': ref,
+            'workspace_ref': ref,
             'message': 'Stub — simulated submission accepted',
         }
 
@@ -227,7 +227,7 @@ class WorkflowRestAdapter:
                     data = {}
                 return {
                     'ok': True,
-                    'workflow_ref': data.get('reference') or data.get('ref')
+                    'workspace_ref': data.get('reference') or data.get('ref')
                                     or data.get('id') or f"WF-{r.status_code}",
                     'message': data.get('message', 'Submitted'),
                     'raw': r.text[:500],
@@ -243,7 +243,7 @@ class WorkflowRestAdapter:
 
 class WorkflowEmailAdapter:
     """
-    Email adapter — sends a structured email to the Workflow system's
+    Email adapter — sends a structured email to the NRS WorkSpace's
     monitored inbox. Used when Workflow has no API but monitors email.
     """
     def __init__(self, config):
@@ -272,7 +272,7 @@ class WorkflowEmailAdapter:
             })
             mail.send()
             _logger.info("Workflow email sent to %s ref=%s", self.config.email_to, ref)
-            return {'ok': True, 'workflow_ref': ref, 'message': f"Email sent to {self.config.email_to}"}
+            return {'ok': True, 'workspace_ref': ref, 'message': f"Email sent to {self.config.email_to}"}
         except Exception as e:
             _logger.error("Workflow email error: %s", e, exc_info=True)
             return {'ok': False, 'error': str(e)}
@@ -293,7 +293,7 @@ class WorkflowEmailAdapter:
   <table style='width:100%;border-collapse:collapse;margin:16px 0'>{rows}</table>
   <p style='font-size:12px;color:#888'>
     This request was submitted from NRS myservice.com.ng.<br>
-    To respond, use your Workflow system or reply to this email with:
+    To respond, use your NRS WorkSpace or reply to this email with:
     APPROVED / REJECTED / QUERY: [your comment]
   </p>
 </div>"""

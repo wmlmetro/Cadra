@@ -5,7 +5,7 @@
         <field name="name">workflow.config.form</field>
         <field name="model">workflow.config</field>
         <field name="arch" type="xml">
-            <form string="Workflow Integration Configuration">
+            <form string="WorkSpace Integration Configuration">
                 <header>
                     <button name="action_test_connection" string="Test Connection"
                         type="object" class="btn-primary"/>
@@ -97,7 +97,7 @@
     </record>
 
     <record id="action_workflow_config" model="ir.actions.act_window">
-        <field name="name">Workflow Integration</field>
+        <field name="name">WorkSpace Integration</field>
         <field name="res_model">workflow.config</field>
         <field name="view_mode">list,form</field>
     </record>

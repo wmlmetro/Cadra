@@ -16,13 +16,13 @@ class RequestRequest(models.Model):
         ('approved', 'Approved by Workflow'),
         ('rejected', 'Rejected by Workflow'),
         ('queried',  'Queried — Response Required'),
-    ], string='Workflow Status', default='not_sent',
+    ], string='WorkSpace Status', default='not_sent',
        tracking=True, readonly=True, copy=False)
 
-    workflow_ref = fields.Char(
-        string='Workflow Reference',
+    workspace_ref = fields.Char(
+        string='WorkSpace Reference',
         readonly=True, copy=False,
-        help='Reference number assigned by the NRS Workflow system',
+        help='Reference number assigned by the NRS WorkSpace',
     )
     workflow_payment_ref = fields.Char(
         string='Payment / Approval Reference',
@@ -32,11 +32,11 @@ class RequestRequest(models.Model):
     workflow_dispatch_ids = fields.One2many(
         comodel_name='workflow.dispatch.log',
         inverse_name='request_id',
-        string='Workflow Dispatch Log',
+        string='WorkSpace Dispatch Log',
         readonly=True,
     )
     workflow_dispatch_count = fields.Integer(
-        string='Workflow Dispatches',
+        string='WorkSpace Dispatches',
         compute='_compute_workflow_dispatch_count',
     )
 
@@ -97,16 +97,16 @@ class RequestRequest(models.Model):
         if result.get('ok'):
             log.write({
                 'status':       'sent',
-                'workflow_ref': result.get('workflow_ref', ''),
+                'workspace_ref': result.get('workspace_ref', ''),
                 'response_received': result.get('raw', result.get('message', '')),
             })
             self.write({
                 'workflow_status': 'pending',
-                'workflow_ref':    result.get('workflow_ref', ''),
+                'workspace_ref':    result.get('workspace_ref', ''),
             })
             self.message_post(
-                body=f"<p>📤 <strong>Sent to NRS Workflow</strong> "
-                     f"({triggered_by}) — Ref: <strong>{result.get('workflow_ref','')}</strong></p>"
+                body=f"<p>📤 <strong>Sent to NRS WorkSpace</strong> "
+                     f"({triggered_by}) — Ref: <strong>{result.get('workspace_ref','')}</strong></p>"
                      + (f"<p>{note}</p>" if note else ''),
                 subtype_xmlid='mail.mt_comment',
             )
@@ -121,7 +121,7 @@ class RequestRequest(models.Model):
                 subtype_xmlid='mail.mt_comment',
             )
             raise UserError(
-                f"Failed to send to Workflow system:\n{result.get('error','Unknown error')}"
+                f"Failed to send to NRS WorkSpace:\n{result.get('error','Unknown error')}"
             )
         return log
 
@@ -172,7 +172,7 @@ class RequestRequest(models.Model):
         self.ensure_one()
         return {
             'type': 'ir.actions.act_window',
-            'name': 'Send to NRS Workflow',
+            'name': 'Send to NRS WorkSpace',
             'res_model': 'workflow.send.wizard',
             'view_mode': 'form',
             'target': 'new',
@@ -182,7 +182,7 @@ class RequestRequest(models.Model):
     def action_view_workflow_log(self):
         return {
             'type': 'ir.actions.act_window',
-            'name': 'Workflow Dispatch Log',
+            'name': 'WorkSpace Dispatch Log',
             'res_model': 'workflow.dispatch.log',
             'view_mode': 'list,form',
             'domain': [('request_id', '=', self.id)],
@@ -190,7 +190,7 @@ class RequestRequest(models.Model):
         }
 
     # ── Callback handlers — called by the webhook controller ─────────
-    def _workflow_callback_approved(self, workflow_ref, payment_ref=None,
+    def _workflow_callback_approved(self, workspace_ref, payment_ref=None,
                                     comment=None, log=None):
         self.ensure_one()
         config = self.env['workflow.config'].get_active_config()
@@ -203,8 +203,8 @@ class RequestRequest(models.Model):
         if config.approved_stage_id:
             self.write({'stage_id': config.approved_stage_id.id})
 
-        msg = (f"<p>✅ <strong>Approved by NRS Workflow</strong>"
-               f" — Ref: {workflow_ref}</p>")
+        msg = (f"<p>✅ <strong>Approved by NRS WorkSpace</strong>"
+               f" — Ref: {workspace_ref}</p>")
         if payment_ref:
             msg += f"<p>Payment/Approval Reference: <strong>{payment_ref}</strong></p>"
         if comment:
@@ -214,13 +214,13 @@ class RequestRequest(models.Model):
         if log:
             log.write({
                 'status': 'approved',
-                'workflow_ref': workflow_ref,
+                'workspace_ref': workspace_ref,
                 'payment_ref': payment_ref or '',
                 'workflow_comment': comment or '',
                 'responded_at': fields.Datetime.now(),
             })
 
-    def _workflow_callback_rejected(self, workflow_ref, comment=None, log=None):
+    def _workflow_callback_rejected(self, workspace_ref, comment=None, log=None):
         self.ensure_one()
         config = self.env['workflow.config'].get_active_config()
         self.write({'workflow_status': 'rejected'})
@@ -229,8 +229,8 @@ class RequestRequest(models.Model):
         if config.rejected_stage_id:
             self.write({'stage_id': config.rejected_stage_id.id})
 
-        msg = (f"<p>❌ <strong>Rejected by NRS Workflow</strong>"
-               f" — Ref: {workflow_ref}</p>")
+        msg = (f"<p>❌ <strong>Rejected by NRS WorkSpace</strong>"
+               f" — Ref: {workspace_ref}</p>")
         if comment:
             msg += f"<p>Rejection reason: {comment}</p>"
         self.message_post(body=msg, subtype_xmlid='mail.mt_comment')
@@ -238,23 +238,23 @@ class RequestRequest(models.Model):
         if log:
             log.write({
                 'status': 'rejected',
-                'workflow_ref': workflow_ref,
+                'workspace_ref': workspace_ref,
                 'workflow_comment': comment or '',
                 'responded_at': fields.Datetime.now(),
             })
 
-    def _workflow_callback_queried(self, workflow_ref, comment, log=None):
+    def _workflow_callback_queried(self, workspace_ref, comment, log=None):
         self.ensure_one()
         self.write({'workflow_status': 'queried'})
-        msg = (f"<p>💬 <strong>Query from NRS Workflow</strong>"
-               f" — Ref: {workflow_ref}</p>"
+        msg = (f"<p>💬 <strong>Query from NRS WorkSpace</strong>"
+               f" — Ref: {workspace_ref}</p>"
                f"<p>{comment}</p>")
         self.message_post(body=msg, subtype_xmlid='mail.mt_comment')
 
         if log:
             log.write({
                 'status': 'queried',
-                'workflow_ref': workflow_ref,
+                'workspace_ref': workspace_ref,
                 'workflow_comment': comment,
                 'responded_at': fields.Datetime.now(),
             })

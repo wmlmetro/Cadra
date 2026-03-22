@@ -5,7 +5,7 @@
         <field name="name">workflow.dispatch.log.list</field>
         <field name="model">workflow.dispatch.log</field>
         <field name="arch" type="xml">
-            <tree string="Workflow Dispatch Log"
+            <tree string="WorkSpace Dispatch Log"
                   decoration-success="status in ('approved')"
                   decoration-danger="status in ('rejected','error')"
                   decoration-warning="status in ('queried')"
@@ -18,7 +18,7 @@
                     decoration-danger="status in ('rejected','error')"
                     decoration-warning="status=='queried'"
                     decoration-info="status in ('sent','pending')"/>
-                <field name="workflow_ref"/>
+                <field name="workspace_ref"/>
                 <field name="payment_ref"/>
                 <field name="sent_by"/>
                 <field name="sent_at"/>
@@ -32,7 +32,7 @@
         <field name="name">workflow.dispatch.log.form</field>
         <field name="model">workflow.dispatch.log</field>
         <field name="arch" type="xml">
-            <form string="Workflow Dispatch Log">
+            <form string="WorkSpace Dispatch Log">
                 <sheet>
                     <div class="oe_title">
                         <h1><field name="name" readonly="1"/></h1>
@@ -45,7 +45,7 @@
                             <field name="adapter_type" readonly="1"/>
                         </group>
                         <group>
-                            <field name="workflow_ref" readonly="1"/>
+                            <field name="workspace_ref" readonly="1"/>
                             <field name="payment_ref" readonly="1"/>
                             <field name="sent_by" readonly="1"/>
                             <field name="sent_at" readonly="1"/>
@@ -76,7 +76,7 @@
             <search>
                 <field name="name"/>
                 <field name="request_id"/>
-                <field name="workflow_ref"/>
+                <field name="workspace_ref"/>
                 <filter name="pending" string="Awaiting Response" domain="[('status','=','sent')]"/>
                 <filter name="approved" string="Approved" domain="[('status','=','approved')]"/>
                 <filter name="rejected" string="Rejected" domain="[('status','=','rejected')]"/>
@@ -90,7 +90,7 @@
     </record>
 
     <record id="action_workflow_dispatch_log" model="ir.actions.act_window">
-        <field name="name">Workflow Dispatch Log</field>
+        <field name="name">WorkSpace Dispatch Log</field>
         <field name="res_model">workflow.dispatch.log</field>
         <field name="view_mode">list,form</field>
         <field name="search_view_id" ref="view_workflow_dispatch_log_search"/>

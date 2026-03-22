@@ -2,7 +2,7 @@
 <odoo>
     <data>
         <record id="group_workflow_admin" model="res.groups">
-            <field name="name">Workflow Integration Admin</field>
+            <field name="name">WorkSpace Integration Admin</field>
             <field name="category_id" ref="base.module_category_technical"/>
             <field name="users" eval="[(4, ref('base.user_admin'))]"/>
         </record>

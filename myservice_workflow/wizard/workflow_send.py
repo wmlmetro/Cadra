@@ -8,7 +8,7 @@ class WorkflowSendWizard(models.TransientModel):
     to Workflow, and shows the payload that will be sent.
     """
     _name = 'workflow.send.wizard'
-    _description = 'Send to NRS Workflow'
+    _description = 'Send to NRS WorkSpace'
 
     request_id = fields.Many2one(
         comodel_name='request.request',
@@ -30,7 +30,7 @@ class WorkflowSendWizard(models.TransientModel):
     resend = fields.Boolean(
         string='Force Resend',
         default=False,
-        help='Check to resend even if already sent to Workflow',
+        help='Check to resend even if already sent to WorkSpace',
     )
 
     @api.model
@@ -50,8 +50,8 @@ class WorkflowSendWizard(models.TransientModel):
 
         if req.workflow_status == 'pending' and not self.resend:
             raise UserError(
-                f"This request has already been sent to Workflow "
-                f"(Ref: {req.workflow_ref}). "
+                f"This request has already been sent to WorkSpace "
+                f"(Ref: {req.workspace_ref}). "
                 f"Tick 'Force Resend' if you want to send again."
             )
 

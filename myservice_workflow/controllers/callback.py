@@ -8,9 +8,9 @@ _logger = logging.getLogger(__name__)
 
 class WorkflowCallbackController(http.Controller):
     """
-    Receives inbound callbacks from the NRS Workflow system.
+    Receives inbound callbacks from the NRS WorkSpace.
 
-    The Workflow system POSTs approval outcomes to this endpoint.
+    The NRS WorkSpace POSTs approval outcomes to this endpoint.
     Supported payload formats:
       - JSON body (preferred)
       - Form-encoded (fallback)
@@ -18,7 +18,7 @@ class WorkflowCallbackController(http.Controller):
     Expected JSON structure:
     {
         "reference":     "REQ-2026-001",       // myservice request name
-        "workflow_ref":  "WF-ABC-12345",        // Workflow's own reference
+        "workspace_ref":  "WF-ABC-12345",        // Workflow's own reference
         "outcome":       "approved",            // approved | rejected | queried
         "payment_ref":   "PAY-2026-099",        // optional — for payment approvals
         "comment":       "Approved by Director" // optional comment / rejection reason
@@ -69,7 +69,7 @@ class WorkflowCallbackController(http.Controller):
             _logger.info("Workflow callback received: %s", json.dumps(data, default=str))
 
             ref         = data.get('reference', '')
-            workflow_ref= data.get('workflow_ref', '')
+            workspace_ref= data.get('workspace_ref', '')
             outcome     = (data.get('outcome') or data.get('status') or '').lower().strip()
             payment_ref = data.get('payment_ref', '')
             comment     = data.get('comment') or data.get('reason') or data.get('message') or ''
@@ -100,27 +100,27 @@ class WorkflowCallbackController(http.Controller):
                     'request_id':         req.id,
                     'direction':          'inbound',
                     'status':             outcome,
-                    'workflow_ref':       workflow_ref,
+                    'workspace_ref':       workspace_ref,
                     'response_received':  json.dumps(data, default=str),
                 })
 
             # ── Route to correct handler ──────────────────────────────
             if outcome == 'approved':
                 req._workflow_callback_approved(
-                    workflow_ref=workflow_ref,
+                    workspace_ref=workspace_ref,
                     payment_ref=payment_ref or None,
                     comment=comment or None,
                     log=log,
                 )
             elif outcome == 'rejected':
                 req._workflow_callback_rejected(
-                    workflow_ref=workflow_ref,
+                    workspace_ref=workspace_ref,
                     comment=comment or None,
                     log=log,
                 )
             elif outcome == 'queried':
                 req._workflow_callback_queried(
-                    workflow_ref=workflow_ref,
+                    workspace_ref=workspace_ref,
                     comment=comment,
                     log=log,
                 )

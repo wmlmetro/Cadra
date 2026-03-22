@@ -4,10 +4,10 @@
         <field name="name">workflow.send.wizard.form</field>
         <field name="model">workflow.send.wizard</field>
         <field name="arch" type="xml">
-            <form string="Send to NRS Workflow">
+            <form string="Send to NRS WorkSpace">
                 <sheet>
                     <div class="alert alert-info mb16" role="alert">
-                        This request will be sent to the NRS Workflow system for executive approval.
+                        This request will be sent to the NRS WorkSpace for executive approval.
                         The approver will receive the full request details.
                     </div>
                     <group>
@@ -23,7 +23,7 @@
                     </group>
                 </sheet>
                 <footer>
-                    <button name="action_send" string="Send to Workflow"
+                    <button name="action_send" string="Send to WorkSpace"
                         type="object" class="btn-warning"/>
                     <button string="Cancel" class="btn-secondary" special="cancel"/>
                 </footer>

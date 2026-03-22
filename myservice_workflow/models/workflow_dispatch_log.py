@@ -6,11 +6,11 @@ _logger = logging.getLogger(__name__)
 
 class WorkflowDispatchLog(models.Model):
     """
-    Audit log for every interaction with the NRS Workflow system.
+    Audit log for every interaction with the NRS WorkSpace.
     One record per dispatch attempt. Never deleted — permanent audit trail.
     """
     _name = 'workflow.dispatch.log'
-    _description = 'Workflow Dispatch Log'
+    _description = 'WorkSpace Dispatch Log'
     _order = 'create_date desc'
     _rec_name = 'name'
 
@@ -36,10 +36,10 @@ class WorkflowDispatchLog(models.Model):
         ('error',    'Error'),
     ], string='Status', default='pending', tracking=True, readonly=True)
 
-    workflow_ref = fields.Char(
-        string='Workflow Reference No.',
+    workspace_ref = fields.Char(
+        string='WorkSpace Reference No.',
         readonly=True,
-        help='Reference number assigned by the Workflow system',
+        help='Reference number assigned by the NRS WorkSpace',
     )
     payment_ref = fields.Char(
         string='Payment / Approval Reference',
@@ -58,12 +58,12 @@ class WorkflowDispatchLog(models.Model):
     payload_sent = fields.Text(
         string='Payload Sent',
         readonly=True,
-        help='JSON payload sent to Workflow system',
+        help='JSON payload sent to NRS WorkSpace',
     )
     response_received = fields.Text(
         string='Response Received',
         readonly=True,
-        help='Raw response from Workflow system',
+        help='Raw response from NRS WorkSpace',
     )
     workflow_comment = fields.Text(
         string='Comment from Workflow',
