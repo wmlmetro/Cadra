@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="wsd_requests_new_request_data_location"
+              name="NRS Location Field on Portal Step 5"
+              inherit_id="crnd_wsd.wsd_requests_new_request_data">
+        <xpath expr="//section[@id='request-data']" position="inside">
+            <div class="form-group col-sm-12 col-md-8">
+                <label for="nrs_location_select" class="control-label">
+                    <i class="fa fa-map-marker" style="color:#E85426;margin-right:6px;"/>
+                    <strong>NRS Locations</strong>
+                    <span class="text-danger"> *</span>
+                </label>
+                <select id="nrs_location_select"
+                        name="generic_location_id"
+                        required="required"
+                        t-attf-class="form-control {{ 'is-invalid' if validation_errors.get('generic_location_id') else '' }}">
+                    <option value="">— Type to search office or location —</option>
+                    <t t-foreach="nrs_locations or []" t-as="loc">
+                        <option t-att-value="loc.id"
+                                t-att-selected="'selected' if loc.id == selected_location_id else None">
+                            <t t-esc="loc.name"/>
+                        </option>
+                    </t>
+                </select>
+                <small class="form-text text-muted">Search by office name, state or zone.</small>
+                <t t-if="validation_errors.get('generic_location_id')">
+                    <div class="invalid-feedback d-block">
+                        <t t-esc="validation_errors['generic_location_id']['error_text']"/>
+                    </div>
+                </t>
+            </div>
+        </xpath>
+    </template>
+</odoo>

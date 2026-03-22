@@ -78,6 +78,57 @@ odoo.define('myservice_dashboard.Dashboard', function (require) {
             this.$('.kpi-open-requests').text(r.open||0);
             this.$('.kpi-approved-vendors').text(v.approved||0);
         },
+
+        _showLoadingProgress: function() {
+            var self = this;
+            self._loadPct = 0;
+            var container = document.getElementById('ms-map');
+            if (container) {
+                container.innerHTML = '<div id="ms-map-loader" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px">' +
+                    '<div style="font-size:13px;color:#888">Loading map...</div>' +
+                    '<div style="width:200px;height:4px;background:#e0e0e0;border-radius:2px;overflow:hidden">' +
+                    '<div id="ms-map-bar" style="height:100%;width:0%;background:#E85426;border-radius:2px;transition:width 0.3s ease"></div>' +
+                    '</div>' +
+                    '<div id="ms-map-pct" style="font-size:11px;color:#aaa">0%</div>' +
+                    '</div>';
+            }
+            // Animate progress bar to show activity
+            self._progressTimer = setInterval(function() {
+                self._loadPct = Math.min(self._loadPct + Math.random() * 8, 85);
+                var bar = document.getElementById('ms-map-bar');
+                var pct = document.getElementById('ms-map-pct');
+                if (bar) bar.style.width = self._loadPct.toFixed(0) + '%';
+                if (pct) pct.textContent = self._loadPct.toFixed(0) + '%';
+            }, 200);
+        },
+
+        _hideLoadingProgress: function() {
+            if (this._progressTimer) clearInterval(this._progressTimer);
+            var bar = document.getElementById('ms-map-bar');
+            var pct = document.getElementById('ms-map-pct');
+            var lbl = document.querySelector('#ms-map-loader > div:first-child');
+            if (bar) bar.style.width = '100%';
+            if (pct) pct.textContent = '100%';
+            if (lbl) lbl.textContent = 'Map ready';
+        },
+
+        _initEmptyMap: function() {
+            var container = document.getElementById('ms-map');
+            if (!container || !window.L || !window.L.map) return;
+            // Clear loader
+            container.innerHTML = '';
+            if (!this.map) {
+                this.map = window.L.map('ms-map', {
+                    center:[9.0,8.5], zoom:6, minZoom:5,
+                    maxBounds:[[3.5,2.0],[14.5,16.0]],
+                    maxBoundsViscosity:0.8
+                });
+                window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    {attribution:'© OpenStreetMap contributors', maxZoom:18}).addTo(this.map);
+                setTimeout(function(){ if(this.map) this.map.invalidateSize(); }.bind(this), 100);
+            }
+        },
+
         _renderMap: function() {
             var self = this;
             if (!window.L || !window.L.map) {

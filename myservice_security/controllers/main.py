@@ -68,7 +68,23 @@ class SecurityDashboardController(http.Controller):
             'lng':      r.location_id.longitude,
         } for r in rosters if r.location_id.latitude and r.location_id.longitude]
 
-        return {'incidents': incident_data, 'guards': guard_data}
+        # FIRS office locations
+        locations = request.env['generic.location'].sudo().search([
+            ('latitude','!=',0.0),('longitude','!=',0.0),
+        ], limit=500)
+        location_data = [{
+            'id':    l.id,
+            'name':  l.name,
+            'state': l.state_name or '',
+            'lat':   l.latitude,
+            'lng':   l.longitude,
+            'open_incidents': request.env['security.incident'].sudo().search_count([
+                ('location_id','=',l.id),
+                ('state','not in',['resolved','closed']),
+            ]),
+        } for l in locations]
+
+        return {'incidents': incident_data, 'guards': guard_data, 'locations': location_data}
 
     @http.route('/myservice/security/trend', type='json', auth='user', methods=['POST'])
     def get_trend(self):

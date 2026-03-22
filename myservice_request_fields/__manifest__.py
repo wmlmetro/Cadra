@@ -8,6 +8,7 @@
     'depends': ['generic_request', 'generic_location', 'fleet', 'website'],
     'data': [
         'views/request_request_views.xml',
+        'views/portal_location_template.xml',
         'views/request_portal_templates.xml',
     ],
     'assets': {

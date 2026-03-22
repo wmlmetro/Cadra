@@ -1,21 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <record id="view_request_request_form_vehicle_location" model="ir.ui.view">
-        <field name="name">request.request.form.vehicle.location</field>
+    <!-- Vehicle field only — location already added by generic_request_location module -->
+    <record id="view_request_request_form_vehicle" model="ir.ui.view">
+        <field name="name">request.request.form.vehicle</field>
         <field name="model">request.request</field>
         <field name="inherit_id" ref="generic_request.view_request_request_form"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='category_id']" position="after">
-                <field name="generic_location_id"
-                    string="Location"
-                    required="1"
-                    options="{'no_create': True, 'no_open': True}"
-                    placeholder="Search by office, state or zone"/>
                 <field name="vehicle_id"
                     string="Vehicle"
                     options="{'no_create': True, 'no_open': True}"
                     placeholder="Search by plate, chassis or tag"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Relabel the header location widget to show NRS Locations -->
+    <record id="view_request_request_form_location_label" model="ir.ui.view">
+        <field name="name">request.request.form.location.label</field>
+        <field name="model">request.request</field>
+        <field name="inherit_id" ref="generic_request_location.view_request_request_location_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='header_location']" position="replace">
+                <div colspan="2" name="header_location"
+                     class="request-head-info-item">
+                    <span class="field-with-icon">
+                        <span class="field-icon fa fa-map-marker oe_inline"
+                              title="NRS Locations"
+                              style="color:#E85426;"/>
+                        <span class="oe_inline"
+                              style="font-size:11px;font-weight:600;color:#4A4A4A;margin-left:4px;margin-right:6px;vertical-align:middle;">
+                            NRS Locations
+                        </span>
+                        <field name="generic_location_id"
+                               widget="m2o_info"
+                               options="{'info_method': 'helper_m2o_info_data'}"
+                               class="o_field_widget" style="max-width: 90%"/>
+                    </span>
+                </div>
             </xpath>
         </field>
     </record>

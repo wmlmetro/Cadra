@@ -59,19 +59,19 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
         },
         start: async function() {
             await this._super.apply(this, arguments);
-            this._startClock();
-            // Load data immediately without waiting for Leaflet
-            await this._loadData();
-            this._refreshTimer = setInterval(this._loadData.bind(this), 300000);
-            // Load Leaflet then render map
+            var self = this;
+            self._startClock();
+            // Load Leaflet in background, data immediately
             loadStyle(L_CSS); loadStyle(CL_CSS); loadStyle(CL_DEF);
             loadScript(L_JS).then(function() {
                 return loadScript(CL_JS);
             }).then(function() {
-                this._renderMap();
-            }.bind(this)).catch(function(e) {
+                self._renderMap();
+            }).catch(function(e) {
                 console.warn('Leaflet CDN failed:', e);
             });
+            await self._loadData();
+            self._refreshTimer = setInterval(self._loadData.bind(self), 300000);
         },
         destroy: function() {
             if (this._clockTimer)   clearInterval(this._clockTimer);
@@ -132,9 +132,8 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
             }
             var container = document.getElementById('ms-soc-map');
             if (!container) return;
-            container.innerHTML = '';
-
             if (!this.map) {
+                container.innerHTML = '';
                 this.map = window.L.map('ms-soc-map', {
                     center:[9.0,8.5], zoom:6, minZoom:5,
                     maxBounds:[[3.5,2.0],[14.5,16.0]],
