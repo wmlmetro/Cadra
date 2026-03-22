@@ -80,12 +80,20 @@ odoo.define('myservice_dashboard.Dashboard', function (require) {
         },
         _renderMap: function() {
             var self = this;
-            if (!window.L) return;
+            if (!window.L || !window.L.map) {
+                // Leaflet not ready yet — retry in 300ms
+                setTimeout(function() { self._renderMap(); }, 300);
+                return;
+            }
             var container = document.getElementById('ms-map');
             if (!container) return;
             container.innerHTML = '';
             if (!this.map) {
-                this.map = window.L.map('ms-map', { center:[9.5,8.0], zoom:7 });
+                this.map = window.L.map('ms-map', {
+                    center:[9.0,8.5], zoom:6, minZoom:5,
+                    maxBounds:[[3.5,2.0],[14.5,16.0]],
+                    maxBoundsViscosity:0.8
+                });
                 window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                     { attribution:'© OpenStreetMap contributors', maxZoom:18 }).addTo(this.map);
             } else {
@@ -150,7 +158,14 @@ odoo.define('myservice_dashboard.Dashboard', function (require) {
         _onKpiClick: function(ev) {
             var $c=$(ev.currentTarget), model=$c.data('model'), domain=$c.data('domain')||'[]';
             if (!model) return;
-            this.do_action({ type:'ir.actions.act_window', res_model:model, view_mode:'list,form', domain:JSON.parse(domain), target:'current' });
+            this.do_action({
+                type:'ir.actions.act_window',
+                res_model:model,
+                views:[[false,'list'],[false,'form']],
+                view_mode:'list,form',
+                domain:[],
+                target:'current'
+            });
         },
         _onFilterClick: function(ev) {
             this.$('.ms-filter-btn').removeClass('active');
@@ -160,7 +175,14 @@ odoo.define('myservice_dashboard.Dashboard', function (require) {
         },
         _onRequestClick: function(ev) {
             var id=parseInt($(ev.currentTarget).data('id'));
-            this.do_action({ type:'ir.actions.act_window', res_model:'request.request', res_id:id, view_mode:'form', target:'current' });
+            this.do_action({
+                type:'ir.actions.act_window',
+                res_model:'request.request',
+                res_id:id,
+                views:[[false,'form']],
+                view_mode:'form',
+                target:'current'
+            });
         },
     });
 

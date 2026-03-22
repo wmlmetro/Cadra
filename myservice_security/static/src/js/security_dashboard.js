@@ -53,7 +53,7 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
         },
         init: function(parent, action) {
             this._super.apply(this, arguments);
-            this.map = null; this.incLayer = null; this.guardLayer = null;
+            this.map = null; this.incLayer = null; this.guardLayer = null; this.locLayer = null;
             this.kpis = {}; this.mapData = {}; this.osint = []; this.states = [];
             this.currentFilter = 'all'; this._clockTimer = null; this._refreshTimer = null;
         },
@@ -63,17 +63,14 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
             // Load data immediately without waiting for Leaflet
             await this._loadData();
             this._refreshTimer = setInterval(this._loadData.bind(this), 300000);
-            // Load Leaflet in background then render map
+            // Load Leaflet then render map
             loadStyle(L_CSS); loadStyle(CL_CSS); loadStyle(CL_DEF);
             loadScript(L_JS).then(function() {
                 return loadScript(CL_JS);
             }).then(function() {
-                // Re-render map now that Leaflet is ready
                 this._renderMap();
             }.bind(this)).catch(function(e) {
-                console.warn('Leaflet CDN failed to load:', e);
-                var c = document.getElementById('ms-soc-map');
-                if (c) c.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#7d8590;font-size:12px">Map unavailable — check CDN access</div>';
+                console.warn('Leaflet CDN failed:', e);
             });
         },
         destroy: function() {
@@ -128,13 +125,21 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
         },
         _renderMap: function() {
             var self = this;
-            if (!window.L) return;
+            if (!window.L || !window.L.map) {
+                // Leaflet not ready yet — retry in 300ms
+                setTimeout(function() { self._renderMap(); }, 300);
+                return;
+            }
             var container = document.getElementById('ms-soc-map');
             if (!container) return;
             container.innerHTML = '';
 
             if (!this.map) {
-                this.map = window.L.map('ms-soc-map', { center:[9.5,8.0], zoom:6 });
+                this.map = window.L.map('ms-soc-map', {
+                    center:[9.0,8.5], zoom:6, minZoom:5,
+                    maxBounds:[[3.5,2.0],[14.5,16.0]],
+                    maxBoundsViscosity:0.8
+                });
                 window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                     { attribution:'© OpenStreetMap', maxZoom:18 }).addTo(this.map);
             } else {
@@ -183,8 +188,34 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
                 self.guardLayer.addLayer(m);
             });
 
+            // Location layer (FIRS offices)
+            this.locLayer = window.L.markerClusterGroup({ maxClusterRadius:30,
+                iconCreateFunction: function(c) {
+                    return window.L.divIcon({
+                        html:'<div style="background:#58a6ff;color:#0d1117;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;border:2px solid #0d1117">'+c.getChildCount()+'</div>',
+                        className:'', iconSize:[24,24]
+                    });
+                }
+            });
+            (self.mapData.locations||[]).forEach(function(loc) {
+                var color = loc.open_incidents > 0 ? '#E85426' : '#58a6ff';
+                var m = window.L.circleMarker([loc.lat, loc.lng], {
+                    radius:5, fillColor:color, color:'#0d1117',
+                    weight:1, opacity:1, fillOpacity:0.85
+                });
+                m.bindPopup(
+                    '<div style="font-family:Outfit,sans-serif;min-width:160px">'+
+                    '<div style="font-weight:700;font-size:12px;color:#e6edf3;border-bottom:1px solid #58a6ff;padding-bottom:3px;margin-bottom:6px">'+loc.name+'</div>'+
+                    '<div style="font-size:11px;color:#8b949e">State: <b style="color:#e6edf3">'+loc.state+'</b></div>'+
+                    '<div style="font-size:11px;color:#8b949e">Open incidents: <b style="color:'+(loc.open_incidents>0?'#E85426':'#3fb950')+'">'+loc.open_incidents+'</b></div>'+
+                    '</div>'
+                );
+                self.locLayer.addLayer(m);
+            });
+
             this.map.addLayer(this.incLayer);
             this.map.addLayer(this.guardLayer);
+            this.map.addLayer(this.locLayer);
             this._applyFilter();
             setTimeout(function(){
                 if (self.map) {
@@ -197,16 +228,16 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
             }, 500);
         },
         _applyFilter: function() {
-            if (!this.map || !this.incLayer || !this.guardLayer) return;
+            if (!this.map) return;
             var f = this.currentFilter;
+            var addL = function(l) { if (l && !this.map.hasLayer(l)) this.map.addLayer(l); }.bind(this);
+            var remL = function(l) { if (l && this.map.hasLayer(l)) this.map.removeLayer(l); }.bind(this);
             if (f==='all') {
-                this.map.addLayer(this.incLayer); this.map.addLayer(this.guardLayer);
+                addL(this.incLayer); addL(this.guardLayer); addL(this.locLayer);
             } else if (f==='incidents') {
-                this.map.addLayer(this.incLayer);
-                if (this.map.hasLayer(this.guardLayer)) this.map.removeLayer(this.guardLayer);
+                addL(this.incLayer); remL(this.guardLayer); addL(this.locLayer);
             } else if (f==='guards') {
-                if (this.map.hasLayer(this.incLayer)) this.map.removeLayer(this.incLayer);
-                this.map.addLayer(this.guardLayer);
+                remL(this.incLayer); addL(this.guardLayer); addL(this.locLayer);
             }
         },
         _renderWatchlist: function() {
@@ -319,7 +350,14 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
         _onKpiClick: function(ev) {
             var model=$(ev.currentTarget).data('model');
             if (!model) return;
-            this.do_action({ type:'ir.actions.act_window', res_model:model, view_mode:'list,form', domain:[], target:'current' });
+            this.do_action({
+                type:'ir.actions.act_window',
+                res_model:model,
+                views:[[false,'list'],[false,'form']],
+                view_mode:'list,form',
+                domain:[],
+                target:'current'
+            });
         },
         _onFilterClick: function(ev) {
             this.$('.ms-soc-mf').removeClass('active');
@@ -329,11 +367,27 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
         },
         _onIncidentClick: function(ev) {
             var id=parseInt($(ev.currentTarget).data('id'));
-            this.do_action({ type:'ir.actions.act_window', res_model:'security.incident', res_id:id, view_mode:'form', target:'current' });
+            if (!id) return;
+            this.do_action({
+                type:'ir.actions.act_window',
+                res_model:'security.incident',
+                res_id:id,
+                views:[[false,'form']],
+                view_mode:'form',
+                target:'current'
+            });
         },
         _onOsintClick: function(ev) {
             var id=parseInt($(ev.currentTarget).data('id'));
-            if (id) this.do_action({ type:'ir.actions.act_window', res_model:'security.osint.feed', res_id:id, view_mode:'form', target:'current' });
+            if (!id) return;
+            this.do_action({
+                type:'ir.actions.act_window',
+                res_model:'security.osint.feed',
+                res_id:id,
+                views:[[false,'form']],
+                view_mode:'form',
+                target:'current'
+            });
         },
     });
 
