@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_ai_root" name="AI Intelligence"
+        parent="myservice_security.menu_security_root"
+        sequence="60"/>
+    <menuitem id="menu_ai_alerts" name="Pattern Alerts"
+        parent="menu_ai_root" sequence="10"
+        action="action_ai_pattern_alerts"/>
+    <menuitem id="menu_ai_briefs" name="Daily Briefs"
+        parent="menu_ai_root" sequence="20"
+        action="action_ai_daily_briefs"/>
+</odoo>
