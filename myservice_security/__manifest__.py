@@ -20,6 +20,7 @@
         'views/security_duty_roster_views.xml',
         'views/security_access_log_views.xml',
         'views/security_watchlist_views.xml',
+        'views/security_watchlist_kanban.xml',
         'views/security_osint_views.xml',
         'views/dashboard_views.xml',
         'views/portal_templates.xml',
