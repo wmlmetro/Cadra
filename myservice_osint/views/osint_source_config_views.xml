@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_osint_source_form" model="ir.ui.view">
+        <field name="name">osint.source.config.form</field>
+        <field name="model">osint.source.config</field>
+        <field name="arch" type="xml">
+            <form string="OSINT Source Configuration">
+                <header>
+                    <button name="action_fetch_now" string="Fetch Now"
+                        type="object" class="btn-primary"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="source_type"/>
+                            <field name="fetch_interval_hours"/>
+                            <field name="days_lookback"/>
+                            <field name="active" widget="boolean_toggle"/>
+                            <field name="total_entries" readonly="1"/>
+                        </group>
+                        <group string="Last Fetch">
+                            <field name="last_fetched" readonly="1"/>
+                            <field name="last_fetch_count" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="ACLED Credentials"
+                            attrs="{'invisible':[('source_type','!=','acled')]}">
+                            <group>
+                                <field name="acled_email" placeholder="soji@westmetrong.com"/>
+                                <field name="acled_password" password="True"/>
+                                <field name="acled_token" readonly="1"/>
+                                <field name="acled_token_expiry" readonly="1"/>
+                            </group>
+                        </page>
+                        <page string="RSS URLs"
+                            attrs="{'invisible':[('source_type','!=','rss')]}">
+                            <field name="rss_urls" nolabel="1"
+                                placeholder="One URL per line..."/>
+                        </page>
+                        <page string="Twitter/X"
+                            attrs="{'invisible':[('source_type','!=','twitter')]}">
+                            <group>
+                                <field name="twitter_bearer_token" password="True"/>
+                                <field name="twitter_keywords"/>
+                            </group>
+                        </page>
+                        <page string="Telegram"
+                            attrs="{'invisible':[('source_type','!=','telegram')]}">
+                            <group>
+                                <field name="telegram_bot_token" password="True"/>
+                                <field name="telegram_channels"/>
+                            </group>
+                        </page>
+                        <page string="Filters">
+                            <group>
+                                <field name="nigeria_only" widget="boolean_toggle"/>
+                                <field name="keywords_filter"/>
+                            </group>
+                        </page>
+                        <page string="Notes">
+                            <field name="notes" nolabel="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_osint_source_list" model="ir.ui.view">
+        <field name="name">osint.source.config.list</field>
+        <field name="model">osint.source.config</field>
+        <field name="arch" type="xml">
+            <tree string="OSINT Sources">
+                <field name="name"/>
+                <field name="source_type"/>
+                <field name="fetch_interval_hours"/>
+                <field name="last_fetched"/>
+                <field name="last_fetch_count"/>
+                <field name="total_entries"/>
+                <field name="active" widget="boolean_toggle"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_osint_sources" model="ir.actions.act_window">
+        <field name="name">Intelligence Sources</field>
+        <field name="res_model">osint.source.config</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>
