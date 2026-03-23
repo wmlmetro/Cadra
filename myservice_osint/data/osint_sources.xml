@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="source_acled" model="osint.source.config">
+            <field name="name">ACLED Nigeria — Armed Conflict Data</field>
+            <field name="source_type">acled</field>
+            <field name="fetch_interval_hours">24</field>
+            <field name="days_lookback">30</field>
+            <field name="nigeria_only">True</field>
+            <field name="notes">Register at acleddata.com and enter credentials in the form. ACLED uses OAuth2 — credentials are stored securely and tokens refreshed automatically.</field>
+        </record>
+        <record id="source_gdelt" model="osint.source.config">
+            <field name="name">GDELT — Nigeria Media Events</field>
+            <field name="source_type">gdelt</field>
+            <field name="fetch_interval_hours">6</field>
+            <field name="nigeria_only">True</field>
+            <field name="notes">Free API — no credentials required. Fetches Nigeria security-related media events every 6 hours.</field>
+        </record>
+        <record id="source_rss_news" model="osint.source.config">
+            <field name="name">Nigerian News — RSS Feeds</field>
+            <field name="source_type">rss</field>
+            <field name="fetch_interval_hours">2</field>
+            <field name="nigeria_only">True</field>
+            <field name="notes">Premium Times, Punch, Vanguard, Daily Trust, The Guardian Nigeria. Filtered by security keywords.</field>
+        </record>
+        <record id="source_reliefweb" model="osint.source.config">
+            <field name="name">ReliefWeb — OCHA Nigeria Reports</field>
+            <field name="source_type">reliefweb</field>
+            <field name="fetch_interval_hours">24</field>
+            <field name="nigeria_only">True</field>
+            <field name="notes">Free OCHA/ReliefWeb API. Fetches Nigeria humanitarian and security situation reports daily.</field>
+        </record>
+    </data>
+</odoo>

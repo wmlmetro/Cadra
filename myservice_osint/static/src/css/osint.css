@@ -1,0 +1,66 @@
+.osint-feed-card {
+    border-left: 4px solid #888;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    border-radius: 0 6px 6px 0;
+    background: var(--color-background-secondary);
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+.osint-feed-card:hover { opacity: 0.85; }
+.osint-feed-card.critical { border-left-color: #dc3545; }
+.osint-feed-card.high     { border-left-color: #E85426; }
+.osint-feed-card.elevated { border-left-color: #fd7e14; }
+.osint-feed-card.medium   { border-left-color: #ffc107; }
+.osint-feed-card.low      { border-left-color: #28a745; }
+.osint-feed-card.info     { border-left-color: #17a2b8; }
+.osint-feed-card .card-title {
+    font-size: 13px; font-weight: 600;
+    color: var(--color-text-primary); margin-bottom: 4px;
+}
+.osint-feed-card .card-meta {
+    font-size: 11px; color: var(--color-text-secondary);
+}
+.osint-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    color: #fff;
+}
+.osint-badge.critical { background: #dc3545; }
+.osint-badge.high     { background: #E85426; }
+.osint-badge.elevated { background: #fd7e14; }
+.osint-badge.medium   { background: #ffc107; color: #333; }
+.osint-badge.low      { background: #28a745; }
+.osint-badge.info     { background: #17a2b8; }
+.osint-source-tab {
+    padding: 4px 12px; border-radius: 12px; cursor: pointer;
+    font-size: 12px; margin-right: 4px; margin-bottom: 4px;
+    border: 1px solid var(--color-border-secondary);
+    background: var(--color-background-primary);
+    color: var(--color-text-secondary);
+    display: inline-block;
+}
+.osint-source-tab.active {
+    background: #E85426; color: #fff; border-color: #E85426;
+}
+.threat-matrix-row {
+    display: flex; align-items: center; margin-bottom: 6px;
+    font-size: 12px;
+}
+.threat-matrix-row .state-label {
+    width: 120px; font-weight: 600; color: var(--color-text-primary);
+}
+.threat-bar-track {
+    flex: 1; height: 8px; background: var(--color-background-tertiary);
+    border-radius: 4px; overflow: hidden; margin: 0 8px;
+}
+.threat-bar-fill {
+    height: 100%; border-radius: 4px; transition: width 0.5s ease;
+}
+.delta-badge {
+    font-size: 10px; padding: 1px 5px; border-radius: 8px;
+    font-weight: 700; min-width: 36px; text-align: center;
+}
+.delta-up   { background: rgba(220,53,69,0.15); color: #dc3545; }
+.delta-down { background: rgba(40,167,69,0.15);  color: #28a745; }
+.delta-same { background: rgba(108,117,125,0.1); color: #6c757d; }

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="group_ai_analyst" model="res.groups">
+            <field name="name">AI Intelligence Analyst</field>
+            <field name="category_id" ref="base.module_category_technical"/>
+        </record>
+    </data>
+</odoo>

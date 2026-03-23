@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_ai_brief_list" model="ir.ui.view">
+        <field name="name">ai.daily.brief.list</field>
+        <field name="model">ai.daily.brief</field>
+        <field name="arch" type="xml">
+            <tree string="Daily Intelligence Briefs">
+                <field name="brief_date"/>
+                <field name="subject"/>
+                <field name="critical_alerts"/>
+                <field name="high_alerts"/>
+                <field name="states_elevated"/>
+                <field name="new_osint"/>
+                <field name="email_sent_at"/>
+                <field name="whatsapp_sent" widget="boolean"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_ai_brief_form" model="ir.ui.view">
+        <field name="name">ai.daily.brief.form</field>
+        <field name="model">ai.daily.brief</field>
+        <field name="arch" type="xml">
+            <form string="Daily Intelligence Brief">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="brief_date"/>
+                            <field name="critical_alerts" readonly="1"/>
+                            <field name="high_alerts" readonly="1"/>
+                            <field name="new_osint" readonly="1"/>
+                        </group>
+                        <group string="Distribution">
+                            <field name="emailed_to" readonly="1"/>
+                            <field name="email_sent_at" readonly="1"/>
+                            <field name="whatsapp_sent" readonly="1" widget="boolean"/>
+                        </group>
+                    </group>
+                    <field name="full_brief" widget="html" readonly="1"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ai_daily_briefs" model="ir.actions.act_window">
+        <field name="name">Daily Intelligence Briefs</field>
+        <field name="res_model">ai.daily.brief</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>
