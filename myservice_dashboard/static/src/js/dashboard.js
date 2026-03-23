@@ -31,23 +31,7 @@ odoo.define('myservice_dashboard.Dashboard', function (require) {
 
     var STATUS_COLOR = { ok:'#28a745', due_soon:'#ffc107', overdue:'#dc3545', no_schedule:'#6c757d' };
 
-    var MyServiceDashboard = AbstractAction.extend({
-        template: 'myservice_dashboard.Dashboard',
-        events: {
-            'click .ms-dash-refresh': '_onRefresh',
-            'click .ms-kpi-card':    '_onKpiClick',
-            'click .ms-filter-btn':  '_onFilterClick',
-            'click .ms-request-item':'_onRequestClick',
-        },
-        init: function(parent, action) {
-            this._super.apply(this, arguments);
-            this.map = null; this.locationLayer = null; this.fleetLayer = null; this._fleetLoaded = false;
-            this.kpis = {}; this.mapData = { locations:[], fleet:[], recent_requests:[] };
-            this.currentFilter = 'all';
-        },
-        start: async function() {
-
-    // Fleet Command + Tab styles
+        // Fleet Command + Tab styles
     if (!document.getElementById('ms-fleet-style')) {
         var fst = document.createElement('style');
         fst.id = 'ms-fleet-style';
@@ -92,6 +76,22 @@ odoo.define('myservice_dashboard.Dashboard', function (require) {
             '.ms-fleet-maint-date{color:#aaa;font-size:10px;min-width:70px;text-align:right}';
         document.head.appendChild(fst);
     }
+
+        var MyServiceDashboard = AbstractAction.extend({
+        template: 'myservice_dashboard.Dashboard',
+        events: {
+            'click .ms-dash-refresh': '_onRefresh',
+            'click .ms-kpi-card':    '_onKpiClick',
+            'click .ms-filter-btn':  '_onFilterClick',
+            'click .ms-request-item':'_onRequestClick',
+        },
+        init: function(parent, action) {
+            this._super.apply(this, arguments);
+            this.map = null; this.locationLayer = null; this.fleetLayer = null; this._fleetLoaded = false;
+            this.kpis = {}; this.mapData = { locations:[], fleet:[], recent_requests:[] };
+            this.currentFilter = 'all';
+        },
+        start: async function() {
             await this._super.apply(this, arguments);
             await loadLeaflet();
             this._initTabs();
