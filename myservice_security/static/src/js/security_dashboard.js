@@ -30,6 +30,20 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
         st.id = 'soc-spin-style';
         st.textContent = '@keyframes soc-spin{to{transform:rotate(360deg)}}';
         document.head.appendChild(st);
+
+    // Overflow fix — ensure OSINT and state threat sections are visible
+    if (!document.getElementById('soc-overflow-fix')) {
+        var sf = document.createElement('style');
+        sf.id = 'soc-overflow-fix';
+        sf.textContent =
+            '.ms-soc{overflow-y:auto!important;height:auto!important;min-height:100%;}' +
+            '.o_action_manager,.o_action,.o_client_action_container{overflow-y:auto!important;height:auto!important;}' +
+            '.ms-soc-osint-section{display:block!important;width:100%;padding:16px 20px;box-sizing:border-box;}' +
+            '.ms-soc-state-bar{display:block!important;width:100%;padding:12px 20px 24px;box-sizing:border-box;}' +
+            '.ms-soc-osint-grid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:10px;}' +
+            '.ms-soc-states{display:flex!important;flex-wrap:wrap;gap:6px;margin-top:8px;}';
+        document.head.appendChild(sf);
+    }
     }
 
     var SEV_COLOR = { critical:'#f85149', high:'#E85426', medium:'#d29922', low:'#3fb950' };
