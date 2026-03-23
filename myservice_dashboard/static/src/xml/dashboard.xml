@@ -41,50 +41,110 @@
                 <i class="fa fa-wrench ms-kpi-icon"/>
             </div>
         </div>
-        <div class="ms-dash-body">
-            <div class="ms-map-panel">
-                <div class="ms-map-toolbar">
-                    <span><i class="fa fa-globe"/> Nigeria Operations Map</span>
-                    <button class="ms-filter-btn all active" data-filter="all">All</button>
-                    <button class="ms-filter-btn location" data-filter="location">FIRS Offices</button>
-                    <button class="ms-filter-btn vehicle" data-filter="vehicle">Fleet</button>
-                </div>
-                <div id="ms-map"><div class="ms-loading"><div class="ms-spinner"/>Loading map...</div></div>
-                <div class="ms-legend">
-                    <div class="ms-legend-item"><div class="ms-legend-dot" style="background:#007bff"/>FIRS Office</div>
-                    <div class="ms-legend-item"><div class="ms-legend-dot" style="background:#28a745"/>Vehicle OK</div>
-                    <div class="ms-legend-item"><div class="ms-legend-dot" style="background:#ffc107"/>Maintenance Due</div>
-                    <div class="ms-legend-item"><div class="ms-legend-dot" style="background:#dc3545"/>Overdue</div>
-                    <div class="ms-legend-item"><div class="ms-legend-dot" style="background:#6c757d"/>No Schedule</div>
-                </div>
-            </div>
-            <div class="ms-side-panel">
-                <div class="ms-panel-card">
-                    <div class="ms-panel-title"><i class="fa fa-car"/> Fleet Status</div>
-                    <div class="ms-status-bar">
-                        <div class="ms-status-row"><span><span class="ms-status-dot" style="background:#28a745"/> OK / Active</span><span class="ms-status-count fs-ok">—</span></div>
-                        <div class="ms-status-row"><span><span class="ms-status-dot" style="background:#ffc107"/> Due Soon</span><span class="ms-status-count fs-due-soon">—</span></div>
-                        <div class="ms-status-row"><span><span class="ms-status-dot" style="background:#dc3545"/> Overdue</span><span class="ms-status-count fs-overdue">—</span></div>
-                        <div class="ms-status-row"><span><span class="ms-status-dot" style="background:#6c757d"/> No Schedule</span><span class="ms-status-count fs-no-schedule">—</span></div>
+
+        <!-- Tab bar -->
+        <div class="ms-tab-bar">
+            <button class="ms-tab active" data-tab="overview">
+                <i class="fa fa-globe"/> Overview
+            </button>
+            <button class="ms-tab" data-tab="fleet">
+                <i class="fa fa-car"/> Fleet Command
+            </button>
+        </div>
+
+        <!-- Overview tab -->
+        <div class="ms-tab-panel" data-panel="overview">
+            <div class="ms-dash-body">
+                <div class="ms-map-panel">
+                    <div class="ms-map-toolbar">
+                        <span><i class="fa fa-globe"/> Nigeria Operations Map</span>
+                        <button class="ms-filter-btn all active" data-filter="all">All</button>
+                        <button class="ms-filter-btn location" data-filter="location">FIRS Offices</button>
+                        <button class="ms-filter-btn vehicle" data-filter="vehicle">Fleet</button>
+                    </div>
+                    <div id="ms-map"><div class="ms-loading"><div class="ms-spinner"/>Loading map...</div></div>
+                    <div class="ms-legend">
+                        <div class="ms-legend-item"><div class="ms-legend-dot" style="background:#007bff"/>FIRS Office</div>
+                        <div class="ms-legend-item"><div class="ms-legend-dot" style="background:#28a745"/>Vehicle OK</div>
+                        <div class="ms-legend-item"><div class="ms-legend-dot" style="background:#ffc107"/>Maintenance Due</div>
+                        <div class="ms-legend-item"><div class="ms-legend-dot" style="background:#dc3545"/>Overdue</div>
+                        <div class="ms-legend-item"><div class="ms-legend-dot" style="background:#6c757d"/>No Schedule</div>
                     </div>
                 </div>
-                <div class="ms-panel-card">
-                    <div class="ms-panel-title"><i class="fa fa-map-marker"/> Location Coverage</div>
-                    <div class="ms-status-bar">
-                        <div class="ms-status-row"><span>Total Locations</span><span class="ms-status-count ls-total">—</span></div>
-                        <div class="ms-status-row"><span>Mapped on GPS</span><span class="ms-status-count ls-mapped">—</span></div>
-                        <div class="ms-status-row"><span>Open Requests</span><span class="ms-status-count ls-open">—</span></div>
-                        <div class="ms-status-row"><span>Today's Requests</span><span class="ms-status-count ls-today">—</span></div>
+                <div class="ms-side-panel">
+                    <div class="ms-panel-card">
+                        <div class="ms-panel-title"><i class="fa fa-car"/> Fleet Status</div>
+                        <div class="ms-status-bar">
+                            <div class="ms-status-row"><span><span class="ms-status-dot" style="background:#28a745"/> OK / Active</span><span class="ms-status-count fs-ok">—</span></div>
+                            <div class="ms-status-row"><span><span class="ms-status-dot" style="background:#ffc107"/> Due Soon</span><span class="ms-status-count fs-due-soon">—</span></div>
+                            <div class="ms-status-row"><span><span class="ms-status-dot" style="background:#dc3545"/> Overdue</span><span class="ms-status-count fs-overdue">—</span></div>
+                            <div class="ms-status-row"><span><span class="ms-status-dot" style="background:#6c757d"/> No Schedule</span><span class="ms-status-count fs-no-schedule">—</span></div>
+                        </div>
                     </div>
-                </div>
-                <div class="ms-panel-card" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
-                    <div class="ms-panel-title"><i class="fa fa-ticket"/> Recent Open Requests</div>
-                    <div class="ms-request-list" style="overflow-y:auto;flex:1;">
-                        <div style="padding:16px;text-align:center;color:#888;font-size:13px;">Loading...</div>
+                    <div class="ms-panel-card">
+                        <div class="ms-panel-title"><i class="fa fa-map-marker"/> Location Coverage</div>
+                        <div class="ms-status-bar">
+                            <div class="ms-status-row"><span>Total Locations</span><span class="ms-status-count ls-total">—</span></div>
+                            <div class="ms-status-row"><span>Mapped on GPS</span><span class="ms-status-count ls-mapped">—</span></div>
+                            <div class="ms-status-row"><span>Open Requests</span><span class="ms-status-count ls-open">—</span></div>
+                            <div class="ms-status-row"><span>Today's Requests</span><span class="ms-status-count ls-today">—</span></div>
+                        </div>
+                    </div>
+                    <div class="ms-panel-card" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+                        <div class="ms-panel-title"><i class="fa fa-ticket"/> Recent Open Requests</div>
+                        <div class="ms-request-list" style="overflow-y:auto;flex:1;">
+                            <div style="padding:16px;text-align:center;color:#888;font-size:13px;">Loading...</div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Fleet Command tab -->
+        <div class="ms-tab-panel" data-panel="fleet" style="display:none">
+            <div class="ms-fleet-kpis">
+                <div class="ms-fleet-kpi red"><div class="ms-fleet-kval fk-overdue">—</div><div class="ms-fleet-klbl">Maintenance Overdue</div></div>
+                <div class="ms-fleet-kpi orange"><div class="ms-fleet-kval fk-due-soon">—</div><div class="ms-fleet-klbl">Due Soon</div></div>
+                <div class="ms-fleet-kpi green"><div class="ms-fleet-kval fk-ok">—</div><div class="ms-fleet-klbl">Active / OK</div></div>
+                <div class="ms-fleet-kpi gray"><div class="ms-fleet-kval fk-idle">—</div><div class="ms-fleet-klbl">Idle 30+ Days</div></div>
+                <div class="ms-fleet-kpi gray"><div class="ms-fleet-kval fk-unassigned">—</div><div class="ms-fleet-klbl">No Driver</div></div>
+                <div class="ms-fleet-kpi gray"><div class="ms-fleet-kval fk-no-location">—</div><div class="ms-fleet-klbl">No Location</div></div>
+                <div class="ms-fleet-kpi blue"><div class="ms-fleet-kval fk-vendors">—</div><div class="ms-fleet-klbl">Approved Vendors</div></div>
+            </div>
+            <div class="ms-fleet-grid">
+                <div class="ms-fleet-card wide">
+                    <div class="ms-fleet-card-hdr">
+                        <span><i class="fa fa-map-marker"/> Vehicles by location</span>
+                        <span class="ms-fleet-card-sub">Top 10 NRS offices</span>
+                    </div>
+                    <div class="ms-fleet-loc-bars"><div class="ms-fleet-empty">Loading...</div></div>
+                </div>
+                <div class="ms-fleet-card">
+                    <div class="ms-fleet-card-hdr"><span><i class="fa fa-pie-chart"/> Maintenance status</span></div>
+                    <div class="ms-fleet-status-list"><div class="ms-fleet-empty">Loading...</div></div>
+                </div>
+                <div class="ms-fleet-card">
+                    <div class="ms-fleet-card-hdr"><span><i class="fa fa-car"/> Fleet by make</span></div>
+                    <div class="ms-fleet-make-bars"><div class="ms-fleet-empty">Loading...</div></div>
+                </div>
+                <div class="ms-fleet-card">
+                    <div class="ms-fleet-card-hdr"><span><i class="fa fa-wrench"/> Approved vendors</span></div>
+                    <div class="ms-fleet-vendor-list"><div class="ms-fleet-empty">Loading...</div></div>
+                </div>
+                <div class="ms-fleet-card">
+                    <div class="ms-fleet-card-hdr"><span><i class="fa fa-exclamation-triangle"/> Compliance alerts</span></div>
+                    <div class="ms-fleet-compliance-list"><div class="ms-fleet-empty">Loading...</div></div>
+                </div>
+                <div class="ms-fleet-card wide">
+                    <div class="ms-fleet-card-hdr">
+                        <span><i class="fa fa-history"/> Recent maintenance logs</span>
+                        <span class="ms-fleet-card-sub">Latest 8 service records</span>
+                    </div>
+                    <div class="ms-fleet-maint-list"><div class="ms-fleet-empty">Loading...</div></div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </t>
 </templates>

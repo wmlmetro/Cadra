@@ -14,3 +14,9 @@ class MyServiceDashboardController(http.Controller):
                 auth='user', methods=['POST'])
     def get_map_data(self):
         return request.env['myservice.dashboard'].get_map_data()
+
+    @http.route('/myservice/dashboard/fleet_command', type='json',
+                auth='user', methods=['POST'])
+    def get_fleet_command(self):
+        return request.env['myservice.dashboard'].get_fleet_command()
+

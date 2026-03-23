@@ -160,3 +160,143 @@ class MyServiceDashboard(models.AbstractModel):
             'fleet': fleet_data,
             'recent_requests': recent_data,
         }
+
+    @api.model
+    def get_fleet_command(self):
+        """Fleet Command tab data."""
+        from datetime import date, timedelta
+        Vehicle = self.env['fleet.vehicle']
+        today = date.today()
+
+        # ── KPIs ──────────────────────────────────────────────────────
+        total          = Vehicle.search_count([])
+        overdue        = Vehicle.search_count([('maintenance_status','=','overdue')])
+        due_soon       = Vehicle.search_count([('maintenance_status','=','due_soon')])
+        ok             = Vehicle.search_count([('maintenance_status','=','ok')])
+        no_schedule    = Vehicle.search_count([('maintenance_status','=','no_schedule')])
+        with_location  = Vehicle.search_count([('home_location_id','!=',False)])
+        without_loc    = total - with_location
+        unassigned_drv = Vehicle.search_count([('driver_id','=',False)])
+
+        # Idle: no maintenance log in 30 days
+        since_30 = (today - timedelta(days=30)).strftime('%Y-%m-%d')
+        try:
+            active_ids = self.env['fleet.vehicle.log.services'].search(
+                [('date','>=',since_30)]).mapped('vehicle_id').ids
+            idle = Vehicle.search_count([('id','not in',active_ids)])
+        except Exception:
+            idle = 0
+
+        # ── Vendor performance ────────────────────────────────────────
+        vendors = []
+        try:
+            for v in self.env['fleet.service.vendor'].search(
+                    [('is_approved','=',True)], limit=6):
+                vendors.append({
+                    'id':   v.id,
+                    'name': v.name,
+                    'approved': v.is_approved,
+                    'specialisation': v.specialisation or '',
+                    'state': v.state_id.name if v.state_id else '',
+                })
+        except Exception:
+            pass
+
+        # ── Vehicles by location (top 10) ─────────────────────────────
+        by_location = []
+        loc_counts = {}
+        for v in Vehicle.search([('home_location_id','!=',False)]):
+            lid = v.home_location_id.id
+            lname = v.home_location_id.name
+            loc_counts[lid] = loc_counts.get(lid, {'name': lname, 'count': 0})
+            loc_counts[lid]['count'] += 1
+        top_locs = sorted(loc_counts.values(), key=lambda x: -x['count'])[:10]
+        by_location = top_locs
+
+        # ── Vehicles by make ──────────────────────────────────────────
+        by_make = {}
+        for v in Vehicle.search([]):
+            make = v.brand_id.name if v.brand_id else 'Unknown'
+            by_make[make] = by_make.get(make, 0) + 1
+        by_make_list = sorted(
+            [{'make': k, 'count': v} for k,v in by_make.items()],
+            key=lambda x: -x['count'])[:8]
+
+        # ── Maintenance status distribution ───────────────────────────
+        by_status = [
+            {'status': 'OK / Active',    'count': ok,          'color': '#28a745'},
+            {'status': 'Due Soon',       'count': due_soon,    'color': '#ffc107'},
+            {'status': 'Overdue',        'count': overdue,     'color': '#dc3545'},
+            {'status': 'No Schedule',    'count': no_schedule, 'color': '#6c757d'},
+        ]
+
+        # ── Compliance alerts ─────────────────────────────────────────
+        compliance = []
+        soon_30 = (today + timedelta(days=30)).strftime('%Y-%m-%d')
+        soon_14 = (today + timedelta(days=14)).strftime('%Y-%m-%d')
+        today_s = today.strftime('%Y-%m-%d')
+        try:
+            # Insurance expiry
+            ins_overdue = Vehicle.search_count([
+                ('insurance_expiration_date','<', today_s)])
+            ins_soon    = Vehicle.search_count([
+                ('insurance_expiration_date','>=', today_s),
+                ('insurance_expiration_date','<=', soon_30)])
+            if ins_overdue:
+                compliance.append({'type':'Insurance expired',
+                    'count':ins_overdue, 'level':'critical'})
+            if ins_soon:
+                compliance.append({'type':'Insurance expiring soon',
+                    'count':ins_soon, 'level':'warning'})
+        except Exception:
+            pass
+
+        # ── Recent maintenance logs ───────────────────────────────────
+        recent_maint = []
+        try:
+            logs = self.env['fleet.vehicle.log.services'].search(
+                [], order='date desc', limit=8)
+            for lg in logs:
+                recent_maint.append({
+                    'id':      lg.id,
+                    'vehicle': lg.vehicle_id.name if lg.vehicle_id else '',
+                    'plate':   lg.vehicle_id.license_plate if lg.vehicle_id else '',
+                    'service': lg.service_id.name if lg.service_id else lg.notes or '',
+                    'vendor':  lg.vendor_id.name if lg.vendor_id else '',
+                    'date':    lg.date.strftime('%d %b %Y') if lg.date else '',
+                    'cost':    lg.amount or 0,
+                    'location':lg.vehicle_id.home_location_id.name
+                               if lg.vehicle_id and lg.vehicle_id.home_location_id else '',
+                })
+        except Exception:
+            pass
+
+        # ── Driver stats ──────────────────────────────────────────────
+        driver_stats = {
+            'total_drivers': self.env['res.partner'].search_count(
+                [('id','in', Vehicle.search([('driver_id','!=',False)])
+                  .mapped('driver_id').ids)]),
+            'unassigned':    unassigned_drv,
+            'assigned':      total - unassigned_drv,
+        }
+
+        return {
+            'kpis': {
+                'total':        total,
+                'overdue':      overdue,
+                'due_soon':     due_soon,
+                'ok':           ok,
+                'idle':         idle,
+                'no_location':  without_loc,
+                'unassigned':   unassigned_drv,
+                'vendors':      len(vendors),
+            },
+            'by_location':  by_location,
+            'by_make':      by_make_list,
+            'by_status':    by_status,
+            'vendors':      vendors,
+            'compliance':   compliance,
+            'recent_maint': recent_maint,
+            'driver_stats': driver_stats,
+        }
+
