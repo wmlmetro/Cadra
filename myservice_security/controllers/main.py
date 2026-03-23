@@ -117,19 +117,54 @@ class SecurityDashboardController(http.Controller):
 
     @http.route('/myservice/security/osint', type='json', auth='user', methods=['POST'])
     def get_osint(self):
+        results = []
+
+        # ── Source 1: security.osint.feed (manual, watchlist, AI pattern) ──
         feeds = request.env['security.osint.feed'].sudo().search(
-            [], order='date desc', limit=20)
-        return [{
-            'id':          f.id,
-            'title':       f.title,
-            'summary':     f.summary or '',
-            'source_type': f.source_type,
-            'source_name': f.source_name or '',
-            'threat':      f.threat_level,
-            'location':    f.location_id.name if f.location_id else (f.state_name or ''),
-            'date':        f.date.strftime('%d %b %Y %H:%M') if f.date else '',
-            'verified':    f.is_verified,
-        } for f in feeds]
+            [], order='date desc', limit=30)
+        for f in feeds:
+            results.append({
+                'id':          f.id,
+                'title':       f.title,
+                'summary':     f.summary or '',
+                'source_type': f.source_type,
+                'source_name': f.source_name or '',
+                'threat':      f.threat_level,
+                'location':    f.location_id.name if f.location_id else (f.state_name or ''),
+                'date':        f.date.strftime('%d %b %Y %H:%M') if f.date else '',
+                'verified':    f.is_verified,
+                '_sort_date':  f.date,
+            })
+
+        # ── Source 2: osint.feed.entry (ACLED, GDELT, RSS, ReliefWeb) ──
+        try:
+            entries = request.env['osint.feed.entry'].sudo().search(
+                [], order='event_date desc', limit=50)
+            for e in entries:
+                results.append({
+                    'id':          e.id,
+                    'title':       e.title or '',
+                    'summary':     e.summary or '',
+                    'source_type': e.source_config_id.source_type if e.source_config_id else 'external',
+                    'source_name': e.source_name or '',
+                    'threat':      e.threat_level or 'info',
+                    'location':    e.state_name or '',
+                    'date':        e.event_date.strftime('%d %b %Y %H:%M') if e.event_date else '',
+                    'verified':    e.is_verified,
+                    '_sort_date':  e.event_date,
+                })
+        except Exception as ex:
+            import logging
+            logging.getLogger(__name__).warning('osint.feed.entry load error: %s', ex)
+
+        # ── Merge, sort by date desc, return top 40 ──
+        from datetime import datetime
+        results.sort(
+            key=lambda x: x.get('_sort_date') or datetime.min,
+            reverse=True)
+        for r in results:
+            r.pop('_sort_date', None)
+        return results[:40]
 
     @http.route('/myservice/security/state_threats', type='json', auth='user', methods=['POST'])
     def get_state_threats(self):
