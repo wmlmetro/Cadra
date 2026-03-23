@@ -31,6 +31,82 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
         st.textContent = '@keyframes soc-spin{to{transform:rotate(360deg)}}';
         document.head.appendChild(st);
 
+    if (!document.getElementById('soc-tab-style')) {
+        var ts = document.createElement('style');
+        ts.id = 'soc-tab-style';
+        ts.textContent = [
+            '.ms-soc-tab-bar{display:flex;gap:6px;padding:10px 0;border-bottom:1px solid #21262d;margin-bottom:14px}',
+            '.ms-soc-tab{padding:7px 16px;border-radius:16px;border:1px solid #30363d;background:transparent;cursor:pointer;font-size:12px;color:#8b949e;transition:all .2s;font-family:inherit}',
+            '.ms-soc-tab.active{background:#E85426;color:#fff;border-color:#E85426}',
+            '.ms-soc-tab:hover:not(.active){background:#21262d;color:#e6edf3}',
+            '.ms-intel-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}',
+            '.ms-intel-filters{display:flex;gap:4px}',
+            '.ms-intel-filter{padding:4px 12px;border-radius:12px;border:1px solid #30363d;background:transparent;cursor:pointer;font-size:11px;color:#8b949e;font-family:inherit}',
+            '.ms-intel-filter.active{background:#21262d;color:#e6edf3;border-color:#58a6ff}',
+            '.ms-intel-source-filters{display:flex;gap:4px;flex-wrap:wrap}',
+            '.ms-intel-src{padding:4px 10px;border-radius:12px;border:1px solid #30363d;background:transparent;cursor:pointer;font-size:10px;color:#7d8590;font-family:inherit}',
+            '.ms-intel-src.active{background:#161b22;color:#e6edf3;border-color:#30363d}',
+            '.ms-intel-count{font-size:11px;color:#7d8590;white-space:nowrap}',
+            '.ms-intel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}',
+            '.ms-intel-card{background:#161b22;border-radius:8px;border:1px solid #21262d;padding:14px;cursor:pointer;transition:border-color .2s}',
+            '.ms-intel-card:hover{border-color:#E85426}',
+            '.ms-intel-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}',
+            '.ms-intel-source{font-size:10px;color:#7d8590;text-transform:uppercase;letter-spacing:.5px}',
+            '.ms-intel-threat{font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px}',
+            '.ms-intel-threat.critical{background:rgba(248,81,73,.15);color:#f85149}',
+            '.ms-intel-threat.high{background:rgba(232,84,38,.15);color:#E85426}',
+            '.ms-intel-threat.medium{background:rgba(210,153,34,.15);color:#d29922}',
+            '.ms-intel-threat.low{background:rgba(63,185,80,.15);color:#3fb950}',
+            '.ms-intel-threat.info{background:rgba(88,166,255,.15);color:#58a6ff}',
+            '.ms-intel-title{font-size:13px;font-weight:600;color:#e6edf3;margin-bottom:6px;line-height:1.4}',
+            '.ms-intel-summary{font-size:11px;color:#8b949e;line-height:1.5;margin-bottom:8px}',
+            '.ms-intel-footer{display:flex;align-items:center;justify-content:space-between;font-size:10px;color:#7d8590}',
+            '.ms-intel-verified{color:#3fb950}',
+            '.ms-wlb-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px}',
+            '.ms-wlb-filters{display:flex;gap:4px}',
+            '.ms-wlb-filter{padding:4px 12px;border-radius:12px;border:1px solid #30363d;background:transparent;cursor:pointer;font-size:11px;color:#8b949e;font-family:inherit}',
+            '.ms-wlb-filter.active{background:#E85426;color:#fff;border-color:#E85426}',
+            '.ms-wlb-count{font-size:11px;color:#7d8590}',
+            '.ms-wlb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}',
+            '.ms-wlb-card{background:#161b22;border-radius:10px;overflow:hidden;border-top:3px solid #30363d;transition:transform .2s,box-shadow .2s;cursor:pointer}',
+            '.ms-wlb-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.4)}',
+            '.ms-wlb-card.critical{border-top-color:#f85149}',
+            '.ms-wlb-card.high{border-top-color:#E85426}',
+            '.ms-wlb-card.medium{border-top-color:#d29922}',
+            '.ms-wlb-card.low{border-top-color:#3fb950}',
+            '.ms-wlb-photo{width:100%;height:180px;object-fit:cover;object-position:top center;display:block}',
+            '.ms-wlb-placeholder{width:100%;height:180px;background:#0d1117;display:flex;align-items:center;justify-content:center;font-size:52px;font-weight:700;color:#30363d}',
+            '.ms-wlb-body{padding:10px 12px 12px}',
+            '.ms-wlb-name{font-size:13px;font-weight:700;color:#e6edf3;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+            '.ms-wlb-cat{font-size:10px;color:#7d8590;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}',
+            '.ms-wlb-meta{font-size:10px;color:#7d8590;margin-bottom:4px}',
+            '.ms-wlb-ribbon{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;text-transform:uppercase;margin-top:4px}',
+            '.ms-wlb-ribbon.critical{background:#f85149;color:#fff}',
+            '.ms-wlb-ribbon.high{background:#E85426;color:#fff}',
+            '.ms-wlb-ribbon.medium{background:#d29922;color:#0d1117}',
+            '.ms-wlb-ribbon.low{background:#3fb950;color:#0d1117}',
+            '.ms-wlb-status{font-size:9px;float:right;margin-top:4px}',
+            '.ms-wlb-status.approved{color:#3fb950}',
+            '.ms-wlb-status.pending{color:#d29922}',
+            '.ms-rpt-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}',
+            '.ms-rpt-card{background:#161b22;border-radius:8px;border:1px solid #21262d;padding:14px 16px}',
+            '.ms-rpt-card-hdr{font-size:12px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}',
+            '.ms-rpt-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}',
+            '.ms-rpt-bar-label{font-size:11px;color:#8b949e;width:110px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+            '.ms-rpt-bar-track{flex:1;height:7px;background:#21262d;border-radius:4px;overflow:hidden}',
+            '.ms-rpt-bar-fill{height:100%;border-radius:4px}',
+            '.ms-rpt-bar-val{font-size:11px;color:#7d8590;width:28px;text-align:right;flex-shrink:0}',
+            '.ms-rpt-stat-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #21262d;font-size:12px;color:#8b949e}',
+            '.ms-rpt-stat-row:last-child{border-bottom:none}',
+            '.ms-rpt-stat-val{font-weight:600;color:#e6edf3}',
+            '.ms-rpt-alert-row{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid #21262d}',
+            '.ms-rpt-alert-row:last-child{border-bottom:none}',
+            '.ms-rpt-alert-name{font-size:11px;color:#e6edf3;font-weight:600}',
+            '.ms-rpt-alert-type{font-size:10px;color:#7d8590}',
+        ].join('');
+        document.head.appendChild(ts);
+    }
+
     // Overflow fix — ensure OSINT and state threat sections are visible
     if (!document.getElementById('soc-overflow-fix')) {
         var sf = document.createElement('style');
@@ -60,6 +136,7 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
         template: 'myservice_security_dashboard.Dashboard',
         events: {
             'click .ms-soc-refresh-btn': '_onRefresh',
+            'click .ms-soc-tab': '_onTabClick',
             'click .ms-soc-kpi':         '_onKpiClick',
             'click .ms-soc-mf':          '_onFilterClick',
             'click .ms-soc-inc-item':    '_onIncidentClick',
@@ -69,6 +146,7 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
             this._super.apply(this, arguments);
             this.map = null; this.incLayer = null; this.guardLayer = null; this.locLayer = null;
             this.kpis = {}; this.mapData = {}; this.osint = []; this.states = [];
+            this._intelLoaded = false; this._wlbLoaded = false; this._reportsLoaded = false; this._allOsint = []; this._wlbData = [];
             this.currentFilter = 'all'; this._clockTimer = null; this._refreshTimer = null;
         },
         start: async function() {
@@ -115,7 +193,7 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
                 self.kpis    = results[0];
                 self.mapData = results[1];
                 self.recent  = results[2];
-                self.osint   = results[3];
+                self.osint   = results[3]; self._allOsint = results[3];
                 self.states  = results[4];
                 self._updateKpis();
                 self._renderMap();
@@ -360,6 +438,186 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
             });
         },
         _onRefresh: function() { this._loadData(); },
+        _onTabClick: function(ev) {
+            var tab = $(ev.currentTarget).data('tab');
+            this.$('.ms-soc-tab').removeClass('active');
+            $(ev.currentTarget).addClass('active');
+            this.$('.ms-soc-tab-panel').hide();
+            this.$('.ms-soc-tab-panel[data-panel="' + tab + '"]').show();
+            if (tab === 'intel' && !this._intelLoaded) { this._renderIntelFull(); this._intelLoaded = true; }
+            if (tab === 'watchlist' && !this._wlbLoaded) { this._renderWatchlistBoard(); this._wlbLoaded = true; }
+            if (tab === 'reports' && !this._reportsLoaded) { this._renderReports(); this._reportsLoaded = true; }
+        },
+
+        _renderIntelFull: function() {
+            var self = this;
+            var threatFilter = 'all', srcFilter = 'all';
+            function render() {
+                var items = self._allOsint || [];
+                var filtered = items.filter(function(i) {
+                    return (threatFilter === 'all' || i.threat === threatFilter) &&
+                           (srcFilter === 'all' || i.source_type === srcFilter);
+                });
+                self.$('#intel-count').text(filtered.length + ' entries');
+                var $g = self.$('.soc-intel-grid');
+                $g.empty();
+                if (!filtered.length) { $g.append('<div class="ms-soc-osint-empty">No entries match.</div>'); return; }
+                filtered.forEach(function(i) {
+                    var v = i.verified ? '<span class="ms-intel-verified">&#10003; Verified</span>' : '';
+                    $g.append('<div class="ms-intel-card" data-id="' + i.id + '">' +
+                        '<div class="ms-intel-card-top"><span class="ms-intel-source">' + (i.source_name||i.source_type||'') + '</span>' +
+                        '<span class="ms-intel-threat ' + (i.threat||'info') + '">' + (i.threat||'info').toUpperCase() + '</span></div>' +
+                        '<div class="ms-intel-title">' + (i.title||'') + '</div>' +
+                        '<div class="ms-intel-summary">' + (i.summary||'') + '</div>' +
+                        '<div class="ms-intel-footer"><span>' + (i.location||'') + '</span><span>' + v + ' ' + (i.date||'') + '</span></div></div>');
+                });
+            }
+            if (!this._allOsint || !this._allOsint.length) {
+                var rpc = require('web.rpc');
+                rpc.query({ route: '/myservice/security/osint', params: {} }).then(function(d) {
+                    self._allOsint = d || [];
+                    render();
+                });
+            } else { render(); }
+            this.$('.ms-intel-filter').off('click').on('click', function() {
+                self.$('.ms-intel-filter').removeClass('active');
+                $(this).addClass('active');
+                threatFilter = $(this).data('threat');
+                render();
+            });
+            this.$('.ms-intel-src').off('click').on('click', function() {
+                self.$('.ms-intel-src').removeClass('active');
+                $(this).addClass('active');
+                srcFilter = $(this).data('source');
+                render();
+            });
+        },
+
+        _renderWatchlistBoard: function() {
+            var self = this;
+            var threatFilter = 'all';
+            var rpc = require('web.rpc');
+            rpc.query({ model:'security.watchlist', method:'search_read',
+                args:[[['approval_state','=','approved']]],
+                kwargs:{ fields:['name','photo','threat_level','category','last_sighted',
+                    'vehicle_plate','approval_state','incident_count','last_sighted_location_id'],
+                    order:'threat_level desc', limit:100 }
+            }).then(function(data) {
+                self._wlbData = data || [];
+                self.$('#wlb-count').text(data.length + ' subjects');
+                self._renderWlbCards(threatFilter);
+            });
+            this.$('.ms-wlb-filter').off('click').on('click', function() {
+                self.$('.ms-wlb-filter').removeClass('active');
+                $(this).addClass('active');
+                threatFilter = $(this).data('threat');
+                self._renderWlbCards(threatFilter);
+            });
+            this.$('.ms-wlb-fullscreen-btn').off('click').on('click', function() {
+                var el = self.$('.ms-soc-tab-panel[data-panel="watchlist"]')[0];
+                if (el && el.requestFullscreen) el.requestFullscreen();
+            });
+            var _auto = null;
+            this.$('.ms-wlb-autoplay-btn').off('click').on('click', function() {
+                if (_auto) { clearInterval(_auto); _auto = null; $(this).text('Play Auto-cycle'); return; }
+                var filters = ['all','critical','high','medium','low'], idx = 0;
+                _auto = setInterval(function() {
+                    idx = (idx+1) % filters.length;
+                    threatFilter = filters[idx];
+                    self.$('.ms-wlb-filter').removeClass('active');
+                    self.$('.ms-wlb-filter[data-threat="'+threatFilter+'"]').addClass('active');
+                    self._renderWlbCards(threatFilter);
+                }, 5000);
+                $(this).text('Stop');
+            });
+        },
+
+        _renderWlbCards: function(threatFilter) {
+            var data = (this._wlbData||[]).filter(function(w) {
+                return threatFilter === 'all' || w.threat_level === threatFilter;
+            });
+            var $g = this.$('.soc-wlb-grid');
+            $g.empty();
+            if (!data.length) { $g.append('<div class="ms-soc-osint-empty">No subjects match.</div>'); return; }
+            data.forEach(function(w) {
+                var photo = w.photo ?
+                    '<img class="ms-wlb-photo" src="data:image/png;base64,' + w.photo + '" alt=""/>' :
+                    '<div class="ms-wlb-placeholder">' + (w.name||'?')[0].toUpperCase() + '</div>';
+                var loc = w.last_sighted_location_id ? w.last_sighted_location_id[1] : 'Unknown';
+                var inc = w.incident_count > 0 ? '<div class="ms-wlb-meta">! ' + w.incident_count + ' incident(s)</div>' : '';
+                var plate = w.vehicle_plate ? '<div class="ms-wlb-meta">Plate: ' + w.vehicle_plate + '</div>' : '';
+                $g.append('<div class="ms-wlb-card ' + (w.threat_level||'') + '" data-id="' + w.id + '">' +
+                    photo + '<div class="ms-wlb-body">' +
+                    '<div class="ms-wlb-name">' + w.name + '</div>' +
+                    '<div class="ms-wlb-cat">' + (w.category||'') + '</div>' +
+                    '<div class="ms-wlb-meta">Last seen: ' + loc + '</div>' +
+                    inc + plate +
+                    '<span class="ms-wlb-ribbon ' + (w.threat_level||'') + '">' + (w.threat_level||'').toUpperCase() + '</span>' +
+                    '</div></div>');
+            });
+        },
+
+        _renderReports: function() {
+            var self = this;
+            var rpc = require('web.rpc');
+            rpc.query({ model:'security.incident', method:'read_group',
+                args:[[],['incident_type'],['incident_type']], kwargs:{lazy:false} })
+            .then(function(data) {
+                var $c = self.$('.soc-rpt-by-type'); $c.empty();
+                var max = Math.max.apply(null, data.map(function(d){return d.incident_type_count||0;})) || 1;
+                data.sort(function(a,b){return (b.incident_type_count||0)-(a.incident_type_count||0);});
+                data.forEach(function(d) {
+                    var pct = Math.round(((d.incident_type_count||0)/max)*100);
+                    $c.append('<div class="ms-rpt-bar-row"><div class="ms-rpt-bar-label">'+(d.incident_type||'Unknown')+'</div>' +
+                        '<div class="ms-rpt-bar-track"><div class="ms-rpt-bar-fill" style="width:'+pct+'%;background:#E85426"></div></div>' +
+                        '<div class="ms-rpt-bar-val">'+(d.incident_type_count||0)+'</div></div>');
+                });
+            });
+            rpc.query({ model:'security.incident', method:'read_group',
+                args:[[],['severity'],['severity']], kwargs:{lazy:false} })
+            .then(function(data) {
+                var $c = self.$('.soc-rpt-by-severity'); $c.empty();
+                var colors = {critical:'#f85149',high:'#E85426',medium:'#d29922',low:'#3fb950'};
+                var max = Math.max.apply(null, data.map(function(d){return d.severity_count||0;})) || 1;
+                data.forEach(function(d) {
+                    var pct = Math.round(((d.severity_count||0)/max)*100);
+                    $c.append('<div class="ms-rpt-bar-row"><div class="ms-rpt-bar-label">'+(d.severity||'Unknown')+'</div>' +
+                        '<div class="ms-rpt-bar-track"><div class="ms-rpt-bar-fill" style="width:'+pct+'%;background:'+(colors[d.severity]||'#7d8590')+'"></div></div>' +
+                        '<div class="ms-rpt-bar-val">'+(d.severity_count||0)+'</div></div>');
+                });
+            });
+            rpc.query({ model:'security.watchlist', method:'read_group',
+                args:[[],['category'],['category']], kwargs:{lazy:false} })
+            .then(function(data) {
+                var $c = self.$('.soc-rpt-wl-cat'); $c.empty();
+                var max = Math.max.apply(null, data.map(function(d){return d.category_count||0;})) || 1;
+                data.sort(function(a,b){return (b.category_count||0)-(a.category_count||0);});
+                data.forEach(function(d) {
+                    var pct = Math.round(((d.category_count||0)/max)*100);
+                    $c.append('<div class="ms-rpt-bar-row"><div class="ms-rpt-bar-label">'+(d.category||'Unknown')+'</div>' +
+                        '<div class="ms-rpt-bar-track"><div class="ms-rpt-bar-fill" style="width:'+pct+'%;background:#58a6ff"></div></div>' +
+                        '<div class="ms-rpt-bar-val">'+(d.category_count||0)+'</div></div>');
+                });
+            });
+            rpc.query({ model:'ai.pattern.alert', method:'search_read', args:[[]],
+                kwargs:{fields:['name','pattern_type','severity','title','create_date'],
+                    order:'create_date desc', limit:10} })
+            .then(function(data) {
+                var $c = self.$('.soc-rpt-ai-alerts'); $c.empty();
+                if (!data||!data.length) { $c.html('<div class="ms-soc-osint-empty">No AI alerts yet.</div>'); return; }
+                var colors = {critical:'#f85149',high:'#E85426',medium:'#d29922',low:'#3fb950'};
+                data.forEach(function(a) {
+                    $c.append('<div class="ms-rpt-alert-row">' +
+                        '<div style="width:6px;height:6px;border-radius:50%;background:'+(colors[a.severity]||'#7d8590')+';margin-top:4px;flex-shrink:0"></div>' +
+                        '<div><div class="ms-rpt-alert-name">'+a.name+' — '+(a.title||'')+'</div>' +
+                        '<div class="ms-rpt-alert-type">'+(a.pattern_type||'')+' · '+(a.severity||'')+'</div></div></div>');
+                });
+            }).catch(function() {
+                self.$('.soc-rpt-ai-alerts').html('<div class="ms-soc-osint-empty">AI alerts unavailable.</div>');
+            });
+            self.$('.soc-rpt-access').html('<div class="ms-soc-osint-empty">Access log summary coming soon.</div>');
+        },
+
         _onKpiClick: function(ev) {
             var model=$(ev.currentTarget).data('model');
             if (!model) return;
