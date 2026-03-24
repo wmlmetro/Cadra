@@ -341,7 +341,7 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
                 method: 'search_read',
                 args: [[['approval_state','=','approved']]],
                 kwargs: {
-                    fields: ['name','threat_level','category','last_sighted'],
+                    fields: ['name','threat_level','category','last_sighted','last_sighted_location_id','vehicle_plate'],
                     limit: 8,
                     order: 'threat_level desc',
                 }
@@ -420,7 +420,7 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
                     (item.source_name ? '<span style="font-size:10px;color:#7d8590">'+item.source_name+'</span>' : '')+
                     '</div>'+
                     '<div class="ms-soc-osint-headline">'+item.title+'</div>'+
-                    '<div class="ms-soc-osint-summary">'+(item.summary||'')+'</div>'+
+                    '<div class="ms-soc-osint-summary">'+(item.summary||'').replace(/<[^>]*>/g,'').substring(0,160)+'</div>'+
                     '<div class="ms-soc-osint-footer">'+
                     '<div class="ms-soc-osint-loc"><svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="4" r="2" stroke="#7d8590" stroke-width="1" fill="none"/><path d="M5 6 Q5 9 5 9" stroke="#7d8590" stroke-width="1"/></svg>'+(item.location||'—')+'</div>'+
                     '<div style="display:flex;align-items:center;gap:6px">'+verified+'<span>'+item.date+'</span></div>'+
@@ -468,7 +468,7 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
                         '<div class="ms-intel-card-top"><span class="ms-intel-source">' + (i.source_name||i.source_type||'') + '</span>' +
                         '<span class="ms-intel-threat ' + (i.threat||'info') + '">' + (i.threat||'info').toUpperCase() + '</span></div>' +
                         '<div class="ms-intel-title">' + (i.title||'') + '</div>' +
-                        '<div class="ms-intel-summary">' + (i.summary||'') + '</div>' +
+                        '<div class="ms-intel-summary">' + (i.summary||'').replace(/<[^>]*>/g,'').substring(0,200) + '</div>' +
                         '<div class="ms-intel-footer"><span>' + (i.location||'') + '</span><span>' + v + ' ' + (i.date||'') + '</span></div></div>');
                 });
             }
@@ -499,8 +499,8 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
             var rpc = require('web.rpc');
             rpc.query({ model:'security.watchlist', method:'search_read',
                 args:[[['approval_state','=','approved']]],
-                kwargs:{ fields:['name','photo','threat_level','category','last_sighted',
-                    'vehicle_plate','approval_state','incident_count','last_sighted_location_id'],
+                kwargs:{ fields:['name','threat_level','category','last_sighted',
+                    'vehicle_plate','approval_state','last_sighted_location_id'],
                     order:'threat_level desc', limit:100 }
             }).then(function(data) {
                 self._wlbData = data || [];
@@ -544,7 +544,7 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
                     '<img class="ms-wlb-photo" src="data:image/png;base64,' + w.photo + '" alt=""/>' :
                     '<div class="ms-wlb-placeholder">' + (w.name||'?')[0].toUpperCase() + '</div>';
                 var loc = w.last_sighted_location_id ? w.last_sighted_location_id[1] : 'Unknown';
-                var inc = w.incident_count > 0 ? '<div class="ms-wlb-meta">! ' + w.incident_count + ' incident(s)</div>' : '';
+                var inc = '';
                 var plate = w.vehicle_plate ? '<div class="ms-wlb-meta">Plate: ' + w.vehicle_plate + '</div>' : '';
                 $g.append('<div class="ms-wlb-card ' + (w.threat_level||'') + '" data-id="' + w.id + '">' +
                     photo + '<div class="ms-wlb-body">' +
