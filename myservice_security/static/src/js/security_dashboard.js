@@ -339,30 +339,33 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
             rpc.query({
                 model: 'security.watchlist',
                 method: 'search_read',
-                args: [[['approval_state','=','approved']]],
+                args: [[['approval_state', '=', 'approved']]],
                 kwargs: {
-                    fields: ['name','threat_level','category','last_sighted','last_sighted_location_id','vehicle_plate'],
+                    fields: ['name', 'threat_level', 'category', 'last_sighted',
+                             'last_sighted_location_id', 'vehicle_plate'],
                     limit: 8,
-                    order: 'threat_level desc',
                 }
             }).then(function(entries) {
+                console.log('SOC watchlist entries:', entries ? entries.length : 'null', entries);
                 var $list = self.$('.soc-watch-list');
+                console.log('SOC watchlist $list found:', $list.length, $list);
                 $list.empty();
-                if (!entries.length) {
+                if (!entries || !entries.length) {
                     $list.append('<div style="padding:10px 12px;font-size:11px;color:#7d8590">No approved watchlist entries</div>');
                     return;
                 }
                 entries.forEach(function(e) {
                     var tl = e.threat_level || 'medium';
-                    var initials = e.name.split(' ').map(function(w){return w[0]}).join('').substring(0,2).toUpperCase();
-                    $list.append($('<div class="ms-soc-watch-item" data-id="'+e.id+'">' +
+                    var initials = (e.name||'?').split(' ').map(function(w){return (w||'')[0]||'';}).join('').substring(0,2).toUpperCase();
+                    var lastSeen = e.last_sighted ? String(e.last_sighted).substring(0,10) : '';
+                    $list.append('<div class="ms-soc-watch-item" data-id="'+e.id+'">' +
                         '<div class="ms-soc-avatar '+tl+'">'+initials+'</div>'+
                         '<div style="flex:1;min-width:0">'+
                         '<div class="ms-soc-wname">'+e.name+'</div>'+
-                        '<div class="ms-soc-wmeta">'+(e.category||'')+(e.last_sighted?' • Last seen: '+e.last_sighted:'')+'</div>'+
+                        '<div class="ms-soc-wmeta">'+(e.category||'')+(lastSeen?' • '+lastSeen:'')+'</div>'+
                         '</div>'+
                         '<span class="ms-soc-tbadge '+tl+'">'+tl+'</span>'+
-                        '</div>'));
+                        '</div>');
                 });
             });
         },
@@ -501,7 +504,7 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
                 args:[[['approval_state','=','approved']]],
                 kwargs:{ fields:['name','threat_level','category','last_sighted',
                     'vehicle_plate','approval_state','last_sighted_location_id'],
-                    order:'threat_level desc', limit:100 }
+                    limit:100 }
             }).then(function(data) {
                 self._wlbData = data || [];
                 self.$('#wlb-count').text(data.length + ' subjects');
@@ -533,8 +536,11 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
         },
 
         _renderWlbCards: function(threatFilter) {
+            var ORDER = {critical:0,high:1,medium:2,low:3};
             var data = (this._wlbData||[]).filter(function(w) {
                 return threatFilter === 'all' || w.threat_level === threatFilter;
+            }).sort(function(a,b) {
+                return (ORDER[a.threat_level]||9) - (ORDER[b.threat_level]||9);
             });
             var $g = this.$('.soc-wlb-grid');
             $g.empty();
