@@ -505,7 +505,7 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
             rpc.query({ model:'security.watchlist', method:'search_read',
                 args:[[['approval_state','=','approved']]],
                 kwargs:{ fields:['name','threat_level','category','last_sighted',
-                    'vehicle_plate','approval_state','last_sighted_location_id'],
+                    'vehicle_plate','approval_state','last_sighted_location_id','photo'],
                     limit:100 }
             }).then(function(data) {
                 self._wlbData = data || [];
