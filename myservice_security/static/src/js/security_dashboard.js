@@ -342,13 +342,12 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
                 args: [[['approval_state', '=', 'approved']]],
                 kwargs: {
                     fields: ['name', 'threat_level', 'category', 'last_sighted',
-                             'last_sighted_location_id', 'vehicle_plate'],
+                             'last_sighted_location_id', 'vehicle_plate', 'photo'],
                     limit: 8,
                 }
             }).then(function(entries) {
                 console.log('SOC watchlist entries:', entries ? entries.length : 'null', entries);
                 var $list = self.$('.soc-watch-list');
-                console.log('SOC watchlist $list found:', $list.length, $list);
                 $list.empty();
                 if (!entries || !entries.length) {
                     $list.append('<div style="padding:10px 12px;font-size:11px;color:#7d8590">No approved watchlist entries</div>');
@@ -358,8 +357,11 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
                     var tl = e.threat_level || 'medium';
                     var initials = (e.name||'?').split(' ').map(function(w){return (w||'')[0]||'';}).join('').substring(0,2).toUpperCase();
                     var lastSeen = e.last_sighted ? String(e.last_sighted).substring(0,10) : '';
+                    var avatarHtml = e.photo
+                        ? '<div class="ms-soc-avatar '+tl+'" style="background:none;padding:0;overflow:hidden"><img src="data:image/png;base64,'+e.photo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>'
+                        : '<div class="ms-soc-avatar '+tl+'">'+initials+'</div>';
                     $list.append('<div class="ms-soc-watch-item" data-id="'+e.id+'">' +
-                        '<div class="ms-soc-avatar '+tl+'">'+initials+'</div>'+
+                        avatarHtml+
                         '<div style="flex:1;min-width:0">'+
                         '<div class="ms-soc-wname">'+e.name+'</div>'+
                         '<div class="ms-soc-wmeta">'+(e.category||'')+(lastSeen?' • '+lastSeen:'')+'</div>'+
