@@ -5,11 +5,11 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
     var core = require('web.core');
     var rpc  = require('web.rpc');
 
-    var L_CSS  = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css';
-    var L_JS   = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
-    var CL_CSS = 'https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css';
-    var CL_DEF = 'https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css';
-    var CL_JS  = 'https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js';
+    var L_CSS  = '/myservice_security/static/lib/leaflet/leaflet.css';
+    var L_JS   = '/myservice_security/static/lib/leaflet/leaflet.js';
+    var CL_CSS = '/myservice_security/static/lib/leaflet/MarkerCluster.css';
+    var CL_DEF = '/myservice_security/static/lib/leaflet/MarkerCluster.Default.css';
+    var CL_JS  = '/myservice_security/static/lib/leaflet/leaflet.markercluster.js';
 
     function loadStyle(href) {
         if (document.querySelector('link[href="'+href+'"]')) return;

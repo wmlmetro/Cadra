@@ -5,11 +5,11 @@ odoo.define('myservice_dashboard.Dashboard', function (require) {
     const core = require('web.core');
     const rpc = require('web.rpc');
 
-    const LEAFLET_CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    const LEAFLET_JS  = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    const CLUSTER_CSS = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css';
-    const CLUSTER_DEF = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css';
-    const CLUSTER_JS  = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js';
+    const LEAFLET_CSS = '/myservice_dashboard/static/lib/leaflet/leaflet.css';
+    const LEAFLET_JS  = '/myservice_dashboard/static/lib/leaflet/leaflet.js';
+    const CLUSTER_CSS = '/myservice_dashboard/static/lib/leaflet/MarkerCluster.css';
+    const CLUSTER_DEF = '/myservice_dashboard/static/lib/leaflet/MarkerCluster.Default.css';
+    const CLUSTER_JS  = '/myservice_dashboard/static/lib/leaflet/leaflet.markercluster.js';
 
     function loadStyle(href) {
         if (document.querySelector('link[href="' + href + '"]')) return;
