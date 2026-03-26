@@ -106,8 +106,9 @@
     margin-right: 8px;
 }
 #ms-bus-map {
-    flex: 1;
-    min-height: 450px;
+    height: 480px !important;
+    min-height: 480px !important;
+    max-height: 480px !important;
 }
 
 /* Route list panel */

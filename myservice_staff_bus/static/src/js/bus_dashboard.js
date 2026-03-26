@@ -65,10 +65,11 @@ odoo.define('myservice_staff_bus.BusDashboard', function(require) {
             if (!container || !window.L) return;
             container.innerHTML = '';
             this.map = window.L.map('ms-bus-map', {
-                center: [9.0, 8.5], zoom: 6, minZoom: 5,
-                maxBounds: [[3.5, 2.0], [14.5, 16.0]],
-                maxBoundsViscosity: 0.8,
+                center: [9.0, 8.5], zoom: 6, minZoom: 6, maxZoom: 12,
+                maxBounds: [[4.0, 2.5], [14.0, 15.5]],
+                maxBoundsViscosity: 1.0,
             });
+            this.map.fitBounds([[4.0, 2.5], [14.0, 15.5]]);
             window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors', maxZoom: 18,
             }).addTo(this.map);
@@ -234,7 +235,7 @@ odoo.define('myservice_staff_bus.BusDashboard', function(require) {
                 $list.html('<div class="ms-bus-empty" style="color:#28a745">✓ All buses compliant</div>');
                 return;
             }
-            issues.forEach(function(b) {
+            issues.slice(0, 10).forEach(function(b) {
                 var problems = [];
                 if (!b.is_roadworthy) problems.push('Roadworthiness expired');
                 if (!b.is_insured) problems.push('Insurance expired');
