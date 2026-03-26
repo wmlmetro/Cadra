@@ -76,6 +76,16 @@ class BusRoute(models.Model):
     def action_suspend(self):
         self.write({'state': 'suspended'})
 
+    def action_view_stops(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Stops — %s' % self.name,
+            'res_model': 'bus.route.stop',
+            'view_mode': 'tree,form',
+            'domain': [('route_id', '=', self.id)],
+            'context': {'default_route_id': self.id},
+        }
+
     def action_view_schedules(self):
         return {
             'type': 'ir.actions.act_window',
