@@ -20,7 +20,7 @@
                                 class="oe_stat_button" icon="fa-calendar">
                             <field name="schedule_count" widget="statinfo" string="Schedules"/>
                         </button>
-                        <button type="object" name="%(action_bus_route_stop)s"
+                        <button type="object" name="action_view_stops"
                                 class="oe_stat_button" icon="fa-map-marker">
                             <field name="stop_count" widget="statinfo" string="Stops"/>
                         </button>
