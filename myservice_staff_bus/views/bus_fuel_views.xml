@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ── Fuel Log Form ── -->
+    <record id="view_bus_fuel_form" model="ir.ui.view">
+        <field name="name">bus.fuel.log.form</field>
+        <field name="model">bus.fuel.log</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_confirm" string="Confirm" type="object"
+                            class="btn-primary"
+                            attrs="{'invisible': [('state','!=','draft')]}"/>
+                    <button name="action_approve" string="Approve" type="object"
+                            class="btn-primary"
+                            groups="myservice_staff_bus.group_bus_manager"
+                            attrs="{'invisible': [('state','!=','confirmed')]}"/>
+                    <button name="action_reset" string="Reset to Draft" type="object"
+                            attrs="{'invisible': [('state','not in',['confirmed'])]}"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,confirmed,approved"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Fuel Details">
+                            <field name="vehicle_id"/>
+                            <field name="date"/>
+                            <field name="litres"/>
+                            <field name="cost_per_litre"/>
+                            <field name="total_cost" readonly="1"/>
+                        </group>
+                        <group string="Odometer &amp; Efficiency">
+                            <field name="prev_odometer"/>
+                            <field name="odometer_reading"/>
+                            <field name="km_since_last_fill" readonly="1"/>
+                            <field name="fuel_efficiency" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Station &amp; Approval">
+                        <group>
+                            <field name="filled_by"/>
+                            <field name="station"/>
+                            <field name="receipt_ref"/>
+                            <field name="budget_code"/>
+                        </group>
+                        <group>
+                            <field name="approved_by" readonly="1"/>
+                        </group>
+                    </group>
+                    <field name="notes" placeholder="Notes..."/>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── Fuel Log Tree ── -->
+    <record id="view_bus_fuel_tree" model="ir.ui.view">
+        <field name="name">bus.fuel.log.tree</field>
+        <field name="model">bus.fuel.log</field>
+        <field name="arch" type="xml">
+            <tree decoration-success="state=='approved'"
+                  decoration-info="state=='confirmed'"
+                  decoration-muted="state=='draft'">
+                <field name="date"/>
+                <field name="vehicle_id"/>
+                <field name="litres"/>
+                <field name="cost_per_litre"/>
+                <field name="total_cost" sum="Total Spend"/>
+                <field name="odometer_reading"/>
+                <field name="km_since_last_fill"/>
+                <field name="fuel_efficiency"/>
+                <field name="filled_by"/>
+                <field name="station"/>
+                <field name="receipt_ref"/>
+                <field name="state"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- ── Fuel Budget Tree ── -->
+    <record id="view_bus_fuel_budget_tree" model="ir.ui.view">
+        <field name="name">bus.fuel.budget.tree</field>
+        <field name="model">bus.fuel.budget</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="year"/>
+                <field name="month"/>
+                <field name="vehicle_id"/>
+                <field name="budget_amount" sum="Total Budget"/>
+                <field name="actual_amount" sum="Total Actual"/>
+                <field name="variance" sum="Total Variance"/>
+                <field name="utilisation_pct" widget="progressbar"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- ── Fuel Search ── -->
+    <record id="view_bus_fuel_search" model="ir.ui.view">
+        <field name="name">bus.fuel.log.search</field>
+        <field name="model">bus.fuel.log</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="vehicle_id"/>
+                <field name="filled_by"/>
+                <field name="station"/>
+                <separator/>
+                <filter name="draft" string="Draft" domain="[('state','=','draft')]"/>
+                <filter name="confirmed" string="Confirmed" domain="[('state','=','confirmed')]"/>
+                <filter name="approved" string="Approved" domain="[('state','=','approved')]"/>
+                <filter name="this_month" string="This Month"
+                        domain="[('date','&gt;=', (context_today()).strftime('%Y-%m-01'))]"/>
+                <group expand="0" string="Group By">
+                    <filter name="grp_vehicle" string="Bus" context="{'group_by':'vehicle_id'}"/>
+                    <filter name="grp_month" string="Month" context="{'group_by':'date:month'}"/>
+                    <filter name="grp_station" string="Station" context="{'group_by':'station'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ── Fuel Actions ── -->
+    <record id="action_bus_fuel" model="ir.actions.act_window">
+        <field name="name">Fuel Logs</field>
+        <field name="res_model">bus.fuel.log</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_bus_fuel_search"/>
+        <field name="context">{'search_default_this_month': 1}</field>
+    </record>
+
+    <record id="action_bus_fuel_budget" model="ir.actions.act_window">
+        <field name="name">Fuel Budget</field>
+        <field name="res_model">bus.fuel.budget</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

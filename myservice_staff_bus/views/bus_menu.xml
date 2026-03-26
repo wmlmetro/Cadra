@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ── Top-level Menu ── -->
+    <menuitem id="menu_staff_bus_root"
+              name="Staff Bus"
+              sequence="75"
+              web_icon="myservice_staff_bus,static/description/icon.png"
+              groups="myservice_staff_bus.group_bus_user"/>
+
+    <!-- ── Operations ── -->
+    <menuitem id="menu_staff_bus_operations"
+              name="Operations"
+              parent="menu_staff_bus_root"
+              sequence="10"/>
+
+    <menuitem id="menu_bus_schedule_today"
+              name="Today's Schedules"
+              parent="menu_staff_bus_operations"
+              action="action_bus_schedule"
+              sequence="10"/>
+
+    <menuitem id="menu_bus_manifest"
+              name="Passenger Manifest"
+              parent="menu_staff_bus_operations"
+              action="action_bus_manifest"
+              sequence="20"/>
+
+    <!-- ── Routes ── -->
+    <menuitem id="menu_staff_bus_routes"
+              name="Routes"
+              parent="menu_staff_bus_root"
+              sequence="20"/>
+
+    <menuitem id="menu_bus_route_list"
+              name="All Routes"
+              parent="menu_staff_bus_routes"
+              action="action_bus_route"
+              sequence="10"/>
+
+    <!-- ── Fleet ── -->
+    <menuitem id="menu_staff_bus_fleet"
+              name="Fleet"
+              parent="menu_staff_bus_root"
+              sequence="30"/>
+
+    <menuitem id="menu_staff_bus_vehicles"
+              name="Staff Buses"
+              parent="menu_staff_bus_fleet"
+              action="action_staff_bus_fleet"
+              sequence="10"/>
+
+    <menuitem id="menu_bus_fuel_logs"
+              name="Fuel Logs"
+              parent="menu_staff_bus_fleet"
+              action="action_bus_fuel"
+              sequence="20"/>
+
+    <menuitem id="menu_bus_fuel_budget"
+              name="Fuel Budget"
+              parent="menu_staff_bus_fleet"
+              action="action_bus_fuel_budget"
+              sequence="30"
+              groups="myservice_staff_bus.group_bus_manager"/>
+
+    <!-- ── Dashboard ── -->
+    <record id="action_bus_dashboard" model="ir.actions.client">
+        <field name="name">Bus Operations Dashboard</field>
+        <field name="tag">bus_dashboard</field>
+    </record>
+
+    <menuitem id="menu_bus_dashboard"
+              name="Operations Dashboard"
+              parent="menu_staff_bus_root"
+              action="action_bus_dashboard"
+              sequence="1"
+              groups="myservice_staff_bus.group_bus_manager"/>
+</odoo>

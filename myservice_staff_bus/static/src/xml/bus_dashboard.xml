@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates>
+    <t t-name="myservice_staff_bus.BusDashboard">
+        <div class="ms-bus-dashboard">
+
+            <!-- Header -->
+            <div class="ms-bus-header">
+                <div>
+                    <div class="ms-bus-header-title">
+                        <span>NRS</span> Staff Bus Operations
+                    </div>
+                    <div class="ms-bus-header-sub">
+                        Live fleet status · Routes · Manifests · Fuel
+                    </div>
+                </div>
+                <button class="ms-bus-refresh-btn" t-on-click="refresh">
+                    ↻ Refresh
+                </button>
+            </div>
+
+            <!-- KPI Bar -->
+            <div class="ms-bus-kpi-bar">
+                <div class="ms-bus-kpi">
+                    <div class="ms-bus-kpi-val" id="kpi-buses-active">—</div>
+                    <div class="ms-bus-kpi-label">Buses Active Today</div>
+                </div>
+                <div class="ms-bus-kpi green">
+                    <div class="ms-bus-kpi-val" id="kpi-seats-booked">—</div>
+                    <div class="ms-bus-kpi-label">Seats Booked</div>
+                </div>
+                <div class="ms-bus-kpi blue">
+                    <div class="ms-bus-kpi-val" id="kpi-routes-active">—</div>
+                    <div class="ms-bus-kpi-label">Active Routes</div>
+                </div>
+                <div class="ms-bus-kpi amber">
+                    <div class="ms-bus-kpi-val" id="kpi-fuel-mtd">—</div>
+                    <div class="ms-bus-kpi-label">Fuel Spend MTD (₦)</div>
+                </div>
+                <div class="ms-bus-kpi">
+                    <div class="ms-bus-kpi-val" id="kpi-compliance">—</div>
+                    <div class="ms-bus-kpi-label">Compliance Issues</div>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="ms-bus-body">
+
+                <!-- Map -->
+                <div class="ms-bus-map-panel">
+                    <div class="ms-bus-map-toolbar">
+                        <span>Bus Operations Map</span>
+                        <button class="ms-bus-filter-btn active" data-filter="all">All</button>
+                        <button class="ms-bus-filter-btn" data-filter="active">In Service</button>
+                        <button class="ms-bus-filter-btn" data-filter="routes">Routes</button>
+                    </div>
+                    <div id="ms-bus-map">
+                        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#aaa;font-size:13px;gap:8px">
+                            <div style="width:14px;height:14px;border:2px solid #eee;border-top-color:#E85426;border-radius:50%;animation:soc-spin .8s linear infinite"></div>
+                            Loading map...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Side panel -->
+                <div class="ms-bus-side-panel">
+
+                    <!-- Today's schedules -->
+                    <div class="ms-bus-card">
+                        <div class="ms-bus-card-hdr">
+                            Today's Schedules
+                            <span class="ms-bus-card-hdr-count" id="sched-count">0</span>
+                        </div>
+                        <div id="ms-bus-sched-list">
+                            <div class="ms-bus-empty">Loading schedules...</div>
+                        </div>
+                    </div>
+
+                    <!-- Compliance alerts -->
+                    <div class="ms-bus-card">
+                        <div class="ms-bus-card-hdr">
+                            Compliance Alerts
+                            <span class="ms-bus-card-hdr-count" id="compliance-count">0</span>
+                        </div>
+                        <div id="ms-bus-compliance-list">
+                            <div class="ms-bus-empty">Checking compliance...</div>
+                        </div>
+                    </div>
+
+                    <!-- Fuel summary -->
+                    <div class="ms-bus-card">
+                        <div class="ms-bus-card-hdr">Fuel — This Month</div>
+                        <div id="ms-bus-fuel-list">
+                            <div class="ms-bus-empty">Loading fuel data...</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

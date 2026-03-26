@@ -1,0 +1,36 @@
+{
+    'name': 'NRS Staff Bus Management',
+    'version': '15.0.1.0.0',
+    'summary': 'Staff bus routes, scheduling, passenger manifests, fuel and maintenance',
+    'category': 'Fleet',
+    'author': 'WestMetro Limited',
+    'website': 'https://westmetrong.com',
+    'depends': [
+        'base',
+        'fleet',
+        'hr',
+        'mail',
+        'web',
+    ],
+    'data': [
+        'security/ir.model.access.csv',
+        'security/bus_security.xml',
+        'data/bus_sequence.xml',
+        'views/bus_route_views.xml',
+        'views/bus_schedule_views.xml',
+        'views/bus_manifest_views.xml',
+        'views/bus_fuel_views.xml',
+        'views/fleet_vehicle_views.xml',
+        'views/bus_menu.xml',
+    ],
+    'assets': {
+        'web.assets_backend': [
+            'myservice_staff_bus/static/src/css/bus_dashboard.css',
+            'myservice_staff_bus/static/src/js/bus_dashboard.js',
+            'myservice_staff_bus/static/src/xml/bus_dashboard.xml',
+        ],
+    },
+    'installable': True,
+    'auto_install': False,
+    'license': 'LGPL-3',
+}

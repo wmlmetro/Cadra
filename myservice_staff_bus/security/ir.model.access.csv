@@ -1,0 +1,15 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_bus_route_user,bus.route user,model_bus_route,myservice_staff_bus.group_bus_user,1,0,0,0
+access_bus_route_manager,bus.route manager,model_bus_route,myservice_staff_bus.group_bus_manager,1,1,1,1
+access_bus_route_stop_user,bus.route.stop user,model_bus_route_stop,myservice_staff_bus.group_bus_user,1,0,0,0
+access_bus_route_stop_manager,bus.route.stop manager,model_bus_route_stop,myservice_staff_bus.group_bus_manager,1,1,1,1
+access_bus_route_opt_user,bus.route.optimization user,model_bus_route_optimization,myservice_staff_bus.group_bus_user,1,0,0,0
+access_bus_route_opt_manager,bus.route.optimization manager,model_bus_route_optimization,myservice_staff_bus.group_bus_manager,1,1,1,1
+access_bus_schedule_user,bus.schedule user,model_bus_schedule,myservice_staff_bus.group_bus_user,1,0,1,0
+access_bus_schedule_manager,bus.schedule manager,model_bus_schedule,myservice_staff_bus.group_bus_manager,1,1,1,1
+access_bus_manifest_user,bus.manifest.line user,model_bus_manifest_line,myservice_staff_bus.group_bus_user,1,0,1,0
+access_bus_manifest_manager,bus.manifest.line manager,model_bus_manifest_line,myservice_staff_bus.group_bus_manager,1,1,1,1
+access_bus_fuel_user,bus.fuel.log user,model_bus_fuel_log,myservice_staff_bus.group_bus_user,1,0,1,0
+access_bus_fuel_manager,bus.fuel.log manager,model_bus_fuel_log,myservice_staff_bus.group_bus_manager,1,1,1,1
+access_bus_fuel_budget_user,bus.fuel.budget user,model_bus_fuel_budget,myservice_staff_bus.group_bus_user,1,0,0,0
+access_bus_fuel_budget_manager,bus.fuel.budget manager,model_bus_fuel_budget,myservice_staff_bus.group_bus_manager,1,1,1,1

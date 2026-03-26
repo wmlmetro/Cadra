@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ── Route Form ── -->
+    <record id="view_bus_route_form" model="ir.ui.view">
+        <field name="name">bus.route.form</field>
+        <field name="model">bus.route</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_activate" string="Activate" type="object"
+                            class="btn-primary" attrs="{'invisible': [('state','not in',['draft','suspended'])]}"/>
+                    <button name="action_suspend" string="Suspend" type="object"
+                            attrs="{'invisible': [('state','!=','active')]}"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,active,suspended"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_schedules" type="object"
+                                class="oe_stat_button" icon="fa-calendar">
+                            <field name="schedule_count" widget="statinfo" string="Schedules"/>
+                        </button>
+                        <button type="object" name="%(action_bus_route_stop)s"
+                                class="oe_stat_button" icon="fa-map-marker">
+                            <field name="stop_count" widget="statinfo" string="Stops"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Route Name"/></h1>
+                        <h3><field name="code" placeholder="RT-001"/></h3>
+                    </div>
+                    <group>
+                        <group string="Route Details">
+                            <field name="direction"/>
+                            <field name="frequency"/>
+                            <field name="origin_location_id"/>
+                            <field name="destination_location_id"/>
+                            <field name="distance_km"/>
+                            <field name="duration_minutes"/>
+                        </group>
+                        <group string="AI Optimisation">
+                            <field name="last_optimized" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Stops" name="stops">
+                            <field name="stop_ids">
+                                <tree editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name"/>
+                                    <field name="landmark"/>
+                                    <field name="arrival_time" widget="float_time"/>
+                                    <field name="departure_time" widget="float_time"/>
+                                    <field name="latitude"/>
+                                    <field name="longitude"/>
+                                    <field name="avg_boarding"/>
+                                    <field name="is_terminal"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="AI Optimisation History" name="optimisation">
+                            <field name="optimization_ids">
+                                <tree>
+                                    <field name="date_run"/>
+                                    <field name="efficiency_score"/>
+                                    <field name="status"/>
+                                    <field name="applied_by"/>
+                                    <field name="applied_date"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <field name="notes" placeholder="Route notes..."/>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── Route Tree ── -->
+    <record id="view_bus_route_tree" model="ir.ui.view">
+        <field name="name">bus.route.tree</field>
+        <field name="model">bus.route</field>
+        <field name="arch" type="xml">
+            <tree decoration-success="state=='active'"
+                  decoration-muted="state=='suspended'"
+                  decoration-info="state=='draft'">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="direction"/>
+                <field name="frequency"/>
+                <field name="origin_location_id"/>
+                <field name="destination_location_id"/>
+                <field name="stop_count"/>
+                <field name="schedule_count"/>
+                <field name="distance_km"/>
+                <field name="state"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- ── Route Search ── -->
+    <record id="view_bus_route_search" model="ir.ui.view">
+        <field name="name">bus.route.search</field>
+        <field name="model">bus.route</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="code"/>
+                <separator/>
+                <filter name="active" string="Active" domain="[('state','=','active')]"/>
+                <filter name="draft" string="Draft" domain="[('state','=','draft')]"/>
+                <filter name="morning" string="Morning" domain="[('direction','in',['morning','both'])]"/>
+                <filter name="evening" string="Evening" domain="[('direction','in',['evening','both'])]"/>
+                <group expand="0" string="Group By">
+                    <filter name="grp_direction" string="Direction" context="{'group_by':'direction'}"/>
+                    <filter name="grp_state" string="Status" context="{'group_by':'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ── Route Action ── -->
+    <record id="action_bus_route" model="ir.actions.act_window">
+        <field name="name">Routes</field>
+        <field name="res_model">bus.route</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_bus_route_search"/>
+        <field name="context">{'search_default_active': 1}</field>
+    </record>
+
+    <!-- ── Stop Action ── -->
+    <record id="action_bus_route_stop" model="ir.actions.act_window">
+        <field name="name">Route Stops</field>
+        <field name="res_model">bus.route.stop</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

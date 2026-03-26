@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ── Schedule Form ── -->
+    <record id="view_bus_schedule_form" model="ir.ui.view">
+        <field name="name">bus.schedule.form</field>
+        <field name="model">bus.schedule</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_start_boarding" string="Start Boarding" type="object"
+                            class="btn-primary"
+                            attrs="{'invisible': [('state','!=','scheduled')]}"/>
+                    <button name="action_depart" string="Mark Departed" type="object"
+                            class="btn-primary"
+                            attrs="{'invisible': [('state','!=','boarding')]}"/>
+                    <button name="action_complete" string="Complete" type="object"
+                            attrs="{'invisible': [('state','!=','departed')]}"/>
+                    <button name="action_cancel" string="Cancel" type="object"
+                            attrs="{'invisible': [('state','in',['completed','cancelled'])]}"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="scheduled,boarding,departed,completed"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_manifest" type="object"
+                                class="oe_stat_button" icon="fa-users">
+                            <field name="booked_seats" widget="statinfo" string="Booked"/>
+                        </button>
+                        <button class="oe_stat_button" icon="fa-chair" type="object" name="action_view_manifest">
+                            <field name="available_seats" widget="statinfo" string="Available"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Schedule">
+                            <field name="date"/>
+                            <field name="route_id"/>
+                            <field name="direction" readonly="1"/>
+                            <field name="departure_time" widget="float_time"/>
+                            <field name="arrival_time" widget="float_time"/>
+                        </group>
+                        <group string="Bus &amp; Driver">
+                            <field name="vehicle_id"/>
+                            <field name="driver_id"/>
+                            <field name="capacity" readonly="1"/>
+                            <field name="occupancy_pct" readonly="1" widget="progressbar"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Passenger Manifest" name="manifest">
+                            <field name="manifest_ids">
+                                <tree decoration-success="state=='checked_in'"
+                                      decoration-danger="state=='no_show'"
+                                      decoration-muted="state=='cancelled'">
+                                    <field name="employee_id"/>
+                                    <field name="department_id"/>
+                                    <field name="boarding_stop_id"/>
+                                    <field name="alighting_stop_id"/>
+                                    <field name="booking_ref"/>
+                                    <field name="booking_date"/>
+                                    <field name="check_in_time"/>
+                                    <field name="state"/>
+                                    <button name="action_check_in" string="Check In"
+                                            type="object" icon="fa-check"
+                                            attrs="{'invisible': [('state','!=','booked')]}"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Notes">
+                            <field name="notes" placeholder="Schedule notes..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── Schedule Tree ── -->
+    <record id="view_bus_schedule_tree" model="ir.ui.view">
+        <field name="name">bus.schedule.tree</field>
+        <field name="model">bus.schedule</field>
+        <field name="arch" type="xml">
+            <tree decoration-success="state=='completed'"
+                  decoration-primary="state=='boarding'"
+                  decoration-info="state=='departed'"
+                  decoration-muted="state=='cancelled'">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="route_id"/>
+                <field name="direction"/>
+                <field name="departure_time" widget="float_time"/>
+                <field name="vehicle_id"/>
+                <field name="driver_id"/>
+                <field name="capacity"/>
+                <field name="booked_seats"/>
+                <field name="available_seats"/>
+                <field name="occupancy_pct" widget="progressbar"/>
+                <field name="state"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- ── Schedule Calendar ── -->
+    <record id="view_bus_schedule_calendar" model="ir.ui.view">
+        <field name="name">bus.schedule.calendar</field>
+        <field name="model">bus.schedule</field>
+        <field name="arch" type="xml">
+            <calendar string="Bus Schedules" date_start="date"
+                      color="route_id" mode="month">
+                <field name="name"/>
+                <field name="route_id"/>
+                <field name="vehicle_id"/>
+                <field name="booked_seats"/>
+            </calendar>
+        </field>
+    </record>
+
+    <!-- ── Schedule Search ── -->
+    <record id="view_bus_schedule_search" model="ir.ui.view">
+        <field name="name">bus.schedule.search</field>
+        <field name="model">bus.schedule</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="route_id"/>
+                <field name="vehicle_id"/>
+                <field name="driver_id"/>
+                <separator/>
+                <filter name="today" string="Today"
+                        domain="[('date','=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="this_week" string="This Week"
+                        domain="[('date','&gt;=', (context_today() - relativedelta(days=context_today().weekday())).strftime('%Y-%m-%d')),
+                                 ('date','&lt;=', (context_today() + relativedelta(days=6 - context_today().weekday())).strftime('%Y-%m-%d'))]"/>
+                <filter name="scheduled" string="Scheduled" domain="[('state','=','scheduled')]"/>
+                <filter name="active" string="In Progress"
+                        domain="[('state','in',['boarding','departed'])]"/>
+                <filter name="morning" string="Morning"
+                        domain="[('direction','in',['morning','both'])]"/>
+                <filter name="evening" string="Evening"
+                        domain="[('direction','in',['evening','both'])]"/>
+                <group expand="0" string="Group By">
+                    <filter name="grp_route" string="Route" context="{'group_by':'route_id'}"/>
+                    <filter name="grp_date" string="Date" context="{'group_by':'date'}"/>
+                    <filter name="grp_vehicle" string="Bus" context="{'group_by':'vehicle_id'}"/>
+                    <filter name="grp_state" string="Status" context="{'group_by':'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ── Schedule Action ── -->
+    <record id="action_bus_schedule" model="ir.actions.act_window">
+        <field name="name">Schedules</field>
+        <field name="res_model">bus.schedule</field>
+        <field name="view_mode">tree,calendar,form</field>
+        <field name="search_view_id" ref="view_bus_schedule_search"/>
+        <field name="context">{'search_default_today': 1}</field>
+    </record>
+</odoo>

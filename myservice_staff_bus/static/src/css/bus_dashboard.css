@@ -1,0 +1,236 @@
+/* ── NRS Staff Bus Dashboard ──────────────────────────────── */
+.ms-bus-dashboard {
+    background: #f7f7f5;
+    min-height: 100vh;
+    padding: 0;
+    font-family: 'Outfit', 'Inter', sans-serif;
+}
+.ms-bus-header {
+    background: #fff;
+    border-bottom: 3px solid #E85426;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.ms-bus-header-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1A1A1A;
+}
+.ms-bus-header-title span { color: #E85426; }
+.ms-bus-header-sub {
+    font-size: 12px;
+    color: #888;
+    margin-top: 2px;
+}
+.ms-bus-refresh-btn {
+    background: #E85426;
+    color: #fff;
+    border: none;
+    padding: 7px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+}
+.ms-bus-refresh-btn:hover { background: #c94820; }
+
+/* KPI bar */
+.ms-bus-kpi-bar {
+    display: flex;
+    gap: 12px;
+    padding: 16px 24px;
+    background: #fff;
+    border-bottom: 1px solid #eee;
+    flex-wrap: wrap;
+}
+.ms-bus-kpi {
+    flex: 1;
+    min-width: 130px;
+    background: #f7f7f5;
+    border-radius: 8px;
+    padding: 12px 16px;
+    border-left: 3px solid #E85426;
+}
+.ms-bus-kpi-val {
+    font-size: 28px;
+    font-weight: 700;
+    color: #E85426;
+    line-height: 1;
+}
+.ms-bus-kpi-label {
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-top: 4px;
+}
+.ms-bus-kpi.green .ms-bus-kpi-val { color: #28a745; }
+.ms-bus-kpi.green { border-left-color: #28a745; }
+.ms-bus-kpi.blue .ms-bus-kpi-val { color: #007bff; }
+.ms-bus-kpi.blue { border-left-color: #007bff; }
+.ms-bus-kpi.amber .ms-bus-kpi-val { color: #f0a500; }
+.ms-bus-kpi.amber { border-left-color: #f0a500; }
+
+/* Main layout */
+.ms-bus-body {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 16px;
+    padding: 16px 24px;
+}
+
+/* Map panel */
+.ms-bus-map-panel {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.ms-bus-map-toolbar {
+    padding: 10px 14px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.ms-bus-map-toolbar span {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1A1A1A;
+    margin-right: 8px;
+}
+#ms-bus-map {
+    flex: 1;
+    min-height: 450px;
+}
+
+/* Route list panel */
+.ms-bus-side-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.ms-bus-card {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    overflow: hidden;
+}
+.ms-bus-card-hdr {
+    padding: 10px 14px;
+    border-bottom: 1px solid #eee;
+    font-size: 12px;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.ms-bus-card-hdr-count {
+    background: #E85426;
+    color: #fff;
+    border-radius: 10px;
+    padding: 1px 8px;
+    font-size: 11px;
+}
+
+/* Schedule list */
+.ms-bus-sched-item {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f4f4f4;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: background .1s;
+}
+.ms-bus-sched-item:hover { background: #fdf1ed; }
+.ms-bus-sched-item:last-child { border-bottom: none; }
+.ms-bus-sched-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.ms-bus-sched-info { flex: 1; min-width: 0; }
+.ms-bus-sched-route {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1A1A1A;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ms-bus-sched-meta {
+    font-size: 11px;
+    color: #888;
+    margin-top: 2px;
+}
+.ms-bus-occ-bar {
+    width: 60px;
+    height: 4px;
+    background: #eee;
+    border-radius: 2px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.ms-bus-occ-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: #28a745;
+}
+.ms-bus-occ-fill.high { background: #E85426; }
+.ms-bus-occ-fill.med { background: #f0a500; }
+
+/* Compliance alerts */
+.ms-bus-alert-item {
+    padding: 8px 14px;
+    border-bottom: 1px solid #f4f4f4;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+}
+.ms-bus-alert-item:last-child { border-bottom: none; }
+.ms-bus-alert-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.ms-bus-alert-name { font-weight: 600; color: #1A1A1A; flex: 1; }
+.ms-bus-alert-issue { color: #E85426; font-size: 11px; }
+
+/* Filter buttons */
+.ms-bus-filter-btn {
+    padding: 3px 10px;
+    border-radius: 12px;
+    border: 1px solid #ddd;
+    background: #fff;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .15s;
+}
+.ms-bus-filter-btn.active,
+.ms-bus-filter-btn:hover {
+    border-color: #E85426;
+    color: #E85426;
+    background: #fdf1ed;
+}
+
+/* Empty state */
+.ms-bus-empty {
+    padding: 20px 14px;
+    text-align: center;
+    font-size: 12px;
+    color: #aaa;
+}

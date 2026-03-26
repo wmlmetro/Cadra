@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ── Manifest Form ── -->
+    <record id="view_bus_manifest_form" model="ir.ui.view">
+        <field name="name">bus.manifest.line.form</field>
+        <field name="model">bus.manifest.line</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_check_in" string="Check In" type="object"
+                            class="btn-primary"
+                            attrs="{'invisible': [('state','!=','booked')]}"/>
+                    <button name="action_cancel" string="Cancel Booking" type="object"
+                            attrs="{'invisible': [('state','in',['checked_in','cancelled','no_show'])]}"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="booked,checked_in"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="booking_ref" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Booking">
+                            <field name="schedule_id"/>
+                            <field name="date" readonly="1"/>
+                            <field name="route_id" readonly="1"/>
+                            <field name="employee_id"/>
+                            <field name="department_id" readonly="1"/>
+                        </group>
+                        <group string="Journey">
+                            <field name="boarding_stop_id"/>
+                            <field name="alighting_stop_id"/>
+                            <field name="booking_date" readonly="1"/>
+                            <field name="check_in_time" readonly="1"/>
+                            <field name="checked_in_by" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="QR Code Data">
+                        <field name="qr_data" readonly="1"/>
+                    </group>
+                    <field name="notes" placeholder="Notes..."/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── Manifest Tree ── -->
+    <record id="view_bus_manifest_tree" model="ir.ui.view">
+        <field name="name">bus.manifest.line.tree</field>
+        <field name="model">bus.manifest.line</field>
+        <field name="arch" type="xml">
+            <tree decoration-success="state=='checked_in'"
+                  decoration-danger="state=='no_show'"
+                  decoration-muted="state=='cancelled'">
+                <field name="date"/>
+                <field name="schedule_id"/>
+                <field name="route_id"/>
+                <field name="employee_id"/>
+                <field name="department_id"/>
+                <field name="boarding_stop_id"/>
+                <field name="alighting_stop_id"/>
+                <field name="booking_ref"/>
+                <field name="booking_date"/>
+                <field name="check_in_time"/>
+                <field name="state"/>
+                <button name="action_check_in" string="Check In" type="object"
+                        icon="fa-check"
+                        attrs="{'invisible': [('state','!=','booked')]}"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- ── Manifest Search ── -->
+    <record id="view_bus_manifest_search" model="ir.ui.view">
+        <field name="name">bus.manifest.line.search</field>
+        <field name="model">bus.manifest.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="employee_id"/>
+                <field name="schedule_id"/>
+                <field name="booking_ref"/>
+                <field name="route_id"/>
+                <separator/>
+                <filter name="today" string="Today"
+                        domain="[('date','=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="booked" string="Booked" domain="[('state','=','booked')]"/>
+                <filter name="checked_in" string="Checked In" domain="[('state','=','checked_in')]"/>
+                <filter name="no_show" string="No Shows" domain="[('state','=','no_show')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="grp_route" string="Route" context="{'group_by':'route_id'}"/>
+                    <filter name="grp_schedule" string="Schedule" context="{'group_by':'schedule_id'}"/>
+                    <filter name="grp_dept" string="Department" context="{'group_by':'department_id'}"/>
+                    <filter name="grp_date" string="Date" context="{'group_by':'date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ── Manifest Action ── -->
+    <record id="action_bus_manifest" model="ir.actions.act_window">
+        <field name="name">Passenger Manifest</field>
+        <field name="res_model">bus.manifest.line</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_bus_manifest_search"/>
+        <field name="context">{'search_default_today': 1}</field>
+    </record>
+</odoo>
