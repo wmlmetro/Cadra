@@ -14,7 +14,6 @@ class BusManifestLine(models.Model):
         'bus.schedule', string='Schedule', required=True, ondelete='cascade')
     employee_id = fields.Many2one(
         'hr.employee', string='Staff Member', required=True)
-    employee_number = fields.Char(related='employee_id.employee_number', store=True)
     department_id = fields.Many2one(related='employee_id.department_id', store=True)
 
     boarding_stop_id = fields.Many2one(
