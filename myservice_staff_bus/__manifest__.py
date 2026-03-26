@@ -13,8 +13,8 @@
         'web',
     ],
     'data': [
-        'security/ir.model.access.csv',
         'security/bus_security.xml',
+        'security/ir.model.access.csv',
         'data/bus_sequence.xml',
         'views/bus_route_views.xml',
         'views/bus_schedule_views.xml',
