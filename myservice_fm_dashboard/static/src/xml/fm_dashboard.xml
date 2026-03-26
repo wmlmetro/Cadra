@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates>
+    <t t-name="myservice_fm_dashboard.FMDashboard">
+        <div class="ms-fm-dashboard">
+
+            <!-- Header -->
+            <div class="ms-fm-header">
+                <div>
+                    <div class="ms-fm-header-title">
+                        <span>NRS</span> Facilities Management Dashboard
+                    </div>
+                    <div class="ms-fm-header-sub" id="fm-last-updated">
+                        Loading...
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;align-items:center">
+                    <select class="ms-fm-filter-select" id="fm-location-filter">
+                        <option value="">All Locations</option>
+                    </select>
+                    <button class="ms-fm-refresh-btn" t-on-click="refresh">↻ Refresh</button>
+                </div>
+            </div>
+
+            <!-- KPI Bar -->
+            <div class="ms-fm-kpi-bar">
+                <div class="ms-fm-kpi orange">
+                    <div class="ms-fm-kpi-val" id="kpi-total-open">—</div>
+                    <div class="ms-fm-kpi-label">Open Requests</div>
+                </div>
+                <div class="ms-fm-kpi red">
+                    <div class="ms-fm-kpi-val" id="kpi-overdue">—</div>
+                    <div class="ms-fm-kpi-label">Overdue</div>
+                </div>
+                <div class="ms-fm-kpi amber">
+                    <div class="ms-fm-kpi-val" id="kpi-escalated">—</div>
+                    <div class="ms-fm-kpi-label">Escalated</div>
+                </div>
+                <div class="ms-fm-kpi blue">
+                    <div class="ms-fm-kpi-val" id="kpi-in-progress">—</div>
+                    <div class="ms-fm-kpi-label">In Progress</div>
+                </div>
+                <div class="ms-fm-kpi green">
+                    <div class="ms-fm-kpi-val" id="kpi-resolved-today">—</div>
+                    <div class="ms-fm-kpi-label">Resolved Today</div>
+                </div>
+                <div class="ms-fm-kpi gray">
+                    <div class="ms-fm-kpi-val" id="kpi-unassigned">—</div>
+                    <div class="ms-fm-kpi-label">Unassigned</div>
+                </div>
+            </div>
+
+            <!-- Domain breakdown row -->
+            <div class="ms-fm-domain-row" id="fm-domain-row">
+                <!-- Populated by JS -->
+            </div>
+
+            <!-- Main body -->
+            <div class="ms-fm-body">
+
+                <!-- Left: Recent requests -->
+                <div class="ms-fm-main">
+
+                    <!-- SLA Status -->
+                    <div class="ms-fm-card">
+                        <div class="ms-fm-card-hdr">
+                            <span>SLA Status by Domain</span>
+                        </div>
+                        <div id="fm-sla-table">
+                            <div class="ms-fm-empty">Loading SLA data...</div>
+                        </div>
+                    </div>
+
+                    <!-- Recent requests -->
+                    <div class="ms-fm-card" style="margin-top:14px">
+                        <div class="ms-fm-card-hdr">
+                            <span>Recent Open Requests</span>
+                            <div style="display:flex;gap:6px">
+                                <button class="ms-fm-tab-btn active" data-stage="all">All</button>
+                                <button class="ms-fm-tab-btn" data-stage="New">New</button>
+                                <button class="ms-fm-tab-btn" data-stage="Escalated">Escalated</button>
+                                <button class="ms-fm-tab-btn" data-stage="Overdue">Overdue</button>
+                            </div>
+                        </div>
+                        <div id="fm-request-list">
+                            <div class="ms-fm-empty">Loading requests...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Side panels -->
+                <div class="ms-fm-side">
+
+                    <!-- Team workload -->
+                    <div class="ms-fm-card">
+                        <div class="ms-fm-card-hdr">Team Workload</div>
+                        <div id="fm-team-workload">
+                            <div class="ms-fm-empty">Loading...</div>
+                        </div>
+                    </div>
+
+                    <!-- Priority breakdown -->
+                    <div class="ms-fm-card" style="margin-top:14px">
+                        <div class="ms-fm-card-hdr">Priority Breakdown</div>
+                        <div id="fm-priority-breakdown">
+                            <div class="ms-fm-empty">Loading...</div>
+                        </div>
+                    </div>
+
+                    <!-- Overdue alerts -->
+                    <div class="ms-fm-card" style="margin-top:14px">
+                        <div class="ms-fm-card-hdr">
+                            <span>Overdue Requests</span>
+                            <span class="ms-fm-badge-red" id="overdue-badge">0</span>
+                        </div>
+                        <div id="fm-overdue-list">
+                            <div class="ms-fm-empty">Loading...</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>
