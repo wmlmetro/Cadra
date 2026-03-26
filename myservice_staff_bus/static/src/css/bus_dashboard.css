@@ -235,3 +235,5 @@
     font-size: 12px;
     color: #aaa;
 }
+
+#ms-bus-map { height: 480px !important; min-height: 480px !important; max-height: 480px !important; }
