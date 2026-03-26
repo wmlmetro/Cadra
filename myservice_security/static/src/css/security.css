@@ -101,7 +101,7 @@
 .ms-soc-map-filters { display: flex; gap: 6px; }
 .ms-soc-mf { padding: 3px 10px; border-radius: 12px; border: 1px solid #21262d; background: transparent; font-size: 11px; color: #7d8590; cursor: pointer; transition: all .15s; font-family: 'Outfit', sans-serif; }
 .ms-soc-mf.active, .ms-soc-mf:hover { border-color: #E85426; color: #E85426; background: rgba(232,84,38,.08); }
-#ms-soc-map { flex: 1; min-height: 350px; }
+#ms-soc-map { flex: 1; min-height: 450px; }
 .ms-soc-map-legend {
     padding: 7px 14px;
     border-top: 1px solid #21262d;
@@ -288,9 +288,9 @@
 .leaflet-popup-close-button { color: #7d8590 !important; }
 
 #ms-soc-map {
-    height: 400px !important;
-    min-height: 400px !important;
+    height: 450px !important;
+    min-height: 450px !important;
 }
 .ms-soc-map-panel {
-    min-height: 500px;
+    min-height: 560px;
 }

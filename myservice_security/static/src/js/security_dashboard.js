@@ -5,11 +5,11 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
     var core = require('web.core');
     var rpc  = require('web.rpc');
 
-    var L_CSS  = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    var L_JS   = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    var CL_CSS = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css';
-    var CL_DEF = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css';
-    var CL_JS  = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js';
+    var L_CSS  = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css';
+    var L_JS   = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
+    var CL_CSS = 'https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css';
+    var CL_DEF = 'https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css';
+    var CL_JS  = 'https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js';
 
     function loadStyle(href) {
         if (document.querySelector('link[href="'+href+'"]')) return;
@@ -233,6 +233,7 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
                 });
                 window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                     { attribution:'© OpenStreetMap', maxZoom:18 }).addTo(this.map);
+                setTimeout(function(){ if(self.map) self.map.invalidateSize(); }, 200);
             } else {
                 if (this.incLayer)   this.map.removeLayer(this.incLayer);
                 if (this.guardLayer) this.map.removeLayer(this.guardLayer);
