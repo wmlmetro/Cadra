@@ -1,17 +1,17 @@
 {
-    'name': 'myservice Backend Theme',
+    'name': 'myservice NRS Theme',
     'version': '15.0.1.0.0',
-    'summary': 'NRS myservice.com.ng — custom backend colour scheme',
-    'author': 'WestMetro Limited',
-    'website': 'https://westmetrong.com',
+    'summary': 'NRS brand theme for myservice — red/dark, clean sidebar, modern cards',
     'category': 'Themes/Backend',
-    'depends': ['web'],
+    'author': 'WestMetro Limited',
+    'depends': ['web', 'mail'],
     'data': [
-        'views/assets.xml',
+        'views/theme_assets.xml',
     ],
     'assets': {
         'web.assets_backend': [
-            'myservice_theme/static/src/css/myservice_backend.css',
+            'myservice_theme/static/src/css/theme.css',
+            'myservice_theme/static/src/js/theme.js',
         ],
     },
     'installable': True,

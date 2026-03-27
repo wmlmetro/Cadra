@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Override web favicon with NRS -->
+        <record id="web_favicon" model="ir.attachment" forcecreate="False">
+            <field name="name">favicon.ico</field>
+        </record>
+    </data>
+</odoo>

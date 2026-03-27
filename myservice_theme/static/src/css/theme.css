@@ -1,0 +1,426 @@
+/* ============================================================
+   myservice NRS Theme v4 — White surfaces, color in typography
+   NRS Red #C8102E | DM Sans | DM Mono | Syne
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap');
+
+:root {
+    --nrs-red:      #C8102E;
+    --nrs-red-d:    #A00D24;
+    --nrs-red-bg:   #FBE9EC;
+    --nrs-topbar:   #FFFFFF;
+    --nrs-sidebar:  #FFFFFF;
+    --nrs-bg:       #F0F1F3;
+    --nrs-paper:    #F8F9FA;
+    --nrs-white:    #FFFFFF;
+    --nrs-b1:       #E4E6EA;
+    --nrs-b2:       #CDD0D6;
+    --nrs-ink:      #0D1117;
+    --nrs-ink1:     #1C2128;
+    --nrs-mid:      #444D56;
+    --nrs-muted:    #6A737D;
+    --nrs-ghost:    #959DA5;
+    --nrs-faint:    #C0C5CC;
+    --nrs-sans:     'DM Sans', system-ui, sans-serif;
+    --nrs-mono:     'DM Mono', monospace;
+    --nrs-disp:     'Syne', sans-serif;
+}
+
+/* ── Base ── */
+body, .o_web_client, input, select, textarea, button {
+    font-family: var(--nrs-sans) !important;
+    -webkit-font-smoothing: antialiased !important;
+}
+
+/* ── Top nav — white, NRS red logo only ── */
+.o_main_navbar {
+    background: var(--nrs-white) !important;
+    border-bottom: 1px solid var(--nrs-b1) !important;
+    box-shadow: none !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    padding: 0 !important;
+}
+
+/* Logo */
+.o_main_navbar .o_menu_brand {
+    font-family: var(--nrs-disp) !important;
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    color: var(--nrs-red) !important;
+    letter-spacing: 2px !important;
+    padding: 0 18px !important;
+    border-right: 1px solid var(--nrs-b1) !important;
+    height: 52px !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.o_main_navbar .o_menu_brand img,
+.o_main_navbar img.o_logo {
+    display: none !important;
+}
+
+/* Module tabs — color in text, not background */
+.o_main_navbar .o_dropdown .o_dropdown_title,
+.o_main_navbar .o_nav_entry {
+    color: var(--nrs-ghost) !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    font-family: var(--nrs-sans) !important;
+    padding: 0 14px !important;
+    height: 52px !important;
+    display: flex !important;
+    align-items: center !important;
+    border-bottom: 2px solid transparent !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    transition: color .15s, border-color .15s !important;
+}
+
+.o_main_navbar .o_dropdown .o_dropdown_title:hover,
+.o_main_navbar .o_nav_entry:hover {
+    color: var(--nrs-mid) !important;
+    background: transparent !important;
+}
+
+.o_main_navbar .o_dropdown.show .o_dropdown_title,
+.o_main_navbar .o_nav_entry.active {
+    color: var(--nrs-red) !important;
+    border-bottom-color: var(--nrs-red) !important;
+    font-weight: 600 !important;
+    background: transparent !important;
+}
+
+/* Top right icons */
+.o_main_navbar .o_icon_btn {
+    color: var(--nrs-ghost) !important;
+    border-radius: 6px !important;
+    transition: all .15s !important;
+}
+.o_main_navbar .o_icon_btn:hover {
+    background: var(--nrs-paper) !important;
+    color: var(--nrs-mid) !important;
+}
+
+/* User menu */
+.o_main_navbar .o_user_menu .o_dropdown_title {
+    color: var(--nrs-muted) !important;
+}
+
+/* ── App switcher home ── */
+.o_home_menu {
+    background: var(--nrs-bg) !important;
+}
+.o_home_menu .o_caption {
+    font-family: var(--nrs-sans) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    color: var(--nrs-mid) !important;
+}
+
+/* ── Control panel — white ── */
+.o_control_panel {
+    background: var(--nrs-white) !important;
+    border-bottom: 1px solid var(--nrs-b1) !important;
+    box-shadow: none !important;
+    padding: 8px 20px !important;
+}
+
+/* Breadcrumb */
+.o_control_panel .breadcrumb-item a {
+    color: var(--nrs-red) !important;
+    font-weight: 500 !important;
+    font-family: var(--nrs-mono) !important;
+    font-size: 12px !important;
+}
+.o_control_panel .breadcrumb-item.active {
+    color: var(--nrs-ink) !important;
+    font-weight: 600 !important;
+    font-family: var(--nrs-sans) !important;
+}
+.o_control_panel .breadcrumb-item + .breadcrumb-item::before {
+    color: var(--nrs-faint) !important;
+}
+
+/* Buttons */
+.o_control_panel .btn-primary,
+.btn-primary {
+    background: var(--nrs-red) !important;
+    border-color: var(--nrs-red) !important;
+    color: #fff !important;
+    border-radius: 5px !important;
+    font-family: var(--nrs-sans) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    box-shadow: none !important;
+}
+.o_control_panel .btn-primary:hover,
+.btn-primary:hover {
+    background: var(--nrs-red-d) !important;
+    border-color: var(--nrs-red-d) !important;
+    box-shadow: none !important;
+}
+
+.o_control_panel .btn-secondary,
+.o_control_panel .btn-outline-secondary,
+.btn-secondary, .btn-outline-secondary {
+    border-radius: 5px !important;
+    font-family: var(--nrs-sans) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    border-color: var(--nrs-b2) !important;
+    color: var(--nrs-mid) !important;
+    background: var(--nrs-white) !important;
+    box-shadow: none !important;
+}
+.btn-secondary:hover, .btn-outline-secondary:hover {
+    background: var(--nrs-paper) !important;
+}
+
+/* ── Search bar ── */
+.o_searchview {
+    border: 1px solid var(--nrs-b1) !important;
+    border-radius: 5px !important;
+    background: var(--nrs-paper) !important;
+    font-family: var(--nrs-sans) !important;
+}
+.o_searchview:focus-within {
+    border-color: var(--nrs-red) !important;
+    background: var(--nrs-white) !important;
+}
+.o_searchview .o_searchview_input {
+    font-family: var(--nrs-sans) !important;
+    font-size: 13px !important;
+    color: var(--nrs-ink) !important;
+}
+.o_searchview .o_facet_values {
+    background: var(--nrs-red-bg) !important;
+    color: var(--nrs-red) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+}
+
+/* ── Page background ── */
+.o_content, .o_action_manager {
+    background: var(--nrs-bg) !important;
+}
+
+/* ── List views ── */
+.o_list_view {
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    border: 1px solid var(--nrs-b1) !important;
+    background: var(--nrs-white) !important;
+    box-shadow: none !important;
+}
+.o_list_view thead th {
+    background: var(--nrs-paper) !important;
+    border-bottom: 1px solid var(--nrs-b1) !important;
+    color: var(--nrs-ghost) !important;
+    font-family: var(--nrs-mono) !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: .6px !important;
+    padding: 9px 12px !important;
+}
+.o_list_view tbody td {
+    font-family: var(--nrs-sans) !important;
+    font-size: 13px !important;
+    color: var(--nrs-ink1) !important;
+    padding: 9px 12px !important;
+    border-bottom: 1px solid var(--nrs-paper) !important;
+}
+.o_list_view tbody tr:hover td {
+    background: var(--nrs-paper) !important;
+}
+.o_list_view tbody tr.o_data_row:last-child td {
+    border-bottom: none !important;
+}
+
+/* ── Kanban ── */
+.o_kanban_view { background: var(--nrs-bg) !important; padding: 16px !important; }
+.o_kanban_column {
+    background: var(--nrs-paper) !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--nrs-b1) !important;
+}
+.o_kanban_column_title {
+    font-family: var(--nrs-mono) !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    color: var(--nrs-ghost) !important;
+    text-transform: uppercase !important;
+    letter-spacing: .6px !important;
+}
+.o_kanban_record {
+    border-radius: 6px !important;
+    border: 1px solid var(--nrs-b1) !important;
+    box-shadow: none !important;
+    background: var(--nrs-white) !important;
+    font-family: var(--nrs-sans) !important;
+}
+.o_kanban_record:hover { border-color: var(--nrs-red) !important; }
+
+/* ── Form view ── */
+.o_form_view { background: var(--nrs-bg) !important; }
+.o_form_sheet {
+    background: var(--nrs-white) !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--nrs-b1) !important;
+    box-shadow: none !important;
+    padding: 24px !important;
+    margin: 16px auto !important;
+}
+.o_form_sheet .o_field_widget input,
+.o_form_sheet .o_field_widget select,
+.o_form_sheet .o_field_widget textarea {
+    border: 1px solid var(--nrs-b1) !important;
+    border-radius: 5px !important;
+    font-family: var(--nrs-sans) !important;
+    font-size: 13px !important;
+}
+.o_form_sheet .o_field_widget input:focus,
+.o_form_sheet .o_field_widget textarea:focus {
+    border-color: var(--nrs-red) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(200,16,46,.07) !important;
+}
+.o_form_sheet .o_wrap_label label {
+    font-family: var(--nrs-sans) !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: var(--nrs-ghost) !important;
+    text-transform: uppercase !important;
+    letter-spacing: .4px !important;
+}
+
+/* Status bar — red active step, color in text */
+.o_statusbar_status button {
+    font-family: var(--nrs-sans) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    color: var(--nrs-ghost) !important;
+    background: transparent !important;
+}
+.o_statusbar_status button.o_arrow_button_current {
+    color: var(--nrs-red) !important;
+    font-weight: 600 !important;
+    background: var(--nrs-red-bg) !important;
+    border-color: var(--nrs-b1) !important;
+}
+
+/* Stat buttons */
+.oe_button_box .o_stat_button {
+    border-radius: 5px !important;
+    border: 1px solid var(--nrs-b1) !important;
+    font-family: var(--nrs-sans) !important;
+    transition: all .15s !important;
+}
+.oe_button_box .o_stat_button:hover {
+    border-color: var(--nrs-red) !important;
+    background: var(--nrs-red-bg) !important;
+}
+.oe_button_box .o_stat_button .o_stat_value {
+    color: var(--nrs-red) !important;
+    font-weight: 700 !important;
+    font-family: var(--nrs-mono) !important;
+}
+
+/* ── Notebook tabs ── */
+.o_notebook .nav-tabs { border-bottom: 1px solid var(--nrs-b1) !important; }
+.o_notebook .nav-tabs .nav-link {
+    font-family: var(--nrs-sans) !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: var(--nrs-ghost) !important;
+    border: none !important;
+    border-bottom: 2px solid transparent !important;
+    border-radius: 0 !important;
+    padding: 8px 16px !important;
+}
+.o_notebook .nav-tabs .nav-link:hover { color: var(--nrs-mid) !important; }
+.o_notebook .nav-tabs .nav-link.active {
+    color: var(--nrs-red) !important;
+    border-bottom-color: var(--nrs-red) !important;
+    font-weight: 600 !important;
+    background: transparent !important;
+}
+
+/* ── Dropdowns ── */
+.dropdown-menu {
+    border: 1px solid var(--nrs-b1) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,.08) !important;
+    padding: 6px !important;
+}
+.dropdown-item {
+    font-family: var(--nrs-sans) !important;
+    font-size: 13px !important;
+    color: var(--nrs-ink1) !important;
+    border-radius: 5px !important;
+    padding: 7px 10px !important;
+}
+.dropdown-item:hover { background: var(--nrs-paper) !important; }
+.dropdown-item.active, .dropdown-item:active {
+    background: var(--nrs-red-bg) !important;
+    color: var(--nrs-red) !important;
+}
+
+/* ── Alerts ── */
+.alert-danger { background: var(--nrs-red-bg) !important; border-color: #FCA5A5 !important; color: var(--nrs-red-d) !important; }
+.alert-success { background: #D1FAE5 !important; border-color: #A7F3D0 !important; color: #065F46 !important; }
+.alert-warning { background: #FEF3C7 !important; border-color: #FDE68A !important; color: #92400E !important; }
+.alert-info { background: #DBEAFE !important; border-color: #BFDBFE !important; color: #1E40AF !important; }
+
+/* ── Chatter ── */
+.o_chatter { border-left: 1px solid var(--nrs-b1) !important; background: var(--nrs-white) !important; }
+.o_chatter_topbar { border-bottom: 1px solid var(--nrs-b1) !important; background: var(--nrs-paper) !important; }
+
+/* ── Badges ── */
+.badge { font-family: var(--nrs-mono) !important; font-size: 10px !important; font-weight: 600 !important; border-radius: 3px !important; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--nrs-b2); border-radius: 2px; }
+
+/* ── Our custom dashboards inherit NRS red ── */
+.ms-fm-header, .ms-bc-header, .ms-bus-header, .ms-soc-header {
+    border-bottom-color: var(--nrs-red) !important;
+}
+.ms-fm-refresh-btn, .ms-bc-btn, .ms-bc-search-btn,
+.ms-bus-btn, .ms-soc-btn {
+    background: var(--nrs-red) !important;
+}
+.ms-fm-refresh-btn:hover, .ms-bc-btn:hover,
+.ms-bus-btn:hover { background: var(--nrs-red-d) !important; }
+
+/* Replace all WML orange with NRS red in custom dashboards */
+.ms-fm-kpi.orange { border-left-color: var(--nrs-red) !important; }
+.ms-fm-kpi.orange .ms-fm-kpi-val { color: var(--nrs-red) !important; }
+.ms-bc-kpi.orange .ms-bc-kpi-val { color: var(--nrs-red) !important; }
+.ms-fm-tab-btn.active, .ms-bc-tab.active {
+    border-color: var(--nrs-red) !important;
+    color: var(--nrs-red) !important;
+    background: var(--nrs-red-bg) !important;
+}
+.ms-bc-result-tag, .ms-bc-tag-num { color: var(--nrs-red) !important; }
+.ms-fm-domain-card { border-top-color: var(--nrs-b1) !important; }
+
+/* ── Progress bar ── */
+.progress-bar { background: var(--nrs-red) !important; }
+
+/* ── Loading ── */
+.o_loading_indicator::after { border-top-color: var(--nrs-red) !important; }
+
+/* ── Pager ── */
+.o_pager { font-family: var(--nrs-mono) !important; font-size: 12px !important; }
+
+/* ── Print ── */
+@media print { .o_main_navbar { display: none !important; } }
