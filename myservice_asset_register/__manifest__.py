@@ -15,7 +15,6 @@
         'security/ir.model.access.csv',
         'data/asset_sequences.xml',
         'data/asset_categories.xml',
-        'data/asset_resource_types.xml',
         'views/asset_views.xml',
         'views/asset_transfer_views.xml',
         'views/asset_pm_views.xml',
