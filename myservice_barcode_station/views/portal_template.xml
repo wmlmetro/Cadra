@@ -19,7 +19,7 @@
 
                             <!-- Camera box -->
                             <div class="ms-portal-camera-box" id="portal-camera-box">
-                                <video id="portal-video" class="ms-portal-video" autoplay="true" playsinline="true"/>
+                                <video id="portal-video" class="ms-portal-video" autoplay="autoplay" playsinline="playsinline"/>
                                 <div class="ms-portal-scan-line" id="portal-scan-line" style="display:none"/>
                                 <div id="portal-cam-placeholder" style="color:#888;font-size:12px;text-align:center;padding:16px">
                                     <div style="font-size:32px;margin-bottom:8px">▦</div>
