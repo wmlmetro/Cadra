@@ -70,7 +70,7 @@
     <record id="view_request_request_asset_inherit" model="ir.ui.view">
         <field name="name">request.request.asset.inherit</field>
         <field name="model">request.request</field>
-        <field name="inherit_id" ref="generic_request.request_request_view_form"/>
+        <field name="inherit_id" ref="generic_request.view_request_request_form"/>
         <field name="arch" type="xml">
             <xpath expr="//sheet//group[1]" position="after">
                 <group string="Asset">
