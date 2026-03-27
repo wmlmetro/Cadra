@@ -325,12 +325,10 @@ odoo.define('myservice_staff_bus.BusDashboard', function(require) {
             var schedules = this._schedules || [];
 
             buses.forEach(function(b) {
-                // buses tagged with current_route — plot at approximate NRS location
-                // In production these would use GPS; for now show buses with routes
-                if (!b.current_route_id) return;
-                // placeholder coords — will be replaced with GPS feed
-                var lat = 6.5 + Math.random() * 7;
-                var lng = 3.5 + Math.random() * 10;
+                // Use real GPS from home_location_id
+                var lat = b.home_lat || 0;
+                var lng = b.home_lng || 0;
+                if (!lat || !lng) return;
 
                 var active = schedules.some(function(s) {
                     return s.vehicle_id && s.vehicle_id[0] === b.id &&
