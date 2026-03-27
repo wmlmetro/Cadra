@@ -64,6 +64,10 @@ odoo.define('myservice_staff_bus.BusDashboard', function(require) {
             var container = document.getElementById('ms-bus-map');
             if (!container || !window.L) return;
             container.innerHTML = '';
+            if (this.map) {
+                try { this.map.remove(); } catch(e) {}
+                this.map = null;
+            }
             this.map = window.L.map('ms-bus-map', {
                 center: [9.0, 8.5], zoom: 6, minZoom: 6, maxZoom: 12,
                 maxBounds: [[4.0, 2.5], [14.0, 15.5]],
