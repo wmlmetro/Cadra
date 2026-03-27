@@ -24,7 +24,7 @@
                             <field name="request_count" widget="statinfo" string="Requests"/>
                         </button>
                         <button class="oe_stat_button" icon="fa-calendar" type="object"
-                                name="%(action_nrs_asset_pm)s">
+                                name="action_view_pm_schedules">
                             <field name="pm_count" widget="statinfo" string="PM Schedules"/>
                         </button>
                     </div>
