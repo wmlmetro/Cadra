@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="resource_type_fm_asset" model="generic.resource.type">
+            <field name="name">FM Asset</field>
+            <field name="code">FM-ASSET</field>
+        </record>
+    </data>
+</odoo>

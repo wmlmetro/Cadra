@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_nrs_asset_transfer_form" model="ir.ui.view">
+        <field name="name">nrs.asset.transfer.form</field>
+        <field name="model">nrs.asset.transfer</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_approve" string="Approve" type="object"
+                            class="btn-primary"
+                            groups="myservice_asset_register.group_asset_manager"
+                            attrs="{'invisible': [('state','!=','draft')]}"/>
+                    <button name="action_complete" string="Complete Transfer" type="object"
+                            class="btn-primary"
+                            attrs="{'invisible': [('state','!=','approved')]}"/>
+                    <button name="action_reject" string="Reject" type="object"
+                            attrs="{'invisible': [('state','in',['done','rejected'])]}"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,approved,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Asset">
+                            <field name="asset_id"/>
+                            <field name="asset_code" readonly="1"/>
+                            <field name="transfer_date"/>
+                        </group>
+                        <group string="Movement">
+                            <field name="from_location_id"/>
+                            <field name="to_location_id"/>
+                            <field name="from_custodian_id"/>
+                            <field name="to_custodian_id"/>
+                        </group>
+                    </group>
+                    <group string="Approval">
+                        <field name="approved_by" readonly="1"/>
+                        <field name="approved_date" readonly="1"/>
+                    </group>
+                    <field name="reason" placeholder="Reason for transfer..."/>
+                    <field name="notes" placeholder="Notes..."/>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_nrs_asset_transfer_tree" model="ir.ui.view">
+        <field name="name">nrs.asset.transfer.tree</field>
+        <field name="model">nrs.asset.transfer</field>
+        <field name="arch" type="xml">
+            <tree decoration-success="state=='done'"
+                  decoration-info="state=='approved'"
+                  decoration-muted="state=='rejected'">
+                <field name="name"/>
+                <field name="transfer_date"/>
+                <field name="asset_id"/>
+                <field name="asset_code"/>
+                <field name="from_location_id"/>
+                <field name="to_location_id"/>
+                <field name="from_custodian_id"/>
+                <field name="to_custodian_id"/>
+                <field name="approved_by"/>
+                <field name="state"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_nrs_asset_transfer" model="ir.actions.act_window">
+        <field name="name">Asset Transfers</field>
+        <field name="res_model">nrs.asset.transfer</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

@@ -1,0 +1,28 @@
+{
+    'name': 'NRS Asset Register & PM Schedules',
+    'version': '15.0.1.0.0',
+    'summary': 'Fixed asset register, condition tracking, tagging, transfers, PM auto-scheduling',
+    'category': 'Facilities',
+    'author': 'WestMetro Limited',
+    'depends': [
+        'base', 'mail', 'web',
+        'generic_resource',
+        'generic_request',
+        'generic_location',
+    ],
+    'data': [
+        'security/asset_security.xml',
+        'security/ir.model.access.csv',
+        'data/asset_sequences.xml',
+        'data/asset_categories.xml',
+        'data/asset_resource_types.xml',
+        'views/asset_views.xml',
+        'views/asset_transfer_views.xml',
+        'views/asset_pm_views.xml',
+        'views/asset_menu.xml',
+        'data/asset_cron.xml',
+    ],
+    'installable': True,
+    'auto_install': False,
+    'license': 'LGPL-3',
+}

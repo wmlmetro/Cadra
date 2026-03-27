@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ── Asset Form ── -->
+    <record id="view_nrs_asset_form" model="ir.ui.view">
+        <field name="name">nrs.asset.form</field>
+        <field name="model">nrs.asset</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_verify" string="Mark Verified" type="object"
+                            class="btn-primary"
+                            attrs="{'invisible': [('state','not in',['active','missing'])]}"/>
+                    <button name="action_mark_missing" string="Mark Missing" type="object"
+                            attrs="{'invisible': [('state','in',['missing','disposed'])]}"/>
+                    <button name="action_condemn" string="Condemn / Dispose" type="object"
+                            attrs="{'invisible': [('state','=','disposed')]}"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="active,in_repair,disposed"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_requests" type="object"
+                                class="oe_stat_button" icon="fa-wrench">
+                            <field name="request_count" widget="statinfo" string="Requests"/>
+                        </button>
+                        <button class="oe_stat_button" icon="fa-calendar" type="object"
+                                name="%(action_nrs_asset_pm)s">
+                            <field name="pm_count" widget="statinfo" string="PM Schedules"/>
+                        </button>
+                    </div>
+                    <field name="image" widget="image" class="oe_avatar"/>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Asset Name"/></h1>
+                        <h3>
+                            <field name="asset_code" readonly="1"/>
+                            <span> · </span>
+                            <field name="asset_tag" placeholder="Physical Tag No."/>
+                        </h3>
+                    </div>
+                    <group>
+                        <group string="Classification">
+                            <field name="category_id"/>
+                            <field name="domain"/>
+                            <field name="manufacturer"/>
+                            <field name="model_number"/>
+                            <field name="serial_number"/>
+                        </group>
+                        <group string="Location &amp; Custodian">
+                            <field name="location_id"/>
+                            <field name="floor_room"/>
+                            <field name="custodian_id"/>
+                            <field name="department"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Condition &amp; Status">
+                            <field name="condition"/>
+                            <field name="is_verified" readonly="1"/>
+                            <field name="last_verified_date" readonly="1"/>
+                            <field name="last_verified_by" readonly="1"/>
+                        </group>
+                        <group string="Financial">
+                            <field name="acquisition_date"/>
+                            <field name="acquisition_cost"/>
+                            <field name="current_value"/>
+                            <field name="disposal_date"
+                                   attrs="{'invisible': [('state','!=','disposed')]}"/>
+                        </group>
+                    </group>
+                    <group string="Maintenance">
+                        <group>
+                            <field name="last_service_date"/>
+                            <field name="next_service_date" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="PM Schedules" name="pm">
+                            <field name="pm_schedule_ids">
+                                <tree editable="bottom">
+                                    <field name="name"/>
+                                    <field name="interval_days"/>
+                                    <field name="last_done_date"/>
+                                    <field name="next_due_date"/>
+                                    <field name="is_overdue" widget="boolean"/>
+                                    <field name="request_type_id"/>
+                                    <field name="team_id"/>
+                                    <field name="auto_create"/>
+                                    <field name="advance_days"/>
+                                    <button name="action_mark_done" string="Done"
+                                            type="object" icon="fa-check"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Transfers" name="transfers">
+                            <field name="transfer_ids">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="transfer_date"/>
+                                    <field name="from_location_id"/>
+                                    <field name="to_location_id"/>
+                                    <field name="from_custodian_id"/>
+                                    <field name="to_custodian_id"/>
+                                    <field name="state"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Verification Notes" name="verification">
+                            <group>
+                                <field name="verification_notes"/>
+                            </group>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <field name="notes"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── Asset Tree ── -->
+    <record id="view_nrs_asset_tree" model="ir.ui.view">
+        <field name="name">nrs.asset.tree</field>
+        <field name="model">nrs.asset</field>
+        <field name="arch" type="xml">
+            <tree decoration-danger="condition in ['condemned','missing']"
+                  decoration-warning="condition == 'poor'"
+                  decoration-success="is_verified"
+                  decoration-muted="state == 'disposed'">
+                <field name="asset_code"/>
+                <field name="name"/>
+                <field name="category_id"/>
+                <field name="domain"/>
+                <field name="location_id"/>
+                <field name="custodian_id"/>
+                <field name="condition"/>
+                <field name="state"/>
+                <field name="is_verified" widget="boolean"/>
+                <field name="last_verified_date"/>
+                <field name="next_service_date"/>
+                <field name="acquisition_cost" sum="Total Cost"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- ── Asset Kanban ── -->
+    <record id="view_nrs_asset_kanban" model="ir.ui.view">
+        <field name="name">nrs.asset.kanban</field>
+        <field name="model">nrs.asset</field>
+        <field name="arch" type="xml">
+            <kanban>
+                <field name="name"/>
+                <field name="asset_code"/>
+                <field name="category_id"/>
+                <field name="condition"/>
+                <field name="location_id"/>
+                <field name="is_verified"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_card oe_kanban_global_click">
+                            <div class="oe_kanban_content">
+                                <strong><field name="name"/></strong>
+                                <div class="o_kanban_record_subtitle">
+                                    <field name="asset_code"/> · <field name="category_id"/>
+                                </div>
+                                <div><field name="location_id"/></div>
+                                <div class="mt-2">
+                                    <span t-attf-class="badge badge-#{record.condition.raw_value == 'good' ? 'success' : record.condition.raw_value == 'poor' ? 'warning' : 'danger'}">
+                                        <field name="condition"/>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- ── Asset Search ── -->
+    <record id="view_nrs_asset_search" model="ir.ui.view">
+        <field name="name">nrs.asset.search</field>
+        <field name="model">nrs.asset</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="asset_code"/>
+                <field name="asset_tag"/>
+                <field name="serial_number"/>
+                <field name="location_id"/>
+                <field name="custodian_id"/>
+                <field name="category_id"/>
+                <separator/>
+                <filter name="active" string="Active" domain="[('state','=','active')]"/>
+                <filter name="missing" string="Missing" domain="[('state','=','missing')]"/>
+                <filter name="disposed" string="Disposed" domain="[('state','=','disposed')]"/>
+                <filter name="unverified" string="Unverified" domain="[('is_verified','=',False)]"/>
+                <filter name="pm_due" string="PM Due" domain="[('next_service_date','&lt;=', context_today().strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter name="building" string="Building Services" domain="[('domain','=','building')]"/>
+                <filter name="plant" string="Plant &amp; Machinery" domain="[('domain','=','plant')]"/>
+                <filter name="plumbing" string="Plumbing" domain="[('domain','=','plumbing')]"/>
+                <filter name="security" string="Security" domain="[('domain','=','security')]"/>
+                <filter name="fleet" string="Fleet" domain="[('domain','=','fleet')]"/>
+                <filter name="it" string="IT" domain="[('domain','=','it')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="grp_location" string="Location" context="{'group_by':'location_id'}"/>
+                    <filter name="grp_category" string="Category" context="{'group_by':'category_id'}"/>
+                    <filter name="grp_domain" string="FM Domain" context="{'group_by':'domain'}"/>
+                    <filter name="grp_condition" string="Condition" context="{'group_by':'condition'}"/>
+                    <filter name="grp_custodian" string="Custodian" context="{'group_by':'custodian_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ── Asset Category Views ── -->
+    <record id="view_nrs_asset_category_tree" model="ir.ui.view">
+        <field name="name">nrs.asset.category.tree</field>
+        <field name="model">nrs.asset.category</field>
+        <field name="arch" type="xml">
+            <tree editable="bottom">
+                <field name="name"/>
+                <field name="code"/>
+                <field name="domain"/>
+                <field name="pm_interval_days"/>
+                <field name="asset_count"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- ── Actions ── -->
+    <record id="action_nrs_asset" model="ir.actions.act_window">
+        <field name="name">Asset Register</field>
+        <field name="res_model">nrs.asset</field>
+        <field name="view_mode">tree,kanban,form</field>
+        <field name="search_view_id" ref="view_nrs_asset_search"/>
+        <field name="context">{'search_default_active': 1}</field>
+    </record>
+
+    <record id="action_nrs_asset_missing" model="ir.actions.act_window">
+        <field name="name">Missing / Unverified Assets</field>
+        <field name="res_model">nrs.asset</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('state','in',['missing']),('is_verified','=',False)]</field>
+    </record>
+
+    <record id="action_nrs_asset_category" model="ir.actions.act_window">
+        <field name="name">Asset Categories</field>
+        <field name="res_model">nrs.asset.category</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

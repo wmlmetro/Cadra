@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Plant & Machinery -->
+        <record id="cat_generator" model="nrs.asset.category">
+            <field name="name">Generator</field>
+            <field name="code">GEN</field>
+            <field name="domain">plant</field>
+            <field name="pm_interval_days">90</field>
+        </record>
+        <record id="cat_ups" model="nrs.asset.category">
+            <field name="name">UPS / Battery Backup</field>
+            <field name="code">UPS</field>
+            <field name="domain">plant</field>
+            <field name="pm_interval_days">90</field>
+        </record>
+        <record id="cat_lift" model="nrs.asset.category">
+            <field name="name">Lift / Elevator</field>
+            <field name="code">LIFT</field>
+            <field name="domain">plant</field>
+            <field name="pm_interval_days">30</field>
+        </record>
+        <record id="cat_hvac_plant" model="nrs.asset.category">
+            <field name="name">HVAC Plant / Chiller</field>
+            <field name="code">HVAC-P</field>
+            <field name="domain">plant</field>
+            <field name="pm_interval_days">90</field>
+        </record>
+        <record id="cat_compressor" model="nrs.asset.category">
+            <field name="name">Compressor</field>
+            <field name="code">COMP</field>
+            <field name="domain">plant</field>
+            <field name="pm_interval_days">180</field>
+        </record>
+        <record id="cat_ahu" model="nrs.asset.category">
+            <field name="name">Air Handling Unit (AHU)</field>
+            <field name="code">AHU</field>
+            <field name="domain">plant</field>
+            <field name="pm_interval_days">90</field>
+        </record>
+
+        <!-- Building Services -->
+        <record id="cat_ac" model="nrs.asset.category">
+            <field name="name">Air Conditioning Unit</field>
+            <field name="code">AC</field>
+            <field name="domain">building</field>
+            <field name="pm_interval_days">90</field>
+        </record>
+        <record id="cat_electrical" model="nrs.asset.category">
+            <field name="name">Electrical Panel / Distribution Board</field>
+            <field name="code">ELEC</field>
+            <field name="domain">building</field>
+            <field name="pm_interval_days">180</field>
+        </record>
+        <record id="cat_fire_system" model="nrs.asset.category">
+            <field name="name">Fire Safety System</field>
+            <field name="code">FIRE</field>
+            <field name="domain">building</field>
+            <field name="pm_interval_days">180</field>
+        </record>
+
+        <!-- Plumbing & Drainage -->
+        <record id="cat_pump" model="nrs.asset.category">
+            <field name="name">Water Pump / Borehole</field>
+            <field name="code">PUMP</field>
+            <field name="domain">plumbing</field>
+            <field name="pm_interval_days">90</field>
+        </record>
+        <record id="cat_water_treatment" model="nrs.asset.category">
+            <field name="name">Water Treatment Plant</field>
+            <field name="code">WTP</field>
+            <field name="domain">plumbing</field>
+            <field name="pm_interval_days">30</field>
+        </record>
+        <record id="cat_overhead_tank" model="nrs.asset.category">
+            <field name="name">Overhead / Storage Tank</field>
+            <field name="code">TANK</field>
+            <field name="domain">plumbing</field>
+            <field name="pm_interval_days">180</field>
+        </record>
+
+        <!-- Security & Safety -->
+        <record id="cat_cctv" model="nrs.asset.category">
+            <field name="name">CCTV System</field>
+            <field name="code">CCTV</field>
+            <field name="domain">security</field>
+            <field name="pm_interval_days">180</field>
+        </record>
+        <record id="cat_access_control" model="nrs.asset.category">
+            <field name="name">Access Control System</field>
+            <field name="code">ACS</field>
+            <field name="domain">security</field>
+            <field name="pm_interval_days">180</field>
+        </record>
+        <record id="cat_fire_extinguisher" model="nrs.asset.category">
+            <field name="name">Fire Extinguisher</field>
+            <field name="code">FEXT</field>
+            <field name="domain">security</field>
+            <field name="pm_interval_days">365</field>
+        </record>
+
+        <!-- IT & Communications -->
+        <record id="cat_server" model="nrs.asset.category">
+            <field name="name">Server / Network Equipment</field>
+            <field name="code">SRV</field>
+            <field name="domain">it</field>
+            <field name="pm_interval_days">180</field>
+        </record>
+        <record id="cat_computer" model="nrs.asset.category">
+            <field name="name">Desktop / Laptop Computer</field>
+            <field name="code">PC</field>
+            <field name="domain">it</field>
+            <field name="pm_interval_days">365</field>
+        </record>
+        <record id="cat_printer" model="nrs.asset.category">
+            <field name="name">Printer / Photocopier</field>
+            <field name="code">PRT</field>
+            <field name="domain">it</field>
+            <field name="pm_interval_days">180</field>
+        </record>
+
+        <!-- Furniture & Fittings -->
+        <record id="cat_furniture" model="nrs.asset.category">
+            <field name="name">Office Furniture</field>
+            <field name="code">FURN</field>
+            <field name="domain">furniture</field>
+            <field name="pm_interval_days">0</field>
+        </record>
+        <record id="cat_vehicle" model="nrs.asset.category">
+            <field name="name">Vehicle</field>
+            <field name="code">VEH</field>
+            <field name="domain">fleet</field>
+            <field name="pm_interval_days">90</field>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Top level under Facilities -->
+    <menuitem id="menu_asset_root"
+              name="Asset Register"
+              parent="myservice_fm_dashboard.menu_fm_root"
+              sequence="10"/>
+
+    <menuitem id="menu_asset_register"
+              name="All Assets"
+              parent="menu_asset_root"
+              action="action_nrs_asset"
+              sequence="10"/>
+
+    <menuitem id="menu_asset_missing"
+              name="Missing / Unverified"
+              parent="menu_asset_root"
+              action="action_nrs_asset_missing"
+              sequence="20"/>
+
+    <menuitem id="menu_asset_transfers"
+              name="Asset Transfers"
+              parent="menu_asset_root"
+              action="action_nrs_asset_transfer"
+              sequence="30"/>
+
+    <menuitem id="menu_asset_pm"
+              name="PM Schedules"
+              parent="menu_asset_root"
+              action="action_nrs_asset_pm"
+              sequence="40"/>
+
+    <menuitem id="menu_asset_pm_overdue"
+              name="Overdue PM"
+              parent="menu_asset_root"
+              action="action_nrs_asset_pm_overdue"
+              sequence="50"/>
+
+    <menuitem id="menu_asset_categories"
+              name="Categories"
+              parent="menu_asset_root"
+              action="action_nrs_asset_category"
+              sequence="60"
+              groups="myservice_asset_register.group_asset_manager"/>
+</odoo>
