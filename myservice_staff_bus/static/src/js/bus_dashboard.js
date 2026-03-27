@@ -110,7 +110,6 @@ odoo.define('myservice_staff_bus.BusDashboard', function(require) {
                 self._schedules = schedules || [];
                 self._renderSchedules();
                 self._renderKpis();
-                self._renderMapMarkers('all');
             });
 
             // Compliance — buses expiring soon or expired
