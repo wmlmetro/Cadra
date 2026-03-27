@@ -133,7 +133,7 @@
                                 <div class="ms-bc-size-row">
                                     <span style="font-size:11px;color:var(--color-text-secondary);margin-right:8px">Label size:</span>
                                     <label class="ms-bc-size-opt"><input type="radio" name="label-size" value="small"/> Small 50×30</label>
-                                    <label class="ms-bc-size-opt selected"><input type="radio" name="label-size" value="medium" checked/> Medium 85×55</label>
+                                    <label class="ms-bc-size-opt selected"><input type="radio" name="label-size" value="medium" checked="checked"/> Medium 85×55</label>
                                     <label class="ms-bc-size-opt"><input type="radio" name="label-size" value="large"/> Large 100×70</label>
                                     <label class="ms-bc-size-opt"><input type="radio" name="label-size" value="sheet"/> A4 Sheet</label>
                                 </div>
