@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates>
+    <t t-name="myservice_barcode_station.BarcodeStation">
+        <div class="ms-bc-station">
+
+            <!-- Header -->
+            <div class="ms-bc-header">
+                <div>
+                    <div class="ms-bc-title"><span>NRS</span> Asset Barcode Station</div>
+                    <div class="ms-bc-sub" id="bc-last-updated">Loading...</div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <select class="ms-bc-select" id="bc-domain-filter">
+                        <option value="">All domains</option>
+                        <option value="plant">Plant &amp; Machinery</option>
+                        <option value="building">Building Services</option>
+                        <option value="plumbing">Plumbing &amp; Drainage</option>
+                        <option value="security">Security &amp; Safety</option>
+                        <option value="fleet">Fleet</option>
+                        <option value="it">IT &amp; Comms</option>
+                        <option value="furniture">Furniture</option>
+                    </select>
+                    <button class="ms-bc-btn" id="bc-batch-print-btn">Batch Print PDF</button>
+                    <button class="ms-bc-btn sec" t-on-click="refresh">↻ Refresh</button>
+                </div>
+            </div>
+
+            <!-- KPI bar -->
+            <div class="ms-bc-kpi-bar">
+                <div class="ms-bc-kpi">
+                    <div class="ms-bc-kpi-val" id="kpi-total-assets">—</div>
+                    <div class="ms-bc-kpi-label">Total Assets</div>
+                </div>
+                <div class="ms-bc-kpi green">
+                    <div class="ms-bc-kpi-val" id="kpi-active-tags">—</div>
+                    <div class="ms-bc-kpi-label">Active Tags</div>
+                </div>
+                <div class="ms-bc-kpi amber">
+                    <div class="ms-bc-kpi-val" id="kpi-pending">—</div>
+                    <div class="ms-bc-kpi-label">Pending Replacement</div>
+                </div>
+                <div class="ms-bc-kpi gray">
+                    <div class="ms-bc-kpi-val" id="kpi-scrapped">—</div>
+                    <div class="ms-bc-kpi-label">Scrapped</div>
+                </div>
+                <div class="ms-bc-kpi red">
+                    <div class="ms-bc-kpi-val" id="kpi-untagged">—</div>
+                    <div class="ms-bc-kpi-label">Untagged Assets</div>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="ms-bc-body">
+
+                <!-- Left: Scan + Tag list -->
+                <div class="ms-bc-main">
+
+                    <!-- Scan card -->
+                    <div class="ms-bc-card">
+                        <div class="ms-bc-card-hdr">
+                            <span>Scan or look up tag</span>
+                            <div style="display:flex;gap:6px;align-items:center">
+                                <button class="ms-bc-tab active" id="btn-type">Type</button>
+                                <button class="ms-bc-tab" id="btn-camera">Camera Scan</button>
+                            </div>
+                        </div>
+
+                        <!-- Type mode -->
+                        <div id="scan-type-mode" style="padding:14px">
+                            <div class="ms-bc-search-row">
+                                <input id="bc-search-input" class="ms-bc-input"
+                                       placeholder="Enter tag number (NRS-PLT-00042) or asset code..."
+                                       autocomplete="off"/>
+                                <button class="ms-bc-search-btn" id="bc-search-btn">Look up</button>
+                            </div>
+                            <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:6px">
+                                Tip: USB/Bluetooth barcode scanners automatically type and press Enter
+                            </div>
+                        </div>
+
+                        <!-- Camera mode -->
+                        <div id="scan-camera-mode" style="padding:14px;display:none">
+                            <div class="ms-bc-camera-box" id="camera-container">
+                                <video id="bc-video" autoplay playsinline style="width:100%;border-radius:6px;display:none"></video>
+                                <div id="camera-placeholder" class="ms-bc-camera-placeholder">
+                                    <div class="ms-bc-scan-icon">
+                                        <div class="ms-bc-scan-lines">
+                                            <span></span><span></span><span></span>
+                                            <span></span><span></span><span></span>
+                                        </div>
+                                    </div>
+                                    <div style="font-size:12px;color:var(--color-text-secondary);margin-top:8px">
+                                        Click Start Camera to scan
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:8px;margin-top:10px">
+                                <button class="ms-bc-search-btn" id="bc-camera-start">Start Camera</button>
+                                <button class="ms-bc-btn sec" id="bc-camera-stop" style="display:none">Stop</button>
+                            </div>
+                            <div id="camera-status" style="font-size:12px;color:var(--color-text-secondary);margin-top:6px"></div>
+                        </div>
+
+                        <!-- Result panel -->
+                        <div id="bc-result-panel" style="display:none;padding:0 14px 14px">
+                            <div class="ms-bc-result">
+                                <div class="ms-bc-result-header">
+                                    <div>
+                                        <div class="ms-bc-result-tag" id="res-tag-number">—</div>
+                                        <div class="ms-bc-result-name" id="res-asset-name">—</div>
+                                    </div>
+                                    <span class="ms-bc-state-pill" id="res-state">Active</span>
+                                </div>
+                                <div class="ms-bc-result-grid">
+                                    <div class="ms-bc-rg-label">Category</div>
+                                    <div class="ms-bc-rg-val" id="res-category">—</div>
+                                    <div class="ms-bc-rg-label">Domain</div>
+                                    <div class="ms-bc-rg-val" id="res-domain">—</div>
+                                    <div class="ms-bc-rg-label">Location</div>
+                                    <div class="ms-bc-rg-val" id="res-location">—</div>
+                                    <div class="ms-bc-rg-label">Custodian</div>
+                                    <div class="ms-bc-rg-val" id="res-custodian">—</div>
+                                    <div class="ms-bc-rg-label">Condition</div>
+                                    <div class="ms-bc-rg-val" id="res-condition">—</div>
+                                    <div class="ms-bc-rg-label">Last PM</div>
+                                    <div class="ms-bc-rg-val" id="res-last-pm">—</div>
+                                    <div class="ms-bc-rg-label">Next PM</div>
+                                    <div class="ms-bc-rg-val" id="res-next-pm">—</div>
+                                    <div class="ms-bc-rg-label">SAP No.</div>
+                                    <div class="ms-bc-rg-val" id="res-sap">—</div>
+                                </div>
+                                <!-- Print size selector -->
+                                <div class="ms-bc-size-row">
+                                    <span style="font-size:11px;color:var(--color-text-secondary);margin-right:8px">Label size:</span>
+                                    <label class="ms-bc-size-opt"><input type="radio" name="label-size" value="small"/> Small 50×30</label>
+                                    <label class="ms-bc-size-opt selected"><input type="radio" name="label-size" value="medium" checked/> Medium 85×55</label>
+                                    <label class="ms-bc-size-opt"><input type="radio" name="label-size" value="large"/> Large 100×70</label>
+                                    <label class="ms-bc-size-opt"><input type="radio" name="label-size" value="sheet"/> A4 Sheet</label>
+                                </div>
+                                <div class="ms-bc-result-actions">
+                                    <button class="ms-bc-ra-btn primary" id="res-print-btn">Print Tag</button>
+                                    <button class="ms-bc-ra-btn" id="res-view-btn">View Asset</button>
+                                    <button class="ms-bc-ra-btn warn" id="res-replace-btn">Request Replacement</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="bc-not-found" style="display:none;padding:10px 14px 14px">
+                            <div style="background:var(--color-background-danger);color:var(--color-text-danger);padding:10px 14px;border-radius:8px;font-size:13px;">
+                                Tag not found. Check the number and try again.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tag list -->
+                    <div class="ms-bc-card" style="margin-top:14px">
+                        <div class="ms-bc-card-hdr">
+                            <span>Tag register</span>
+                            <span style="font-size:11px;color:var(--color-text-tertiary)" id="bc-tag-count">Loading...</span>
+                        </div>
+                        <div id="bc-tag-list">
+                            <div style="padding:20px;text-align:center;font-size:12px;color:var(--color-text-tertiary)">Loading tags...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Batch print + domain breakdown -->
+                <div class="ms-bc-side">
+
+                    <!-- Batch print -->
+                    <div class="ms-bc-card">
+                        <div class="ms-bc-card-hdr">Batch print</div>
+                        <div style="padding:12px;display:flex;flex-direction:column;gap:8px">
+                            <select class="ms-bc-select" id="batch-domain-select" style="width:100%">
+                                <option value="">All active tags</option>
+                                <option value="plant">Plant &amp; Machinery</option>
+                                <option value="building">Building Services</option>
+                                <option value="plumbing">Plumbing &amp; Drainage</option>
+                                <option value="security">Security &amp; Safety</option>
+                                <option value="fleet">Fleet</option>
+                                <option value="it">IT &amp; Comms</option>
+                            </select>
+                            <select class="ms-bc-select" id="batch-size-select" style="width:100%">
+                                <option value="medium">Medium labels (85×55mm)</option>
+                                <option value="small">Small labels (50×30mm)</option>
+                                <option value="large">Large labels (100×70mm)</option>
+                                <option value="sheet">A4 sheet (6 per page)</option>
+                            </select>
+                            <button class="ms-bc-btn" id="batch-print-execute" style="width:100%;justify-content:center">
+                                Generate Batch PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Domain breakdown -->
+                    <div class="ms-bc-card" style="margin-top:14px">
+                        <div class="ms-bc-card-hdr">Tags by domain</div>
+                        <div id="bc-domain-breakdown" style="padding:8px 0">
+                            <div style="padding:20px;text-align:center;font-size:12px;color:var(--color-text-tertiary)">Loading...</div>
+                        </div>
+                    </div>
+
+                    <!-- Portal link -->
+                    <div class="ms-bc-card" style="margin-top:14px">
+                        <div class="ms-bc-card-hdr">Field team portal</div>
+                        <div style="padding:12px">
+                            <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:10px">
+                                Share this link with field teams for mobile scanning without Odoo login:
+                            </div>
+                            <div style="background:var(--color-background-secondary);border-radius:6px;padding:8px 10px;font-size:12px;font-family:monospace;color:var(--color-text-primary);word-break:break-all">
+                                myservice.com.ng/tags
+                            </div>
+                            <button class="ms-bc-btn" style="width:100%;justify-content:center;margin-top:8px"
+                                    onclick="window.open('/tags','_blank')">
+                                Open Field Portal ↗
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

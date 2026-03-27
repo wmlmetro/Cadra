@@ -1,0 +1,33 @@
+/* ── NRS Barcode Portal — mobile first ─────────────────────── */
+.ms-portal { font-family: 'Outfit','Inter',sans-serif; background: #f7f7f5; min-height: 100vh; }
+.ms-portal-header { background: #1A1A1A; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; }
+.ms-portal-header-title { color: #fff; font-size: 16px; font-weight: 700; }
+.ms-portal-header-title span { color: #E85426; }
+.ms-portal-body { padding: 16px; max-width: 500px; margin: 0 auto; }
+.ms-portal-scan-card { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); margin-bottom: 14px; }
+.ms-portal-scan-top { background: #E85426; padding: 12px 16px; color: #fff; font-size: 13px; font-weight: 600; }
+.ms-portal-scan-body { padding: 16px; }
+.ms-portal-camera-box { width: 100%; height: 200px; background: #1A1A1A; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; position: relative; }
+.ms-portal-video { width: 100%; height: 100%; object-fit: cover; display: none; }
+.ms-portal-scan-line { position: absolute; width: 80%; height: 2px; background: #E85426; opacity: 0.8; animation: scan-anim 2s infinite; }
+@keyframes scan-anim { 0%{top:20%} 50%{top:75%} 100%{top:20%} }
+.ms-portal-input-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.ms-portal-input { flex: 1; padding: 11px 14px; border: 2px solid #eee; border-radius: 8px; font-size: 14px; font-family: inherit; outline: none; color: #1A1A1A; }
+.ms-portal-input:focus { border-color: #E85426; }
+.ms-portal-search-btn { background: #E85426; color: #fff; border: none; border-radius: 8px; padding: 11px 18px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.ms-portal-cam-btn { width: 100%; background: #1A1A1A; color: #fff; border: none; border-radius: 8px; padding: 11px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; margin-bottom: 4px; }
+.ms-portal-cam-btn.stop { background: #dc3545; }
+.ms-portal-status { font-size: 12px; color: #888; text-align: center; min-height: 16px; }
+.ms-portal-result { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); display: none; }
+.ms-portal-result-top { background: #1A1A1A; padding: 12px 16px; }
+.ms-portal-result-tag { color: #E85426; font-size: 18px; font-weight: 700; letter-spacing: 1.5px; font-family: monospace; }
+.ms-portal-result-name { color: #fff; font-size: 13px; margin-top: 2px; }
+.ms-portal-result-body { padding: 14px 16px; }
+.ms-portal-result-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #f4f4f4; font-size: 13px; }
+.ms-portal-result-row:last-child { border-bottom: none; }
+.ms-portal-result-label { color: #888; }
+.ms-portal-result-val { font-weight: 600; color: #1A1A1A; }
+.ms-portal-not-found { background: #fff; border-radius: 12px; padding: 20px; text-align: center; color: #dc3545; font-size: 14px; display: none; margin-bottom: 14px; }
+.ms-portal-condition-good { color: #28a745; }
+.ms-portal-condition-fair { color: #f0a500; }
+.ms-portal-condition-poor { color: #dc3545; }

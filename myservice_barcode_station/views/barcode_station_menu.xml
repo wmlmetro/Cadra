@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_barcode_station" model="ir.actions.client">
+        <field name="name">Barcode Station</field>
+        <field name="tag">barcode_station</field>
+    </record>
+
+    <menuitem id="menu_barcode_station"
+              name="Barcode Station"
+              parent="myservice_fm_dashboard.menu_fm_root"
+              action="action_barcode_station"
+              sequence="5"/>
+</odoo>
