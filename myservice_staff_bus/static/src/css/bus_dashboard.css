@@ -1,13 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&display=swap');
 /* ── NRS Staff Bus Dashboard ──────────────────────────────── */
 .ms-bus-dashboard {
-    background: #f7f7f5;
+    background: #F0F1F3;
     min-height: 100vh;
     padding: 0;
-    font-family: 'Outfit', 'Inter', sans-serif;
+    font-family: 'DM Sans', 'DM Sans', sans-serif;
 }
 .ms-bus-header {
     background: #fff;
-    border-bottom: 3px solid #E85426;
+    border-bottom: 3px solid #C8102E;
     padding: 14px 24px;
     display: flex;
     align-items: center;
@@ -18,14 +19,14 @@
     font-weight: 700;
     color: #1A1A1A;
 }
-.ms-bus-header-title span { color: #E85426; }
+.ms-bus-header-title span { color: #C8102E; }
 .ms-bus-header-sub {
     font-size: 12px;
     color: #888;
     margin-top: 2px;
 }
 .ms-bus-refresh-btn {
-    background: #E85426;
+    background: #C8102E;
     color: #fff;
     border: none;
     padding: 7px 18px;
@@ -35,7 +36,7 @@
     cursor: pointer;
     font-family: inherit;
 }
-.ms-bus-refresh-btn:hover { background: #c94820; }
+.ms-bus-refresh-btn:hover { background: #A00D24; }
 
 /* KPI bar */
 .ms-bus-kpi-bar {
@@ -49,15 +50,15 @@
 .ms-bus-kpi {
     flex: 1;
     min-width: 130px;
-    background: #f7f7f5;
+    background: #F0F1F3;
     border-radius: 8px;
     padding: 12px 16px;
-    border-left: 3px solid #E85426;
+    border-left: none;
 }
 .ms-bus-kpi-val {
     font-size: 28px;
     font-weight: 700;
-    color: #E85426;
+    color: #C8102E;
     line-height: 1;
 }
 .ms-bus-kpi-label {
@@ -68,11 +69,11 @@
     margin-top: 4px;
 }
 .ms-bus-kpi.green .ms-bus-kpi-val { color: #28a745; }
-.ms-bus-kpi.green { border-left-color: #28a745; }
+.ms-bus-kpi.green { border-left: none; }
 .ms-bus-kpi.blue .ms-bus-kpi-val { color: #007bff; }
-.ms-bus-kpi.blue { border-left-color: #007bff; }
+.ms-bus-kpi.blue { border-left: none; }
 .ms-bus-kpi.amber .ms-bus-kpi-val { color: #f0a500; }
-.ms-bus-kpi.amber { border-left-color: #f0a500; }
+.ms-bus-kpi.amber { border-left: none; }
 
 /* Main layout */
 .ms-bus-body {
@@ -106,9 +107,8 @@
     margin-right: 8px;
 }
 #ms-bus-map {
-    height: 480px !important;
-    min-height: 480px !important;
-    max-height: 480px !important;
+    flex: 1;
+    min-height: 450px;
 }
 
 /* Route list panel */
@@ -136,7 +136,7 @@
     justify-content: space-between;
 }
 .ms-bus-card-hdr-count {
-    background: #E85426;
+    background: #C8102E;
     color: #fff;
     border-radius: 10px;
     padding: 1px 8px;
@@ -153,7 +153,7 @@
     cursor: pointer;
     transition: background .1s;
 }
-.ms-bus-sched-item:hover { background: #fdf1ed; }
+.ms-bus-sched-item:hover { background: #F8F9FA; }
 .ms-bus-sched-item:last-child { border-bottom: none; }
 .ms-bus-sched-dot {
     width: 10px;
@@ -188,7 +188,7 @@
     border-radius: 2px;
     background: #28a745;
 }
-.ms-bus-occ-fill.high { background: #E85426; }
+.ms-bus-occ-fill.high { background: #C8102E; }
 .ms-bus-occ-fill.med { background: #f0a500; }
 
 /* Compliance alerts */
@@ -208,7 +208,7 @@
     flex-shrink: 0;
 }
 .ms-bus-alert-name { font-weight: 600; color: #1A1A1A; flex: 1; }
-.ms-bus-alert-issue { color: #E85426; font-size: 11px; }
+.ms-bus-alert-issue { color: #C8102E; font-size: 11px; }
 
 /* Filter buttons */
 .ms-bus-filter-btn {
@@ -223,9 +223,9 @@
 }
 .ms-bus-filter-btn.active,
 .ms-bus-filter-btn:hover {
-    border-color: #E85426;
-    color: #E85426;
-    background: #fdf1ed;
+    border-color: #C8102E;
+    color: #C8102E;
+    background: #F8F9FA;
 }
 
 /* Empty state */
@@ -235,5 +235,3 @@
     font-size: 12px;
     color: #aaa;
 }
-
-#ms-bus-map { height: 480px !important; min-height: 480px !important; max-height: 480px !important; }
