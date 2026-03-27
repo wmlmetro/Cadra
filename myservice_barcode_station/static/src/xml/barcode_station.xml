@@ -81,7 +81,7 @@
                         <!-- Camera mode -->
                         <div id="scan-camera-mode" style="padding:14px;display:none">
                             <div class="ms-bc-camera-box" id="camera-container">
-                                <video id="bc-video" autoplay playsinline style="width:100%;border-radius:6px;display:none"></video>
+                                <video id="bc-video" autoplay="autoplay" playsinline="playsinline" style="width:100%;border-radius:6px;display:none"></video>
                                 <div id="camera-placeholder" class="ms-bc-camera-placeholder">
                                     <div class="ms-bc-scan-icon">
                                         <div class="ms-bc-scan-lines">
