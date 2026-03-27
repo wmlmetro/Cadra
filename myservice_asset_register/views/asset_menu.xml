@@ -36,10 +36,23 @@
               action="action_nrs_asset_pm_overdue"
               sequence="50"/>
 
+    <menuitem id="menu_asset_tags"
+              name="Asset Tags"
+              parent="menu_asset_root"
+              action="action_nrs_asset_tags"
+              sequence="60"/>
+
+    <menuitem id="menu_asset_import"
+              name="Import Assets"
+              parent="menu_asset_root"
+              action="action_nrs_asset_import"
+              sequence="70"
+              groups="myservice_asset_register.group_asset_manager"/>
+
     <menuitem id="menu_asset_categories"
               name="Categories"
               parent="menu_asset_root"
               action="action_nrs_asset_category"
-              sequence="60"
+              sequence="80"
               groups="myservice_asset_register.group_asset_manager"/>
 </odoo>

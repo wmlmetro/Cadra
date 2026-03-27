@@ -139,16 +139,6 @@ class NRSAsset(models.Model):
     def action_mark_missing(self):
         self.write({'condition': 'missing', 'state': 'missing'})
 
-    def action_view_pm_schedules(self):
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'PM Schedules — %s' % self.name,
-            'res_model': 'nrs.asset.pm',
-            'view_mode': 'tree,form',
-            'domain': [('asset_id', '=', self.id)],
-            'context': {'default_asset_id': self.id},
-        }
-
     def action_view_requests(self):
         return {
             'type': 'ir.actions.act_window',

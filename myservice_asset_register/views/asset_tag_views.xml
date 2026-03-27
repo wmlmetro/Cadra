@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ── Tag History Tree ── -->
+    <record id="view_nrs_asset_tag_tree" model="ir.ui.view">
+        <field name="name">nrs.asset.tag.label.tree</field>
+        <field name="model">nrs.asset.tag.label</field>
+        <field name="arch" type="xml">
+            <tree decoration-success="state=='active'"
+                  decoration-warning="state=='pending'"
+                  decoration-muted="state=='scrapped'">
+                <field name="name"/>
+                <field name="asset_id"/>
+                <field name="source"/>
+                <field name="tag_date"/>
+                <field name="state"/>
+                <field name="approved_by"/>
+                <field name="scrapped_date"/>
+                <button name="action_print_tag" string="Print" type="object"
+                        icon="fa-print"
+                        attrs="{'invisible': [('state','!=','active')]}"/>
+                <button name="action_request_replacement" string="Replace" type="object"
+                        icon="fa-refresh"
+                        attrs="{'invisible': [('state','!=','active')]}"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- ── Tag Form ── -->
+    <record id="view_nrs_asset_tag_form" model="ir.ui.view">
+        <field name="name">nrs.asset.tag.label.form</field>
+        <field name="model">nrs.asset.tag.label</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_request_replacement" string="Request Replacement"
+                            type="object" class="btn-primary"
+                            attrs="{'invisible': [('state','!=','active')]}"/>
+                    <button name="action_approve_replacement" string="Approve Replacement"
+                            type="object" class="btn-primary"
+                            groups="myservice_asset_register.group_asset_manager"
+                            attrs="{'invisible': [('state','!=','pending')]}"/>
+                    <button name="action_reject_replacement" string="Reject"
+                            type="object"
+                            attrs="{'invisible': [('state','!=','pending')]}"/>
+                    <button name="action_print_tag" string="Print Tag"
+                            type="object" class="btn-secondary"
+                            attrs="{'invisible': [('state','!=','active')]}"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="active,pending,scrapped"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group string="Tag Details">
+                            <field name="asset_id"/>
+                            <field name="source"/>
+                            <field name="tag_date"/>
+                            <field name="scrapped_date" readonly="1"/>
+                        </group>
+                        <group string="Replacement">
+                            <field name="replacement_reason"/>
+                            <field name="replacement_notes"/>
+                            <field name="replaces_id" readonly="1"/>
+                            <field name="replaced_by_id" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Approval">
+                        <group>
+                            <field name="requested_by" readonly="1"/>
+                            <field name="requested_date" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="approved_by" readonly="1"/>
+                            <field name="approved_date" readonly="1"/>
+                        </group>
+                    </group>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── Extend Asset Form for tags ── -->
+    <record id="view_nrs_asset_tag_inherit" model="ir.ui.view">
+        <field name="name">nrs.asset.tag.inherit</field>
+        <field name="model">nrs.asset</field>
+        <field name="inherit_id" ref="view_nrs_asset_form"/>
+        <field name="arch" type="xml">
+            <!-- Add tag button box -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_print_asset_tag" type="object"
+                        class="oe_stat_button" icon="fa-print">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_text">Print Tag</span>
+                    </div>
+                </button>
+            </xpath>
+            <!-- Add tag info after asset_tag field -->
+            <xpath expr="//field[@name='asset_tag']" position="after">
+                <field name="active_tag_number" readonly="1" string="Active Tag"/>
+                <field name="tag_source"/>
+                <field name="sap_asset_number" string="SAP Asset No."/>
+                <field name="import_source"/>
+            </xpath>
+            <!-- Add tag history page -->
+            <xpath expr="//page[@name='notes']" position="before">
+                <page string="Tag History" name="tags">
+                    <field name="tag_ids">
+                        <tree decoration-success="state=='active'"
+                              decoration-muted="state=='scrapped'">
+                            <field name="name"/>
+                            <field name="source"/>
+                            <field name="tag_date"/>
+                            <field name="state"/>
+                            <field name="scrapped_date"/>
+                            <field name="approved_by"/>
+                        </tree>
+                    </field>
+                    <div style="margin-top:8px">
+                        <button name="action_request_tag_replacement"
+                                string="Request Tag Replacement"
+                                type="object" class="btn-warning"
+                                attrs="{'invisible': [('active_tag_id','=',False)]}"/>
+                        <button name="action_print_asset_tag"
+                                string="Print Active Tag"
+                                type="object" class="btn-secondary"
+                                attrs="{'invisible': [('active_tag_id','=',False)]}"/>
+                    </div>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ── Import Views ── -->
+    <record id="view_nrs_asset_import_form" model="ir.ui.view">
+        <field name="name">nrs.asset.import.form</field>
+        <field name="model">nrs.asset.import</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_validate" string="Validate" type="object"
+                            class="btn-primary"
+                            attrs="{'invisible': [('state','!=','draft')]}"/>
+                    <button name="action_import" string="Execute Import" type="object"
+                            class="btn-primary"
+                            attrs="{'invisible': [('state','!=','validated')]}"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,validated,imported"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box">
+                        <button class="oe_stat_button" icon="fa-list" type="object"
+                                name="%(action_nrs_asset_import_lines)s">
+                            <field name="total_lines" widget="statinfo" string="Lines"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="source"/>
+                            <field name="import_date"/>
+                        </group>
+                        <group>
+                            <field name="new_count" readonly="1"/>
+                            <field name="update_count" readonly="1"/>
+                            <field name="skip_count" readonly="1"/>
+                            <field name="error_count" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="JSON Data" name="data">
+                            <field name="raw_data" widget="ace" options="{'mode': 'json'}"
+                                   placeholder='[{"asset_code":"SAP-001","name":"Generator HQ","category":"Generator","domain":"plant","location":"Abuja HQ","acquisition_cost":500000,"asset_tag":"EXT-00001"}]'/>
+                        </page>
+                        <page string="Import Lines" name="lines">
+                            <field name="line_ids">
+                                <tree decoration-success="status=='imported'"
+                                      decoration-warning="status in ['update','skip']"
+                                      decoration-danger="status=='error'">
+                                    <field name="asset_code"/>
+                                    <field name="asset_name"/>
+                                    <field name="asset_tag"/>
+                                    <field name="sap_number"/>
+                                    <field name="category"/>
+                                    <field name="location"/>
+                                    <field name="status"/>
+                                    <field name="status_note"/>
+                                    <field name="asset_id"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Notes">
+                            <field name="notes"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_nrs_asset_import_tree" model="ir.ui.view">
+        <field name="name">nrs.asset.import.tree</field>
+        <field name="model">nrs.asset.import</field>
+        <field name="arch" type="xml">
+            <tree decoration-success="state=='imported'"
+                  decoration-info="state=='validated'"
+                  decoration-danger="state=='error'">
+                <field name="name"/>
+                <field name="source"/>
+                <field name="import_date"/>
+                <field name="total_lines"/>
+                <field name="new_count"/>
+                <field name="update_count"/>
+                <field name="skip_count"/>
+                <field name="error_count"/>
+                <field name="state"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- ── Actions ── -->
+    <record id="action_nrs_asset_tags" model="ir.actions.act_window">
+        <field name="name">Asset Tags</field>
+        <field name="res_model">nrs.asset.tag.label</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'search_default_active': 1}</field>
+    </record>
+
+    <record id="action_nrs_asset_import" model="ir.actions.act_window">
+        <field name="name">Asset Import</field>
+        <field name="res_model">nrs.asset.import</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record id="action_nrs_asset_import_lines" model="ir.actions.act_window">
+        <field name="name">Import Lines</field>
+        <field name="res_model">nrs.asset.import.line</field>
+        <field name="view_mode">tree</field>
+    </record>
+
+    <!-- A4 sheet report action -->
+    <record id="action_report_asset_tag_sheet" model="ir.actions.report">
+        <field name="name">Asset Tags — A4 Sheet</field>
+        <field name="model">nrs.asset.tag.label</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">myservice_asset_register.report_asset_tag_label_sheet</field>
+        <field name="report_file">myservice_asset_register.report_asset_tag_label_sheet</field>
+        <field name="binding_model_id" ref="model_nrs_asset_tag_label"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_asset_tag_a4sheet"/>
+    </record>
+</odoo>

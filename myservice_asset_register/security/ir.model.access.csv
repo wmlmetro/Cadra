@@ -7,3 +7,7 @@ access_nrs_asset_transfer_user,nrs.asset.transfer user,model_nrs_asset_transfer,
 access_nrs_asset_transfer_manager,nrs.asset.transfer manager,model_nrs_asset_transfer,myservice_asset_register.group_asset_manager,1,1,1,1
 access_nrs_asset_pm_user,nrs.asset.pm user,model_nrs_asset_pm,myservice_asset_register.group_asset_user,1,0,0,0
 access_nrs_asset_pm_manager,nrs.asset.pm manager,model_nrs_asset_pm,myservice_asset_register.group_asset_manager,1,1,1,1
+access_nrs_asset_tag_user,nrs.asset.tag user,model_nrs_asset_tag_label,myservice_asset_register.group_asset_user,1,0,0,0
+access_nrs_asset_tag_manager,nrs.asset.tag manager,model_nrs_asset_tag_label,myservice_asset_register.group_asset_manager,1,1,1,1
+access_nrs_asset_import_manager,nrs.asset.import manager,model_nrs_asset_import,myservice_asset_register.group_asset_manager,1,1,1,1
+access_nrs_asset_import_line_manager,nrs.asset.import.line manager,model_nrs_asset_import_line,myservice_asset_register.group_asset_manager,1,1,1,1

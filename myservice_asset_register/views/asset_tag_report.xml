@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_asset_tag_label">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="tag">
+                <div style="
+                    width: 100%;
+                    height: 100%;
+                    font-family: Arial, sans-serif;
+                    border: 1.5px solid #1A1A1A;
+                    border-radius: 4px;
+                    padding: 4px 6px;
+                    box-sizing: border-box;
+                    page-break-after: always;
+                ">
+                    <!-- Header bar -->
+                    <div style="
+                        background: #E85426;
+                        color: #fff;
+                        font-size: 7px;
+                        font-weight: bold;
+                        padding: 2px 4px;
+                        letter-spacing: 0.5px;
+                        margin: -4px -6px 4px -6px;
+                        border-radius: 2px 2px 0 0;
+                    ">
+                        NIGERIA REVENUE SERVICE — FACILITIES MANAGEMENT
+                    </div>
+
+                    <!-- Asset name -->
+                    <div style="font-size: 8px; font-weight: bold; color: #1A1A1A; margin-bottom: 2px; line-height: 1.2;">
+                        <t t-esc="tag.asset_id.name[:50] if tag.asset_id.name else ''"/>
+                    </div>
+
+                    <!-- Barcode -->
+                    <div style="text-align: center; margin: 3px 0;">
+                        <img t-att-src="'/report/barcode/Code128/' + tag.name"
+                             style="height: 18mm; max-width: 100%;"
+                             alt="barcode"/>
+                        <div style="font-size: 7px; font-weight: bold; letter-spacing: 1px; margin-top: 1px;">
+                            <t t-esc="tag.name"/>
+                        </div>
+                    </div>
+
+                    <!-- Details grid -->
+                    <table style="width: 100%; font-size: 6.5px; border-collapse: collapse; margin-top: 3px;">
+                        <tr>
+                            <td style="color: #888; width: 35%;">Category</td>
+                            <td style="color: #1A1A1A; font-weight: bold;">
+                                <t t-esc="tag.asset_id.category_id.name if tag.asset_id.category_id else '—'"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="color: #888;">Location</td>
+                            <td style="color: #1A1A1A; font-weight: bold;">
+                                <t t-esc="tag.asset_id.location_id.name[:30] if tag.asset_id.location_id else '—'"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="color: #888;">Custodian</td>
+                            <td style="color: #1A1A1A;">
+                                <t t-esc="tag.asset_id.custodian_id.name[:25] if tag.asset_id.custodian_id else '—'"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="color: #888;">Tagged</td>
+                            <td style="color: #1A1A1A;">
+                                <t t-esc="tag.tag_date"/>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- Footer -->
+                    <div style="
+                        border-top: 0.5px solid #eee;
+                        margin-top: 3px;
+                        padding-top: 2px;
+                        font-size: 5.5px;
+                        color: #aaa;
+                        display: flex;
+                        justify-content: space-between;
+                    ">
+                        <span>myservice.com.ng</span>
+                        <span t-esc="tag.asset_id.asset_code"/>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- A4 sheet — 6 tags per page (2 cols x 3 rows) -->
+    <template id="report_asset_tag_label_sheet">
+        <t t-call="web.html_container">
+            <t t-set="chunks" t-value="[docs[i:i+6] for i in range(0, len(docs), 6)]"/>
+            <t t-foreach="chunks" t-as="chunk">
+                <div style="
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 8px;
+                    padding: 10px;
+                    page-break-after: always;
+                ">
+                    <t t-foreach="chunk" t-as="tag">
+                        <div style="
+                            border: 1.5px solid #1A1A1A;
+                            border-radius: 4px;
+                            padding: 6px 8px;
+                            font-family: Arial, sans-serif;
+                            height: 80mm;
+                            box-sizing: border-box;
+                            overflow: hidden;
+                        ">
+                            <!-- Orange header -->
+                            <div style="
+                                background: #E85426; color: #fff;
+                                font-size: 7px; font-weight: bold;
+                                padding: 2px 4px; letter-spacing: 0.5px;
+                                margin: -6px -8px 5px -8px;
+                                border-radius: 2px 2px 0 0;
+                            ">
+                                NRS — FACILITIES MANAGEMENT
+                            </div>
+                            <!-- Name -->
+                            <div style="font-size: 9px; font-weight: bold; color: #1A1A1A; margin-bottom: 4px;">
+                                <t t-esc="tag.asset_id.name[:40] if tag.asset_id.name else ''"/>
+                            </div>
+                            <!-- Barcode -->
+                            <div style="text-align: center; margin: 4px 0;">
+                                <img t-att-src="'/report/barcode/Code128/' + tag.name"
+                                     style="height: 20mm; max-width: 100%;" alt="barcode"/>
+                                <div style="font-size: 8px; font-weight: bold; letter-spacing: 1.5px; margin-top: 2px;">
+                                    <t t-esc="tag.name"/>
+                                </div>
+                            </div>
+                            <!-- Details -->
+                            <table style="width:100%; font-size:7px; border-collapse:collapse; margin-top:4px;">
+                                <tr>
+                                    <td style="color:#888; width:35%;">Category</td>
+                                    <td style="font-weight:bold;">
+                                        <t t-esc="tag.asset_id.category_id.name if tag.asset_id.category_id else '—'"/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="color:#888;">Location</td>
+                                    <td style="font-weight:bold;">
+                                        <t t-esc="tag.asset_id.location_id.name[:35] if tag.asset_id.location_id else '—'"/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="color:#888;">Custodian</td>
+                                    <td><t t-esc="tag.asset_id.custodian_id.name if tag.asset_id.custodian_id else '—'"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="color:#888;">Condition</td>
+                                    <td><t t-esc="(tag.asset_id.condition or '').upper()"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="color:#888;">Tagged</td>
+                                    <td><t t-esc="tag.tag_date"/></td>
+                                </tr>
+                            </table>
+                            <div style="border-top:0.5px solid #eee; margin-top:4px; padding-top:2px; font-size:6px; color:#aaa; display:flex; justify-content:space-between;">
+                                <span>myservice.com.ng</span>
+                                <span t-esc="tag.asset_id.asset_code"/>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>
