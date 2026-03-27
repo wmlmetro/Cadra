@@ -196,7 +196,9 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
                 self.osint   = results[3]; self._allOsint = results[3];
                 self.states  = results[4];
                 self._updateKpis();
-                self._renderMap();
+                if (window.L && window.L.markerClusterGroup) {
+                    self._renderMap();
+                }
                 self._renderWatchlist();
                 self._renderSeverityBars();
                 self._renderGuardStats();
