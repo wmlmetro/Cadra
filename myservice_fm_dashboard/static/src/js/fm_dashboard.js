@@ -82,6 +82,7 @@ odoo.define('myservice_fm_dashboard.FMDashboard', function(require) {
                     order: 'create_date desc',
                 }
             }).then(function(reqs) {
+                console.log('FM Dashboard: loaded ' + (reqs ? reqs.length : 0) + ' requests');
                 self._allRequests = reqs || [];
                 self._renderKpis(today);
                 self._renderDomainRow();
