@@ -117,13 +117,42 @@ odoo.define('myservice_staff_bus.BusDashboard', function(require) {
                 kwargs: {
                     fields: ['name', 'license_plate', 'is_roadworthy',
                              'is_insured', 'roadworthy_expiry', 'insurance_expiry',
-                             'current_route_id'],
+                             'current_route_id', 'home_location_id'],
                     limit: 200,
                 }
             }).then(function(buses) {
                 self._buses = buses || [];
-                self._renderCompliance();
-                self._renderKpis();
+                // Fetch GPS coords for all home locations
+                var locIds = [];
+                (buses || []).forEach(function(b) {
+                    if (b.home_location_id && b.home_location_id[0]) {
+                        locIds.push(b.home_location_id[0]);
+                    }
+                });
+                if (locIds.length) {
+                    rpc.query({
+                        model: 'generic.location',
+                        method: 'search_read',
+                        args: [[['id', 'in', locIds]]],
+                        kwargs: { fields: ['id', 'latitude', 'longitude'], limit: 500 }
+                    }).then(function(locs) {
+                        var locMap = {};
+                        (locs || []).forEach(function(l) { locMap[l.id] = l; });
+                        self._buses.forEach(function(b) {
+                            if (b.home_location_id && locMap[b.home_location_id[0]]) {
+                                var l = locMap[b.home_location_id[0]];
+                                b.home_lat = l.latitude;
+                                b.home_lng = l.longitude;
+                            }
+                        });
+                        self._renderCompliance();
+                        self._renderKpis();
+                        self._renderMapMarkers('all');
+                    });
+                } else {
+                    self._renderCompliance();
+                    self._renderKpis();
+                }
             });
 
             // Fuel MTD
