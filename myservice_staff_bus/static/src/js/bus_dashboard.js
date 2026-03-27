@@ -64,6 +64,10 @@ odoo.define('myservice_staff_bus.BusDashboard', function(require) {
             var container = document.getElementById('ms-bus-map');
             if (!container || !window.L) return;
             container.innerHTML = '';
+            if (this.map) {
+                try { this.map.remove(); } catch(e) {}
+                this.map = null;
+            }
             this.map = window.L.map('ms-bus-map', {
                 center: [9.0, 8.5], zoom: 6, minZoom: 6, maxZoom: 12,
                 maxBounds: [[4.0, 2.5], [14.0, 15.5]],
@@ -106,7 +110,6 @@ odoo.define('myservice_staff_bus.BusDashboard', function(require) {
                 self._schedules = schedules || [];
                 self._renderSchedules();
                 self._renderKpis();
-                self._renderMapMarkers('all');
             });
 
             // Compliance — buses expiring soon or expired
@@ -117,13 +120,42 @@ odoo.define('myservice_staff_bus.BusDashboard', function(require) {
                 kwargs: {
                     fields: ['name', 'license_plate', 'is_roadworthy',
                              'is_insured', 'roadworthy_expiry', 'insurance_expiry',
-                             'current_route_id'],
+                             'current_route_id', 'home_location_id'],
                     limit: 200,
                 }
             }).then(function(buses) {
                 self._buses = buses || [];
-                self._renderCompliance();
-                self._renderKpis();
+                // Fetch GPS coords for all home locations
+                var locIds = [];
+                (buses || []).forEach(function(b) {
+                    if (b.home_location_id && b.home_location_id[0]) {
+                        locIds.push(b.home_location_id[0]);
+                    }
+                });
+                if (locIds.length) {
+                    rpc.query({
+                        model: 'generic.location',
+                        method: 'search_read',
+                        args: [[['id', 'in', locIds]]],
+                        kwargs: { fields: ['id', 'latitude', 'longitude'], limit: 500 }
+                    }).then(function(locs) {
+                        var locMap = {};
+                        (locs || []).forEach(function(l) { locMap[l.id] = l; });
+                        self._buses.forEach(function(b) {
+                            if (b.home_location_id && locMap[b.home_location_id[0]]) {
+                                var l = locMap[b.home_location_id[0]];
+                                b.home_lat = l.latitude;
+                                b.home_lng = l.longitude;
+                            }
+                        });
+                        self._renderCompliance();
+                        self._renderKpis();
+                        self._renderMapMarkers('all');
+                    });
+                } else {
+                    self._renderCompliance();
+                    self._renderKpis();
+                }
             });
 
             // Fuel MTD
@@ -296,12 +328,10 @@ odoo.define('myservice_staff_bus.BusDashboard', function(require) {
             var schedules = this._schedules || [];
 
             buses.forEach(function(b) {
-                // buses tagged with current_route — plot at approximate NRS location
-                // In production these would use GPS; for now show buses with routes
-                if (!b.current_route_id) return;
-                // placeholder coords — will be replaced with GPS feed
-                var lat = 6.5 + Math.random() * 7;
-                var lng = 3.5 + Math.random() * 10;
+                // Use real GPS from home_location_id
+                var lat = b.home_lat || 0;
+                var lng = b.home_lng || 0;
+                if (!lat || !lng) return;
 
                 var active = schedules.some(function(s) {
                     return s.vehicle_id && s.vehicle_id[0] === b.id &&
