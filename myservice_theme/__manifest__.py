@@ -10,8 +10,8 @@
     ],
     'assets': {
         'web.assets_backend': [
-            'myservice_theme/static/src/css/theme.css',
-            'myservice_theme/static/src/js/theme.js',
+            ('append', 'myservice_theme/static/src/css/theme.css'),
+            ('append', 'myservice_theme/static/src/js/theme.js'),
         ],
     },
     'installable': True,
