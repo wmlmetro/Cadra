@@ -1,0 +1,21 @@
+// ══════════════════════════════════════════════════════
+// NRS myservice — SCSS Variable Overrides
+// Prepended before Odoo's primary_variables.scss
+// This is the correct way to change Odoo 15 brand colors
+// ══════════════════════════════════════════════════════
+
+// Override community purple with NRS red
+$o-community-color:   #C8102E !default;
+$o-brand-odoo:        #C8102E !default;
+$o-brand-primary:     #C8102E !default;
+$o-brand-secondary:   #F8F9FA !default;
+$o-brand-lightsecondary: #F0F1F3 !default;
+
+// Navbar
+$o-navbar-height:     52px !default;
+
+// Main link color
+$o-main-link-color:   #A00D24 !default;
+
+// Input border required
+$o-input-border-required: #C8102E !default;
