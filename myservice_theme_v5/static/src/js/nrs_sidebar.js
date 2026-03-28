@@ -52,12 +52,15 @@ patch(WebClient.prototype, "myservice_theme_v5.NRSSidebar", {
         sidebar.id = "nrs-sidebar";
         if (collapsed) sidebar.classList.add("collapsed");
 
-        // Logo — uses company logo from Odoo
+        // Logo — company logo + MyService brand
         var logo = document.createElement("div");
         logo.className = "nrs-sidebar-logo";
         logo.innerHTML =
             '<a href="/web" class="nrs-logo-link">' +
                 '<img class="nrs-logo-img" src="/web/image/res.company/1/logo" alt="Company"/>' +
+                '<div class="nrs-logo-brand">' +
+                    '<span class="nrs-logo-name">My<span>Service</span></span>' +
+                '</div>' +
             '</a>';
         sidebar.appendChild(logo);
 

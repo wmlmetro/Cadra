@@ -67,10 +67,10 @@ body.nrs-sidebar-collapsed .o_action_manager {
 
 /* ── Logo area at top of sidebar ── */
 #nrs-sidebar .nrs-sidebar-logo {
-    height: 46px;
+    height: 54px;
     display: flex;
     align-items: center;
-    padding: 0 10px;
+    padding: 0 12px;
     border-bottom: 1px solid var(--nrs-sidebar-border);
     flex-shrink: 0;
     overflow: hidden;
@@ -79,20 +79,50 @@ body.nrs-sidebar-collapsed .o_action_manager {
 #nrs-sidebar .nrs-logo-link {
     display: flex;
     align-items: center;
+    gap: 10px;
     text-decoration: none !important;
     overflow: hidden;
 }
 
 #nrs-sidebar .nrs-logo-img {
-    max-height: 30px;
-    max-width: 160px;
+    height: 32px;
+    width: 32px;
     object-fit: contain;
-    transition: max-width 0.25s ease;
+    flex-shrink: 0;
+    border-radius: 6px;
+    transition: height 0.25s ease, width 0.25s ease;
 }
 
+#nrs-sidebar .nrs-logo-brand {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: opacity 0.2s ease;
+}
+
+#nrs-sidebar .nrs-logo-name {
+    font-size: 15px;
+    font-weight: 800;
+    color: #1A1A1A;
+    letter-spacing: -0.3px;
+    line-height: 1.1;
+    font-family: 'DM Sans', sans-serif;
+    white-space: nowrap;
+}
+
+#nrs-sidebar .nrs-logo-name span {
+    color: #C8102E;
+}
+
+/* Collapsed: hide brand text, keep logo icon */
 body.nrs-sidebar-collapsed #nrs-sidebar .nrs-logo-img {
-    max-width: 28px;
-    max-height: 28px;
+    height: 28px;
+    width: 28px;
+}
+
+body.nrs-sidebar-collapsed #nrs-sidebar .nrs-logo-brand {
+    opacity: 0;
+    width: 0;
 }
 
 /* ── Collapse toggle button ── */
