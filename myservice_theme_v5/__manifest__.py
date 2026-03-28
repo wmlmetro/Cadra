@@ -5,7 +5,9 @@
     'category': 'Themes/Backend',
     'author': 'WestMetro Limited',
     'depends': ['web', 'mail'],
-    'data': [],
+    'data': [
+        'views/assets.xml',
+    ],
     'assets': {
         'web.assets_backend': [
             ('append', 'myservice_theme_v5/static/src/css/theme.css'),

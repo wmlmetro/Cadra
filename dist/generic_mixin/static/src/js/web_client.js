@@ -33,13 +33,15 @@ patch(
                 4000,
                 {'leading': false},
             );
+
+            // useService must be called in setup(), not mounted()
+            this._gmrvBusService = useService('bus_service');
         },
 
         mounted() {
             this._super(...arguments);
-            let busService = useService('bus_service');
-            busService.addChannel('generic_mixin_refresh_view');
-            busService.onNotification(
+            this._gmrvBusService.addChannel('generic_mixin_refresh_view');
+            this._gmrvBusService.onNotification(
                 null, this._onBusGMRVNotification.bind(this));
         },
 
