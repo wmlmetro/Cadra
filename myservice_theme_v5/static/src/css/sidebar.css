@@ -1,0 +1,181 @@
+/* ══════════════════════════════════════
+   NRS Left Sidebar Navigation
+   ══════════════════════════════════════ */
+
+:root {
+    --nrs-sidebar-width: 200px;
+    --nrs-sidebar-collapsed-width: 52px;
+    --nrs-sidebar-bg: #1A1A1A;
+    --nrs-sidebar-text: #AAAAAA;
+    --nrs-sidebar-text-hover: #FFFFFF;
+    --nrs-sidebar-active-bg: rgba(200, 16, 46, .15);
+    --nrs-sidebar-active-text: #FFFFFF;
+    --nrs-sidebar-active-border: #C8102E;
+}
+
+/* ── Layout: shift navbar + content right ── */
+.nrs-has-sidebar {
+    display: grid !important;
+    grid-template-columns: var(--nrs-sidebar-width) 1fr;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+        "sidebar navbar"
+        "sidebar content";
+    height: 100vh;
+}
+.nrs-has-sidebar.nrs-sidebar-is-collapsed {
+    grid-template-columns: var(--nrs-sidebar-collapsed-width) 1fr;
+}
+
+.nrs-has-sidebar > .nrs-sidebar {
+    grid-area: sidebar;
+}
+.nrs-has-sidebar > header {
+    grid-area: navbar;
+}
+.nrs-has-sidebar > .o_action_manager {
+    grid-area: content;
+    overflow: auto;
+}
+
+/* ── Hide the waffle/apps grid button ── */
+.nrs-has-sidebar .o_navbar_apps_menu {
+    display: none !important;
+}
+
+/* ── Sidebar container ── */
+.nrs-sidebar {
+    background: var(--nrs-sidebar-bg);
+    width: var(--nrs-sidebar-width);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: width .2s ease;
+    z-index: 100;
+    position: sticky;
+    top: 0;
+}
+.nrs-sidebar.nrs-sidebar-collapsed {
+    width: var(--nrs-sidebar-collapsed-width);
+}
+
+/* ── Toggle button ── */
+.nrs-sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 46px;
+    min-height: 46px;
+    color: #888;
+    font-size: 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #2A2A2A;
+    transition: color .15s;
+}
+.nrs-sidebar-toggle:hover {
+    color: #FFFFFF;
+}
+
+/* ── Nav list ── */
+.nrs-sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px 0;
+}
+.nrs-sidebar-nav::-webkit-scrollbar {
+    width: 3px;
+}
+.nrs-sidebar-nav::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 2px;
+}
+
+/* ── Nav items ── */
+.nrs-sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    margin: 1px 6px;
+    border-radius: 6px;
+    color: var(--nrs-sidebar-text);
+    text-decoration: none !important;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: background .15s, color .15s;
+    border-left: 2px solid transparent;
+    cursor: pointer;
+}
+.nrs-sidebar-item:hover {
+    color: var(--nrs-sidebar-text-hover);
+    background: rgba(255, 255, 255, .06);
+}
+.nrs-sidebar-item.active {
+    color: var(--nrs-sidebar-active-text);
+    background: var(--nrs-sidebar-active-bg);
+    border-left-color: var(--nrs-sidebar-active-border);
+}
+
+/* ── Icons ── */
+.nrs-sidebar-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+.nrs-sidebar-icon img {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    object-fit: contain;
+}
+.nrs-sidebar-icon .fa {
+    font-size: 14px;
+}
+
+/* ── Labels (hidden when collapsed) ── */
+.nrs-sidebar-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: opacity .2s ease;
+}
+.nrs-sidebar-collapsed .nrs-sidebar-label {
+    opacity: 0;
+    width: 0;
+}
+.nrs-sidebar-collapsed .nrs-sidebar-item {
+    justify-content: center;
+    padding: 8px;
+    margin: 1px 4px;
+    gap: 0;
+    border-left: none;
+}
+.nrs-sidebar-collapsed .nrs-sidebar-item.active {
+    background: var(--nrs-sidebar-active-bg);
+    border-radius: 8px;
+}
+
+/* ── Adjust navbar when sidebar is present ── */
+.nrs-has-sidebar .o_main_navbar {
+    grid-template-columns:
+        0px
+        max-content
+        minmax(46px, 1fr)
+        fit-content(100%) !important;
+}
+
+/* ── Print: hide sidebar ── */
+@media print {
+    .nrs-sidebar { display: none !important; }
+    .nrs-has-sidebar {
+        grid-template-columns: 1fr !important;
+        grid-template-areas: "navbar" "content" !important;
+    }
+}

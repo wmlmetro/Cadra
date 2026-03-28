@@ -11,8 +11,10 @@
     'assets': {
         'web.assets_backend': [
             ('append', 'myservice_theme_v5/static/src/css/theme.css'),
+            ('append', 'myservice_theme_v5/static/src/css/sidebar.css'),
             ('append', 'myservice_theme_v5/static/src/js/theme.js'),
             ('append', 'myservice_theme_v5/static/src/js/apps_menu_grouped.js'),
+            ('append', 'myservice_theme_v5/static/src/js/nrs_sidebar.js'),
         ],
         'web.assets_qweb': [
             'myservice_theme_v5/static/src/xml/navbar_override.xml',
