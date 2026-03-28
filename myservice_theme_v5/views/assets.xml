@@ -1,8 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <template id="google_font_dm_sans" name="DM Sans Google Font" inherit_id="web.assets_common" priority="5">
-        <xpath expr="link[1]" position="before">
-            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&amp;display=swap"/>
-        </xpath>
-    </template>
+    <!-- DM Sans + DM Mono fonts are now loaded via myservice_nrs_base/nrs_base.css @import -->
 </odoo>
