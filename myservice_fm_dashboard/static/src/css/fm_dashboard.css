@@ -1,413 +1,669 @@
-/* NRS FM Operations Dashboard */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
-:root {
-    --nrs-red: #C8102E;
-    --nrs-red-dark: #A00D24;
-    --nrs-red-bg: #FBE9EC;
-    --bg: #F0F1F3;
-    --white: #FFFFFF;
-    --panel: #F8F9FA;
-    --border: #E4E6EA;
-    --border2: #CDD0D6;
-    --ink: #0D1117;
-    --ink2: #1C2128;
-    --mid: #444D56;
-    --muted: #6A737D;
-    --ghost: #959DA5;
-    --faint: #C0C5CC;
-    --font: 'Inter', system-ui, -apple-system, sans-serif;
-    --mono: 'JetBrains Mono', 'SF Mono', monospace;
-}
+/* ================================================================
+   NRS FM Operations Dashboard — Conflict-proof styles
+   All rules scoped under .ms-fm-dashboard and use !important
+   to override global theme / security / website CSS bleed.
+   Font stack: DM Sans / DM Mono (matching NRS theme)
+   ================================================================ */
 
 /* ── Layout ─────────────────────────────────────────── */
 .ms-fm-dashboard {
-    background: var(--bg);
-    min-height: 100vh;
-    font-family: var(--font);
-    color: var(--ink2);
+    background: #F0F1F3 !important;
+    min-height: 100vh !important;
+    font-family: 'DM Sans', system-ui, sans-serif !important;
+    color: #1C2128 !important;
+    line-height: 1.5 !important;
+    -webkit-font-smoothing: antialiased !important;
+}
+
+.ms-fm-dashboard *,
+.ms-fm-dashboard *::before,
+.ms-fm-dashboard *::after {
+    box-sizing: border-box !important;
+}
+
+/* Reset inherited Odoo / theme styles inside dashboard */
+.ms-fm-dashboard div,
+.ms-fm-dashboard span,
+.ms-fm-dashboard table,
+.ms-fm-dashboard th,
+.ms-fm-dashboard td,
+.ms-fm-dashboard tr,
+.ms-fm-dashboard strong {
+    font-family: inherit !important;
+    color: inherit !important;
 }
 
 /* ── Header ─────────────────────────────────────────── */
-.ms-fm-header {
-    background: var(--white);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+.ms-fm-dashboard .ms-fm-header {
+    background: #FFFFFF !important;
+    border-bottom: 1px solid #E4E6EA !important;
+    padding: 14px 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
 }
 
-.ms-fm-header-title {
-    font-size: 17px;
-    font-weight: 700;
-    color: var(--ink);
-    letter-spacing: -0.3px;
-}
-
-.ms-fm-header-title span {
-    color: var(--nrs-red);
-}
-
-.ms-fm-header-sub {
-    font-size: 11px;
-    color: var(--ghost);
-    margin-top: 2px;
-    font-family: var(--mono);
-    font-weight: 400;
-}
-
-.ms-fm-refresh-btn {
-    background: var(--nrs-red);
-    color: #fff;
-    border: none;
-    padding: 7px 18px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: var(--font);
-    transition: background 0.15s;
-}
-
-.ms-fm-refresh-btn:hover {
-    background: var(--nrs-red-dark);
-}
-
-/* ── KPI Bar ────────────────────────────────────────── */
-.ms-fm-kpi-bar {
-    display: flex;
-    gap: 1px;
-    background: var(--border);
-    border-bottom: 1px solid var(--border);
-}
-
-.ms-fm-kpi {
-    flex: 1;
-    background: var(--white);
-    padding: 16px 20px;
-    transition: background 0.15s;
-}
-
-.ms-fm-kpi:hover {
-    background: var(--panel);
-}
-
-.ms-fm-kpi-val {
-    font-size: 28px;
-    font-weight: 700;
-    line-height: 1;
-    letter-spacing: -1px;
-    font-family: var(--mono);
-    margin-top: 6px;
-}
-
-.ms-fm-kpi-label {
-    font-size: 10px;
-    color: var(--ghost);
-    text-transform: uppercase;
-    letter-spacing: 0.7px;
-    font-family: var(--mono);
-    font-weight: 500;
-}
-
-.ms-fm-kpi.red .ms-fm-kpi-val { color: var(--nrs-red); }
-.ms-fm-kpi.amber .ms-fm-kpi-val { color: #B45309; }
-.ms-fm-kpi.blue .ms-fm-kpi-val { color: #1D4ED8; }
-.ms-fm-kpi.green .ms-fm-kpi-val { color: #15803D; }
-
-/* ── Body grid ──────────────────────────────────────── */
-.ms-fm-body {
-    display: grid;
-    grid-template-columns: 1fr 320px;
-    gap: 16px;
-    padding: 18px 24px;
-}
-
-.ms-fm-main {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.ms-fm-side {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-/* ── Cards ──────────────────────────────────────────── */
-.ms-fm-card {
-    background: var(--white);
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    overflow: hidden;
-}
-
-.ms-fm-card-hdr {
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--border);
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--ghost);
-    text-transform: uppercase;
-    letter-spacing: 0.7px;
-    font-family: var(--mono);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--panel);
-}
-
-/* ── SLA Table ──────────────────────────────────────── */
-.ms-fm-sla-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-}
-
-.ms-fm-sla-table th {
-    padding: 9px 16px;
-    text-align: left;
-    font-size: 9px;
-    font-weight: 600;
-    color: var(--ghost);
-    background: var(--panel);
-    border-bottom: 1px solid var(--border);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-family: var(--mono);
-}
-
-.ms-fm-sla-table td {
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--bg);
-    color: var(--ink2);
-}
-
-.ms-fm-sla-table tr:last-child td { border-bottom: none; }
-.ms-fm-sla-table tr:hover td { background: var(--panel); }
-
-.ms-fm-sla-pill {
-    font-size: 12px;
-    font-weight: 700;
-    font-family: var(--mono);
-}
-
-.ms-fm-sla-pill.ok { color: #15803D; }
-.ms-fm-sla-pill.warn { color: #B45309; }
-.ms-fm-sla-pill.breach { color: var(--nrs-red); }
-
-.ms-fm-val-red { color: var(--nrs-red); font-weight: 600; }
-.ms-fm-val-amber { color: #B45309; font-weight: 600; }
-
-/* ── Request list ───────────────────────────────────── */
-.ms-fm-req-item {
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--bg);
-    cursor: pointer;
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    transition: background 0.1s;
-}
-
-.ms-fm-req-item:hover { background: var(--panel); }
-.ms-fm-req-item:last-child { border-bottom: none; }
-
-.ms-fm-req-dot {
-    width: 3px;
-    min-height: 32px;
-    border-radius: 2px;
-    margin-top: 2px;
-    flex-shrink: 0;
-}
-
-.ms-fm-req-name {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--ink);
-    line-height: 1.4;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.ms-fm-req-meta {
-    font-size: 11px;
-    color: var(--ghost);
-    margin-top: 2px;
-    font-family: var(--mono);
-}
-
-.ms-fm-req-stage {
-    font-size: 9px;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-weight: 600;
-    font-family: var(--mono);
-    flex-shrink: 0;
-    align-self: center;
-    white-space: nowrap;
-    letter-spacing: 0.3px;
-}
-
-.stage-draft { background: var(--bg); color: var(--ghost); }
-.stage-new { background: #DBEAFE; color: #1E40AF; }
-.stage-classification { background: #FEF3C7; color: #92400E; }
-.stage-progress { background: #E0E7FF; color: #3730A3; }
-.stage-done { background: #D1FAE5; color: #065F46; }
-.stage-rejected { background: #FEE2E2; color: #991B1B; }
-
-.ms-fm-overdue-tag {
-    color: var(--nrs-red);
-    font-size: 10px;
-    font-weight: 700;
-    font-family: var(--mono);
-}
-
-/* ── Tab buttons ────────────────────────────────────── */
-.ms-fm-tab-btn {
-    padding: 3px 10px;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-    background: var(--white);
-    font-size: 10px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: var(--mono);
-    letter-spacing: 0.3px;
-    color: var(--ghost);
-    transition: all 0.15s;
-}
-
-.ms-fm-tab-btn.active,
-.ms-fm-tab-btn:hover {
-    border-color: var(--nrs-red);
-    color: var(--nrs-red);
-    background: var(--nrs-red-bg);
-}
-
-/* ── Team workload bars ─────────────────────────────── */
-.ms-fm-team-row {
-    padding: 9px 16px;
-    border-bottom: 1px solid var(--bg);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.ms-fm-team-row:last-child { border-bottom: none; }
-
-.ms-fm-team-name {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--mid);
-    width: 110px;
-    flex-shrink: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.ms-fm-team-bar-track {
-    flex: 1;
-    height: 6px;
-    background: var(--bg);
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.ms-fm-team-bar-fill {
-    height: 100%;
-    border-radius: 3px;
-    transition: width 0.4s ease;
-}
-
-.ms-fm-team-count {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--ink);
-    min-width: 24px;
-    text-align: right;
-    font-family: var(--mono);
-}
-
-/* ── Overdue list ───────────────────────────────────── */
-.ms-fm-overdue-item {
-    padding: 9px 16px;
-    border-bottom: 1px solid var(--bg);
-}
-
-.ms-fm-overdue-item:last-child { border-bottom: none; }
-
-.ms-fm-overdue-name {
-    font-weight: 600;
-    color: var(--nrs-red);
-    font-size: 12px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-bottom: 2px;
-}
-
-.ms-fm-overdue-meta {
-    color: var(--ghost);
-    font-size: 10px;
-    font-family: var(--mono);
-}
-
-.ms-fm-badge-red {
-    background: var(--nrs-red-bg);
-    color: var(--nrs-red);
-    border-radius: 4px;
-    padding: 2px 8px;
-    font-size: 10px;
-    font-weight: 700;
-    font-family: var(--mono);
-}
-
-/* ── Empty / misc ───────────────────────────────────── */
-.ms-fm-empty {
-    padding: 24px 16px;
-    text-align: center;
-    font-size: 12px;
-    color: var(--ghost);
-    font-family: var(--mono);
-}
-
-.ms-fm-empty-ok { color: #15803D; }
-
-.ms-fm-more {
-    padding: 8px 16px;
-    font-size: 11px;
-    color: var(--ghost);
-    text-align: center;
-    font-family: var(--mono);
-}
-
-/* ── Map pins ───────────────────────────────────────── */
-.ms-fm-map-pin {
+.ms-fm-dashboard .ms-fm-header-title {
+    font-size: 17px !important;
+    font-weight: 700 !important;
+    color: #0D1117 !important;
+    letter-spacing: -0.3px !important;
+    font-family: 'DM Sans', system-ui, sans-serif !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.3 !important;
+    text-transform: none !important;
+    border: none !important;
     background: none !important;
+}
+
+.ms-fm-dashboard .ms-fm-header-title span {
+    color: #C8102E !important;
+    font-family: inherit !important;
+}
+
+.ms-fm-dashboard .ms-fm-header-sub {
+    font-size: 11px !important;
+    color: #959DA5 !important;
+    margin-top: 2px !important;
+    font-family: 'DM Mono', monospace !important;
+    font-weight: 400 !important;
+    line-height: 1.4 !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+}
+
+.ms-fm-dashboard .ms-fm-refresh-btn {
+    background: #C8102E !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    padding: 7px 18px !important;
+    border-radius: 6px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    font-family: 'DM Sans', system-ui, sans-serif !important;
+    transition: background 0.15s !important;
+    box-shadow: none !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    line-height: 1.4 !important;
+    outline: none !important;
+}
+
+.ms-fm-dashboard .ms-fm-refresh-btn:hover {
+    background: #A00D24 !important;
+    color: #FFFFFF !important;
+    box-shadow: none !important;
     border: none !important;
 }
 
-.ms-fm-pin-inner {
-    width: 14px;
-    height: 14px;
-    background: var(--nrs-red);
-    border: 2px solid var(--white);
-    border-radius: 50%;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+/* ── KPI Bar ────────────────────────────────────────── */
+.ms-fm-dashboard .ms-fm-kpi-bar {
+    display: flex !important;
+    gap: 1px !important;
+    background: #E4E6EA !important;
+    border-bottom: 1px solid #E4E6EA !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
 }
 
-/* ── Leaflet overrides ──────────────────────────────── */
-#fm-map .leaflet-popup-content-wrapper {
-    border-radius: 6px;
-    font-family: var(--font);
-    font-size: 12px;
+.ms-fm-dashboard .ms-fm-kpi {
+    flex: 1 !important;
+    background: #FFFFFF !important;
+    padding: 16px 20px !important;
+    transition: background 0.15s !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    cursor: default !important;
+    min-width: 0 !important;
 }
 
-#fm-map .leaflet-popup-content {
-    margin: 10px 14px;
+.ms-fm-dashboard .ms-fm-kpi:hover {
+    background: #F8F9FA !important;
+}
+
+.ms-fm-dashboard .ms-fm-kpi-val {
+    font-size: 28px !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    letter-spacing: -1px !important;
+    font-family: 'DM Mono', monospace !important;
+    margin-top: 6px !important;
+    margin-bottom: 0 !important;
+    padding: 0 !important;
+    text-transform: none !important;
+    border: none !important;
+    background: none !important;
+}
+
+.ms-fm-dashboard .ms-fm-kpi-label {
+    font-size: 10px !important;
+    color: #959DA5 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.7px !important;
+    font-family: 'DM Mono', monospace !important;
+    font-weight: 500 !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: none !important;
+}
+
+.ms-fm-dashboard .ms-fm-kpi.red .ms-fm-kpi-val { color: #C8102E !important; }
+.ms-fm-dashboard .ms-fm-kpi.amber .ms-fm-kpi-val { color: #B45309 !important; }
+.ms-fm-dashboard .ms-fm-kpi.blue .ms-fm-kpi-val { color: #1D4ED8 !important; }
+.ms-fm-dashboard .ms-fm-kpi.green .ms-fm-kpi-val { color: #15803D !important; }
+
+/* ── Body grid ──────────────────────────────────────── */
+.ms-fm-dashboard .ms-fm-body {
+    display: grid !important;
+    grid-template-columns: 1fr 320px !important;
+    gap: 16px !important;
+    padding: 18px 24px !important;
+    margin: 0 !important;
+    border: none !important;
+    background: transparent !important;
+}
+
+.ms-fm-dashboard .ms-fm-main {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    min-width: 0 !important;
+}
+
+.ms-fm-dashboard .ms-fm-side {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    min-width: 0 !important;
+}
+
+/* ── Cards ──────────────────────────────────────────── */
+.ms-fm-dashboard .ms-fm-card {
+    background: #FFFFFF !important;
+    border-radius: 8px !important;
+    border: 1px solid #E4E6EA !important;
+    overflow: hidden !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.ms-fm-dashboard .ms-fm-card-hdr {
+    padding: 10px 16px !important;
+    border-bottom: 1px solid #E4E6EA !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    color: #959DA5 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.7px !important;
+    font-family: 'DM Mono', monospace !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    background: #F8F9FA !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    line-height: 1.4 !important;
+}
+
+.ms-fm-dashboard .ms-fm-card-hdr span {
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    color: #959DA5 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.7px !important;
+    font-family: 'DM Mono', monospace !important;
+}
+
+/* ── SLA Table ──────────────────────────────────────── */
+.ms-fm-dashboard .ms-fm-sla-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 13px !important;
+    font-family: 'DM Sans', system-ui, sans-serif !important;
+    background: #FFFFFF !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+}
+
+.ms-fm-dashboard .ms-fm-sla-table th {
+    padding: 9px 16px !important;
+    text-align: left !important;
+    font-size: 9px !important;
+    font-weight: 600 !important;
+    color: #959DA5 !important;
+    background: #F8F9FA !important;
+    border-bottom: 1px solid #E4E6EA !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    font-family: 'DM Mono', monospace !important;
+    line-height: 1.4 !important;
+    white-space: nowrap !important;
+}
+
+.ms-fm-dashboard .ms-fm-sla-table td {
+    padding: 10px 16px !important;
+    border-bottom: 1px solid #F0F1F3 !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    color: #1C2128 !important;
+    font-size: 13px !important;
+    font-family: 'DM Sans', system-ui, sans-serif !important;
+    background: #FFFFFF !important;
+    line-height: 1.4 !important;
+    vertical-align: middle !important;
+}
+
+.ms-fm-dashboard .ms-fm-sla-table td strong {
+    font-weight: 600 !important;
+    color: #1C2128 !important;
+    font-family: 'DM Sans', system-ui, sans-serif !important;
+}
+
+.ms-fm-dashboard .ms-fm-sla-table tr {
+    background: #FFFFFF !important;
+    border: none !important;
+}
+
+.ms-fm-dashboard .ms-fm-sla-table tr:last-child td {
+    border-bottom: none !important;
+}
+
+.ms-fm-dashboard .ms-fm-sla-table tr:hover td {
+    background: #F8F9FA !important;
+}
+
+.ms-fm-dashboard .ms-fm-sla-pill {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    font-family: 'DM Mono', monospace !important;
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+}
+
+.ms-fm-dashboard .ms-fm-sla-pill.ok { color: #15803D !important; }
+.ms-fm-dashboard .ms-fm-sla-pill.warn { color: #B45309 !important; }
+.ms-fm-dashboard .ms-fm-sla-pill.breach { color: #C8102E !important; }
+
+.ms-fm-dashboard .ms-fm-val-red { color: #C8102E !important; font-weight: 600 !important; }
+.ms-fm-dashboard .ms-fm-val-amber { color: #B45309 !important; font-weight: 600 !important; }
+
+/* ── Request list ───────────────────────────────────── */
+.ms-fm-dashboard .ms-fm-req-item {
+    padding: 10px 16px !important;
+    border-bottom: 1px solid #F0F1F3 !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    transition: background 0.1s !important;
+    background: #FFFFFF !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+}
+
+.ms-fm-dashboard .ms-fm-req-item:hover {
+    background: #F8F9FA !important;
+}
+
+.ms-fm-dashboard .ms-fm-req-item:last-child {
+    border-bottom: none !important;
+}
+
+.ms-fm-dashboard .ms-fm-req-dot {
+    width: 3px !important;
+    min-height: 32px !important;
+    border-radius: 2px !important;
+    margin-top: 2px !important;
+    flex-shrink: 0 !important;
+}
+
+.ms-fm-dashboard .ms-fm-req-name {
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: #0D1117 !important;
+    line-height: 1.4 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    font-family: 'DM Sans', system-ui, sans-serif !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: none !important;
+}
+
+.ms-fm-dashboard .ms-fm-req-meta {
+    font-size: 11px !important;
+    color: #959DA5 !important;
+    margin-top: 2px !important;
+    font-family: 'DM Mono', monospace !important;
+    line-height: 1.3 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: none !important;
+}
+
+.ms-fm-dashboard .ms-fm-req-stage {
+    font-size: 9px !important;
+    padding: 3px 8px !important;
+    border-radius: 4px !important;
+    font-weight: 600 !important;
+    font-family: 'DM Mono', monospace !important;
+    flex-shrink: 0 !important;
+    align-self: center !important;
+    white-space: nowrap !important;
+    letter-spacing: 0.3px !important;
+    border: none !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+    text-transform: none !important;
+}
+
+.ms-fm-dashboard .stage-draft { background: #F0F1F3 !important; color: #959DA5 !important; }
+.ms-fm-dashboard .stage-new { background: #DBEAFE !important; color: #1E40AF !important; }
+.ms-fm-dashboard .stage-classification { background: #FEF3C7 !important; color: #92400E !important; }
+.ms-fm-dashboard .stage-progress { background: #E0E7FF !important; color: #3730A3 !important; }
+.ms-fm-dashboard .stage-done { background: #D1FAE5 !important; color: #065F46 !important; }
+.ms-fm-dashboard .stage-rejected { background: #FEE2E2 !important; color: #991B1B !important; }
+
+.ms-fm-dashboard .ms-fm-overdue-tag {
+    color: #C8102E !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    font-family: 'DM Mono', monospace !important;
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+/* ── Tab buttons ────────────────────────────────────── */
+.ms-fm-dashboard .ms-fm-tab-btn {
+    padding: 3px 10px !important;
+    border-radius: 4px !important;
+    border: 1px solid #E4E6EA !important;
+    background: #FFFFFF !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    font-family: 'DM Mono', monospace !important;
+    letter-spacing: 0.3px !important;
+    color: #959DA5 !important;
+    transition: all 0.15s !important;
+    box-shadow: none !important;
+    text-transform: none !important;
+    line-height: 1.4 !important;
+    outline: none !important;
+    margin: 0 !important;
+}
+
+.ms-fm-dashboard .ms-fm-tab-btn.active,
+.ms-fm-dashboard .ms-fm-tab-btn:hover {
+    border-color: #C8102E !important;
+    color: #C8102E !important;
+    background: #FBE9EC !important;
+    box-shadow: none !important;
+}
+
+/* ── Team workload bars ─────────────────────────────── */
+.ms-fm-dashboard .ms-fm-team-row {
+    padding: 9px 16px !important;
+    border-bottom: 1px solid #F0F1F3 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    background: #FFFFFF !important;
+    margin: 0 !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-radius: 0 !important;
+}
+
+.ms-fm-dashboard .ms-fm-team-row:last-child {
+    border-bottom: none !important;
+}
+
+.ms-fm-dashboard .ms-fm-team-name {
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    color: #444D56 !important;
+    width: 110px !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    font-family: 'DM Sans', system-ui, sans-serif !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: none !important;
+}
+
+.ms-fm-dashboard .ms-fm-team-bar-track {
+    flex: 1 !important;
+    height: 6px !important;
+    background: #F0F1F3 !important;
+    border-radius: 3px !important;
+    overflow: hidden !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.ms-fm-dashboard .ms-fm-team-bar-fill {
+    height: 100% !important;
+    border-radius: 3px !important;
+    transition: width 0.4s ease !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.ms-fm-dashboard .ms-fm-team-count {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    color: #0D1117 !important;
+    min-width: 24px !important;
+    text-align: right !important;
+    font-family: 'DM Mono', monospace !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: none !important;
+}
+
+/* ── Overdue list ───────────────────────────────────── */
+.ms-fm-dashboard .ms-fm-overdue-item {
+    padding: 9px 16px !important;
+    border-bottom: 1px solid #F0F1F3 !important;
+    background: #FFFFFF !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+}
+
+.ms-fm-dashboard .ms-fm-overdue-item:last-child {
+    border-bottom: none !important;
+}
+
+.ms-fm-dashboard .ms-fm-overdue-name {
+    font-weight: 600 !important;
+    color: #C8102E !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    margin-bottom: 2px !important;
+    font-family: 'DM Sans', system-ui, sans-serif !important;
+    padding: 0 !important;
+    border: none !important;
+    background: none !important;
+    line-height: 1.4 !important;
+}
+
+.ms-fm-dashboard .ms-fm-overdue-meta {
+    color: #959DA5 !important;
+    font-size: 10px !important;
+    font-family: 'DM Mono', monospace !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: none !important;
+    line-height: 1.4 !important;
+}
+
+.ms-fm-dashboard .ms-fm-badge-red {
+    background: #FBE9EC !important;
+    color: #C8102E !important;
+    border-radius: 4px !important;
+    padding: 2px 8px !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    font-family: 'DM Mono', monospace !important;
+    border: none !important;
+    line-height: 1.3 !important;
+}
+
+/* ── Empty / misc ───────────────────────────────────── */
+.ms-fm-dashboard .ms-fm-empty {
+    padding: 24px 16px !important;
+    text-align: center !important;
+    font-size: 12px !important;
+    color: #959DA5 !important;
+    font-family: 'DM Mono', monospace !important;
+    background: #FFFFFF !important;
+    border: none !important;
+    margin: 0 !important;
+    line-height: 1.5 !important;
+}
+
+.ms-fm-dashboard .ms-fm-empty-ok {
+    color: #15803D !important;
+}
+
+.ms-fm-dashboard .ms-fm-more {
+    padding: 8px 16px !important;
+    font-size: 11px !important;
+    color: #959DA5 !important;
+    text-align: center !important;
+    font-family: 'DM Mono', monospace !important;
+    background: #FFFFFF !important;
+    border: none !important;
+    margin: 0 !important;
+}
+
+/* ── Map — override security dark Leaflet globals ──── */
+.ms-fm-dashboard #fm-map {
+    background: #E8E8E8 !important;
+    border-radius: 0 !important;
+    border: none !important;
+}
+
+.ms-fm-dashboard #fm-map .leaflet-container {
+    background: #E8E8E8 !important;
+}
+
+.ms-fm-dashboard #fm-map .leaflet-tile {
+    filter: none !important;
+}
+
+.ms-fm-dashboard #fm-map .leaflet-popup-content-wrapper {
+    background: #FFFFFF !important;
+    border: 1px solid #E4E6EA !important;
+    color: #1C2128 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
+    font-family: 'DM Sans', system-ui, sans-serif !important;
+    font-size: 12px !important;
+}
+
+.ms-fm-dashboard #fm-map .leaflet-popup-content {
+    margin: 10px 14px !important;
+    font-family: 'DM Sans', system-ui, sans-serif !important;
+    color: #1C2128 !important;
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+}
+
+.ms-fm-dashboard #fm-map .leaflet-popup-content strong {
+    color: #0D1117 !important;
+    font-weight: 700 !important;
+}
+
+.ms-fm-dashboard #fm-map .leaflet-popup-tip {
+    background: #FFFFFF !important;
+    border: 1px solid #E4E6EA !important;
+    box-shadow: none !important;
+}
+
+.ms-fm-dashboard #fm-map .leaflet-popup-close-button {
+    color: #959DA5 !important;
+    font-size: 16px !important;
+}
+
+.ms-fm-dashboard #fm-map .leaflet-control-attribution {
+    background: rgba(255,255,255,0.8) !important;
+    color: #959DA5 !important;
+    font-size: 9px !important;
+}
+
+.ms-fm-dashboard #fm-map .leaflet-control-attribution a {
+    color: #6A737D !important;
+}
+
+/* Map pins */
+.ms-fm-dashboard .ms-fm-map-pin {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.ms-fm-dashboard .ms-fm-pin-inner {
+    width: 14px !important;
+    height: 14px !important;
+    background: #C8102E !important;
+    border: 2px solid #FFFFFF !important;
+    border-radius: 50% !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3) !important;
+}
+
+/* ── Responsive ─────────────────────────────────────── */
+@media (max-width: 1100px) {
+    .ms-fm-dashboard .ms-fm-body {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .ms-fm-dashboard .ms-fm-kpi-bar {
+        flex-wrap: wrap !important;
+    }
+    .ms-fm-dashboard .ms-fm-kpi {
+        flex-basis: 50% !important;
+    }
 }

@@ -390,28 +390,25 @@ body, .o_web_client, input, select, textarea, button {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--nrs-b2); border-radius: 2px; }
 
-/* ── Our custom dashboards inherit NRS red ── */
-.ms-fm-header, .ms-bc-header, .ms-bus-header, .ms-soc-header {
+/* ── Custom dashboard NRS red overrides ── */
+/* FM dashboard styles are self-contained in fm_dashboard.css */
+.ms-bc-header, .ms-bus-header, .ms-soc-header {
     border-bottom-color: var(--nrs-red) !important;
 }
-.ms-fm-refresh-btn, .ms-bc-btn, .ms-bc-search-btn,
+.ms-bc-btn, .ms-bc-search-btn,
 .ms-bus-btn, .ms-soc-btn {
     background: var(--nrs-red) !important;
 }
-.ms-fm-refresh-btn:hover, .ms-bc-btn:hover,
+.ms-bc-btn:hover,
 .ms-bus-btn:hover { background: var(--nrs-red-d) !important; }
 
-/* Replace all WML orange with NRS red in custom dashboards */
-.ms-fm-kpi.orange { border-left-color: var(--nrs-red) !important; }
-.ms-fm-kpi.orange .ms-fm-kpi-val { color: var(--nrs-red) !important; }
 .ms-bc-kpi.orange .ms-bc-kpi-val { color: var(--nrs-red) !important; }
-.ms-fm-tab-btn.active, .ms-bc-tab.active {
+.ms-bc-tab.active {
     border-color: var(--nrs-red) !important;
     color: var(--nrs-red) !important;
     background: var(--nrs-red-bg) !important;
 }
 .ms-bc-result-tag, .ms-bc-tag-num { color: var(--nrs-red) !important; }
-.ms-fm-domain-card { border-top-color: var(--nrs-b1) !important; }
 
 /* ── Progress bar ── */
 .progress-bar { background: var(--nrs-red) !important; }
