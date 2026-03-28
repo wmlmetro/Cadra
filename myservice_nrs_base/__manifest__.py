@@ -5,7 +5,9 @@
     'category': 'Theme',
     'author': 'WestMetro Limited',
     'depends': ['web'],
-    'data': [],
+    'data': [
+        'views/assets.xml',
+    ],
     'assets': {
         'web.assets_backend': [
             ('prepend', 'myservice_nrs_base/static/src/css/nrs_base.css'),

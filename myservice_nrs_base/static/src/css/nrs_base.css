@@ -2,7 +2,7 @@
    NRS Design System — Shared tokens & component classes
    All internal dashboards inherit these via CSS custom properties.
    ================================================================ */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap');
+/* Fonts loaded via myservice_nrs_base/views/assets.xml template */
 
 :root {
     /* ── Palette ─────────────────────────────────────── */
