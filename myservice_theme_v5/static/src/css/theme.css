@@ -22,15 +22,12 @@ body, .o_web_client, input, select, textarea, button {
     content: "NRS";
     color: var(--nrs-red);
     font-weight: 800;
-    font-size: 13px;
+    font-size: 13px !important;
     letter-spacing: 1px;
     margin-right: 6px;
 }
 .o_main_navbar .o_menu_brand {
-    color: #999 !important;
-    font-weight: 400 !important;
-    font-size: 11px !important;
-    letter-spacing: .3px !important;
+    font-size: 0 !important;
     padding: 0 16px !important;
     text-decoration: none !important;
 }
