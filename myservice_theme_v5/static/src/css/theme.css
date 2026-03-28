@@ -1,91 +1,178 @@
-/* NRS myservice Theme v5 — Minimal safe overrides only */
-/* Google Font loaded via XML template to avoid CSS minifier breaking the URL */
+/* NRS myservice Theme v5 — Option B: White nav, red accents */
+/* Google Font loaded via views/assets.xml */
 
-/* Font */
+/* ── Typography ── */
 body, .o_web_client, input, select, textarea, button {
     font-family: 'DM Sans', system-ui, sans-serif !important;
 }
 
-/* Navbar */
+/* ── Navbar — white surface ── */
 .o_main_navbar {
+    background: #FFFFFF !important;
+    border-bottom: 1px solid #E4E2DC !important;
     display: flex !important;
     align-items: center !important;
     height: 46px !important;
     padding: 0 !important;
+    box-shadow: none !important;
 }
 
-/* Navbar text — white on red background */
-.o_main_navbar .o_menu_brand,
-.o_main_navbar .o_nav_entry,
-.o_main_navbar .o_dropdown .o_dropdown_title {
-    color: #FFFFFF !important;
+/* NRS brand mark via pseudo-element */
+.o_main_navbar .o_menu_brand::before {
+    content: "NRS";
+    color: #C8102E;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 1px;
+    margin-right: 6px;
 }
-.o_main_navbar .o_nav_entry:hover,
-.o_main_navbar .o_dropdown .o_dropdown_title:hover {
-    color: #FFFFFF !important;
-    background: rgba(0,0,0,.15) !important;
-    border-radius: 4px !important;
+.o_main_navbar .o_menu_brand {
+    color: #999 !important;
+    font-weight: 400 !important;
+    font-size: 11px !important;
+    letter-spacing: .3px !important;
+    padding: 0 16px !important;
+    text-decoration: none !important;
 }
 
-/* Primary buttons */
+/* Nav menu items — default */
+.o_main_navbar .o_menu_sections a,
+.o_main_navbar .o_menu_sections .o_nav_entry,
+.o_main_navbar .o_menu_sections .o_dropdown_title {
+    color: #757575 !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
+    padding: 0 10px !important;
+    height: 46px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+}
+
+/* Nav menu items — hover */
+.o_main_navbar .o_menu_sections .o_nav_entry:hover,
+.o_main_navbar .o_menu_sections .o_dropdown_title:hover {
+    color: #1A1A1A !important;
+    background: #F4F3F0 !important;
+    border-radius: 5px !important;
+}
+
+/* Systray icons */
+.o_main_navbar .o_menu_systray .o_nav_entry,
+.o_main_navbar .o_menu_systray a {
+    color: #888 !important;
+}
+.o_main_navbar .o_menu_systray .o_nav_entry:hover {
+    color: #1A1A1A !important;
+    background: #F4F3F0 !important;
+    border-radius: 5px !important;
+}
+
+/* ── Primary buttons ── */
 .btn-primary {
     background-color: #C8102E !important;
     border-color: #C8102E !important;
+    color: #fff !important;
 }
 .btn-primary:hover {
     background-color: #A00D24 !important;
     border-color: #A00D24 !important;
 }
 
-/* Active status bar step */
+/* ── Status bar active step ── */
 .o_statusbar_status button.o_arrow_button_current {
     background: #C8102E !important;
     border-color: #C8102E !important;
     color: #fff !important;
 }
 
-/* Active tab */
+/* ── Active notebook tab ── */
 .o_notebook .nav-tabs .nav-link.active {
     color: #C8102E !important;
     border-bottom-color: #C8102E !important;
 }
 
-/* Scrollbar */
+/* ── Input focus ── */
+.o_field_widget input:focus,
+.o_field_widget textarea:focus {
+    border-color: #C8102E !important;
+    box-shadow: 0 0 0 3px rgba(200,16,46,.07) !important;
+}
+
+/* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-thumb { background: #CDD0D6; border-radius: 2px; }
 
-/* Nav menu items */
-.o_main_navbar .o_menu_sections a,
-.o_main_navbar .o_menu_sections .o_nav_entry,
-.o_main_navbar .o_menu_sections .o_dropdown_title {
-    color: #FFFFFF !important;
-    text-decoration: none !important;
-    white-space: nowrap !important;
-    padding: 0 12px !important;
-    height: 46px !important;
-    display: inline-flex !important;
-    align-items: center !important;
+/* ══════════════════════════════════════
+   NRS Home Screen — Grouped App Grid
+   ══════════════════════════════════════ */
+.nrs-home-wrap {
+    padding: 24px 28px;
+    background: #F4F3F0;
+    min-height: calc(100vh - 46px);
 }
-
-/* Brand with NRS prefix via pseudo-element — no DOM mutation */
-.o_main_navbar .o_menu_brand {
-    color: #555 !important;
-    text-decoration: none !important;
-    font-weight: 500 !important;
-    padding: 0 16px !important;
-    font-size: 9px !important;
-    letter-spacing: 2px !important;
-    text-transform: uppercase !important;
-    font-family: 'DM Mono', monospace !important;
+.nrs-group { margin-bottom: 24px; }
+.nrs-group-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    margin-bottom: 8px;
 }
-
-.o_main_navbar .o_menu_brand::before {
-    content: "NRS ";
-    color: #C8102E;
-    font-family: Syne, sans-serif;
+.nrs-group-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.nrs-tile {
+    background: #FFFFFF;
+    border: 1px solid #E4E2DC;
+    border-radius: 7px;
+    padding: 12px 10px;
+    width: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+.nrs-tile:hover { border-color: #C8102E; background: #FFFAFA; }
+.nrs-tile-featured {
+    width: 130px;
+    border-color: #C8102E;
+    background: #FBE9EC;
+}
+.nrs-tile-featured:hover { background: #F5D0D6; }
+.nrs-tile-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
     font-weight: 800;
-    letter-spacing: 2px;
-    font-size: 14px;
-    text-transform: none;
-    margin-right: 6px;
+    color: #fff;
 }
+.nrs-icon-myservice_fm_dashboard     { background: #C8102E; }
+.nrs-icon-myservice_asset_register   { background: #D97706; }
+.nrs-icon-myservice_barcode_station  { background: #7C3AED; }
+.nrs-icon-myservice_fleet_maintenance{ background: #2563EB; }
+.nrs-icon-myservice_staff_bus        { background: #059669; }
+.nrs-icon-myservice_security         { background: #374151; }
+.nrs-icon-myservice_osint            { background: #0EA5E9; }
+.nrs-icon-myservice_ai_patterns      { background: #6366F1; }
+.nrs-icon-requests                   { background: #C8102E; }
+.nrs-icon-requests-sec               { background: #374151; }
+.nrs-icon-settings                   { background: #888; }
+.nrs-tile-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #1A1A1A;
+    text-align: center;
+    line-height: 1.3;
+}
+.nrs-tile-sub { font-size: 9px; color: #999; font-weight: 500; }
+.nrs-tile-featured .nrs-tile-label { color: #C8102E; }
+.nrs-tile-featured .nrs-tile-sub   { color: #A00D24; }
+.o_home_menu .o_home_menu_background,
+.o_home_menu .o_apps { display: none !important; }
