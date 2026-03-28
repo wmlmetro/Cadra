@@ -1,23 +1,21 @@
 /* ================================================================
    NRS FM Operations Dashboard
-   Font: DM Sans / DM Mono (matches global NRS theme)
-   Accent: #C8102E
+   Inherits design tokens from myservice_nrs_base/nrs_base.css
    ================================================================ */
 
 /* ── Layout ─────────────────────────────────────────── */
 .ms-fm-dashboard {
-    background: #F0F1F3;
+    background: var(--nrs-bg);
     min-height: 100vh;
     padding: 0;
-    font-family: 'DM Sans', system-ui, sans-serif;
-    color: #1C2128;
-    -webkit-font-smoothing: antialiased;
+    font-family: var(--nrs-sans);
+    color: var(--nrs-ink-1);
 }
 
 /* ── Header ─────────────────────────────────────────── */
 .ms-fm-header {
-    background: #FFFFFF;
-    border-bottom: 1px solid #E4E6EA;
+    background: var(--nrs-bg-card);
+    border-bottom: 1px solid var(--nrs-border);
     padding: 14px 24px;
     display: flex;
     align-items: center;
@@ -27,24 +25,21 @@
 .ms-fm-header-title {
     font-size: 17px;
     font-weight: 700;
-    color: #0D1117;
+    color: var(--nrs-ink);
     letter-spacing: -0.3px;
 }
 
-.ms-fm-header-title span {
-    color: #C8102E;
-}
+.ms-fm-header-title span { color: var(--nrs-red); }
 
 .ms-fm-header-sub {
     font-size: 11px;
-    color: #959DA5;
+    color: var(--nrs-ink-ghost);
     margin-top: 2px;
-    font-family: 'DM Mono', monospace;
-    font-weight: 400;
+    font-family: var(--nrs-mono);
 }
 
 .ms-fm-refresh-btn {
-    background: #C8102E;
+    background: var(--nrs-red);
     color: #fff;
     border: none;
     padding: 7px 18px;
@@ -56,53 +51,48 @@
     transition: background 0.15s;
 }
 
-.ms-fm-refresh-btn:hover {
-    background: #A00D24;
-    color: #fff;
-}
+.ms-fm-refresh-btn:hover { background: var(--nrs-red-dark); color: #fff; }
 
 /* ── KPI Bar ────────────────────────────────────────── */
 .ms-fm-kpi-bar {
     display: flex;
     gap: 1px;
-    background: #E4E6EA;
-    border-bottom: 1px solid #E4E6EA;
+    background: var(--nrs-border);
+    border-bottom: 1px solid var(--nrs-border);
 }
 
 .ms-fm-kpi {
     flex: 1;
-    background: #FFFFFF;
+    background: var(--nrs-bg-card);
     padding: 16px 20px;
     transition: background 0.15s;
     min-width: 0;
 }
 
-.ms-fm-kpi:hover {
-    background: #F8F9FA;
-}
+.ms-fm-kpi:hover { background: var(--nrs-bg-hover); }
 
 .ms-fm-kpi-val {
     font-size: 28px;
     font-weight: 700;
     line-height: 1;
     letter-spacing: -1px;
-    font-family: 'DM Mono', monospace;
+    font-family: var(--nrs-mono);
     margin-top: 6px;
 }
 
 .ms-fm-kpi-label {
     font-size: 10px;
-    color: #959DA5;
+    color: var(--nrs-ink-ghost);
     text-transform: uppercase;
     letter-spacing: 0.7px;
-    font-family: 'DM Mono', monospace;
+    font-family: var(--nrs-mono);
     font-weight: 500;
 }
 
-.ms-fm-kpi.red .ms-fm-kpi-val { color: #C8102E; }
-.ms-fm-kpi.amber .ms-fm-kpi-val { color: #B45309; }
-.ms-fm-kpi.blue .ms-fm-kpi-val { color: #1D4ED8; }
-.ms-fm-kpi.green .ms-fm-kpi-val { color: #15803D; }
+.ms-fm-kpi.red .ms-fm-kpi-val { color: var(--nrs-red); }
+.ms-fm-kpi.amber .ms-fm-kpi-val { color: var(--nrs-warn); }
+.ms-fm-kpi.blue .ms-fm-kpi-val { color: var(--nrs-info); }
+.ms-fm-kpi.green .ms-fm-kpi-val { color: var(--nrs-ok); }
 
 /* ── Body grid ──────────────────────────────────────── */
 .ms-fm-body {
@@ -112,41 +102,30 @@
     padding: 18px 24px;
 }
 
-.ms-fm-main {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    min-width: 0;
-}
-
-.ms-fm-side {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    min-width: 0;
-}
+.ms-fm-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.ms-fm-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 
 /* ── Cards ──────────────────────────────────────────── */
 .ms-fm-card {
-    background: #FFFFFF;
-    border-radius: 8px;
-    border: 1px solid #E4E6EA;
+    background: var(--nrs-bg-card);
+    border-radius: var(--nrs-radius);
+    border: 1px solid var(--nrs-border);
     overflow: hidden;
 }
 
 .ms-fm-card-hdr {
     padding: 10px 16px;
-    border-bottom: 1px solid #E4E6EA;
+    border-bottom: 1px solid var(--nrs-border);
     font-size: 10px;
     font-weight: 600;
-    color: #959DA5;
+    color: var(--nrs-ink-ghost);
     text-transform: uppercase;
     letter-spacing: 0.7px;
-    font-family: 'DM Mono', monospace;
+    font-family: var(--nrs-mono);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: #F8F9FA;
+    background: var(--nrs-bg-hover);
 }
 
 /* ── SLA Table ──────────────────────────────────────── */
@@ -161,42 +140,35 @@
     text-align: left;
     font-size: 9px;
     font-weight: 600;
-    color: #959DA5;
-    background: #F8F9FA;
-    border-bottom: 1px solid #E4E6EA;
+    color: var(--nrs-ink-ghost);
+    background: var(--nrs-bg-hover);
+    border-bottom: 1px solid var(--nrs-border);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    font-family: 'DM Mono', monospace;
+    font-family: var(--nrs-mono);
 }
 
 .ms-fm-sla-table td {
     padding: 10px 16px;
-    border-bottom: 1px solid #F0F1F3;
-    color: #1C2128;
-    font-size: 13px;
-    background: #FFFFFF;
+    border-bottom: 1px solid var(--nrs-bg);
+    color: var(--nrs-ink-1);
 }
 
 .ms-fm-sla-table tr:last-child td { border-bottom: none; }
-.ms-fm-sla-table tr:hover td { background: #F8F9FA; }
+.ms-fm-sla-table tr:hover td { background: var(--nrs-bg-hover); }
 
-.ms-fm-sla-pill {
-    font-size: 12px;
-    font-weight: 700;
-    font-family: 'DM Mono', monospace;
-}
+.ms-fm-sla-pill { font-size: 12px; font-weight: 700; font-family: var(--nrs-mono); }
+.ms-fm-sla-pill.ok { color: var(--nrs-ok); }
+.ms-fm-sla-pill.warn { color: var(--nrs-warn); }
+.ms-fm-sla-pill.breach { color: var(--nrs-red); }
 
-.ms-fm-sla-pill.ok { color: #15803D; }
-.ms-fm-sla-pill.warn { color: #B45309; }
-.ms-fm-sla-pill.breach { color: #C8102E; }
-
-.ms-fm-val-red { color: #C8102E; font-weight: 600; }
-.ms-fm-val-amber { color: #B45309; font-weight: 600; }
+.ms-fm-val-red { color: var(--nrs-red); font-weight: 600; }
+.ms-fm-val-amber { color: var(--nrs-warn); font-weight: 600; }
 
 /* ── Request list ───────────────────────────────────── */
 .ms-fm-req-item {
     padding: 10px 16px;
-    border-bottom: 1px solid #F0F1F3;
+    border-bottom: 1px solid var(--nrs-bg);
     cursor: pointer;
     display: flex;
     align-items: flex-start;
@@ -204,7 +176,7 @@
     transition: background 0.1s;
 }
 
-.ms-fm-req-item:hover { background: #F8F9FA; }
+.ms-fm-req-item:hover { background: var(--nrs-bg-hover); }
 .ms-fm-req-item:last-child { border-bottom: none; }
 
 .ms-fm-req-dot {
@@ -218,7 +190,7 @@
 .ms-fm-req-name {
     font-size: 13px;
     font-weight: 500;
-    color: #0D1117;
+    color: var(--nrs-ink);
     line-height: 1.4;
     white-space: nowrap;
     overflow: hidden;
@@ -227,63 +199,63 @@
 
 .ms-fm-req-meta {
     font-size: 11px;
-    color: #959DA5;
+    color: var(--nrs-ink-ghost);
     margin-top: 2px;
-    font-family: 'DM Mono', monospace;
+    font-family: var(--nrs-mono);
 }
 
 .ms-fm-req-stage {
     font-size: 9px;
     padding: 3px 8px;
-    border-radius: 4px;
+    border-radius: var(--nrs-radius-sm);
     font-weight: 600;
-    font-family: 'DM Mono', monospace;
+    font-family: var(--nrs-mono);
     flex-shrink: 0;
     align-self: center;
     white-space: nowrap;
     letter-spacing: 0.3px;
 }
 
-.stage-draft { background: #F0F1F3; color: #959DA5; }
-.stage-new { background: #DBEAFE; color: #1E40AF; }
-.stage-classification { background: #FEF3C7; color: #92400E; }
+.stage-draft { background: var(--nrs-bg); color: var(--nrs-ink-ghost); }
+.stage-new { background: var(--nrs-info-bg); color: #1E40AF; }
+.stage-classification { background: var(--nrs-warn-bg); color: #92400E; }
 .stage-progress { background: #E0E7FF; color: #3730A3; }
-.stage-done { background: #D1FAE5; color: #065F46; }
+.stage-done { background: var(--nrs-ok-bg); color: #065F46; }
 .stage-rejected { background: #FEE2E2; color: #991B1B; }
 
 .ms-fm-overdue-tag {
-    color: #C8102E;
+    color: var(--nrs-red);
     font-size: 10px;
     font-weight: 700;
-    font-family: 'DM Mono', monospace;
+    font-family: var(--nrs-mono);
 }
 
 /* ── Tab buttons ────────────────────────────────────── */
 .ms-fm-tab-btn {
     padding: 3px 10px;
-    border-radius: 4px;
-    border: 1px solid #E4E6EA;
-    background: #FFFFFF;
+    border-radius: var(--nrs-radius-sm);
+    border: 1px solid var(--nrs-border);
+    background: var(--nrs-bg-card);
     font-size: 10px;
     font-weight: 600;
     cursor: pointer;
-    font-family: 'DM Mono', monospace;
+    font-family: var(--nrs-mono);
     letter-spacing: 0.3px;
-    color: #959DA5;
+    color: var(--nrs-ink-ghost);
     transition: all 0.15s;
 }
 
 .ms-fm-tab-btn.active,
 .ms-fm-tab-btn:hover {
-    border-color: #C8102E;
-    color: #C8102E;
-    background: #FBE9EC;
+    border-color: var(--nrs-red);
+    color: var(--nrs-red);
+    background: var(--nrs-red-light);
 }
 
 /* ── Team workload bars ─────────────────────────────── */
 .ms-fm-team-row {
     padding: 9px 16px;
-    border-bottom: 1px solid #F0F1F3;
+    border-bottom: 1px solid var(--nrs-bg);
     display: flex;
     align-items: center;
     gap: 10px;
@@ -294,7 +266,7 @@
 .ms-fm-team-name {
     font-size: 12px;
     font-weight: 500;
-    color: #444D56;
+    color: var(--nrs-ink-mid);
     width: 110px;
     flex-shrink: 0;
     white-space: nowrap;
@@ -305,7 +277,7 @@
 .ms-fm-team-bar-track {
     flex: 1;
     height: 6px;
-    background: #F0F1F3;
+    background: var(--nrs-bg);
     border-radius: 3px;
     overflow: hidden;
 }
@@ -319,23 +291,23 @@
 .ms-fm-team-count {
     font-size: 12px;
     font-weight: 700;
-    color: #0D1117;
+    color: var(--nrs-ink);
     min-width: 24px;
     text-align: right;
-    font-family: 'DM Mono', monospace;
+    font-family: var(--nrs-mono);
 }
 
 /* ── Overdue list ───────────────────────────────────── */
 .ms-fm-overdue-item {
     padding: 9px 16px;
-    border-bottom: 1px solid #F0F1F3;
+    border-bottom: 1px solid var(--nrs-bg);
 }
 
 .ms-fm-overdue-item:last-child { border-bottom: none; }
 
 .ms-fm-overdue-name {
     font-weight: 600;
-    color: #C8102E;
+    color: var(--nrs-red);
     font-size: 12px;
     white-space: nowrap;
     overflow: hidden;
@@ -344,106 +316,73 @@
 }
 
 .ms-fm-overdue-meta {
-    color: #959DA5;
+    color: var(--nrs-ink-ghost);
     font-size: 10px;
-    font-family: 'DM Mono', monospace;
+    font-family: var(--nrs-mono);
 }
 
 .ms-fm-badge-red {
-    background: #FBE9EC;
-    color: #C8102E;
-    border-radius: 4px;
+    background: var(--nrs-red-light);
+    color: var(--nrs-red);
+    border-radius: var(--nrs-radius-sm);
     padding: 2px 8px;
     font-size: 10px;
     font-weight: 700;
-    font-family: 'DM Mono', monospace;
+    font-family: var(--nrs-mono);
 }
 
-/* ── Empty / misc ───────────────────────────────────── */
+/* ── Empty state ────────────────────────────────────── */
 .ms-fm-empty {
     padding: 24px 16px;
     text-align: center;
     font-size: 12px;
-    color: #959DA5;
-    font-family: 'DM Mono', monospace;
+    color: var(--nrs-ink-ghost);
+    font-family: var(--nrs-mono);
 }
 
-.ms-fm-empty-ok { color: #15803D; }
+.ms-fm-empty-ok { color: var(--nrs-ok); }
 
 .ms-fm-more {
     padding: 8px 16px;
     font-size: 11px;
-    color: #959DA5;
+    color: var(--nrs-ink-ghost);
     text-align: center;
-    font-family: 'DM Mono', monospace;
+    font-family: var(--nrs-mono);
 }
 
-/* ── Map — light theme overrides ────────────────────── */
-/* !important required here to override security module's global dark Leaflet styles */
-.ms-fm-dashboard .leaflet-container {
-    background: #E8E8E8 !important;
-}
-
-.ms-fm-dashboard .leaflet-tile {
-    filter: none !important;
-}
-
-.ms-fm-dashboard .leaflet-popup-content-wrapper {
-    background: #FFFFFF !important;
-    border: 1px solid #E4E6EA !important;
-    color: #1C2128 !important;
-    border-radius: 6px !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
-    font-family: 'DM Sans', system-ui, sans-serif !important;
-    font-size: 12px !important;
-}
-
-.ms-fm-dashboard .leaflet-popup-content {
-    margin: 10px 14px !important;
-    color: #1C2128 !important;
-    font-size: 12px !important;
-}
-
-.ms-fm-dashboard .leaflet-popup-tip {
-    background: #FFFFFF !important;
-}
-
-.ms-fm-dashboard .leaflet-popup-close-button {
-    color: #959DA5 !important;
-}
-
-.ms-fm-dashboard .leaflet-control-attribution {
-    background: rgba(255,255,255,0.8) !important;
-    font-size: 9px !important;
-}
-
-/* Map pins */
-.ms-fm-map-pin {
-    background: none !important;
-    border: none !important;
-}
+/* ── Map pins ───────────────────────────────────────── */
+.ms-fm-map-pin { background: none !important; border: none !important; }
 
 .ms-fm-pin-inner {
     width: 14px;
     height: 14px;
-    background: #C8102E;
-    border: 2px solid #FFFFFF;
+    background: var(--nrs-red);
+    border: 2px solid #fff;
     border-radius: 50%;
     box-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
 
+/* ── Leaflet light overrides (counter security dark theme) ──── */
+.ms-fm-dashboard .leaflet-container { background: #E8E8E8 !important; }
+.ms-fm-dashboard .leaflet-tile { filter: none !important; }
+.ms-fm-dashboard .leaflet-popup-content-wrapper {
+    background: var(--nrs-bg-card) !important;
+    border: 1px solid var(--nrs-border) !important;
+    color: var(--nrs-ink-1) !important;
+    border-radius: 6px !important;
+    font-family: var(--nrs-sans) !important;
+    font-size: 12px !important;
+}
+.ms-fm-dashboard .leaflet-popup-content { margin: 10px 14px !important; color: var(--nrs-ink-1) !important; }
+.ms-fm-dashboard .leaflet-popup-tip { background: var(--nrs-bg-card) !important; }
+.ms-fm-dashboard .leaflet-popup-close-button { color: var(--nrs-ink-ghost) !important; }
+
 /* ── Responsive ─────────────────────────────────────── */
 @media (max-width: 1100px) {
-    .ms-fm-body {
-        grid-template-columns: 1fr;
-    }
+    .ms-fm-body { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 768px) {
-    .ms-fm-kpi-bar {
-        flex-wrap: wrap;
-    }
-    .ms-fm-kpi {
-        flex-basis: 50%;
-    }
+    .ms-fm-kpi-bar { flex-wrap: wrap; }
+    .ms-fm-kpi { flex-basis: 50%; }
 }

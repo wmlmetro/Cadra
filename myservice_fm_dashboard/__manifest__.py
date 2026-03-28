@@ -4,9 +4,10 @@
     'summary': 'FM operations dashboard — KPIs, SLA table, map, request list, team workload',
     'category': 'Facilities',
     'author': 'WestMetro Limited',
-    'depends': ['base', 'web', 'mail', 'generic_request', 'generic_service', 'generic_location'],
+    'depends': ['base', 'web', 'mail', 'generic_request', 'generic_service', 'generic_location', 'myservice_nrs_base'],
     'data': [
         'views/fm_dashboard_menu.xml',
+        'data/default_home_action.xml',
     ],
     'assets': {
         'web.assets_backend': [

@@ -11,8 +11,8 @@
     --nrs-sidebar-text: #6B7280;
     --nrs-sidebar-text-hover: #1A1A1A;
     --nrs-sidebar-active-bg: #FBE9EC;
-    --nrs-sidebar-active-text: #C8102E;
-    --nrs-sidebar-active-border: #C8102E;
+    --nrs-sidebar-active-text: var(--nrs-red);
+    --nrs-sidebar-active-border: var(--nrs-red);
     --nrs-sidebar-label-color: #C0C0C0;
 }
 
@@ -111,7 +111,7 @@ body.nrs-sidebar-collapsed .o_action_manager {
 }
 
 #nrs-sidebar .nrs-logo-name span {
-    color: #C8102E;
+    color: var(--nrs-red);
 }
 
 /* Collapsed: hide brand text, keep logo icon */
@@ -232,7 +232,7 @@ body.nrs-sidebar-collapsed .nrs-nav-section-label {
     justify-content: center;
 }
 #nrs-sidebar .nrs-nav-item.active .nrs-nav-icon-wrap {
-    color: #C8102E;
+    color: var(--nrs-red);
 }
 #nrs-sidebar .nrs-nav-item:hover .nrs-nav-icon-wrap {
     color: #1A1A1A;
@@ -291,7 +291,7 @@ body.nrs-sidebar-collapsed .nrs-nav-item {
     width: 26px;
     height: 26px;
     border-radius: 50%;
-    background: #C8102E;
+    background: var(--nrs-red);
     color: #fff;
     display: flex;
     align-items: center;

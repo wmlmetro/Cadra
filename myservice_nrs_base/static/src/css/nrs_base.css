@@ -1,0 +1,310 @@
+/* ================================================================
+   NRS Design System — Shared tokens & component classes
+   All internal dashboards inherit these via CSS custom properties.
+   ================================================================ */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+    /* ── Palette ─────────────────────────────────────── */
+    --nrs-red:        #C8102E;
+    --nrs-red-dark:   #A00D24;
+    --nrs-red-light:  #FBE9EC;
+
+    /* ── Surfaces ────────────────────────────────────── */
+    --nrs-bg:         #F0F1F3;
+    --nrs-bg-card:    #FFFFFF;
+    --nrs-bg-hover:   #F8F9FA;
+    --nrs-border:     #E4E6EA;
+    --nrs-border2:    #CDD0D6;
+
+    /* ── Ink ─────────────────────────────────────────── */
+    --nrs-ink:        #0D1117;
+    --nrs-ink-1:      #1C2128;
+    --nrs-ink-mid:    #444D56;
+    --nrs-ink-muted:  #6A737D;
+    --nrs-ink-ghost:  #959DA5;
+    --nrs-ink-faint:  #C0C5CC;
+
+    /* ── Typography ──────────────────────────────────── */
+    --nrs-sans:       'DM Sans', system-ui, -apple-system, sans-serif;
+    --nrs-mono:       'DM Mono', monospace;
+
+    /* ── Semantic ────────────────────────────────────── */
+    --nrs-ok:         #15803D;
+    --nrs-ok-bg:      #D1FAE5;
+    --nrs-warn:       #B45309;
+    --nrs-warn-bg:    #FEF3C7;
+    --nrs-danger:     #C8102E;
+    --nrs-info:       #1D4ED8;
+    --nrs-info-bg:    #DBEAFE;
+
+    /* ── Radii & Shadows ─────────────────────────────── */
+    --nrs-radius:     8px;
+    --nrs-radius-sm:  4px;
+}
+
+/* ── Shared dashboard layout ─────────────────────────────────── */
+.nrs-dash {
+    background: var(--nrs-bg);
+    min-height: 100vh;
+    padding: 0;
+    font-family: var(--nrs-sans);
+    color: var(--nrs-ink-1);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ── Dashboard header ────────────────────────────────────────── */
+.nrs-dash-header {
+    background: var(--nrs-bg-card);
+    border-bottom: 1px solid var(--nrs-border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.nrs-dash-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--nrs-ink);
+    letter-spacing: -0.3px;
+}
+
+.nrs-dash-title span {
+    color: var(--nrs-red);
+}
+
+.nrs-dash-sub {
+    font-size: 11px;
+    color: var(--nrs-ink-ghost);
+    margin-top: 2px;
+    font-family: var(--nrs-mono);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+.nrs-btn {
+    background: var(--nrs-red);
+    color: #fff;
+    border: none;
+    padding: 7px 18px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+}
+
+.nrs-btn:hover {
+    background: var(--nrs-red-dark);
+    color: #fff;
+}
+
+/* ── Cards ───────────────────────────────────────────────────── */
+.nrs-card {
+    background: var(--nrs-bg-card);
+    border-radius: var(--nrs-radius);
+    border: 1px solid var(--nrs-border);
+    overflow: hidden;
+}
+
+.nrs-card-hdr {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--nrs-border);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--nrs-ink-ghost);
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    font-family: var(--nrs-mono);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--nrs-bg-hover);
+}
+
+/* ── KPI cards ───────────────────────────────────────────────── */
+.nrs-kpi-bar {
+    display: flex;
+    gap: 1px;
+    background: var(--nrs-border);
+    border-bottom: 1px solid var(--nrs-border);
+}
+
+.nrs-kpi {
+    flex: 1;
+    background: var(--nrs-bg-card);
+    padding: 16px 20px;
+    min-width: 0;
+    transition: background 0.15s;
+}
+
+.nrs-kpi:hover {
+    background: var(--nrs-bg-hover);
+}
+
+.nrs-kpi-val {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -1px;
+    font-family: var(--nrs-mono);
+    margin-top: 6px;
+    color: var(--nrs-red);
+}
+
+.nrs-kpi-label {
+    font-size: 10px;
+    color: var(--nrs-ink-ghost);
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    font-family: var(--nrs-mono);
+    font-weight: 500;
+}
+
+/* ── Tables ──────────────────────────────────────────────────── */
+.nrs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.nrs-table th {
+    padding: 9px 16px;
+    text-align: left;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--nrs-ink-ghost);
+    background: var(--nrs-bg-hover);
+    border-bottom: 1px solid var(--nrs-border);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: var(--nrs-mono);
+}
+
+.nrs-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--nrs-bg);
+    color: var(--nrs-ink-1);
+}
+
+.nrs-table tr:last-child td { border-bottom: none; }
+.nrs-table tr:hover td { background: var(--nrs-bg-hover); }
+
+/* ── Tab buttons ─────────────────────────────────────────────── */
+.nrs-tab-btn {
+    padding: 3px 10px;
+    border-radius: var(--nrs-radius-sm);
+    border: 1px solid var(--nrs-border);
+    background: var(--nrs-bg-card);
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--nrs-mono);
+    letter-spacing: 0.3px;
+    color: var(--nrs-ink-ghost);
+    transition: all 0.15s;
+}
+
+.nrs-tab-btn.active,
+.nrs-tab-btn:hover {
+    border-color: var(--nrs-red);
+    color: var(--nrs-red);
+    background: var(--nrs-red-light);
+}
+
+/* ── Badge ───────────────────────────────────────────────────── */
+.nrs-badge-red {
+    background: var(--nrs-red-light);
+    color: var(--nrs-red);
+    border-radius: var(--nrs-radius-sm);
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: var(--nrs-mono);
+}
+
+/* ── Filter buttons ──────────────────────────────────────────── */
+.nrs-filter-btn {
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--nrs-border2);
+    background: var(--nrs-bg-card);
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.15s;
+}
+
+.nrs-filter-btn.active,
+.nrs-filter-btn:hover {
+    border-color: var(--nrs-red);
+    color: var(--nrs-red);
+    background: var(--nrs-red-light);
+}
+
+/* ── Empty state ─────────────────────────────────────────────── */
+.nrs-empty {
+    padding: 24px 16px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--nrs-ink-ghost);
+    font-family: var(--nrs-mono);
+}
+
+/* ── Leaflet map (light theme) ───────────────────────────────── */
+.nrs-dash .leaflet-container {
+    background: #E8E8E8 !important;
+}
+
+.nrs-dash .leaflet-tile {
+    filter: none !important;
+}
+
+.nrs-dash .leaflet-popup-content-wrapper {
+    background: var(--nrs-bg-card) !important;
+    border: 1px solid var(--nrs-border) !important;
+    color: var(--nrs-ink-1) !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
+    font-family: var(--nrs-sans) !important;
+    font-size: 12px !important;
+}
+
+.nrs-dash .leaflet-popup-content {
+    margin: 10px 14px !important;
+    color: var(--nrs-ink-1) !important;
+}
+
+.nrs-dash .leaflet-popup-tip {
+    background: var(--nrs-bg-card) !important;
+}
+
+.nrs-dash .leaflet-popup-close-button {
+    color: var(--nrs-ink-ghost) !important;
+}
+
+/* ── Map pin ─────────────────────────────────────────────────── */
+.nrs-map-pin {
+    background: none !important;
+    border: none !important;
+}
+
+.nrs-pin-inner {
+    width: 14px;
+    height: 14px;
+    background: var(--nrs-red);
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .nrs-kpi-bar {
+        flex-wrap: wrap;
+    }
+    .nrs-kpi {
+        flex-basis: 50%;
+    }
+}

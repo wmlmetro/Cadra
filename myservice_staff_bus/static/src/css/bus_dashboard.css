@@ -1,79 +1,80 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&display=swap');
 /* ── NRS Staff Bus Dashboard ──────────────────────────────── */
+/* Inherits tokens from myservice_nrs_base/nrs_base.css       */
+
 .ms-bus-dashboard {
-    background: #F0F1F3;
+    background: var(--nrs-bg);
     min-height: 100vh;
     padding: 0;
-    font-family: 'DM Sans', 'DM Sans', sans-serif;
+    font-family: var(--nrs-sans);
 }
 .ms-bus-header {
-    background: #fff;
-    border-bottom: 3px solid #C8102E;
+    background: var(--nrs-bg-card);
+    border-bottom: 1px solid var(--nrs-border);
     padding: 14px 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
 }
 .ms-bus-header-title {
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 700;
-    color: #1A1A1A;
+    color: var(--nrs-ink);
 }
-.ms-bus-header-title span { color: #C8102E; }
+.ms-bus-header-title span { color: var(--nrs-red); }
 .ms-bus-header-sub {
-    font-size: 12px;
-    color: #888;
+    font-size: 11px;
+    color: var(--nrs-ink-ghost);
     margin-top: 2px;
+    font-family: var(--nrs-mono);
 }
 .ms-bus-refresh-btn {
-    background: #C8102E;
+    background: var(--nrs-red);
     color: #fff;
     border: none;
     padding: 7px 18px;
     border-radius: 6px;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     font-family: inherit;
+    transition: background 0.15s;
 }
-.ms-bus-refresh-btn:hover { background: #A00D24; }
+.ms-bus-refresh-btn:hover { background: var(--nrs-red-dark); color: #fff; }
 
 /* KPI bar */
 .ms-bus-kpi-bar {
     display: flex;
     gap: 12px;
     padding: 16px 24px;
-    background: #fff;
-    border-bottom: 1px solid #eee;
+    background: var(--nrs-bg-card);
+    border-bottom: 1px solid var(--nrs-border);
     flex-wrap: wrap;
 }
 .ms-bus-kpi {
     flex: 1;
     min-width: 130px;
-    background: #F0F1F3;
-    border-radius: 8px;
+    background: var(--nrs-bg);
+    border-radius: var(--nrs-radius);
     padding: 12px 16px;
-    border-left: none;
 }
 .ms-bus-kpi-val {
     font-size: 28px;
     font-weight: 700;
-    color: #C8102E;
+    color: var(--nrs-red);
     line-height: 1;
+    font-family: var(--nrs-mono);
 }
 .ms-bus-kpi-label {
     font-size: 11px;
-    color: #888;
+    color: var(--nrs-ink-ghost);
     text-transform: uppercase;
     letter-spacing: 0.4px;
     margin-top: 4px;
+    font-family: var(--nrs-mono);
 }
-.ms-bus-kpi.green .ms-bus-kpi-val { color: #28a745; }
-.ms-bus-kpi.green { border-left: none; }
-.ms-bus-kpi.blue .ms-bus-kpi-val { color: #007bff; }
-.ms-bus-kpi.blue { border-left: none; }
-.ms-bus-kpi.amber .ms-bus-kpi-val { color: #f0a500; }
-.ms-bus-kpi.amber { border-left: none; }
+.ms-bus-kpi.green .ms-bus-kpi-val { color: var(--nrs-ok); }
+.ms-bus-kpi.blue .ms-bus-kpi-val { color: var(--nrs-info); }
+.ms-bus-kpi.amber .ms-bus-kpi-val { color: var(--nrs-warn); }
 
 /* Main layout */
 .ms-bus-body {
@@ -85,16 +86,16 @@
 
 /* Map panel */
 .ms-bus-map-panel {
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    background: var(--nrs-bg-card);
+    border-radius: var(--nrs-radius);
+    border: 1px solid var(--nrs-border);
     overflow: hidden;
     display: flex;
     flex-direction: column;
 }
 .ms-bus-map-toolbar {
     padding: 10px 14px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--nrs-border);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -103,7 +104,7 @@
 .ms-bus-map-toolbar span {
     font-size: 13px;
     font-weight: 600;
-    color: #1A1A1A;
+    color: var(--nrs-ink);
     margin-right: 8px;
 }
 #ms-bus-map {
@@ -111,32 +112,34 @@
     min-height: 450px;
 }
 
-/* Route list panel */
+/* Side panel */
 .ms-bus-side-panel {
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
 .ms-bus-card {
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    background: var(--nrs-bg-card);
+    border-radius: var(--nrs-radius);
+    border: 1px solid var(--nrs-border);
     overflow: hidden;
 }
 .ms-bus-card-hdr {
     padding: 10px 14px;
-    border-bottom: 1px solid #eee;
-    font-size: 12px;
+    border-bottom: 1px solid var(--nrs-border);
+    font-size: 10px;
     font-weight: 600;
-    color: #888;
+    color: var(--nrs-ink-ghost);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
+    font-family: var(--nrs-mono);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    background: var(--nrs-bg-hover);
 }
 .ms-bus-card-hdr-count {
-    background: #C8102E;
+    background: var(--nrs-red);
     color: #fff;
     border-radius: 10px;
     padding: 1px 8px;
@@ -146,76 +149,63 @@
 /* Schedule list */
 .ms-bus-sched-item {
     padding: 10px 14px;
-    border-bottom: 1px solid #f4f4f4;
+    border-bottom: 1px solid var(--nrs-bg);
     display: flex;
     align-items: center;
     gap: 10px;
     cursor: pointer;
     transition: background .1s;
 }
-.ms-bus-sched-item:hover { background: #F8F9FA; }
+.ms-bus-sched-item:hover { background: var(--nrs-bg-hover); }
 .ms-bus-sched-item:last-child { border-bottom: none; }
-.ms-bus-sched-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
+.ms-bus-sched-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .ms-bus-sched-info { flex: 1; min-width: 0; }
 .ms-bus-sched-route {
     font-size: 13px;
     font-weight: 600;
-    color: #1A1A1A;
+    color: var(--nrs-ink);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 .ms-bus-sched-meta {
     font-size: 11px;
-    color: #888;
+    color: var(--nrs-ink-ghost);
     margin-top: 2px;
+    font-family: var(--nrs-mono);
 }
 .ms-bus-occ-bar {
     width: 60px;
     height: 4px;
-    background: #eee;
+    background: var(--nrs-border);
     border-radius: 2px;
     overflow: hidden;
     flex-shrink: 0;
 }
-.ms-bus-occ-fill {
-    height: 100%;
-    border-radius: 2px;
-    background: #28a745;
-}
-.ms-bus-occ-fill.high { background: #C8102E; }
-.ms-bus-occ-fill.med { background: #f0a500; }
+.ms-bus-occ-fill { height: 100%; border-radius: 2px; background: var(--nrs-ok); }
+.ms-bus-occ-fill.high { background: var(--nrs-red); }
+.ms-bus-occ-fill.med { background: var(--nrs-warn); }
 
 /* Compliance alerts */
 .ms-bus-alert-item {
     padding: 8px 14px;
-    border-bottom: 1px solid #f4f4f4;
+    border-bottom: 1px solid var(--nrs-bg);
     display: flex;
     align-items: center;
     gap: 8px;
     font-size: 12px;
 }
 .ms-bus-alert-item:last-child { border-bottom: none; }
-.ms-bus-alert-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-.ms-bus-alert-name { font-weight: 600; color: #1A1A1A; flex: 1; }
-.ms-bus-alert-issue { color: #C8102E; font-size: 11px; }
+.ms-bus-alert-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.ms-bus-alert-name { font-weight: 600; color: var(--nrs-ink); flex: 1; }
+.ms-bus-alert-issue { color: var(--nrs-red); font-size: 11px; font-family: var(--nrs-mono); }
 
 /* Filter buttons */
 .ms-bus-filter-btn {
     padding: 3px 10px;
     border-radius: 12px;
-    border: 1px solid #ddd;
-    background: #fff;
+    border: 1px solid var(--nrs-border2);
+    background: var(--nrs-bg-card);
     font-size: 11px;
     cursor: pointer;
     font-family: inherit;
@@ -223,9 +213,9 @@
 }
 .ms-bus-filter-btn.active,
 .ms-bus-filter-btn:hover {
-    border-color: #C8102E;
-    color: #C8102E;
-    background: #F8F9FA;
+    border-color: var(--nrs-red);
+    color: var(--nrs-red);
+    background: var(--nrs-bg-hover);
 }
 
 /* Empty state */
@@ -233,5 +223,6 @@
     padding: 20px 14px;
     text-align: center;
     font-size: 12px;
-    color: #aaa;
+    color: var(--nrs-ink-ghost);
+    font-family: var(--nrs-mono);
 }

@@ -4,7 +4,7 @@
     'summary': 'NRS brand theme — NRS red applied via primary_variables.scss patch',
     'category': 'Themes/Backend',
     'author': 'WestMetro Limited',
-    'depends': ['web', 'mail', 'web_responsive'],
+    'depends': ['web', 'mail', 'web_responsive', 'myservice_nrs_base'],
     'data': [
         'views/assets.xml',
     ],

@@ -12,7 +12,7 @@
                 <field name="id_number"/>
                 <field name="direction" widget="badge"
                     decoration-success="direction=='in'"
-                    decoration-secondary="direction=='out'"/>
+                    decoration-muted="direction=='out'"/>
                 <field name="purpose"/>
                 <field name="vehicle_plate"/>
                 <field name="guard_id"/>
@@ -43,7 +43,6 @@
                             <field name="person_name"/>
                             <field name="id_type"/>
                             <field name="id_number"/>
-                            <field name="phone"/>
                             <field name="vehicle_plate"/>
                         </group>
                     </group>

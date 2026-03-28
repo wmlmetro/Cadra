@@ -7,7 +7,7 @@
     'category': 'Security',
     'depends': [
         'web', 'mail', 'generic_location', 'generic_request',
-        'myservice_request_fields', 'website',
+        'myservice_request_fields', 'website', 'myservice_nrs_base',
     ],
     'data': [
         'security/security_groups.xml',

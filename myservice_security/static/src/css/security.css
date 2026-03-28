@@ -2,7 +2,7 @@
    myservice Security Operations Centre — Dark Theme
    ================================================================ */
 .ms-soc {
-    font-family: 'Outfit', sans-serif;
+    font-family: var(--nrs-sans);
     background: #0d1117;
     color: #e6edf3;
     min-height: 100vh;
@@ -99,7 +99,7 @@
 }
 .ms-soc-map-title { font-size: 12px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: .5px; display: flex; align-items: center; gap: 8px; }
 .ms-soc-map-filters { display: flex; gap: 6px; }
-.ms-soc-mf { padding: 3px 10px; border-radius: 12px; border: 1px solid #21262d; background: transparent; font-size: 11px; color: #7d8590; cursor: pointer; transition: all .15s; font-family: 'Outfit', sans-serif; }
+.ms-soc-mf { padding: 3px 10px; border-radius: 12px; border: 1px solid #21262d; background: transparent; font-size: 11px; color: #7d8590; cursor: pointer; transition: all .15s; font-family: var(--nrs-sans); }
 .ms-soc-mf.active, .ms-soc-mf:hover { border-color: #E85426; color: #E85426; background: rgba(232,84,38,.08); }
 #ms-soc-map { flex: 1; min-height: 450px; }
 .ms-soc-map-legend {

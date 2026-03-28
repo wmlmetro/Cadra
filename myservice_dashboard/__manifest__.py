@@ -7,6 +7,7 @@
     'depends': [
         'web', 'fleet', 'generic_request', 'generic_location',
         'myservice_request_fields', 'myservice_fleet_maintenance',
+        'myservice_nrs_base',
     ],
     'data': [
         'views/dashboard_views.xml',
