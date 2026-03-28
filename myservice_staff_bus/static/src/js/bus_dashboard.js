@@ -18,7 +18,7 @@ odoo.define('myservice_staff_bus.BusDashboard', function(require) {
 
     var BusDashboard = AbstractAction.extend({
         template: 'myservice_staff_bus.BusDashboard',
-        hasControlPanel: true,
+        hasControlPanel: false,
 
         start: function() {
             var self = this;

@@ -29,7 +29,7 @@ odoo.define('myservice_barcode_station.BarcodeStation', function(require) {
 
     var BarcodeStation = AbstractAction.extend({
         template: 'myservice_barcode_station.BarcodeStation',
-        hasControlPanel: true,
+        hasControlPanel: false,
 
         start: function() {
             var self = this;

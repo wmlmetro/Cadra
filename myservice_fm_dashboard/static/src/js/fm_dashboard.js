@@ -23,7 +23,7 @@ odoo.define('myservice_fm_dashboard.FMDashboard', function (require) {
 
     var FMDashboard = AbstractAction.extend({
         template: 'myservice_fm_dashboard.FMDashboard',
-        hasControlPanel: true,
+        hasControlPanel: false,
 
         start: function () {
             var self = this;
