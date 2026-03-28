@@ -52,18 +52,13 @@ patch(WebClient.prototype, "myservice_theme_v5.NRSSidebar", {
         sidebar.id = "nrs-sidebar";
         if (collapsed) sidebar.classList.add("collapsed");
 
-        // Logo
+        // Logo — uses company logo from Odoo
         var logo = document.createElement("div");
         logo.className = "nrs-sidebar-logo";
         logo.innerHTML =
-            '<div style="display:flex;align-items:center;gap:6px;overflow:hidden">' +
-                '<div class="nrs-logo-nrs">NR<span>S</span></div>' +
-                '<div class="nrs-logo-pipe"></div>' +
-                '<div class="nrs-logo-text-wrap">' +
-                    '<span class="nrs-logo-sub">myservice</span>' +
-                    '<span class="nrs-logo-tag">workspace central</span>' +
-                '</div>' +
-            '</div>';
+            '<a href="/web" class="nrs-logo-link">' +
+                '<img class="nrs-logo-img" src="/web/image/res.company/1/logo" alt="Company"/>' +
+            '</a>';
         sidebar.appendChild(logo);
 
         // Toggle button
