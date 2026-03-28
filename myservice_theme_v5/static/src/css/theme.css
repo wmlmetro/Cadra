@@ -176,3 +176,83 @@ body, .o_web_client, input, select, textarea, button {
 .nrs-tile-featured .nrs-tile-sub   { color: #A00D24; }
 .o_home_menu .o_home_menu_background,
 .o_home_menu .o_apps { display: none !important; }
+
+/* ══════════════════════════════════════
+   web_responsive home screen override
+   Replace red gradient with NRS white
+   ══════════════════════════════════════ */
+
+/* Kill the red gradient background */
+.o_navbar_apps_menu .dropdown-menu,
+.o_apps_menu .o_dropdown_menu,
+.o_home_menu,
+.o_home_menu_container {
+    background: #F3F4F6 !important;
+    background-image: none !important;
+}
+
+/* Restyle app tiles — white cards on light background */
+.o_navbar_apps_menu .dropdown-menu .o_app {
+    width: 120px !important;
+    display: flex !important;
+}
+.o_navbar_apps_menu .dropdown-menu .o_app a {
+    background: #FFFFFF !important;
+    border: 1px solid #E4E2DC !important;
+    border-radius: 8px !important;
+    padding: 14px 10px !important;
+    color: #1A1A1A !important;
+    text-shadow: none !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    transition: border-color .15s, background .15s !important;
+}
+.o_navbar_apps_menu .dropdown-menu .o_app a:hover {
+    border-color: #C8102E !important;
+    background: #FFFAFA !important;
+}
+.o_navbar_apps_menu .dropdown-menu .o_app a:focus {
+    background: #FFFAFA !important;
+}
+
+/* App icons — smaller, rounded */
+.o_navbar_apps_menu .dropdown-menu .o_app .o-app-icon {
+    max-width: 40px !important;
+    border-radius: 8px !important;
+}
+
+/* App name text */
+.o_navbar_apps_menu .dropdown-menu .o_app a div {
+    color: #1A1A1A !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    line-height: 1.3 !important;
+}
+
+/* Search bar — restyle */
+.o_navbar_apps_menu .search-container .search-input {
+    background: #FFFFFF !important;
+    border: 1px solid #E5E7EB !important;
+    border-radius: 6px !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+.o_navbar_apps_menu .search-container .search-input .search-icon {
+    color: #9CA3AF !important;
+}
+.o_navbar_apps_menu .search-container .search-input .form-control {
+    color: #1A1A1A !important;
+}
+.o_navbar_apps_menu .search-container .search-input .form-control::placeholder {
+    color: #9CA3AF !important;
+}
+
+/* Search results */
+.o_navbar_apps_menu .search-container .search-result {
+    color: #1A1A1A !important;
+    text-shadow: none !important;
+}
+.o_navbar_apps_menu .search-container .search-result.highlight,
+.o_navbar_apps_menu .search-container .search-result:hover {
+    background-color: rgba(200, 16, 46, .06) !important;
+}
