@@ -67,7 +67,7 @@ body.nrs-sidebar-collapsed .o_action_manager {
 
 /* ── Logo area at top of sidebar ── */
 #nrs-sidebar .nrs-sidebar-logo {
-    height: 62px;
+    height: 80px;
     display: flex;
     align-items: center;
     padding: 0 12px;
@@ -85,9 +85,9 @@ body.nrs-sidebar-collapsed .o_action_manager {
 }
 
 #nrs-sidebar .nrs-logo-img {
-    height: 38px;
+    height: 64px;
     width: auto;
-    max-width: 120px;
+    max-width: 160px;
     object-fit: contain;
     flex-shrink: 0;
     transition: height 0.25s ease, max-width 0.25s ease;
