@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates>
+    <!-- Override web_responsive's NavBar.AppsMenu to render grouped tiles -->
+    <t t-inherit="web.NavBar.AppsMenu" t-inherit-mode="extension" owl="1">
+        <xpath expr="//AppsMenu" position="replace">
+            <AppsMenu>
+                <AppsMenuSearchBar />
+                <div class="nrs-apps-grid">
+                    <t t-foreach="__owl__.parent.component.groupApps(apps)" t-as="group" t-key="group.label">
+                        <div class="nrs-app-group">
+                            <div class="nrs-app-group-label" t-esc="group.label"/>
+                            <div class="nrs-app-group-row">
+                                <t t-foreach="group.apps" t-as="app" t-key="app.id">
+                                    <MenuItem
+                                        class="'o_app nrs-app-tile' + (group.featured ? ' nrs-app-tile-featured' : '')"
+                                        payload="app"
+                                    >
+                                        <a t-att-href="getMenuItemHref(app)">
+                                            <img
+                                                class="nrs-app-icon o-app-icon"
+                                                draggable="false"
+                                                t-attf-src="data:image/png;base64,{{app.webIconData}}"
+                                            />
+                                            <div class="nrs-app-name" t-esc="app.name"/>
+                                        </a>
+                                    </MenuItem>
+                                </t>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+            </AppsMenu>
+        </xpath>
+    </t>
+</templates>
