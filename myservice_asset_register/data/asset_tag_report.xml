@@ -6,19 +6,7 @@
         <field name="value">medium</field>
     </record>
 
-    <!-- ── Report Action ── -->
-    <record id="action_report_asset_tag" model="ir.actions.report">
-        <field name="name">Asset Barcode Tag</field>
-        <field name="model">nrs.asset.tag.label</field>
-        <field name="report_type">qweb-pdf</field>
-        <field name="report_name">myservice_asset_register.report_asset_tag_label</field>
-        <field name="report_file">myservice_asset_register.report_asset_tag_label</field>
-        <field name="binding_model_id" ref="model_nrs_asset_tag_label"/>
-        <field name="binding_type">report</field>
-        <field name="paperformat_id" ref="paperformat_asset_tag_medium"/>
-    </record>
-
-    <!-- ── Paper Formats ── -->
+    <!-- ── Paper Formats (must be defined before report action) ── -->
     <record id="paperformat_asset_tag_small" model="report.paperformat">
         <field name="name">Asset Tag — Small (50×30mm)</field>
         <field name="default" eval="False"/>
@@ -79,5 +67,17 @@
         <field name="header_line" eval="False"/>
         <field name="header_spacing">0</field>
         <field name="dpi">150</field>
+    </record>
+
+    <!-- ── Report Action ── -->
+    <record id="action_report_asset_tag" model="ir.actions.report">
+        <field name="name">Asset Barcode Tag</field>
+        <field name="model">nrs.asset.tag.label</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">myservice_asset_register.report_asset_tag_label</field>
+        <field name="report_file">myservice_asset_register.report_asset_tag_label</field>
+        <field name="binding_model_id" ref="model_nrs_asset_tag_label"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_asset_tag_medium"/>
     </record>
 </odoo>

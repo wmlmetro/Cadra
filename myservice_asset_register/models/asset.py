@@ -11,7 +11,7 @@ class NRSAsset(models.Model):
     # ── Identity ─────────────────────────────────────────────
     name = fields.Char('Asset Name', required=True, tracking=True)
     asset_code = fields.Char(
-        'Asset Code', copy=False, tracking=True,
+        'Asset Code', copy=False, tracking=True, index=True,
         help='Unique asset identifier / barcode tag number')
     asset_tag = fields.Char('Physical Tag No.', tracking=True,
                              help='Barcode or QR tag affixed to the physical asset')

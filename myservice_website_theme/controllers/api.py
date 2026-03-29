@@ -1,4 +1,5 @@
 import logging
+from werkzeug.utils import redirect as wz_redirect
 from odoo import http, SUPERUSER_ID
 from odoo.http import request
 
@@ -6,6 +7,11 @@ _logger = logging.getLogger(__name__)
 
 
 class NRSHomepageAPI(http.Controller):
+
+    @http.route('/a/<string:asset_code>', type='http', auth='public', website=True)
+    def asset_short_url(self, asset_code, **kwargs):
+        """Short URL redirect for QR codes: /a/NRS-AST-000042 -> /asset-scan?code=..."""
+        return wz_redirect('/asset-scan?code=%s' % asset_code, code=301)
 
     @http.route(
         '/api/myservice/form-data', type='json', auth='public',
