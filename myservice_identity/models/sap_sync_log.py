@@ -123,7 +123,12 @@ class NRSSapSyncLog(models.Model):
                     })
             else:
                 vals['ir_number'] = ir_number
-                employee = self.env['hr.employee'].create(vals)
+                # Use company context so resource.resource gets calendar_id
+                company = self.env['res.company'].sudo().search([], limit=1)
+                if 'company_id' not in vals:
+                    vals['company_id'] = company.id
+                Employee = self.env['hr.employee'].sudo().with_company(company)
+                employee = Employee.create(vals)
                 changes.append('Created new employee: %s' % employee.name)
                 log.write({
                     'status': 'success',
@@ -144,7 +149,20 @@ class NRSSapSyncLog(models.Model):
 
         except Exception as e:
             _logger.exception('SAP sync error for IR %s', ir_number)
-            log.write({'status': 'error', 'error_message': str(e)})
+            # The create may have aborted the transaction; rollback to
+            # the savepoint so we can still write the error to the log.
+            try:
+                self.env.cr.rollback()
+                log = self.create({
+                    'ir_number': ir_number,
+                    'sync_type': sync_type,
+                    'status': 'error',
+                    'error_message': str(e),
+                    'payload': str(payload),
+                    'sap_event': payload.get('event', ''),
+                })
+            except Exception:
+                _logger.exception('Failed to write error log for IR %s', ir_number)
             return None, log
 
     # ------------------------------------------------------------------

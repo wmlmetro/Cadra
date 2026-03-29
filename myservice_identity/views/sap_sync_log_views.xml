@@ -4,7 +4,7 @@
         <field name="name">nrs.sap.sync.log.list</field>
         <field name="model">nrs.sap.sync.log</field>
         <field name="arch" type="xml">
-            <list decoration-success="status == 'success'"
+            <tree decoration-success="status == 'success'"
                   decoration-danger="status == 'error'"
                   decoration-muted="status == 'skipped'">
                 <field name="create_date"/>
@@ -14,7 +14,7 @@
                 <field name="sap_event"/>
                 <field name="status"/>
                 <field name="duration_ms"/>
-            </list>
+            </tree>
         </field>
     </record>
 

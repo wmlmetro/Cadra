@@ -27,7 +27,17 @@ class SAPWebhookController(http.Controller):
             )
             return {'success': False, 'error': 'Unauthorized'}
 
-        payload = request.jsonrequest
+        # For type='json' routes, Odoo unpacks JSON-RPC params into kwargs.
+        # Also support raw JSON POST (non-RPC) where request.jsonrequest
+        # holds the payload directly.
+        if kwargs:
+            payload = kwargs
+        else:
+            payload = request.jsonrequest or {}
+            # Strip JSON-RPC envelope if present
+            if 'params' in payload and 'jsonrpc' in payload:
+                payload = payload['params']
+
         if not payload:
             return {'success': False, 'error': 'Empty payload'}
 
@@ -52,7 +62,9 @@ class SAPWebhookController(http.Controller):
     )
     def sap_sync_test(self, **kwargs):
         """Authenticated test endpoint for verifying integration."""
-        payload = request.jsonrequest or {}
+        payload = dict(kwargs) if kwargs else dict(request.jsonrequest or {})
+        if 'params' in payload and 'jsonrpc' in payload:
+            payload = payload['params']
         payload.setdefault('event', 'TestEvent')
         employee, log = request.env['nrs.sap.sync.log'].sudo().process_sap_payload(
             payload, sync_type='manual',
