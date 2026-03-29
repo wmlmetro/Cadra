@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="nrs_homepage" model="website.page">
+        <field name="name">NRS myservice Home</field>
+        <field name="url">/</field>
+        <field name="is_published">True</field>
+        <field name="view_id" ref="nrs_homepage_view"/>
+    </record>
+
+    <record id="nrs_homepage_view" model="ir.ui.view">
+        <field name="name">NRS Homepage</field>
+        <field name="type">qweb</field>
+        <field name="key">myservice_website_theme.nrs_homepage</field>
+        <field name="arch" type="xml">
+            <t t-name="myservice_website_theme.nrs_homepage">
+                <t t-call="website.layout">
+                    <div id="wrap">
+
+                        <!-- Hero -->
+                        <section style="background:linear-gradient(135deg,#1A1A1A 0%,#2D1F24 100%);padding:80px 0;position:relative;overflow:hidden;">
+                            <div style="position:absolute;top:0;right:0;width:50%;height:100%;background:linear-gradient(135deg,transparent,rgba(200,16,46,0.15));"></div>
+                            <div class="container" style="position:relative;z-index:1;">
+                                <div class="row align-items-center">
+                                    <div class="col-md-7">
+                                        <div style="font-size:11px;font-weight:700;color:#C8102E;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:16px;">Nigeria Revenue Service</div>
+                                        <h1 style="font-size:42px;font-weight:800;color:#fff;line-height:1.2;margin-bottom:20px;">myservice <span style="color:#C8102E;">Facilities</span> Portal</h1>
+                                        <p style="font-size:16px;color:#9CA3AF;line-height:1.7;margin-bottom:32px;max-width:480px;">Submit maintenance requests, track assets, and manage facilities across all NRS offices nationwide.</p>
+                                        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                                            <a href="/service-request" style="background:#C8102E;color:#fff;padding:12px 28px;border-radius:6px;font-weight:700;font-size:14px;text-decoration:none;">Submit a Request</a>
+                                            <a href="/my/requests" style="background:transparent;color:#fff;padding:12px 28px;border-radius:6px;font-weight:600;font-size:14px;text-decoration:none;border:1px solid rgba(255,255,255,0.2);">Track My Requests</a>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-5 d-none d-md-block text-center">
+                                        <div style="width:280px;height:280px;background:rgba(200,16,46,0.1);border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;">
+                                            <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#C8102E" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                                                <polyline points="9 22 9 12 15 12 15 22"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Services Grid -->
+                        <section style="padding:60px 0;background:#F5F5F5;">
+                            <div class="container">
+                                <div style="text-align:center;margin-bottom:40px;">
+                                    <div style="font-size:10px;font-weight:700;color:#C8102E;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">What We Manage</div>
+                                    <h2 style="font-size:28px;font-weight:800;color:#1A1A1A;">Facilities Services</h2>
+                                </div>
+                                <div class="row">
+                                    <t t-foreach="[
+                                        ('Building Services','Plumbing, electrical, HVAC, civil works and general maintenance','M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z'),
+                                        ('Fleet Management','Vehicle scheduling, maintenance tracking and driver management','M17 18a2 2 0 100 4 2 2 0 000-4zM5 18a2 2 0 100 4 2 2 0 000-4zM1 1h4l2.68 13.39a2 2 0 001.98 1.61h9.72a2 2 0 001.98-1.61L23 6H6'),
+                                        ('Security Operations','Access control, CCTV monitoring and incident management','M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'),
+                                        ('Asset Management','Asset tagging, verification, maintenance and lifecycle tracking','M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z'),
+                                        ('Staff Transport','Bus route management and staff commute scheduling','M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2'),
+                                        ('Service Requests','Log, track and resolve maintenance requests with SLA','M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z'),
+                                    ]" t-as="svc" t-key="svc[0]">
+                                        <div class="col-md-4 mb-4">
+                                            <div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:28px 24px;height:100%;transition:border-color .2s;" onmouseover="this.style.borderColor='#C8102E'" onmouseout="this.style.borderColor='#E5E7EB'">
+                                                <div style="width:40px;height:40px;background:#FBE9EC;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C8102E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path t-att-d="svc[2]"/>
+                                                    </svg>
+                                                </div>
+                                                <h5 style="font-size:15px;font-weight:700;color:#1A1A1A;margin-bottom:8px;"><t t-esc="svc[0]"/></h5>
+                                                <p style="font-size:13px;color:#6B7280;line-height:1.6;margin:0;"><t t-esc="svc[1]"/></p>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- CTA -->
+                        <section style="padding:60px 0;background:#fff;text-align:center;">
+                            <div class="container">
+                                <h2 style="font-size:26px;font-weight:800;color:#1A1A1A;margin-bottom:12px;">Need something fixed?</h2>
+                                <p style="font-size:15px;color:#6B7280;margin-bottom:28px;">Submit a facilities request and our team will respond within your SLA window.</p>
+                                <a href="/service-request" style="background:#C8102E;color:#fff;padding:14px 36px;border-radius:6px;font-weight:700;font-size:15px;text-decoration:none;">Submit a Request &#x2192;</a>
+                            </div>
+                        </section>
+
+                    </div>
+                </t>
+            </t>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,203 @@
+/* ══════════════════════════════════════════
+   NRS myservice — Public Website Theme
+   Nigeria Revenue Service
+   ══════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
+
+:root {
+    --nrs-red: #C8102E;
+    --nrs-red-dark: #A00D24;
+    --nrs-red-light: #FBE9EC;
+    --nrs-ink: #1A1A1A;
+    --nrs-ink-muted: #6B7280;
+    --nrs-bg: #F5F5F5;
+    --nrs-white: #FFFFFF;
+    --nrs-border: #E5E7EB;
+}
+
+/* ── Global ── */
+body {
+    font-family: 'DM Sans', system-ui, sans-serif !important;
+    color: var(--nrs-ink) !important;
+    background: var(--nrs-white) !important;
+}
+
+/* ── Hide default Odoo website top bar ── */
+#wrapwrap > header .navbar {
+    background: var(--nrs-white) !important;
+    border-bottom: 1px solid var(--nrs-border) !important;
+    box-shadow: none !important;
+    padding: 0 24px !important;
+    height: 60px !important;
+}
+
+/* ── Hide "Your Logo" placeholder ── */
+.navbar-brand img[src*="logo"] {
+    content: none;
+}
+.navbar-brand::before {
+    content: '';
+    display: inline-block;
+    background-image: url('/web/image/res.company/1/logo');
+    background-size: contain;
+    background-repeat: no-repeat;
+    width: 120px;
+    height: 40px;
+}
+.navbar-brand img { display: none !important; }
+
+/* ── Nav links ── */
+.navbar-nav .nav-link {
+    color: var(--nrs-ink-muted) !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    padding: 0 14px !important;
+}
+.navbar-nav .nav-link:hover {
+    color: var(--nrs-red) !important;
+}
+
+/* ── Contact Us / CTA button ── */
+.navbar .btn-primary,
+.navbar .o_main_nav .btn,
+#top_menu .btn {
+    background: var(--nrs-red) !important;
+    border-color: var(--nrs-red) !important;
+    color: #fff !important;
+    border-radius: 6px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    padding: 7px 18px !important;
+}
+.navbar .btn-primary:hover {
+    background: var(--nrs-red-dark) !important;
+    border-color: var(--nrs-red-dark) !important;
+}
+
+/* ── Hide website edit bar for non-admins ── */
+#oe_manipulators { display: none; }
+
+/* ── Main content area ── */
+#wrapwrap {
+    background: var(--nrs-white) !important;
+}
+
+/* ── Buttons sitewide ── */
+.btn-primary {
+    background: var(--nrs-red) !important;
+    border-color: var(--nrs-red) !important;
+    color: #fff !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+}
+.btn-primary:hover, .btn-primary:focus {
+    background: var(--nrs-red-dark) !important;
+    border-color: var(--nrs-red-dark) !important;
+}
+.btn-secondary {
+    border-color: var(--nrs-red) !important;
+    color: var(--nrs-red) !important;
+    background: transparent !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+}
+
+/* ── Links ── */
+a { color: var(--nrs-red) !important; }
+a:hover { color: var(--nrs-red-dark) !important; }
+
+/* ── Footer ── */
+#footer, .o_footer {
+    background: #1A1A1A !important;
+    color: #9CA3AF !important;
+    padding: 40px 0 20px !important;
+    border-top: 3px solid var(--nrs-red) !important;
+}
+#footer a, .o_footer a {
+    color: #9CA3AF !important;
+    font-size: 13px !important;
+    text-decoration: none !important;
+}
+#footer a:hover, .o_footer a:hover {
+    color: var(--nrs-white) !important;
+}
+#footer h4, #footer h5, #footer .h4, #footer .h5,
+.o_footer h4, .o_footer h5 {
+    color: var(--nrs-white) !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+    margin-bottom: 16px !important;
+}
+.o_footer_copyright {
+    background: #111 !important;
+    color: #6B7280 !important;
+    font-size: 12px !important;
+    text-align: center !important;
+    padding: 12px 0 !important;
+    border-top: 1px solid #2A2A2A !important;
+}
+.o_footer_copyright::before {
+    content: "© 2025 Nigeria Revenue Service (NRS). All rights reserved. | Powered by WestMetro Limited";
+    display: block;
+}
+.o_footer_copyright > * { display: none !important; }
+
+/* ── Forms ── */
+.form-control:focus {
+    border-color: var(--nrs-red) !important;
+    box-shadow: 0 0 0 3px rgba(200,16,46,.08) !important;
+}
+
+/* ── Cards ── */
+.card {
+    border: 1px solid var(--nrs-border) !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+}
+.card-header {
+    background: var(--nrs-bg) !important;
+    border-bottom: 1px solid var(--nrs-border) !important;
+    font-weight: 600 !important;
+}
+
+/* ── Barcode station specific ── */
+.ms-barcode-header {
+    background: var(--nrs-white) !important;
+    border-bottom: 2px solid var(--nrs-red) !important;
+}
+.ms-barcode-header h4 {
+    color: var(--nrs-ink) !important;
+}
+.ms-barcode-header h4 span {
+    color: var(--nrs-red) !important;
+}
+#scan-btn, .ms-scan-btn {
+    background: var(--nrs-red) !important;
+    border-color: var(--nrs-red) !important;
+}
+
+/* ── Portal header ── */
+.o_portal_wrap .o_portal_my_doc_table th {
+    background: var(--nrs-bg) !important;
+    color: var(--nrs-ink-muted) !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+}
+.o_portal_wrap .o_portal_my_doc_table tr:hover {
+    background: var(--nrs-red-light) !important;
+}
+
+/* ── Breadcrumb ── */
+.breadcrumb-item.active { color: var(--nrs-red) !important; }
+.breadcrumb-item + .breadcrumb-item::before { color: var(--nrs-ink-muted) !important; }
+
+/* ── Service request form ── */
+.o_portal_details .btn-primary { background: var(--nrs-red) !important; }
+
+/* ── Hide Odoo powered by ── */
+.odoo_footer, [href*="odoo.com"] { display: none !important; }
