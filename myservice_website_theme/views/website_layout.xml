@@ -1,17 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Override website navbar brand with NRS logo -->
-    <template id="nrs_navbar_brand" inherit_id="website.layout" name="NRS Navbar" priority="20">
-        <xpath expr="//nav[hasclass('navbar')]//a[hasclass('navbar-brand')]" position="replace">
-            <a class="navbar-brand" href="/" style="padding: 8px 0;">
-                <img src="/web/image/res.company/1/logo"
-                     alt="Nigeria Revenue Service"
-                     style="height: 36px; width: auto; object-fit: contain; max-width: 160px;"
-                     onerror="this.src='/myservice_website_theme/static/src/img/nrs_logo_text.svg'"/>
-            </a>
-        </xpath>
-    </template>
-
     <!-- Override footer with NRS branded footer -->
     <template id="nrs_footer" inherit_id="website.footer_custom" name="NRS Footer" priority="20">
         <xpath expr="//div[@id='footer']" position="replace">
