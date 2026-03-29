@@ -4,7 +4,7 @@
     'summary': 'NRS branded public website theme',
     'category': 'Website/Theme',
     'author': 'WestMetro Limited',
-    'depends': ['website', 'myservice_nrs_base'],
+    'depends': ['website', 'myservice_nrs_base', 'myservice_request_fields'],
     'data': [
         'views/website_layout.xml',
         'views/website_pages.xml',

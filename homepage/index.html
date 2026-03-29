@@ -79,13 +79,69 @@
         .nrs-hero-actions .nrs-btn-primary { padding:14px 28px; font-size:15px; border-radius:7px; }
         .nrs-hero-actions .nrs-btn-outline { padding:14px 28px; font-size:15px; border-radius:7px; background:#fff; }
         .nrs-hero-graphic {
-            flex:1; min-width:280px; display:flex; justify-content:flex-end;
+            flex:1; min-width:340px; display:flex; justify-content:flex-end;
         }
-        .nrs-hero-circle {
-            width:340px; height:340px;
-            background:linear-gradient(135deg,#FBE9EC,#fff);
-            border-radius:50%; display:flex; align-items:center; justify-content:center;
-            border:1px solid #F0D0D6;
+
+        /* ── Quick-submit form ── */
+        .nrs-qf {
+            width:100%; max-width:400px;
+            background:#fff; border:1px solid #E5E7EB; border-radius:12px;
+            box-shadow:0 4px 24px rgba(0,0,0,.06); overflow:hidden;
+        }
+        .nrs-qf-header {
+            background:#1A1A1A; padding:18px 24px;
+            display:flex; align-items:center; justify-content:space-between;
+        }
+        .nrs-qf-header h3 { color:#fff; font-size:15px; font-weight:700; margin:0; }
+        .nrs-qf-header .nrs-qf-badge {
+            background:#C8102E; color:#fff; font-size:10px; font-weight:700;
+            padding:3px 10px; border-radius:10px; text-transform:uppercase; letter-spacing:.5px;
+        }
+        .nrs-qf-body { padding:20px 24px; }
+        .nrs-qf-row { margin-bottom:14px; }
+        .nrs-qf-row:last-child { margin-bottom:0; }
+        .nrs-qf-label {
+            display:block; font-size:11px; font-weight:700; color:#6B7280;
+            text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px;
+        }
+        .nrs-qf-input, .nrs-qf-select, .nrs-qf-textarea {
+            width:100%; border:1px solid #E5E7EB; border-radius:6px;
+            padding:9px 12px; font-size:13px; font-family:inherit; color:#1A1A1A;
+            background:#fff; outline:none; transition:border-color .15s, box-shadow .15s;
+        }
+        .nrs-qf-input:focus, .nrs-qf-select:focus, .nrs-qf-textarea:focus {
+            border-color:#C8102E; box-shadow:0 0 0 3px rgba(200,16,46,.06);
+        }
+        .nrs-qf-textarea { resize:vertical; min-height:64px; }
+        .nrs-qf-select { appearance:auto; }
+        .nrs-qf-row-2col { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+        .nrs-qf-submit {
+            width:100%; background:#C8102E; color:#fff; border:none; border-radius:6px;
+            padding:12px; font-size:14px; font-weight:700; font-family:inherit;
+            cursor:pointer; transition:background .15s; margin-top:6px;
+        }
+        .nrs-qf-submit:hover { background:#A00D24; }
+        .nrs-qf-submit:disabled { background:#D1D5DB; cursor:not-allowed; }
+        .nrs-qf-footer {
+            padding:0 24px 16px; text-align:center;
+        }
+        .nrs-qf-footer span { font-size:11px; color:#9CA3AF; }
+        .nrs-qf-success {
+            padding:32px 24px; text-align:center; display:none;
+        }
+        .nrs-qf-success .nrs-qf-check {
+            width:52px; height:52px; background:#10B981; border-radius:50%;
+            display:flex; align-items:center; justify-content:center; margin:0 auto 16px;
+        }
+        .nrs-qf-success h4 { font-size:16px; font-weight:700; color:#1A1A1A; margin-bottom:6px; }
+        .nrs-qf-success p { font-size:13px; color:#6B7280; margin:0; }
+        .nrs-qf-success .nrs-qf-ref {
+            display:inline-block; margin-top:12px; background:#F5F5F5; border-radius:6px;
+            padding:8px 16px; font-size:14px; font-weight:700; color:#1A1A1A; letter-spacing:.5px;
+        }
+        .nrs-qf-error {
+            background:#FEF2F2; border:1px solid #FECACA; border-radius:6px;
+            padding:8px 12px; font-size:12px; color:#991B1B; margin-bottom:10px; display:none;
         }
 
         /* ── Stats ── */
@@ -160,7 +216,9 @@
 
         /* ── Responsive ── */
         @media (max-width:991px) {
-            .nrs-hero-graphic { display:none; }
+            .nrs-hero-inner { flex-direction:column; }
+            .nrs-hero-graphic { justify-content:center; min-width:100%; }
+            .nrs-qf { max-width:100%; }
             .nrs-hero h1 { font-size:38px; }
         }
         @media (max-width:767px) {
@@ -233,10 +291,63 @@
             </div>
         </div>
         <div class="nrs-hero-graphic">
-            <div class="nrs-hero-circle">
-                <svg width="140" height="140" viewBox="0 0 24 24" fill="none" stroke="#C8102E" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-                </svg>
+            <div class="nrs-qf" id="quickForm">
+                <div class="nrs-qf-header">
+                    <h3>Quick Submit</h3>
+                    <span class="nrs-qf-badge">Fast Track</span>
+                </div>
+                <div class="nrs-qf-body" id="qfBody">
+                    <div class="nrs-qf-error" id="qfError"></div>
+                    <div class="nrs-qf-row nrs-qf-row-2col">
+                        <div>
+                            <label class="nrs-qf-label">Your Name</label>
+                            <input class="nrs-qf-input" type="text" id="qfName" placeholder="Full name"/>
+                        </div>
+                        <div>
+                            <label class="nrs-qf-label">Email / Phone</label>
+                            <input class="nrs-qf-input" type="text" id="qfContact" placeholder="email or phone"/>
+                        </div>
+                    </div>
+                    <div class="nrs-qf-row">
+                        <label class="nrs-qf-label">Service</label>
+                        <select class="nrs-qf-select" id="qfService">
+                            <option value="">Loading services…</option>
+                        </select>
+                    </div>
+                    <div class="nrs-qf-row">
+                        <label class="nrs-qf-label">Request Type</label>
+                        <select class="nrs-qf-select" id="qfType">
+                            <option value="">Select service first</option>
+                        </select>
+                    </div>
+                    <div class="nrs-qf-row">
+                        <label class="nrs-qf-label">Location</label>
+                        <select class="nrs-qf-select" id="qfLocation">
+                            <option value="">Loading locations…</option>
+                        </select>
+                    </div>
+                    <div class="nrs-qf-row">
+                        <label class="nrs-qf-label">Describe the issue</label>
+                        <textarea class="nrs-qf-textarea" id="qfDesc" rows="3" placeholder="Brief description of the problem…"></textarea>
+                    </div>
+                    <div class="nrs-qf-row">
+                        <button class="nrs-qf-submit" id="qfSubmitBtn" type="button" onclick="submitQuickForm()">
+                            Submit Request &#x2192;
+                        </button>
+                    </div>
+                </div>
+                <div class="nrs-qf-success" id="qfSuccess">
+                    <div class="nrs-qf-check">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                    <h4>Request Submitted!</h4>
+                    <p>Your facilities request has been logged. Our team will respond within your SLA window.</p>
+                    <div class="nrs-qf-ref" id="qfRef">—</div>
+                    <p style="margin-top:14px;"><a href="/my/requests" style="color:#C8102E;font-weight:600;font-size:13px;">Track your requests &#x2192;</a></p>
+                </div>
+                <div class="nrs-qf-footer" id="qfFooter">
+                    <span>Submitted directly to the NRS Facilities team</span>
+                </div>
             </div>
         </div>
     </div>
@@ -386,6 +497,114 @@
         <span>&copy; 2025 Nigeria Revenue Service. All rights reserved. Powered by <span class="nrs-accent">WestMetro Limited</span></span>
     </div>
 </footer>
+
+<script>
+/* ── Quick-submit form logic ── */
+var QF_DATA = { services: [], request_types: [], locations: [] };
+
+function rpc(url, params) {
+    return fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', method: 'call', params: params || {} })
+    }).then(function(r) { return r.json(); }).then(function(j) {
+        if (j.error) throw new Error(j.error.data ? j.error.data.message : 'Server error');
+        return j.result;
+    });
+}
+
+function populateSelect(el, items, placeholder) {
+    el.innerHTML = '<option value="">' + placeholder + '</option>';
+    items.forEach(function(item) {
+        var o = document.createElement('option');
+        o.value = item.id;
+        o.textContent = item.name;
+        el.appendChild(o);
+    });
+}
+
+function loadFormData() {
+    rpc('/api/myservice/form-data').then(function(data) {
+        QF_DATA = data;
+        var svcEl = document.getElementById('qfService');
+        populateSelect(svcEl, data.services, '— Select service —');
+        if (data.services.length === 1) {
+            svcEl.value = data.services[0].id;
+            filterTypes();
+        }
+        populateSelect(document.getElementById('qfLocation'), data.locations,
+            data.locations.length ? '— Select location —' : 'No locations configured');
+    }).catch(function(err) {
+        console.error('Form data load failed:', err);
+        document.getElementById('qfService').innerHTML = '<option>Service unavailable</option>';
+    });
+}
+
+function filterTypes() {
+    var svcId = document.getElementById('qfService').value;
+    var typeEl = document.getElementById('qfType');
+    var types = QF_DATA.request_types;
+    if (svcId) {
+        var filtered = types.filter(function(t) {
+            return !t.service_id || String(t.service_id) === svcId;
+        });
+        populateSelect(typeEl, filtered.length ? filtered : types, '— Select type —');
+        if (filtered.length === 1) typeEl.value = filtered[0].id;
+    } else {
+        populateSelect(typeEl, types, '— Select type —');
+    }
+}
+
+function showError(msg) {
+    var el = document.getElementById('qfError');
+    el.textContent = msg;
+    el.style.display = 'block';
+    setTimeout(function() { el.style.display = 'none'; }, 6000);
+}
+
+function submitQuickForm() {
+    var name = document.getElementById('qfName').value.trim();
+    var contact = document.getElementById('qfContact').value.trim();
+    var desc = document.getElementById('qfDesc').value.trim();
+    var typeId = document.getElementById('qfType').value;
+
+    if (!desc) { showError('Please describe the issue.'); return; }
+    if (!typeId) { showError('Please select a request type.'); return; }
+
+    var btn = document.getElementById('qfSubmitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+    document.getElementById('qfError').style.display = 'none';
+
+    rpc('/api/myservice/quick-submit', {
+        type_id: typeId,
+        service_id: document.getElementById('qfService').value || null,
+        location_id: document.getElementById('qfLocation').value || null,
+        reporter_name: name,
+        reporter_contact: contact,
+        description: desc,
+        priority: '2'
+    }).then(function(res) {
+        if (res.success) {
+            document.getElementById('qfBody').style.display = 'none';
+            document.getElementById('qfFooter').style.display = 'none';
+            document.getElementById('qfRef').textContent = res.request_name;
+            document.getElementById('qfSuccess').style.display = 'block';
+        } else {
+            showError(res.error || 'Submission failed. Please try again.');
+            btn.disabled = false;
+            btn.innerHTML = 'Submit Request &#x2192;';
+        }
+    }).catch(function(err) {
+        showError('Connection error. Please try again.');
+        btn.disabled = false;
+        btn.innerHTML = 'Submit Request &#x2192;';
+    });
+}
+
+document.getElementById('qfService').addEventListener('change', filterTypes);
+document.addEventListener('DOMContentLoaded', loadFormData);
+</script>
 
 </body>
 </html>
