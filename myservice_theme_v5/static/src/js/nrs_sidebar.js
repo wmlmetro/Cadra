@@ -9,32 +9,44 @@ const COLLAPSED_KEY = "nrs_sidebar_collapsed";
 
 const NRS_GROUPS = [
     {
-        label: "Dashboards",
-        apps: ["Operations", "Facilities"],
+        label: "DASHBOARDS",
+        apps: ["FM Dashboard"],
     },
     {
-        label: "Service Desk",
-        apps: ["Requests", "Discuss"],
+        label: "SERVICE DESK",
+        apps: ["Discuss", "Requests"],
     },
     {
-        label: "Operations",
+        label: "OPERATIONS",
         apps: ["Services", "Resources", "Locations", "Teams"],
     },
     {
-        label: "Security",
-        apps: ["Security"],
+        label: "FACILITIES",
+        apps: ["Facility Command Center", "Building Services", "Plumbing & Drainage", "Plant & Machinery"],
     },
     {
-        label: "Fleet & Transport",
-        apps: ["Fleet", "Employees"],
+        label: "SECURITY",
+        apps: ["Security Command Center", "Security Brief", "Case Management", "OSINT", "AI Patterns"],
     },
     {
-        label: "Configuration",
+        label: "FLEET & TRANSPORT",
+        apps: ["Fleet", "Fuel Card", "Staff Bus"],
+    },
+    {
+        label: "ASSET REGISTER",
+        apps: ["Asset Register", "Barcode Station"],
+    },
+    {
+        label: "HR & STAFF",
+        apps: ["Employees", "Identity"],
+    },
+    {
+        label: "CONFIGURATION",
         apps: ["Tags", "Rules"],
     },
     {
-        label: "Administration",
-        apps: ["Website", "Settings", "Apps"],
+        label: "ADMINISTRATION",
+        apps: ["Website", "Apps", "Settings"],
     },
 ];
 
@@ -164,6 +176,21 @@ patch(WebClient.prototype, "myservice_theme_v5.NRSSidebar", {
             "Website": '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>',
             "Apps": '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>',
             "Settings": '<circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M2 12h2M20 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/>',
+            "FM Dashboard": '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>',
+            "Facility Command Center": '<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+            "Building Services": '<path d="M2 22h20"/><path d="M6 22V6l6-4 6 4v16"/><path d="M10 10h4"/><path d="M10 14h4"/>',
+            "Plumbing & Drainage": '<path d="M12 2v6m0 4v10M5 8h14M5 8a3 3 0 00-3 3v2a3 3 0 003 3h14a3 3 0 003-3v-2a3 3 0 00-3-3"/>',
+            "Plant & Machinery": '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>',
+            "Security Command Center": '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+            "Security Brief": '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+            "Case Management": '<path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>',
+            "OSINT": '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+            "AI Patterns": '<path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1.27c.34-.6.99-1 1.73-1a2 2 0 110 4c-.74 0-1.39-.4-1.73-1H20a7 7 0 01-7 7v1.27c.6.34 1 .99 1 1.73a2 2 0 11-4 0c0-.74.4-1.39 1-1.73V18a7 7 0 01-7-7H2.73c-.34.6-.99 1-1.73 1a2 2 0 110-4c.74 0 1.39.4 1.73 1H5a7 7 0 017-7V5.73c-.6-.34-1-.99-1-1.73a2 2 0 012-2z"/>',
+            "Fuel Card": '<rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>',
+            "Staff Bus": '<path d="M5 17h14V5H5v12zM2 17h20M7 21l1-4M16 21l1-4"/><circle cx="7" cy="9" r="1"/><circle cx="17" cy="9" r="1"/>',
+            "Asset Register": '<path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>',
+            "Barcode Station": '<path d="M3 5v14M7 5v14M10 5v14M13 5v14M17 5v14M21 5v14"/>',
+            "Identity": '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>',
             "default": '<circle cx="12" cy="12" r="10"/>'
         };
         var path = icons[appName] || icons["default"];

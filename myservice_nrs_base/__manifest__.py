@@ -7,10 +7,12 @@
     'depends': ['web'],
     'data': [
         'views/assets.xml',
+        'views/placeholder_menus.xml',
     ],
     'assets': {
         'web.assets_backend': [
             ('prepend', 'myservice_nrs_base/static/src/css/nrs_base.css'),
+            'myservice_nrs_base/static/src/js/nrs_placeholder.js',
         ],
     },
     'installable': True,
