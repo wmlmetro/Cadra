@@ -5,11 +5,13 @@
     'author': 'WestMetro Limited',
     'website': 'https://westmetrong.com',
     'category': 'Technical',
-    'depends': ['generic_request', 'generic_location', 'fleet', 'website'],
+    'depends': ['generic_request', 'generic_location', 'generic_team', 'fleet', 'website', 'myservice_nrs_base'],
     'data': [
         'views/request_request_views.xml',
         'views/portal_location_template.xml',
         'views/request_portal_templates.xml',
+        'views/triage_views.xml',
+        'views/triage_menus.xml',
     ],
     'assets': {
         'web.assets_frontend': [
