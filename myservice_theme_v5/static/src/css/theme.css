@@ -36,7 +36,7 @@ body, .o_web_client, input, select, textarea, button {
 .o_main_navbar .o_menu_sections a,
 .o_main_navbar .o_menu_sections .o_nav_entry,
 .o_main_navbar .o_menu_sections .o_dropdown_title {
-    color: var(--nrs-ink-muted) !important;
+    color: var(--nrs-ink-1) !important;
     text-decoration: none !important;
     white-space: nowrap !important;
     padding: 0 10px !important;
@@ -44,7 +44,7 @@ body, .o_web_client, input, select, textarea, button {
     display: inline-flex !important;
     align-items: center !important;
     font-size: 12px !important;
-    font-weight: 500 !important;
+    font-weight: 600 !important;
 }
 
 .o_main_navbar .o_menu_sections .o_nav_entry:hover,
