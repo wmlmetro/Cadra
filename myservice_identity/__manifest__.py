@@ -1,0 +1,25 @@
+{
+    'name': 'NRS Identity Management',
+    'version': '15.0.1.0.0',
+    'summary': 'SAP SuccessFactors employee sync, IR number as primary key, asset-employee binding',
+    'category': 'Human Resources',
+    'author': 'WestMetro Limited',
+    'depends': [
+        'hr',
+        'fleet',
+        'generic_location',
+        'myservice_asset_register',
+        'mail',
+    ],
+    'data': [
+        'security/identity_security.xml',
+        'security/ir.model.access.csv',
+        'views/employee_views.xml',
+        'views/asset_identity_views.xml',
+        'views/sap_sync_log_views.xml',
+        'views/identity_menus.xml',
+        'views/sap_import_wizard_view.xml',
+        'data/ir_cron.xml',
+    ],
+    'installable': True,
+}
