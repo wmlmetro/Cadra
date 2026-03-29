@@ -201,3 +201,10 @@ a:hover { color: var(--nrs-red-dark) !important; }
 
 /* ── Hide Odoo powered by ── */
 .odoo_footer, [href*="odoo.com"] { display: none !important; }
+
+/* ── Hide Odoo default navbar on homepage — we render our own ── */
+#wrapwrap > header { display: none !important; }
+
+/* ── Hide double footer copyright ── */
+.o_footer_copyright { display: none !important; }
+footer.o_footer > .o_footer_copyright { display: none !important; }
