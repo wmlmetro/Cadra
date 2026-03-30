@@ -3,6 +3,7 @@
     <!-- Top-level menu -->
     <menuitem id="menu_asset_root"
               name="Asset Register"
+              web_icon="myservice_asset_register,static/description/icon.png"
               sequence="30"/>
 
     <menuitem id="menu_asset_register"
