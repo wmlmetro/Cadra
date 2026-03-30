@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="cron_sap_asset_export" model="ir.cron">
+        <field name="name">NRS — Push asset data to Redhubs</field>
+        <field name="model_id" ref="myservice_asset_register.model_nrs_asset"/>
+        <field name="state">code</field>
+        <field name="code">
+# Placeholder — implement when Redhubs API confirmed
+pass
+        </field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="numbercall">-1</field>
+        <field name="active" eval="False"/>
+    </record>
+</odoo>

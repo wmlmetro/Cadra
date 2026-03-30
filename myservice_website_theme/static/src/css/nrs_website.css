@@ -1,0 +1,403 @@
+/* ══════════════════════════════════════════
+   NRS myservice — Public Website Theme
+   Nigeria Revenue Service
+   ══════════════════════════════════════════
+   Applied to ALL Odoo frontend pages:
+   login, portal, service-request, etc.
+   Homepage is static HTML via Nginx.
+   ══════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800;9..40,900&display=swap');
+
+:root {
+    --nrs-red: #C8102E;
+    --nrs-red-dark: #A00D24;
+    --nrs-red-light: #FBE9EC;
+    --nrs-ink: #1A1A1A;
+    --nrs-ink-muted: #6B7280;
+    --nrs-bg: #F5F5F5;
+    --nrs-white: #FFFFFF;
+    --nrs-border: #E5E7EB;
+}
+
+/* ─────────────────────────────────────────
+   1. GLOBAL
+   ───────────────────────────────────────── */
+body {
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif !important;
+    color: var(--nrs-ink) !important;
+    background: var(--nrs-white) !important;
+    -webkit-font-smoothing: antialiased;
+}
+
+#wrapwrap {
+    background: var(--nrs-white) !important;
+}
+
+/* ─────────────────────────────────────────
+   2. NAVBAR — style Odoo header, not hide it
+   ───────────────────────────────────────── */
+#wrapwrap > header .navbar {
+    background: var(--nrs-white) !important;
+    border-bottom: 1px solid var(--nrs-border) !important;
+    box-shadow: none !important;
+    padding: 0 24px !important;
+    min-height: 60px !important;
+}
+
+/* Logo in navbar — show the actual company logo */
+.navbar-brand.logo {
+    padding: 8px 0 !important;
+}
+.navbar-brand.logo img,
+.navbar-brand.logo span[data-oe-field="logo"] img,
+.navbar-brand.logo .img-fluid {
+    height: 36px !important;
+    width: auto !important;
+    max-width: 160px !important;
+    object-fit: contain !important;
+}
+
+/* Nav links */
+.navbar-nav .nav-link {
+    color: var(--nrs-ink-muted) !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    padding: 8px 14px !important;
+    transition: color .15s;
+}
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-link:focus {
+    color: var(--nrs-red) !important;
+}
+.navbar-nav .nav-item.active .nav-link,
+.navbar-nav .nav-link.active {
+    color: var(--nrs-red) !important;
+    font-weight: 600 !important;
+}
+
+/* CTA buttons in navbar */
+.navbar .btn-primary,
+.navbar .btn_cta,
+#top_menu .btn-primary {
+    background: var(--nrs-red) !important;
+    border-color: var(--nrs-red) !important;
+    color: #fff !important;
+    border-radius: 6px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    padding: 7px 18px !important;
+}
+.navbar .btn-primary:hover,
+.navbar .btn_cta:hover {
+    background: var(--nrs-red-dark) !important;
+    border-color: var(--nrs-red-dark) !important;
+}
+
+/* ─────────────────────────────────────────
+   3. BUTTONS — sitewide
+   ───────────────────────────────────────── */
+.btn-primary {
+    background: var(--nrs-red) !important;
+    border-color: var(--nrs-red) !important;
+    color: #fff !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    transition: background .15s, border-color .15s;
+}
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+    background: var(--nrs-red-dark) !important;
+    border-color: var(--nrs-red-dark) !important;
+    color: #fff !important;
+}
+.btn-secondary {
+    border-color: var(--nrs-red) !important;
+    color: var(--nrs-red) !important;
+    background: transparent !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+}
+.btn-secondary:hover {
+    background: var(--nrs-red-light) !important;
+    border-color: var(--nrs-red) !important;
+    color: var(--nrs-red-dark) !important;
+}
+
+/* ─────────────────────────────────────────
+   4. LINKS
+   ───────────────────────────────────────── */
+a { color: var(--nrs-red); }
+a:hover { color: var(--nrs-red-dark); }
+/* Keep nav links and footer links from being forced red */
+.navbar-nav a,
+#footer a, .o_footer a,
+.breadcrumb a { color: inherit; }
+
+/* ─────────────────────────────────────────
+   5. FORMS — login, service request, portal
+   ───────────────────────────────────────── */
+.form-control {
+    border: 1px solid var(--nrs-border) !important;
+    border-radius: 6px !important;
+    padding: 10px 14px !important;
+    font-size: 14px !important;
+    transition: border-color .15s, box-shadow .15s;
+}
+.form-control:focus {
+    border-color: var(--nrs-red) !important;
+    box-shadow: 0 0 0 3px rgba(200,16,46,.08) !important;
+    outline: none !important;
+}
+label {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: var(--nrs-ink) !important;
+    margin-bottom: 4px !important;
+}
+.form-group {
+    margin-bottom: 16px !important;
+}
+select.form-control {
+    appearance: auto !important;
+}
+
+/* ─────────────────────────────────────────
+   6. LOGIN PAGE
+   ───────────────────────────────────────── */
+.oe_website_login_container {
+    max-width: 440px !important;
+    margin: 0 auto !important;
+    padding: 60px 20px 80px !important;
+}
+.oe_website_login_container h1,
+.oe_website_login_container h2,
+.oe_website_login_container h3 {
+    font-weight: 800 !important;
+    color: var(--nrs-ink) !important;
+}
+.oe_login_form {
+    background: var(--nrs-white) !important;
+    border: 1px solid var(--nrs-border) !important;
+    border-radius: 10px !important;
+    padding: 32px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04) !important;
+}
+.oe_login_form .btn-primary {
+    width: 100% !important;
+    padding: 12px !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    margin-top: 8px !important;
+}
+.oe_login_buttons a {
+    color: var(--nrs-red) !important;
+    font-size: 13px !important;
+}
+.oe_login_buttons a:hover {
+    color: var(--nrs-red-dark) !important;
+}
+
+/* ─────────────────────────────────────────
+   7. PORTAL PAGES
+   ───────────────────────────────────────── */
+.o_portal_wrap {
+    padding-top: 24px !important;
+}
+/* Portal sidebar */
+.o_portal_my_home .o_portal_doc_spinner,
+.o_portal_my_home a.list-group-item {
+    border-color: var(--nrs-border) !important;
+}
+.o_portal_my_home a.list-group-item:hover {
+    background: var(--nrs-red-light) !important;
+}
+.o_portal_my_home .badge-pill {
+    background: var(--nrs-red) !important;
+    color: #fff !important;
+}
+
+/* Portal doc tables */
+.o_portal_wrap .o_portal_my_doc_table th {
+    background: var(--nrs-bg) !important;
+    color: var(--nrs-ink-muted) !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    border-bottom: 2px solid var(--nrs-border) !important;
+}
+.o_portal_wrap .o_portal_my_doc_table td {
+    font-size: 13px !important;
+    vertical-align: middle !important;
+}
+.o_portal_wrap .o_portal_my_doc_table tr:hover {
+    background: var(--nrs-red-light) !important;
+}
+
+/* Portal headings */
+.o_portal_wrap h1, .o_portal_wrap h2, .o_portal_wrap h3,
+.o_portal_wrap h4, .o_portal_wrap h5 {
+    font-weight: 700 !important;
+    color: var(--nrs-ink) !important;
+}
+
+/* ─────────────────────────────────────────
+   8. SERVICE REQUEST PAGES (crnd_wsd)
+   ───────────────────────────────────────── */
+.wsd_request .panel,
+.wsd_request .card {
+    border: 1px solid var(--nrs-border) !important;
+    border-radius: 8px !important;
+}
+.wsd_request .panel-heading,
+.wsd_request .card-header {
+    background: var(--nrs-bg) !important;
+    border-bottom: 1px solid var(--nrs-border) !important;
+    font-weight: 600 !important;
+}
+.request-type-card,
+.request-category-card {
+    border: 1px solid var(--nrs-border) !important;
+    border-radius: 8px !important;
+    transition: border-color .15s, box-shadow .15s !important;
+}
+.request-type-card:hover,
+.request-category-card:hover {
+    border-color: var(--nrs-red) !important;
+    box-shadow: 0 2px 8px rgba(200,16,46,.08) !important;
+}
+.request-type-card.active,
+.request-category-card.active {
+    border-color: var(--nrs-red) !important;
+    background: var(--nrs-red-light) !important;
+}
+
+/* ─────────────────────────────────────────
+   9. CARDS — general
+   ───────────────────────────────────────── */
+.card {
+    border: 1px solid var(--nrs-border) !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+}
+.card-header {
+    background: var(--nrs-bg) !important;
+    border-bottom: 1px solid var(--nrs-border) !important;
+    font-weight: 600 !important;
+}
+
+/* ─────────────────────────────────────────
+   10. BREADCRUMB
+   ───────────────────────────────────────── */
+.breadcrumb {
+    background: transparent !important;
+    padding: 12px 0 !important;
+    font-size: 13px !important;
+}
+.breadcrumb-item a { color: var(--nrs-ink-muted) !important; }
+.breadcrumb-item a:hover { color: var(--nrs-red) !important; }
+.breadcrumb-item.active { color: var(--nrs-red) !important; }
+.breadcrumb-item + .breadcrumb-item::before { color: var(--nrs-ink-muted) !important; }
+
+/* ─────────────────────────────────────────
+   11. ALERTS / BADGES
+   ───────────────────────────────────────── */
+.alert-info {
+    background: var(--nrs-red-light) !important;
+    border-color: #F0D0D6 !important;
+    color: var(--nrs-red-dark) !important;
+}
+.badge-primary, .badge-success {
+    background: var(--nrs-red) !important;
+}
+
+/* ─────────────────────────────────────────
+   12. FOOTER
+   ───────────────────────────────────────── */
+#footer, .o_footer {
+    background: #1A1A1A !important;
+    color: #9CA3AF !important;
+    padding: 40px 0 20px !important;
+    border-top: 3px solid var(--nrs-red) !important;
+}
+#footer a, .o_footer a {
+    color: #9CA3AF !important;
+    font-size: 13px !important;
+    text-decoration: none !important;
+}
+#footer a:hover, .o_footer a:hover {
+    color: var(--nrs-white) !important;
+}
+#footer h4, #footer h5, #footer .h4, #footer .h5,
+.o_footer h4, .o_footer h5 {
+    color: var(--nrs-white) !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+    margin-bottom: 16px !important;
+}
+.o_footer_copyright {
+    background: #111 !important;
+    color: #6B7280 !important;
+    font-size: 12px !important;
+    text-align: center !important;
+    padding: 12px 0 !important;
+    border-top: 1px solid #2A2A2A !important;
+}
+.o_footer_copyright::before {
+    content: "\00A9  2025 Nigeria Revenue Service (NRS). All rights reserved. | Powered by WestMetro Limited";
+    display: block;
+}
+.o_footer_copyright > * { display: none !important; }
+
+/* ─────────────────────────────────────────
+   13. BARCODE STATION
+   ───────────────────────────────────────── */
+.ms-barcode-header {
+    background: var(--nrs-white) !important;
+    border-bottom: 2px solid var(--nrs-red) !important;
+}
+.ms-barcode-header h4 { color: var(--nrs-ink) !important; }
+.ms-barcode-header h4 span { color: var(--nrs-red) !important; }
+#scan-btn, .ms-scan-btn {
+    background: var(--nrs-red) !important;
+    border-color: var(--nrs-red) !important;
+}
+
+/* ─────────────────────────────────────────
+   14. PAGINATION
+   ───────────────────────────────────────── */
+.page-item.active .page-link {
+    background: var(--nrs-red) !important;
+    border-color: var(--nrs-red) !important;
+}
+.page-link { color: var(--nrs-red) !important; }
+.page-link:hover {
+    color: var(--nrs-red-dark) !important;
+    background: var(--nrs-red-light) !important;
+}
+
+/* ─────────────────────────────────────────
+   15. HIDE ODOO BRANDING
+   ───────────────────────────────────────── */
+.o_brand_promotion,
+a.badge[href*="odoo.com"],
+a[href*="odoo.com"]:not(.navbar-brand),
+.odoo_footer { display: none !important; }
+
+/* ─────────────────────────────────────────
+   16. HEADINGS — consistent weight + color
+   ───────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--nrs-ink);
+    font-weight: 700;
+}
+
+/* ─────────────────────────────────────────
+   17. SELECTION / HIGHLIGHT
+   ───────────────────────────────────────── */
+::selection {
+    background: var(--nrs-red-light);
+    color: var(--nrs-red-dark);
+}

@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<!-- ═══ TRIAGE LIST ═══ -->
+<record id="view_request_triage_tree" model="ir.ui.view">
+    <field name="name">request.request.triage.tree</field>
+    <field name="model">request.request</field>
+    <field name="priority">20</field>
+    <field name="arch" type="xml">
+        <tree string="FM Triage Inbox"
+              decoration-danger="sla_breached == True"
+              decoration-warning="priority_display == '2'"
+              decoration-muted="stage_id">
+            <field name="name" string="Ref"/>
+            <field name="request_text_sample" string="Subject"/>
+            <field name="intake_channel" string="Channel" optional="show"/>
+            <field name="generic_location_id" string="Location"/>
+            <field name="type_id" string="Category"/>
+            <field name="priority_display" string="Priority"/>
+            <field name="assigned_team_id" string="Team" optional="show"/>
+            <field name="user_id" string="Technician" optional="show"/>
+            <field name="sla_tier" string="SLA" optional="show"/>
+            <field name="sla_deadline" string="SLA Deadline" optional="hide"/>
+            <field name="sla_breached" string="Breached" optional="show"/>
+            <field name="stage_id" string="Status"/>
+            <field name="create_date" string="Received"/>
+        </tree>
+    </field>
+</record>
+
+<!-- ═══ TRIAGE FORM ═══ -->
+<record id="view_request_triage_form" model="ir.ui.view">
+    <field name="name">request.request.triage.form</field>
+    <field name="model">request.request</field>
+    <field name="priority">20</field>
+    <field name="arch" type="xml">
+        <form string="Triage Request">
+            <header>
+                <field name="stage_id" widget="statusbar" clickable="1"/>
+                <button name="action_assign_and_notify"
+                        string="Assign &amp; Notify" type="object"
+                        class="btn-primary"
+                        attrs="{'invisible': [('user_id','=',False)]}"/>
+                <button name="action_mark_resolved"
+                        string="Mark Resolved" type="object"
+                        class="btn-success"
+                        attrs="{'invisible': [('work_log','=',False)]}"/>
+            </header>
+
+            <sheet>
+                <!-- SLA breach banner -->
+                <div class="alert alert-danger" role="alert"
+                     attrs="{'invisible': [('sla_breached','=',False)]}">
+                    <strong>SLA Breached</strong> — This request is past its
+                    response deadline. Escalate immediately.
+                </div>
+
+                <div class="oe_title">
+                    <h1><field name="name" readonly="1"
+                               style="color:#C8102E;font-family:monospace;"/></h1>
+                </div>
+
+                <group>
+                    <group string="Request Details">
+                        <field name="request_text" nolabel="1" readonly="1"
+                               style="background:#f9f9f9;border-radius:6px;padding:10px;
+                                      font-size:13px;color:#374151;min-height:80px;"/>
+                        <field name="reporter_name" string="Reporter"/>
+                        <field name="reporter_contact" string="Contact"/>
+                        <field name="intake_channel" string="Received via"/>
+                        <field name="priority_display" string="Priority"
+                               widget="radio" options="{'horizontal': true}"/>
+                        <field name="generic_location_id" string="Office Location"/>
+                        <field name="type_id" string="Request Type"/>
+                        <field name="service_id" string="Service"/>
+                    </group>
+                    <group string="Triage &amp; Assignment">
+                        <field name="assigned_team_id" string="Assign to Team"/>
+                        <field name="user_id" string="Assign to Technician"/>
+                        <field name="sla_tier" string="SLA Tier"/>
+                        <field name="sla_deadline" string="SLA Deadline" readonly="1"/>
+                        <field name="sla_breached" string="SLA Breached" readonly="1"/>
+                        <field name="triage_note" string="Internal Note"
+                               placeholder="Notes for the assigned technician..."
+                               style="min-height:80px;"/>
+                    </group>
+                </group>
+
+                <!-- Resolution panel -->
+                <group string="Work Log &amp; Resolution"
+                       attrs="{'invisible': [('user_id','=',False)]}">
+                    <group>
+                        <field name="work_log" string="Work Done"
+                               placeholder="Describe what was done..."
+                               style="min-height:80px;"/>
+                        <field name="parts_used" string="Parts / Materials"/>
+                        <field name="time_spent_mins" string="Time Spent (min)"/>
+                    </group>
+                    <group>
+                        <field name="resolution_note" string="Resolution Summary"
+                               placeholder="Summary for the requester..."
+                               style="min-height:80px;"/>
+                    </group>
+                </group>
+            </sheet>
+
+            <div class="oe_chatter">
+                <field name="message_follower_ids" widget="mail_followers"/>
+                <field name="activity_ids" widget="mail_activity"/>
+                <field name="message_ids" widget="mail_thread"/>
+            </div>
+        </form>
+    </field>
+</record>
+
+<!-- ═══ TRIAGE KANBAN ═══ -->
+<record id="view_request_triage_kanban" model="ir.ui.view">
+    <field name="name">request.request.triage.kanban</field>
+    <field name="model">request.request</field>
+    <field name="priority">20</field>
+    <field name="arch" type="xml">
+        <kanban default_group_by="stage_id" class="o_kanban_small_column"
+                group_create="false">
+            <field name="name"/>
+            <field name="request_text_sample"/>
+            <field name="stage_id"/>
+            <field name="priority_display"/>
+            <field name="user_id"/>
+            <field name="sla_tier"/>
+            <field name="sla_breached"/>
+            <field name="intake_channel"/>
+            <field name="generic_location_id"/>
+            <field name="create_date"/>
+            <templates>
+                <t t-name="kanban-box">
+                    <div t-attf-class="oe_kanban_card oe_kanban_global_click
+                        #{record.sla_breached.raw_value ? 'border-danger' : ''}">
+                        <div class="o_kanban_record_top">
+                            <div class="o_kanban_record_headings">
+                                <strong style="color:#C8102E;font-family:monospace;font-size:12px;">
+                                    <field name="name"/>
+                                </strong>
+                            </div>
+                            <div>
+                                <t t-if="record.sla_breached.raw_value">
+                                    <span class="badge badge-danger"
+                                          style="font-size:10px;">Breached</span>
+                                </t>
+                                <t t-elif="record.priority_display.raw_value == '2' or
+                                           record.priority_display.raw_value == '3'">
+                                    <span class="badge badge-warning"
+                                          style="font-size:10px;">Urgent</span>
+                                </t>
+                            </div>
+                        </div>
+                        <div class="o_kanban_record_body">
+                            <p style="font-size:12px;color:#374151;
+                                      white-space:nowrap;overflow:hidden;
+                                      text-overflow:ellipsis;max-width:200px;margin:4px 0;">
+                                <field name="request_text_sample"/>
+                            </p>
+                            <span t-if="record.generic_location_id.value"
+                                  style="font-size:11px;color:#6B7280;">
+                                <field name="generic_location_id"/>
+                            </span>
+                        </div>
+                        <div class="o_kanban_record_bottom">
+                            <div class="oe_kanban_bottom_left">
+                                <span style="font-size:11px;color:#9CA3AF;">
+                                    <field name="create_date" widget="date"/>
+                                </span>
+                            </div>
+                            <div class="oe_kanban_bottom_right">
+                                <field name="user_id"
+                                       widget="many2one_avatar_user"/>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </templates>
+        </kanban>
+    </field>
+</record>
+
+<!-- ═══ SEARCH VIEW ═══ -->
+<record id="view_request_triage_search" model="ir.ui.view">
+    <field name="name">request.request.triage.search</field>
+    <field name="model">request.request</field>
+    <field name="priority">20</field>
+    <field name="arch" type="xml">
+        <search string="Search Requests">
+            <field name="name" string="Reference"/>
+            <field name="request_text_sample" string="Subject"/>
+            <field name="reporter_name" string="Reporter"/>
+            <field name="generic_location_id" string="Location"/>
+            <field name="user_id" string="Technician"/>
+            <field name="assigned_team_id" string="Team"/>
+
+            <filter name="my_requests" string="Assigned to Me"
+                    domain="[('user_id','=',uid)]"/>
+            <filter name="unassigned" string="Unassigned"
+                    domain="[('user_id','=',False)]"/>
+            <filter name="sla_breached" string="SLA Breached"
+                    domain="[('sla_breached','=',True)]"/>
+            <filter name="high_priority" string="High Priority"
+                    domain="[('priority_display','in',['2','3'])]"/>
+            <separator/>
+            <filter name="channel_whatsapp" string="WhatsApp"
+                    domain="[('intake_channel','=','whatsapp')]"/>
+            <filter name="channel_portal" string="Portal"
+                    domain="[('intake_channel','=','portal')]"/>
+            <filter name="channel_email" string="Email"
+                    domain="[('intake_channel','=','email')]"/>
+            <separator/>
+            <filter name="today" string="Today"
+                    domain="[('create_date','&gt;=',
+                             (context_today()).strftime('%Y-%m-%d'))]"/>
+            <filter name="open" string="Open"
+                    domain="[('closed','=',False)]"/>
+
+            <group expand="0" string="Group By">
+                <filter name="group_stage" string="Stage"
+                        context="{'group_by': 'stage_id'}"/>
+                <filter name="group_team" string="Team"
+                        context="{'group_by': 'assigned_team_id'}"/>
+                <filter name="group_tech" string="Technician"
+                        context="{'group_by': 'user_id'}"/>
+                <filter name="group_location" string="Location"
+                        context="{'group_by': 'generic_location_id'}"/>
+                <filter name="group_channel" string="Channel"
+                        context="{'group_by': 'intake_channel'}"/>
+                <filter name="group_priority" string="Priority"
+                        context="{'group_by': 'priority_display'}"/>
+            </group>
+        </search>
+    </field>
+</record>
+
+</odoo>

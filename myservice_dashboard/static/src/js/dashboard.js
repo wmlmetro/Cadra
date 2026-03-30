@@ -160,19 +160,25 @@ odoo.define('myservice_dashboard.Dashboard', function (require) {
         },
 
         _initEmptyMap: function() {
+            var self = this;
             var container = document.getElementById('ms-map');
             if (!container || !window.L || !window.L.map) return;
+            if (container._leaflet_id) return; // already initialised
             // Clear loader
             container.innerHTML = '';
             if (!this.map) {
-                this.map = window.L.map('ms-map', {
+                if (container.clientWidth === 0 || container.clientHeight === 0) {
+                    setTimeout(function(){ self._initEmptyMap(); }, 200);
+                    return;
+                }
+                this.map = window.L.map(container, {
                     center:[9.0,8.5], zoom:6, minZoom:5,
                     maxBounds:[[3.5,2.0],[14.5,16.0]],
                     maxBoundsViscosity:0.8
                 });
                 window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                     {attribution:'© OpenStreetMap contributors', maxZoom:18}).addTo(this.map);
-                setTimeout(function(){ if(this.map) this.map.invalidateSize(); }.bind(this), 100);
+                setTimeout(function(){ if(self.map) self.map.invalidateSize(); }, 300);
             }
         },
 
@@ -185,9 +191,16 @@ odoo.define('myservice_dashboard.Dashboard', function (require) {
             }
             var container = document.getElementById('ms-map');
             if (!container) return;
-            container.innerHTML = '';
             if (!this.map) {
-                this.map = window.L.map('ms-map', {
+                // Container not yet sized by DOM layout — retry
+                if (container.clientWidth === 0 || container.clientHeight === 0) {
+                    setTimeout(function() { self._renderMap(); }, 200);
+                    return;
+                }
+                // Guard against double init
+                if (container._leaflet_id) return;
+                container.innerHTML = '';
+                this.map = window.L.map(container, {
                     center:[9.0,8.5], zoom:6, minZoom:5,
                     maxBounds:[[3.5,2.0],[14.5,16.0]],
                     maxBoundsViscosity:0.8

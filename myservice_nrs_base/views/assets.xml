@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Inject DM Sans + DM Mono Google Fonts into the backend head -->
+    <template id="nrs_google_fonts" name="NRS Google Fonts"
+              inherit_id="web.webclient_bootstrap" priority="5">
+        <xpath expr="//t[@t-call-assets='web.assets_common'][1]" position="before">
+            <link rel="preconnect" href="https://fonts.googleapis.com"/>
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300..700&amp;family=DM+Mono:wght@400;500&amp;display=swap"/>
+        </xpath>
+    </template>
+</odoo>

@@ -1,12 +1,13 @@
 {
     'name': 'NRS Facilities Management Dashboard',
-    'version': '15.0.1.0.0',
-    'summary': 'FM operations dashboard — requests by domain, SLA status, team workload, overdue alerts',
+    'version': '15.0.2.0.0',
+    'summary': 'FM operations dashboard — KPIs, SLA table, map, request list, team workload',
     'category': 'Facilities',
     'author': 'WestMetro Limited',
-    'depends': ['base', 'web', 'mail', 'generic_request', 'generic_service', 'generic_team'],
+    'depends': ['base', 'web', 'mail', 'generic_request', 'generic_service', 'generic_location', 'myservice_nrs_base'],
     'data': [
         'views/fm_dashboard_menu.xml',
+        'data/default_home_action.xml',
     ],
     'assets': {
         'web.assets_backend': [

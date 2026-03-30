@@ -80,7 +80,7 @@
                         display: flex;
                         justify-content: space-between;
                     ">
-                        <span>myservice.com.ng</span>
+                        <span>myservice.com.ng/a/<t t-esc="tag.asset_id.asset_code"/></span>
                         <span t-esc="tag.asset_id.asset_code"/>
                     </div>
                 </div>
@@ -160,7 +160,7 @@
                                 </tr>
                             </table>
                             <div style="border-top:0.5px solid #eee; margin-top:4px; padding-top:2px; font-size:6px; color:#aaa; display:flex; justify-content:space-between;">
-                                <span>myservice.com.ng</span>
+                                <span>myservice.com.ng/a/<t t-esc="tag.asset_id.asset_code"/></span>
                                 <span t-esc="tag.asset_id.asset_code"/>
                             </div>
                         </div>

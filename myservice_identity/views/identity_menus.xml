@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_identity_root" name="Identity"
+              sequence="90" web_icon="myservice_identity,static/description/icon.png"/>
+    <menuitem id="menu_identity_employees" name="Employees"
+              parent="menu_identity_root"
+              action="action_employee_ir_search" sequence="10"/>
+    <menuitem id="menu_identity_sync_log" name="SAP Sync Log"
+              parent="menu_identity_root"
+              action="action_sap_sync_log" sequence="20"/>
+    <menuitem id="menu_identity_import" name="Import from SAP CSV"
+              parent="menu_identity_root"
+              action="action_sap_import_wizard" sequence="30"/>
+</odoo>

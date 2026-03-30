@@ -11,6 +11,7 @@
         'hr',
         'mail',
         'web',
+        'myservice_nrs_base',
     ],
     'data': [
         'security/bus_security.xml',

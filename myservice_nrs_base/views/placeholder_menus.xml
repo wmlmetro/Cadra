@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ══ Placeholder client actions + top-level menus ══ -->
+
+    <!-- Facility Command Center -->
+    <record id="action_facility_command_center" model="ir.actions.client">
+        <field name="name">Facility Command Center</field>
+        <field name="tag">nrs_placeholder</field>
+        <field name="params" eval="{'title': 'Facility Command Center', 'subtitle': 'Summary of all facility operations across NRS offices', 'icon': 'building'}"/>
+    </record>
+    <record id="menu_facility_command_center" model="ir.ui.menu">
+        <field name="name">Facility Command Center</field>
+        <field name="sequence">40</field>
+        <field name="action" ref="action_facility_command_center"/>
+        <field name="web_icon">myservice_nrs_base,static/description/icon.png</field>
+    </record>
+
+    <!-- Building Services -->
+    <record id="action_building_services" model="ir.actions.client">
+        <field name="name">Building Services</field>
+        <field name="tag">nrs_placeholder</field>
+        <field name="params" eval="{'title': 'Building Services', 'subtitle': 'Maintenance and management of NRS buildings', 'icon': 'building', 'coming_soon': True}"/>
+    </record>
+    <record id="menu_building_services" model="ir.ui.menu">
+        <field name="name">Building Services</field>
+        <field name="sequence">41</field>
+        <field name="action" ref="action_building_services"/>
+        <field name="web_icon">myservice_nrs_base,static/description/icon.png</field>
+    </record>
+
+    <!-- Plumbing & Drainage -->
+    <record id="action_plumbing_drainage" model="ir.actions.client">
+        <field name="name">Plumbing &amp; Drainage</field>
+        <field name="tag">nrs_placeholder</field>
+        <field name="params" eval="{'title': 'Plumbing &amp; Drainage', 'subtitle': 'Water systems, drainage and sanitation across NRS offices', 'icon': 'droplet', 'coming_soon': True}"/>
+    </record>
+    <record id="menu_plumbing_drainage" model="ir.ui.menu">
+        <field name="name">Plumbing &amp; Drainage</field>
+        <field name="sequence">42</field>
+        <field name="action" ref="action_plumbing_drainage"/>
+        <field name="web_icon">myservice_nrs_base,static/description/icon.png</field>
+    </record>
+
+    <!-- Plant & Machinery -->
+    <record id="action_plant_machinery" model="ir.actions.client">
+        <field name="name">Plant &amp; Machinery</field>
+        <field name="tag">nrs_placeholder</field>
+        <field name="params" eval="{'title': 'Plant &amp; Machinery', 'subtitle': 'Generators, HVAC, electrical plant and heavy equipment', 'icon': 'cog', 'coming_soon': True}"/>
+    </record>
+    <record id="menu_plant_machinery" model="ir.ui.menu">
+        <field name="name">Plant &amp; Machinery</field>
+        <field name="sequence">43</field>
+        <field name="action" ref="action_plant_machinery"/>
+        <field name="web_icon">myservice_nrs_base,static/description/icon.png</field>
+    </record>
+
+    <!-- Security Brief -->
+    <record id="action_security_brief" model="ir.actions.client">
+        <field name="name">Security Brief</field>
+        <field name="tag">nrs_placeholder</field>
+        <field name="params" eval="{'title': 'Security Brief', 'subtitle': 'Daily security situation summary, threat level and recommended actions', 'icon': 'shield', 'coming_soon': True}"/>
+    </record>
+    <record id="menu_security_brief" model="ir.ui.menu">
+        <field name="name">Security Brief</field>
+        <field name="sequence">52</field>
+        <field name="action" ref="action_security_brief"/>
+        <field name="web_icon">myservice_nrs_base,static/description/icon.png</field>
+    </record>
+
+    <!-- Case Management -->
+    <record id="action_case_management" model="ir.actions.client">
+        <field name="name">Case Management</field>
+        <field name="tag">nrs_placeholder</field>
+        <field name="params" eval="{'title': 'Case Management', 'subtitle': 'Security incidents, investigations and case tracking', 'icon': 'folder', 'coming_soon': True}"/>
+    </record>
+    <record id="menu_case_management" model="ir.ui.menu">
+        <field name="name">Case Management</field>
+        <field name="sequence">53</field>
+        <field name="action" ref="action_case_management"/>
+        <field name="web_icon">myservice_nrs_base,static/description/icon.png</field>
+    </record>
+
+    <!-- OSINT -->
+    <record id="action_osint" model="ir.actions.client">
+        <field name="name">OSINT</field>
+        <field name="tag">nrs_placeholder</field>
+        <field name="params" eval="{'title': 'OSINT', 'subtitle': 'Open-source intelligence gathering and analysis', 'icon': 'search', 'coming_soon': True}"/>
+    </record>
+    <record id="menu_osint" model="ir.ui.menu">
+        <field name="name">OSINT</field>
+        <field name="sequence">54</field>
+        <field name="action" ref="action_osint"/>
+        <field name="web_icon">myservice_nrs_base,static/description/icon.png</field>
+    </record>
+
+    <!-- AI Patterns -->
+    <record id="action_ai_patterns" model="ir.actions.client">
+        <field name="name">AI Patterns</field>
+        <field name="tag">nrs_placeholder</field>
+        <field name="params" eval="{'title': 'AI Patterns', 'subtitle': 'Machine learning anomaly detection and pattern analysis', 'icon': 'cpu', 'coming_soon': True}"/>
+    </record>
+    <record id="menu_ai_patterns" model="ir.ui.menu">
+        <field name="name">AI Patterns</field>
+        <field name="sequence">55</field>
+        <field name="action" ref="action_ai_patterns"/>
+        <field name="web_icon">myservice_nrs_base,static/description/icon.png</field>
+    </record>
+
+    <!-- Fuel Card -->
+    <record id="action_fuel_card" model="ir.actions.client">
+        <field name="name">Fuel Card</field>
+        <field name="tag">nrs_placeholder</field>
+        <field name="params" eval="{'title': 'Fuel Card', 'subtitle': 'Fleet fuel card management, usage tracking and reconciliation', 'icon': 'credit-card', 'coming_soon': True}"/>
+    </record>
+    <record id="menu_fuel_card" model="ir.ui.menu">
+        <field name="name">Fuel Card</field>
+        <field name="sequence">62</field>
+        <field name="action" ref="action_fuel_card"/>
+        <field name="web_icon">myservice_nrs_base,static/description/icon.png</field>
+    </record>
+
+    <!-- Staff Bus -->
+    <record id="action_staff_bus" model="ir.actions.client">
+        <field name="name">Staff Bus</field>
+        <field name="tag">nrs_placeholder</field>
+        <field name="params" eval="{'title': 'Staff Bus', 'subtitle': 'Staff bus route management, scheduling and commute coordination', 'icon': 'bus', 'coming_soon': True}"/>
+    </record>
+    <record id="menu_staff_bus" model="ir.ui.menu">
+        <field name="name">Staff Bus</field>
+        <field name="sequence">63</field>
+        <field name="action" ref="action_staff_bus"/>
+        <field name="web_icon">myservice_nrs_base,static/description/icon.png</field>
+    </record>
+
+</odoo>

@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<!-- ═══ P2 — FM L1 Triage Inbox ═══ -->
+<record id="action_triage_inbox" model="ir.actions.act_window">
+    <field name="name">Triage Inbox</field>
+    <field name="res_model">request.request</field>
+    <field name="view_mode">tree,kanban,form</field>
+    <field name="search_view_id" ref="view_request_triage_search"/>
+    <field name="domain">[('user_id','=',False),('closed','=',False)]</field>
+    <field name="context">{'search_default_unassigned': 1}</field>
+    <field name="help" type="html">
+        <p class="o_view_nocontent_smiling_face">
+            No unassigned requests. All requests have been triaged.
+        </p>
+    </field>
+</record>
+<record id="action_triage_inbox_tree" model="ir.actions.act_window.view">
+    <field name="sequence">1</field>
+    <field name="view_mode">tree</field>
+    <field name="view_id" ref="view_request_triage_tree"/>
+    <field name="act_window_id" ref="action_triage_inbox"/>
+</record>
+<record id="action_triage_inbox_kanban" model="ir.actions.act_window.view">
+    <field name="sequence">2</field>
+    <field name="view_mode">kanban</field>
+    <field name="view_id" ref="view_request_triage_kanban"/>
+    <field name="act_window_id" ref="action_triage_inbox"/>
+</record>
+<record id="action_triage_inbox_form" model="ir.actions.act_window.view">
+    <field name="sequence">3</field>
+    <field name="view_mode">form</field>
+    <field name="view_id" ref="view_request_triage_form"/>
+    <field name="act_window_id" ref="action_triage_inbox"/>
+</record>
+
+<!-- ═══ P2 — All Requests ═══ -->
+<record id="action_all_requests_fm" model="ir.actions.act_window">
+    <field name="name">All Requests</field>
+    <field name="res_model">request.request</field>
+    <field name="view_mode">tree,kanban,form</field>
+    <field name="search_view_id" ref="view_request_triage_search"/>
+    <field name="context">{'search_default_group_stage': 1}</field>
+    <field name="help" type="html">
+        <p class="o_view_nocontent_smiling_face">
+            No requests found.
+        </p>
+    </field>
+</record>
+<record id="action_all_requests_fm_tree" model="ir.actions.act_window.view">
+    <field name="sequence">1</field>
+    <field name="view_mode">tree</field>
+    <field name="view_id" ref="view_request_triage_tree"/>
+    <field name="act_window_id" ref="action_all_requests_fm"/>
+</record>
+<record id="action_all_requests_fm_kanban" model="ir.actions.act_window.view">
+    <field name="sequence">2</field>
+    <field name="view_mode">kanban</field>
+    <field name="view_id" ref="view_request_triage_kanban"/>
+    <field name="act_window_id" ref="action_all_requests_fm"/>
+</record>
+<record id="action_all_requests_fm_form" model="ir.actions.act_window.view">
+    <field name="sequence">3</field>
+    <field name="view_mode">form</field>
+    <field name="view_id" ref="view_request_triage_form"/>
+    <field name="act_window_id" ref="action_all_requests_fm"/>
+</record>
+
+<!-- ═══ P2 — Overdue Requests ═══ -->
+<record id="action_overdue_requests" model="ir.actions.act_window">
+    <field name="name">Overdue Requests</field>
+    <field name="res_model">request.request</field>
+    <field name="view_mode">tree,form</field>
+    <field name="search_view_id" ref="view_request_triage_search"/>
+    <field name="domain">[('sla_breached','=',True),('closed','=',False)]</field>
+    <field name="context">{'search_default_sla_breached': 1}</field>
+</record>
+<record id="action_overdue_requests_tree" model="ir.actions.act_window.view">
+    <field name="sequence">1</field>
+    <field name="view_mode">tree</field>
+    <field name="view_id" ref="view_request_triage_tree"/>
+    <field name="act_window_id" ref="action_overdue_requests"/>
+</record>
+<record id="action_overdue_requests_form" model="ir.actions.act_window.view">
+    <field name="sequence">2</field>
+    <field name="view_mode">form</field>
+    <field name="view_id" ref="view_request_triage_form"/>
+    <field name="act_window_id" ref="action_overdue_requests"/>
+</record>
+
+<!-- ═══ P3 — My Jobs (Technician) ═══ -->
+<record id="action_my_jobs" model="ir.actions.act_window">
+    <field name="name">My Jobs</field>
+    <field name="res_model">request.request</field>
+    <field name="view_mode">tree,kanban,form</field>
+    <field name="search_view_id" ref="view_request_triage_search"/>
+    <field name="domain">[('user_id','=',uid),('closed','=',False)]</field>
+    <field name="context">{'search_default_my_requests': 1}</field>
+    <field name="help" type="html">
+        <p class="o_view_nocontent_smiling_face">
+            No jobs assigned to you. Check back later.
+        </p>
+    </field>
+</record>
+<record id="action_my_jobs_tree" model="ir.actions.act_window.view">
+    <field name="sequence">1</field>
+    <field name="view_mode">tree</field>
+    <field name="view_id" ref="view_request_triage_tree"/>
+    <field name="act_window_id" ref="action_my_jobs"/>
+</record>
+<record id="action_my_jobs_kanban" model="ir.actions.act_window.view">
+    <field name="sequence">2</field>
+    <field name="view_mode">kanban</field>
+    <field name="view_id" ref="view_request_triage_kanban"/>
+    <field name="act_window_id" ref="action_my_jobs"/>
+</record>
+<record id="action_my_jobs_form" model="ir.actions.act_window.view">
+    <field name="sequence">3</field>
+    <field name="view_mode">form</field>
+    <field name="view_id" ref="view_request_triage_form"/>
+    <field name="act_window_id" ref="action_my_jobs"/>
+</record>
+
+<!-- ═══ MENUS ═══ -->
+<!-- Add under Facility Command Center (top-level menu id=300) -->
+<menuitem id="menu_triage_inbox"
+          name="Triage Inbox"
+          parent="myservice_nrs_base.menu_facility_command_center"
+          action="action_triage_inbox"
+          sequence="10"/>
+<menuitem id="menu_all_requests_fm"
+          name="All Requests"
+          parent="myservice_nrs_base.menu_facility_command_center"
+          action="action_all_requests_fm"
+          sequence="20"/>
+<menuitem id="menu_overdue_requests"
+          name="Overdue"
+          parent="myservice_nrs_base.menu_facility_command_center"
+          action="action_overdue_requests"
+          sequence="30"/>
+<menuitem id="menu_my_jobs"
+          name="My Jobs"
+          parent="myservice_nrs_base.menu_facility_command_center"
+          action="action_my_jobs"
+          sequence="40"/>
+
+</odoo>

@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- Hidden: accessed via AI Patterns tab page instead -->
     <menuitem id="menu_ai_root" name="AI Intelligence"
         parent="myservice_security.menu_security_root"
-        sequence="60"/>
+        sequence="60" active="0"/>
     <menuitem id="menu_ai_alerts" name="Pattern Alerts"
         parent="menu_ai_root" sequence="10"
-        action="action_ai_pattern_alerts"/>
+        action="action_ai_pattern_alerts" active="0"/>
     <menuitem id="menu_ai_briefs" name="Daily Briefs"
         parent="menu_ai_root" sequence="20"
-        action="action_ai_daily_briefs"/>
+        action="action_ai_daily_briefs" active="0"/>
 </odoo>

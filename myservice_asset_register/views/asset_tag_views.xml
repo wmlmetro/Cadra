@@ -110,6 +110,7 @@
             <!-- Add tag history page -->
             <xpath expr="//page[@name='notes']" position="before">
                 <page string="Tag History" name="tags">
+                    <field name="active_tag_id" invisible="1"/>
                     <field name="tag_ids">
                         <tree decoration-success="state=='active'"
                               decoration-muted="state=='scrapped'">
@@ -136,6 +137,12 @@
         </field>
     </record>
 
+    <record id="action_nrs_asset_import_lines" model="ir.actions.act_window">
+        <field name="name">Import Lines</field>
+        <field name="res_model">nrs.asset.import.line</field>
+        <field name="view_mode">tree</field>
+    </record>
+
     <!-- ── Import Views ── -->
     <record id="view_nrs_asset_import_form" model="ir.ui.view">
         <field name="name">nrs.asset.import.form</field>
@@ -154,8 +161,8 @@
                 </header>
                 <sheet>
                     <div class="oe_button_box">
-                        <button class="oe_stat_button" icon="fa-list" type="object"
-                                name="%(action_nrs_asset_import_lines)s">
+                        <button class="oe_stat_button" icon="fa-list" type="action"
+                                name="%(action_nrs_asset_import_lines)d">
                             <field name="total_lines" widget="statinfo" string="Lines"/>
                         </button>
                     </div>
@@ -241,12 +248,6 @@
         <field name="name">Asset Import</field>
         <field name="res_model">nrs.asset.import</field>
         <field name="view_mode">tree,form</field>
-    </record>
-
-    <record id="action_nrs_asset_import_lines" model="ir.actions.act_window">
-        <field name="name">Import Lines</field>
-        <field name="res_model">nrs.asset.import.line</field>
-        <field name="view_mode">tree</field>
     </record>
 
     <!-- A4 sheet report action -->

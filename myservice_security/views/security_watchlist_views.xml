@@ -14,7 +14,7 @@
                     decoration-danger="threat_level=='critical'"
                     decoration-warning="threat_level=='high'"
                     decoration-info="threat_level=='medium'"
-                    decoration-secondary="threat_level=='low'"/>
+                    decoration-muted="threat_level=='low'"/>
                 <field name="id_number"/>
                 <field name="vehicle_plate"/>
                 <field name="last_sighted"/>

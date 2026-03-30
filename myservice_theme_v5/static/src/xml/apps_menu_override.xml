@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates>
+    <!-- NRS grouped layout handled in JS via DOM manipulation in apps_menu_grouped.js -->
+</templates>

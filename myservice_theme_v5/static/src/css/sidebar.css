@@ -1,0 +1,325 @@
+/* ══════════════════════════════════════
+   NRS Left Sidebar Navigation
+   Matches NRS Workspace Central design
+   ══════════════════════════════════════ */
+
+:root {
+    --nrs-sidebar-width: 210px;
+    --nrs-sidebar-collapsed-width: 52px;
+    --nrs-sidebar-bg: #FFFFFF;
+    --nrs-sidebar-border: #E5E7EB;
+    --nrs-sidebar-text: #6B7280;
+    --nrs-sidebar-text-hover: #1A1A1A;
+    --nrs-sidebar-active-bg: #FBE9EC;
+    --nrs-sidebar-active-text: var(--nrs-red);
+    --nrs-sidebar-active-border: var(--nrs-red);
+    --nrs-sidebar-label-color: #C0C0C0;
+}
+
+/* ── Hide top navbar waffle button — sidebar replaces it ── */
+.o_navbar_apps_menu { display: none !important; }
+
+/* ── Hide original app brand in navbar — sidebar shows it ── */
+.o_menu_brand { display: none !important; }
+
+/* ── Slim down top navbar ── */
+.o_main_navbar {
+    background: #FFFFFF !important;
+    border-bottom: 1px solid var(--nrs-sidebar-border) !important;
+    height: 46px !important;
+    box-shadow: none !important;
+}
+
+/* ── Sidebar container ── */
+#nrs-sidebar {
+    width: var(--nrs-sidebar-width);
+    min-width: var(--nrs-sidebar-width);
+    background: var(--nrs-sidebar-bg);
+    border-right: 1px solid var(--nrs-sidebar-border);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    transition: width 0.25s ease, min-width 0.25s ease;
+    overflow: hidden;
+}
+
+#nrs-sidebar.collapsed {
+    width: var(--nrs-sidebar-collapsed-width);
+    min-width: var(--nrs-sidebar-collapsed-width);
+}
+
+/* ── Push content right to make room for sidebar ── */
+body.nrs-sidebar-expanded .o_main_navbar,
+body.nrs-sidebar-expanded .o_action_manager {
+    margin-left: var(--nrs-sidebar-width) !important;
+    transition: margin-left 0.25s ease;
+}
+
+body.nrs-sidebar-collapsed .o_main_navbar,
+body.nrs-sidebar-collapsed .o_action_manager {
+    margin-left: var(--nrs-sidebar-collapsed-width) !important;
+    transition: margin-left 0.25s ease;
+}
+
+/* ── Logo area at top of sidebar ── */
+#nrs-sidebar .nrs-sidebar-logo {
+    height: 80px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--nrs-sidebar-border);
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+#nrs-sidebar .nrs-logo-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none !important;
+    overflow: hidden;
+}
+
+#nrs-sidebar .nrs-logo-img {
+    height: 64px;
+    width: auto;
+    max-width: 160px;
+    object-fit: contain;
+    flex-shrink: 0;
+    transition: height 0.25s ease, max-width 0.25s ease;
+}
+
+#nrs-sidebar .nrs-logo-brand {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: opacity 0.2s ease;
+}
+
+#nrs-sidebar .nrs-logo-name {
+    font-size: 15px;
+    font-weight: 800;
+    color: #1A1A1A;
+    letter-spacing: -0.3px;
+    line-height: 1.1;
+    font-family: 'DM Sans', sans-serif;
+    white-space: nowrap;
+}
+
+#nrs-sidebar .nrs-logo-name span {
+    color: var(--nrs-red);
+}
+
+/* Collapsed: hide brand text, keep logo icon */
+body.nrs-sidebar-collapsed #nrs-sidebar .nrs-logo-img {
+    height: 30px;
+    max-width: 30px;
+}
+
+body.nrs-sidebar-collapsed #nrs-sidebar .nrs-logo-brand {
+    opacity: 0;
+    width: 0;
+}
+
+/* ── Collapse toggle button ── */
+#nrs-sidebar .nrs-sidebar-toggle {
+    position: absolute;
+    top: 12px;
+    right: -11px;
+    width: 22px;
+    height: 22px;
+    background: #FFFFFF;
+    border: 1px solid var(--nrs-sidebar-border);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1001;
+    color: #6B7280;
+    transition: transform 0.25s, background 0.15s;
+}
+
+#nrs-sidebar .nrs-sidebar-toggle:hover {
+    background: #F3F4F6;
+    color: #1A1A1A;
+}
+
+body.nrs-sidebar-collapsed .nrs-sidebar-toggle {
+    transform: rotate(180deg);
+}
+
+/* ── Scrollable nav area ── */
+#nrs-sidebar .nrs-nav-inner {
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+    padding: 8px 6px;
+}
+
+/* ── Section group label ── */
+#nrs-sidebar .nrs-nav-section-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--nrs-sidebar-label-color);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 8px 8px 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: opacity 0.2s, height 0.2s;
+}
+
+body.nrs-sidebar-collapsed .nrs-nav-section-label {
+    opacity: 0;
+    height: 0;
+    padding: 0;
+    margin: 0;
+}
+
+/* ── Section divider ── */
+#nrs-sidebar .nrs-nav-divider {
+    height: 1px;
+    background: var(--nrs-sidebar-border);
+    margin: 5px 0;
+}
+
+/* ── Nav item ── */
+#nrs-sidebar .nrs-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--nrs-sidebar-text);
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    position: relative;
+    text-decoration: none;
+    transition: background 0.1s, color 0.1s;
+    border-left: 2px solid transparent;
+}
+
+#nrs-sidebar .nrs-nav-item:hover {
+    background: #F3F4F6;
+    color: var(--nrs-sidebar-text-hover);
+    text-decoration: none;
+}
+
+#nrs-sidebar .nrs-nav-item.active {
+    background: var(--nrs-sidebar-active-bg);
+    color: var(--nrs-sidebar-active-text);
+    font-weight: 600;
+    border-left-color: var(--nrs-sidebar-active-border);
+}
+
+/* ── Nav item SVG icon ── */
+#nrs-sidebar .nrs-nav-icon-wrap {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: #9CA3AF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#nrs-sidebar .nrs-nav-item.active .nrs-nav-icon-wrap {
+    color: var(--nrs-red);
+}
+#nrs-sidebar .nrs-nav-item:hover .nrs-nav-icon-wrap {
+    color: #1A1A1A;
+}
+
+/* ── Nav item label ── */
+#nrs-sidebar .nrs-nav-item .nrs-nav-label {
+    overflow: hidden;
+    transition: opacity 0.2s, max-width 0.25s;
+    max-width: 160px;
+}
+
+body.nrs-sidebar-collapsed .nrs-nav-item .nrs-nav-label {
+    opacity: 0;
+    max-width: 0;
+}
+
+/* ── Tooltip on collapsed items ── */
+#nrs-sidebar .nrs-nav-item .nrs-tooltip {
+    display: none;
+    position: fixed;
+    left: calc(var(--nrs-sidebar-collapsed-width) + 6px);
+    background: #1A1A1A;
+    color: #FFFFFF;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 9px;
+    border-radius: 5px;
+    white-space: nowrap;
+    z-index: 2000;
+    pointer-events: none;
+}
+
+body.nrs-sidebar-collapsed .nrs-nav-item:hover .nrs-tooltip {
+    display: block;
+}
+
+/* ── Collapsed — centre icons ── */
+body.nrs-sidebar-collapsed .nrs-nav-item {
+    justify-content: center;
+    padding: 8px;
+}
+
+/* ── User info at bottom ── */
+#nrs-sidebar .nrs-sidebar-user {
+    padding: 10px 12px;
+    border-top: 1px solid var(--nrs-sidebar-border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+#nrs-sidebar .nrs-user-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--nrs-red);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+#nrs-sidebar .nrs-user-name {
+    font-size: 11px;
+    font-weight: 500;
+    color: #4A4A4A;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+}
+
+body.nrs-sidebar-collapsed .nrs-user-name {
+    opacity: 0;
+    max-width: 0;
+}
+
+/* ── Print: hide sidebar ── */
+@media print {
+    #nrs-sidebar { display: none !important; }
+    .o_main_navbar, .o_action_manager {
+        margin-left: 0 !important;
+    }
+}

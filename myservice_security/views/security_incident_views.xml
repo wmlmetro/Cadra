@@ -13,7 +13,7 @@
                     decoration-danger="severity=='critical'"
                     decoration-warning="severity=='high'"
                     decoration-info="severity=='medium'"
-                    decoration-secondary="severity=='low'"/>
+                    decoration-muted="severity=='low'"/>
                 <field name="location_id"/>
                 <field name="date_incident"/>
                 <field name="reported_by"/>
@@ -21,7 +21,7 @@
                     decoration-danger="state=='escalated'"
                     decoration-warning="state=='investigating'"
                     decoration-success="state=='resolved'"
-                    decoration-secondary="state in ('new','closed')"/>
+                    decoration-muted="state in ('new','closed')"/>
                 <field name="assigned_to"/>
             </tree>
         </field>
@@ -53,11 +53,6 @@
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <button name="action_view_incidents" type="object"
-                            class="oe_stat_button" icon="fa-exclamation-triangle"
-                            attrs="{'invisible': [('id','=',False)]}">
-                            <field name="id" widget="statinfo" string="Ref"/>
-                        </button>
                     </div>
                     <div class="oe_title">
                         <h1><field name="name" readonly="1"/></h1>

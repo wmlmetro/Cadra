@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_asset_identity_form" model="ir.ui.view">
+        <field name="name">nrs.asset.identity.form</field>
+        <field name="model">nrs.asset</field>
+        <field name="inherit_id" ref="myservice_asset_register.view_nrs_asset_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Employee Assignment">
+                    <group>
+                        <field name="assigned_ir_number"/>
+                        <field name="assigned_employee_dept"/>
+                        <field name="assignment_date"/>
+                    </group>
+                    <group>
+                        <field name="retrieval_flag"/>
+                        <field name="retrieval_reason"
+                               attrs="{'invisible': [('retrieval_flag', '=', False)]}"/>
+                        <field name="retrieval_date"
+                               attrs="{'invisible': [('retrieval_flag', '=', False)]}"/>
+                    </group>
+                </group>
+                <div attrs="{'invisible': [('retrieval_flag', '=', False)]}">
+                    <button name="action_mark_retrieved" type="object"
+                            string="Mark as Retrieved" class="btn-success"/>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>

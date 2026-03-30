@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>NRS myservice — Facilities Management Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800;9..40,900&amp;display=swap" rel="stylesheet"/>
+    <style>
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'DM Sans',system-ui,-apple-system,sans-serif; color:#1A1A1A; background:#fff; -webkit-font-smoothing:antialiased; }
+        a { text-decoration:none; color:inherit; }
+        img { max-width:100%; height:auto; }
+
+        /* ── Top bar ── */
+        .nrs-topbar {
+            background:#1A1A1A; color:#9CA3AF; font-size:12px; padding:8px 24px;
+            display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;
+        }
+        .nrs-topbar-left { display:flex; align-items:center; gap:8px; }
+        .nrs-topbar-dot { width:6px; height:6px; background:#C8102E; border-radius:50%; display:inline-block; }
+        .nrs-topbar-right { display:flex; align-items:center; gap:20px; }
+        .nrs-topbar-right a { color:#9CA3AF; transition:color .15s; }
+        .nrs-topbar-right a:hover { color:#fff; }
+        .nrs-topbar-right strong { color:#fff; }
+
+        /* ── Navbar ── */
+        .nrs-nav {
+            background:#fff; border-bottom:1px solid #E5E7EB; padding:0 32px; height:70px;
+            display:flex; align-items:center; justify-content:space-between;
+            position:sticky; top:0; z-index:999;
+        }
+        .nrs-nav-left { display:flex; align-items:center; gap:48px; }
+        .nrs-nav-logo { height:44px; width:auto; object-fit:contain; }
+        .nrs-nav-logo-fallback { display:none; align-items:center; gap:6px; }
+        .nrs-nav-logo-fallback .nrs-abbr { font-size:22px; font-weight:900; color:#6B7280; letter-spacing:1px; }
+        .nrs-nav-logo-fallback .nrs-sep { width:1px; height:16px; background:#D1D5DB; }
+        .nrs-nav-logo-fallback .nrs-full { font-size:8px; color:#9CA3AF; font-weight:600; line-height:1.3; text-transform:uppercase; }
+        .nrs-nav-links { display:flex; gap:32px; }
+        .nrs-nav-links a { font-size:14px; color:#374151; font-weight:500; transition:color .15s; }
+        .nrs-nav-links a:hover { color:#C8102E; }
+        .nrs-nav-right { display:flex; align-items:center; gap:12px; }
+        .nrs-btn-primary {
+            background:#C8102E; color:#fff; padding:10px 22px; border-radius:6px;
+            font-size:14px; font-weight:700; display:inline-flex; align-items:center; gap:6px;
+            transition:background .15s;
+        }
+        .nrs-btn-primary:hover { background:#A00D24; color:#fff; }
+        .nrs-btn-outline {
+            border:1.5px solid #E5E7EB; color:#374151; padding:10px 20px; border-radius:6px;
+            font-size:14px; font-weight:600; transition:border-color .15s;
+        }
+        .nrs-btn-outline:hover { border-color:#C8102E; color:#C8102E; }
+
+        /* ── Hero ── */
+        .nrs-hero {
+            background:#FAFAF9; padding:80px 0 0; min-height:520px; display:flex; align-items:center;
+        }
+        .nrs-hero-inner {
+            max-width:1200px; margin:0 auto; padding:0 40px; width:100%;
+            display:flex; align-items:center; justify-content:space-between; gap:40px; flex-wrap:wrap;
+        }
+        .nrs-hero-text { max-width:560px; }
+        .nrs-pill {
+            display:inline-flex; align-items:center; gap:8px;
+            background:#fff; border:1px solid #E5E7EB; border-radius:20px;
+            padding:6px 16px; margin-bottom:28px;
+        }
+        .nrs-pill-dot { width:6px; height:6px; background:#10B981; border-radius:50%; display:inline-block; }
+        .nrs-pill-label { font-size:11px; font-weight:700; color:#374151; text-transform:uppercase; letter-spacing:1px; }
+        .nrs-hero h1 {
+            font-size:52px; font-weight:900; color:#1A1A1A; line-height:1.1;
+            margin-bottom:20px; letter-spacing:-1px;
+        }
+        .nrs-hero h1 em { color:#C8102E; font-style:italic; font-weight:900; }
+        .nrs-hero p { font-size:17px; color:#6B7280; line-height:1.7; margin-bottom:36px; max-width:480px; }
+        .nrs-hero-actions { display:flex; gap:14px; flex-wrap:wrap; }
+        .nrs-hero-actions .nrs-btn-primary { padding:14px 28px; font-size:15px; border-radius:7px; }
+        .nrs-hero-actions .nrs-btn-outline { padding:14px 28px; font-size:15px; border-radius:7px; background:#fff; }
+        .nrs-hero-graphic {
+            flex:1; min-width:340px; display:flex; justify-content:flex-end;
+        }
+
+        /* ── Quick-submit form ── */
+        .nrs-qf {
+            width:100%; max-width:400px;
+            background:#fff; border:1px solid #E5E7EB; border-radius:12px;
+            box-shadow:0 4px 24px rgba(0,0,0,.06); overflow:hidden;
+        }
+        .nrs-qf-header {
+            background:#1A1A1A; padding:18px 24px;
+            display:flex; align-items:center; justify-content:space-between;
+        }
+        .nrs-qf-header h3 { color:#fff; font-size:15px; font-weight:700; margin:0; }
+        .nrs-qf-header .nrs-qf-badge {
+            background:#C8102E; color:#fff; font-size:10px; font-weight:700;
+            padding:3px 10px; border-radius:10px; text-transform:uppercase; letter-spacing:.5px;
+        }
+        .nrs-qf-body { padding:20px 24px; }
+        .nrs-qf-row { margin-bottom:14px; }
+        .nrs-qf-row:last-child { margin-bottom:0; }
+        .nrs-qf-label {
+            display:block; font-size:11px; font-weight:700; color:#6B7280;
+            text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px;
+        }
+        .nrs-qf-input, .nrs-qf-select, .nrs-qf-textarea {
+            width:100%; border:1px solid #E5E7EB; border-radius:6px;
+            padding:9px 12px; font-size:13px; font-family:inherit; color:#1A1A1A;
+            background:#fff; outline:none; transition:border-color .15s, box-shadow .15s;
+        }
+        .nrs-qf-input:focus, .nrs-qf-select:focus, .nrs-qf-textarea:focus {
+            border-color:#C8102E; box-shadow:0 0 0 3px rgba(200,16,46,.06);
+        }
+        .nrs-qf-textarea { resize:vertical; min-height:64px; }
+        .nrs-qf-select { appearance:auto; }
+        .nrs-qf-row-2col { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+        .nrs-qf-submit {
+            width:100%; background:#C8102E; color:#fff; border:none; border-radius:6px;
+            padding:12px; font-size:14px; font-weight:700; font-family:inherit;
+            cursor:pointer; transition:background .15s; margin-top:6px;
+        }
+        .nrs-qf-submit:hover { background:#A00D24; }
+        .nrs-qf-submit:disabled { background:#D1D5DB; cursor:not-allowed; }
+        .nrs-qf-footer {
+            padding:0 24px 16px; text-align:center;
+        }
+        .nrs-qf-footer span { font-size:11px; color:#9CA3AF; }
+        .nrs-qf-success {
+            padding:32px 24px; text-align:center; display:none;
+        }
+        .nrs-qf-success .nrs-qf-check {
+            width:52px; height:52px; background:#10B981; border-radius:50%;
+            display:flex; align-items:center; justify-content:center; margin:0 auto 16px;
+        }
+        .nrs-qf-success h4 { font-size:16px; font-weight:700; color:#1A1A1A; margin-bottom:6px; }
+        .nrs-qf-success p { font-size:13px; color:#6B7280; margin:0; }
+        .nrs-qf-success .nrs-qf-ref {
+            display:inline-block; margin-top:12px; background:#F5F5F5; border-radius:6px;
+            padding:8px 16px; font-size:14px; font-weight:700; color:#1A1A1A; letter-spacing:.5px;
+        }
+        .nrs-qf-error {
+            background:#FEF2F2; border:1px solid #FECACA; border-radius:6px;
+            padding:8px 12px; font-size:12px; color:#991B1B; margin-bottom:10px; display:none;
+        }
+
+        /* ── Stats ── */
+        .nrs-stats { background:#3D1F1A; padding:48px 0; }
+        .nrs-stats-inner { max-width:1200px; margin:0 auto; padding:0 40px; display:grid; grid-template-columns:repeat(4,1fr); text-align:center; }
+        .nrs-stat { padding:20px; }
+        .nrs-stat:not(:last-child) { border-right:1px solid rgba(255,255,255,0.1); }
+        .nrs-stat-num { font-size:48px; font-weight:900; color:#fff; line-height:1; }
+        .nrs-stat-label { font-size:13px; color:rgba(255,255,255,0.7); margin-top:6px; font-weight:500; }
+
+        /* ── Section common ── */
+        .nrs-section { padding:80px 0; }
+        .nrs-section-inner { max-width:1200px; margin:0 auto; padding:0 40px; }
+        .nrs-section-tag {
+            font-size:10px; font-weight:700; color:#C8102E; text-transform:uppercase;
+            letter-spacing:1.5px; margin-bottom:10px; text-align:center;
+        }
+        .nrs-section-title { font-size:34px; font-weight:900; color:#1A1A1A; text-align:center; margin:0 0 52px; }
+
+        /* ── Services grid ── */
+        .nrs-services-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
+        .nrs-svc-card {
+            border:1px solid #E5E7EB; border-radius:10px; padding:28px; transition:border-color .2s;
+        }
+        .nrs-svc-card:hover { border-color:#C8102E; }
+        .nrs-svc-icon {
+            width:44px; height:44px; background:#FBE9EC; border-radius:9px;
+            display:flex; align-items:center; justify-content:center; margin-bottom:18px;
+        }
+        .nrs-svc-card h3 { font-size:16px; font-weight:700; color:#1A1A1A; margin-bottom:8px; }
+        .nrs-svc-card p { font-size:13px; color:#6B7280; line-height:1.6; margin:0; }
+
+        /* ── How it works ── */
+        .nrs-hiw { background:#F5F5F5; }
+        .nrs-hiw-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
+        .nrs-hiw-card {
+            background:#fff; border-radius:10px; padding:32px 24px;
+            border:1px solid #E5E7EB; text-align:center;
+        }
+        .nrs-hiw-num {
+            width:40px; height:40px; background:#C8102E; border-radius:50%;
+            color:#fff; font-size:16px; font-weight:800;
+            display:flex; align-items:center; justify-content:center; margin:0 auto 18px;
+        }
+        .nrs-hiw-card h3 { font-size:16px; font-weight:700; color:#1A1A1A; margin-bottom:8px; }
+        .nrs-hiw-card p { font-size:13px; color:#6B7280; line-height:1.6; margin:0; }
+
+        /* ── CTA ── */
+        .nrs-cta { background:#1A1A1A; text-align:center; }
+        .nrs-cta h2 { font-size:32px; font-weight:900; color:#fff; margin-bottom:14px; }
+        .nrs-cta p { font-size:15px; color:#9CA3AF; margin-bottom:32px; }
+        .nrs-cta .nrs-btn-primary { padding:14px 36px; font-size:15px; border-radius:7px; display:inline-block; }
+
+        /* ── Footer ── */
+        .nrs-footer { background:#1A1A1A; border-top:3px solid #C8102E; padding:40px 0 0; }
+        .nrs-footer-inner { max-width:1200px; margin:0 auto; padding:0 40px; display:grid; grid-template-columns:2fr 1fr 1.5fr 1.5fr; gap:32px; }
+        .nrs-footer-logo { height:40px; width:auto; filter:brightness(0) invert(1); margin-bottom:16px; display:block; }
+        .nrs-footer p { color:#9CA3AF; font-size:13px; line-height:1.7; }
+        .nrs-footer h4 {
+            color:#fff; font-size:11px; font-weight:700; text-transform:uppercase;
+            letter-spacing:.8px; margin-bottom:14px;
+        }
+        .nrs-footer ul { list-style:none; padding:0; margin:0; }
+        .nrs-footer ul li { margin-bottom:8px; }
+        .nrs-footer ul a { color:#9CA3AF; font-size:13px; transition:color .15s; }
+        .nrs-footer ul a:hover { color:#fff; }
+        .nrs-footer-bottom {
+            border-top:1px solid #2A2A2A; margin-top:32px; padding:14px 0; text-align:center;
+        }
+        .nrs-footer-bottom span { color:#6B7280; font-size:12px; }
+        .nrs-footer-bottom .nrs-accent { color:#C8102E; }
+
+        /* ── Responsive ── */
+        @media (max-width:991px) {
+            .nrs-hero-inner { flex-direction:column; }
+            .nrs-hero-graphic { justify-content:center; min-width:100%; }
+            .nrs-qf { max-width:100%; }
+            .nrs-hero h1 { font-size:38px; }
+        }
+        @media (max-width:767px) {
+            .nrs-nav-links { display:none; }
+            .nrs-hero { padding:48px 0 0; min-height:auto; }
+            .nrs-hero h1 { font-size:32px; }
+            .nrs-stats-inner { grid-template-columns:repeat(2,1fr); }
+            .nrs-stat:nth-child(2) { border-right:none; }
+            .nrs-stat { border-right:none !important; }
+            .nrs-services-grid, .nrs-hiw-grid { grid-template-columns:1fr; }
+            .nrs-footer-inner { grid-template-columns:1fr 1fr; }
+            .nrs-nav { padding:0 16px; }
+            .nrs-hero-inner, .nrs-section-inner { padding:0 20px; }
+            .nrs-btn-outline.nrs-login-desktop { display:none; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ══ Top Bar ══ -->
+<div class="nrs-topbar">
+    <div class="nrs-topbar-left">
+        <span class="nrs-topbar-dot"></span>
+        Nigeria Revenue Service — Facilities Management Division
+    </div>
+    <div class="nrs-topbar-right">
+        <span>Emergency: <a href="tel:08008000000"><strong>0800-NRS-HELP</strong></a></span>
+        <a href="/web/login">Staff Login</a>
+        <a href="/service-request">Contact Us</a>
+    </div>
+</div>
+
+<!-- ══ Navbar ══ -->
+<nav class="nrs-nav">
+    <div class="nrs-nav-left">
+        <a href="/">
+            <img class="nrs-nav-logo" src="/web/image/res.company/1/logo" alt="NRS"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+            <div class="nrs-nav-logo-fallback">
+                <span class="nrs-abbr">NRS</span>
+                <div class="nrs-sep"></div>
+                <div class="nrs-full">Nigeria<br/>Revenue<br/>Service</div>
+            </div>
+        </a>
+        <div class="nrs-nav-links">
+            <a href="#services">Services</a>
+            <a href="#how-it-works">How It Works</a>
+            <a href="/my/requests">Track Request</a>
+        </div>
+    </div>
+    <div class="nrs-nav-right">
+        <a href="/service-request" class="nrs-btn-primary">+ Submit a Request</a>
+        <a href="/web/login" class="nrs-btn-outline nrs-login-desktop">Staff Login &#x2192;</a>
+    </div>
+</nav>
+
+<!-- ══ Hero ══ -->
+<section class="nrs-hero">
+    <div class="nrs-hero-inner">
+        <div class="nrs-hero-text">
+            <div class="nrs-pill">
+                <span class="nrs-pill-dot"></span>
+                <span class="nrs-pill-label">Portal Active — 24/7 Service</span>
+            </div>
+            <h1>Facilities Support,<br/><em>When You Need It</em></h1>
+            <p>Submit maintenance requests, track resolution progress, and access all NRS facility services — building, fleet, security and more — in one unified portal.</p>
+            <div class="nrs-hero-actions">
+                <a href="/service-request" class="nrs-btn-primary">Submit a Request &#x2192;</a>
+                <a href="#how-it-works" class="nrs-btn-outline">How It Works</a>
+            </div>
+        </div>
+        <div class="nrs-hero-graphic">
+            <div class="nrs-qf" id="quickForm">
+                <div class="nrs-qf-header">
+                    <h3>Quick Submit</h3>
+                    <span class="nrs-qf-badge">Fast Track</span>
+                </div>
+                <div class="nrs-qf-body" id="qfBody">
+                    <div class="nrs-qf-error" id="qfError"></div>
+                    <div class="nrs-qf-row nrs-qf-row-2col">
+                        <div>
+                            <label class="nrs-qf-label">Your Name</label>
+                            <input class="nrs-qf-input" type="text" id="qfName" placeholder="Full name"/>
+                        </div>
+                        <div>
+                            <label class="nrs-qf-label">Email / Phone</label>
+                            <input class="nrs-qf-input" type="text" id="qfContact" placeholder="email or phone"/>
+                        </div>
+                    </div>
+                    <div class="nrs-qf-row">
+                        <label class="nrs-qf-label">Service</label>
+                        <select class="nrs-qf-select" id="qfService">
+                            <option value="">Loading services…</option>
+                        </select>
+                    </div>
+                    <div class="nrs-qf-row">
+                        <label class="nrs-qf-label">Request Type</label>
+                        <select class="nrs-qf-select" id="qfType">
+                            <option value="">Select service first</option>
+                        </select>
+                    </div>
+                    <div class="nrs-qf-row">
+                        <label class="nrs-qf-label">Location</label>
+                        <select class="nrs-qf-select" id="qfLocation">
+                            <option value="">Loading locations…</option>
+                        </select>
+                    </div>
+                    <div class="nrs-qf-row">
+                        <label class="nrs-qf-label">Describe the issue</label>
+                        <textarea class="nrs-qf-textarea" id="qfDesc" rows="3" placeholder="Brief description of the problem…"></textarea>
+                    </div>
+                    <div class="nrs-qf-row">
+                        <button class="nrs-qf-submit" id="qfSubmitBtn" type="button" onclick="submitQuickForm()">
+                            Submit Request &#x2192;
+                        </button>
+                    </div>
+                </div>
+                <div class="nrs-qf-success" id="qfSuccess">
+                    <div class="nrs-qf-check">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                    <h4>Request Submitted!</h4>
+                    <p>Your facilities request has been logged. Our team will respond within your SLA window.</p>
+                    <div class="nrs-qf-ref" id="qfRef">—</div>
+                    <p style="margin-top:14px;"><a href="/my/requests" style="color:#C8102E;font-weight:600;font-size:13px;">Track your requests &#x2192;</a></p>
+                </div>
+                <div class="nrs-qf-footer" id="qfFooter">
+                    <span>Submitted directly to the NRS Facilities team</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══ Stats Bar ══ -->
+<section class="nrs-stats">
+    <div class="nrs-stats-inner">
+        <div class="nrs-stat">
+            <div class="nrs-stat-num">6</div>
+            <div class="nrs-stat-label">Service Domains</div>
+        </div>
+        <div class="nrs-stat">
+            <div class="nrs-stat-num">83</div>
+            <div class="nrs-stat-label">Request Types</div>
+        </div>
+        <div class="nrs-stat">
+            <div class="nrs-stat-num">1,617</div>
+            <div class="nrs-stat-label">Fleet Vehicles</div>
+        </div>
+        <div class="nrs-stat">
+            <div class="nrs-stat-num">24/7</div>
+            <div class="nrs-stat-label">Portal Availability</div>
+        </div>
+    </div>
+</section>
+
+<!-- ══ Services ══ -->
+<section id="services" class="nrs-section" style="background:#fff;">
+    <div class="nrs-section-inner">
+        <div class="nrs-section-tag">What We Manage</div>
+        <h2 class="nrs-section-title">Facilities Services</h2>
+        <div class="nrs-services-grid">
+            <div class="nrs-svc-card">
+                <div class="nrs-svc-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8102E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
+                <h3>Building Services</h3>
+                <p>Plumbing, electrical, HVAC, civil works and general maintenance across all NRS offices.</p>
+            </div>
+            <div class="nrs-svc-card">
+                <div class="nrs-svc-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8102E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                </div>
+                <h3>Fleet Management</h3>
+                <p>Vehicle scheduling, maintenance tracking and driver management for the NRS national fleet.</p>
+            </div>
+            <div class="nrs-svc-card">
+                <div class="nrs-svc-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8102E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <h3>Security Operations</h3>
+                <p>Access control, CCTV monitoring, incident reporting and watchlist management.</p>
+            </div>
+            <div class="nrs-svc-card">
+                <div class="nrs-svc-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8102E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                </div>
+                <h3>Asset Management</h3>
+                <p>Asset tagging, QR-code verification, maintenance scheduling and lifecycle tracking.</p>
+            </div>
+            <div class="nrs-svc-card">
+                <div class="nrs-svc-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8102E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                </div>
+                <h3>Staff Transport</h3>
+                <p>Staff bus route management, scheduling and commute coordination across NRS offices.</p>
+            </div>
+            <div class="nrs-svc-card">
+                <div class="nrs-svc-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8102E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <h3>Service Requests</h3>
+                <p>Log, track and resolve maintenance requests with full SLA monitoring and escalation.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══ How It Works ══ -->
+<section id="how-it-works" class="nrs-section nrs-hiw">
+    <div class="nrs-section-inner" style="text-align:center;">
+        <div class="nrs-section-tag">Simple Process</div>
+        <h2 class="nrs-section-title">How It Works</h2>
+        <div class="nrs-hiw-grid">
+            <div class="nrs-hiw-card">
+                <div class="nrs-hiw-num">1</div>
+                <h3>Submit Request</h3>
+                <p>Fill in the request form with details of the issue, your location and contact information.</p>
+            </div>
+            <div class="nrs-hiw-card">
+                <div class="nrs-hiw-num">2</div>
+                <h3>Team Assignment</h3>
+                <p>Our FM team reviews and assigns the request to the appropriate technician within SLA.</p>
+            </div>
+            <div class="nrs-hiw-card">
+                <div class="nrs-hiw-num">3</div>
+                <h3>Resolution</h3>
+                <p>Issue resolved and closed. Track progress at any time using your reference number.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══ CTA ══ -->
+<section class="nrs-section nrs-cta">
+    <div style="max-width:600px;margin:0 auto;padding:0 40px;">
+        <h2>Ready to submit a request?</h2>
+        <p>Our facilities team is on standby. Average response time under 2 hours.</p>
+        <a href="/service-request" class="nrs-btn-primary">Submit a Request &#x2192;</a>
+    </div>
+</section>
+
+<!-- ══ Footer ══ -->
+<footer class="nrs-footer">
+    <div class="nrs-footer-inner">
+        <div>
+            <img class="nrs-footer-logo" src="/web/image/res.company/1/logo" alt="NRS"
+                 onerror="this.style.display='none'"/>
+            <p>Nigeria Revenue Service — myservice platform for facilities and resource management.</p>
+        </div>
+        <div>
+            <h4>Quick Links</h4>
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="/service-request">Submit Request</a></li>
+                <li><a href="/my/requests">My Requests</a></li>
+                <li><a href="/asset-scan">Asset Scanner</a></li>
+            </ul>
+        </div>
+        <div>
+            <h4>Contact</h4>
+            <p style="line-height:1.8;">
+                Revenue House, Sokode Crescent<br/>
+                Wuse Zone 5, Abuja<br/>
+                facilities@nrs.gov.ng<br/>
+                +234 9 462 4000
+            </p>
+        </div>
+        <div>
+            <h4>Support</h4>
+            <p>Help Desk hours: Mon–Fri, 8am–5pm WAT</p>
+            <a href="/service-request" class="nrs-btn-primary" style="margin-top:12px;padding:8px 18px;font-size:12px;display:inline-block;">Submit a Request</a>
+        </div>
+    </div>
+    <div class="nrs-footer-bottom">
+        <span>&copy; 2025 Nigeria Revenue Service. All rights reserved. Powered by <span class="nrs-accent">WestMetro Limited</span></span>
+    </div>
+</footer>
+
+<script>
+/* ── Quick-submit form logic ── */
+var QF_DATA = { services: [], request_types: [], locations: [] };
+
+function rpc(url, params) {
+    return fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', method: 'call', params: params || {} })
+    }).then(function(r) { return r.json(); }).then(function(j) {
+        if (j.error) throw new Error(j.error.data ? j.error.data.message : 'Server error');
+        return j.result;
+    });
+}
+
+function populateSelect(el, items, placeholder) {
+    el.innerHTML = '<option value="">' + placeholder + '</option>';
+    items.forEach(function(item) {
+        var o = document.createElement('option');
+        o.value = item.id;
+        o.textContent = item.name;
+        el.appendChild(o);
+    });
+}
+
+function loadFormData() {
+    rpc('/api/myservice/form-data').then(function(data) {
+        QF_DATA = data;
+        var svcEl = document.getElementById('qfService');
+        populateSelect(svcEl, data.services, '— Select service —');
+        if (data.services.length === 1) {
+            svcEl.value = data.services[0].id;
+            filterTypes();
+        }
+        populateSelect(document.getElementById('qfLocation'), data.locations,
+            data.locations.length ? '— Select location —' : 'No locations configured');
+    }).catch(function(err) {
+        console.error('Form data load failed:', err);
+        document.getElementById('qfService').innerHTML = '<option>Service unavailable</option>';
+    });
+}
+
+function filterTypes() {
+    var svcId = document.getElementById('qfService').value;
+    var typeEl = document.getElementById('qfType');
+    var types = QF_DATA.request_types;
+    if (svcId) {
+        var filtered = types.filter(function(t) {
+            return !t.service_id || String(t.service_id) === svcId;
+        });
+        populateSelect(typeEl, filtered.length ? filtered : types, '— Select type —');
+        if (filtered.length === 1) typeEl.value = filtered[0].id;
+    } else {
+        populateSelect(typeEl, types, '— Select type —');
+    }
+}
+
+function showError(msg) {
+    var el = document.getElementById('qfError');
+    el.textContent = msg;
+    el.style.display = 'block';
+    setTimeout(function() { el.style.display = 'none'; }, 6000);
+}
+
+function submitQuickForm() {
+    var name = document.getElementById('qfName').value.trim();
+    var contact = document.getElementById('qfContact').value.trim();
+    var desc = document.getElementById('qfDesc').value.trim();
+    var typeId = document.getElementById('qfType').value;
+
+    if (!desc) { showError('Please describe the issue.'); return; }
+    if (!typeId) { showError('Please select a request type.'); return; }
+
+    var btn = document.getElementById('qfSubmitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+    document.getElementById('qfError').style.display = 'none';
+
+    rpc('/api/myservice/quick-submit', {
+        type_id: typeId,
+        service_id: document.getElementById('qfService').value || null,
+        location_id: document.getElementById('qfLocation').value || null,
+        reporter_name: name,
+        reporter_contact: contact,
+        description: desc,
+        priority: '2'
+    }).then(function(res) {
+        if (res.success) {
+            document.getElementById('qfBody').style.display = 'none';
+            document.getElementById('qfFooter').style.display = 'none';
+            document.getElementById('qfRef').textContent = res.request_name;
+            document.getElementById('qfSuccess').style.display = 'block';
+        } else {
+            showError(res.error || 'Submission failed. Please try again.');
+            btn.disabled = false;
+            btn.innerHTML = 'Submit Request &#x2192;';
+        }
+    }).catch(function(err) {
+        showError('Connection error. Please try again.');
+        btn.disabled = false;
+        btn.innerHTML = 'Submit Request &#x2192;';
+    });
+}
+
+document.getElementById('qfService').addEventListener('change', filterTypes);
+document.addEventListener('DOMContentLoaded', loadFormData);
+</script>
+
+</body>
+</html>

@@ -1,15 +1,15 @@
-/* NRS myservice Theme v5 — Option B: White nav, red accents */
-/* Google Font loaded via views/assets.xml */
+/* NRS myservice Theme v5 — White nav, red accents */
+/* Inherits tokens from myservice_nrs_base/nrs_base.css */
 
 /* ── Typography ── */
 body, .o_web_client, input, select, textarea, button {
-    font-family: 'DM Sans', system-ui, sans-serif !important;
+    font-family: var(--nrs-sans) !important;
 }
 
 /* ── Navbar — white surface ── */
 .o_main_navbar {
-    background: #FFFFFF !important;
-    border-bottom: 1px solid #E4E2DC !important;
+    background: var(--nrs-bg-card) !important;
+    border-bottom: 1px solid var(--nrs-border) !important;
     display: flex !important;
     align-items: center !important;
     height: 46px !important;
@@ -17,29 +17,26 @@ body, .o_web_client, input, select, textarea, button {
     box-shadow: none !important;
 }
 
-/* NRS brand mark via pseudo-element */
+/* NRS brand mark */
 .o_main_navbar .o_menu_brand::before {
     content: "NRS";
-    color: #C8102E;
+    color: var(--nrs-red);
     font-weight: 800;
-    font-size: 13px;
+    font-size: 13px !important;
     letter-spacing: 1px;
     margin-right: 6px;
 }
 .o_main_navbar .o_menu_brand {
-    color: #999 !important;
-    font-weight: 400 !important;
-    font-size: 11px !important;
-    letter-spacing: .3px !important;
+    font-size: 0 !important;
     padding: 0 16px !important;
     text-decoration: none !important;
 }
 
-/* Nav menu items — default */
+/* Nav items */
 .o_main_navbar .o_menu_sections a,
 .o_main_navbar .o_menu_sections .o_nav_entry,
 .o_main_navbar .o_menu_sections .o_dropdown_title {
-    color: #757575 !important;
+    color: var(--nrs-ink-1) !important;
     text-decoration: none !important;
     white-space: nowrap !important;
     padding: 0 10px !important;
@@ -47,84 +44,83 @@ body, .o_web_client, input, select, textarea, button {
     display: inline-flex !important;
     align-items: center !important;
     font-size: 12px !important;
-    font-weight: 500 !important;
+    font-weight: 600 !important;
 }
 
-/* Nav menu items — hover */
 .o_main_navbar .o_menu_sections .o_nav_entry:hover,
 .o_main_navbar .o_menu_sections .o_dropdown_title:hover {
-    color: #1A1A1A !important;
-    background: #F4F3F0 !important;
+    color: var(--nrs-ink) !important;
+    background: var(--nrs-bg-hover) !important;
     border-radius: 5px !important;
 }
 
-/* Systray icons */
+/* Systray */
 .o_main_navbar .o_menu_systray .o_nav_entry,
 .o_main_navbar .o_menu_systray a {
-    color: #888 !important;
+    color: var(--nrs-ink-ghost) !important;
 }
 .o_main_navbar .o_menu_systray .o_nav_entry:hover {
-    color: #1A1A1A !important;
-    background: #F4F3F0 !important;
+    color: var(--nrs-ink) !important;
+    background: var(--nrs-bg-hover) !important;
     border-radius: 5px !important;
 }
 
 /* ── Primary buttons ── */
 .btn-primary {
-    background-color: #C8102E !important;
-    border-color: #C8102E !important;
+    background-color: var(--nrs-red) !important;
+    border-color: var(--nrs-red) !important;
     color: #fff !important;
 }
 .btn-primary:hover {
-    background-color: #A00D24 !important;
-    border-color: #A00D24 !important;
+    background-color: var(--nrs-red-dark) !important;
+    border-color: var(--nrs-red-dark) !important;
 }
 
-/* ── Status bar active step ── */
+/* ── Status bar ── */
 .o_statusbar_status button.o_arrow_button_current {
-    background: #C8102E !important;
-    border-color: #C8102E !important;
+    background: var(--nrs-red) !important;
+    border-color: var(--nrs-red) !important;
     color: #fff !important;
 }
 
-/* ── Active notebook tab ── */
+/* ── Notebook tabs ── */
 .o_notebook .nav-tabs .nav-link.active {
-    color: #C8102E !important;
-    border-bottom-color: #C8102E !important;
+    color: var(--nrs-red) !important;
+    border-bottom-color: var(--nrs-red) !important;
 }
 
 /* ── Input focus ── */
 .o_field_widget input:focus,
 .o_field_widget textarea:focus {
-    border-color: #C8102E !important;
+    border-color: var(--nrs-red) !important;
     box-shadow: 0 0 0 3px rgba(200,16,46,.07) !important;
 }
 
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-thumb { background: #CDD0D6; border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: var(--nrs-border2); border-radius: 2px; }
 
 /* ══════════════════════════════════════
    NRS Home Screen — Grouped App Grid
    ══════════════════════════════════════ */
 .nrs-home-wrap {
     padding: 24px 28px;
-    background: #F4F3F0;
+    background: var(--nrs-bg);
     min-height: calc(100vh - 46px);
 }
 .nrs-group { margin-bottom: 24px; }
 .nrs-group-label {
     font-size: 9px;
     font-weight: 700;
-    color: #aaa;
+    color: var(--nrs-ink-faint);
     text-transform: uppercase;
     letter-spacing: .8px;
     margin-bottom: 8px;
 }
 .nrs-group-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .nrs-tile {
-    background: #FFFFFF;
-    border: 1px solid #E4E2DC;
+    background: var(--nrs-bg-card);
+    border: 1px solid var(--nrs-border);
     border-radius: 7px;
     padding: 12px 10px;
     width: 100px;
@@ -135,11 +131,11 @@ body, .o_web_client, input, select, textarea, button {
     cursor: pointer;
     transition: border-color .15s, background .15s;
 }
-.nrs-tile:hover { border-color: #C8102E; background: #FFFAFA; }
+.nrs-tile:hover { border-color: var(--nrs-red); background: #FFFAFA; }
 .nrs-tile-featured {
     width: 130px;
-    border-color: #C8102E;
-    background: #FBE9EC;
+    border-color: var(--nrs-red);
+    background: var(--nrs-red-light);
 }
 .nrs-tile-featured:hover { background: #F5D0D6; }
 .nrs-tile-icon {
@@ -153,7 +149,7 @@ body, .o_web_client, input, select, textarea, button {
     font-weight: 800;
     color: #fff;
 }
-.nrs-icon-myservice_fm_dashboard     { background: #C8102E; }
+.nrs-icon-myservice_fm_dashboard     { background: var(--nrs-red); }
 .nrs-icon-myservice_asset_register   { background: #D97706; }
 .nrs-icon-myservice_barcode_station  { background: #7C3AED; }
 .nrs-icon-myservice_fleet_maintenance{ background: #2563EB; }
@@ -161,18 +157,90 @@ body, .o_web_client, input, select, textarea, button {
 .nrs-icon-myservice_security         { background: #374151; }
 .nrs-icon-myservice_osint            { background: #0EA5E9; }
 .nrs-icon-myservice_ai_patterns      { background: #6366F1; }
-.nrs-icon-requests                   { background: #C8102E; }
+.nrs-icon-requests                   { background: var(--nrs-red); }
 .nrs-icon-requests-sec               { background: #374151; }
 .nrs-icon-settings                   { background: #888; }
 .nrs-tile-label {
     font-size: 10px;
     font-weight: 600;
-    color: #1A1A1A;
+    color: var(--nrs-ink);
     text-align: center;
     line-height: 1.3;
 }
 .nrs-tile-sub { font-size: 9px; color: #999; font-weight: 500; }
-.nrs-tile-featured .nrs-tile-label { color: #C8102E; }
-.nrs-tile-featured .nrs-tile-sub   { color: #A00D24; }
+.nrs-tile-featured .nrs-tile-label { color: var(--nrs-red); }
+.nrs-tile-featured .nrs-tile-sub   { color: var(--nrs-red-dark); }
 .o_home_menu .o_home_menu_background,
 .o_home_menu .o_apps { display: none !important; }
+
+/* ══════════════════════════════════════
+   web_responsive home screen override
+   ══════════════════════════════════════ */
+.o_navbar_apps_menu .dropdown-menu,
+.o_apps_menu .o_dropdown_menu,
+.o_home_menu,
+.o_home_menu_container {
+    background: var(--nrs-bg) !important;
+    background-image: none !important;
+}
+
+.o_navbar_apps_menu .dropdown-menu .o_app {
+    width: 120px !important;
+    display: flex !important;
+}
+.o_navbar_apps_menu .dropdown-menu .o_app a {
+    background: var(--nrs-bg-card) !important;
+    border: 1px solid var(--nrs-border) !important;
+    border-radius: 8px !important;
+    padding: 14px 10px !important;
+    color: var(--nrs-ink) !important;
+    text-shadow: none !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    transition: border-color .15s, background .15s !important;
+}
+.o_navbar_apps_menu .dropdown-menu .o_app a:hover {
+    border-color: var(--nrs-red) !important;
+    background: #FFFAFA !important;
+}
+.o_navbar_apps_menu .dropdown-menu .o_app a:focus {
+    background: #FFFAFA !important;
+}
+
+.o_navbar_apps_menu .dropdown-menu .o_app .o-app-icon {
+    max-width: 40px !important;
+    border-radius: 8px !important;
+}
+
+.o_navbar_apps_menu .dropdown-menu .o_app a div {
+    color: var(--nrs-ink) !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    line-height: 1.3 !important;
+}
+
+.o_navbar_apps_menu .search-container .search-input {
+    background: var(--nrs-bg-card) !important;
+    border: 1px solid var(--nrs-border) !important;
+    border-radius: 6px !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+.o_navbar_apps_menu .search-container .search-input .search-icon {
+    color: var(--nrs-ink-ghost) !important;
+}
+.o_navbar_apps_menu .search-container .search-input .form-control {
+    color: var(--nrs-ink) !important;
+}
+.o_navbar_apps_menu .search-container .search-input .form-control::placeholder {
+    color: var(--nrs-ink-ghost) !important;
+}
+
+.o_navbar_apps_menu .search-container .search-result {
+    color: var(--nrs-ink) !important;
+    text-shadow: none !important;
+}
+.o_navbar_apps_menu .search-container .search-result.highlight,
+.o_navbar_apps_menu .search-container .search-result:hover {
+    background-color: rgba(200, 16, 46, .06) !important;
+}

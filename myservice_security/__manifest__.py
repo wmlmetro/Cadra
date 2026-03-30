@@ -7,7 +7,7 @@
     'category': 'Security',
     'depends': [
         'web', 'mail', 'generic_location', 'generic_request',
-        'myservice_request_fields', 'website',
+        'myservice_request_fields', 'website', 'myservice_nrs_base',
     ],
     'data': [
         'security/security_groups.xml',
@@ -29,10 +29,13 @@
     'assets': {
         'web.assets_backend': [
             'myservice_security/static/src/css/security.css',
+            'myservice_security/static/src/css/security_tabs.css',
             'myservice_security/static/src/js/security_dashboard.js',
+            'myservice_security/static/src/js/security_tabs.js',
         ],
         'web.assets_qweb': [
             'myservice_security/static/src/xml/security_dashboard.xml',
+            'myservice_security/static/src/xml/security_tabs.xml',
         ],
     },
     'installable': True,

@@ -2,7 +2,7 @@
    myservice Security Operations Centre — Dark Theme
    ================================================================ */
 .ms-soc {
-    font-family: 'Outfit', sans-serif;
+    font-family: var(--nrs-sans);
     background: #0d1117;
     color: #e6edf3;
     min-height: 100vh;
@@ -99,7 +99,7 @@
 }
 .ms-soc-map-title { font-size: 12px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: .5px; display: flex; align-items: center; gap: 8px; }
 .ms-soc-map-filters { display: flex; gap: 6px; }
-.ms-soc-mf { padding: 3px 10px; border-radius: 12px; border: 1px solid #21262d; background: transparent; font-size: 11px; color: #7d8590; cursor: pointer; transition: all .15s; font-family: 'Outfit', sans-serif; }
+.ms-soc-mf { padding: 3px 10px; border-radius: 12px; border: 1px solid #21262d; background: transparent; font-size: 11px; color: #7d8590; cursor: pointer; transition: all .15s; font-family: var(--nrs-sans); }
 .ms-soc-mf.active, .ms-soc-mf:hover { border-color: #E85426; color: #E85426; background: rgba(232,84,38,.08); }
 #ms-soc-map { flex: 1; min-height: 450px; }
 .ms-soc-map-legend {
@@ -280,12 +280,12 @@
 .ms-soc-state.orange { background: rgba(232,84,38,.1);  color: #E85426; border-color: rgba(232,84,38,.2); }
 .ms-soc-state.red    { background: rgba(248,81,73,.1);  color: #f85149; border-color: rgba(248,81,73,.2); }
 
-/* Leaflet dark override */
-.leaflet-container { background: #0d1117 !important; }
-.leaflet-tile { filter: brightness(0.7) contrast(1.1) saturate(0.8); }
-.leaflet-popup-content-wrapper { background: #161b22; border: 1px solid #30363d; color: #e6edf3; border-radius: 8px; }
-.leaflet-popup-tip { background: #161b22; }
-.leaflet-popup-close-button { color: #7d8590 !important; }
+/* Leaflet dark override — scoped to SOC dashboard only */
+.ms-soc .leaflet-container { background: #0d1117 !important; }
+.ms-soc .leaflet-tile { filter: brightness(0.7) contrast(1.1) saturate(0.8); }
+.ms-soc .leaflet-popup-content-wrapper { background: #161b22; border: 1px solid #30363d; color: #e6edf3; border-radius: 8px; }
+.ms-soc .leaflet-popup-tip { background: #161b22; }
+.ms-soc .leaflet-popup-close-button { color: #7d8590 !important; }
 
 #ms-soc-map {
     height: 450px !important;
