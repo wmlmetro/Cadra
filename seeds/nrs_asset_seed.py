@@ -41,12 +41,12 @@ if not locs:
     exit()
 
 # States for domain mapping
-DOMAINS = ['civil', 'electrical', 'hvac', 'plumbing', 'mechanical',
-           'ict', 'security', 'fire_safety', 'fleet', 'general']
+DOMAINS = ['building', 'plant', 'plumbing', 'fleet', 'security',
+           'it', 'furniture', 'other']
 
-CONDITIONS = ['new', 'good', 'fair', 'poor', 'critical']
-STATES     = ['active', 'active', 'active', 'active', 'under_maintenance',
-              'under_maintenance', 'disposed', 'retrieved']
+CONDITIONS = ['new', 'good', 'fair', 'poor', 'condemned']
+STATES     = ['active', 'active', 'active', 'active', 'in_repair',
+              'in_repair', 'disposed', 'transferred']
 
 DEPTS = [
     'Executive Office', 'Finance & Accounts', 'ICT Department',
@@ -60,65 +60,65 @@ DEPTS = [
 
 ASSET_TYPES = [
     # ── Power & Energy ────────────────────────────────────────────────────
-    ("Perkins 100KVA Diesel Generator",    "Generators",      "Perkins",    "100KVA",     (3500000, 5500000),  "mechanical", "GEN"),
-    ("Mikano 60KVA Diesel Generator",      "Generators",      "Mikano",     "60KVA",      (2000000, 3500000),  "mechanical", "GEN"),
-    ("FG Wilson 200KVA Generator",         "Generators",      "FG Wilson",  "200KVA",     (6000000, 9000000),  "mechanical", "GEN"),
-    ("Prag 10KVA UPS System",              "UPS",             "Prag",       "10KVA",      (400000,  800000),   "electrical", "UPS"),
-    ("Emerson 20KVA UPS",                  "UPS",             "Emerson",    "20KVA-N",    (900000,  1500000),  "electrical", "UPS"),
-    ("Luminous 5KVA Inverter/UPS",         "UPS",             "Luminous",   "5KVA-INV",   (180000,  350000),   "electrical", "UPS"),
-    ("ABB Electrical Panel 3-Phase",       "Electrical Panels","ABB",       "DB-3PH",     (350000,  700000),   "electrical", "ELP"),
-    ("Schneider Distribution Board",       "Electrical Panels","Schneider", "DB-250A",    (250000,  500000),   "electrical", "ELP"),
+    ("Perkins 100KVA Diesel Generator",    "Generator",                          "Perkins",    "100KVA",     (3500000, 5500000),  "plant",     "GEN"),
+    ("Mikano 60KVA Diesel Generator",      "Generator",                          "Mikano",     "60KVA",      (2000000, 3500000),  "plant",     "GEN"),
+    ("FG Wilson 200KVA Generator",         "Generator",                          "FG Wilson",  "200KVA",     (6000000, 9000000),  "plant",     "GEN"),
+    ("Prag 10KVA UPS System",              "UPS / Battery Backup",               "Prag",       "10KVA",      (400000,  800000),   "building",  "UPS"),
+    ("Emerson 20KVA UPS",                  "UPS / Battery Backup",               "Emerson",    "20KVA-N",    (900000,  1500000),  "building",  "UPS"),
+    ("Luminous 5KVA Inverter/UPS",         "UPS / Battery Backup",               "Luminous",   "5KVA-INV",   (180000,  350000),   "building",  "UPS"),
+    ("ABB Electrical Panel 3-Phase",       "Electrical Panel / Distribution Board","ABB",       "DB-3PH",     (350000,  700000),   "building",  "ELP"),
+    ("Schneider Distribution Board",       "Electrical Panel / Distribution Board","Schneider", "DB-250A",    (250000,  500000),   "building",  "ELP"),
 
     # ── HVAC & Cooling ────────────────────────────────────────────────────
-    ("Hisense 1.5HP Split AC Unit",        "A/C Units",       "Hisense",    "HIS-1.5HP",  (150000,  250000),   "hvac", "ACU"),
-    ("LG 2HP Inverter Split AC",           "A/C Units",       "LG",         "S4-W18KL3AA",(220000,  380000),   "hvac", "ACU"),
-    ("Daikin 3HP Cassette AC",             "A/C Units",       "Daikin",     "FCAG71",     (450000,  750000),   "hvac", "ACU"),
-    ("Samsung 2.5HP Floor Standing AC",    "A/C Units",       "Samsung",    "AF28FSS",    (350000,  600000),   "hvac", "ACU"),
-    ("York 5-Ton Central AHU",             "AHUs",            "York",       "AHU-5T",     (1200000, 2500000),  "hvac", "AHU"),
-    ("Carrier Precision AHU 10-Ton",       "AHUs",            "Carrier",    "AHU-10T",    (2500000, 4500000),  "hvac", "AHU"),
-    ("Tecumseh 3HP Compressor",            "Compressors",     "Tecumseh",   "CAJ9513Z",   (180000,  350000),   "hvac", "CMP"),
+    ("Hisense 1.5HP Split AC Unit",        "Air Conditioning Unit",              "Hisense",    "HIS-1.5HP",  (150000,  250000),   "building",  "ACU"),
+    ("LG 2HP Inverter Split AC",           "Air Conditioning Unit",              "LG",         "S4-W18KL3AA",(220000,  380000),   "building",  "ACU"),
+    ("Daikin 3HP Cassette AC",             "Air Conditioning Unit",              "Daikin",     "FCAG71",     (450000,  750000),   "building",  "ACU"),
+    ("Samsung 2.5HP Floor Standing AC",    "Air Conditioning Unit",              "Samsung",    "AF28FSS",    (350000,  600000),   "building",  "ACU"),
+    ("York 5-Ton Central AHU",             "Air Handling Unit (AHU)",            "York",       "AHU-5T",     (1200000, 2500000),  "building",  "AHU"),
+    ("Carrier Precision AHU 10-Ton",       "Air Handling Unit (AHU)",            "Carrier",    "AHU-10T",    (2500000, 4500000),  "building",  "AHU"),
+    ("Tecumseh 3HP Compressor",            "Compressor",                         "Tecumseh",   "CAJ9513Z",   (180000,  350000),   "building",  "CMP"),
 
     # ── Water & Plumbing ──────────────────────────────────────────────────
-    ("Grundfos CM5 Water Pump",            "Water Pumps",     "Grundfos",   "CM5-3",      (180000,  350000),   "plumbing", "WPM"),
-    ("DAB Water Pump 1HP",                 "Water Pumps",     "DAB",        "K30/30M",    (120000,  220000),   "plumbing", "WPM"),
-    ("Polytank 10,000L Overhead Tank",     "Overhead Tanks",  "Polytank",   "OHT-10000",  (150000,  280000),   "plumbing", "OHT"),
-    ("Grundfos Water Treatment Unit",      "Water Treatment", "Grundfos",   "AQF-500",    (800000,  1500000),  "plumbing", "WTU"),
+    ("Grundfos CM5 Water Pump",            "Water Pump / Borehole",              "Grundfos",   "CM5-3",      (180000,  350000),   "plumbing",  "WPM"),
+    ("DAB Water Pump 1HP",                 "Water Pump / Borehole",              "DAB",        "K30/30M",    (120000,  220000),   "plumbing",  "WPM"),
+    ("Polytank 10,000L Overhead Tank",     "Overhead / Storage Tank",            "Polytank",   "OHT-10000",  (150000,  280000),   "plumbing",  "OHT"),
+    ("Grundfos Water Treatment Unit",      "Water Treatment Plant",              "Grundfos",   "AQF-500",    (800000,  1500000),  "plumbing",  "WTU"),
 
     # ── Fire Safety ───────────────────────────────────────────────────────
-    ("Minimax 6KG CO2 Extinguisher",       "Fire Extinguishers","Minimax",  "CO2-6KG",    (18000,   35000),    "fire_safety", "FEX"),
-    ("Amerex 9L Foam Extinguisher",        "Fire Extinguishers","Amerex",   "FOAM-9L",    (22000,   40000),    "fire_safety", "FEX"),
-    ("Notifier Fire Alarm Panel",          "Fire Safety",     "Notifier",   "ID3000",     (450000,  900000),   "fire_safety", "FAP"),
-    ("Hochiki Smoke Detector",             "Fire Safety",     "Hochiki",    "ESP-ROR",    (25000,   50000),    "fire_safety", "SMK"),
+    ("Minimax 6KG CO2 Extinguisher",       "Fire Extinguisher",                  "Minimax",    "CO2-6KG",    (18000,   35000),    "security",  "FEX"),
+    ("Amerex 9L Foam Extinguisher",        "Fire Extinguisher",                  "Amerex",     "FOAM-9L",    (22000,   40000),    "security",  "FEX"),
+    ("Notifier Fire Alarm Panel",          "Fire Safety System",                 "Notifier",   "ID3000",     (450000,  900000),   "security",  "FAP"),
+    ("Hochiki Smoke Detector",             "Fire Safety System",                 "Hochiki",    "ESP-ROR",    (25000,   50000),    "security",  "SMK"),
 
     # ── Security & Surveillance ───────────────────────────────────────────
-    ("Hikvision 4MP IP Dome Camera",       "CCTV",            "Hikvision",  "DS-2CD2143G",(85000,   150000),   "security", "CAM"),
-    ("Dahua 8-Channel NVR",                "CCTV",            "Dahua",      "DHI-NVR2108",(180000,  320000),   "security", "NVR"),
-    ("ZKTeco K40 Access Control",          "Access Control",  "ZKTeco",     "K40",        (120000,  250000),   "security", "ACS"),
-    ("Honeywell Biometric Reader",         "Access Control",  "Honeywell",  "OmniAssure", (180000,  350000),   "security", "ACS"),
+    ("Hikvision 4MP IP Dome Camera",       "CCTV System",                        "Hikvision",  "DS-2CD2143G",(85000,   150000),   "security",  "CAM"),
+    ("Dahua 8-Channel NVR",                "CCTV System",                        "Dahua",      "DHI-NVR2108",(180000,  320000),   "security",  "NVR"),
+    ("ZKTeco K40 Access Control",          "Access Control System",              "ZKTeco",     "K40",        (120000,  250000),   "security",  "ACS"),
+    ("Honeywell Biometric Reader",         "Access Control System",              "Honeywell",  "OmniAssure", (180000,  350000),   "security",  "ACS"),
 
     # ── ICT Equipment ─────────────────────────────────────────────────────
-    ("Dell PowerEdge R750 Server",         "Servers",         "Dell",       "R750",       (3500000, 6000000),  "ict", "SRV"),
-    ("HP ProLiant DL380 Server",           "Servers",         "HP",         "DL380-G10",  (2800000, 5000000),  "ict", "SRV"),
-    ("HP EliteDesk 800 G6 Desktop",        "Desktops",        "HP",         "ED800-G6",   (280000,  450000),   "ict", "DSK"),
-    ("Dell OptiPlex 7090 Desktop",         "Desktops",        "Dell",       "OP7090",     (260000,  420000),   "ict", "DSK"),
-    ("Canon iR2206N Photocopier",          "Printers",        "Canon",      "iR2206N",    (280000,  480000),   "ict", "PHC"),
-    ("Ricoh MP2014 Multifunction Printer", "Printers",        "Ricoh",      "MP2014",     (250000,  420000),   "ict", "PHC"),
-    ("Xerox WorkCentre 6515 Printer",      "Printers",        "Xerox",      "WC6515",     (180000,  320000),   "ict", "PHC"),
+    ("Dell PowerEdge R750 Server",         "Server / Network Equipment",         "Dell",       "R750",       (3500000, 6000000),  "it",        "SRV"),
+    ("HP ProLiant DL380 Server",           "Server / Network Equipment",         "HP",         "DL380-G10",  (2800000, 5000000),  "it",        "SRV"),
+    ("HP EliteDesk 800 G6 Desktop",        "Desktop / Laptop Computer",          "HP",         "ED800-G6",   (280000,  450000),   "it",        "DSK"),
+    ("Dell OptiPlex 7090 Desktop",         "Desktop / Laptop Computer",          "Dell",       "OP7090",     (260000,  420000),   "it",        "DSK"),
+    ("Canon iR2206N Photocopier",          "Printer / Photocopier",              "Canon",      "iR2206N",    (280000,  480000),   "it",        "PHC"),
+    ("Ricoh MP2014 Multifunction Printer", "Printer / Photocopier",              "Ricoh",      "MP2014",     (250000,  420000),   "it",        "PHC"),
+    ("Xerox WorkCentre 6515 Printer",      "Printer / Photocopier",              "Xerox",      "WC6515",     (180000,  320000),   "it",        "PHC"),
 
     # ── Lifts & Vertical Transport ────────────────────────────────────────
-    ("Otis 8-Person Passenger Lift",       "Lifts",           "Otis",       "GEN2-8P",    (8000000, 15000000), "mechanical", "LFT"),
-    ("Schindler 10-Person Lift",           "Lifts",           "Schindler",  "3300-AP",    (9000000, 16000000), "mechanical", "LFT"),
+    ("Otis 8-Person Passenger Lift",       "Lift / Elevator",                    "Otis",       "GEN2-8P",    (8000000, 15000000), "plant",     "LFT"),
+    ("Schindler 10-Person Lift",           "Lift / Elevator",                    "Schindler",  "3300-AP",    (9000000, 16000000), "plant",     "LFT"),
 
     # ── Office Furniture ──────────────────────────────────────────────────
-    ("Executive Office Desk",              "Office Furniture","Interwood",  "EXD-180",    (85000,   180000),   "general", "DSK"),
-    ("Staff Workstation Desk",             "Office Furniture","Interwood",  "SWD-140",    (45000,   90000),    "general", "FRN"),
-    ("Ergonomic Executive Chair",          "Office Furniture","Herman Miller","Aeron",     (120000,  280000),   "general", "CHR"),
-    ("Staff Office Chair",                 "Office Furniture","Posturite",  "Nia-CH",     (35000,   75000),    "general", "CHR"),
-    ("4-Door Steel Filing Cabinet",        "Office Furniture","Rexel",      "FC-4D",      (55000,   110000),   "general", "CAB"),
-    ("6-Seater Conference Table",          "Office Furniture","Interwood",  "CT-6S",      (180000,  350000),   "general", "TBL"),
-    ("Refrigerator 350L Double Door",      "Office Furniture","LG",         "GC-B399NQCM",(180000,  320000),   "general", "FRG"),
-    ("Water Dispenser Hot/Cold",           "Office Furniture","Midea",      "YD1321S",    (45000,   85000),    "general", "WDS"),
-    ("Microwave Oven 30L",                 "Office Furniture","Samsung",    "MS30T5018AK",(35000,   65000),    "general", "MWV"),
+    ("Executive Office Desk",              "Office Furniture",                   "Interwood",  "EXD-180",    (85000,   180000),   "furniture", "DSK"),
+    ("Staff Workstation Desk",             "Office Furniture",                   "Interwood",  "SWD-140",    (45000,   90000),    "furniture", "FRN"),
+    ("Ergonomic Executive Chair",          "Office Furniture",                   "Herman Miller","Aeron",     (120000,  280000),   "furniture", "CHR"),
+    ("Staff Office Chair",                 "Office Furniture",                   "Posturite",  "Nia-CH",     (35000,   75000),    "furniture", "CHR"),
+    ("4-Door Steel Filing Cabinet",        "Office Furniture",                   "Rexel",      "FC-4D",      (55000,   110000),   "furniture", "CAB"),
+    ("6-Seater Conference Table",          "Office Furniture",                   "Interwood",  "CT-6S",      (180000,  350000),   "furniture", "TBL"),
+    ("Refrigerator 350L Double Door",      "Office Furniture",                   "LG",         "GC-B399NQCM",(180000,  320000),   "furniture", "FRG"),
+    ("Water Dispenser Hot/Cold",           "Office Furniture",                   "Midea",      "YD1321S",    (45000,   85000),    "furniture", "WDS"),
+    ("Microwave Oven 30L",                 "Office Furniture",                   "Samsung",    "MS30T5018AK",(35000,   65000),    "furniture", "MWV"),
 ]
 
 # ── Seed categories into generic.resource.category if it exists ──────────────
@@ -235,10 +235,10 @@ for idx, asset_def in enumerate(asset_list):
         weights=[5, 40, 30, 15, 10]
     )[0]
     state = 'active'
-    if condition == 'critical':
-        state = random.choice(['under_maintenance', 'active'])
+    if condition == 'condemned':
+        state = random.choice(['in_repair', 'active'])
     elif condition == 'poor':
-        state = random.choice(['under_maintenance', 'active', 'active'])
+        state = random.choice(['in_repair', 'active', 'active'])
 
     dept = random.choice(DEPTS)
 
