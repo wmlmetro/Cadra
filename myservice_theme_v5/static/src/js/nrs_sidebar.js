@@ -10,27 +10,27 @@ const COLLAPSED_KEY = "nrs_sidebar_collapsed";
 const NRS_GROUPS = [
     {
         label: "DASHBOARDS",
-        apps: ["FM Dashboard"],
+        apps: ["Facility Command Center"],
     },
     {
         label: "SERVICE DESK",
-        apps: ["Discuss", "Requests"],
+        apps: ["Discuss", "Requests", "Triage Inbox", "All Requests", "Overdue", "My Jobs"],
     },
     {
         label: "OPERATIONS",
-        apps: ["Services", "Resources", "Locations", "Teams"],
+        apps: ["Operations Command Center", "Services", "Resources", "Locations", "Teams"],
     },
     {
         label: "FACILITIES",
         apps: ["Facility Command Center", "Building Services", "Plumbing & Drainage", "Plant & Machinery"],
     },
     {
-        label: "SECURITY",
-        apps: ["Security Command Center", "Security Brief", "Case Management", "OSINT", "AI Patterns"],
+        label: "SECURITY & SAFETY",
+        apps: ["Security Command Center", "Security & Safety", "Case Management", "OSINT", "AI Patterns", "Daily Brief"],
     },
     {
         label: "FLEET & TRANSPORT",
-        apps: ["Fleet", "Fuel Card", "Staff Bus"],
+        apps: ["Fleet Command Center", "Fleet", "Fuel Card", "Staff Bus"],
     },
     {
         label: "ASSET REGISTER",
@@ -38,7 +38,7 @@ const NRS_GROUPS = [
     },
     {
         label: "HR & STAFF",
-        apps: ["Employees", "Identity"],
+        apps: ["Identity", "Employees"],
     },
     {
         label: "CONFIGURATION",
@@ -171,7 +171,15 @@ patch(WebClient.prototype, "myservice_theme_v5.NRSSidebar", {
             "Operations": '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>',
             "Facilities": '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>',
             "Security": '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+            "Security & Safety": '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+            "Daily Brief": '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
             "Fleet": '<rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
+            "Fleet Command Center": '<rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
+            "Operations Command Center": '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>',
+            "Triage Inbox": '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/>',
+            "All Requests": '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>',
+            "Overdue": '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+            "My Jobs": '<path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/>',
             "Employees": '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>',
             "Website": '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>',
             "Apps": '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>',
