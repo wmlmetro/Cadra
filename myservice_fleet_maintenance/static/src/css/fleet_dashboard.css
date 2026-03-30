@@ -1,0 +1,247 @@
+/* NRS Fleet Command Center Dashboard */
+
+.flt-dashboard {
+    padding: 20px 24px;
+    background: #F5F5F5;
+    min-height: 100%;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.flt-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.flt-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1A1A1A;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: -0.3px;
+}
+
+.flt-title-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background: #C8102E;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.flt-subtitle {
+    font-size: 12px;
+    color: #9CA3AF;
+    margin-left: 20px;
+}
+
+.flt-refresh {
+    background: #C8102E;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+}
+.flt-refresh:hover { background: #A00D24; }
+
+.flt-loading {
+    display: none;
+    text-align: center;
+    padding: 60px;
+    color: #9CA3AF;
+    font-size: 14px;
+}
+
+/* ── KPI Row ─────────────────────────────────────────────────── */
+#flt-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+@media (max-width: 1200px) {
+    #flt-kpi-row { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-width: 768px) {
+    #flt-kpi-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+.flt-kpi {
+    background: #fff;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    padding: 14px 16px;
+}
+
+.flt-kpi-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: #9CA3AF;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 6px;
+}
+
+.flt-kpi-value {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    line-height: 1;
+}
+
+/* ── State pills ─────────────────────────────────────────────── */
+#flt-state-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.flt-state-pill {
+    background: #fff;
+    border: 1px solid #E5E7EB;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: #374151;
+}
+
+/* ── Cards ───────────────────────────────────────────────────── */
+.flt-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 1100px) {
+    .flt-grid-2 { grid-template-columns: 1fr; }
+}
+
+.flt-card {
+    background: #fff;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.flt-card-header {
+    padding: 10px 16px;
+    border-bottom: 1px solid #E5E7EB;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #FAFAFA;
+}
+
+.flt-card-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: #6B7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.flt-card-count {
+    font-size: 11px;
+    font-weight: 600;
+    color: #374151;
+}
+
+/* ── Tables ──────────────────────────────────────────────────── */
+.flt-table-wrap {
+    overflow-x: auto;
+    max-height: 340px;
+    overflow-y: auto;
+}
+
+.flt-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.flt-table th {
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    color: #6B7280;
+    background: #F9FAFB;
+    border-bottom: 1px solid #E5E7EB;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.flt-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid #F3F4F6;
+    color: #374151;
+    vertical-align: middle;
+}
+
+.flt-row { cursor: pointer; }
+.flt-row:hover td { background: #FBF9F9; }
+
+.flt-overdue td { background: #FEF2F2 !important; }
+
+.flt-name { font-weight: 500; color: #1A1A1A !important; }
+
+.flt-plate {
+    font-family: 'SF Mono', 'Consolas', monospace;
+    font-size: 11px;
+    background: #F3F4F6;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #374151;
+}
+
+.flt-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.flt-bus-tag {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 1px 5px;
+    background: #EFF6FF;
+    color: #1D4ED8;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    vertical-align: middle;
+}
+
+.flt-empty {
+    text-align: center;
+    color: #9CA3AF;
+    padding: 32px !important;
+    font-style: italic;
+}
+
+/* ── Map ─────────────────────────────────────────────────────── */
+#fleet-map {
+    height: 320px;
+    border-radius: 0 0 8px 8px;
+    background: #E5E7EB;
+}

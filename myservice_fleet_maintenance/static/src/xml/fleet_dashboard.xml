@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates id="template" xml:space="preserve">
+
+<t t-name="myservice_fleet_maintenance.FleetDashboard">
+<div class="flt-dashboard">
+
+    <div class="flt-loading">Loading Fleet Command Center...</div>
+
+    <div class="flt-header">
+        <div>
+            <h2 class="flt-title">
+                <span class="flt-title-dot"/>
+                Fleet Command Center
+            </h2>
+            <div class="flt-subtitle" id="flt-timestamp">Loading...</div>
+        </div>
+        <button class="flt-refresh">Refresh</button>
+    </div>
+
+    <!-- KPI Row -->
+    <div id="flt-kpi-row"></div>
+
+    <!-- State Pills -->
+    <div id="flt-state-bar"></div>
+
+    <!-- Two-column grid: vehicles + maintenance -->
+    <div class="flt-grid-2">
+
+        <!-- Fleet Register -->
+        <div class="flt-card">
+            <div class="flt-card-header">
+                <span class="flt-card-title">Fleet Register</span>
+                <span class="flt-card-count" id="flt-vehicle-count">0 vehicles</span>
+            </div>
+            <div class="flt-table-wrap">
+                <table class="flt-table">
+                    <thead>
+                        <tr>
+                            <th>Vehicle</th>
+                            <th>Plate</th>
+                            <th>Driver</th>
+                            <th>Location</th>
+                            <th>Maintenance</th>
+                            <th>Next Service</th>
+                            <th>Fuel</th>
+                        </tr>
+                    </thead>
+                    <tbody id="flt-vehicle-body">
+                        <tr><td colspan="7" class="flt-empty">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Maintenance Schedule -->
+        <div class="flt-card">
+            <div class="flt-card-header">
+                <span class="flt-card-title">Maintenance Schedule</span>
+                <span class="flt-card-count" id="flt-maint-overdue">0 overdue</span>
+            </div>
+            <div class="flt-table-wrap">
+                <table class="flt-table">
+                    <thead>
+                        <tr>
+                            <th>Vehicle</th>
+                            <th>Plate</th>
+                            <th>Status</th>
+                            <th>Due Date</th>
+                            <th>Due Odometer</th>
+                            <th>Vendor</th>
+                        </tr>
+                    </thead>
+                    <tbody id="flt-maint-body">
+                        <tr><td colspan="6" class="flt-empty">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Map -->
+    <div class="flt-card" style="margin-top:16px;">
+        <div class="flt-card-header">
+            <span class="flt-card-title">NRS Office Locations</span>
+            <span class="flt-card-count">Vehicle deployment map</span>
+        </div>
+        <div id="fleet-map"/>
+    </div>
+
+</div>
+</t>
+
+</templates>
