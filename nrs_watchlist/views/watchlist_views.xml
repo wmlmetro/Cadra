@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Form View ──────────────────────────────────────────────────────── -->
+    <record id="view_watchlist_subject_form" model="ir.ui.view">
+        <field name="name">nrs.watchlist.subject.form</field>
+        <field name="model">nrs.watchlist.subject</field>
+        <field name="arch" type="xml">
+            <form string="Watchlist Subject">
+                <header>
+                    <button name="action_flag_active" string="Flag Active"
+                            type="object" class="btn-danger"
+                            attrs="{'invisible': [('status','=','active')]}"/>
+                    <button name="action_mark_detained" string="Mark Detained"
+                            type="object" class="btn-warning"
+                            attrs="{'invisible': [('status','=','detained')]}"/>
+                    <button name="action_mark_cleared" string="Mark Cleared"
+                            type="object" class="btn-success"
+                            attrs="{'invisible': [('status','=','cleared')]}"/>
+                    <button name="action_raise_alert" string="Raise Alert"
+                            type="object" class="btn-danger" icon="fa-exclamation-triangle"/>
+                    <field name="status" widget="statusbar"
+                           statusbar_visible="active,detained,cleared"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" type="object"
+                                name="action_raise_alert" icon="fa-bell">
+                            <field name="alert_count" widget="statinfo" string="Alerts"/>
+                        </button>
+                    </div>
+                    <field name="photo" widget="image" class="oe_avatar"
+                           options="{'preview_image': 'photo', 'size': [200, 260]}"/>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Full Legal Name"/></h1>
+                        <h2 style="color:#c8102e;">
+                            <field name="alias" placeholder='"Alias / Handle"'/>
+                        </h2>
+                        <field name="reference" readonly="1"/>
+                    </div>
+                    <group>
+                        <group string="Threat Classification">
+                            <field name="threat_tier" widget="radio"/>
+                            <field name="charge_category"/>
+                            <field name="risk_score" widget="percentage"/>
+                        </group>
+                        <group string="Location">
+                            <field name="last_known_location"/>
+                            <field name="last_seen_date"/>
+                            <field name="state_id"/>
+                            <field name="custody_location"
+                                   attrs="{'invisible': [('status','!=','detained')]}"/>
+                        </group>
+                    </group>
+                    <group string="Charge / Wanted Reason">
+                        <field name="charge" nolabel="1" colspan="2"/>
+                    </group>
+                    <group string="Photo &amp; Data Source">
+                        <field name="photo_source"/>
+                        <field name="photo_url"
+                               attrs="{'invisible': [('photo_source','not in',['url','api'])]}"/>
+                        <field name="data_source"/>
+                        <field name="api_record_id"
+                               attrs="{'invisible': [('data_source','=','manual')]}"/>
+                        <field name="last_api_sync"
+                               attrs="{'invisible': [('data_source','=','manual')]}"
+                               readonly="1"/>
+                    </group>
+                    <notebook>
+                        <page string="Intelligence Notes" name="intelligence">
+                            <field name="intelligence_notes"/>
+                        </page>
+                        <page string="Linked Incidents" name="incidents">
+                            <field name="linked_incident_ids" widget="many2many_tags"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── List View ─────────────────────────────────────────────────────── -->
+    <record id="view_watchlist_subject_list" model="ir.ui.view">
+        <field name="name">nrs.watchlist.subject.list</field>
+        <field name="model">nrs.watchlist.subject</field>
+        <field name="arch" type="xml">
+            <tree string="Watchlist" decoration-danger="threat_tier=='delta'"
+                  decoration-warning="threat_tier=='charlie'"
+                  decoration-info="threat_tier=='bravo'"
+                  decoration-muted="status=='cleared'">
+                <field name="reference"/>
+                <field name="photo" widget="image" options="{'size': [32, 40]}"/>
+                <field name="name"/>
+                <field name="alias"/>
+                <field name="threat_tier"/>
+                <field name="status"/>
+                <field name="charge_category"/>
+                <field name="last_known_location"/>
+                <field name="data_source"/>
+                <field name="risk_score" widget="progressbar"/>
+                <field name="last_seen_date"/>
+                <button name="action_raise_alert" type="object"
+                        string="Alert" icon="fa-bell" class="btn-danger btn-sm"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- ── Kanban View (Mugshot Board) ───────────────────────────────────── -->
+    <record id="view_watchlist_subject_kanban" model="ir.ui.view">
+        <field name="name">nrs.watchlist.subject.kanban</field>
+        <field name="model">nrs.watchlist.subject</field>
+        <field name="arch" type="xml">
+            <kanban class="nrs_watchlist_kanban" group_by="threat_tier"
+                    default_group_by="threat_tier"
+                    records_draggable="0">
+                <field name="id"/>
+                <field name="name"/>
+                <field name="alias"/>
+                <field name="threat_tier"/>
+                <field name="status"/>
+                <field name="charge"/>
+                <field name="last_known_location"/>
+                <field name="data_source"/>
+                <field name="photo"/>
+                <field name="risk_score"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="o_kanban_card nrs_wl_card
+                            #{record.threat_tier.raw_value == 'delta' ? 'tier-delta' : ''}
+                            #{record.threat_tier.raw_value == 'charlie' ? 'tier-charlie' : ''}
+                            #{record.threat_tier.raw_value == 'bravo' ? 'tier-bravo' : ''}">
+                            <div class="nrs_wl_tier_badge">
+                                <t t-esc="record.threat_tier.value"/>
+                            </div>
+                            <div class="nrs_wl_status_badge">
+                                <t t-esc="record.status.value"/>
+                            </div>
+                            <div class="nrs_wl_photo">
+                                <t t-if="record.photo.raw_value">
+                                    <img t-attf-src="/web/image/nrs.watchlist.subject/#{record.id}/photo"
+                                         style="width:100%;height:100%;object-fit:cover;"/>
+                                </t>
+                                <t t-else="">
+                                    <div class="nrs_wl_avatar">
+                                        <span t-esc="record.name.raw_value.substring(0,2).toUpperCase()"/>
+                                    </div>
+                                </t>
+                            </div>
+                            <div class="nrs_wl_body">
+                                <div class="nrs_wl_name"><t t-esc="record.name.value"/></div>
+                                <div class="nrs_wl_alias">"<t t-esc="record.alias.value"/>"</div>
+                                <div class="nrs_wl_charge"><t t-esc="record.charge.value"/></div>
+                                <div class="nrs_wl_loc">
+                                    <i class="fa fa-map-marker"/> <t t-esc="record.last_known_location.value"/>
+                                </div>
+                            </div>
+                            <div class="nrs_wl_footer">
+                                <button name="action_raise_alert" type="object"
+                                        class="btn btn-sm btn-danger">Alert</button>
+                                <button name="action_mark_detained" type="object"
+                                        class="btn btn-sm btn-warning">Detain</button>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- ── Search View ────────────────────────────────────────────────────── -->
+    <record id="view_watchlist_subject_search" model="ir.ui.view">
+        <field name="name">nrs.watchlist.subject.search</field>
+        <field name="model">nrs.watchlist.subject</field>
+        <field name="arch" type="xml">
+            <search string="Search Watchlist">
+                <field name="name" string="Name / Alias"
+                       filter_domain="['|',('name','ilike',self),('alias','ilike',self)]"/>
+                <field name="charge"/>
+                <field name="last_known_location"/>
+                <field name="reference"/>
+                <separator/>
+                <filter name="delta" string="DELTA Tier"
+                        domain="[('threat_tier','=','delta')]"/>
+                <filter name="charlie" string="CHARLIE Tier"
+                        domain="[('threat_tier','=','charlie')]"/>
+                <filter name="bravo" string="BRAVO Tier"
+                        domain="[('threat_tier','=','bravo')]"/>
+                <separator/>
+                <filter name="active" string="Active — At Large"
+                        domain="[('status','=','active')]"/>
+                <filter name="detained" string="Detained"
+                        domain="[('status','=','detained')]"/>
+                <filter name="cleared" string="Cleared"
+                        domain="[('status','=','cleared')]"/>
+                <separator/>
+                <filter name="internal" string="Internal Records"
+                        domain="[('data_source','in',['internal','manual'])]"/>
+                <filter name="api" string="API Feed Records"
+                        domain="[('data_source','in',['dss','npf','interpol','efcc'])]"/>
+                <group expand="0" string="Group By">
+                    <filter name="by_tier" string="Threat Tier" context="{'group_by':'threat_tier'}"/>
+                    <filter name="by_status" string="Status" context="{'group_by':'status'}"/>
+                    <filter name="by_source" string="Data Source" context="{'group_by':'data_source'}"/>
+                    <filter name="by_state" string="State" context="{'group_by':'state_id'}"/>
+                    <filter name="by_category" string="Charge Category" context="{'group_by':'charge_category'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ── Action ─────────────────────────────────────────────────────────── -->
+    <record id="action_watchlist_subjects" model="ir.actions.act_window">
+        <field name="name">Watchlist</field>
+        <field name="res_model">nrs.watchlist.subject</field>
+        <field name="view_mode">kanban,tree,form</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_watchlist_subject_kanban')}),
+            (0, 0, {'view_mode': 'tree',   'view_id': ref('view_watchlist_subject_list')}),
+            (0, 0, {'view_mode': 'form',   'view_id': ref('view_watchlist_subject_form')}),
+        ]"/>
+        <field name="context">{'search_default_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No watchlist subjects on file.
+            </p>
+            <p>Add subjects manually or sync from DSS / NPF / INTERPOL API feeds.</p>
+        </field>
+    </record>
+
+    <!-- ── SOC Board Client Action ────────────────────────────────────────── -->
+    <record id="action_watchlist_board" model="ir.actions.client">
+        <field name="name">Watchlist Board</field>
+        <field name="tag">nrs_watchlist_board</field>
+        <field name="context">{'default_status': 'active'}</field>
+    </record>
+
+</odoo>
