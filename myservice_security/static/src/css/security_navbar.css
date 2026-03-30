@@ -1,0 +1,85 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   NRS Security Command Center — Header Tab Readability Fix
+   WestMetro Limited | myservice.com.ng
+   Target: .o_menu_sections (top nav tabs when Security & Safety is active)
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── App-level nav bar background ────────────────────────────────────────── */
+.o_main_navbar {
+    background-color: #080c10 !important;
+    border-bottom: 1px solid #1e2d3d !important;
+}
+
+/* ── All top-nav tab links ───────────────────────────────────────────────── */
+.o_main_navbar .o_menu_sections > li > a,
+.o_main_navbar .o_menu_sections > li > span,
+.o_main_navbar .o_menu_sections .o_nav_entry {
+    color: #94a3b8 !important;          /* readable mid-grey — never flushes */
+    font-family: 'Barlow Condensed', 'Barlow', sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    letter-spacing: 1px !important;
+    text-transform: uppercase !important;
+    padding: 0 14px !important;
+    border-bottom: 2px solid transparent !important;
+    transition: color 0.15s, border-color 0.15s !important;
+    white-space: nowrap !important;
+}
+
+/* ── Active / current tab ────────────────────────────────────────────────── */
+.o_main_navbar .o_menu_sections > .active > a,
+.o_main_navbar .o_menu_sections > li.active > span,
+.o_main_navbar .o_menu_sections > li > a.active {
+    color: #ffffff !important;
+    border-bottom-color: #c8102e !important;   /* NRS red underline */
+    background: transparent !important;
+}
+
+/* ── Hover state ─────────────────────────────────────────────────────────── */
+.o_main_navbar .o_menu_sections > li > a:hover,
+.o_main_navbar .o_menu_sections > li > span:hover {
+    color: #e2e8f0 !important;
+    border-bottom-color: rgba(200, 16, 46, 0.4) !important;
+    background: rgba(255,255,255,0.04) !important;
+    text-decoration: none !important;
+}
+
+/* ── NRS logo area ───────────────────────────────────────────────────────── */
+.o_main_navbar .o_menu_brand {
+    color: #ffffff !important;
+    font-family: 'Barlow Condensed', sans-serif !important;
+    font-weight: 700 !important;
+    letter-spacing: 2px !important;
+}
+
+/* ── Right-side icons (discuss, activities, user) ────────────────────────── */
+.o_main_navbar .o_menu_systray .o_nav_entry,
+.o_main_navbar .o_menu_systray a,
+.o_main_navbar .o_menu_systray .o_icon_button {
+    color: #94a3b8 !important;
+}
+.o_main_navbar .o_menu_systray .o_nav_entry:hover,
+.o_main_navbar .o_menu_systray a:hover {
+    color: #e2e8f0 !important;
+}
+
+/* ── Dropdown menus from nav tabs ────────────────────────────────────────── */
+.o_main_navbar .o_menu_sections .dropdown-menu {
+    background: #0d1117 !important;
+    border: 1px solid #1e2d3d !important;
+    border-radius: 2px !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6) !important;
+}
+.o_main_navbar .o_menu_sections .dropdown-menu a,
+.o_main_navbar .o_menu_sections .dropdown-menu .dropdown-item {
+    color: #94a3b8 !important;
+    font-family: 'Barlow', sans-serif !important;
+    font-size: 13px !important;
+    padding: 7px 16px !important;
+    letter-spacing: 0.5px !important;
+}
+.o_main_navbar .o_menu_sections .dropdown-menu a:hover,
+.o_main_navbar .o_menu_sections .dropdown-menu .dropdown-item:hover {
+    background: rgba(200, 16, 46, 0.1) !important;
+    color: #ffffff !important;
+}

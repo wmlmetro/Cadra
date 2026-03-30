@@ -1,136 +1,142 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- ══════════════════════════════════════════════════════════════════════
+         FACILITY COMMAND CENTER — true top-level menu (parent_id = False)
+         This must NEVER reference menu_security_root as parent.
+         WestMetro Limited | myservice.com.ng
+    ══════════════════════════════════════════════════════════════════════ -->
 
-    <!-- ══ Placeholder client actions + top-level menus ══ -->
-
-    <!-- Facility Command Center -->
+    <!-- Facility Command Center client action -->
     <record id="action_facility_command_center" model="ir.actions.client">
         <field name="name">Facility Command Center</field>
         <field name="tag">nrs_placeholder</field>
         <field name="params" eval="{'title': 'Facility Command Center', 'subtitle': 'Summary of all facility operations across NRS offices', 'icon': 'building'}"/>
     </record>
+
+    <!-- TOP-LEVEL — parent_id is explicitly False so it never nests under Security -->
     <record id="menu_facility_command_center" model="ir.ui.menu">
         <field name="name">Facility Command Center</field>
-        <field name="sequence">40</field>
+        <field name="parent_id" eval="False"/>
+        <field name="sequence">20</field>
         <field name="action" ref="action_facility_command_center"/>
-        <field name="web_icon">myservice_nrs_base,static/description/icon.png</field>
+        <field name="web_icon">myservice_nrs_base,static/src/img/icon.png</field>
     </record>
 
-    <!-- Building Services -->
+    <!-- ── Facility sub-menus ─────────────────────────────────────────────── -->
     <record id="action_building_services" model="ir.actions.client">
         <field name="name">Building Services</field>
         <field name="tag">nrs_placeholder</field>
-        <field name="params" eval="{'title': 'Building Services', 'subtitle': 'Maintenance and management of NRS buildings', 'icon': 'building', 'coming_soon': True}"/>
+        <field name="params" eval="{'title': 'Building Services', 'subtitle': 'Civil, electrical and HVAC facility requests', 'icon': 'building'}"/>
     </record>
-    <record id="menu_building_services" model="ir.ui.menu">
-        <field name="name">Building Services</field>
-        <field name="sequence">41</field>
-        <field name="action" ref="action_building_services"/>
-        <field name="web_icon">myservice_nrs_base,static/description/icon.png</field>
-    </record>
+    <menuitem id="menu_building_services"
+              name="Building Services"
+              parent="menu_facility_command_center"
+              action="action_building_services"
+              sequence="41"/>
 
-    <!-- Plumbing & Drainage -->
     <record id="action_plumbing_drainage" model="ir.actions.client">
         <field name="name">Plumbing &amp; Drainage</field>
         <field name="tag">nrs_placeholder</field>
-        <field name="params" eval="{'title': 'Plumbing &amp; Drainage', 'subtitle': 'Water systems, drainage and sanitation across NRS offices', 'icon': 'droplet', 'coming_soon': True}"/>
+        <field name="params" eval="{'title': 'Plumbing &amp; Drainage', 'subtitle': 'Plumbing and drainage facility requests', 'icon': 'wrench'}"/>
     </record>
-    <record id="menu_plumbing_drainage" model="ir.ui.menu">
-        <field name="name">Plumbing &amp; Drainage</field>
-        <field name="sequence">42</field>
-        <field name="action" ref="action_plumbing_drainage"/>
-        <field name="web_icon">myservice_nrs_base,static/description/icon.png</field>
-    </record>
+    <menuitem id="menu_plumbing_drainage"
+              name="Plumbing &amp; Drainage"
+              parent="menu_facility_command_center"
+              action="action_plumbing_drainage"
+              sequence="42"/>
 
-    <!-- Plant & Machinery -->
     <record id="action_plant_machinery" model="ir.actions.client">
         <field name="name">Plant &amp; Machinery</field>
         <field name="tag">nrs_placeholder</field>
-        <field name="params" eval="{'title': 'Plant &amp; Machinery', 'subtitle': 'Generators, HVAC, electrical plant and heavy equipment', 'icon': 'cog', 'coming_soon': True}"/>
+        <field name="params" eval="{'title': 'Plant &amp; Machinery', 'subtitle': 'Plant, generator and mechanical asset requests', 'icon': 'cog'}"/>
     </record>
-    <record id="menu_plant_machinery" model="ir.ui.menu">
-        <field name="name">Plant &amp; Machinery</field>
-        <field name="sequence">43</field>
-        <field name="action" ref="action_plant_machinery"/>
-        <field name="web_icon">myservice_nrs_base,static/description/icon.png</field>
-    </record>
+    <menuitem id="menu_plant_machinery"
+              name="Plant &amp; Machinery"
+              parent="menu_facility_command_center"
+              action="action_plant_machinery"
+              sequence="43"/>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         SECURITY ROOT SUB-MENUS — all parented under menu_security_root
+         These appear as tabs in the Security Command Center header.
+    ══════════════════════════════════════════════════════════════════════ -->
 
     <!-- Security Brief -->
     <record id="action_security_brief" model="ir.actions.client">
         <field name="name">Security Brief</field>
         <field name="tag">nrs_placeholder</field>
-        <field name="params" eval="{'title': 'Security Brief', 'subtitle': 'Daily security situation summary, threat level and recommended actions', 'icon': 'shield', 'coming_soon': True}"/>
+        <field name="params" eval="{'title': 'Security Brief', 'subtitle': 'Daily security intelligence summary', 'icon': 'shield'}"/>
     </record>
-    <record id="menu_security_brief" model="ir.ui.menu">
-        <field name="name">Security Brief</field>
-        <field name="sequence">52</field>
-        <field name="action" ref="action_security_brief"/>
-        <field name="web_icon">myservice_nrs_base,static/description/icon.png</field>
-    </record>
+    <menuitem id="menu_security_brief"
+              name="Security Brief"
+              parent="myservice_security.menu_security_root"
+              action="action_security_brief"
+              sequence="52"
+              active="1"/>
 
-    <!-- Case Management -->
-    <record id="action_case_management" model="ir.actions.client">
-        <field name="name">Case Management</field>
-        <field name="tag">nrs_placeholder</field>
-        <field name="params" eval="{'title': 'Case Management', 'subtitle': 'Security incidents, investigations and case tracking', 'icon': 'folder', 'coming_soon': True}"/>
-    </record>
-    <record id="menu_case_management" model="ir.ui.menu">
-        <field name="name">Case Management</field>
-        <field name="sequence">53</field>
-        <field name="action" ref="action_case_management"/>
-        <field name="web_icon">myservice_nrs_base,static/description/icon.png</field>
-    </record>
+    <!-- Case Management — NOW VISIBLE -->
+    <menuitem id="menu_case_management"
+              name="Case Management"
+              parent="myservice_security.menu_security_root"
+              sequence="53"
+              active="1"/>
 
-    <!-- OSINT -->
-    <record id="action_osint" model="ir.actions.client">
-        <field name="name">OSINT</field>
-        <field name="tag">nrs_placeholder</field>
-        <field name="params" eval="{'title': 'OSINT', 'subtitle': 'Open-source intelligence gathering and analysis', 'icon': 'search', 'coming_soon': True}"/>
-    </record>
-    <record id="menu_osint" model="ir.ui.menu">
-        <field name="name">OSINT</field>
-        <field name="sequence">54</field>
-        <field name="action" ref="action_osint"/>
-        <field name="web_icon">myservice_nrs_base,static/description/icon.png</field>
-    </record>
+    <!-- OSINT — NOW VISIBLE -->
+    <menuitem id="menu_osint_toplevel"
+              name="OSINT"
+              parent="myservice_security.menu_security_root"
+              action="myservice_security.action_security_osint"
+              sequence="54"
+              active="1"
+              groups="myservice_security.group_security_manager"/>
 
-    <!-- AI Patterns -->
+    <!-- AI Patterns — NOW VISIBLE -->
     <record id="action_ai_patterns" model="ir.actions.client">
         <field name="name">AI Patterns</field>
         <field name="tag">nrs_placeholder</field>
-        <field name="params" eval="{'title': 'AI Patterns', 'subtitle': 'Machine learning anomaly detection and pattern analysis', 'icon': 'cpu', 'coming_soon': True}"/>
+        <field name="params" eval="{'title': 'AI Patterns', 'subtitle': 'Machine learning threat pattern recognition', 'icon': 'brain'}"/>
     </record>
-    <record id="menu_ai_patterns" model="ir.ui.menu">
-        <field name="name">AI Patterns</field>
-        <field name="sequence">55</field>
-        <field name="action" ref="action_ai_patterns"/>
-        <field name="web_icon">myservice_nrs_base,static/description/icon.png</field>
-    </record>
+    <menuitem id="menu_ai_patterns"
+              name="AI Patterns"
+              parent="myservice_security.menu_security_root"
+              action="action_ai_patterns"
+              sequence="55"
+              active="1"/>
 
-    <!-- Fuel Card -->
+    <!-- Daily Brief — NOW VISIBLE -->
+    <record id="action_daily_brief" model="ir.actions.client">
+        <field name="name">Daily Brief</field>
+        <field name="tag">nrs_placeholder</field>
+        <field name="params" eval="{'title': 'Daily Brief', 'subtitle': 'Morning intelligence and security briefing', 'icon': 'newspaper'}"/>
+    </record>
+    <menuitem id="menu_daily_brief"
+              name="Daily Brief"
+              parent="myservice_security.menu_security_root"
+              action="action_daily_brief"
+              sequence="56"
+              active="1"/>
+
+    <!-- ── Fleet sub-menus ────────────────────────────────────────────────── -->
     <record id="action_fuel_card" model="ir.actions.client">
         <field name="name">Fuel Card</field>
         <field name="tag">nrs_placeholder</field>
-        <field name="params" eval="{'title': 'Fuel Card', 'subtitle': 'Fleet fuel card management, usage tracking and reconciliation', 'icon': 'credit-card', 'coming_soon': True}"/>
+        <field name="params" eval="{'title': 'Fuel Card', 'subtitle': 'Fleet fuel card management', 'icon': 'car'}"/>
     </record>
-    <record id="menu_fuel_card" model="ir.ui.menu">
-        <field name="name">Fuel Card</field>
-        <field name="sequence">62</field>
-        <field name="action" ref="action_fuel_card"/>
-        <field name="web_icon">myservice_nrs_base,static/description/icon.png</field>
-    </record>
+    <menuitem id="menu_fuel_card"
+              name="Fuel Card"
+              parent="fleet.fleet_menu_root"
+              action="action_fuel_card"
+              sequence="62"/>
 
-    <!-- Staff Bus -->
     <record id="action_staff_bus" model="ir.actions.client">
         <field name="name">Staff Bus</field>
         <field name="tag">nrs_placeholder</field>
-        <field name="params" eval="{'title': 'Staff Bus', 'subtitle': 'Staff bus route management, scheduling and commute coordination', 'icon': 'bus', 'coming_soon': True}"/>
+        <field name="params" eval="{'title': 'Staff Bus', 'subtitle': 'Staff bus scheduling and routes', 'icon': 'bus'}"/>
     </record>
-    <record id="menu_staff_bus" model="ir.ui.menu">
-        <field name="name">Staff Bus</field>
-        <field name="sequence">63</field>
-        <field name="action" ref="action_staff_bus"/>
-        <field name="web_icon">myservice_nrs_base,static/description/icon.png</field>
-    </record>
+    <menuitem id="menu_staff_bus"
+              name="Staff Bus"
+              parent="fleet.fleet_menu_root"
+              action="action_staff_bus"
+              sequence="63"/>
 
 </odoo>
