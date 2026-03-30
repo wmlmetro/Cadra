@@ -53,6 +53,9 @@ odoo.define('myservice_fm_dashboard.FMDashboard', function (require) {
 
         _bindEvents: function () {
             var self = this;
+            this.$('.ms-fm-refresh-btn').on('click', function () {
+                self._loadData();
+            });
             this.$('.ms-fm-tab-btn').on('click', function () {
                 self.$('.ms-fm-tab-btn').removeClass('active');
                 $(this).addClass('active');

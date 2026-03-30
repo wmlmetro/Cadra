@@ -17933,7 +17933,7 @@ for i, v in enumerate(VEHICLES, 1):
         model    = v['model']
         vin      = v['vin_sn']
         eng_no   = v['engine_no']
-        location = v['location']
+        location = v['location_name']
         dept     = v['department']
         driver   = v['driver_name']
         sco      = v['sco']
