@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Wizard Form -->
+    <record id="view_asset_label_wizard_form" model="ir.ui.view">
+        <field name="name">nrs.asset.label.wizard.form</field>
+        <field name="model">nrs.asset.label.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Print Barcode Labels">
+                <group>
+                    <field name="label_size"/>
+                    <field name="copies"/>
+                    <field name="asset_ids" widget="many2many_tags"
+                           options="{'no_create': True}"/>
+                </group>
+                <footer>
+                    <button name="action_print" string="Print Labels"
+                            type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Wizard Action -->
+    <record id="action_asset_label_wizard" model="ir.actions.act_window">
+        <field name="name">Print Barcode Labels</field>
+        <field name="res_model">nrs.asset.label.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{'default_asset_ids': active_ids}</field>
+    </record>
+</odoo>

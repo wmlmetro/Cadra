@@ -129,6 +129,10 @@
                   decoration-warning="condition == 'poor'"
                   decoration-success="is_verified"
                   decoration-muted="state == 'disposed'">
+                <header>
+                    <button name="%(action_asset_label_wizard)d" string="Print Labels"
+                            type="action" icon="fa-print"/>
+                </header>
                 <field name="asset_code"/>
                 <field name="name"/>
                 <field name="category_id"/>

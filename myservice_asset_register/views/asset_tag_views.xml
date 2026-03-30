@@ -99,6 +99,12 @@
                         <span class="o_stat_text">Print Tag</span>
                     </div>
                 </button>
+                <button name="%(action_asset_label_wizard)d" type="action"
+                        class="oe_stat_button" icon="fa-tags">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_text">Print Labels</span>
+                    </div>
+                </button>
             </xpath>
             <!-- Add tag info after asset_tag field -->
             <xpath expr="//field[@name='asset_tag']" position="after">
