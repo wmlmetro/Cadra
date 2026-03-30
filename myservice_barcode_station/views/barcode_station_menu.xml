@@ -7,7 +7,7 @@
 
     <menuitem id="menu_barcode_station"
               name="Barcode Station"
-              parent="myservice_fm_dashboard.menu_fm_root"
+              parent="myservice_asset_register.menu_asset_root"
               action="action_barcode_station"
-              sequence="5"/>
+              sequence="55"/>
 </odoo>
