@@ -1,0 +1,166 @@
+/* NRS Security & Safety — Page Tab System */
+
+.nrs-tabpage {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #F5F5F5;
+    min-height: 0;
+}
+
+/* ── Tab Bar ──────────────────────────────────────────────────── */
+.nrs-tabbar {
+    background: #fff;
+    border-bottom: 1px solid #E5E7EB;
+    flex-shrink: 0;
+}
+.nrs-tabbar-header {
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 28px;
+    height: 52px;
+}
+.nrs-tabbar-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1A1A1A;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.nrs-tabbar-icon {
+    color: #C8102E;
+    font-size: 10px;
+}
+.nrs-tabs {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    height: 100%;
+    overflow-x: auto;
+}
+.nrs-tab {
+    height: 52px;
+    padding: 0 18px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-size: 13px;
+    font-weight: 500;
+    color: #6B7280;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+    transition: color 0.15s, border-color 0.15s;
+}
+.nrs-tab:hover {
+    color: #1A1A1A;
+    border-bottom-color: #E5E7EB;
+}
+.nrs-tab.active {
+    color: #C8102E;
+    border-bottom-color: #C8102E;
+    font-weight: 600;
+}
+.nrs-tabbar-actions {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+.nrs-view-all {
+    background: none;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6B7280;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+}
+.nrs-view-all:hover {
+    background: #F9FAFB;
+    color: #1A1A1A;
+    border-color: #D1D5DB;
+}
+
+/* ── Tab Content ──────────────────────────────────────────────── */
+.nrs-tab-panel {
+    flex: 1;
+    overflow: auto;
+    padding: 20px 24px;
+}
+
+/* ── Data Table ───────────────────────────────────────────────── */
+.nrs-tbl {
+    display: grid;
+    background: #fff;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 13px;
+}
+.nrs-th {
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #9CA3AF;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    background: #F9FAFB;
+    border-bottom: 1px solid #E5E7EB;
+}
+.nrs-td {
+    padding: 10px 14px;
+    color: #374151;
+    border-bottom: 1px solid #F3F4F6;
+    cursor: pointer;
+    transition: background 0.1s;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.nrs-td:hover {
+    background: #F9FAFB;
+}
+.nrs-td-name {
+    font-weight: 600;
+    color: #1A1A1A;
+}
+
+/* ── Severity Badge ───────────────────────────────────────────── */
+.nrs-sev-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+/* ── Empty & Loading states ───────────────────────────────────── */
+.nrs-empty, .nrs-loading {
+    padding: 40px;
+    text-align: center;
+    color: #9CA3AF;
+    font-size: 13px;
+    background: #fff;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+}
+.nrs-loading::before {
+    content: '';
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #E5E7EB;
+    border-top-color: #C8102E;
+    border-radius: 50%;
+    animation: nrs-spin 0.7s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+@keyframes nrs-spin { to { transform: rotate(360deg); } }

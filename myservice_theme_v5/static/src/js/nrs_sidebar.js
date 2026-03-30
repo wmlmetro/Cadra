@@ -107,7 +107,7 @@ patch(WebClient.prototype, "myservice_theme_v5.NRSSidebar", {
             var group = NRS_GROUPS[g];
             var members = [];
             for (var a = 0; a < apps.length; a++) {
-                if (group.apps.indexOf(apps[a].name) !== -1 && !assigned[apps[a].id]) {
+                if (group.apps.indexOf(apps[a].name) !== -1) {
                     members.push(apps[a]);
                     assigned[apps[a].id] = true;
                 }
