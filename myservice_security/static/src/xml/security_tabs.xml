@@ -1,90 +1,160 @@
 <?xml version="1.0" encoding="utf-8"?>
 <templates id="template" xml:space="preserve">
 
-<!-- ── Case Management ──────────────────────────────────────────── -->
+<!-- ══ Security Command Center — 8 tabs ═══════════════════════════ -->
+<t t-name="myservice_security.SecurityCommandCenter">
+<div class="nrs-tabpage">
+    <div class="nrs-tabbar">
+        <div class="nrs-tabbar-header">
+            <div class="nrs-tabbar-title">
+                <span class="nrs-title-dot"/>Security Command Center
+            </div>
+            <div class="nrs-tabs">
+                <button class="nrs-tab active"  data-tab="dashboard">Dashboard</button>
+                <button class="nrs-tab"         data-tab="incidents">Incidents</button>
+                <button class="nrs-tab"         data-tab="guards">Guards</button>
+                <button class="nrs-tab"         data-tab="access_logs">Access Logs</button>
+                <button class="nrs-tab"         data-tab="duty_roster">Duty Roster</button>
+                <button class="nrs-tab"         data-tab="intelligence">Intelligence</button>
+                <button class="nrs-tab"         data-tab="daily_briefs">Daily Briefs</button>
+                <button class="nrs-tab"         data-tab="ai_patterns">AI Patterns</button>
+            </div>
+        </div>
+    </div>
+    <div class="nrs-tab-panel" data-panel="dashboard">
+        <div class="nrs-tab-body-dashboard"><div class="nrs-loading">Loading dashboard...</div></div>
+    </div>
+    <div class="nrs-tab-panel" data-panel="incidents" style="display:none">
+        <div class="nrs-panel-toolbar"><button class="nrs-view-all" data-action="331">Open in full view &#8594;</button></div>
+        <div class="nrs-tab-body-incidents"><div class="nrs-loading">Loading incidents...</div></div>
+    </div>
+    <div class="nrs-tab-panel" data-panel="guards" style="display:none">
+        <div class="nrs-panel-toolbar"><button class="nrs-view-all" data-action="332">Open in full view &#8594;</button></div>
+        <div class="nrs-tab-body-guards"><div class="nrs-loading">Loading guards...</div></div>
+    </div>
+    <div class="nrs-tab-panel" data-panel="access_logs" style="display:none">
+        <div class="nrs-panel-toolbar"><button class="nrs-view-all" data-action="336">Open in full view &#8594;</button></div>
+        <div class="nrs-tab-body-access_logs"><div class="nrs-loading">Loading access logs...</div></div>
+    </div>
+    <div class="nrs-tab-panel" data-panel="duty_roster" style="display:none">
+        <div class="nrs-panel-toolbar"><button class="nrs-view-all" data-action="333">Open in full view &#8594;</button></div>
+        <div class="nrs-tab-body-duty_roster"><div class="nrs-loading">Loading duty roster...</div></div>
+    </div>
+    <div class="nrs-tab-panel" data-panel="intelligence" style="display:none">
+        <div class="nrs-panel-toolbar"><button class="nrs-view-all" data-action="344">Open in full view &#8594;</button></div>
+        <div class="nrs-tab-body-intelligence"><div class="nrs-loading">Loading intelligence...</div></div>
+    </div>
+    <div class="nrs-tab-panel" data-panel="daily_briefs" style="display:none">
+        <div class="nrs-panel-toolbar"><button class="nrs-view-all" data-action="348">Open in full view &#8594;</button></div>
+        <div class="nrs-tab-body-daily_briefs"><div class="nrs-loading">Loading daily briefs...</div></div>
+    </div>
+    <div class="nrs-tab-panel" data-panel="ai_patterns" style="display:none">
+        <div class="nrs-panel-toolbar"><button class="nrs-view-all" data-action="347">Open in full view &#8594;</button></div>
+        <div class="nrs-tab-body-ai_patterns"><div class="nrs-loading">Loading AI patterns...</div></div>
+    </div>
+</div>
+</t>
+
+<!-- ══ Case Management — 3 tabs ═══════════════════════════════════ -->
 <t t-name="myservice_security.CaseManagement">
 <div class="nrs-tabpage">
     <div class="nrs-tabbar">
         <div class="nrs-tabbar-header">
             <div class="nrs-tabbar-title">
-                <span class="nrs-tabbar-icon">&#9632;</span>
-                Case Management
+                <span class="nrs-title-dot"/>Case Management
             </div>
             <div class="nrs-tabs">
                 <button class="nrs-tab active" data-tab="incidents">Incidents</button>
-                <button class="nrs-tab" data-tab="watchlist">Watchlist</button>
-                <button class="nrs-tab" data-tab="threats">State Threats</button>
-            </div>
-            <div class="nrs-tabbar-actions">
-                <button class="nrs-view-all" data-action="331">View All Incidents &#8594;</button>
+                <button class="nrs-tab"        data-tab="watchlist">Watchlist</button>
+                <button class="nrs-tab"        data-tab="threats">State Threats</button>
             </div>
         </div>
     </div>
     <div class="nrs-tab-panel" data-panel="incidents">
+        <div class="nrs-panel-toolbar"><button class="nrs-view-all" data-action="331">Open in full view &#8594;</button></div>
         <div class="nrs-tab-body-incidents"><div class="nrs-loading">Loading incidents...</div></div>
     </div>
     <div class="nrs-tab-panel" data-panel="watchlist" style="display:none">
+        <div class="nrs-panel-toolbar"><button class="nrs-view-all" data-action="337">Open in full view &#8594;</button></div>
         <div class="nrs-tab-body-watchlist"><div class="nrs-loading">Loading watchlist...</div></div>
     </div>
     <div class="nrs-tab-panel" data-panel="threats" style="display:none">
+        <div class="nrs-panel-toolbar"><button class="nrs-view-all" data-action="339">Open in full view &#8594;</button></div>
         <div class="nrs-tab-body-threats"><div class="nrs-loading">Loading threat levels...</div></div>
     </div>
 </div>
 </t>
 
-<!-- ── OSINT ─────────────────────────────────────────────────────── -->
+<!-- ══ OSINT — 3 tabs ═════════════════════════════════════════════ -->
 <t t-name="myservice_security.OsintPage">
 <div class="nrs-tabpage">
     <div class="nrs-tabbar">
         <div class="nrs-tabbar-header">
             <div class="nrs-tabbar-title">
-                <span class="nrs-tabbar-icon">&#9670;</span>
-                OSINT &amp; Intelligence
+                <span class="nrs-title-dot"/>OSINT &amp; Intelligence
             </div>
             <div class="nrs-tabs">
                 <button class="nrs-tab active" data-tab="feed">Intelligence Feed</button>
-                <button class="nrs-tab" data-tab="sources">Sources</button>
-                <button class="nrs-tab" data-tab="osint">OSINT Feed</button>
-            </div>
-            <div class="nrs-tabbar-actions">
-                <button class="nrs-view-all" data-action="344">View All &#8594;</button>
+                <button class="nrs-tab"        data-tab="sources">Sources</button>
+                <button class="nrs-tab"        data-tab="osint">OSINT Feed</button>
             </div>
         </div>
     </div>
     <div class="nrs-tab-panel" data-panel="feed">
+        <div class="nrs-panel-toolbar"><button class="nrs-view-all" data-action="344">Open in full view &#8594;</button></div>
         <div class="nrs-tab-body-feed"><div class="nrs-loading">Loading intelligence feed...</div></div>
     </div>
     <div class="nrs-tab-panel" data-panel="sources" style="display:none">
+        <div class="nrs-panel-toolbar"><button class="nrs-view-all" data-action="343">Open in full view &#8594;</button></div>
         <div class="nrs-tab-body-sources"><div class="nrs-loading">Loading sources...</div></div>
     </div>
     <div class="nrs-tab-panel" data-panel="osint" style="display:none">
+        <div class="nrs-panel-toolbar"><button class="nrs-view-all" data-action="338">Open in full view &#8594;</button></div>
         <div class="nrs-tab-body-osint"><div class="nrs-loading">Loading OSINT feed...</div></div>
     </div>
 </div>
 </t>
 
-<!-- ── AI Patterns ───────────────────────────────────────────────── -->
+<!-- ══ AI Patterns — 2 tabs ═══════════════════════════════════════ -->
 <t t-name="myservice_security.AiPatternsPage">
 <div class="nrs-tabpage">
     <div class="nrs-tabbar">
         <div class="nrs-tabbar-header">
             <div class="nrs-tabbar-title">
-                <span class="nrs-tabbar-icon">&#9650;</span>
-                AI Patterns &amp; Intelligence
+                <span class="nrs-title-dot"/>AI Patterns &amp; Intelligence
             </div>
             <div class="nrs-tabs">
                 <button class="nrs-tab active" data-tab="alerts">Pattern Alerts</button>
-                <button class="nrs-tab" data-tab="briefs">Daily Briefs</button>
-            </div>
-            <div class="nrs-tabbar-actions">
-                <button class="nrs-view-all" data-action="347">View All Alerts &#8594;</button>
+                <button class="nrs-tab"        data-tab="briefs">Daily Briefs</button>
             </div>
         </div>
     </div>
     <div class="nrs-tab-panel" data-panel="alerts">
+        <div class="nrs-panel-toolbar"><button class="nrs-view-all" data-action="347">Open in full view &#8594;</button></div>
         <div class="nrs-tab-body-alerts"><div class="nrs-loading">Loading pattern alerts...</div></div>
     </div>
     <div class="nrs-tab-panel" data-panel="briefs" style="display:none">
+        <div class="nrs-panel-toolbar"><button class="nrs-view-all" data-action="348">Open in full view &#8594;</button></div>
+        <div class="nrs-tab-body-briefs"><div class="nrs-loading">Loading daily briefs...</div></div>
+    </div>
+</div>
+</t>
+
+<!-- ══ Daily Brief — standalone ═══════════════════════════════════ -->
+<t t-name="myservice_security.DailyBriefPage">
+<div class="nrs-tabpage">
+    <div class="nrs-tabbar">
+        <div class="nrs-tabbar-header">
+            <div class="nrs-tabbar-title">
+                <span class="nrs-title-dot"/>Daily Intelligence Brief
+            </div>
+            <div class="nrs-tabs">
+                <button class="nrs-tab active" data-tab="briefs">All Briefs</button>
+            </div>
+        </div>
+    </div>
+    <div class="nrs-tab-panel" data-panel="briefs">
+        <div class="nrs-panel-toolbar"><button class="nrs-view-all" data-action="348">Open in full view &#8594;</button></div>
         <div class="nrs-tab-body-briefs"><div class="nrs-loading">Loading daily briefs...</div></div>
     </div>
 </div>

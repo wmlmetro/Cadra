@@ -11,40 +11,52 @@
 /* ── Tab Bar ──────────────────────────────────────────────────── */
 .nrs-tabbar {
     background: #fff;
-    border-bottom: 1px solid #E5E7EB;
+    border-bottom: 2px solid #E5E7EB;
     flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 .nrs-tabbar-header {
     display: flex;
     align-items: center;
-    padding: 0 24px;
-    gap: 28px;
-    height: 52px;
+    padding: 0 20px;
+    gap: 24px;
+    height: 50px;
 }
 .nrs-tabbar-title {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
     color: #1A1A1A;
     white-space: nowrap;
     display: flex;
     align-items: center;
     gap: 8px;
+    padding-right: 16px;
+    border-right: 1px solid #E5E7EB;
     flex-shrink: 0;
 }
-.nrs-tabbar-icon {
-    color: #C8102E;
-    font-size: 10px;
+.nrs-title-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #C8102E;
+    flex-shrink: 0;
 }
 .nrs-tabs {
     display: flex;
     align-items: center;
-    gap: 0;
     height: 100%;
+    gap: 0;
     overflow-x: auto;
+    scrollbar-width: none;
 }
+.nrs-tabs::-webkit-scrollbar { display: none; }
+
 .nrs-tab {
-    height: 52px;
-    padding: 0 18px;
+    height: 50px;
+    padding: 0 16px;
     background: none;
     border: none;
     border-bottom: 3px solid transparent;
@@ -55,19 +67,28 @@
     white-space: nowrap;
     font-family: inherit;
     transition: color 0.15s, border-color 0.15s;
+    margin-bottom: -2px;
 }
 .nrs-tab:hover {
-    color: #1A1A1A;
-    border-bottom-color: #E5E7EB;
+    color: #374151;
+    background: #F9FAFB;
 }
 .nrs-tab.active {
     color: #C8102E;
     border-bottom-color: #C8102E;
     font-weight: 600;
 }
-.nrs-tabbar-actions {
-    margin-left: auto;
-    flex-shrink: 0;
+
+/* ── Tab Content ──────────────────────────────────────────────── */
+.nrs-tab-panel {
+    flex: 1;
+    overflow: auto;
+    padding: 20px 24px;
+}
+.nrs-panel-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
 }
 .nrs-view-all {
     background: none;
@@ -87,11 +108,42 @@
     border-color: #D1D5DB;
 }
 
-/* ── Tab Content ──────────────────────────────────────────────── */
-.nrs-tab-panel {
-    flex: 1;
-    overflow: auto;
-    padding: 20px 24px;
+/* ── KPI Strip (Dashboard tab) ────────────────────────────────── */
+.nrs-kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+.nrs-kpi-card {
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #E5E7EB;
+    padding: 16px;
+    text-align: center;
+}
+.nrs-kpi-val {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+.nrs-kpi-lbl {
+    font-size: 11px;
+    color: #9CA3AF;
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.nrs-kpi-red   .nrs-kpi-val { color: #dc3545; }
+.nrs-kpi-orange .nrs-kpi-val { color: #E85426; }
+.nrs-kpi-green .nrs-kpi-val { color: #28a745; }
+.nrs-kpi-blue  .nrs-kpi-val { color: #007bff; }
+.nrs-kpi-purple .nrs-kpi-val { color: #6f42c1; }
+.nrs-section-hdr {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 10px;
 }
 
 /* ── Data Table ───────────────────────────────────────────────── */
@@ -123,15 +175,10 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.nrs-td:hover {
-    background: #F9FAFB;
-}
-.nrs-td-name {
-    font-weight: 600;
-    color: #1A1A1A;
-}
+.nrs-td:hover { background: #F9FAFB; }
+.nrs-td-name { font-weight: 600; color: #1A1A1A; }
 
-/* ── Severity Badge ───────────────────────────────────────────── */
+/* ── Badges ───────────────────────────────────────────────────── */
 .nrs-sev-badge {
     display: inline-block;
     padding: 2px 8px;
@@ -140,6 +187,18 @@
     font-weight: 600;
     line-height: 1.4;
 }
+.nrs-state-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.4;
+    background: #F3F4F6;
+    color: #6B7280;
+}
+.nrs-state-open { background: #FEF3C7; color: #D97706; }
+.nrs-state-closed { background: #D1FAE5; color: #059669; }
 
 /* ── Empty & Loading states ───────────────────────────────────── */
 .nrs-empty, .nrs-loading {
