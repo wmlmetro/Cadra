@@ -37,6 +37,7 @@
             'myservice_security/static/src/xml/security_dashboard.xml',
             'myservice_security/static/src/xml/security_tabs.xml',
         ],
+	'myservice_security/static/src/css/security_navbar.css',
     },
     'installable': True,
     'auto_install': False,
