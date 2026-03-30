@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_watchlist_viewer,Watchlist Viewer,model_nrs_watchlist_subject,group_watchlist_viewer,1,0,0,0
+access_watchlist_operator,Watchlist Operator,model_nrs_watchlist_subject,group_watchlist_operator,1,1,1,0
+access_watchlist_admin,Watchlist Admin,model_nrs_watchlist_subject,group_watchlist_admin,1,1,1,1

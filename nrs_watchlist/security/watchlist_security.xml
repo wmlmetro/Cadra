@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Groups -->
+    <record id="group_watchlist_viewer" model="res.groups">
+        <field name="name">Watchlist: Viewer</field>
+        <field name="category_id" ref="base.module_category_hidden"/>
+    </record>
+
+    <record id="group_watchlist_operator" model="res.groups">
+        <field name="name">Watchlist: Operator</field>
+        <field name="category_id" ref="base.module_category_hidden"/>
+        <field name="implied_ids" eval="[(4, ref('group_watchlist_viewer'))]"/>
+    </record>
+
+    <record id="group_watchlist_admin" model="res.groups">
+        <field name="name">Watchlist: Administrator</field>
+        <field name="category_id" ref="base.module_category_hidden"/>
+        <field name="implied_ids" eval="[(4, ref('group_watchlist_operator'))]"/>
+    </record>
+
+    <!-- Sequence -->
+    <record id="seq_watchlist_subject" model="ir.sequence">
+        <field name="name">NRS Watchlist Subject</field>
+        <field name="code">nrs.watchlist.subject</field>
+        <field name="prefix">WL-%(year)s-</field>
+        <field name="padding">4</field>
+        <field name="number_next">1</field>
+        <field name="number_increment">1</field>
+    </record>
+</odoo>
