@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- Hidden: accessed via Fleet tab page instead -->
     <menuitem
         id="menu_fleet_service_vendors"
         name="Service Vendors"
         parent="fleet.menu_root"
         action="action_fleet_service_vendor"
-        sequence="30"/>
+        sequence="30" active="0"/>
 
     <menuitem
         id="menu_fleet_maintenance_dashboard"
         name="Maintenance Due"
         parent="fleet.menu_root"
         action="action_fleet_maintenance_dashboard"
-        sequence="25"/>
+        sequence="25" active="0"/>
 </odoo>
