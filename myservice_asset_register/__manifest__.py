@@ -16,6 +16,7 @@
         'data/asset_sequences.xml',
         'data/asset_categories.xml',
         'data/asset_tag_report.xml',
+        'wizard/asset_label_wizard_view.xml',
         'views/asset_views.xml',
         'views/asset_transfer_views.xml',
         'views/asset_pm_views.xml',
