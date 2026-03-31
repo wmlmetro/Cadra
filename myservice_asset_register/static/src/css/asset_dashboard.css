@@ -1,0 +1,556 @@
+/* ================================================================
+   NRS Asset Register Dashboard
+   Inherits design tokens from myservice_nrs_base/nrs_base.css
+   Prefix: ms-ar-*
+   ================================================================ */
+
+/* ── Layout ─────────────────────────────────────────── */
+.ms-ar-dashboard {
+    background: var(--nrs-bg);
+    min-height: 100vh;
+    padding: 0;
+    font-family: var(--nrs-sans);
+    color: var(--nrs-ink-1);
+}
+
+/* ── Header ─────────────────────────────────────────── */
+.ms-ar-header {
+    background: var(--nrs-bg-card);
+    border-bottom: 1px solid var(--nrs-border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ms-ar-header-left { display: flex; align-items: center; gap: 12px; }
+
+.ms-ar-nrs-badge {
+    background: var(--nrs-red);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: var(--nrs-radius-sm);
+    letter-spacing: 0.8px;
+    font-family: var(--nrs-mono);
+}
+
+.ms-ar-header-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--nrs-ink);
+    letter-spacing: -0.3px;
+}
+
+.ms-ar-header-title .ms-ar-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--nrs-red);
+    border-radius: 50%;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+.ms-ar-header-sub {
+    font-size: 11px;
+    color: var(--nrs-ink-ghost);
+    margin-top: 2px;
+    font-family: var(--nrs-mono);
+}
+
+.ms-ar-header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.ms-ar-btn {
+    background: var(--nrs-bg-card);
+    color: var(--nrs-ink-mid);
+    border: 1px solid var(--nrs-border);
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+}
+
+.ms-ar-btn:hover {
+    border-color: var(--nrs-border2);
+    background: var(--nrs-bg-hover);
+    color: var(--nrs-ink);
+}
+
+.ms-ar-btn-primary {
+    background: var(--nrs-red);
+    border-color: var(--nrs-red);
+    color: #fff;
+}
+
+.ms-ar-btn-primary:hover {
+    background: var(--nrs-red-dark);
+    border-color: var(--nrs-red-dark);
+    color: #fff;
+}
+
+/* ── KPI Bar ────────────────────────────────────────── */
+.ms-ar-kpi-bar {
+    display: flex;
+    gap: 1px;
+    background: var(--nrs-border);
+    border-bottom: 1px solid var(--nrs-border);
+}
+
+.ms-ar-kpi {
+    flex: 1;
+    background: var(--nrs-bg-card);
+    padding: 16px 20px;
+    transition: background 0.15s;
+    min-width: 0;
+    cursor: pointer;
+}
+
+.ms-ar-kpi:hover { background: var(--nrs-bg-hover); }
+
+.ms-ar-kpi-val {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -1px;
+    font-family: var(--nrs-mono);
+    margin-top: 6px;
+}
+
+.ms-ar-kpi-label {
+    font-size: 10px;
+    color: var(--nrs-ink-ghost);
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    font-family: var(--nrs-mono);
+    font-weight: 500;
+}
+
+.ms-ar-kpi.red .ms-ar-kpi-val    { color: var(--nrs-red); }
+.ms-ar-kpi.amber .ms-ar-kpi-val  { color: var(--nrs-warn); }
+.ms-ar-kpi.green .ms-ar-kpi-val  { color: var(--nrs-ok); }
+.ms-ar-kpi.blue .ms-ar-kpi-val   { color: var(--nrs-info); }
+.ms-ar-kpi.purple .ms-ar-kpi-val { color: #6f42c1; }
+
+/* ── Body grid ──────────────────────────────────────── */
+.ms-ar-body {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 16px;
+    padding: 16px 20px;
+}
+
+.ms-ar-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.ms-ar-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+/* ── Section headers ────────────────────────────────── */
+.ms-ar-section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 10px;
+}
+
+/* ── Cards ──────────────────────────────────────────── */
+.ms-ar-card {
+    background: var(--nrs-bg-card);
+    border-radius: var(--nrs-radius);
+    border: 1px solid var(--nrs-border);
+    overflow: hidden;
+}
+
+.ms-ar-card-hdr {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--nrs-border);
+    font-size: 13px;
+    font-weight: 600;
+    color: #1A1A1A;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ms-ar-card-body { padding: 14px 16px; }
+
+/* ── Map ────────────────────────────────────────────── */
+.ms-ar-map-container {
+    background: #F9FAFB;
+    border-radius: 6px;
+    min-height: 280px;
+}
+
+.ms-ar-map-filters {
+    display: flex;
+    gap: 6px;
+}
+
+.ms-ar-map-filter-btn {
+    padding: 3px 10px;
+    border-radius: var(--nrs-radius-sm);
+    border: 1px solid var(--nrs-border);
+    background: var(--nrs-bg-card);
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--nrs-mono);
+    letter-spacing: 0.3px;
+    color: var(--nrs-ink-ghost);
+    transition: all 0.15s;
+}
+
+.ms-ar-map-filter-btn.active,
+.ms-ar-map-filter-btn:hover {
+    border-color: var(--nrs-red);
+    color: var(--nrs-red);
+    background: var(--nrs-red-light);
+}
+
+/* ── State grid (below map) ─────────────────────────── */
+.ms-ar-state-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 12px 16px;
+}
+
+.ms-ar-state-cell {
+    padding: 8px 10px;
+    background: #F9FAFB;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ms-ar-state-label {
+    font-size: 11px;
+    color: var(--nrs-ink-mid);
+}
+
+.ms-ar-state-val {
+    font-size: 13px;
+    font-weight: 700;
+    font-family: var(--nrs-mono);
+    color: var(--nrs-ink);
+}
+
+/* ── Category bars ──────────────────────────────────── */
+.ms-ar-cat-row {
+    display: flex;
+    align-items: center;
+    padding: 6px 0;
+}
+
+.ms-ar-cat-label {
+    width: 130px;
+    font-size: 12px;
+    color: var(--nrs-ink-mid);
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ms-ar-cat-bar-track {
+    flex: 1;
+    height: 6px;
+    background: #F3F4F6;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.ms-ar-cat-bar-fill {
+    height: 100%;
+    background: var(--nrs-red);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+}
+
+.ms-ar-cat-count {
+    width: 32px;
+    text-align: right;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: var(--nrs-mono);
+    color: var(--nrs-ink);
+}
+
+/* ── PM due list ────────────────────────────────────── */
+.ms-ar-pm-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid #F3F4F6;
+}
+
+.ms-ar-pm-row:last-child { border-bottom: none; }
+
+.ms-ar-pm-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.ms-ar-pm-dot.overdue { background: var(--nrs-red); }
+.ms-ar-pm-dot.soon    { background: var(--nrs-warn); }
+.ms-ar-pm-dot.upcoming { background: var(--nrs-ok); }
+
+.ms-ar-pm-name {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--nrs-ink);
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ms-ar-pm-date {
+    font-size: 11px;
+    color: #9CA3AF;
+    font-family: var(--nrs-mono);
+    flex-shrink: 0;
+}
+
+/* ── Recently tagged list ───────────────────────────── */
+.ms-ar-recent-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #F3F4F6;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.ms-ar-recent-row:last-child { border-bottom: none; }
+.ms-ar-recent-row:hover { background: var(--nrs-bg-hover); margin: 0 -16px; padding: 8px 16px; }
+
+.ms-ar-recent-icon {
+    width: 30px;
+    height: 30px;
+    background: #F3F4F6;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 13px;
+    color: var(--nrs-ink-ghost);
+}
+
+.ms-ar-recent-info { flex: 1; min-width: 0; }
+
+.ms-ar-recent-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--nrs-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ms-ar-recent-meta {
+    font-size: 11px;
+    color: #9CA3AF;
+    font-family: var(--nrs-mono);
+    margin-top: 1px;
+}
+
+/* ── Badges ─────────────────────────────────────────── */
+.ms-ar-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--nrs-mono);
+}
+
+.ms-ar-badge.tagged     { background: #D1FAE5; color: #059669; }
+.ms-ar-badge.pending    { background: #FEF3C7; color: #D97706; }
+.ms-ar-badge.unverified { background: #FEE2E2; color: #DC2626; }
+.ms-ar-badge.active     { background: #D1FAE5; color: #059669; }
+.ms-ar-badge.in_repair  { background: #FEF3C7; color: #D97706; }
+.ms-ar-badge.disposed   { background: var(--nrs-bg); color: var(--nrs-ink-ghost); }
+.ms-ar-badge.missing    { background: #FEE2E2; color: #DC2626; }
+
+/* ── Barcode station ────────────────────────────────── */
+.ms-ar-barcode-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1A1A1A;
+}
+
+.ms-ar-pulse-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--nrs-ok);
+    border-radius: 50%;
+    animation: ms-ar-pulse 2s ease-in-out infinite;
+}
+
+@keyframes ms-ar-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+.ms-ar-scan-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--nrs-border);
+    border-radius: 6px;
+    font-family: var(--nrs-mono);
+    font-size: 14px;
+    margin-top: 10px;
+    outline: none;
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+}
+
+.ms-ar-scan-input:focus {
+    border-color: var(--nrs-red);
+}
+
+.ms-ar-scan-input::placeholder {
+    color: var(--nrs-ink-faint);
+}
+
+/* ── Scan result ────────────────────────────────────── */
+.ms-ar-scan-result {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #F3F4F6;
+}
+
+.ms-ar-scan-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid #F3F4F6;
+}
+
+.ms-ar-scan-row:last-child { border-bottom: none; }
+
+.ms-ar-scan-label {
+    font-size: 12px;
+    color: #9CA3AF;
+}
+
+.ms-ar-scan-value {
+    font-size: 12px;
+    color: #1A1A1A;
+    font-weight: 500;
+}
+
+/* ── Action buttons ─────────────────────────────────── */
+.ms-ar-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.ms-ar-action-btn {
+    flex: 1;
+    font-size: 11px;
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid var(--nrs-border);
+    background: var(--nrs-bg-card);
+    color: var(--nrs-ink-mid);
+    cursor: pointer;
+    font-weight: 600;
+    text-align: center;
+    transition: all 0.15s;
+}
+
+.ms-ar-action-btn:hover {
+    border-color: var(--nrs-border2);
+    background: var(--nrs-bg-hover);
+}
+
+.ms-ar-action-btn.primary {
+    background: var(--nrs-red);
+    border-color: var(--nrs-red);
+    color: #fff;
+}
+
+.ms-ar-action-btn.primary:hover {
+    background: var(--nrs-red-dark);
+    border-color: var(--nrs-red-dark);
+}
+
+/* ── Loading & empty ────────────────────────────────── */
+.ms-ar-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    color: var(--nrs-ink-ghost);
+    font-family: var(--nrs-mono);
+    font-size: 12px;
+}
+
+.ms-ar-empty {
+    padding: 24px 16px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--nrs-ink-ghost);
+    font-family: var(--nrs-mono);
+}
+
+/* ── Map pins ───────────────────────────────────────── */
+.ms-ar-map-pin { background: none !important; border: none !important; }
+
+.ms-ar-pin-inner {
+    width: 14px;
+    height: 14px;
+    background: var(--nrs-red);
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.ms-ar-pin-inner.active  { background: var(--nrs-ok); }
+.ms-ar-pin-inner.repair  { background: var(--nrs-warn); }
+.ms-ar-pin-inner.unverified { background: var(--nrs-red); }
+
+/* ── Leaflet light overrides ────────────────────────── */
+.ms-ar-dashboard .leaflet-container { background: #E8E8E8 !important; }
+.ms-ar-dashboard .leaflet-tile { filter: none !important; }
+.ms-ar-dashboard .leaflet-popup-content-wrapper {
+    background: var(--nrs-bg-card) !important;
+    border: 1px solid var(--nrs-border) !important;
+    color: var(--nrs-ink-1) !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
+    font-family: var(--nrs-sans) !important;
+    font-size: 12px !important;
+}
+.ms-ar-dashboard .leaflet-popup-content { margin: 10px 14px !important; color: var(--nrs-ink-1) !important; }
+.ms-ar-dashboard .leaflet-popup-tip { background: var(--nrs-bg-card) !important; }
+.ms-ar-dashboard .leaflet-popup-close-button { color: var(--nrs-ink-ghost) !important; }
+
+/* ── Responsive ─────────────────────────────────────── */
+@media (max-width: 1100px) {
+    .ms-ar-body { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+    .ms-ar-kpi-bar { flex-wrap: wrap; }
+    .ms-ar-kpi { flex-basis: 50%; }
+}

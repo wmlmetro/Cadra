@@ -256,4 +256,10 @@
         <field name="res_model">nrs.asset.category</field>
         <field name="view_mode">tree,form</field>
     </record>
+
+    <!-- ── Asset Dashboard (Client Action) ── -->
+    <record id="action_asset_dashboard" model="ir.actions.client">
+        <field name="name">Asset Register</field>
+        <field name="tag">nrs_asset_dashboard</field>
+    </record>
 </odoo>
