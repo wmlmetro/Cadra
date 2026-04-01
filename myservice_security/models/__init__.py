@@ -4,3 +4,4 @@ from . import security_duty_roster
 from . import security_access_log
 from . import security_watchlist
 from . import security_osint
+from . import acled_sync

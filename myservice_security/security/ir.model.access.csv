@@ -17,3 +17,6 @@ access_security_osint_officer,security.osint.feed officer,model_security_osint_f
 access_security_osint_manager,security.osint.feed manager,model_security_osint_feed,myservice_security.group_security_manager,1,1,1,1
 access_security_state_threat_officer,security.state.threat officer,model_security_state_threat,myservice_security.group_security_officer,1,1,0,0
 access_security_state_threat_manager,security.state.threat manager,model_security_state_threat,myservice_security.group_security_manager,1,1,1,1
+access_acled_sync_log_officer,acled.sync.log officer,model_acled_sync_log,myservice_security.group_security_officer,1,0,0,0
+access_acled_sync_log_manager,acled.sync.log manager,model_acled_sync_log,myservice_security.group_security_manager,1,1,1,1
+access_acled_sync_log_public,acled.sync.log public,model_acled_sync_log,,1,0,0,0

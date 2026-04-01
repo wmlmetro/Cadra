@@ -9,6 +9,7 @@
         'generic_resource',
         'generic_request',
         'generic_location',
+        'myservice_nrs_base',
     ],
     'data': [
         'security/asset_security.xml',
@@ -25,6 +26,15 @@
         'views/asset_menu.xml',
         'data/asset_cron.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'myservice_asset_register/static/src/css/asset_dashboard.css',
+            'myservice_asset_register/static/src/js/asset_dashboard.js',
+        ],
+        'web.assets_qweb': [
+            'myservice_asset_register/static/src/xml/asset_dashboard.xml',
+        ],
+    },
     'installable': True,
     'auto_install': False,
     'license': 'LGPL-3',

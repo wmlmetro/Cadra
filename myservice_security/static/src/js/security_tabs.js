@@ -265,16 +265,38 @@ odoo.define('myservice_security.SecurityTabs', function (require) {
             rpc.query({
                 model: 'ai.daily.brief', method: 'search_read', args: [[]],
                 kwargs: {
-                    fields: ['name', 'date', 'threat_level', 'summary', 'state'],
-                    limit: 50, order: 'date desc',
+                    fields: ['brief_date', 'subject', 'headline', 'critical_alerts', 'high_alerts', 'states_elevated'],
+                    limit: 50, order: 'brief_date desc',
                 },
             }).then(function (recs) {
                 renderTable(self.$('.nrs-tab-body-daily_briefs'), recs, [
-                    { f: 'name',         l: 'Brief',   w: '1fr' },
-                    { f: 'date',         l: 'Date',    w: '100px', fmt: 'date' },
-                    { f: 'threat_level', l: 'Threat',  w: '90px',  fmt: 'sev' },
-                    { f: 'state',        l: 'Status',  w: '90px',  fmt: 'state' },
+                    { f: 'brief_date',      l: 'Date',     w: '110px', fmt: 'date' },
+                    { f: 'subject',         l: 'Subject',  w: 'auto' },
+                    { f: 'critical_alerts', l: 'Critical', w: '80px' },
+                    { f: 'high_alerts',     l: 'High',     w: '70px' },
+                    { f: 'states_elevated', l: 'States',   w: '180px' },
                 ], 'ai.daily.brief');
+            });
+        },
+
+        // ── State Threats tab ─────────────────────────────────────────
+        _load_threats: function () {
+            var self = this;
+            rpc.query({
+                model: 'security.state.threat', method: 'search_read', args: [[]],
+                kwargs: {
+                    fields: ['name', 'threat_level', 'state_id',
+                             'last_updated', 'notes'],
+                    limit: 50, order: 'threat_level desc, name',
+                },
+            }).then(function (recs) {
+                renderTable(self.$('.nrs-tab-body-threats'), recs, [
+                    { f: 'name',         l: 'Region',       w: '180px' },
+                    { f: 'state_id',     l: 'State',        w: '140px', fmt: 'm2o' },
+                    { f: 'threat_level', l: 'Threat Level', w: '100px', fmt: 'sev' },
+                    { f: 'last_updated', l: 'Updated',      w: '100px', fmt: 'date' },
+                    { f: 'notes',        l: 'Notes',        w: '1fr' },
+                ], 'security.state.threat');
             });
         },
 
@@ -476,15 +498,16 @@ odoo.define('myservice_security.SecurityTabs', function (require) {
             rpc.query({
                 model: 'ai.daily.brief', method: 'search_read', args: [[]],
                 kwargs: {
-                    fields: ['name', 'date', 'threat_level', 'summary', 'state'],
-                    limit: 50, order: 'date desc',
+                    fields: ['brief_date', 'subject', 'headline', 'critical_alerts', 'high_alerts', 'states_elevated'],
+                    limit: 50, order: 'brief_date desc',
                 },
             }).then(function (recs) {
                 renderTable(self.$('.nrs-tab-body-briefs'), recs, [
-                    { f: 'name',         l: 'Brief',  w: '1fr' },
-                    { f: 'date',         l: 'Date',   w: '100px', fmt: 'date' },
-                    { f: 'threat_level', l: 'Threat', w: '90px',  fmt: 'sev' },
-                    { f: 'state',        l: 'Status', w: '90px',  fmt: 'state' },
+                    { f: 'brief_date',      l: 'Date',     w: '110px', fmt: 'date' },
+                    { f: 'subject',         l: 'Subject',  w: 'auto' },
+                    { f: 'critical_alerts', l: 'Critical', w: '80px' },
+                    { f: 'high_alerts',     l: 'High',     w: '70px' },
+                    { f: 'states_elevated', l: 'States',   w: '180px' },
                 ], 'ai.daily.brief');
             });
         },

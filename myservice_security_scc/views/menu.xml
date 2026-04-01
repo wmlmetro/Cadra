@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Client actions for each tabbed interface -->
+    <record id="action_security_command_center" model="ir.actions.client">
+        <field name="name">Security Command Center</field>
+        <field name="tag">nrs_security_command_center</field>
+    </record>
+
+    <record id="action_case_management" model="ir.actions.client">
+        <field name="name">Case Management</field>
+        <field name="tag">nrs_case_management</field>
+    </record>
+
+    <record id="action_osint_intelligence" model="ir.actions.client">
+        <field name="name">OSINT &amp; Intelligence</field>
+        <field name="tag">nrs_osint</field>
+    </record>
+
+    <record id="action_ai_patterns" model="ir.actions.client">
+        <field name="name">AI Patterns &amp; Intelligence</field>
+        <field name="tag">nrs_ai_patterns</field>
+    </record>
+
+    <record id="action_daily_brief" model="ir.actions.client">
+        <field name="name">Daily Intelligence Brief</field>
+        <field name="tag">nrs_daily_brief</field>
+    </record>
+
+    <!-- Root menu — opens the Command Center dashboard -->
+    <menuitem id="menu_scc_root" name="Command Center"
+        sequence="5"
+        action="action_security_command_center"
+        web_icon="myservice_security_scc,static/src/img/icon.svg"/>
+
+    <!-- Sub-menus for direct access to each interface -->
+    <menuitem id="menu_scc_case_management" name="Case Management"
+        parent="menu_scc_root" sequence="10"
+        action="action_case_management"/>
+
+    <menuitem id="menu_scc_osint" name="OSINT &amp; Intelligence"
+        parent="menu_scc_root" sequence="20"
+        action="action_osint_intelligence"
+        groups="myservice_security.group_security_manager"/>
+
+    <menuitem id="menu_scc_ai_patterns" name="AI Patterns"
+        parent="menu_scc_root" sequence="30"
+        action="action_ai_patterns"
+        groups="myservice_security.group_security_manager"/>
+
+    <menuitem id="menu_scc_daily_brief" name="Daily Brief"
+        parent="menu_scc_root" sequence="40"
+        action="action_daily_brief"/>
+</odoo>

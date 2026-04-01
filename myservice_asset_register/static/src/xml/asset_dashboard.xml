@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates>
+    <t t-name="myservice_asset_register.AssetDashboard">
+        <div class="ms-ar-dashboard">
+
+            <!-- Header -->
+            <div class="ms-ar-header">
+                <div class="ms-ar-header-left">
+                    <span class="ms-ar-nrs-badge">NRS</span>
+                    <div>
+                        <div class="ms-ar-header-title">
+                            Asset Register<span class="ms-ar-dot"></span>
+                        </div>
+                        <div class="ms-ar-header-sub">
+                            NRS Facilities Management · myservice.com.ng
+                            <span id="ar-last-updated" style="margin-left:12px"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="ms-ar-header-actions">
+                    <button class="ms-ar-btn ms-ar-btn-all">All Assets</button>
+                    <button class="ms-ar-btn ms-ar-btn-export">Export</button>
+                    <button class="ms-ar-btn ms-ar-btn-primary ms-ar-btn-new">+ New Asset</button>
+                </div>
+            </div>
+
+            <!-- KPI Bar -->
+            <div class="ms-ar-kpi-bar">
+                <div class="ms-ar-kpi red" data-filter="all">
+                    <div class="ms-ar-kpi-label">Total Assets</div>
+                    <div class="ms-ar-kpi-val" id="kpi-ar-total">--</div>
+                </div>
+                <div class="ms-ar-kpi green" data-filter="active">
+                    <div class="ms-ar-kpi-label">Active</div>
+                    <div class="ms-ar-kpi-val" id="kpi-ar-active">--</div>
+                </div>
+                <div class="ms-ar-kpi amber" data-filter="repair">
+                    <div class="ms-ar-kpi-label">Under Repair</div>
+                    <div class="ms-ar-kpi-val" id="kpi-ar-repair">--</div>
+                </div>
+                <div class="ms-ar-kpi red" data-filter="unverified">
+                    <div class="ms-ar-kpi-label">Unverified</div>
+                    <div class="ms-ar-kpi-val" id="kpi-ar-unverified">--</div>
+                </div>
+                <div class="ms-ar-kpi purple" data-filter="condemned">
+                    <div class="ms-ar-kpi-label">Condemned</div>
+                    <div class="ms-ar-kpi-val" id="kpi-ar-condemned">--</div>
+                </div>
+                <div class="ms-ar-kpi amber" data-filter="pm_overdue">
+                    <div class="ms-ar-kpi-label">PM Overdue</div>
+                    <div class="ms-ar-kpi-val" id="kpi-ar-pm-overdue">--</div>
+                </div>
+            </div>
+
+            <!-- Body grid -->
+            <div class="ms-ar-body">
+
+                <!-- Left column -->
+                <div class="ms-ar-main">
+
+                    <!-- Map card -->
+                    <div class="ms-ar-card">
+                        <div class="ms-ar-card-hdr">
+                            <span>Asset Locations</span>
+                            <div class="ms-ar-map-filters">
+                                <button class="ms-ar-map-filter-btn active" data-filter="all">All</button>
+                                <button class="ms-ar-map-filter-btn" data-filter="active">Active</button>
+                                <button class="ms-ar-map-filter-btn" data-filter="repair">Repair</button>
+                                <button class="ms-ar-map-filter-btn" data-filter="unverified">Unverified</button>
+                            </div>
+                        </div>
+                        <div id="ar-map" class="ms-ar-map-container" style="height:280px;"></div>
+                        <div id="ar-state-grid" class="ms-ar-state-grid"></div>
+                    </div>
+
+                    <!-- Categories card -->
+                    <div class="ms-ar-card">
+                        <div class="ms-ar-card-hdr">
+                            <span>Asset Categories</span>
+                        </div>
+                        <div class="ms-ar-card-body" id="ar-categories">
+                            <div class="ms-ar-empty">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right column -->
+                <div class="ms-ar-side">
+
+                    <!-- Barcode station -->
+                    <div class="ms-ar-card">
+                        <div class="ms-ar-card-hdr">
+                            <div class="ms-ar-barcode-title">
+                                <span class="ms-ar-pulse-dot"></span>
+                                Barcode Station
+                            </div>
+                        </div>
+                        <div class="ms-ar-card-body">
+                            <input type="text" id="ar-scan-input"
+                                   class="ms-ar-scan-input"
+                                   placeholder="Scan or type tag / asset code..." />
+                            <div id="ar-scan-result" class="ms-ar-scan-result" style="display:none"></div>
+                            <div id="ar-scan-actions" class="ms-ar-actions" style="display:none">
+                                <button id="ar-action-open" class="ms-ar-action-btn primary">Open</button>
+                                <button id="ar-action-verify" class="ms-ar-action-btn">Verify</button>
+                                <button id="ar-action-transfer" class="ms-ar-action-btn">Transfer</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PM Due -->
+                    <div class="ms-ar-card">
+                        <div class="ms-ar-card-hdr">
+                            <span>PM Due (14 days)</span>
+                        </div>
+                        <div class="ms-ar-card-body" id="ar-pm-list">
+                            <div class="ms-ar-empty">Loading...</div>
+                        </div>
+                    </div>
+
+                    <!-- Recently tagged -->
+                    <div class="ms-ar-card">
+                        <div class="ms-ar-card-hdr">
+                            <span>Recently Added</span>
+                        </div>
+                        <div class="ms-ar-card-body" id="ar-recent-list">
+                            <div class="ms-ar-empty">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>
