@@ -18,6 +18,7 @@
                 <button class="nrs-tab"         data-tab="intelligence">Intelligence</button>
                 <button class="nrs-tab"         data-tab="daily_briefs">Daily Briefs</button>
                 <button class="nrs-tab"         data-tab="ai_patterns">AI Patterns</button>
+                <button class="nrs-tab"         data-tab="threats">State Threats</button>
             </div>
         </div>
     </div>
@@ -51,6 +52,10 @@
     <div class="nrs-tab-panel" data-panel="ai_patterns" style="display:none">
         <div class="nrs-panel-toolbar"><button class="nrs-view-all" data-action="347">Open in full view &#8594;</button></div>
         <div class="nrs-tab-body-ai_patterns"><div class="nrs-loading">Loading AI patterns...</div></div>
+    </div>
+    <div class="nrs-tab-panel" data-panel="threats" style="display:none">
+        <div class="nrs-panel-toolbar"><button class="nrs-view-all" data-action="339">Open in full view &#8594;</button></div>
+        <div class="nrs-tab-body-threats"><div class="nrs-loading">Loading state threats...</div></div>
     </div>
 </div>
 </t>

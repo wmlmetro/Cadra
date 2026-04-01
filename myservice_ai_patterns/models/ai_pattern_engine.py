@@ -57,12 +57,9 @@ def _call_claude(prompt, max_tokens=1500, env=None):
 
 
 def _get_claude_key(env=None):
-    """Fetch Claude API key from ir.config_parameter.
-    Works in both HTTP request context and cron/shell context.
-    """
-    # Try passed env first
+    """Fetch Claude API key from ir.config_parameter or environment."""
     if env is not None:
-        key = env['ir.config_parameter'].sudo().get_param('ai.pattern.claude_api_key')
+        key = env['ir.config_parameter'].sudo().get_param('anthropic.api_key')
         if key:
             return key
 
@@ -71,7 +68,7 @@ def _get_claude_key(env=None):
         from odoo.http import request as http_request
         if http_request and http_request.env:
             key = http_request.env['ir.config_parameter'].sudo().get_param(
-                'ai.pattern.claude_api_key')
+                'anthropic.api_key')
             if key:
                 return key
     except Exception:
@@ -79,7 +76,6 @@ def _get_claude_key(env=None):
 
     # Try registry directly (works in cron/shell)
     try:
-        import odoo
         from odoo import registry, SUPERUSER_ID
         import threading
         db = getattr(threading.current_thread(), 'dbname', None)
@@ -87,16 +83,19 @@ def _get_claude_key(env=None):
             with registry(db).cursor() as cr:
                 from odoo.api import Environment
                 e = Environment(cr, SUPERUSER_ID, {})
-                key = e['ir.config_parameter'].get_param('ai.pattern.claude_api_key')
+                key = e['ir.config_parameter'].get_param('anthropic.api_key')
                 if key:
                     return key
     except Exception as ex:
         _logger.warning("Key registry fallback failed: %s", ex)
 
-    raise UserError(
-        'Claude API key not configured. '
-        'Go to Settings → Technical → System Parameters → '
-        'create key: ai.pattern.claude_api_key')
+    import os
+    key = os.environ.get('ANTHROPIC_API_KEY', '')
+    if not key:
+        raise ValueError(
+            "Claude API key not configured. Set 'anthropic.api_key' in System Parameters "
+            "or ANTHROPIC_API_KEY environment variable.")
+    return key
 
 
 def _haversine_km(lat1, lng1, lat2, lng2):
