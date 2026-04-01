@@ -114,7 +114,7 @@ odoo.define('myservice_asset_register.AssetDashboard', function (require) {
                 domain: [],
                 fields: ['category_id'],
                 groupBy: ['category_id'],
-                orderBy: 'category_id_count desc',
+                order: 'category_id_count desc',
                 limit: 8,
             }).then(function (groups) {
                 self._data.categories = groups.map(function (g) {
@@ -131,7 +131,7 @@ odoo.define('myservice_asset_register.AssetDashboard', function (require) {
                 method: 'search_read',
                 domain: [['next_due_date', '<=', future], ['active', '=', true]],
                 fields: ['asset_id', 'next_due_date', 'name'],
-                orderBy: 'next_due_date asc',
+                order: 'next_due_date asc',
                 limit: 6,
             }).then(function (pms) {
                 var today = self._today();
@@ -157,7 +157,7 @@ odoo.define('myservice_asset_register.AssetDashboard', function (require) {
                 method: 'search_read',
                 domain: [],
                 fields: ['name', 'asset_tag', 'asset_code', 'location_id', 'state', 'create_date'],
-                orderBy: 'create_date desc',
+                order: 'create_date desc',
                 limit: 5,
             }).then(function (assets) {
                 self._data.recent = assets;
