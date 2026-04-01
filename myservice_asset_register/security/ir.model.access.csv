@@ -1,10 +1,13 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_nrs_asset_employee,nrs.asset employee,model_nrs_asset,base.group_user,1,0,0,0
 access_nrs_asset_user,nrs.asset user,model_nrs_asset,myservice_asset_register.group_asset_user,1,0,0,0
 access_nrs_asset_manager,nrs.asset manager,model_nrs_asset,myservice_asset_register.group_asset_manager,1,1,1,1
+access_nrs_asset_category_employee,nrs.asset.category employee,model_nrs_asset_category,base.group_user,1,0,0,0
 access_nrs_asset_category_user,nrs.asset.category user,model_nrs_asset_category,myservice_asset_register.group_asset_user,1,0,0,0
 access_nrs_asset_category_manager,nrs.asset.category manager,model_nrs_asset_category,myservice_asset_register.group_asset_manager,1,1,1,1
 access_nrs_asset_transfer_user,nrs.asset.transfer user,model_nrs_asset_transfer,myservice_asset_register.group_asset_user,1,0,1,0
 access_nrs_asset_transfer_manager,nrs.asset.transfer manager,model_nrs_asset_transfer,myservice_asset_register.group_asset_manager,1,1,1,1
+access_nrs_asset_pm_employee,nrs.asset.pm employee,model_nrs_asset_pm,base.group_user,1,0,0,0
 access_nrs_asset_pm_user,nrs.asset.pm user,model_nrs_asset_pm,myservice_asset_register.group_asset_user,1,0,0,0
 access_nrs_asset_pm_manager,nrs.asset.pm manager,model_nrs_asset_pm,myservice_asset_register.group_asset_manager,1,1,1,1
 access_nrs_asset_tag_user,nrs.asset.tag user,model_nrs_asset_tag_label,myservice_asset_register.group_asset_user,1,0,0,0
