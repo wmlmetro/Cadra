@@ -242,6 +242,12 @@ for idx, asset_def in enumerate(asset_list):
 
     dept = random.choice(DEPTS)
 
+    # Set last_verified_date for ~2/3 of assets (is_verified is computed from this)
+    should_verify = random.choice([True, True, False])
+    verified_date = False
+    if should_verify:
+        verified_date = rdate(max(2024, acq_date.year), 2025)
+
     try:
         vals = {
             'name':             name,
@@ -258,7 +264,7 @@ for idx, asset_def in enumerate(asset_list):
             'acquisition_date': acq_date,
             'acquisition_cost': cost,
             'current_value':    curr_val,
-            'is_verified':      random.choice([True, True, False]),
+            'last_verified_date': verified_date,
         }
         asset = env['nrs.asset'].create(vals)
         created += 1

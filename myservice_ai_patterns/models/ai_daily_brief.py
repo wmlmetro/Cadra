@@ -41,6 +41,21 @@ class AiDailyBrief(models.Model):
         today = fields.Date.today()
         since = now - timedelta(hours=24)
 
+        # ── Pull live ACLED events for Nigeria (last 24h) ─────────────
+        acled_events = []
+        try:
+            acled_events = self.env['acled.sync.log'].get_recent_events_for_brief(hours_back=24)
+        except Exception as e:
+            _logger.warning("ACLED data unavailable for brief: %s", e)
+
+        acled_summary = [{
+            'event_type': e.get('event_type'),
+            'location':   '%s, %s' % (e.get('location', ''), e.get('admin1', '')),
+            'fatalities': e.get('fatalities', 0),
+            'actor':      e.get('actor1', ''),
+            'notes':      (e.get('notes', '') or '')[:200],
+        } for e in acled_events[:15]]
+
         # ── Gather data ────────────────────────────────────────────────
         new_alerts = self.env['ai.pattern.alert'].search([
             ('create_date', '>=', since)])
@@ -84,6 +99,9 @@ TOP ALERTS (last 24h):
 
 TOP THREAT OSINT (last 24h):
 {json.dumps(osint_summary, indent=2)}
+
+LIVE ACLED CONFLICT EVENTS (last 24h from ACLED database):
+{json.dumps(acled_summary, indent=2)}
 
 Generate a professional intelligence brief. Write for a security director who reads 
 this over morning coffee and needs to brief the MD within 30 minutes.

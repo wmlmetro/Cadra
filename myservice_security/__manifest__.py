@@ -26,6 +26,7 @@
         'views/portal_templates.xml',
         'views/menu.xml',
         'wizard/incident_escalate_views.xml',
+        'data/acled_cron.xml',
     ],
     'assets': {
         'web.assets_backend': [

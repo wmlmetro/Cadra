@@ -310,6 +310,7 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
             this.map.addLayer(this.incLayer);
             this.map.addLayer(this.guardLayer);
             this.map.addLayer(this.locLayer);
+            self._loadAcledHeatmap(this.map);
             this._applyFilter();
             setTimeout(function(){
                 if (self.map) {
@@ -320,6 +321,39 @@ odoo.define('myservice_security_dashboard.SecurityDashboard', function(require) 
                     }
                 }
             }, 500);
+        },
+        _loadAcledHeatmap: function (map) {
+            var self = this;
+            rpc.query({
+                model: 'acled.sync.log',
+                method: 'get_acled_heatmap_data',
+                args: [[], 30],
+            }).then(function (stateData) {
+                if (!stateData || !stateData.length) return;
+                stateData.forEach(function (d) {
+                    if (!d.lat || !d.lng) return;
+                    var color = d.battles > 3  ? '#f85149' :
+                                d.violence > 2 ? '#E85426' :
+                                d.total > 5    ? '#d29922' : '#58a6ff';
+                    var radius = Math.max(8000, Math.min(60000, d.total * 4000));
+                    L.circle([d.lat, d.lng], {
+                        color: color, fillColor: color,
+                        fillOpacity: 0.25, radius: radius, weight: 1,
+                    }).addTo(map).bindPopup(
+                        '<div style="font-family:monospace;font-size:12px">' +
+                        '<strong style="color:' + color + '">' + d.state + '</strong><br>' +
+                        'Events (30d): <strong>' + d.total + '</strong><br>' +
+                        'Fatalities: <strong>' + d.fatalities + '</strong><br>' +
+                        'Battles: ' + d.battles +
+                        ' &nbsp;|&nbsp; Violence: ' + d.violence +
+                        ' &nbsp;|&nbsp; Protests: ' + d.protests +
+                        '</div>'
+                    );
+                });
+                console.log('ACLED heatmap: ' + stateData.length + ' states loaded');
+            }).catch(function (err) {
+                console.warn('ACLED heatmap failed:', err);
+            });
         },
         _applyFilter: function() {
             if (!this.map) return;
