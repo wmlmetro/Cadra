@@ -712,7 +712,7 @@ def seed_furniture(floor_code, room_code, type_code, quantity, notes=''):
             'location_id':    location.id,
             'floor_room':     f'{floor_code} — {room_code}',
             'condition':      'good',
-            'state':          'draft',
+            'state':          'active',
             'notes':          notes or f'Seeded from HQ Furniture Inventory 11/02/2026',
         })
         n += 1
@@ -796,7 +796,7 @@ env.cr.commit()
 sep('SEED COMPLETE — SUMMARY')
 
 asset_total = env['nrs.asset'].search_count([])
-draft_total = env['nrs.asset'].search_count([('state','=','draft')])
+active_total = env['nrs.asset'].search_count([('state','=','active')])
 
 print(f'''
   LOCATION HIERARCHY
@@ -817,7 +817,7 @@ print(f'''
 
   ASSET RECORDS
     Total seeded             : {asset_total}
-    DRAFT (furniture)        : {draft_total}
+    ACTIVE (furniture)       : {active_total}
 
   ASSET CODE FORMAT    : NRS-{{CAT}}-{{SUBCAT}}-{{00001}}
   TAG CODE FORMAT      : HQ-{{FLOOR}}-{{ROOM}}-{{CAT}}-{{001}}
