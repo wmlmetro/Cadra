@@ -6,7 +6,7 @@ NRS myservice.com.ng — Phase 1 Asset Register Seed Script
 NRS New Headquarters Pilot
 
 Deploys:
-  STEP 0  Wipe existing myservice.asset records (leaves fleet untouched)
+  STEP 0  Wipe existing nrs.asset records (leaves fleet untouched)
   STEP 1  NRS HQ Location hierarchy in generic.location
             NRS Headquarters (parent)
             └── Basement / Ground / Floors 01–16 / Roof  (floor locations)
@@ -54,18 +54,18 @@ def ok(created, name):
     print(f'  {mark}  {name}')
 
 # ─── STEP 0: WIPE EXISTING ASSET RECORDS ─────────────────────────────────────
-separator('STEP 0: WIPE EXISTING myservice.asset RECORDS')
+separator('STEP 0: WIPE EXISTING nrs.asset RECORDS')
 
-existing_assets = env['myservice.asset'].search([])
-existing_cats   = env['myservice.asset.category'].search([])
-existing_sub    = env['myservice.asset.subcategory'].search([])
-existing_types  = env['myservice.asset.type'].search([])
+existing_assets = env['nrs.asset'].search([])
+existing_cats   = env['nrs.asset.category'].search([])
+existing_sub    = env['nrs.asset.subcategory'].search([])
+existing_types  = env['nrs.asset.type'].search([])
 
 print(f'  Records found before wipe:')
-print(f'    myservice.asset              : {len(existing_assets)}')
-print(f'    myservice.asset.category     : {len(existing_cats)}')
-print(f'    myservice.asset.subcategory  : {len(existing_sub)}')
-print(f'    myservice.asset.type         : {len(existing_types)}')
+print(f'    nrs.asset              : {len(existing_assets)}')
+print(f'    nrs.asset.category     : {len(existing_cats)}')
+print(f'    nrs.asset.subcategory  : {len(existing_sub)}')
+print(f'    nrs.asset.type         : {len(existing_types)}')
 print(f'    fleet.vehicle (untouched)    : {env["fleet.vehicle"].search_count([])}')
 
 if existing_assets:
@@ -73,7 +73,7 @@ if existing_assets:
     if sub_assets:
         sub_assets.unlink()
         print(f'  - Removed {len(sub_assets)} sub-asset / component records')
-    remaining = env['myservice.asset'].search([])
+    remaining = env['nrs.asset'].search([])
     if remaining:
         remaining.unlink()
         print(f'  - Removed {len(remaining)} asset / group records')
@@ -111,14 +111,13 @@ locations = {}   # key → generic.location record
 
 # ── Find or create the HQ parent ──────────────────────────────────────────────
 hq_parent, created = get_or_create(
-    'generic.location', 'complete_name', 'NRS Headquarters',
+    'generic.location', 'name', 'NRS Headquarters',
     {
         'name': 'NRS Headquarters',
         'parent_id': False,
-        'usage': 'internal',
-        'comment': 'Nigeria Revenue Service New Headquarters, Kui Mohammed Avenue, '
-                   'Central Business District, Abuja, FCT. '
-                   'Drawing set: Baron Architecture A400–A485.',
+        'description': 'Nigeria Revenue Service New Headquarters, Kui Mohammed Avenue, '
+                       'Central Business District, Abuja, FCT. '
+                       'Drawing set: Baron Architecture A400–A485.',
     }
 )
 ok(created, 'NRS Headquarters  [ROOT]')
@@ -453,16 +452,19 @@ total_rooms  = 0
 
 for floor_code, floor_label, drawing_no, rooms in FLOOR_ROOMS:
     # Create floor location (child of HQ)
-    floor_name = f'NRS HQ — {floor_label}'
-    floor_rec, created = get_or_create(
-        'generic.location', 'complete_name', floor_name,
-        {
+    floor_rec = env['generic.location'].search([
+        ('name', '=', floor_label),
+        ('parent_id', '=', hq_parent.id),
+    ], limit=1)
+    if not floor_rec:
+        floor_rec = env['generic.location'].create({
             'name': floor_label,
             'parent_id': hq_parent.id,
-            'usage': 'internal',
-            'comment': f'Drawing: {drawing_no}',
-        }
-    )
+            'description': f'Drawing: {drawing_no}',
+        })
+        created = True
+    else:
+        created = False
     floor_locations[floor_code] = floor_rec
     locations[floor_code] = floor_rec
     ok(created, f'{floor_code}  {floor_label}  (Drawing {drawing_no})')
@@ -470,18 +472,20 @@ for floor_code, floor_label, drawing_no, rooms in FLOOR_ROOMS:
 
     # Create room locations (children of floor)
     for room_code, room_name in rooms:
-        room_full_name = f'{floor_label} — {room_name}'
         loc_key = f'{floor_code}-{room_code}'
-        room_rec, r_created = get_or_create(
-            'generic.location', 'complete_name',
-            f'NRS HQ — {room_full_name}',
-            {
+        room_rec = env['generic.location'].search([
+            ('name', '=', room_name),
+            ('parent_id', '=', floor_rec.id),
+        ], limit=1)
+        if not room_rec:
+            room_rec = env['generic.location'].create({
                 'name': room_name,
                 'parent_id': floor_rec.id,
-                'usage': 'internal',
-                'comment': f'NRS HQ / {floor_code} / {room_code}',
-            }
-        )
+                'description': f'NRS HQ / {floor_code} / {room_code}',
+            })
+            r_created = True
+        else:
+            r_created = False
         room_locations[loc_key] = room_rec
         locations[loc_key] = room_rec
         total_rooms += 1
@@ -510,7 +514,7 @@ CATEGORIES = [
 categories = {}
 for name, code, seq, desc in CATEGORIES:
     rec, created = get_or_create(
-        'myservice.asset.category', 'code', code,
+        'nrs.asset.category', 'code', code,
         {'name': name, 'code': code, 'sequence': seq, 'description': desc}
     )
     categories[code] = rec
@@ -560,7 +564,7 @@ SUBCATEGORIES = [
 subcategories = {}
 for name, code, parent_code, seq in SUBCATEGORIES:
     rec, created = get_or_create(
-        'myservice.asset.subcategory', 'code', code,
+        'nrs.asset.subcategory', 'code', code,
         {'name': name, 'code': code, 'sequence': seq,
          'category_id': categories[parent_code].id}
     )
@@ -756,7 +760,7 @@ ASSET_TYPES = [
 asset_types = {}
 for name, code, subcat_code in ASSET_TYPES:
     rec, created = get_or_create(
-        'myservice.asset.type', 'code', code,
+        'nrs.asset.type', 'code', code,
         {
             'name': name,
             'code': code,
@@ -826,18 +830,19 @@ def seed_furniture(floor_code, room_code, type_code, quantity, notes=''):
     for _ in range(quantity):
         asset_code = next_asset_code(cat.code, subcat_short)
         tag_code   = next_tag_code(floor_code, room_code, cat.code)
-        env['myservice.asset'].create({
+        env['nrs.asset'].create({
             'name':           f'{type_rec.name}',
             'asset_code':     asset_code,
-            'tag_code':       tag_code,
+            'asset_tag':      tag_code,
             'category_id':    cat.id,
             'subcategory_id': subcat.id,
             'asset_type_id':  type_rec.id,
             'asset_level':    'asset',
+            'domain':         'furniture',
             'location_id':    location.id,
             'floor_room':     f'{floor_code} — {room_code}',
             'condition':      'good',
-            'status':         'draft',
+            'state':          'active',
             'notes':          notes or f'Seeded from HQ Furniture Inventory',
         })
         created_n += 1
@@ -940,13 +945,13 @@ print(f'''
     Total location records   : {1 + len(floor_locations) + len(room_locations)}
 
   Asset Taxonomy:
-    Categories               : {env['myservice.asset.category'].search_count([])}
-    Sub-categories           : {env['myservice.asset.subcategory'].search_count([])}
-    Asset Types              : {env['myservice.asset.type'].search_count([])}
+    Categories               : {env['nrs.asset.category'].search_count([])}
+    Sub-categories           : {env['nrs.asset.subcategory'].search_count([])}
+    Asset Types              : {env['nrs.asset.type'].search_count([])}
 
   Asset Records:
-    Total                    : {env['myservice.asset'].search_count([])}
-    DRAFT (furniture seed)   : {env['myservice.asset'].search_count([('status','=','draft')])}
+    Total                    : {env['nrs.asset'].search_count([])}
+    Active (furniture seed)  : {env['nrs.asset'].search_count([('state','=','active')])}
 
   Next steps:
     1. Verify location tree in myservice Locations menu
