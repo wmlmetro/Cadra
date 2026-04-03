@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Sequences ─────────────────────────────────────────────────────── -->
+    <record id="seq_nrs_intel_brief" model="ir.sequence">
+        <field name="name">NRS Intelligence Brief Reference</field>
+        <field name="code">nrs.intel.brief</field>
+        <field name="prefix">NRS/SEC/INTEL/%(year)s/</field>
+        <field name="padding">3</field>
+        <field name="number_next">1</field>
+        <field name="number_increment">1</field>
+    </record>
+
+    <record id="seq_nrs_brief_download" model="ir.sequence">
+        <field name="name">NRS Brief Download Reference</field>
+        <field name="code">nrs.brief.download</field>
+        <field name="prefix">DL-%(year)s-</field>
+        <field name="padding">4</field>
+        <field name="number_next">1</field>
+        <field name="number_increment">1</field>
+    </record>
+
+    <!-- ── Cron: Tactical Brief — 06:00 daily ────────────────────────────── -->
+    <record id="ir_cron_tactical_brief" model="ir.cron">
+        <field name="name">NRS: Generate Daily Tactical Intelligence Brief</field>
+        <field name="model_id" ref="model_ai_daily_brief"/>
+        <field name="state">code</field>
+        <field name="code">model.cron_generate_tactical()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="numbercall">-1</field>
+        <field name="active">True</field>
+        <field name="nextcall" eval="(DateTime.now().replace(hour=6, minute=0, second=0)).strftime('%Y-%m-%d %H:%M:%S')"/>
+        <field name="user_id" ref="base.user_root"/>
+        <field name="priority">5</field>
+    </record>
+
+    <!-- ── Cron: Operational Brief — 07:00 daily ─────────────────────────── -->
+    <record id="ir_cron_operational_brief" model="ir.cron">
+        <field name="name">NRS: Generate Daily Operational Intelligence Brief</field>
+        <field name="model_id" ref="model_ai_daily_brief"/>
+        <field name="state">code</field>
+        <field name="code">model.cron_generate_operational()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="numbercall">-1</field>
+        <field name="active">True</field>
+        <field name="nextcall" eval="(DateTime.now().replace(hour=7, minute=0, second=0)).strftime('%Y-%m-%d %H:%M:%S')"/>
+        <field name="user_id" ref="base.user_root"/>
+        <field name="priority">5</field>
+    </record>
+
+    <!-- ── Cron: Strategic Brief — 08:00 daily ───────────────────────────── -->
+    <record id="ir_cron_strategic_brief" model="ir.cron">
+        <field name="name">NRS: Generate Daily Strategic Intelligence Brief</field>
+        <field name="model_id" ref="model_ai_daily_brief"/>
+        <field name="state">code</field>
+        <field name="code">model.cron_generate_strategic()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="numbercall">-1</field>
+        <field name="active">True</field>
+        <field name="nextcall" eval="(DateTime.now().replace(hour=8, minute=0, second=0)).strftime('%Y-%m-%d %H:%M:%S')"/>
+        <field name="user_id" ref="base.user_root"/>
+        <field name="priority">5</field>
+    </record>
+
+</odoo>

@@ -1,231 +1,432 @@
+# -*- coding: utf-8 -*-
+"""
+models/ai_daily_brief.py
+NRS myservice — AI Daily Intelligence Brief
+Enhanced with Nigerian government classification tiers,
+three brief formats, download logging, and approval workflow.
+"""
+
 from odoo import models, fields, api
-import json
+from odoo.exceptions import AccessError, UserError
 import logging
-from datetime import timedelta
+import requests
+import json
 
 _logger = logging.getLogger(__name__)
 
+# ── Classification colours (used in PDF banner) ──────────────────────────────
+CLASSIFICATION_COLOURS = {
+    'restricted':   '#1565C0',   # Blue
+    'confidential': '#E65100',   # Amber
+    'secret':       '#B71C1C',   # Red
+    'top_secret':   '#0D0D0D',   # Black
+}
+
+CLASSIFICATION_LABELS = {
+    'restricted':   'RESTRICTED',
+    'confidential': 'CONFIDENTIAL',
+    'secret':       'SECRET',
+    'top_secret':   'TOP SECRET',
+}
+
+THREAT_COLOURS = {
+    'low':      '#27500A',
+    'moderate': '#633806',
+    'high':     '#B71C1C',
+    'critical': '#0D0D0D',
+}
+
 
 class AiDailyBrief(models.Model):
-    """
-    AI-generated daily intelligence briefing.
-    Synthesises all overnight alerts, OSINT entries, and
-    state threat changes into a single morning briefing.
-    Generated daily at 06:00 and emailed to security leads.
-    """
-    _name = 'ai.daily.brief'
+    _name        = 'ai.daily.brief'
     _description = 'AI Daily Intelligence Brief'
-    _order = 'brief_date desc'
-    _rec_name = 'brief_date'
+    _order       = 'date desc, brief_format asc'
+    _rec_name    = 'name'
 
-    brief_date  = fields.Date(string='Brief Date', required=True)
-    subject     = fields.Char(string='Subject Line')
-    headline    = fields.Text(string='Headline Summary')
-    full_brief  = fields.Html(string='Full Brief')
-    raw_json    = fields.Text(string='Raw AI Output', readonly=True)
+    # ── Identity ──────────────────────────────────────────────────────────────
+    name = fields.Char(
+        string='Brief Title', required=True,
+        default=lambda self: self._default_name())
+    ref = fields.Char(
+        string='Reference Number', readonly=True, copy=False,
+        default=lambda self: self.env['ir.sequence'].next_by_code('nrs.intel.brief'))
+    date = fields.Date(
+        string='Brief Date', required=True, default=fields.Date.today)
+    time_of_issue = fields.Char(
+        string='Time of Issue', default='08:00')
 
-    critical_alerts = fields.Integer(string='Critical Alerts', readonly=True)
-    high_alerts     = fields.Integer(string='High Alerts', readonly=True)
-    states_elevated = fields.Char(string='States Elevated', readonly=True)
-    new_osint       = fields.Integer(string='New OSINT Entries', readonly=True)
+    # ── Format ────────────────────────────────────────────────────────────────
+    brief_format = fields.Selection([
+        ('tactical',    'Tactical Brief (1 page — field teams)'),
+        ('operational', 'Operational Brief (2 pages — security officers)'),
+        ('strategic',   'Strategic Brief (4–6 pages — management)'),
+    ], string='Brief Format', required=True, default='operational')
 
-    emailed_to      = fields.Char(string='Emailed To', readonly=True)
-    email_sent_at   = fields.Datetime(string='Email Sent At', readonly=True)
-    whatsapp_sent   = fields.Boolean(string='WhatsApp Sent', readonly=True)
+    # ── Classification ────────────────────────────────────────────────────────
+    classification = fields.Selection([
+        ('restricted',   'RESTRICTED'),
+        ('confidential', 'CONFIDENTIAL'),
+        ('secret',       'SECRET'),
+        ('top_secret',   'TOP SECRET'),
+    ], string='Classification', required=True, default='restricted')
 
-    @api.model
-    def generate_daily_brief(self):
-        """Generate and distribute the daily intelligence brief."""
-        from .ai_pattern_engine import _call_claude
-        now   = fields.Datetime.now()
-        today = fields.Date.today()
-        since = now - timedelta(hours=24)
+    distribution_caveat = fields.Selection([
+        ('internal',       'NRS INTERNAL ONLY'),
+        ('need_to_know',   'NEED TO KNOW'),
+        ('no_foreign',     'NO FOREIGN NATIONALS'),
+        ('limited',        'LIMITED DISTRIBUTION'),
+        ('eyes_only',      'EYES ONLY'),
+    ], string='Distribution Caveat', default='internal')
 
-        # ── Pull live ACLED events for Nigeria (last 24h) ─────────────
-        acled_events = []
+    distribution_list = fields.Many2many(
+        'res.users', 'brief_distribution_rel', 'brief_id', 'user_id',
+        string='Named Recipients',
+        help='Required when Distribution Caveat is NEED TO KNOW or EYES ONLY')
+
+    # ── Threat Assessment ─────────────────────────────────────────────────────
+    threat_level = fields.Selection([
+        ('low',      'LOW'),
+        ('moderate', 'MODERATE'),
+        ('high',     'HIGH'),
+        ('critical', 'CRITICAL'),
+    ], string='Overall Threat Level', required=True, default='low')
+
+    # ── Content Sections ──────────────────────────────────────────────────────
+    exec_summary = fields.Text(
+        string='Executive Summary',
+        help='AI-generated. 3–5 bullet points covering the key intelligence picture.')
+    threat_landscape = fields.Text(
+        string='Threat Landscape',
+        help='AI-generated. Regional analysis based on OSINT and ACLED data.')
+    intel_entries_summary = fields.Text(
+        string='Intelligence Entries Summary',
+        help='AI-generated summary of contributing OSINT entries.')
+    watchlist_summary = fields.Text(
+        string='Watchlist Summary',
+        help='AI-generated. Active POIs, new additions, status changes.')
+    recommendations = fields.Text(
+        string='Recommendations',
+        help='AI-generated action items for the security team.')
+    handling_instructions = fields.Text(
+        string='Handling Instructions',
+        help='Classification authority, declassification date, disposal instructions.')
+
+    # ── Sources ───────────────────────────────────────────────────────────────
+    osint_entry_ids = fields.Many2many(
+        'osint.feed.entry', 'brief_osint_rel', 'brief_id', 'entry_id',
+        string='Source OSINT Entries')
+    watchlist_ids = fields.Many2many(
+        'security.watchlist', 'brief_watchlist_rel', 'brief_id', 'watchlist_id',
+        string='Active Watchlist Entries')
+    incident_ids = fields.Many2many(
+        'security.incident', 'brief_incident_rel', 'brief_id', 'incident_id',
+        string='Contributing Incidents')
+    acled_entry_count = fields.Integer(
+        string='ACLED Entries Analysed', default=0)
+
+    # ── Approval Workflow ─────────────────────────────────────────────────────
+    state = fields.Selection([
+        ('draft',            'Draft'),
+        ('ai_generating',    'AI Generating'),
+        ('pending_approval', 'Pending Approval'),
+        ('approved',         'Approved'),
+        ('released',         'Released'),
+        ('recalled',         'Recalled'),
+    ], string='Status', default='draft', tracking=True)
+
+    prepared_by     = fields.Many2one('res.users', string='Prepared By',
+                                       default=lambda self: self.env.user)
+    approved_by     = fields.Many2one('res.users', string='Approved By',
+                                       readonly=True)
+    approved_date   = fields.Datetime(string='Approval Date/Time', readonly=True)
+    released_by     = fields.Many2one('res.users', string='Released By',
+                                       readonly=True)
+    released_date   = fields.Datetime(string='Release Date/Time', readonly=True)
+    recall_reason   = fields.Text(string='Recall Reason')
+
+    # ── Download Tracking ─────────────────────────────────────────────────────
+    download_log_ids = fields.One2many(
+        'ai.brief.download.log', 'brief_id', string='Download Log')
+    download_count = fields.Integer(
+        string='Downloads', compute='_compute_download_count', store=True)
+
+    # ── Computed display fields ────────────────────────────────────────────────
+    classification_colour = fields.Char(
+        compute='_compute_classification_display', string='Classification Colour')
+    classification_label = fields.Char(
+        compute='_compute_classification_display', string='Classification Label')
+    threat_colour = fields.Char(
+        compute='_compute_threat_colour', string='Threat Colour')
+
+    # ── Helpers ───────────────────────────────────────────────────────────────
+    def _default_name(self):
+        fmt = self.env.context.get('default_brief_format', 'operational')
+        labels = {
+            'tactical':    'Tactical Intelligence Brief',
+            'operational': 'Operational Intelligence Brief',
+            'strategic':   'Strategic Intelligence Brief',
+        }
+        return f"NRS {labels.get(fmt, 'Intelligence Brief')} — {fields.Date.today()}"
+
+    @api.depends('download_log_ids')
+    def _compute_download_count(self):
+        for r in self:
+            r.download_count = len(r.download_log_ids)
+
+    @api.depends('classification')
+    def _compute_classification_display(self):
+        for r in self:
+            r.classification_colour = CLASSIFICATION_COLOURS.get(r.classification, '#333')
+            r.classification_label  = CLASSIFICATION_LABELS.get(r.classification, 'RESTRICTED')
+
+    @api.depends('threat_level')
+    def _compute_threat_colour(self):
+        for r in self:
+            r.threat_colour = THREAT_COLOURS.get(r.threat_level, '#333')
+
+    # ── AI Generation ─────────────────────────────────────────────────────────
+    def action_generate_ai(self):
+        """Trigger AI generation for this brief."""
+        self.ensure_one()
+        self.state = 'ai_generating'
         try:
-            acled_events = self.env['acled.sync.log'].get_recent_events_for_brief(hours_back=24)
+            self._run_ai_generation()
+            self.state = 'pending_approval'
         except Exception as e:
-            _logger.warning("ACLED data unavailable for brief: %s", e)
+            self.state = 'draft'
+            raise UserError(f'AI generation failed: {e}')
 
-        acled_summary = [{
-            'event_type': e.get('event_type'),
-            'location':   '%s, %s' % (e.get('location', ''), e.get('admin1', '')),
-            'fatalities': e.get('fatalities', 0),
-            'actor':      e.get('actor1', ''),
-            'notes':      (e.get('notes', '') or '')[:200],
-        } for e in acled_events[:15]]
+    def _run_ai_generation(self):
+        """Call Claude API to generate all brief sections."""
+        self.ensure_one()
 
-        # ── Gather data ────────────────────────────────────────────────
-        new_alerts = self.env['ai.pattern.alert'].search([
-            ('create_date', '>=', since)])
-        new_osint = self.env['osint.feed.entry'].search([
-            ('create_date', '>=', since)])
-        critical_states = self.env['security.state.threat'].search([
-            ('threat_level', 'in', ['red', 'orange'])])
-        elevated_states = self.env['security.state.threat'].search([
-            ('threat_level', '=', 'orange')])
+        # Gather context
+        osint_entries = self.env['osint.feed.entry'].search(
+            [('event_date', '>=', fields.Date.today())],
+            order='threat_level desc', limit=50)
+        watchlist = self.env['security.watchlist'].search(
+            [('state', 'in', ['active', 'alert'])], limit=20)
+        incidents = self.env['security.incident'].search(
+            [('state', 'not in', ['closed', 'cancelled'])], limit=20)
 
-        alert_summary = [{
-            'type':       a.pattern_type,
-            'title':      a.title,
-            'severity':   a.severity,
-            'confidence': a.confidence,
-            'summary':    a.ai_summary,
-        } for a in new_alerts[:10]]
+        # Build context string
+        osint_context = '\n'.join([
+            f"- [{e.threat_level.upper()}] {e.title} | {e.state_name} | {e.source_name}"
+            for e in osint_entries[:30]
+        ]) or "No OSINT entries for today."
 
-        osint_summary = [{
-            'source':  e.source_type,
-            'title':   e.title,
-            'state':   e.state_name,
-            'threat':  e.threat_level,
-        } for e in new_osint.filtered(
-            lambda x: x.threat_level in ['critical','high','elevated'])[:10]]
+        watchlist_context = '\n'.join([
+            f"- {w.name} | Threat: {w.threat_tier} | Status: {w.state}"
+            for w in watchlist[:10]
+        ]) or "No active watchlist entries."
 
-        critical_state_names = [s.name for s in critical_states]
-        elevated_state_names = [s.name for s in elevated_states]
+        incident_context = '\n'.join([
+            f"- {i.name} | {i.severity} | {i.state}"
+            for i in incidents[:10]
+        ]) or "No open incidents."
 
-        prompt = f"""Generate a daily security intelligence brief for NRS (Nigeria Revenue Service) 
-facilities management. Today is {today}. This brief covers the last 24 hours.
+        format_instructions = {
+            'tactical': (
+                "Generate a TACTICAL BRIEF — maximum 1 page equivalent. "
+                "Executive summary: 3 bullets max. No detailed sections. "
+                "Recommendations: 3 immediate actions only. Concise military-style language."
+            ),
+            'operational': (
+                "Generate an OPERATIONAL BRIEF — 2 page equivalent. "
+                "Executive summary: 4–5 bullets. Include threat landscape and watchlist. "
+                "Recommendations: 5–7 actionable items. Professional security language."
+            ),
+            'strategic': (
+                "Generate a STRATEGIC BRIEF — full intelligence report format. "
+                "Executive summary: 5 bullets. Full threat landscape analysis. "
+                "Detailed intelligence entries. Watchlist. 8–10 recommendations. "
+                "Senior management language."
+            ),
+        }
 
-DATA SUMMARY:
-- New AI pattern alerts: {len(new_alerts)} ({len([a for a in new_alerts if a.severity == 'critical'])} critical, {len([a for a in new_alerts if a.severity == 'high'])} high)
-- New OSINT entries: {len(new_osint)}
-- States at critical/red level: {critical_state_names}
-- States at high/orange level: {elevated_state_names}
+        system_prompt = """You are an AI intelligence analyst for the Nigeria Revenue Service (NRS) 
+Security Intelligence Unit. You generate classified intelligence briefs based on OSINT data, 
+watchlist entries, and incident reports. Write in formal intelligence report style. 
+Be factual, concise, and professional. Do not fabricate specific details not in the data."""
 
-TOP ALERTS (last 24h):
-{json.dumps(alert_summary, indent=2)}
+        user_prompt = f"""Generate a {self.brief_format.upper()} intelligence brief for NRS Security.
 
-TOP THREAT OSINT (last 24h):
-{json.dumps(osint_summary, indent=2)}
+{format_instructions.get(self.brief_format, '')}
 
-LIVE ACLED CONFLICT EVENTS (last 24h from ACLED database):
-{json.dumps(acled_summary, indent=2)}
+DATE: {self.date}
+THREAT LEVEL: {self.threat_level.upper()}
+CLASSIFICATION: {self.classification_label}
 
-Generate a professional intelligence brief. Write for a security director who reads 
-this over morning coffee and needs to brief the MD within 30 minutes.
+TODAY'S OSINT ENTRIES:
+{osint_context}
 
-Respond with ONLY this JSON:
+ACTIVE WATCHLIST:
+{watchlist_context}
+
+OPEN INCIDENTS:
+{incident_context}
+
+Respond ONLY with a JSON object — no markdown, no code fences:
 {{
-  "subject": "NRS Security Brief — {today} — [one-line situation summary]",
-  "headline": "2-3 sentence executive summary of the security situation",
-  "threat_level_today": "critical|high|elevated|normal",
-  "sections": [
-    {{
-      "heading": "Key Threats",
-      "content": "paragraph text"
-    }},
-    {{
-      "heading": "Active Patterns",  
-      "content": "paragraph text"
-    }},
-    {{
-      "heading": "State Situation",
-      "content": "paragraph text"
-    }},
-    {{
-      "heading": "Recommended Actions for Today",
-      "content": "paragraph text with bullet points"
-    }}
-  ],
-  "whatsapp_summary": "Short 3-line WhatsApp message version of this brief"
+  "exec_summary": "bullet1\\nbullet2\\nbullet3",
+  "threat_landscape": "regional analysis text",
+  "intel_entries_summary": "summary of key intelligence entries",
+  "watchlist_summary": "watchlist analysis",
+  "recommendations": "action1\\naction2\\naction3",
+  "handling_instructions": "Classification: {self.classification_label}\\nDeclassification: Review after 30 days\\nDisposal: Secure destruction after 90 days",
+  "suggested_threat_level": "low|moderate|high|critical",
+  "suggested_classification": "restricted|confidential|secret|top_secret"
 }}"""
 
         try:
-            result = _call_claude(prompt, max_tokens=2000)
+            response = requests.post(
+                'https://api.anthropic.com/v1/messages',
+                headers={
+                    'Content-Type': 'application/json',
+                    'x-api-key': self.env['ir.config_parameter'].sudo().get_param(
+                        'anthropic.api_key', ''),
+                    'anthropic-version': '2023-06-01',
+                },
+                json={
+                    'model': 'claude-sonnet-4-20250514',
+                    'max_tokens': 2000,
+                    'system': system_prompt,
+                    'messages': [{'role': 'user', 'content': user_prompt}],
+                },
+                timeout=60,
+            )
+            response.raise_for_status()
+            data = response.json()
+            text = data['content'][0]['text'].strip()
 
-            # Build HTML brief
-            html = f"""
-<div style="font-family:Arial,sans-serif;max-width:700px;color:#1A1A1A">
-  <div style="background:#1A1A1A;padding:20px 24px;border-bottom:4px solid #E85426">
-    <h2 style="color:#fff;margin:0;font-size:18px">NRS Security Intelligence Brief</h2>
-    <p style="color:rgba(255,255,255,0.6);margin:4px 0 0;font-size:13px">{today}</p>
-  </div>
-  <div style="background:#E85426;padding:12px 24px">
-    <p style="color:#fff;margin:0;font-size:14px;font-weight:600">
-      {result.get('headline','')}
-    </p>
-  </div>
-  <div style="padding:20px 24px">
-"""
-            for section in result.get('sections', []):
-                html += f"""
-    <h3 style="color:#E85426;font-size:14px;border-bottom:1px solid #eee;
-               padding-bottom:6px;margin-top:20px">{section['heading']}</h3>
-    <p style="font-size:13px;line-height:1.6;color:#333">
-      {section['content'].replace(chr(10), '<br>')}
-    </p>"""
+            # Strip any accidental markdown fences
+            if text.startswith('```'):
+                text = text.split('```')[1]
+                if text.startswith('json'):
+                    text = text[4:]
+            result = json.loads(text)
 
-            html += f"""
-  </div>
-  <div style="background:#f8f8f8;padding:12px 24px;border-top:1px solid #eee;
-              font-size:11px;color:#888">
-    Generated by SecureOps AI · {now.strftime('%d %b %Y %H:%M')} · WestMetro Limited
-  </div>
-</div>"""
-
-            # Save brief
-            brief = self.create({
-                'brief_date':     today,
-                'subject':        result.get('subject', f'NRS Security Brief — {today}')[:200],
-                'headline':       result.get('headline', ''),
-                'full_brief':     html,
-                'raw_json':       json.dumps(result),
-                'critical_alerts': len([a for a in new_alerts if a.severity == 'critical']),
-                'high_alerts':    len([a for a in new_alerts if a.severity == 'high']),
-                'states_elevated': ', '.join(critical_state_names + elevated_state_names),
-                'new_osint':      len(new_osint),
-            })
-
-            # Email to security leads
-            brief._send_email()
-
-            # WhatsApp summary
-            if result.get('whatsapp_summary'):
-                brief._send_whatsapp(result['whatsapp_summary'])
-
-            _logger.info("Daily brief generated and distributed: %s", brief.subject)
-            return brief
-
-        except Exception as e:
-            _logger.error("Daily brief generation failed: %s", e, exc_info=True)
-            return None
-
-    def _send_email(self):
-        """Email the brief to all users in the security admin group."""
-        self.ensure_one()
-        try:
-            group = self.env.ref(
-                'myservice_security.group_security_admin', raise_if_not_found=False)
-            if not group:
-                return
-            recipients = group.users.mapped('email')
-            if not recipients:
-                return
-
-            for email in recipients:
-                self.env['mail.mail'].sudo().create({
-                    'subject':    self.subject,
-                    'email_to':   email,
-                    'body_html':  self.full_brief,
-                    'state':      'outgoing',
-                }).send()
-
+            # Apply generated content
             self.write({
-                'emailed_to': ', '.join(recipients),
-                'email_sent_at': fields.Datetime.now(),
+                'exec_summary':          result.get('exec_summary', ''),
+                'threat_landscape':      result.get('threat_landscape', ''),
+                'intel_entries_summary': result.get('intel_entries_summary', ''),
+                'watchlist_summary':     result.get('watchlist_summary', ''),
+                'recommendations':       result.get('recommendations', ''),
+                'handling_instructions': result.get('handling_instructions', ''),
+                'osint_entry_ids':       [(6, 0, osint_entries.ids)],
+                'watchlist_ids':         [(6, 0, watchlist.ids)],
+                'incident_ids':          [(6, 0, incidents.ids)],
+                'acled_entry_count':     len(osint_entries),
             })
-            _logger.info("Daily brief emailed to: %s", ', '.join(recipients))
-        except Exception as e:
-            _logger.error("Brief email failed: %s", e)
 
-    def _send_whatsapp(self, summary_text):
-        """
-        Send WhatsApp summary via Akraa WhatsApp integration.
-        Falls back to logging if WhatsApp not configured.
-        """
+            # Accept AI threat/classification suggestions if more severe than current
+            suggested_threat = result.get('suggested_threat_level', self.threat_level)
+            threat_order = ['low', 'moderate', 'high', 'critical']
+            if threat_order.index(suggested_threat) > threat_order.index(self.threat_level):
+                self.threat_level = suggested_threat
+
+        except requests.exceptions.RequestException as e:
+            _logger.error('Claude API request failed: %s', e)
+            raise
+        except json.JSONDecodeError as e:
+            _logger.error('Claude API response not valid JSON: %s', e)
+            raise UserError('AI returned invalid response. Please retry.')
+
+    # ── Approval Workflow Actions ──────────────────────────────────────────────
+    def action_submit_for_approval(self):
         self.ensure_one()
-        _logger.info("WhatsApp brief: %s", summary_text)
-        # TODO: Wire to Akraa WhatsApp API when available
-        self.write({'whatsapp_sent': False})
+        if self.state not in ('draft', 'ai_generating'):
+            raise UserError('Only draft briefs can be submitted for approval.')
+        self.state = 'pending_approval'
+
+    def action_approve(self):
+        self.ensure_one()
+        if not self.env.user.has_group('myservice_security.group_security_manager'):
+            raise AccessError('Only Security Managers can approve intelligence briefs.')
+        self.write({
+            'state':         'approved',
+            'approved_by':   self.env.user.id,
+            'approved_date': fields.Datetime.now(),
+        })
+
+    def action_release(self):
+        self.ensure_one()
+        if self.state != 'approved':
+            raise UserError('Only approved briefs can be released.')
+        self.write({
+            'state':         'released',
+            'released_by':   self.env.user.id,
+            'released_date': fields.Datetime.now(),
+        })
+
+    def action_recall(self):
+        self.ensure_one()
+        self.state = 'recalled'
+
+    def action_reset_draft(self):
+        self.ensure_one()
+        self.write({'state': 'draft'})
+
+    # ── Cron methods ──────────────────────────────────────────────────────────
+    @api.model
+    def cron_generate_tactical(self):
+        self._cron_generate_format('tactical', 'restricted')
+
+    @api.model
+    def cron_generate_operational(self):
+        self._cron_generate_format('operational', 'confidential')
+
+    @api.model
+    def cron_generate_strategic(self):
+        self._cron_generate_format('strategic', 'secret')
+
+    @api.model
+    def _cron_generate_format(self, brief_format, classification):
+        today = fields.Date.today()
+        existing = self.search([
+            ('date', '=', today),
+            ('brief_format', '=', brief_format),
+        ])
+        if existing:
+            _logger.info('Brief %s for %s already exists — skipping cron', brief_format, today)
+            return
+
+        format_names = {
+            'tactical':    'Tactical Intelligence Brief',
+            'operational': 'Operational Intelligence Brief',
+            'strategic':   'Strategic Intelligence Brief',
+        }
+        brief = self.create({
+            'name':          f"NRS {format_names[brief_format]} — {today}",
+            'date':          today,
+            'brief_format':  brief_format,
+            'classification': classification,
+            'state':         'draft',
+        })
+        try:
+            brief.action_generate_ai()
+            _logger.info('Brief %s generated successfully for %s', brief_format, today)
+        except Exception as e:
+            _logger.error('Cron brief generation failed for %s: %s', brief_format, e)
+
+
+class AiBriefDownloadLog(models.Model):
+    _name        = 'ai.brief.download.log'
+    _description = 'Intelligence Brief Download Log'
+    _order       = 'download_datetime desc'
+    _rec_name    = 'download_ref'
+
+    brief_id          = fields.Many2one('ai.daily.brief', string='Brief',
+                                         required=True, ondelete='restrict')
+    user_id           = fields.Many2one('res.users', string='Downloaded By',
+                                         required=True, default=lambda self: self.env.user)
+    download_ref      = fields.Char(string='Download Reference', readonly=True, copy=False,
+                                     default=lambda self: self.env['ir.sequence'].next_by_code(
+                                         'nrs.brief.download'))
+    download_datetime = fields.Datetime(string='Date/Time', required=True,
+                                         default=fields.Datetime.now)
+    ip_address        = fields.Char(string='IP Address')
+    brief_format      = fields.Char(string='Format')
+    classification    = fields.Char(string='Classification at Download')
+    watermark_text    = fields.Text(string='Watermark Applied')

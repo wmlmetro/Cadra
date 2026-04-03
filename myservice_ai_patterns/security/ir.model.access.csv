@@ -5,3 +5,10 @@ access_ai_alert_admin,ai.pattern.alert admin,model_ai_pattern_alert,base.group_s
 access_ai_engine,ai.pattern.engine,model_ai_pattern_engine,base.group_system,1,1,1,0
 access_ai_brief_user,ai.daily.brief user,model_ai_daily_brief,,1,0,0,0
 access_ai_brief_admin,ai.daily.brief admin,model_ai_daily_brief,base.group_system,1,1,1,1
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_ai_daily_brief_officer,ai.daily.brief officer,model_ai_daily_brief,myservice_security.group_security_officer,1,0,0,0
+access_ai_daily_brief_manager,ai.daily.brief manager,model_ai_daily_brief,myservice_security.group_security_manager,1,1,1,0
+access_ai_daily_brief_admin,ai.daily.brief admin,model_ai_daily_brief,base.group_system,1,1,1,1
+access_ai_brief_download_log_officer,ai.brief.download.log officer,model_ai_brief_download_log,myservice_security.group_security_officer,1,0,0,0
+access_ai_brief_download_log_manager,ai.brief.download.log manager,model_ai_brief_download_log,myservice_security.group_security_manager,1,1,1,0
+access_ai_brief_download_log_admin,ai.brief.download.log admin,model_ai_brief_download_log,base.group_system,1,1,1,1
