@@ -39,6 +39,7 @@ THREAT_COLOURS = {
 
 class AiDailyBrief(models.Model):
     _name        = 'ai.daily.brief'
+    _inherit     = ['mail.thread', 'mail.activity.mixin']
     _description = 'AI Daily Intelligence Brief'
     _order       = 'date desc, brief_format asc'
     _rec_name    = 'name'
@@ -367,6 +368,14 @@ Respond ONLY with a JSON object — no markdown, no code fences:
     def action_reset_draft(self):
         self.ensure_one()
         self.write({'state': 'draft'})
+
+    def action_download_brief(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_url',
+            'url': '/security/brief/download/%s' % self.id,
+            'target': 'new',
+        }
 
     # ── Cron methods ──────────────────────────────────────────────────────────
     @api.model
