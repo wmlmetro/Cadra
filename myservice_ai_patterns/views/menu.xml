@@ -9,5 +9,5 @@
         action="action_ai_pattern_alerts" active="0"/>
     <menuitem id="menu_ai_briefs" name="Daily Briefs"
         parent="menu_ai_root" sequence="20"
-        action="action_ai_daily_briefs" active="0"/>
+        action="action_ai_daily_brief" active="0"/>
 </odoo>
