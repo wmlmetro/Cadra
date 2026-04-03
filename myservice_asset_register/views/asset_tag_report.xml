@@ -39,6 +39,7 @@
                 body.container { padding: 0 !important; margin: 0 !important; width: 100% !important; }
                 #wrapwrap, #wrapwrap > main { padding: 0; margin: 0; }
             </style>
+            <t t-set="company" t-value="env.company"/>
             <t t-foreach="docs" t-as="o">
                 <t t-set="tag_val" t-value="o.asset_tag or ''"/>
                 <div t-attf-style="
@@ -56,9 +57,14 @@
                             <!-- Content area -->
                             <td style="vertical-align: top; padding: 0.3mm 1mm 0 1.2mm;">
 
-                                <!-- NRS -->
-                                <div style="font-size: 8pt; font-weight: 900; color: #C8102E;
-                                            line-height: 1; margin: 0; padding: 0;">NRS</div>
+                                <!-- Company logo / NRS fallback -->
+                                <div style="line-height: 1; margin: 0; padding: 0;">
+                                    <img t-if="company.logo"
+                                         t-att-src="'data:image/png;base64,' + (company.logo.decode('utf-8') if company.logo else '')"
+                                         style="height: 14px; width: auto; object-fit: contain;"/>
+                                    <span t-if="not company.logo"
+                                          style="font-size: 8pt; font-weight: 900; color: #C8102E;">NRS</span>
+                                </div>
 
                                 <!-- TAG CODE label + value -->
                                 <div style="font-size: 6pt; color: #999; text-transform: uppercase;
