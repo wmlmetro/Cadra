@@ -61,14 +61,6 @@
                                 <div style="font-size: 5pt; font-weight: 900; color: #C8102E;
                                             line-height: 1;">NRS</div>
 
-                                <!-- Asset name -->
-                                <div style="font-size: 11pt; font-weight: 700; color: #000;
-                                            line-height: 1.1; white-space: nowrap;
-                                            overflow: hidden; text-overflow: ellipsis;
-                                            margin-top: 0.2mm;">
-                                    <t t-esc="(o.name or '')[:22]"/>
-                                </div>
-
                                 <!-- TAG CODE label + value -->
                                 <div style="font-size: 4pt; color: #999; text-transform: uppercase;
                                             letter-spacing: 0.5px; margin-top: 0.3mm; line-height: 1;">TAG CODE</div>
@@ -106,21 +98,6 @@
                                     </tr>
                                 </table>
 
-                                <!-- Legend -->
-                                <div style="border-top: 0.5px solid #ccc; margin-top: 0.2mm; padding-top: 0.2mm;">
-                                    <div t-if="legend[0]"
-                                         style="font-family: 'Courier New', monospace;
-                                                font-size: 5pt; color: #888; line-height: 1.2;
-                                                white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                        <t t-esc="legend[0]"/>
-                                    </div>
-                                    <div t-if="legend[1]"
-                                         style="font-family: 'Courier New', monospace;
-                                                font-size: 5pt; color: #888; line-height: 1.2;
-                                                white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                        <t t-esc="legend[1]"/>
-                                    </div>
-                                </div>
                             </td>
                         </tr>
                     </table>

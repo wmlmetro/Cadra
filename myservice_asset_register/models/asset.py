@@ -44,14 +44,13 @@ class NRSAsset(models.Model):
 
     # ── Location & Custodian ──────────────────────────────────
     building_id = fields.Many2one(
-        'generic.location', string='Building', tracking=True,
-        domain="[('location_type', '=', 'building')]")
+        'generic.location', string='Building', tracking=True)
     floor_id = fields.Many2one(
         'generic.location', string='Floor', tracking=True,
-        domain="[('location_type', '=', 'floor'), ('parent_id', '=', building_id)]")
+        domain="[('parent_id', '=', building_id)]")
     room_id = fields.Many2one(
         'generic.location', string='Room', tracking=True,
-        domain="[('location_type', '=', 'room'), ('parent_id', '=', floor_id)]")
+        domain="[('parent_id', '=', floor_id)]")
     location_id = fields.Many2one(
         'generic.location', string='NRS Location', tracking=True)
     floor_room = fields.Char(string='Floor / Room')
