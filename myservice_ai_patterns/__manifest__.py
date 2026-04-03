@@ -21,6 +21,7 @@
             'myservice_ai_patterns/static/src/js/ai_patterns.js',
         ],
     },
+    'application': True,
     'installable': True,
     'auto_install': False,
     'license': 'LGPL-3',
