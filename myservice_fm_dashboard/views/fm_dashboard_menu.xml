@@ -5,14 +5,8 @@
         <field name="tag">myservice_fm_dashboard</field>
     </record>
 
-    <menuitem id="menu_fm_root"
-              name="Facilities"
-              sequence="60"
-              web_icon="myservice_fm_dashboard,static/src/img/icon.png"/>
-
-    <menuitem id="menu_fm_dashboard"
-              name="FM Dashboard"
-              parent="menu_fm_root"
-              action="action_fm_dashboard"
-              sequence="1"/>
+    <!-- Assign FM dashboard action to the Facility Command Center root menu -->
+    <record id="myservice_nrs_base.menu_facility_command_center" model="ir.ui.menu">
+        <field name="action" ref="action_fm_dashboard"/>
+    </record>
 </odoo>

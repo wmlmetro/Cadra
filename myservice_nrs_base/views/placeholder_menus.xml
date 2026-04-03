@@ -1,32 +1,81 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- ══════════════════════════════════════════════════════════════════════
-         NRS MENU DEFINITIONS — top-level menu structure
-         Actions are assigned by downstream modules when installed.
+         NRS MENU CONSOLIDATION
+         Reparents all dist/ module root menus under Facility Command Center.
          WestMetro Limited | myservice.com.ng
     ══════════════════════════════════════════════════════════════════════ -->
 
-    <!-- ── FACILITY COMMAND CENTER — true top-level, parent_id=False ──────── -->
+    <!-- ── FACILITY COMMAND CENTER — true top-level app ──────────────── -->
     <record id="menu_facility_command_center" model="ir.ui.menu">
         <field name="name">Facility Command Center</field>
         <field name="parent_id" eval="False"/>
         <field name="sequence">20</field>
-        <!-- action set by myservice_fm_dashboard when installed -->
     </record>
 
+    <!-- ── 1. REPARENT: generic_request → Request Management ─────────── -->
+    <record id="generic_request.menu_request_root" model="ir.ui.menu">
+        <field name="name">Request Management</field>
+        <field name="parent_id" ref="menu_facility_command_center"/>
+        <field name="sequence">10</field>
+    </record>
+
+    <!-- ── 2. REPARENT: generic_service → Service Catalogue ──────────── -->
+    <record id="generic_service.menu_generic_service_root" model="ir.ui.menu">
+        <field name="name">Service Catalogue</field>
+        <field name="parent_id" ref="menu_facility_command_center"/>
+        <field name="sequence">25</field>
+    </record>
+
+    <!-- ── 3. REPARENT: generic_resource → Resource Management ───────── -->
+    <record id="generic_resource.menu_generic_resource_toplevel" model="ir.ui.menu">
+        <field name="name">Resource Management</field>
+        <field name="parent_id" ref="menu_facility_command_center"/>
+        <field name="sequence">30</field>
+    </record>
+
+    <!-- ── 4. REPARENT: generic_team → Team Management ───────────────── -->
+    <record id="generic_team.menu_generic_team_root" model="ir.ui.menu">
+        <field name="name">Team Management</field>
+        <field name="parent_id" ref="menu_facility_command_center"/>
+        <field name="sequence">35</field>
+    </record>
+
+    <!-- ── 5. REPARENT: generic_tag → Tag Management ─────────────────── -->
+    <record id="generic_tag.menu_generic_tags_root" model="ir.ui.menu">
+        <field name="name">Tag Management</field>
+        <field name="parent_id" ref="menu_facility_command_center"/>
+        <field name="sequence">40</field>
+    </record>
+
+    <!-- ── 6. REPARENT: generic_rule → Automation Rules ──────────────── -->
+    <record id="generic_rule.menu_generic_rule" model="ir.ui.menu">
+        <field name="name">Automation Rules</field>
+        <field name="parent_id" ref="menu_facility_command_center"/>
+        <field name="sequence">45</field>
+    </record>
+
+    <!-- ── 7. REPARENT: generic_location → Locations ─────────────────── -->
+    <record id="generic_location.menu_generic_location_root" model="ir.ui.menu">
+        <field name="name">Locations</field>
+        <field name="parent_id" ref="menu_facility_command_center"/>
+        <field name="sequence">50</field>
+    </record>
+
+    <!-- ── 8. Quick-access category shortcuts ────────────────────────── -->
     <menuitem id="menu_building_services"
               name="Building Services"
               parent="menu_facility_command_center"
-              sequence="41"/>
+              sequence="60"/>
 
     <menuitem id="menu_plumbing_drainage"
               name="Plumbing &amp; Drainage"
               parent="menu_facility_command_center"
-              sequence="42"/>
+              sequence="61"/>
 
     <menuitem id="menu_plant_machinery"
               name="Plant &amp; Machinery"
               parent="menu_facility_command_center"
-              sequence="43"/>
+              sequence="62"/>
 
 </odoo>

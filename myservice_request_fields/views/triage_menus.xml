@@ -121,27 +121,26 @@
     <field name="act_window_id" ref="action_my_jobs"/>
 </record>
 
-<!-- ═══ MENUS ═══ -->
-<!-- Add under Facility Command Center (top-level menu id=300) -->
+<!-- ═══ MENUS — direct children of Facility Command Center ═══ -->
 <menuitem id="menu_triage_inbox"
           name="Triage Inbox"
           parent="myservice_nrs_base.menu_facility_command_center"
           action="action_triage_inbox"
-          sequence="10"/>
+          sequence="5"/>
 <menuitem id="menu_all_requests_fm"
           name="All Requests"
           parent="myservice_nrs_base.menu_facility_command_center"
           action="action_all_requests_fm"
-          sequence="20"/>
+          sequence="10"/>
 <menuitem id="menu_overdue_requests"
           name="Overdue"
           parent="myservice_nrs_base.menu_facility_command_center"
           action="action_overdue_requests"
-          sequence="30"/>
+          sequence="12"/>
 <menuitem id="menu_my_jobs"
           name="My Jobs"
           parent="myservice_nrs_base.menu_facility_command_center"
           action="action_my_jobs"
-          sequence="40"/>
+          sequence="14"/>
 
 </odoo>

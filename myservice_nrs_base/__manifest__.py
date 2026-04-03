@@ -4,7 +4,16 @@
     'summary': 'Shared CSS design tokens and component styles for all NRS modules',
     'category': 'Theme',
     'author': 'WestMetro Limited',
-    'depends': ['web'],
+    'depends': [
+        'web',
+        'generic_request',
+        'generic_service',
+        'generic_resource',
+        'generic_team',
+        'generic_tag',
+        'generic_rule',
+        'generic_location',
+    ],
     'data': [
         'views/assets.xml',
         'views/placeholder_menus.xml',

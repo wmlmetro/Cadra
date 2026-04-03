@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- Top level menu — appears as home dashboard -->
+    <!-- Operations dashboard — nested under Security sidebar -->
     <menuitem
         id="menu_myservice_dashboard_root"
-        name="Operations"
-        sequence="1"
-        action="action_myservice_dashboard"
-        web_icon="myservice_dashboard,static/src/img/icon.png"/>
+        name="Security Operations"
+        parent="myservice_security.menu_security_root"
+        sequence="3"
+        action="action_myservice_dashboard"/>
 
 </odoo>
