@@ -11,33 +11,56 @@ class NRSAsset(models.Model):
     # ── Identity ─────────────────────────────────────────────
     name = fields.Char('Asset Name', required=True, tracking=True)
     asset_code = fields.Char(
-        'Asset Code', copy=False, tracking=True, index=True,
-        help='Unique asset identifier / barcode tag number')
-    asset_tag = fields.Char('Physical Tag No.', tracking=True,
+        string='Asset Code', readonly=True, copy=False, tracking=True, index=True,
+        help='Unique system-generated asset identifier')
+    asset_tag = fields.Char(string='Tag Code', tracking=True,
                              help='Barcode or QR tag affixed to the physical asset')
-    serial_number = fields.Char('Serial Number')
-    model_number = fields.Char('Model / Part No.')
+    legacy_asset_code = fields.Char(string='Legacy Asset Code')
+    serial_number = fields.Char(string='Serial Number')
+    make = fields.Char(string='Make / Brand')
+    model_name = fields.Char(string='Model')
     manufacturer = fields.Char('Manufacturer / Brand')
 
     # ── Classification ────────────────────────────────────────
     category_id = fields.Many2one(
         'nrs.asset.category', string='Category', required=True, tracking=True)
-    domain = fields.Selection([
-        ('building',  'Building Services'),
-        ('plant',     'Plant & Machinery'),
-        ('plumbing',  'Plumbing & Drainage'),
-        ('fleet',     'Fleet Management'),
-        ('security',  'Security & Safety'),
-        ('it',        'IT & Communications'),
-        ('furniture', 'Furniture & Fittings'),
-        ('other',     'Other'),
-    ], string='FM Domain', required=True, default='plant', tracking=True)
+    subcategory_id = fields.Many2one(
+        'nrs.asset.subcategory', string='Sub-Category', tracking=True)
+    asset_type_id = fields.Many2one(
+        'nrs.asset.type', string='Asset Type', tracking=True)
+    asset_level = fields.Selection([
+        ('group',     'Asset Group'),
+        ('asset',     'Asset'),
+        ('sub_asset', 'Sub-Asset'),
+        ('component', 'Component'),
+    ], string='Asset Level', default='asset', tracking=True)
+    domain = fields.Selection(
+        string='FM Domain', related='category_id.domain', store=True,
+        readonly=False, tracking=True)
+
+    # ── Hierarchy ─────────────────────────────────────────────
+    parent_id = fields.Many2one('nrs.asset', string='Parent Asset', index=True)
+    child_ids = fields.One2many('nrs.asset', 'parent_id', string='Sub-Assets')
 
     # ── Location & Custodian ──────────────────────────────────
+    building_id = fields.Many2one(
+        'generic.location', string='Building', tracking=True,
+        domain="[('location_type', '=', 'building')]")
+    floor_id = fields.Many2one(
+        'generic.location', string='Floor', tracking=True,
+        domain="[('location_type', '=', 'floor'), ('parent_id', '=', building_id)]")
+    room_id = fields.Many2one(
+        'generic.location', string='Room', tracking=True,
+        domain="[('location_type', '=', 'room'), ('parent_id', '=', floor_id)]")
     location_id = fields.Many2one(
         'generic.location', string='NRS Location', tracking=True)
-    floor_room = fields.Char('Floor / Room / Area',
-                              help='E.g. Ground Floor, Server Room, Car Park')
+    floor_room = fields.Char(string='Floor / Room')
+    address_display = fields.Text(
+        string='Address', compute='_compute_address_display')
+    latitude_display = fields.Char(
+        string='Latitude', compute='_compute_geo_display')
+    longitude_display = fields.Char(
+        string='Longitude', compute='_compute_geo_display')
     custodian_id = fields.Many2one(
         'hr.employee', string='Custodian', tracking=True,
         help='Staff member responsible for this asset')
@@ -45,12 +68,11 @@ class NRSAsset(models.Model):
 
     # ── Condition & Status ────────────────────────────────────
     condition = fields.Selection([
-        ('new',       'New'),
-        ('good',      'Good'),
-        ('fair',      'Fair'),
-        ('poor',      'Poor'),
-        ('condemned', 'Condemned'),
-        ('missing',   'Missing / Unverified'),
+        ('new',              'New'),
+        ('good',             'Good'),
+        ('fair',             'Fair'),
+        ('poor',             'Poor'),
+        ('decommissioned',   'Decommissioned'),
     ], string='Condition', default='good', tracking=True)
 
     state = fields.Selection([
@@ -62,11 +84,22 @@ class NRSAsset(models.Model):
     ], string='Status', default='active', tracking=True)
 
     # ── Financial ─────────────────────────────────────────────
+    currency_id = fields.Many2one(
+        'res.currency', string='Currency',
+        default=lambda self: self.env.ref('base.NGN', raise_if_not_found=False))
+    purchase_date = fields.Date(string='Purchase Date')
+    warranty_expiry = fields.Date(string='Warranty Expiry')
+    purchase_value = fields.Monetary(string='Purchase Value (₦)', currency_field='currency_id')
+    replacement_cost = fields.Monetary(string='Replacement Cost (₦)', currency_field='currency_id')
     acquisition_date = fields.Date('Acquisition Date')
     acquisition_cost = fields.Float('Acquisition Cost (₦)', digits=(14, 2))
     current_value = fields.Float('Current Value (₦)', digits=(14, 2))
     disposal_date = fields.Date('Disposal Date')
     disposal_reason = fields.Text('Disposal Reason')
+
+    # ── Vendor ────────────────────────────────────────────────
+    maintenance_vendor_id = fields.Many2one(
+        'res.partner', string='Primary Maintenance Vendor')
 
     # ── Verification ─────────────────────────────────────────
     last_verified_date = fields.Date('Last Verified', tracking=True)
@@ -93,6 +126,55 @@ class NRSAsset(models.Model):
     # ── Notes ─────────────────────────────────────────────────
     notes = fields.Text('Notes')
     image = fields.Image('Asset Photo', max_width=1024, max_height=1024)
+
+    @api.onchange('building_id')
+    def _onchange_building_id(self):
+        self.floor_id = False
+        self.room_id = False
+
+    @api.onchange('floor_id')
+    def _onchange_floor_id(self):
+        self.room_id = False
+
+    @api.onchange('room_id')
+    def _onchange_room_id(self):
+        if self.room_id:
+            self.location_id = self.room_id
+            floor_code = self.floor_id.zone_code or ''
+            room_code = self.room_id.zone_code or ''
+            self.floor_room = '%s — %s' % (floor_code, room_code) if floor_code and room_code else ''
+        elif self.floor_id:
+            self.location_id = self.floor_id
+        elif self.building_id:
+            self.location_id = self.building_id
+
+    @api.depends('building_id', 'building_id.street', 'building_id.street2',
+                 'building_id.city', 'building_id.state_name',
+                 'building_id.country_name')
+    def _compute_address_display(self):
+        for r in self:
+            b = r.building_id
+            if b:
+                parts = [p for p in [b.street, b.street2, b.city,
+                                     b.state_name, b.country_name] if p]
+                r.address_display = ', '.join(parts) if parts else ''
+            else:
+                r.address_display = ''
+
+    @api.depends('building_id', 'building_id.latitude', 'building_id.longitude')
+    def _compute_geo_display(self):
+        for r in self:
+            b = r.building_id
+            if b and (b.latitude or b.longitude):
+                lat = b.latitude
+                lon = b.longitude
+                lat_dir = 'N' if lat >= 0 else 'S'
+                lon_dir = 'E' if lon >= 0 else 'W'
+                r.latitude_display = '%.4f°%s' % (abs(lat), lat_dir)
+                r.longitude_display = '%.4f°%s' % (abs(lon), lon_dir)
+            else:
+                r.latitude_display = ''
+                r.longitude_display = ''
 
     @api.model
     def create(self, vals):
@@ -134,10 +216,10 @@ class NRSAsset(models.Model):
         self.message_post(body=_('Asset verified by %s') % self.env.user.name)
 
     def action_condemn(self):
-        self.write({'condition': 'condemned', 'state': 'disposed'})
+        self.write({'condition': 'decommissioned', 'state': 'disposed'})
 
     def action_mark_missing(self):
-        self.write({'condition': 'missing', 'state': 'missing'})
+        self.write({'state': 'missing'})
 
     def action_view_requests(self):
         return {
@@ -161,6 +243,7 @@ class NRSAssetCategory(models.Model):
 
     name = fields.Char('Category Name', required=True)
     code = fields.Char('Code')
+    sequence = fields.Integer('Sequence', default=10)
     domain = fields.Selection([
         ('building',  'Building Services'),
         ('plant',     'Plant & Machinery'),
@@ -181,3 +264,42 @@ class NRSAssetCategory(models.Model):
     def _compute_asset_count(self):
         for c in self:
             c.asset_count = self.env['nrs.asset'].search_count([('category_id', '=', c.id)])
+
+
+class NRSAssetSubcategory(models.Model):
+    _name = 'nrs.asset.subcategory'
+    _description = 'Asset Sub-category'
+    _order = 'sequence, name'
+
+    name = fields.Char('Sub-category Name', required=True)
+    code = fields.Char('Code')
+    sequence = fields.Integer('Sequence', default=10)
+    category_id = fields.Many2one(
+        'nrs.asset.category', string='Category', required=True, ondelete='cascade')
+    description = fields.Text('Description')
+    asset_count = fields.Integer('Assets', compute='_compute_asset_count')
+
+    @api.depends()
+    def _compute_asset_count(self):
+        for r in self:
+            r.asset_count = self.env['nrs.asset'].search_count([('subcategory_id', '=', r.id)])
+
+
+class NRSAssetType(models.Model):
+    _name = 'nrs.asset.type'
+    _description = 'Asset Type'
+    _order = 'code, name'
+
+    name = fields.Char('Type Name', required=True)
+    code = fields.Char('Code')
+    subcategory_id = fields.Many2one(
+        'nrs.asset.subcategory', string='Sub-category', required=True, ondelete='cascade')
+    category_id = fields.Many2one(
+        'nrs.asset.category', string='Category', related='subcategory_id.category_id', store=True)
+    description = fields.Text('Description')
+    asset_count = fields.Integer('Assets', compute='_compute_asset_count')
+
+    @api.depends()
+    def _compute_asset_count(self):
+        for r in self:
+            r.asset_count = self.env['nrs.asset'].search_count([('asset_type_id', '=', r.id)])

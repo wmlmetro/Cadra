@@ -106,12 +106,9 @@
                     </div>
                 </button>
             </xpath>
-            <!-- Add tag info after asset_tag field -->
-            <xpath expr="//field[@name='asset_tag']" position="after">
-                <field name="active_tag_number" readonly="1" string="Active Tag"/>
-                <field name="tag_source"/>
+            <!-- Add SAP / legacy identifiers to Classification group -->
+            <xpath expr="//group[@name='classification']" position="inside">
                 <field name="sap_asset_number" string="SAP Asset No."/>
-                <field name="import_source"/>
             </xpath>
             <!-- Add tag history page -->
             <xpath expr="//page[@name='notes']" position="before">

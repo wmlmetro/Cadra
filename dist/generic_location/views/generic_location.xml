@@ -41,12 +41,17 @@
                     <group name="group_root">
                         <group name="group_root_left">
                             <field name="type_id" placeholder="Location Type"/>
+                            <field name="location_type"/>
+                            <field name="zone_code" placeholder="e.g. HQ, GF, MR"/>
+                            <field name="floor_number"
+                                   attrs="{'invisible': [('location_type', 'not in', ['floor'])]}"/>
                             <field name="partner_id" placeholder="Partner or customer..."/>
                         </group>
                         <group name="group_root_right">
                             <field name="parent_id"
                                    placeholder="Parent Location"
                                    groups="generic_location.group_use_hierarchical_locations"/>
+                            <field name="building_id" readonly="1"/>
                         </group>
                     </group>
                     <notebook>
@@ -120,6 +125,8 @@
         <field name="arch" type="xml">
             <tree>
                 <field name="name"/>
+                <field name="location_type" optional="show"/>
+                <field name="zone_code" optional="show"/>
                 <field name="type_id"/>
                 <field name="partner_id"/>
                 <field name="parent_id"
@@ -169,7 +176,13 @@
                         domain="[('partner_id', '!=', False)]"/>
                 <separator/>
 
+                <field name="location_type"/>
+                <field name="zone_code"/>
+
                 <group name="group_group_by" expand="0" string="Group by...">
+                    <filter name="filter_group_by_location_type"
+                            string="Location Type"
+                            context="{'group_by': 'location_type'}"/>
                     <filter name="filter_group_by_type"
                             string="Type"
                             context="{'group_by': 'type_id'}"/>

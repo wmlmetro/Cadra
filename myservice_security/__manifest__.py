@@ -1,7 +1,7 @@
 {
     'name': 'myservice Security & Safety',
-    'version': '15.0.2.0.0',
-    'summary': 'Incident management, guard ops, access control, watchlist, OSINT & security dashboard',
+    'version': '15.0.2.1.0',
+    'summary': 'Incident management, guard ops, access control, watchlist & security dashboard',
     'author': 'WestMetro Limited',
     'website': 'https://westmetrong.com',
     'category': 'Security',
@@ -21,12 +21,11 @@
         'views/security_access_log_views.xml',
         'views/security_watchlist_views.xml',
         'views/security_watchlist_kanban.xml',
-        'views/security_osint_views.xml',
+        'views/security_state_threat_views.xml',
         'views/dashboard_views.xml',
         'views/portal_templates.xml',
         'views/menu.xml',
         'wizard/incident_escalate_views.xml',
-        'data/acled_cron.xml',
     ],
     'assets': {
         'web.assets_backend': [

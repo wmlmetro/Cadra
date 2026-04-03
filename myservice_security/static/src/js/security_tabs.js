@@ -444,22 +444,8 @@ odoo.define('myservice_security.SecurityTabs', function (require) {
             });
         },
         _load_osint: function () {
-            var self = this;
-            rpc.query({
-                model: 'security.osint.feed', method: 'search_read', args: [[]],
-                kwargs: {
-                    fields: ['name', 'source', 'threat_level', 'summary',
-                             'date_published'],
-                    limit: 50, order: 'date_published desc',
-                },
-            }).then(function (recs) {
-                renderTable(self.$('.nrs-tab-body-osint'), recs, [
-                    { f: 'name',           l: 'Title',  w: '1fr' },
-                    { f: 'source',         l: 'Source', w: '120px' },
-                    { f: 'threat_level',   l: 'Threat', w: '90px',  fmt: 'sev' },
-                    { f: 'date_published', l: 'Date',   w: '100px', fmt: 'date' },
-                ], 'security.osint.feed');
-            });
+            // Redirect to unified feed (security.osint.feed removed)
+            this._load_feed();
         },
     });
 

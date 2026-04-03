@@ -56,4 +56,18 @@
               action="action_nrs_asset_category"
               sequence="80"
               groups="myservice_asset_register.group_asset_manager"/>
+
+    <menuitem id="menu_asset_subcategories"
+              name="Sub-categories"
+              parent="menu_asset_root"
+              action="action_nrs_asset_subcategory"
+              sequence="85"
+              groups="myservice_asset_register.group_asset_manager"/>
+
+    <menuitem id="menu_asset_types"
+              name="Asset Types"
+              parent="menu_asset_root"
+              action="action_nrs_asset_type"
+              sequence="90"
+              groups="myservice_asset_register.group_asset_manager"/>
 </odoo>

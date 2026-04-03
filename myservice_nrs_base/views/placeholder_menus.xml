@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- ══════════════════════════════════════════════════════════════════════
-         NRS MENU DEFINITIONS — ZERO nrs_placeholder references
-         All menus point to real actions. DO NOT add nrs_placeholder here.
+         NRS MENU DEFINITIONS — top-level menu structure
+         Actions are assigned by downstream modules when installed.
          WestMetro Limited | myservice.com.ng
     ══════════════════════════════════════════════════════════════════════ -->
 
@@ -11,76 +11,22 @@
         <field name="name">Facility Command Center</field>
         <field name="parent_id" eval="False"/>
         <field name="sequence">20</field>
-        <field name="action" ref="myservice_fm_dashboard.action_fm_dashboard"/>
+        <!-- action set by myservice_fm_dashboard when installed -->
     </record>
 
     <menuitem id="menu_building_services"
               name="Building Services"
               parent="menu_facility_command_center"
-              action="myservice_request_fields.action_all_requests_fm"
               sequence="41"/>
 
     <menuitem id="menu_plumbing_drainage"
               name="Plumbing &amp; Drainage"
               parent="menu_facility_command_center"
-              action="myservice_request_fields.action_all_requests_fm"
               sequence="42"/>
 
     <menuitem id="menu_plant_machinery"
               name="Plant &amp; Machinery"
               parent="menu_facility_command_center"
-              action="myservice_request_fields.action_all_requests_fm"
               sequence="43"/>
-
-    <!-- ── SECURITY ROOT SUB-MENUS — visible tabs ────────────────────────── -->
-    <menuitem id="menu_security_brief"
-              name="Security Brief"
-              parent="myservice_security.menu_security_root"
-              action="myservice_security.action_security_osint"
-              sequence="52"
-              active="1"/>
-
-    <menuitem id="menu_case_management"
-              name="Case Management"
-              parent="myservice_security.menu_security_root"
-              action="myservice_security.action_security_incident"
-              sequence="53"
-              active="1"/>
-
-    <menuitem id="menu_osint_toplevel"
-              name="OSINT"
-              parent="myservice_security.menu_security_root"
-              action="myservice_security.action_security_osint"
-              sequence="54"
-              active="1"
-              groups="myservice_security.group_security_manager"/>
-
-    <menuitem id="menu_ai_patterns"
-              name="AI Patterns"
-              parent="myservice_security.menu_security_root"
-              action="myservice_security.action_security_watchlist"
-              sequence="55"
-              active="1"
-              groups="myservice_security.group_security_manager"/>
-
-    <menuitem id="menu_daily_brief"
-              name="Daily Brief"
-              parent="myservice_security.menu_security_root"
-              action="myservice_security.action_security_duty_roster"
-              sequence="56"
-              active="1"/>
-
-    <!-- ── FLEET sub-menus ────────────────────────────────────────────────── -->
-    <menuitem id="menu_fuel_card"
-              name="Fuel Card"
-              parent="fleet.fleet_menu_root"
-              action="fleet.fleet_vehicle_action"
-              sequence="62"/>
-
-    <menuitem id="menu_staff_bus"
-              name="Staff Bus"
-              parent="fleet.fleet_menu_root"
-              action="myservice_staff_bus.action_staff_bus_fleet"
-              sequence="63"/>
 
 </odoo>

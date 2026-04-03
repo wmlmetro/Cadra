@@ -1,7 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- SOC Map Dashboard (existing) -->
     <record id="action_security_dashboard" model="ir.actions.client">
         <field name="name">Security Dashboard</field>
         <field name="tag">myservice_security_dashboard</field>
+    </record>
+
+    <!-- Security Command Center — 8 tabs -->
+    <record id="action_security_command_center" model="ir.actions.client">
+        <field name="name">Security Command Center</field>
+        <field name="tag">nrs_security_command_center</field>
+    </record>
+
+    <!-- Case Management — 3 tabs -->
+    <record id="action_case_management" model="ir.actions.client">
+        <field name="name">Case Management</field>
+        <field name="tag">nrs_case_management</field>
+    </record>
+
+    <!-- OSINT page — 2 tabs -->
+    <record id="action_osint_page" model="ir.actions.client">
+        <field name="name">OSINT &amp; Intelligence</field>
+        <field name="tag">nrs_osint</field>
+    </record>
+
+    <!-- AI Patterns page — 2 tabs -->
+    <record id="action_ai_patterns_page" model="ir.actions.client">
+        <field name="name">AI Patterns &amp; Intelligence</field>
+        <field name="tag">nrs_ai_patterns</field>
+    </record>
+
+    <!-- Daily Brief page -->
+    <record id="action_daily_brief_page" model="ir.actions.client">
+        <field name="name">Daily Intelligence Brief</field>
+        <field name="tag">nrs_daily_brief</field>
     </record>
 </odoo>

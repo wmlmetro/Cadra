@@ -135,6 +135,26 @@ class GenericLocation(models.Model):
         string="Use Parent Country"
     )
 
+    # ── NRS location hierarchy fields ────────────────────────────────────
+    location_type = fields.Selection([
+        ('building', 'Building'),
+        ('floor', 'Floor'),
+        ('wing', 'Wing'),
+        ('room', 'Room'),
+        ('zone', 'Zone'),
+    ], string='Location Type', tracking=True)
+    zone_code = fields.Char(
+        string='Zone Code',
+        help='Short code e.g. HQ, GF, MR')
+    floor_number = fields.Integer(
+        string='Floor Number',
+        help='0 = ground, -1 = basement, 1-16 = floors, 99 = roof')
+
+    building_id = fields.Many2one(
+        'generic.location', string='Building',
+        compute='_compute_building_id', store=True,
+        help='Nearest ancestor with location_type = building')
+
     # Geolocation
     longitude = fields.Float(digits=(16, 5))
     latitude = fields.Float(digits=(16, 5))
@@ -144,6 +164,25 @@ class GenericLocation(models.Model):
          'CHECK(name != description)',
          ("The title of the Location should not be the description")),
     ]
+
+    @api.depends('location_type', 'parent_id', 'parent_id.building_id',
+                 'parent_id.location_type')
+    def _compute_building_id(self):
+        for record in self:
+            if record.location_type == 'building':
+                record.building_id = record.id
+            else:
+                # Walk up the parent chain
+                parent = record.parent_id
+                found = False
+                while parent:
+                    if parent.location_type == 'building':
+                        record.building_id = parent.id
+                        found = True
+                        break
+                    parent = parent.parent_id
+                if not found:
+                    record.building_id = False
 
     def _compute_child_count(self):
         mapped_data = read_counts_for_o2m(

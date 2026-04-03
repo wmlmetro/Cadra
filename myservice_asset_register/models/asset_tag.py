@@ -1,5 +1,6 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
+import base64
 import re
 
 
@@ -185,6 +186,35 @@ class NRSAsset(models.Model):
         self.write({'asset_tag': tag_number})
         return tag
 
+    def get_barcode_base64(self, barcode_type, value, **kwargs):
+        """Return a base64-encoded PNG barcode for use as a data URI in QWeb."""
+        if not value:
+            return ''
+        png = self.env['ir.actions.report'].barcode(barcode_type, value, **kwargs)
+        return base64.b64encode(png).decode()
+
+    def get_tag_legend(self):
+        """Return two legend lines decoding the tag code segments."""
+        self.ensure_one()
+        parts = []
+        # Floor / Room from location hierarchy
+        loc = self.location_id
+        fr = (self.floor_room or '').split(' - ')
+        if len(fr) >= 2 and loc:
+            room_abbr = fr[1].strip()
+            floor_abbr = fr[0].strip()
+            room_name = loc.name or room_abbr
+            floor_name = loc.parent_id.name if loc.parent_id else floor_abbr
+            parts.append('%s = %s' % (floor_abbr, floor_name))
+            parts.append('%s = %s' % (room_abbr, room_name))
+        elif len(fr) == 1 and fr[0] and loc:
+            parts.append('%s = %s' % (fr[0].strip(), loc.parent_id.name if loc.parent_id else loc.name))
+        line1 = '  |  '.join(parts) if parts else ''
+        # Category from category_id
+        cat = self.category_id
+        line2 = '%s = %s' % (cat.code, cat.name) if cat and cat.code else ''
+        return line1, line2
+
     def action_request_tag_replacement(self):
         active_tag = self.active_tag_id
         if not active_tag:
@@ -192,17 +222,16 @@ class NRSAsset(models.Model):
         active_tag.action_request_replacement()
 
     def action_print_asset_tag(self):
-        tag = self.active_tag_id
-        if not tag:
-            raise ValidationError(_('No active tag to print.'))
+        if not self.asset_tag:
+            raise ValidationError(_('No tag code assigned to this asset.'))
         return self.env.ref(
             'myservice_asset_register.action_report_asset_tag'
-        ).report_action(tag)
+        ).report_action(self)
 
     def action_batch_print_tags(self):
-        tags = self.mapped('active_tag_id').filtered(lambda t: t.id)
-        if not tags:
-            raise ValidationError(_('No active tags found in selection.'))
+        assets = self.filtered(lambda a: a.asset_tag)
+        if not assets:
+            raise ValidationError(_('No assets with tag codes found in selection.'))
         return self.env.ref(
-            'myservice_asset_register.action_report_asset_tag'
-        ).report_action(tags)
+            'myservice_asset_register.action_report_asset_tag_sheet'
+        ).report_action(assets)

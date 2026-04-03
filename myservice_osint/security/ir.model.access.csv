@@ -5,3 +5,6 @@ access_osint_feed_admin,osint.feed.entry admin,model_osint_feed_entry,myservice_
 access_osint_feed_analyst,osint.feed.entry analyst,model_osint_feed_entry,myservice_osint.group_osint_analyst,1,1,1,0
 access_osint_feed_user,osint.feed.entry user,model_osint_feed_entry,,1,0,0,0
 access_osint_collector,osint.collector all,model_osint_collector,myservice_osint.group_osint_admin,1,1,1,0
+access_acled_sync_log_admin,acled.sync.log admin,model_acled_sync_log,myservice_osint.group_osint_admin,1,1,1,1
+access_acled_sync_log_analyst,acled.sync.log analyst,model_acled_sync_log,myservice_osint.group_osint_analyst,1,0,0,0
+access_acled_sync_log_public,acled.sync.log public,model_acled_sync_log,,1,0,0,0

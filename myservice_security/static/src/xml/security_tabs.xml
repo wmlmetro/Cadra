@@ -101,21 +101,14 @@
             <div class="nrs-tabs">
                 <button class="nrs-tab active" data-tab="feed">Intelligence Feed</button>
                 <button class="nrs-tab"        data-tab="sources">Sources</button>
-                <button class="nrs-tab"        data-tab="osint">OSINT Feed</button>
             </div>
         </div>
     </div>
     <div class="nrs-tab-panel" data-panel="feed">
-        <div class="nrs-panel-toolbar"><button class="nrs-view-all" data-action="344">Open in full view &#8594;</button></div>
         <div class="nrs-tab-body-feed"><div class="nrs-loading">Loading intelligence feed...</div></div>
     </div>
     <div class="nrs-tab-panel" data-panel="sources" style="display:none">
-        <div class="nrs-panel-toolbar"><button class="nrs-view-all" data-action="343">Open in full view &#8594;</button></div>
         <div class="nrs-tab-body-sources"><div class="nrs-loading">Loading sources...</div></div>
-    </div>
-    <div class="nrs-tab-panel" data-panel="osint" style="display:none">
-        <div class="nrs-panel-toolbar"><button class="nrs-view-all" data-action="338">Open in full view &#8594;</button></div>
-        <div class="nrs-tab-body-osint"><div class="nrs-loading">Loading OSINT feed...</div></div>
     </div>
 </div>
 </t>

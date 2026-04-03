@@ -13,30 +13,30 @@
         <field name="format">custom</field>
         <field name="page_height">25</field>
         <field name="page_width">50</field>
-        <field name="orientation">Landscape</field>
+        <field name="orientation">Portrait</field>
         <field name="margin_top">1</field>
         <field name="margin_bottom">1</field>
         <field name="margin_left">2</field>
         <field name="margin_right">2</field>
         <field name="header_line" eval="False"/>
         <field name="header_spacing">0</field>
-        <field name="dpi">150</field>
+        <field name="dpi">96</field>
     </record>
 
     <record id="paperformat_asset_tag_medium" model="report.paperformat">
-        <field name="name">Asset Tag — Medium (85x55mm)</field>
+        <field name="name">Zebra Label 50x30</field>
         <field name="default" eval="False"/>
         <field name="format">custom</field>
-        <field name="page_height">55</field>
-        <field name="page_width">85</field>
+        <field name="page_height">30</field>
+        <field name="page_width">50</field>
         <field name="orientation">Portrait</field>
-        <field name="margin_top">3</field>
-        <field name="margin_bottom">3</field>
-        <field name="margin_left">3</field>
-        <field name="margin_right">3</field>
+        <field name="margin_top">1</field>
+        <field name="margin_bottom">1</field>
+        <field name="margin_left">2</field>
+        <field name="margin_right">2</field>
         <field name="header_line" eval="False"/>
         <field name="header_spacing">0</field>
-        <field name="dpi">150</field>
+        <field name="dpi">96</field>
     </record>
 
     <record id="paperformat_asset_tag_large" model="report.paperformat">
@@ -45,14 +45,14 @@
         <field name="format">custom</field>
         <field name="page_height">60</field>
         <field name="page_width">100</field>
-        <field name="orientation">Landscape</field>
+        <field name="orientation">Portrait</field>
         <field name="margin_top">3</field>
         <field name="margin_bottom">3</field>
         <field name="margin_left">4</field>
         <field name="margin_right">4</field>
         <field name="header_line" eval="False"/>
         <field name="header_spacing">0</field>
-        <field name="dpi">150</field>
+        <field name="dpi">96</field>
     </record>
 
     <record id="paperformat_asset_tag_a4sheet" model="report.paperformat">
@@ -66,47 +66,59 @@
         <field name="margin_right">8</field>
         <field name="header_line" eval="False"/>
         <field name="header_spacing">0</field>
-        <field name="dpi">150</field>
+        <field name="dpi">96</field>
     </record>
 
     <!-- ── Report Actions ── -->
     <record id="action_report_asset_tag_small" model="ir.actions.report">
         <field name="name">Asset Tag — Small</field>
-        <field name="model">nrs.asset.tag.label</field>
+        <field name="model">nrs.asset</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">myservice_asset_register.report_asset_tag_label_small</field>
         <field name="report_file">myservice_asset_register.report_asset_tag_label_small</field>
         <field name="paperformat_id" ref="paperformat_asset_tag_small"/>
     </record>
 
+    <!-- Print Tag — single record from form view -->
     <record id="action_report_asset_tag" model="ir.actions.report">
-        <field name="name">Asset Tag — Medium</field>
-        <field name="model">nrs.asset.tag.label</field>
+        <field name="name">Print Tag</field>
+        <field name="model">nrs.asset</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">myservice_asset_register.report_asset_tag_label</field>
         <field name="report_file">myservice_asset_register.report_asset_tag_label</field>
-        <field name="binding_model_id" ref="model_nrs_asset_tag_label"/>
+        <field name="binding_model_id" ref="model_nrs_asset"/>
         <field name="binding_type">report</field>
         <field name="paperformat_id" ref="paperformat_asset_tag_medium"/>
     </record>
 
     <record id="action_report_asset_tag_large" model="ir.actions.report">
         <field name="name">Asset Tag — Large</field>
-        <field name="model">nrs.asset.tag.label</field>
+        <field name="model">nrs.asset</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">myservice_asset_register.report_asset_tag_label_large</field>
         <field name="report_file">myservice_asset_register.report_asset_tag_label_large</field>
         <field name="paperformat_id" ref="paperformat_asset_tag_large"/>
     </record>
 
+    <!-- Print Labels — multi-select from list view -->
     <record id="action_report_asset_tag_sheet" model="ir.actions.report">
-        <field name="name">Asset Tags — A4 Sheet</field>
-        <field name="model">nrs.asset.tag.label</field>
+        <field name="name">Print Labels</field>
+        <field name="model">nrs.asset</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">myservice_asset_register.report_asset_tag_label_sheet</field>
         <field name="report_file">myservice_asset_register.report_asset_tag_label_sheet</field>
-        <field name="binding_model_id" ref="model_nrs_asset_tag_label"/>
+        <field name="binding_model_id" ref="model_nrs_asset"/>
         <field name="binding_type">report</field>
         <field name="paperformat_id" ref="paperformat_asset_tag_a4sheet"/>
     </record>
+
+    <!-- Force-update model field on report actions (Odoo skips model during upgrade) -->
+    <function model="ir.actions.report" name="write"
+             eval="[[ref('action_report_asset_tag')], {'model': 'nrs.asset'}]"/>
+    <function model="ir.actions.report" name="write"
+             eval="[[ref('action_report_asset_tag_small')], {'model': 'nrs.asset'}]"/>
+    <function model="ir.actions.report" name="write"
+             eval="[[ref('action_report_asset_tag_large')], {'model': 'nrs.asset'}]"/>
+    <function model="ir.actions.report" name="write"
+             eval="[[ref('action_report_asset_tag_sheet')], {'model': 'nrs.asset'}]"/>
 </odoo>

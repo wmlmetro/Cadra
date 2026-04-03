@@ -5,6 +5,12 @@ access_nrs_asset_manager,nrs.asset manager,model_nrs_asset,myservice_asset_regis
 access_nrs_asset_category_employee,nrs.asset.category employee,model_nrs_asset_category,base.group_user,1,0,0,0
 access_nrs_asset_category_user,nrs.asset.category user,model_nrs_asset_category,myservice_asset_register.group_asset_user,1,0,0,0
 access_nrs_asset_category_manager,nrs.asset.category manager,model_nrs_asset_category,myservice_asset_register.group_asset_manager,1,1,1,1
+access_nrs_asset_subcategory_employee,nrs.asset.subcategory employee,model_nrs_asset_subcategory,base.group_user,1,0,0,0
+access_nrs_asset_subcategory_user,nrs.asset.subcategory user,model_nrs_asset_subcategory,myservice_asset_register.group_asset_user,1,0,0,0
+access_nrs_asset_subcategory_manager,nrs.asset.subcategory manager,model_nrs_asset_subcategory,myservice_asset_register.group_asset_manager,1,1,1,1
+access_nrs_asset_type_employee,nrs.asset.type employee,model_nrs_asset_type,base.group_user,1,0,0,0
+access_nrs_asset_type_user,nrs.asset.type user,model_nrs_asset_type,myservice_asset_register.group_asset_user,1,0,0,0
+access_nrs_asset_type_manager,nrs.asset.type manager,model_nrs_asset_type,myservice_asset_register.group_asset_manager,1,1,1,1
 access_nrs_asset_transfer_user,nrs.asset.transfer user,model_nrs_asset_transfer,myservice_asset_register.group_asset_user,1,0,1,0
 access_nrs_asset_transfer_manager,nrs.asset.transfer manager,model_nrs_asset_transfer,myservice_asset_register.group_asset_manager,1,1,1,1
 access_nrs_asset_pm_employee,nrs.asset.pm employee,model_nrs_asset_pm,base.group_user,1,0,0,0

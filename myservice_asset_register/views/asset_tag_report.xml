@@ -5,21 +5,23 @@
          ═══════════════════════════════════════════════════════════ -->
     <template id="report_asset_tag_label_small">
         <t t-call="web.html_container">
-            <t t-foreach="docs" t-as="tag">
-                <div style="
+            <t t-foreach="docs" t-as="o">
+                <t t-set="tag_val" t-value="o.asset_tag or ''"/>
+                <div t-attf-style="
                     width: 100%; height: 100%;
                     font-family: 'DM Mono', 'Courier New', monospace;
                     border: 1px solid #D0D0D0;
                     padding: 2mm;
                     box-sizing: border-box;
                     text-align: center;
-                    page-break-after: always;
                     background: #fff;
+                    {{ 'page-break-after: always;' if not o_last else '' }}
                 ">
-                    <img t-attf-src="/report/barcode/?type=Code128&amp;value={{tag.name}}&amp;width=400&amp;height=80"
+                    <img t-if="tag_val"
+                         t-att-src="'data:image/png;base64,' + o.get_barcode_base64('Code128', tag_val, width=400, height=80, humanreadable=1)"
                          style="width: 100%; height: 12mm;" alt="barcode"/>
                     <div style="font-size: 8px; font-weight: bold; letter-spacing: 1px; margin-top: 1px;">
-                        <t t-esc="tag.name"/>
+                        <t t-esc="tag_val"/>
                     </div>
                 </div>
             </t>
@@ -27,72 +29,101 @@
     </template>
 
     <!-- ═══════════════════════════════════════════════════════════
-         MEDIUM LABEL — 85 x 55 mm (default)
-         NRS red header, company logo, asset code, name, Code128
+         PRINT TAG — 50 x 30 mm  (Option C)
+         Red left bar | NRS | name | labeled tag + asset codes |
+         Code128 + QR barcodes | decoded legend
          ═══════════════════════════════════════════════════════════ -->
     <template id="report_asset_tag_label">
         <t t-call="web.html_container">
-            <t t-foreach="docs" t-as="tag">
-                <t t-set="company" t-value="tag.env['res.company'].sudo().search([], limit=1)"/>
-                <div style="
+            <style>
+                body.container { padding: 0 !important; margin: 0 !important; width: 100% !important; }
+                #wrapwrap, #wrapwrap > main { padding: 0; margin: 0; }
+            </style>
+            <t t-foreach="docs" t-as="o">
+                <t t-set="tag_val" t-value="o.asset_tag or ''"/>
+                <t t-set="legend" t-value="o.get_tag_legend()"/>
+                <div t-attf-style="
                     width: 100%; height: 100%;
-                    font-family: 'DM Sans', Arial, sans-serif;
-                    border: 1px solid #D0D0D0;
+                    font-family: Arial, Helvetica, sans-serif;
                     box-sizing: border-box;
-                    page-break-after: always;
                     background: #fff;
+                    overflow: hidden;
+                    {{ 'page-break-after: always;' if not o_last else '' }}
                 ">
-                    <!-- NRS Red header with logo -->
-                    <div style="
-                        background: #C8102E; color: #fff;
-                        font-size: 7px; font-weight: 700;
-                        padding: 3px 6px; letter-spacing: 0.5px;
-                        display: flex; align-items: center;
-                    ">
-                        <t t-if="company.logo">
-                            <img t-attf-src="data:image/png;base64,{{company.logo.decode('utf-8')}}"
-                                 style="height: 12px; margin-right: 6px;" alt="logo"/>
-                        </t>
-                        <span style="font-weight: 900;">NRS</span>
-                        <span style="margin-left: 4px; font-weight: 400;">FACILITIES MANAGEMENT</span>
-                    </div>
+                    <table style="width: 100%; height: 100%; border-collapse: collapse;" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <!-- Red vertical bar -->
+                            <td style="width: 5px; background: #C8102E;"/>
+                            <!-- Content area -->
+                            <td style="vertical-align: top; padding: 0.5mm 1mm 0 1.5mm;">
 
-                    <div style="padding: 2mm 3mm;">
-                        <!-- Asset name -->
-                        <div style="font-size: 9px; font-weight: 700; color: #1A1A1A; margin-bottom: 2px; line-height: 1.2;">
-                            <t t-esc="(tag.asset_id.name or '')[:45]"/>
-                        </div>
+                                <!-- NRS -->
+                                <div style="font-size: 5pt; font-weight: 900; color: #C8102E;
+                                            line-height: 1;">NRS</div>
 
-                        <!-- Code128 Barcode -->
-                        <div style="text-align: center; margin: 2px 0;">
-                            <img t-attf-src="/report/barcode/?type=Code128&amp;value={{tag.name}}&amp;width=600&amp;height=100"
-                                 style="width: 100%; height: 14mm;" alt="barcode"/>
-                            <div style="font-family: 'DM Mono', 'Courier New', monospace; font-size: 8px; font-weight: 700; letter-spacing: 1.5px; margin-top: 1px;">
-                                <t t-esc="tag.name"/>
-                            </div>
-                        </div>
+                                <!-- Asset name -->
+                                <div style="font-size: 11pt; font-weight: 700; color: #000;
+                                            line-height: 1.1; white-space: nowrap;
+                                            overflow: hidden; text-overflow: ellipsis;
+                                            margin-top: 0.2mm;">
+                                    <t t-esc="(o.name or '')[:22]"/>
+                                </div>
 
-                        <!-- Details -->
-                        <table style="width: 100%; font-size: 6.5px; border-collapse: collapse; margin-top: 2px;">
-                            <tr>
-                                <td style="color: #888; width: 30%;">Category</td>
-                                <td style="color: #1A1A1A; font-weight: 600;">
-                                    <t t-esc="tag.asset_id.category_id.name if tag.asset_id.category_id else ''"/>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="color: #888;">Location</td>
-                                <td style="color: #1A1A1A; font-weight: 600;">
-                                    <t t-esc="(tag.asset_id.location_id.name or '')[:30]"/>
-                                </td>
-                            </tr>
-                        </table>
+                                <!-- TAG CODE label + value -->
+                                <div style="font-size: 4pt; color: #999; text-transform: uppercase;
+                                            letter-spacing: 0.5px; margin-top: 0.3mm; line-height: 1;">TAG CODE</div>
+                                <div style="font-family: 'Courier New', monospace;
+                                            font-size: 9pt; font-weight: 700;
+                                            letter-spacing: 1px; color: #000;
+                                            line-height: 1.1;">
+                                    <t t-esc="tag_val"/>
+                                </div>
 
-                        <!-- Footer -->
-                        <div style="border-top: 0.5px solid #eee; margin-top: 2px; padding-top: 1px; font-size: 5.5px; color: #aaa;">
-                            <span t-esc="tag.asset_id.asset_code"/>
-                        </div>
-                    </div>
+                                <!-- ASSET CODE label + value -->
+                                <div style="font-size: 4pt; color: #999; text-transform: uppercase;
+                                            letter-spacing: 0.5px; margin-top: 0.2mm; line-height: 1;">ASSET CODE</div>
+                                <div style="font-family: 'Courier New', monospace;
+                                            font-size: 8pt; color: #666;
+                                            line-height: 1.1;">
+                                    <t t-esc="o.asset_code or ''"/>
+                                </div>
+
+                                <!-- Barcodes: Code128 left, QR right -->
+                                <table style="width: 100%; margin-top: 0.3mm;" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td style="vertical-align: top; width: 70%;">
+                                            <img t-if="tag_val"
+                                                 t-att-src="'data:image/png;base64,' + o.get_barcode_base64('Code128', tag_val, width=400, height=80, humanreadable=0)"
+                                                 style="width: 100%; height: 7mm;" alt="Code128"/>
+                                            <div style="font-size: 4pt; color: #999;">Code128</div>
+                                        </td>
+                                        <td style="vertical-align: top; text-align: right; width: 30%; padding-left: 1mm;">
+                                            <img t-if="tag_val"
+                                                 t-att-src="'data:image/png;base64,' + o.get_barcode_base64('QR', tag_val, width=80, height=80)"
+                                                 style="width: 7mm; height: 7mm;" alt="QR"/>
+                                            <div style="font-size: 4pt; color: #999; text-align: right;">QR</div>
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <!-- Legend -->
+                                <div style="border-top: 0.5px solid #ccc; margin-top: 0.2mm; padding-top: 0.2mm;">
+                                    <div t-if="legend[0]"
+                                         style="font-family: 'Courier New', monospace;
+                                                font-size: 5pt; color: #888; line-height: 1.2;
+                                                white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        <t t-esc="legend[0]"/>
+                                    </div>
+                                    <div t-if="legend[1]"
+                                         style="font-family: 'Courier New', monospace;
+                                                font-size: 5pt; color: #888; line-height: 1.2;
+                                                white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        <t t-esc="legend[1]"/>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
             </t>
         </t>
@@ -105,16 +136,17 @@
          ═══════════════════════════════════════════════════════════ -->
     <template id="report_asset_tag_label_large">
         <t t-call="web.html_container">
-            <t t-foreach="docs" t-as="tag">
-                <t t-set="company" t-value="tag.env['res.company'].sudo().search([], limit=1)"/>
-                <t t-set="qr_data" t-value="'%s|%s|%s' % (tag.asset_id.asset_code or '', tag.asset_id.serial_number or '', tag.asset_id.location_id.name if tag.asset_id.location_id else '')"/>
-                <div style="
+            <t t-foreach="docs" t-as="o">
+                <t t-set="tag_val" t-value="o.asset_tag or ''"/>
+                <t t-set="company" t-value="o.env['res.company'].sudo().search([], limit=1)"/>
+                <t t-set="qr_data" t-value="'%s|%s|%s' % (o.asset_code or '', o.serial_number or '', o.location_id.name if o.location_id else '')"/>
+                <div t-attf-style="
                     width: 100%; height: 100%;
                     font-family: 'DM Sans', Arial, sans-serif;
                     border: 1px solid #D0D0D0;
                     box-sizing: border-box;
-                    page-break-after: always;
                     background: #fff;
+                    {{ 'page-break-after: always;' if not o_last else '' }}
                 ">
                     <!-- NRS Red header with logo -->
                     <div style="
@@ -134,21 +166,23 @@
                     <div style="padding: 2mm 3mm;">
                         <!-- Asset name -->
                         <div style="font-size: 11px; font-weight: 700; color: #1A1A1A; margin-bottom: 3px; line-height: 1.3;">
-                            <t t-esc="(tag.asset_id.name or '')[:55]"/>
+                            <t t-esc="(o.name or '')[:55]"/>
                         </div>
 
                         <!-- Barcodes row: Code128 left, QR right -->
                         <table style="width: 100%; margin: 3px 0;">
                             <tr>
                                 <td style="text-align: center; vertical-align: top; width: 65%;">
-                                    <img t-attf-src="/report/barcode/?type=Code128&amp;value={{tag.name}}&amp;width=600&amp;height=100"
+                                    <img t-if="tag_val"
+                                         t-att-src="'data:image/png;base64,' + o.get_barcode_base64('Code128', tag_val, width=600, height=100, humanreadable=1)"
                                          style="width: 100%; height: 16mm;" alt="barcode"/>
                                     <div style="font-family: 'DM Mono', 'Courier New', monospace; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; margin-top: 1px;">
-                                        <t t-esc="tag.name"/>
+                                        <t t-esc="tag_val"/>
                                     </div>
                                 </td>
                                 <td style="text-align: center; vertical-align: top; width: 35%; padding-left: 4px;">
-                                    <img t-attf-src="/report/barcode/?type=QR&amp;value={{qr_data}}&amp;width=150&amp;height=150"
+                                    <img t-if="qr_data"
+                                         t-att-src="'data:image/png;base64,' + o.get_barcode_base64('QR', qr_data, width=150, height=150)"
                                          style="width: 18mm; height: 18mm;" alt="QR"/>
                                 </td>
                             </tr>
@@ -159,35 +193,35 @@
                             <tr>
                                 <td style="color: #888; width: 25%;">Category</td>
                                 <td style="color: #1A1A1A; font-weight: 600; width: 25%;">
-                                    <t t-esc="tag.asset_id.category_id.name if tag.asset_id.category_id else ''"/>
+                                    <t t-esc="o.category_id.name if o.category_id else ''"/>
                                 </td>
                                 <td style="color: #888; width: 20%;">Serial No.</td>
                                 <td style="font-family: 'DM Mono', monospace; color: #1A1A1A;">
-                                    <t t-esc="tag.asset_id.serial_number or ''"/>
+                                    <t t-esc="o.serial_number or ''"/>
                                 </td>
                             </tr>
                             <tr>
                                 <td style="color: #888;">Location</td>
                                 <td style="color: #1A1A1A; font-weight: 600;" colspan="3">
-                                    <t t-esc="(tag.asset_id.location_id.name or '')[:45]"/>
-                                    <t t-if="tag.asset_id.floor_room">
+                                    <t t-esc="(o.location_id.name or '')[:45]"/>
+                                    <t t-if="o.floor_room">
                                         <span style="color: #888;"> / </span>
-                                        <t t-esc="tag.asset_id.floor_room"/>
+                                        <t t-esc="o.floor_room"/>
                                     </t>
                                 </td>
                             </tr>
                             <tr>
                                 <td style="color: #888;">Custodian</td>
                                 <td style="color: #1A1A1A;" colspan="3">
-                                    <t t-esc="(tag.asset_id.custodian_id.name or '')[:40]"/>
+                                    <t t-esc="(o.custodian_id.name or '')[:40]"/>
                                 </td>
                             </tr>
                         </table>
 
                         <!-- Footer -->
                         <div style="border-top: 0.5px solid #eee; margin-top: 3px; padding-top: 1px; font-size: 6px; color: #aaa;">
-                            <span>myservice.com.ng/a/<t t-esc="tag.asset_id.asset_code"/></span>
-                            <span style="float: right;" t-esc="tag.asset_id.asset_code"/>
+                            <span>myservice.com.ng/a/<t t-esc="o.asset_code"/></span>
+                            <span style="float: right;" t-esc="o.asset_code"/>
                         </div>
                     </div>
                 </div>
@@ -210,7 +244,8 @@
                     padding: 8px;
                     page-break-after: always;
                 ">
-                    <t t-foreach="chunk" t-as="tag">
+                    <t t-foreach="chunk" t-as="o">
+                        <t t-set="tag_val" t-value="o.asset_tag or ''"/>
                         <div style="
                             border: 1px solid #D0D0D0;
                             font-family: 'DM Sans', Arial, sans-serif;
@@ -235,35 +270,40 @@
                             </div>
 
                             <div style="padding: 2mm 3mm;">
-                                <!-- Name -->
+                                <!-- Name (truncated to 20 chars) -->
                                 <div style="font-size: 8px; font-weight: 700; color: #1A1A1A; margin-bottom: 2px; line-height: 1.2;">
-                                    <t t-esc="(tag.asset_id.name or '')[:40]"/>
+                                    <t t-esc="(o.name or '')[:20]"/>
                                 </div>
-                                <!-- Barcode -->
-                                <div style="text-align: center; margin: 2px 0;">
-                                    <img t-attf-src="/report/barcode/?type=Code128&amp;value={{tag.name}}&amp;width=500&amp;height=80"
-                                         style="width: 100%; height: 12mm;" alt="barcode"/>
-                                    <div style="font-family: 'DM Mono', 'Courier New', monospace; font-size: 7px; font-weight: 700; letter-spacing: 1px; margin-top: 1px;">
-                                        <t t-esc="tag.name"/>
-                                    </div>
+                                <!-- Tag code (large) -->
+                                <div style="font-family: 'Courier New', monospace;
+                                            font-size: 9px; font-weight: 900;
+                                            letter-spacing: 1px; color: #000;">
+                                    <t t-esc="tag_val"/>
                                 </div>
-                                <!-- Details -->
-                                <table style="width:100%; font-size:6px; border-collapse:collapse; margin-top:2px;">
+                                <!-- Asset code (small) -->
+                                <div style="font-size: 5.5px; color: #888; margin-bottom: 2px;">
+                                    <t t-esc="o.asset_code or ''"/>
+                                </div>
+                                <!-- Barcodes row: Code128 left, QR right -->
+                                <table style="width: 100%; margin: 2px 0;" cellpadding="0" cellspacing="0">
                                     <tr>
-                                        <td style="color:#888; width:30%;">Category</td>
-                                        <td style="font-weight:600;">
-                                            <t t-esc="tag.asset_id.category_id.name if tag.asset_id.category_id else ''"/>
+                                        <td style="vertical-align: middle; width: 70%;">
+                                            <img t-if="tag_val"
+                                                 t-att-src="'data:image/png;base64,' + o.get_barcode_base64('Code128', tag_val, width=500, height=80, humanreadable=1)"
+                                                 style="width: 100%; height: 12mm;" alt="barcode"/>
                                         </td>
-                                    </tr>
-                                    <tr>
-                                        <td style="color:#888;">Location</td>
-                                        <td style="font-weight:600;">
-                                            <t t-esc="(tag.asset_id.location_id.name or '')[:30]"/>
+                                        <td style="vertical-align: middle; text-align: right; width: 30%; padding-left: 2mm;">
+                                            <img t-if="tag_val"
+                                                 t-att-src="'data:image/png;base64,' + o.get_barcode_base64('QR', tag_val, width=100, height=100)"
+                                                 style="width: 10mm; height: 10mm;" alt="QR"/>
                                         </td>
                                     </tr>
                                 </table>
-                                <div style="border-top:0.5px solid #eee; margin-top:2px; padding-top:1px; font-size:5px; color:#aaa;">
-                                    <span t-esc="tag.asset_id.asset_code"/>
+                                <!-- Floor / Room -->
+                                <div t-if="o.floor_room"
+                                     style="font-size: 5px; color: #666; margin-top: 1px;
+                                            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    <t t-esc="o.floor_room"/>
                                 </div>
                             </div>
                         </div>

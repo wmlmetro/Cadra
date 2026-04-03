@@ -13,10 +13,5 @@ access_security_watchlist_manager,security.watchlist manager,model_security_watc
 access_security_watchlist_admin,security.watchlist admin,model_security_watchlist,myservice_security.group_security_admin,1,1,1,1
 access_security_watchlist_alias_manager,security.watchlist.alias manager,model_security_watchlist_alias,myservice_security.group_security_manager,1,1,1,1
 access_security_incident_escalate,security.incident.escalate all,model_security_incident_escalate,,1,1,1,1
-access_security_osint_officer,security.osint.feed officer,model_security_osint_feed,myservice_security.group_security_officer,1,1,1,0
-access_security_osint_manager,security.osint.feed manager,model_security_osint_feed,myservice_security.group_security_manager,1,1,1,1
 access_security_state_threat_officer,security.state.threat officer,model_security_state_threat,myservice_security.group_security_officer,1,1,0,0
 access_security_state_threat_manager,security.state.threat manager,model_security_state_threat,myservice_security.group_security_manager,1,1,1,1
-access_acled_sync_log_officer,acled.sync.log officer,model_acled_sync_log,myservice_security.group_security_officer,1,0,0,0
-access_acled_sync_log_manager,acled.sync.log manager,model_acled_sync_log,myservice_security.group_security_manager,1,1,1,1
-access_acled_sync_log_public,acled.sync.log public,model_acled_sync_log,,1,0,0,0

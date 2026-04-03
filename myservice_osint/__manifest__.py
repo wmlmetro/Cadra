@@ -1,6 +1,6 @@
 {
     'name': 'myservice OSINT Intelligence',
-    'version': '15.0.1.0.0',
+    'version': '15.0.1.1.0',
     'summary': 'Multi-source OSINT collection, threat scoring engine, and state threat assessment matrix',
     'author': 'WestMetro Limited',
     'category': 'Security',
@@ -9,6 +9,7 @@
         'security/security_groups.xml',
         'security/ir.model.access.csv',
         'data/ir_cron.xml',
+        'data/acled_cron.xml',
         'data/osint_sources.xml',
         'views/osint_source_config_views.xml',
         'views/osint_feed_entry_views.xml',

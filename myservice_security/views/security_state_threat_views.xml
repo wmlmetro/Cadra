@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_security_state_threat_list" model="ir.ui.view">
+        <field name="name">security.state.threat.list</field>
+        <field name="model">security.state.threat</field>
+        <field name="arch" type="xml">
+            <tree string="State Threat Levels" editable="top">
+                <field name="name"/>
+                <field name="threat_level"/>
+                <field name="notes"/>
+                <field name="last_updated"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_security_state_threats" model="ir.actions.act_window">
+        <field name="name">State Threat Levels</field>
+        <field name="res_model">security.state.threat</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>
