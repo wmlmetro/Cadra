@@ -31,13 +31,7 @@
         'web.assets_backend': [
             'myservice_security/static/src/css/security.css',
             'myservice_security/static/src/css/security_tabs.css',
-            'myservice_security/static/src/js/security_dashboard.js',
-            'myservice_security/static/src/js/security_tabs.js',
             'myservice_security/static/src/css/security_navbar.css',
-        ],
-        'web.assets_qweb': [
-            'myservice_security/static/src/xml/security_dashboard.xml',
-            'myservice_security/static/src/xml/security_tabs.xml',
         ],
     },
     'installable': True,
