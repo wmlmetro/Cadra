@@ -223,7 +223,7 @@ class AcledAdapter:
     """
     ACLED REST API adapter.
     Uses OAuth2 password grant. Fetches Nigeria conflict events.
-    API: https://acleddata.com/api/acled/read
+    API docs: https://acleddata.com/api-documentation/getting-started
     """
     TOKEN_URL = 'https://acleddata.com/oauth/token'
     DATA_URL  = 'https://acleddata.com/api/acled/read'
@@ -253,7 +253,8 @@ class AcledAdapter:
         req = urllib.request.Request(
             self.TOKEN_URL,
             data=data,
-            headers={'Content-Type': 'application/x-www-form-urlencoded'},
+            headers={'Content-Type': 'application/x-www-form-urlencoded',
+                     'User-Agent': 'NRS-myservice/1.0'},
             method='POST',
         )
         with urllib.request.urlopen(req, timeout=30) as resp:
@@ -289,7 +290,7 @@ class AcledAdapter:
             headers={'Authorization': f'Bearer {token}',
                      'User-Agent': 'NRS-myservice/1.0'},
         )
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=60) as resp:
             result = json.loads(resp.read())
 
         events = result.get('data', [])
@@ -302,7 +303,7 @@ class AcledAdapter:
                 'summary':     e.get('notes', '')[:2000],
                 'state_name':  e.get('admin1', ''),
                 'event_date':  __import__('datetime').datetime.strptime(
-                    str(e.get('event_date','20240101'))[:8].replace('-',''),'%Y%m%d'
+                    str(e.get('event_date','2024-01-01'))[:10], '%Y-%m-%d'
                 ) if e.get('event_date') else __import__('datetime').datetime.now(),
                 'lat':         float(e.get('latitude') or 0),
                 'lng':         float(e.get('longitude') or 0),

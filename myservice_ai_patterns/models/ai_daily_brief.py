@@ -206,7 +206,7 @@ class AiDailyBrief(models.Model):
             [('event_date', '>=', fields.Date.today())],
             order='threat_level desc', limit=50)
         watchlist = self.env['security.watchlist'].search(
-            [('state', 'in', ['active', 'alert'])], limit=20)
+            [('approval_state', '=', 'approved')], limit=20)
         incidents = self.env['security.incident'].search(
             [('state', 'not in', ['closed', 'cancelled'])], limit=20)
 
@@ -217,7 +217,7 @@ class AiDailyBrief(models.Model):
         ]) or "No OSINT entries for today."
 
         watchlist_context = '\n'.join([
-            f"- {w.name} | Threat: {w.threat_tier} | Status: {w.state}"
+            f"- {w.name} | Threat: {w.threat_level} | Status: {w.approval_state}"
             for w in watchlist[:10]
         ]) or "No active watchlist entries."
 

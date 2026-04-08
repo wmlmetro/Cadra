@@ -430,15 +430,15 @@ odoo.define('myservice_security.SecurityTabs', function (require) {
                 model: 'osint.source.config', method: 'search_read', args: [[]],
                 kwargs: {
                     fields: ['name', 'source_type', 'active',
-                             'last_fetch_date', 'feed_url'],
+                             'last_fetched', 'rss_urls'],
                     limit: 50, order: 'name',
                 },
             }).then(function (recs) {
                 renderTable(self.$('.nrs-tab-body-sources'), recs, [
                     { f: 'name',            l: 'Source',     w: '200px' },
                     { f: 'source_type',     l: 'Type',       w: '120px' },
-                    { f: 'feed_url',        l: 'URL',        w: '1fr' },
-                    { f: 'last_fetch_date', l: 'Last Fetch', w: '120px', fmt: 'date' },
+                    { f: 'rss_urls',        l: 'URL',        w: '1fr' },
+                    { f: 'last_fetched',    l: 'Last Fetch', w: '120px', fmt: 'date' },
                     { f: 'active',          l: 'Active',     w: '70px',  fmt: 'bool' },
                 ], 'osint.source.config');
             });
