@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="view_myservice_api_client_tree" model="ir.ui.view">
+    <field name="name">myservice.api.client.tree</field>
+    <field name="model">myservice.api.client</field>
+    <field name="arch" type="xml">
+      <tree>
+        <field name="name"/>
+        <field name="client_id"/>
+        <field name="user_id"/>
+        <field name="active"/>
+        <field name="token_ttl_seconds"/>
+        <field name="last_used_at"/>
+        <field name="last_used_ip"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="view_myservice_api_client_form" model="ir.ui.view">
+    <field name="name">myservice.api.client.form</field>
+    <field name="model">myservice.api.client</field>
+    <field name="arch" type="xml">
+      <form>
+        <header>
+          <button name="action_rotate_secret" type="object" string="Rotate Secret" class="oe_highlight"/>
+        </header>
+        <sheet>
+          <group>
+            <field name="name"/>
+            <field name="active"/>
+          </group>
+          <group>
+            <field name="client_id" readonly="1"/>
+            <field name="user_id"/>
+            <field name="token_ttl_seconds"/>
+            <field name="scopes" placeholder="dashboard security osint ..."/>
+          </group>
+          <group string="Usage" col="2">
+            <field name="last_used_at" readonly="1"/>
+            <field name="last_used_ip" readonly="1"/>
+          </group>
+          <group string="Secret" col="2">
+            <field name="client_secret_hash" readonly="1"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_myservice_api_clients" model="ir.actions.act_window">
+    <field name="name">API Clients</field>
+    <field name="res_model">myservice.api.client</field>
+    <field name="view_mode">tree,form</field>
+  </record>
+</odoo>

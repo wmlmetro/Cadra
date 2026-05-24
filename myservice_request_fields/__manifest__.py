@@ -5,7 +5,7 @@
     'author': 'WestMetro Limited',
     'website': 'https://westmetrong.com',
     'category': 'Technical',
-    'depends': ['generic_request', 'generic_location', 'generic_team', 'fleet', 'website', 'myservice_nrs_base'],
+    'depends': ['generic_request', 'crnd_wsd', 'generic_request_location', 'generic_location', 'generic_team', 'fleet', 'website', 'myservice_nrs_base'],
     'data': [
         'views/request_request_views.xml',
         'views/portal_location_template.xml',

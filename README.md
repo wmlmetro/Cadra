@@ -120,6 +120,42 @@ you have to specify following environment variable:
 ARMOR_ADDON_my_addon = 1
 ```
 
+## Cadra API (v1)
+
+This repo includes a versioned, JWT-protected API layer (Cadra) implemented as an Odoo addon: `myservice_api`.
+
+### Setup
+
+- Install the addon `myservice_api`
+- Set a strong JWT secret in System Parameters: `myservice_api.jwt_secret`
+- Create an API client (Administration → API → API Clients), set “Run As User”, then click “Rotate Secret” to get the client secret.
+
+### Auth flow
+
+1) Get a token:
+
+- `POST /api/v1/auth/token` with JSON body `{ "client_id": "...", "client_secret": "..." }`
+
+2) Call APIs with:
+
+- `Authorization: Bearer <access_token>`
+
+### Spec
+
+- Swagger/OpenAPI draft: `myservice_api/openapi.yaml`
+- Swagger UI (CDN-hosted): `GET /api/v1/docs`
+
+## Local development (Docker)
+
+This repository is an addons assembly. To “start the application” locally you need an Odoo runtime + PostgreSQL.
+
+- Start Odoo + Postgres:
+  - `docker compose -f docker-compose.dev.yml up`
+- Open:
+  - `http://localhost:8069`
+- Addons path in the container:
+  - `config/odoo.dev.conf` mounts this repo at `/mnt/extra-addons` and includes both `/mnt/extra-addons` and `/mnt/extra-addons/dist` in `addons_path`.
+
 As we can see, variable name consists of two parts separated by underscore (`_`):
 
 1. `ARMOR_ADDON` which tells packager that some addon have to be encrypted

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <menuitem id="menu_myservice_api_root" name="Cadra" parent="base.menu_administration" sequence="90" groups="base.group_system"/>
+  <menuitem id="menu_myservice_api_clients" name="Cadra API Clients" parent="menu_myservice_api_root" action="action_myservice_api_clients" sequence="10" groups="base.group_system"/>
+</odoo>

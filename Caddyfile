@@ -1,0 +1,5 @@
+:8069 {
+  reverse_proxy /longpolling/* 127.0.0.1:8072
+  reverse_proxy 127.0.0.1:8069
+}
+

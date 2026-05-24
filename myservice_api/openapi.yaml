@@ -1,0 +1,115 @@
+openapi: 3.0.3
+info:
+  title: Cadra API
+  version: v1
+servers:
+  - url: /
+paths:
+  /api/v1/auth/token:
+    post:
+      summary: Mint JWT access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [client_id, client_secret]
+              properties:
+                client_id: { type: string }
+                client_secret: { type: string }
+      responses:
+        "200": { description: OK }
+        "400": { description: Bad Request }
+        "401": { description: Unauthorized }
+
+  /api/v1/dashboard/kpis:
+    post: { summary: Dashboard KPIs, responses: { "200": { description: OK }, "401": { description: Unauthorized }, "403": { description: Forbidden } } }
+  /api/v1/dashboard/map:
+    post: { summary: Dashboard map data, responses: { "200": { description: OK }, "401": { description: Unauthorized }, "403": { description: Forbidden } } }
+  /api/v1/dashboard/fleet-command:
+    post: { summary: Fleet command payload, responses: { "200": { description: OK }, "401": { description: Unauthorized }, "403": { description: Forbidden } } }
+
+  /api/v1/security/kpis:
+    post: { summary: Security KPIs, responses: { "200": { description: OK } } }
+  /api/v1/security/map-data:
+    post: { summary: Security map data, responses: { "200": { description: OK } } }
+  /api/v1/security/trend:
+    post: { summary: Security trend, responses: { "200": { description: OK } } }
+  /api/v1/security/recent:
+    post: { summary: Recent incidents, responses: { "200": { description: OK } } }
+  /api/v1/security/osint:
+    post: { summary: OSINT feed for security dashboard, responses: { "200": { description: OK } } }
+  /api/v1/security/state-threats:
+    post: { summary: State threat levels, responses: { "200": { description: OK } } }
+
+  /api/v1/osint/feed:
+    post: { summary: OSINT entries, responses: { "200": { description: OK } } }
+  /api/v1/osint/state-scores:
+    post: { summary: OSINT state scores, responses: { "200": { description: OK } } }
+  /api/v1/osint/summary:
+    post: { summary: OSINT summary, responses: { "200": { description: OK } } }
+
+  /api/v1/ai/alerts:
+    post: { summary: AI alerts, responses: { "200": { description: OK } } }
+  /api/v1/ai/summary:
+    post: { summary: AI summary, responses: { "200": { description: OK } } }
+  /api/v1/ai/route-risk:
+    post: { summary: Route risk assessment, responses: { "200": { description: OK } } }
+  /api/v1/ai/run-now:
+    post: { summary: Trigger detectors, responses: { "200": { description: OK } } }
+
+  /api/v1/barcode/lookup:
+    post: { summary: Lookup tag/asset, responses: { "200": { description: OK } } }
+  /api/v1/barcode/kpis:
+    post: { summary: Barcode KPIs, responses: { "200": { description: OK } } }
+  /api/v1/barcode/recent-tags:
+    post: { summary: Recent tags, responses: { "200": { description: OK } } }
+  /api/v1/barcode/print-url:
+    post: { summary: Tag print URL, responses: { "200": { description: OK } } }
+  /api/v1/tags/lookup:
+    post: { summary: Public-style tag lookup (JWT-protected), responses: { "200": { description: OK } } }
+
+  /api/v1/fleet/dashboard:
+    post: { summary: Fleet dashboard data, responses: { "200": { description: OK } } }
+  /api/v1/fm/dashboard:
+    post: { summary: FM dashboard data, responses: { "200": { description: OK } } }
+
+  /api/v1/home/form-data:
+    post: { summary: Homepage dropdown data, responses: { "200": { description: OK } } }
+  /api/v1/home/quick-submit:
+    post: { summary: Homepage quick submit, responses: { "200": { description: OK } } }
+
+  /api/v1/security/briefs/{brief_id}/download:
+    get:
+      summary: Download intelligence brief PDF
+      parameters:
+        - in: path
+          name: brief_id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: PDF }
+        "401": { description: Unauthorized }
+        "403": { description: Forbidden }
+  /api/v1/security/briefs/generate:
+    post: { summary: Generate brief (manual), responses: { "200": { description: OK } } }
+  /api/v1/security/briefs/{brief_id}/log:
+    post:
+      summary: Brief download log
+      parameters:
+        - in: path
+          name: brief_id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: OK }
+
+  /api/v1/integrations/sap/employee-sync:
+    post: { summary: SAP employee sync (JWT), responses: { "200": { description: OK } } }
+  /api/v1/assets/export:
+    post: { summary: Export assets (JWT), responses: { "200": { description: OK } } }
+  /api/v1/assets/export.csv:
+    get: { summary: Export assets CSV (JWT), responses: { "200": { description: OK } } }
+  /api/v1/integrations/workflow/callback:
+    post: { summary: Workflow callback (JWT), responses: { "200": { description: OK } } }

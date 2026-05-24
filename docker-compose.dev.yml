@@ -1,0 +1,44 @@
+services:
+  proxy:
+    image: nginx:alpine
+    depends_on:
+      - odoo
+    ports:
+      - "8069:8069"
+    volumes:
+      - ./config/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+
+  db:
+    image: postgres:13
+    platform: linux/amd64
+    environment:
+      POSTGRES_DB: odoo
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+    ports:
+      - "5432:5432"
+    volumes:
+      - cadra_pgdata:/var/lib/postgresql/data
+
+  odoo:
+    build:
+      context: .
+      dockerfile: Dockerfile.odoo.dev
+    image: cadra-odoo:15.0-dev
+    platform: linux/amd64
+    depends_on:
+      - db
+    ports:
+      - "8072:8072"
+    environment:
+      HOST: db
+      USER: odoo
+      PASSWORD: odoo
+    volumes:
+      - ./config/odoo.dev.conf:/etc/odoo/odoo.conf:ro
+      - ./:/mnt/extra-addons:ro
+      - cadra_odoo_data:/var/lib/odoo
+
+volumes:
+  cadra_pgdata:
+  cadra_odoo_data:
