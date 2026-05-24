@@ -1,0 +1,398 @@
+"""
+Cadra API v1 — Assets resource (REST shape per PRD §8.10).
+
+Implements the subset of PRD §8 that maps onto `nrs.asset`. The in-house
+model has a simpler 5-state lifecycle (active/in_repair/disposed/
+transferred/missing) versus PRD §8.4's 10-state machine
+(procured/received/tagged/deployed/in_maintenance/in_transit/idle/lost/
+retired/disposed). The full state machine, the immutable custodianship
+chain (PRD §8.5), and the disposal-approval workflow (PRD §8.9) are
+deferred to a future schema-extension pass.
+
+The move endpoint persists its side-effect by creating an
+`nrs.asset.transfer` row. Transfer-custody uses `mail.thread` instead
+because `nrs.asset.transfer._check_locations` forbids same-location
+transfers.
+"""
+from odoo import fields as odoo_fields, http
+from odoo.http import request
+
+from .utils import (
+    ERR_INVALID_REQUEST,
+    ERR_NOT_FOUND,
+    SCOPE_ASSETS_READ,
+    SCOPE_ASSETS_WRITE,
+    err,
+    get_params,
+    ok,
+    paginate,
+    parse_limit,
+)
+from .v1 import cadra_route
+
+
+# ─── small helpers ───────────────────────────────────────────────────
+
+def _ref(rec, name_field="name"):
+    if not rec:
+        return None
+    return {"id": rec.id, "name": getattr(rec, name_field, None) or rec.display_name}
+
+
+def _date(v):
+    return v.isoformat() if v else None
+
+
+# ─── serializer ──────────────────────────────────────────────────────
+
+def serialize_asset(a, *, include=()):
+    """Map an nrs.asset record to a Cadra-shaped dict.
+
+    `include` accepts:
+      - "transfers"   : embed nrs.asset.transfer history (last 20)
+      - "pm"          : embed PM schedule summaries
+      - "children"    : embed direct sub-assets (id+name)
+    """
+    include = set(include or ())
+    data = {
+        "id": a.id,
+        "asset_code": a.asset_code,
+        "tag": a.asset_tag or None,
+        "legacy_asset_code": a.legacy_asset_code or None,
+        "name": a.name,
+        "serial_number": a.serial_number or None,
+        "make": a.make or None,
+        "model": a.model_name or None,
+        "manufacturer": a.manufacturer or None,
+        "category": _ref(a.category_id),
+        "subcategory": _ref(a.subcategory_id),
+        "asset_type": _ref(a.asset_type_id),
+        "asset_level": a.asset_level or None,
+        "domain": a.domain or None,
+        "parent_asset": _ref(a.parent_id),
+        "child_count": len(a.child_ids),
+        "current_location": _ref(a.location_id),
+        "location_hierarchy": {
+            "building": _ref(a.building_id),
+            "floor": _ref(a.floor_id),
+            "room": _ref(a.room_id),
+        },
+        "floor_room": a.floor_room or None,
+        "address_display": a.address_display or None,
+        "coordinates": {
+            "latitude_display": a.latitude_display or None,
+            "longitude_display": a.longitude_display or None,
+        } if (a.latitude_display or a.longitude_display) else None,
+        "current_custodian": _ref(a.custodian_id),
+        "department": a.department or None,
+        "condition": a.condition,
+        "state": a.state,
+        "financial": {
+            "currency": _ref(a.currency_id),
+            "purchase_value": a.purchase_value or None,
+            "replacement_cost": a.replacement_cost or None,
+            "acquisition_cost": a.acquisition_cost or None,
+            "current_value": a.current_value or None,
+        },
+        "dates": {
+            "purchase_date": _date(a.purchase_date),
+            "warranty_expiry": _date(a.warranty_expiry),
+            "acquisition_date": _date(a.acquisition_date),
+            "disposal_date": _date(a.disposal_date),
+            "last_verified_date": _date(a.last_verified_date),
+            "next_service_date": _date(a.next_service_date),
+        },
+        "disposal_reason": a.disposal_reason or None,
+        "maintenance_vendor": _ref(a.maintenance_vendor_id),
+        "is_verified": a.is_verified,
+        "pm_count": a.pm_count,
+        "request_count": a.request_count,
+        "notes": a.notes or None,
+        "created_at": _date(a.create_date),
+        "updated_at": _date(a.write_date),
+        "created_by": _ref(a.create_uid),
+        "updated_by": _ref(a.write_uid),
+    }
+    if "transfers" in include:
+        data["transfers"] = [
+            {
+                "id": t.id,
+                "reference": t.name,
+                "from_location": _ref(t.from_location_id),
+                "to_location": _ref(t.to_location_id),
+                "from_custodian": _ref(t.from_custodian_id),
+                "to_custodian": _ref(t.to_custodian_id),
+                "transfer_date": _date(t.transfer_date),
+                "state": t.state,
+                "reason": t.reason or None,
+            }
+            for t in a.transfer_ids.sorted(lambda r: r.transfer_date or odoo_fields.Date.today(), reverse=True)[:20]
+        ]
+    if "children" in include:
+        data["children"] = [{"id": c.id, "name": c.name, "asset_code": c.asset_code} for c in a.child_ids]
+    if "pm" in include:
+        data["pm_schedules"] = [
+            {"id": p.id, "name": p.name if hasattr(p, "name") else None,
+             "next_due_date": _date(p.next_due_date), "active": p.active}
+            for p in a.pm_schedule_ids
+        ]
+    return data
+
+
+# ─── domain builder ──────────────────────────────────────────────────
+
+def _list_domain(qs):
+    domain = []
+    q = (qs.get("q") or "").strip()
+    if q:
+        domain += ["|", "|", "|",
+                   ("name", "ilike", q),
+                   ("asset_code", "ilike", q),
+                   ("asset_tag", "ilike", q),
+                   ("serial_number", "ilike", q)]
+    for fld in ("category_id", "subcategory_id", "location_id", "building_id",
+                "floor_id", "room_id", "custodian_id", "parent_id"):
+        val = qs.get(fld)
+        if val not in (None, "", "null"):
+            try:
+                domain.append((fld, "=", int(val)))
+            except (TypeError, ValueError):
+                pass
+    for fld in ("state", "condition", "domain", "asset_level"):
+        val = qs.get(fld)
+        if val:
+            domain.append((fld, "=", val))
+    if qs.get("is_verified") in ("true", "True", True):
+        domain.append(("is_verified", "=", True))
+    elif qs.get("is_verified") in ("false", "False", False):
+        domain.append(("is_verified", "=", False))
+    return domain
+
+
+# ─── writable-fields allow-list ──────────────────────────────────────
+
+_WRITABLE_FIELDS = {
+    "name", "asset_tag", "legacy_asset_code", "serial_number",
+    "make", "model_name", "manufacturer",
+    "category_id", "subcategory_id", "asset_type_id", "asset_level", "domain",
+    "parent_id",
+    "building_id", "floor_id", "room_id", "location_id",
+    "custodian_id", "department",
+    "condition", "state",
+    "currency_id", "purchase_date", "warranty_expiry",
+    "purchase_value", "replacement_cost",
+    "acquisition_date", "acquisition_cost", "current_value",
+    "disposal_date", "disposal_reason",
+    "maintenance_vendor_id",
+    "last_verified_date", "verification_notes",
+    "notes",
+}
+
+
+def _filter_writable(body):
+    if not isinstance(body, dict):
+        return {}, []
+    vals = {k: v for k, v in body.items() if k in _WRITABLE_FIELDS}
+    rejected = [k for k in body if k not in _WRITABLE_FIELDS]
+    return vals, rejected
+
+
+def _browse_or_404(asset_id):
+    rec = request.env["nrs.asset"].sudo().browse(int(asset_id))
+    if not rec.exists():
+        return None, err(ERR_NOT_FOUND, f"Asset {asset_id} not found", status=404)
+    return rec, None
+
+
+# ─── controller ──────────────────────────────────────────────────────
+
+class CadraAssetsV1(http.Controller):
+
+    # ── List: GET /api/v1/assets ───────────────────────────────────
+
+    @cadra_route("/api/v1/assets", method="GET",
+                 summary="List assets with filters (?q, ?category_id, ?location_id, ?building_id, ?custodian_id, ?state, ?condition, ?domain, ?is_verified, ?limit, ?cursor)",
+                 scopes=[SCOPE_ASSETS_READ])
+    def list_assets(self, **kwargs):
+        qs = get_params()
+        Asset = request.env["nrs.asset"].sudo()
+        domain = _list_domain(qs)
+        limit = parse_limit(qs)
+        page, next_cursor, total = paginate(
+            Asset, domain,
+            limit=limit, cursor=qs.get("cursor"),
+        )
+        return ok(
+            data=[serialize_asset(a) for a in page],
+            pagination={
+                "next_cursor": next_cursor,
+                "previous_cursor": None,
+                "total_estimate": total,
+            },
+        )
+
+    # ── Get single: GET /api/v1/assets/<id> ────────────────────────
+
+    @cadra_route("/api/v1/assets/<int:id>", method="GET",
+                 summary="Get a single asset by id (?include=transfers,pm,children)",
+                 scopes=[SCOPE_ASSETS_READ])
+    def get_asset(self, id, **kwargs):
+        rec, error = _browse_or_404(id)
+        if error:
+            return error
+        include = [s.strip() for s in (kwargs.get("include") or "").split(",") if s.strip()]
+        return serialize_asset(rec, include=include)
+
+    # ── Get by tag: GET /api/v1/assets/by-tag/<tag> ────────────────
+
+    @cadra_route("/api/v1/assets/by-tag/<string:tag>", method="GET",
+                 summary="Get a single asset by asset_tag (or asset_code as fallback)",
+                 scopes=[SCOPE_ASSETS_READ])
+    def get_asset_by_tag(self, tag, **kwargs):
+        Asset = request.env["nrs.asset"].sudo()
+        rec = Asset.search([("asset_tag", "=", tag)], limit=1) \
+            or Asset.search([("asset_code", "=", tag)], limit=1)
+        if not rec:
+            return err(ERR_NOT_FOUND, f"No asset with tag or code '{tag}'", status=404)
+        include = [s.strip() for s in (kwargs.get("include") or "").split(",") if s.strip()]
+        return serialize_asset(rec, include=include)
+
+    # ── Create: POST /api/v1/assets ────────────────────────────────
+
+    @cadra_route("/api/v1/assets", method="POST",
+                 summary="Create a new asset (asset_code auto-generated if omitted)",
+                 scopes=[SCOPE_ASSETS_WRITE],
+                 idempotent=True)
+    def create_asset(self, **kwargs):
+        body = get_params()
+        vals, rejected = _filter_writable(body)
+        if not vals.get("name"):
+            return err(ERR_INVALID_REQUEST, "`name` is required",
+                       details={"rejected_fields": rejected} if rejected else None)
+        rec = request.env["nrs.asset"].sudo().create(vals)
+        out = serialize_asset(rec)
+        if rejected:
+            out["_warnings"] = {"rejected_fields": rejected}
+        return out
+
+    # ── Patch: PATCH /api/v1/assets/<id> ───────────────────────────
+
+    @cadra_route("/api/v1/assets/<int:id>", method="PATCH",
+                 summary="Partial update of an asset",
+                 scopes=[SCOPE_ASSETS_WRITE],
+                 idempotent=True)
+    def patch_asset(self, id, **kwargs):
+        rec, error = _browse_or_404(id)
+        if error:
+            return error
+        body = get_params()
+        vals, rejected = _filter_writable(body)
+        if not vals and not rejected:
+            return err(ERR_INVALID_REQUEST, "Empty patch — no writable fields supplied")
+        if vals:
+            rec.write(vals)
+        out = serialize_asset(rec)
+        if rejected:
+            out["_warnings"] = {"rejected_fields": rejected}
+        return out
+
+    # ── Move action: POST /api/v1/assets/<id>/move ─────────────────
+
+    @cadra_route("/api/v1/assets/<int:id>/move", method="POST",
+                 summary="Move asset to a new location (creates an nrs.asset.transfer row)",
+                 scopes=[SCOPE_ASSETS_WRITE],
+                 idempotent=True)
+    def move_asset(self, id, **kwargs):
+        rec, error = _browse_or_404(id)
+        if error:
+            return error
+        body = get_params()
+        try:
+            to_loc_id = int(body.get("to_location_id") or 0)
+        except (TypeError, ValueError):
+            return err(ERR_INVALID_REQUEST, "`to_location_id` must be an integer")
+        if not to_loc_id:
+            return err(ERR_INVALID_REQUEST, "`to_location_id` is required")
+        to_loc = request.env["generic.location"].sudo().browse(to_loc_id)
+        if not to_loc.exists():
+            return err(ERR_NOT_FOUND, f"Destination location {to_loc_id} not found", status=404)
+
+        from_loc = rec.location_id
+        if from_loc.id == to_loc.id:
+            return err(ERR_INVALID_REQUEST, "Asset is already at the requested location",
+                       details={"current_location_id": from_loc.id})
+
+        Transfer = request.env["nrs.asset.transfer"].sudo()
+        seq = request.env["ir.sequence"].next_by_code("nrs.asset.transfer") or "/"
+        transfer = Transfer.create({
+            "name": seq,
+            "asset_id": rec.id,
+            "from_location_id": from_loc.id or False,
+            "to_location_id": to_loc.id,
+            "from_custodian_id": rec.custodian_id.id or False,
+            "to_custodian_id": rec.custodian_id.id or False,
+            "transfer_date": odoo_fields.Date.today(),
+            "reason": body.get("reason") or "",
+            "state": "done",
+        })
+        rec.write({"location_id": to_loc.id})
+
+        return {
+            "asset": serialize_asset(rec),
+            "transfer": {
+                "id": transfer.id,
+                "reference": transfer.name,
+                "from_location": _ref(from_loc),
+                "to_location": _ref(to_loc),
+            },
+        }
+
+    # ── Transfer custody: POST /api/v1/assets/<id>/transfer-custody ─
+
+    @cadra_route("/api/v1/assets/<int:id>/transfer-custody", method="POST",
+                 summary="Transfer custody to a different hr.employee",
+                 scopes=[SCOPE_ASSETS_WRITE],
+                 idempotent=True)
+    def transfer_custody(self, id, **kwargs):
+        """Reassign the asset's custodian. The audit trail comes via Odoo's
+        mail.thread auto-logging (custodian_id has tracking=True) plus an
+        explicit message_post carrying the optional reason. We deliberately
+        do NOT use nrs.asset.transfer here — that model has a NOT-NULL
+        location-change constraint and is location-move-centric."""
+        rec, error = _browse_or_404(id)
+        if error:
+            return error
+        body = get_params()
+        try:
+            to_cust_id = int(body.get("to_custodian_id") or 0)
+        except (TypeError, ValueError):
+            return err(ERR_INVALID_REQUEST, "`to_custodian_id` must be an integer")
+        if not to_cust_id:
+            return err(ERR_INVALID_REQUEST, "`to_custodian_id` is required")
+        to_cust = request.env["hr.employee"].sudo().browse(to_cust_id)
+        if not to_cust.exists():
+            return err(ERR_NOT_FOUND, f"Employee {to_cust_id} not found", status=404)
+
+        from_cust = rec.custodian_id
+        if from_cust.id == to_cust.id:
+            return err(ERR_INVALID_REQUEST, "Asset is already assigned to that custodian",
+                       details={"current_custodian_id": from_cust.id})
+
+        rec.write({"custodian_id": to_cust.id})
+        reason = body.get("reason") or ""
+        msg_body = (f"Custody transferred via API: "
+                    f"<b>{from_cust.name or 'unassigned'}</b> → <b>{to_cust.name}</b>")
+        if reason:
+            msg_body += f"<br/>Reason: {reason}"
+        msg = rec.message_post(body=msg_body, message_type="comment",
+                               subtype_xmlid="mail.mt_note")
+
+        return {
+            "asset": serialize_asset(rec),
+            "custody_change": {
+                "from_custodian": _ref(from_cust),
+                "to_custodian": _ref(to_cust),
+                "reason": reason or None,
+                "message_id": msg.id if msg else None,
+            },
+        }

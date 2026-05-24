@@ -1,206 +1,409 @@
-# Assembly Westmetro - ITSM
+# Cadra — NRS Service Platform
 
-This is assembly repository.
-It will be automatically updated with modules listed in [odoo_packager.yml](./odoo_packager.yml) file.
-Modules that are not managed by packager have to be added in separate folder `custom_addons` of this repostitory.
-The modules managed by packager are packaged into [dist](./dist/) folder of this assembly.
+Cadra is an API-first service platform for the Nigeria Revenue Service (NRS),
+built on Odoo 15 with a versioned REST layer (`/api/v1/*`) on top of the
+existing ITSM, asset register, security, and facility-management modules.
 
-## Assembly workflow
+The platform is the spiritual successor of `myservicenrs`. The Odoo addons in
+this repo provide the data model and admin UI; the `myservice_api` module
+exposes a JWT-protected REST API that other systems (mobile app, third-party
+integrations, dashboards) can consume.
 
-Typical way to update assembly repository:
+> **Spec is canonical.** The PRD and NRS specification under
+> [docs/](docs/) (`Cadra_Platform_PRD_v0.4.docx`,
+> `Cadra_at_NRS_Specification_v0.1.docx`) are the source of truth for all
+> design decisions. When this README and the spec disagree, the spec wins —
+> open an issue or a PR.
 
-1. Create new branch from stable branch. For example: 11.0-update
-2. Check that _packager_ job have started on this branch.
-   If it is not started, we have to start it manually from web: _CI/CD -> Run Pipeline_
-3. When job is completed and repository have changes,
-   then there new commit will be created on that branch (11.0-update)
-4. Create merge request
-5. Review changes
-6. Merge to stable branch
-7. Pull changes to Odoo intances that are running this assembly.
+---
 
-## Packager configuration format
+## At a glance
 
-This section describes configuration format for `odoo_packager.yml' file.
+| | |
+|---|---|
+| **Stack** | Odoo 15 (Python 3.10) · PostgreSQL 13 · Docker Compose · nginx (dev) / Caddy (prod) |
+| **API** | 36 REST endpoints under `/api/v1/*`, JWT-protected, OpenAPI 3.0 spec auto-generated |
+| **Auth** | OAuth2 client-credentials → JWT (HS256, 1h TTL) |
+| **Envelope** | PRD §10.7 — `{data, meta}` on success, `{error}` on failure |
+| **Tests** | 70 pytest cases (67 pass, 3 xfail) + a 30-second smoke test |
+| **CI** | GitHub Actions — cold bootstrap + full pytest on every push |
+| **Deploy** | One command: `scripts/bootstrap.sh` (dev or prod) |
 
-For up to date info look at [packager repository](https://gitlab.crnd.pro/crnd/docker/odoo-apps-packager/blob/d/README.md)
+---
 
-This configuration file use [YAML](https://yaml.org/) syntax and have following format:
+## Quick start (local dev)
 
-```yaml
-# Set this param to True if you do not need to check for missing dependencies for this repo.
-no-check-deps: true
-
-# If set to true, then no changes to addons will be made.
-# Only addons specified via 'PACKAGE_ONLY_' environment variables will be updated
-global-freeze: false
-
-# List of addons that have to be added to repositorye
-addons-list:
-  # Usualy it is enough just to list names of addons
-  - generic_condition
-  - generic_rule
-  - website_snippet_anchor
-
-  # Freeze version of this addon. It will not be updated.
-  # The only way to update such addons is to specify environment variable
-  # PACKAGE_ONLY_website_legal_page=1
-  - name: website_legal_page
-    freeze: true
-
-  # In specific cases you can specify source to get addon from.
-  # Source is name of git repository, where this addon is located.
-  # This feature is used in cases, when addon is available in two or more
-  # repositories in different versions
-  - name: crnd_web_diagram_fix
-    source: crnd-web
-  - name: website_logo
-    source: website_logo
-  - auth_saml
-
-  # Also, you can download addons directly from Odoo Apps.
-  # just specify that this addon have to be downloaded from Odoo Apps
-  - name: bureaucrat_helpdesk_lite
-    odoo_apps: true
-
-# List of git repositories to fetch addons from.
-git-sources:
-  # Usually it is enough to specify repository url only
-  - url: "https://github.com/crnd-inc/generic-addons"
-  - url: "https://github.com/OCA/website"
-
-  # also we can specify name for repository,
-  # that could be used to reference this repository
-  # in addons-list section.
-  - url: "git@gitlab.crnd.pro:crnd/crnd-web"
-    name: "crnd-web"
-
-  # Also it is possible to specify branch to of repository to be clonned.
-  # It is possible to specify one repository multiple times with different
-  # branches. There is specific parametr 'no_search' which means that
-  # this repository will not take part in search of source for addon.
-  # It will be used as source only if it is manually
-  # specified as source for addon (in addons-list)
-  - url: "https://github.com/eslAmer/website"
-    branch: "12.0-mig-website_logo"
-    no_search: true
-    name: "website_logo"
-
-  # There are some shortcuts available.
-
-  # This is shortcut for OCA repositories located under github.com/OCA
-  # and internaly it will be converted to
-  # url: "https://github.com/OCA/server-auth"
-  - oca: server-auth
-
-  # There is one more shortcut available: 'github'.
-  # specification below will be automatically converted to
-  # url: "https://github.com/OCA/web"
-  - github: OCA/web
-
-  # There is also shortcut for repositories
-  # located on gitlab.crnd.pro available:
-  - crnd: crnd/bureacurat-service
-
-# List of known addons,
-# that will not be treated as missing dependencies if not packaged.
-known-addons:
-  - crnd_web_diagram_plus
-  - generic_condition
-```
-
-## Enable encryption of addons
-
-Encription of addons is managed via environment variables.
-
-To tell packager that addon `my_addon` have to be encrypted via [PyArmor](https://github.com/dashingsoft/pyarmor)
-you have to specify following environment variable:
-
-```
-ARMOR_ADDON_my_addon = 1
-```
-
-## Cadra API (v1)
-
-This repo includes a versioned, JWT-protected API layer (Cadra) implemented as an Odoo addon: `myservice_api`.
-
-### Setup
-
-- Install the addon `myservice_api`
-- Set a strong JWT secret in System Parameters: `myservice_api.jwt_secret`
-- Create an API client (Administration → API → API Clients), set “Run As User”, then click “Rotate Secret” to get the client secret.
-
-### Auth flow
-
-1) Get a token:
-
-- `POST /api/v1/auth/token` with JSON body `{ "client_id": "...", "client_secret": "..." }`
-
-2) Call APIs with:
-
-- `Authorization: Bearer <access_token>`
-
-### Spec
-
-- Swagger/OpenAPI draft: `myservice_api/openapi.yaml`
-- Swagger UI (CDN-hosted): `GET /api/v1/docs`
-
-## Local development (Docker)
-
-This repository is an addons assembly. To “start the application” locally you need an Odoo runtime + PostgreSQL.
-
-- Start Odoo + Postgres:
-  - `docker compose -f docker-compose.dev.yml up`
-- Open:
-  - `http://localhost:8069`
-- Addons path in the container:
-  - `config/odoo.dev.conf` mounts this repo at `/mnt/extra-addons` and includes both `/mnt/extra-addons` and `/mnt/extra-addons/dist` in `addons_path`.
-
-As we can see, variable name consists of two parts separated by underscore (`_`):
-
-1. `ARMOR_ADDON` which tells packager that some addon have to be encrypted
-2. `my_addon` - name of addon that have to be encrypted.
-
-Thus if you need to encrypt multiple addons, you have to specify one variable per addon.
-
-See [GitLab documentation](https://docs.gitlab.com/ee/ci/variables/),
-that describes how to configure environment variables.
-Especially check [section](https://docs.gitlab.com/ee/ci/variables/#via-the-ui)
-that describes how to setup environment variables from UI
-
-## Update only specific addons
-
-It is possible to make packager to update only specific addons.
-To do this, you have to define environment variables in format:
-
-```
-PACKAGE_ONLY_addon_name=1
-```
-
-where `addon_name` is name of addon that have to be updated.
-
-See [GitLab documentation](https://docs.gitlab.com/ee/ci/variables/),
-that describes how to configure environment variables.
-Especially check [section](https://docs.gitlab.com/ee/ci/variables/#via-the-ui)
-that describes how to setup environment variables from UI
-
-Also, for _Update Only_ feature, it is useful to define variables,
-when [starting new pipeline manualy](https://docs.gitlab.com/ee/ci/pipelines.html#manually-executing-pipelines)
-
-## Clone privat repositories located on third-party sources
-
-It is possible to specify credentials for external git-sources that uses private repositories
-
-To do this we have to add repo to sources list specifying also it's name
-
-```yaml
-git-sources:
-  - url: https://github.com/my/private-repo.git
-    name: my_private_repo
-```
-
-Next, you have to specify following environment variables:
+Prerequisites: Docker 20.10+ with Compose v2, 4 GB RAM free, ~10 GB disk.
 
 ```bash
-PACKAGER_GIT_USER_my_private_repo=my-login PACKAGER_GIT_PASS_my_private_repo=myL_super_passoword
+git clone <repo-url>
+cd myservicenrs
+
+# Copies .env.example → .env (defaults are dev-safe) and runs the full
+# bootstrap: build image → install 15 modules → seed ITSM/locations/offices
+# → generate JWT secret → create API client → capture creds to docs/api/.creds.
+# First run takes 3–5 min; subsequent runs are seconds.
+scripts/bootstrap.sh
 ```
+
+When it finishes you'll see:
+
+```
+═══════════════════════════════════════════════════════════════════
+  Bootstrap complete ✓
+═══════════════════════════════════════════════════════════════════
+  Web UI:      http://localhost:8069
+  API docs:    http://localhost:8069/api/v1/docs
+  OpenAPI:     http://localhost:8069/api/v1/openapi.json
+  Admin login: admin / admin
+  API client:  see docs/api/.creds
+```
+
+**Verify**:
+
+```bash
+# 30-second alive check
+python3 docs/api/smoke_test.py
+
+# Full pytest suite (one-time venv setup)
+python3 -m venv tests/.venv
+source tests/.venv/bin/activate
+pip install -r tests/requirements.txt
+pytest tests/ -v          # expect: 67 passed, 3 xfailed
+```
+
+---
+
+## Repository layout
+
+```
+.
+├── myservice_api/              ← THE API LAYER (this is the new code)
+│   ├── controllers/
+│   │   ├── utils.py            ← envelope helpers, JWT, scope constants
+│   │   ├── v1.py               ← cadra_route decorator, auth, dashboards, etc
+│   │   ├── v1_locations.py     ← /api/v1/locations/*
+│   │   ├── v1_assets.py        ← /api/v1/assets/*
+│   │   └── v1_requests.py      ← /api/v1/requests/*
+│   ├── http_patch.py           ← forces HttpRequest for /api/v1/* (bypasses
+│   │                              Odoo's Content-Type-based JsonRequest auto-select)
+│   ├── models/api_client.py    ← API client + scopes (admin UI)
+│   └── openapi.yaml            ← seed spec (live spec is auto-generated at /api/v1/openapi.json)
+│
+├── myservice_*/                ← Existing Odoo modules (asset register, security,
+│                                 fleet, dashboards, NRS theme, workflow, etc.)
+├── dist/                       ← CRND/Bureaucrat vendored addons (do not edit)
+│
+├── tests/                      ← Pytest API suite — 12 files, 70 tests
+│   ├── conftest.py             ← session fixtures (token, client, test_*)
+│   ├── test_auth.py, test_locations.py, test_assets.py, …
+│   └── README.md
+│
+├── scripts/
+│   ├── bootstrap.sh            ← host-side orchestrator (dev or prod)
+│   ├── bootstrap.py            ← runs inside odoo shell: JWT, groups, client, seeds
+│   └── nrs_hq_seed_v4.py       ← master fleet/vehicle seed (slow — opt in via CADRA_SEED_PROFILE=fleet)
+│
+├── config/
+│   ├── odoo.dev.conf           ← list_db=True, admin_passwd=admin, 2 workers
+│   ├── odoo.prod.conf          ← list_db=False, no demo, proxy_mode=True
+│   ├── nginx.dev.conf          ← dev reverse proxy
+│   └── Caddyfile               ← prod reverse proxy + Let's Encrypt
+│
+├── docs/
+│   ├── Cadra_Platform_PRD_v0.4.docx       ← THE SPEC
+│   ├── Cadra_at_NRS_Specification_v0.1.docx
+│   ├── DEPLOYMENT.md           ← ops runbook (first-time, day-2, rollback)
+│   ├── cadra-api-docs.html
+│   └── api/
+│       ├── smoke_test.py       ← 30-second alive check
+│       ├── setup_api_smoke.py  ← creates API client + saves creds
+│       ├── test-report.md      ← generated by pytest hook
+│       └── test-responses/     ← captured response JSON per endpoint (gitignored)
+│
+├── docker-compose.yml          ← base — db + odoo + healthchecks
+├── docker-compose.dev.yml      ← dev overrides (exposed ports, nginx, no TLS)
+├── docker-compose.prod.yml     ← prod overrides (Caddy TLS, no exposed ports)
+├── Dockerfile.odoo.dev         ← Odoo 15 image + this repo at /mnt/extra-addons
+├── .env.example                ← every configurable knob, documented
+└── .github/workflows/ci.yml    ← cold bootstrap + pytest on every push
+```
+
+---
+
+## The API
+
+### Base URL
+
+| Environment | Base |
+|---|---|
+| Local dev | `http://localhost:8069` |
+| Production | `https://<CADRA_DOMAIN>` (Caddy terminates TLS) |
+
+### Documentation
+
+- **Live Swagger UI** — `GET /api/v1/docs`
+- **OpenAPI 3.0 spec** — `GET /api/v1/openapi.json` (auto-generated from
+  `@cadra_route` decorators at runtime, so it is always in sync with the code)
+
+### Authentication
+
+```bash
+# 1. Mint a token (no auth required)
+curl -X POST http://localhost:8069/api/v1/auth/token \
+  -H 'Content-Type: application/json' \
+  -d '{"client_id": "test_client", "client_secret": "<secret>"}'
+
+# Response:
+# { "data": { "access_token": "eyJ…", "token_type": "Bearer", "expires_in": 3600,
+#             "scopes": ["assets:read", "assets:write", …] },
+#   "meta": { … } }
+
+# 2. Use the token on every other call
+curl http://localhost:8069/api/v1/locations \
+  -H 'Authorization: Bearer eyJ…'
+```
+
+Tokens are JWT (HS256), TTL 1 hour, signed with `CADRA_JWT_SECRET`. The dev
+client's credentials are auto-generated by `scripts/bootstrap.py` and saved to
+`docs/api/.creds` (gitignored).
+
+### Response envelope (PRD §10.7)
+
+**Success:**
+```json
+{
+  "data": { ... },
+  "meta": {
+    "request_id": "uuid",
+    "timestamp": "2026-05-24T18:42:00Z",
+    "pagination": { "cursor": null, "next_cursor": "...", "limit": 50 }
+  }
+}
+```
+
+**Error:**
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "name is required",
+    "details": { ... }
+  },
+  "meta": { "request_id": "uuid", "timestamp": "..." }
+}
+```
+
+### Endpoint coverage (36 paths)
+
+| Family | Verbs | Notes |
+|---|---|---|
+| `/auth/token` | POST | Issues JWT |
+| `/locations/*` | GET, POST, PATCH | CRUD + `/children`, `/ancestors`, `/descendants` |
+| `/assets/*` | GET, POST, PATCH | CRUD + `/by-tag/<tag>`, `/move`, `/transfer-custody`, `/export.csv` |
+| `/requests/*` | GET, POST, PATCH | CRUD + `/by-ref/<ref>`, `/assign`, `/transition`, `/comment` |
+| `/dashboard/*`, `/security/*`, `/fleet/*`, `/fm/*` | GET | 9 read-only dashboard endpoints |
+| `/barcode/*`, `/tags/lookup` | GET | KPIs, recent tags, label print URL |
+| `/home/*` | GET, POST | Quick-submit homepage form |
+| `/integrations/sap/employee-sync`, `/integrations/workflow/callback` | POST | Inbound webhooks |
+| `/openapi.json`, `/docs` | GET | Spec + Swagger UI (non-envelope responses) |
+
+### Idempotency
+
+Write endpoints (POST/PATCH) respect `X-Idempotency-Key`: a second call with
+the same key returns the cached first response, byte-for-byte. Keys are
+scoped per client and live for 24 hours.
+
+### Scopes
+
+Read and write are separate scopes per resource family
+(`locations:read`, `locations:write`, `assets:read`, …). Insufficient scope
+returns 403. See [myservice_api/controllers/utils.py](myservice_api/controllers/utils.py)
+for the full `SCOPE_*` constants.
+
+---
+
+## Deployment
+
+Two profiles, same codebase. Both use `scripts/bootstrap.sh` — the only
+difference is which compose override the script picks up.
+
+| Profile | Compose | Proxy | TLS | Bring up |
+|---|---|---|---|---|
+| `dev` | `docker-compose.yml + .dev.yml` | nginx (HTTP only) | None | `scripts/bootstrap.sh` |
+| `prod` | `docker-compose.yml + .prod.yml` | Caddy (Let's Encrypt) | Auto | `CADRA_PROFILE=prod scripts/bootstrap.sh` |
+
+### Prod prerequisites
+
+1. A public domain pointing at the host (A record).
+2. Ports 80 and 443 open (Let's Encrypt HTTP-01 challenge needs port 80).
+3. Edit `.env`:
+   ```bash
+   CADRA_DOMAIN=cadra.example.com
+   CADRA_ACME_EMAIL=ops@example.com
+   ODOO_MASTER_PASSWORD=$(openssl rand -base64 32)
+   POSTGRES_PASSWORD=$(openssl rand -base64 32)
+   ```
+4. `CADRA_PROFILE=prod scripts/bootstrap.sh`
+
+Caddy will obtain a Let's Encrypt cert on first request to your domain.
+
+### Detailed runbook
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — first-time setup, day-2 ops
+(logs, restart, module update, backups, restores, credential rotation),
+rollback strategy, and a troubleshooting table.
+
+---
+
+## Configuration
+
+Every configurable value lives in `.env`. See [.env.example](.env.example) for
+the documented list. Key knobs:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `POSTGRES_PASSWORD` | `odoo` | DB password — **change for prod** |
+| `ODOO_MASTER_PASSWORD` | `admin` | DB manager auth — **change for prod** |
+| `ODOO_WORKERS` | `2` | Worker processes (prod: `2 * cpu + 1`) |
+| `CADRA_JWT_SECRET` | *(auto-gen)* | JWT signing key, ≥16 chars (prod: ≥48) |
+| `CADRA_BOOTSTRAP_MODULES` | *(15 modules)* | Comma-list installed on first run |
+| `CADRA_SEED_PROFILE` | `core` | `core` (fast) or `fleet` (adds vehicle seed) |
+| `CADRA_DOMAIN` | — | **prod-only:** public hostname for TLS cert |
+| `CADRA_ACME_EMAIL` | — | **prod-only:** Let's Encrypt registration email |
+
+---
+
+## Testing
+
+Two layers of testing, both runnable against any reachable Cadra instance.
+
+### Smoke test (30 seconds, no install)
+
+```bash
+python3 docs/api/smoke_test.py
+```
+
+Exits 0 if the API is alive and returning the right envelope.
+
+### Pytest suite (3-4 seconds after warm-up)
+
+```bash
+python3 -m venv tests/.venv
+source tests/.venv/bin/activate
+pip install -r tests/requirements.txt
+pytest tests/ -v
+```
+
+What it does:
+- Mints a JWT, then hits every endpoint with the correct verb, body, and scopes
+- Asserts HTTP status + PRD envelope shape
+- Captures the full response of each call to `docs/api/test-responses/<resource>/<name>.json`
+- Writes a summary markdown report to `docs/api/test-report.md`
+- Negative tests: 401 (no token), 403 (wrong scope), 404 (no such id), 400 (bad body)
+- Idempotency tests: writes with the same `X-Idempotency-Key` return identical responses
+
+Coverage by file:
+
+| File | Tests | What it covers |
+|---|---|---|
+| `test_auth.py` | 3 | Token mint success + 2 failure modes |
+| `test_locations.py` | 11 | All 7 location endpoints + pagination + filters |
+| `test_assets.py` | 10 | All 8 asset endpoints |
+| `test_assets_csv.py` | 2 | CSV export (non-JSON response) |
+| `test_requests.py` | 11 | All 8 request endpoints + assign/transition/comment |
+| `test_dashboards.py` | 9 | Every dashboard GET |
+| `test_barcode.py` | 6 | Barcode + tag lookups |
+| `test_home.py` | 2 | Quick-submit form |
+| `test_integrations.py` | 4 | SAP sync + workflow callback |
+| `test_meta.py` | 3 | OpenAPI spec + Swagger HTML |
+| `test_negative.py` | 6 | 401/403/404/400 envelope correctness |
+| `test_idempotency.py` | 3 | X-Idempotency-Key cache |
+
+### CI
+
+Every push to any branch runs [.github/workflows/ci.yml](.github/workflows/ci.yml):
+
+1. **`bootstrap-and-test`** — full cold start in a clean GitHub runner. Brings
+   up the stack, runs `scripts/bootstrap.sh` (build, install, seed, mint
+   creds), then runs pytest. Test report + per-endpoint captures uploaded as
+   workflow artifacts on every run.
+2. **`prod-compose-lint`** — syntactic validation of `docker-compose.prod.yml`
+   (no real domain needed).
+
+---
+
+## Development workflow
+
+### Hot-reload addon changes
+
+The repo is bind-mounted at `/mnt/extra-addons` in the odoo container, so
+Python file changes are picked up on restart:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml restart odoo
+```
+
+For changes to module manifests, views, or data files, run the upgrade
+inside the container:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec odoo \
+  odoo -c /etc/odoo/odoo.conf -d odoo -u myservice_api --stop-after-init
+```
+
+### Adding a new endpoint
+
+1. Add a `@cadra_route(path, method=…, scopes=…)` controller method in the
+   appropriate `myservice_api/controllers/v1_*.py` file.
+2. Return either `ok(data, …)` or `err(code, message)` from
+   [myservice_api/controllers/utils.py](myservice_api/controllers/utils.py) —
+   never raw dicts, so the envelope is consistent.
+3. Add a test in `tests/test_<resource>.py` following the existing pattern.
+4. Run `pytest tests/test_<resource>.py -v` — the OpenAPI coverage check in
+   `tests/test_meta.py` will fail if the endpoint isn't listed in the spec
+   (it auto-discovers from the `_ROUTE_REGISTRY`, so no manual spec edit).
+
+### Inspecting the live DB
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec db \
+  psql -U odoo -d odoo
+```
+
+Postgres is exposed on `localhost:5432` in dev (user/pw: `odoo`/`odoo`).
+
+---
+
+## Known limitations
+
+- **`/api/v1/barcode/lookup`** (GET with `?q=…`) — pre-existing upstream bug
+  in `myservice_barcode_station`. Marked `xfail` in tests; tracked for
+  later.
+- **`/api/v1/home/quick-submit`** — pre-existing upstream bug in
+  `myservice_request_fields` form validation. Marked `xfail`; tracked.
+- **Webhook delivery (PRD §10.6)** — not yet implemented. Outbound events
+  are next on the roadmap once deployment is shipped.
+- **Odoo 15 lock-in** — upgrading to Odoo 18 was scoped and rejected: the
+  CRND/Bureaucrat dist addons are auth-gated and would need to be replaced.
+  Cadra v0.2 will revisit the platform layer.
+
+---
+
+## CRND assembly metadata (legacy)
+
+This repo was originally a CRND assembly built from
+[`odoo_packager.yml`](./odoo_packager.yml). That packager flow is preserved
+for the vendored `dist/` addons but is **not** how Cadra modules are
+maintained — they live directly in the repo root.
+
+For the packager docs (relevant only if you need to refresh a `dist/`
+addon), see the
+[upstream packager README](https://gitlab.crnd.pro/crnd/docker/odoo-apps-packager/blob/d/README.md).
+
+---
+
+## License & ownership
+
+Internal Westmetro / NRS project. Vendored addons under `dist/` retain
+their upstream LGPLv3 license.

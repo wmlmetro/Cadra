@@ -1,0 +1,70 @@
+# Production overrides for Cadra / myservicenrs.
+#
+# Use with the base compose:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Prod-specific behavior:
+#   - Caddy reverse proxy on host ports 80 + 443 (auto Let's Encrypt TLS)
+#   - postgres + odoo NOT exposed to the host (only reachable inside the compose network)
+#   - restart: unless-stopped on every container
+#   - list_db disabled (odoo.prod.conf)
+#   - admin_passwd MUST be supplied via ODOO_MASTER_PASSWORD env var
+#   - CADRA_DOMAIN and CADRA_ACME_EMAIL MUST be set in .env
+#   - source-tree mounted read-only at /mnt/extra-addons (same as dev, but
+#     prod operators should pin to a tagged image build, not bind-mount —
+#     see docs/DEPLOYMENT.md for the "build & ship" workflow)
+
+services:
+  proxy:
+    image: caddy:2-alpine
+    depends_on:
+      odoo:
+        # `service_started` not `service_healthy` — Caddy needs to be up
+        # to obtain its Let's Encrypt cert, which can happen while odoo is
+        # still warming up. Caddy returns a 502 from upstream during the
+        # window; that's acceptable.
+        condition: service_started
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"           # HTTP/3
+    environment:
+      CADRA_DOMAIN: ${CADRA_DOMAIN:?CADRA_DOMAIN must be set in .env for prod}
+      CADRA_ACME_EMAIL: ${CADRA_ACME_EMAIL:?CADRA_ACME_EMAIL must be set in .env for prod}
+    volumes:
+      - ./config/Caddyfile:/etc/caddy/Caddyfile:ro
+      - cadra_caddy_data:/data
+      - cadra_caddy_config:/config
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  db:
+    # No host port exposure in prod — only the compose network can reach
+    # postgres. To psql, use `docker compose exec db psql -U $POSTGRES_USER`.
+    restart: unless-stopped
+
+  odoo:
+    # No host port exposure in prod — Caddy proxies inside the network.
+    # Odoo 15 has no --admin-passwd CLI flag, so we copy the conf to a
+    # writable path at container start and append the env-supplied password.
+    environment:
+      ODOO_MASTER_PASSWORD: ${ODOO_MASTER_PASSWORD:?ODOO_MASTER_PASSWORD must be set in .env for prod}
+    volumes:
+      - ./config/odoo.prod.conf:/etc/odoo/odoo.conf.template:ro
+    command:
+      - bash
+      - -c
+      - |
+        set -e
+        cp /etc/odoo/odoo.conf.template /tmp/odoo.conf
+        printf '\nadmin_passwd = %s\n' "$$ODOO_MASTER_PASSWORD" >> /tmp/odoo.conf
+        exec odoo -c /tmp/odoo.conf --workers=${ODOO_WORKERS:-4} --max-cron-threads=${ODOO_MAX_CRON_THREADS:-2}
+    restart: unless-stopped
+
+volumes:
+  cadra_caddy_data:       # Let's Encrypt certs + ACME state — persist this!
+  cadra_caddy_config:

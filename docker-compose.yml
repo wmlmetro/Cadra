@@ -1,0 +1,64 @@
+# Base docker-compose for Cadra / myservicenrs.
+#
+# This file alone does nothing useful — it's always combined with one of:
+#   docker-compose.dev.yml   (local development: exposed ports, no TLS)
+#   docker-compose.prod.yml  (VPS deployment: Caddy + Let's Encrypt, restart policies)
+#
+# Usage:
+#   make dev    or  docker compose -f docker-compose.yml -f docker-compose.dev.yml  up -d
+#   make prod   or  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# All sensitive values come from .env (see .env.example).
+
+services:
+  db:
+    image: postgres:13
+    platform: linux/amd64
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-odoo}
+      POSTGRES_USER: ${POSTGRES_USER:-odoo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-odoo}
+    volumes:
+      - cadra_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-odoo} -d ${POSTGRES_DB:-odoo}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  odoo:
+    build:
+      context: .
+      dockerfile: Dockerfile.odoo.dev
+    image: cadra-odoo:15.0-dev
+    platform: linux/amd64
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      HOST: db
+      USER: ${POSTGRES_USER:-odoo}
+      PASSWORD: ${POSTGRES_PASSWORD:-odoo}
+      # Forwarded to bootstrap.py / odoo shell scripts
+      CADRA_JWT_SECRET: ${CADRA_JWT_SECRET:-}
+      CADRA_TEST_CLIENT_ID: ${CADRA_TEST_CLIENT_ID:-test_client}
+      CADRA_TEST_CLIENT_SECRET: ${CADRA_TEST_CLIENT_SECRET:-}
+      CADRA_BOOTSTRAP_MODULES: ${CADRA_BOOTSTRAP_MODULES:-}
+      CADRA_SEED_PROFILE: ${CADRA_SEED_PROFILE:-core}
+    volumes:
+      - ./:/mnt/extra-addons:ro
+      - cadra_odoo_data:/var/lib/odoo
+    healthcheck:
+      # /web/login is the universal "Odoo is up" check — returns 200 once
+      # the registry is loaded. Cheaper than hitting /api/v1/openapi.json.
+      # Use python3 (always present in the Odoo image) since wget/curl are not.
+      test: ["CMD-SHELL", "python3 -c 'import urllib.request,sys; urllib.request.urlopen(\"http://localhost:8069/web/login\", timeout=3)' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 60s
+
+volumes:
+  cadra_pgdata:
+  cadra_odoo_data:

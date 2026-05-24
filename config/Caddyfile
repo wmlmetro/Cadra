@@ -1,0 +1,53 @@
+# Caddy reverse proxy for production Cadra.
+#
+# Substitutes ${CADRA_DOMAIN} and ${CADRA_ACME_EMAIL} from the container's
+# environment (set via docker-compose.prod.yml). Caddy auto-obtains a
+# Let's Encrypt certificate on first start for ${CADRA_DOMAIN}.
+#
+# Two upstreams:
+#   /longpolling/* → odoo container port 8072 (long-poll worker)
+#   everything else → odoo container port 8069 (the HTTP worker pool)
+#
+# Both Odoo containers are reachable as `odoo` on the docker network.
+
+{
+    email {$CADRA_ACME_EMAIL}
+}
+
+{$CADRA_DOMAIN} {
+    encode gzip zstd
+
+    # Longpolling endpoint needs a separate upstream with long timeouts —
+    # Odoo's gevent worker holds connections open for ~50s for polling.
+    @longpoll path /longpolling/* /websocket
+    reverse_proxy @longpoll odoo:8072 {
+        flush_interval -1
+        transport http {
+            read_timeout 70s
+        }
+    }
+
+    # Everything else → the main HTTP worker.
+    reverse_proxy odoo:8069 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+    }
+
+    # Standard security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options nosniff
+        X-Frame-Options SAMEORIGIN
+        Referrer-Policy strict-origin-when-cross-origin
+        # Remove server header
+        -Server
+    }
+
+    # Logs to stdout (caught by `docker compose logs proxy`).
+    log {
+        output stdout
+        format console
+    }
+}

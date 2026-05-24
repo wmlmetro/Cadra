@@ -16,3 +16,10 @@ docs/upgrade/archive/*.dump
 
 # Smoke-test API credentials written by docs/api/setup_api_smoke.py
 docs/api/.creds
+
+# pytest virtualenv + generated test artifacts
+tests/.venv/
+tests/__pycache__/
+tests/.pytest_cache/
+docs/api/test-responses/
+docs/api/test-report.md

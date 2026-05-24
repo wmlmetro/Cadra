@@ -12,7 +12,6 @@ import hashlib
 import hmac
 import json
 import logging
-import secrets
 import time
 import uuid
 
@@ -289,6 +288,69 @@ def require_jwt(scopes=()):
 
 # ─── idempotency ─────────────────────────────────────────────────────
 
+# ─── cursor pagination ───────────────────────────────────────────────
+
+DEFAULT_PAGE_LIMIT = 50
+MAX_PAGE_LIMIT = 200
+
+
+def encode_cursor(payload):
+    """Opaque base64url JSON cursor. Don't decode on the client side —
+    treat as an opaque token."""
+    return _b64url_encode(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
+
+
+def decode_cursor(token):
+    """Decode a cursor token, returning the payload dict. Returns {} on
+    invalid input rather than raising — callers treat empty as 'start
+    from beginning'."""
+    if not token:
+        return {}
+    try:
+        return json.loads(_b64url_decode(token).decode("utf-8"))
+    except Exception:
+        return {}
+
+
+def parse_limit(kwargs):
+    """Read and clamp `limit` from kwargs. Default DEFAULT_PAGE_LIMIT,
+    capped at MAX_PAGE_LIMIT."""
+    raw = kwargs.get("limit", DEFAULT_PAGE_LIMIT)
+    try:
+        limit = int(raw)
+    except (TypeError, ValueError):
+        limit = DEFAULT_PAGE_LIMIT
+    return max(1, min(limit, MAX_PAGE_LIMIT))
+
+
+def paginate(model, domain, *, limit, cursor=None, order="id"):
+    """Cursor-paginate `model.search(domain)`.
+
+    Returns (records, next_cursor_or_None, total_estimate).
+    `total_estimate` is a separate search_count — fine at our scale, but
+    expensive on very large tables. Suppress it via `?total=0` from the
+    caller if needed.
+    """
+    cursor_data = decode_cursor(cursor) if cursor else {}
+    effective_domain = list(domain)
+    if "last_id" in cursor_data:
+        effective_domain.append(("id", ">", int(cursor_data["last_id"])))
+
+    # Fetch one extra to know if there's a next page
+    records = model.search(effective_domain, order=order, limit=limit + 1)
+    has_more = len(records) > limit
+    page = records[:limit]
+
+    next_cursor = None
+    if has_more and page:
+        next_cursor = encode_cursor({"last_id": page[-1].id})
+
+    total_estimate = model.search_count(domain)
+    return page, next_cursor, total_estimate
+
+
+# ─── idempotency ─────────────────────────────────────────────────────
+
 IDEMPOTENCY_HEADER = "X-Idempotency-Key"
 IDEMPOTENCY_TTL_SECONDS = 24 * 3600
 
@@ -339,23 +401,79 @@ def idempotency_store(key, endpoint_path, body):
     })
 
 
+# ─── request param accessor ──────────────────────────────────────────
+
+def get_params():
+    """Return a dict of params for the current request body or query string.
+
+    GET / DELETE / HEAD → query string (werkzeug MultiDict → plain dict;
+                          values are strings, callers coerce types as needed)
+    POST / PATCH / PUT  → parsed JSON body (flat, no `params` wrapper)
+
+    Path parameters (e.g. <int:id>) are NOT in here — Odoo's router passes
+    them as named method args. Use this helper for everything else.
+    """
+    method = request.httprequest.method.upper()
+    if method in ("GET", "DELETE", "HEAD"):
+        return dict(request.httprequest.args)
+    # Try werkzeug's get_json first; fall back to manual JSON.loads on the
+    # raw body. Odoo's HttpRequest sometimes consumes the body stream before
+    # the controller runs, so we can't always rely on get_json() at the
+    # werkzeug layer — use raw data as a safety net.
+    try:
+        body = request.httprequest.get_json(silent=True, force=True, cache=False)
+    except Exception:
+        body = None
+    if not isinstance(body, dict):
+        raw = request.httprequest.get_data(cache=True, as_text=False)
+        if raw:
+            try:
+                body = json.loads(raw)
+            except Exception:
+                body = None
+    return body if isinstance(body, dict) else {}
+
+
+# ─── HTTP response helper ────────────────────────────────────────────
+
+def _http_response(body, success_status=200):
+    """Render the PRD envelope as a real HTTP response.
+
+    Status code derivation:
+      - if body has an `error` key, pull `error.details.http_status`
+      - else, `success_status` (the @cadra_route default — usually 200,
+        201 for resource-create POSTs without a path id)
+
+    Note on Odoo 15 quirk: `request.make_response(data, headers, cookies)`
+    does NOT accept a `status=` kwarg. We set the status on the returned
+    werkzeug Response after construction.
+    """
+    if isinstance(body, dict) and "error" in body:
+        status = body.get("error", {}).get("details", {}).get("http_status", 400)
+    else:
+        status = success_status
+    response = request.make_response(
+        json.dumps(body, default=str),
+        headers=[("Content-Type", "application/json; charset=utf-8")],
+    )
+    response.status_code = status
+    return response
+
+
 # ─── endpoint decorator ──────────────────────────────────────────────
 
-def cadra_endpoint(scopes=(), idempotent=False):
-    """Decorator: scope-check + envelope-wrap + optional idempotency.
+def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
+    """Auth + scope-check + idempotency + envelope-wrap + JSON HTTP response.
 
-    Apply BELOW Odoo's @http.route decorator. The wrapped function should
-    return either a plain dict (treated as the `data` payload) or a result
-    of ok()/err() if it needs full control.
+    Apply BELOW Odoo's @http.route decorator (or use the `cadra_route`
+    convenience wrapper in v1.py which does both). The wrapped function
+    returns one of:
+      - a plain dict  → wrapped via ok() as the `data` payload
+      - a plain list  → wrapped via ok() as the `data` payload
+      - a result of ok()/err() → passed through unchanged
 
-    Example:
-        @http.route("/api/v1/assets/<id>", type="json", auth="none", methods=["GET"], csrf=False)
-        @cadra_endpoint(scopes=[SCOPE_ASSETS_READ])
-        def get_asset(self, id, **kw):
-            asset = request.env["nrs.asset"].sudo().browse(id)
-            if not asset.exists():
-                return err(ERR_NOT_FOUND, f"Asset {id} not found", status=404)
-            return {"id": asset.id, "tag": asset.asset_tag, "name": asset.name}
+    The wrapper turns that into a real HTTP response with Content-Type:
+    application/json and the right status code.
     """
     def decorator(fn):
         @functools.wraps(fn)
@@ -365,7 +483,7 @@ def cadra_endpoint(scopes=(), idempotent=False):
             # Auth + scope
             _, envelope, _ = require_jwt(scopes)
             if envelope is not None:
-                return envelope
+                return _http_response(envelope)
 
             # Idempotency (only for write methods — read methods are naturally
             # idempotent and don't need caching)
@@ -377,16 +495,17 @@ def cadra_endpoint(scopes=(), idempotent=False):
             if ikey:
                 cached = idempotency_check(ikey, endpoint_path)
                 if cached is not None:
-                    return cached
+                    return _http_response(cached, success_status=success_status)
 
             # Call the endpoint
             try:
                 result = fn(*args, **kwargs)
             except Exception:
                 _logger.exception("Unhandled error in %s", endpoint_path)
-                return err(ERR_INTERNAL, "Unhandled server error", status=500)
+                return _http_response(err(ERR_INTERNAL, "Unhandled server error", status=500))
 
-            # Auto-wrap plain dicts; pass through ok()/err() results unchanged
+            # If the function already returned an envelope (ok()/err()), keep it.
+            # Otherwise, wrap plain dicts/lists into the `data` slot.
             if isinstance(result, dict) and ("data" in result or "error" in result):
                 body = result
             else:
@@ -395,6 +514,6 @@ def cadra_endpoint(scopes=(), idempotent=False):
             if ikey and "error" not in body:
                 idempotency_store(ikey, endpoint_path, body)
 
-            return body
+            return _http_response(body, success_status=success_status)
         return wrapper
     return decorator
