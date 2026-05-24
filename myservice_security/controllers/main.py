@@ -10,7 +10,6 @@ class SecurityDashboardController(http.Controller):
         Incident = request.env['security.incident'].sudo()
         Guard    = request.env['security.guard'].sudo()
         Access   = request.env['security.access.log'].sudo()
-        Watch    = request.env['security.watchlist'].sudo()
         today    = date.today()
         week_ago = today - timedelta(days=7)
         return {
@@ -29,11 +28,6 @@ class SecurityDashboardController(http.Controller):
                 'today_in':  Access.search_count([('datetime','>=',str(today)),('direction','=','in')]),
                 'today_out': Access.search_count([('datetime','>=',str(today)),('direction','=','out')]),
                 'flagged':   Access.search_count([('flagged','=',True),('datetime','>=',str(today))]),
-            },
-            'watchlist': {
-                'total':    Watch.search_count([('approval_state','=','approved')]),
-                'critical': Watch.search_count([('threat_level','=','critical'),('approval_state','=','approved')]),
-                'high':     Watch.search_count([('threat_level','=','high'),('approval_state','=','approved')]),
             },
         }
 
@@ -115,30 +109,3 @@ class SecurityDashboardController(http.Controller):
             'date':     i.date_incident.strftime('%d %b %Y') if i.date_incident else '',
         } for i in incidents]
 
-    @http.route('/myservice/security/osint', type='json', auth='user', methods=['POST'])
-    def get_osint(self):
-        try:
-            entries = request.env['osint.feed.entry'].sudo().search(
-                [], order='event_date desc', limit=40)
-        except Exception:
-            return []
-
-        results = []
-        for e in entries:
-            results.append({
-                'id':          e.id,
-                'title':       e.title or '',
-                'summary':     e.summary or '',
-                'source_type': e.source_config_id.source_type if e.source_config_id else 'external',
-                'source_name': e.source_name or '',
-                'threat':      e.threat_level or 'info',
-                'location':    e.state_name or '',
-                'date':        e.event_date.strftime('%d %b %Y %H:%M') if e.event_date else '',
-                'verified':    e.is_verified,
-            })
-        return results
-
-    @http.route('/myservice/security/state_threats', type='json', auth='user', methods=['POST'])
-    def get_state_threats(self):
-        states = request.env['security.state.threat'].sudo().search([])
-        return [{'name':s.name,'level':s.threat_level,'notes':s.notes or ''} for s in states]

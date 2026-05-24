@@ -1,0 +1,1 @@
+id,name,threat_level,notes,last_updated,create_uid,create_date,write_uid,write_date,composite_score,score_delta,previous_level,dim_armed_conflict,dim_civil_unrest,dim_internal_incidents,dim_watchlist,dim_media_sentiment,dim_humanitarian,score_computed_at,osint_entry_count,incident_count

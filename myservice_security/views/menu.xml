@@ -7,29 +7,13 @@
         web_icon="myservice_security,static/src/img/icon.svg"/>
 
     <!-- ── Sidebar items (all visible, flat under root) ────────────── -->
-    <menuitem id="menu_security_dashboard" name="SOC Dashboard"
+    <menuitem id="menu_security_dashboard" name="Security Overview"
         parent="menu_security_root" sequence="1"
         action="action_security_dashboard"/>
-
-    <menuitem id="menu_security_command_center" name="Command Center"
-        parent="menu_security_root" sequence="2"
-        action="action_security_command_center"/>
 
     <menuitem id="menu_security_case_mgmt" name="Case Management"
         parent="menu_security_root" sequence="3"
         action="action_case_management"/>
-
-    <menuitem id="menu_security_osint_page" name="OSINT"
-        parent="menu_security_root" sequence="4"
-        action="action_osint_page"/>
-
-    <menuitem id="menu_security_ai_page" name="AI Patterns"
-        parent="menu_security_root" sequence="5"
-        action="action_ai_patterns_page"/>
-
-    <menuitem id="menu_security_daily_brief" name="Daily Brief"
-        parent="menu_security_root" sequence="6"
-        action="action_daily_brief_page"/>
 
     <menuitem id="menu_security_incidents" name="Incidents"
         parent="menu_security_root" sequence="10"
@@ -54,14 +38,4 @@
     <menuitem id="menu_security_duty_all" name="All Rosters"
         parent="menu_security_root" sequence="41"
         action="action_security_duty_roster_all"/>
-
-    <menuitem id="menu_security_watchlist" name="Watchlist"
-        parent="menu_security_root" sequence="50"
-        action="action_security_watchlist"
-        groups="myservice_security.group_security_manager"/>
-
-    <menuitem id="menu_security_state_threats" name="State Threats"
-        parent="menu_security_root" sequence="60"
-        action="action_security_state_threats"
-        groups="myservice_security.group_security_manager"/>
 </odoo>

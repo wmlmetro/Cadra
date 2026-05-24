@@ -129,13 +129,6 @@ class SecurityIncident(models.Model):
         column2='attachment_id',
         string='Evidence / Attachments',
     )
-    watchlist_ids = fields.Many2many(
-        comodel_name='security.watchlist',
-        relation='security_incident_watchlist_rel',
-        column1='incident_id',
-        column2='watchlist_id',
-        string='Related Watchlist Entries',
-    )
     guard_id = fields.Many2one(
         comodel_name='security.guard',
         string='Responding Guard',

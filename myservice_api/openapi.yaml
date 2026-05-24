@@ -38,27 +38,6 @@ paths:
     post: { summary: Security trend, responses: { "200": { description: OK } } }
   /api/v1/security/recent:
     post: { summary: Recent incidents, responses: { "200": { description: OK } } }
-  /api/v1/security/osint:
-    post: { summary: OSINT feed for security dashboard, responses: { "200": { description: OK } } }
-  /api/v1/security/state-threats:
-    post: { summary: State threat levels, responses: { "200": { description: OK } } }
-
-  /api/v1/osint/feed:
-    post: { summary: OSINT entries, responses: { "200": { description: OK } } }
-  /api/v1/osint/state-scores:
-    post: { summary: OSINT state scores, responses: { "200": { description: OK } } }
-  /api/v1/osint/summary:
-    post: { summary: OSINT summary, responses: { "200": { description: OK } } }
-
-  /api/v1/ai/alerts:
-    post: { summary: AI alerts, responses: { "200": { description: OK } } }
-  /api/v1/ai/summary:
-    post: { summary: AI summary, responses: { "200": { description: OK } } }
-  /api/v1/ai/route-risk:
-    post: { summary: Route risk assessment, responses: { "200": { description: OK } } }
-  /api/v1/ai/run-now:
-    post: { summary: Trigger detectors, responses: { "200": { description: OK } } }
-
   /api/v1/barcode/lookup:
     post: { summary: Lookup tag/asset, responses: { "200": { description: OK } } }
   /api/v1/barcode/kpis:
@@ -79,31 +58,6 @@ paths:
     post: { summary: Homepage dropdown data, responses: { "200": { description: OK } } }
   /api/v1/home/quick-submit:
     post: { summary: Homepage quick submit, responses: { "200": { description: OK } } }
-
-  /api/v1/security/briefs/{brief_id}/download:
-    get:
-      summary: Download intelligence brief PDF
-      parameters:
-        - in: path
-          name: brief_id
-          required: true
-          schema: { type: integer }
-      responses:
-        "200": { description: PDF }
-        "401": { description: Unauthorized }
-        "403": { description: Forbidden }
-  /api/v1/security/briefs/generate:
-    post: { summary: Generate brief (manual), responses: { "200": { description: OK } } }
-  /api/v1/security/briefs/{brief_id}/log:
-    post:
-      summary: Brief download log
-      parameters:
-        - in: path
-          name: brief_id
-          required: true
-          schema: { type: integer }
-      responses:
-        "200": { description: OK }
 
   /api/v1/integrations/sap/employee-sync:
     post: { summary: SAP employee sync (JWT), responses: { "200": { description: OK } } }

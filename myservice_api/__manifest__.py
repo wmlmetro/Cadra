@@ -12,8 +12,6 @@
         # API wrappers touch these models via env lookups
         'myservice_dashboard',
         'myservice_security',
-        'myservice_osint',
-        'myservice_ai_patterns',
         'myservice_barcode_station',
         'myservice_fleet_maintenance',
         'myservice_fm_dashboard',

@@ -10,13 +10,6 @@
         <field name="context">{'search_default_group_by_state': 1}</field>
     </record>
 
-    <!-- Command Center → Incident list all -->
-    <record id="action_security_command_center" model="ir.actions.act_window">
-        <field name="name">Security Command Center</field>
-        <field name="res_model">security.incident</field>
-        <field name="view_mode">list,form</field>
-    </record>
-
     <!-- Security Operations → Guard list -->
     <record id="action_security_operations" model="ir.actions.act_window">
         <field name="name">Security Operations</field>
@@ -30,31 +23,6 @@
         <field name="res_model">security.incident</field>
         <field name="view_mode">list,form</field>
         <field name="domain">[('state','in',['escalated','investigating'])]</field>
-    </record>
-
-    <!--
-        OSINT, AI Patterns, Daily Brief: the real models live in
-        myservice_osint / myservice_ai_patterns (which depend on us),
-        so we cannot reference them here.  Placeholder actions point to
-        security.incident; downstream modules can override these actions
-        once loaded.
-    -->
-    <record id="action_osint_page" model="ir.actions.act_window">
-        <field name="name">OSINT &amp; Intelligence</field>
-        <field name="res_model">security.incident</field>
-        <field name="view_mode">list,form</field>
-    </record>
-
-    <record id="action_ai_patterns_page" model="ir.actions.act_window">
-        <field name="name">AI Patterns &amp; Intelligence</field>
-        <field name="res_model">security.incident</field>
-        <field name="view_mode">list,form</field>
-    </record>
-
-    <record id="action_daily_brief_page" model="ir.actions.act_window">
-        <field name="name">Daily Intelligence Brief</field>
-        <field name="res_model">security.incident</field>
-        <field name="view_mode">list,form</field>
     </record>
 
 </odoo>

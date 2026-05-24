@@ -9,9 +9,4 @@ access_security_duty_roster_manager,security.duty.roster manager,model_security_
 access_security_access_log_officer,security.access.log officer,model_security_access_log,myservice_security.group_security_officer,1,1,1,0
 access_security_access_log_manager,security.access.log manager,model_security_access_log,myservice_security.group_security_manager,1,1,1,1
 access_security_access_log_public,security.access.log public,model_security_access_log,,1,0,1,0
-access_security_watchlist_manager,security.watchlist manager,model_security_watchlist,myservice_security.group_security_manager,1,1,1,0
-access_security_watchlist_admin,security.watchlist admin,model_security_watchlist,myservice_security.group_security_admin,1,1,1,1
-access_security_watchlist_alias_manager,security.watchlist.alias manager,model_security_watchlist_alias,myservice_security.group_security_manager,1,1,1,1
 access_security_incident_escalate,security.incident.escalate all,model_security_incident_escalate,,1,1,1,1
-access_security_state_threat_officer,security.state.threat officer,model_security_state_threat,myservice_security.group_security_officer,1,1,0,0
-access_security_state_threat_manager,security.state.threat manager,model_security_state_threat,myservice_security.group_security_manager,1,1,1,1

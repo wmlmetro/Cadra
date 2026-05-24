@@ -264,95 +264,6 @@ class MyserviceApiV1(http.Controller):
 
         return {"success": True, "data": SecurityDashboardController().get_recent()}
 
-    @http.route("/api/v1/security/osint", type="json", auth="none", methods=["POST"], csrf=False)
-    def security_osint(self, **kwargs):
-        _, status, msg = _require_jwt(["security"])
-        if status:
-            return {"success": False, "error": msg}
-        from myservice_security.controllers.main import SecurityDashboardController
-
-        return {"success": True, "data": SecurityDashboardController().get_osint()}
-
-    @http.route("/api/v1/security/state-threats", type="json", auth="none", methods=["POST"], csrf=False)
-    def security_state_threats(self, **kwargs):
-        _, status, msg = _require_jwt(["security"])
-        if status:
-            return {"success": False, "error": msg}
-        from myservice_security.controllers.main import SecurityDashboardController
-
-        return {"success": True, "data": SecurityDashboardController().get_state_threats()}
-
-    # ---------------- OSINT ----------------
-    @http.route("/api/v1/osint/feed", type="json", auth="none", methods=["POST"], csrf=False)
-    def osint_feed(self, **kwargs):
-        _, status, msg = _require_jwt(["osint"])
-        if status:
-            return {"success": False, "error": msg}
-        from myservice_osint.controllers.main import OsintDashboardController
-
-        data = kwargs or {}
-        return {"success": True, "data": OsintDashboardController().osint_feed(**data)}
-
-    @http.route("/api/v1/osint/state-scores", type="json", auth="none", methods=["POST"], csrf=False)
-    def osint_state_scores(self, **kwargs):
-        _, status, msg = _require_jwt(["osint"])
-        if status:
-            return {"success": False, "error": msg}
-        from myservice_osint.controllers.main import OsintDashboardController
-
-        data = kwargs or {}
-        return {"success": True, "data": OsintDashboardController().state_scores(**data)}
-
-    @http.route("/api/v1/osint/summary", type="json", auth="none", methods=["POST"], csrf=False)
-    def osint_summary(self, **kwargs):
-        _, status, msg = _require_jwt(["osint"])
-        if status:
-            return {"success": False, "error": msg}
-        from myservice_osint.controllers.main import OsintDashboardController
-
-        data = kwargs or {}
-        return {"success": True, "data": OsintDashboardController().osint_summary(**data)}
-
-    # ---------------- AI patterns ----------------
-    @http.route("/api/v1/ai/alerts", type="json", auth="none", methods=["POST"], csrf=False)
-    def ai_alerts(self, **kwargs):
-        _, status, msg = _require_jwt(["ai"])
-        if status:
-            return {"success": False, "error": msg}
-        from myservice_ai_patterns.controllers.main import AiPatternController
-
-        data = kwargs or {}
-        return {"success": True, "data": AiPatternController().ai_alerts(**data)}
-
-    @http.route("/api/v1/ai/summary", type="json", auth="none", methods=["POST"], csrf=False)
-    def ai_summary(self, **kwargs):
-        _, status, msg = _require_jwt(["ai"])
-        if status:
-            return {"success": False, "error": msg}
-        from myservice_ai_patterns.controllers.main import AiPatternController
-
-        data = kwargs or {}
-        return {"success": True, "data": AiPatternController().ai_summary(**data)}
-
-    @http.route("/api/v1/ai/route-risk", type="json", auth="none", methods=["POST"], csrf=False)
-    def ai_route_risk(self, **kwargs):
-        _, status, msg = _require_jwt(["ai"])
-        if status:
-            return {"success": False, "error": msg}
-        from myservice_ai_patterns.controllers.main import AiPatternController
-
-        data = kwargs or {}
-        return {"success": True, "data": AiPatternController().route_risk(**data)}
-
-    @http.route("/api/v1/ai/run-now", type="json", auth="none", methods=["POST"], csrf=False)
-    def ai_run_now(self, **kwargs):
-        _, status, msg = _require_jwt(["ai"])
-        if status:
-            return {"success": False, "error": msg}
-        from myservice_ai_patterns.controllers.main import AiPatternController
-
-        return {"success": True, "data": AiPatternController().run_now(**(kwargs or {}))}
-
     # ---------------- Barcode ----------------
     @http.route("/api/v1/barcode/lookup", type="json", auth="none", methods=["POST"], csrf=False)
     def barcode_lookup(self, **kwargs):
@@ -452,40 +363,6 @@ class MyserviceApiV1(http.Controller):
         from myservice_website_theme.controllers.api import NRSHomepageAPI
 
         return {"success": True, "data": NRSHomepageAPI().quick_submit(**(kwargs or {}))}
-
-    # ---------------- Security briefs ----------------
-    @http.route(
-        "/api/v1/security/briefs/<int:brief_id>/download",
-        type="http",
-        auth="none",
-        methods=["GET"],
-        csrf=False,
-    )
-    def brief_download(self, brief_id, **kwargs):
-        _, status, msg = _require_jwt(["security"])
-        if status:
-            return request.make_response(msg, status=status)
-        from myservice_ai_patterns.controllers.brief_download import BriefDownloadController
-
-        return BriefDownloadController().download_brief(brief_id, **kwargs)
-
-    @http.route("/api/v1/security/briefs/generate", type="json", auth="none", methods=["POST"], csrf=False)
-    def brief_generate(self, **kwargs):
-        _, status, msg = _require_jwt(["security"])
-        if status:
-            return {"success": False, "error": msg}
-        from myservice_ai_patterns.controllers.brief_download import BriefDownloadController
-
-        return {"success": True, "data": BriefDownloadController().generate_brief_manual(**(kwargs or {}))}
-
-    @http.route("/api/v1/security/briefs/<int:brief_id>/log", type="json", auth="none", methods=["POST"], csrf=False)
-    def brief_log(self, brief_id, **kwargs):
-        _, status, msg = _require_jwt(["security"])
-        if status:
-            return {"success": False, "error": msg}
-        from myservice_ai_patterns.controllers.brief_download import BriefDownloadController
-
-        return {"success": True, "data": BriefDownloadController().get_download_log(brief_id, **(kwargs or {}))}
 
     # ---------------- Integrations ----------------
     @http.route("/api/v1/integrations/sap/employee-sync", type="json", auth="none", methods=["POST"], csrf=False)

@@ -54,9 +54,5 @@ class SecurityAccessLog(models.Model):
     flagged = fields.Boolean(
         string='Flagged',
         default=False,
-        help='Flag if person matches watchlist or is suspicious',
-    )
-    watchlist_match_id = fields.Many2one(
-        comodel_name='security.watchlist',
-        string='Watchlist Match',
+        help='Flag suspicious access events for review.',
     )

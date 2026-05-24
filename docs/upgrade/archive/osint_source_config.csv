@@ -1,0 +1,21 @@
+id,name,source_type,active,fetch_interval_hours,last_fetched,last_fetch_count,acled_email,acled_password,acled_token,acled_token_expiry,twitter_bearer_token,twitter_keywords,telegram_bot_token,telegram_channels,rss_urls,nigeria_only,keywords_filter,days_lookback,notes,create_uid,create_date,write_uid,write_date
+1,ACLED Nigeria — Armed Conflict Data,acled,t,24,,,,,,,,"NRS tax office,FIRS Nigeria,tax enforcement Nigeria",,,"https://www.premiumtimesng.com/feed
+https://punchng.com/feed
+https://www.vanguardngr.com/feed
+https://www.dailytrust.com/feed
+https://guardian.ng/feed",t,"attack,bomb,bandit,kidnap,protest,unrest,robbery,theft,fire,flood,crisis,violence,shooting,explosion,arrest,enforcement,tax",30,Register at acleddata.com and enter credentials in the form. ACLED uses OAuth2 — credentials are stored securely and tokens refreshed automatically.,1,2026-05-22 11:54:52.274222,1,2026-05-22 11:54:52.274222
+3,Nigerian News — RSS Feeds,rss,t,2,2026-05-24 12:55:54,0,,,,,,"NRS tax office,FIRS Nigeria,tax enforcement Nigeria",,,"https://www.premiumtimesng.com/feed
+https://punchng.com/feed
+https://www.vanguardngr.com/feed
+https://www.dailytrust.com/feed
+https://guardian.ng/feed",t,"attack,bomb,bandit,kidnap,protest,unrest,robbery,theft,fire,flood,crisis,violence,shooting,explosion,arrest,enforcement,tax",30,"Premium Times, Punch, Vanguard, Daily Trust, The Guardian Nigeria. Filtered by security keywords.",1,2026-05-22 11:54:52.274222,1,2026-05-24 12:55:51.475828
+4,ReliefWeb — OCHA Nigeria Reports,reliefweb,t,24,2026-05-23 18:27:35,0,,,,,,"NRS tax office,FIRS Nigeria,tax enforcement Nigeria",,,"https://www.premiumtimesng.com/feed
+https://punchng.com/feed
+https://www.vanguardngr.com/feed
+https://www.dailytrust.com/feed
+https://guardian.ng/feed",t,"attack,bomb,bandit,kidnap,protest,unrest,robbery,theft,fire,flood,crisis,violence,shooting,explosion,arrest,enforcement,tax",30,Free OCHA/ReliefWeb API. Fetches Nigeria humanitarian and security situation reports daily.,1,2026-05-22 11:54:52.274222,1,2026-05-23 18:27:29.253454
+2,GDELT — Nigeria Media Events,gdelt,t,6,2026-05-24 10:09:46,33,,,,,,"NRS tax office,FIRS Nigeria,tax enforcement Nigeria",,,"https://www.premiumtimesng.com/feed
+https://punchng.com/feed
+https://www.vanguardngr.com/feed
+https://www.dailytrust.com/feed
+https://guardian.ng/feed",t,"attack,bomb,bandit,kidnap,protest,unrest,robbery,theft,fire,flood,crisis,violence,shooting,explosion,arrest,enforcement,tax",30,Free API — no credentials required. Fetches Nigeria security-related media events every 6 hours.,1,2026-05-22 11:54:52.274222,1,2026-05-24 10:09:01.922611
