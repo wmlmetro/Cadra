@@ -91,10 +91,6 @@
                                 <field name="police_station"/>
                             </group>
                         </page>
-                        <page string="Watchlist Links">
-                            <field name="watchlist_ids" widget="many2many_tags"
-                                options="{'no_create': True}"/>
-                        </page>
                         <page string="Resolution" attrs="{'invisible': [('state','not in',['resolved','closed'])]}">
                             <field name="resolution_notes" widget="html"/>
                         </page>

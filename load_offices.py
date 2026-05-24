@@ -377,7 +377,8 @@ def get_or_create_location(name, parent_id=None, location_type=None, address='')
     if parent_id:
         vals['parent_id'] = parent_id
     if address:
-        vals['address'] = address
+        # generic.location uses `street` (Odoo standard), not `address`.
+        vals['street'] = address
     rec = env['generic.location'].create(vals)
     return rec.id
 
@@ -421,7 +422,7 @@ for i, (num, name, address, state) in enumerate(OFFICES, 1):
         if not existing:
             vals = {'name': name, 'parent_id': parent_id}
             if address:
-                vals['address'] = address
+                vals['street'] = address
             env['generic.location'].create(vals)
             created += 1
             if created <= 20 or created % 50 == 0:

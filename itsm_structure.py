@@ -404,6 +404,13 @@ def get_or_create(env, model, domain, vals):
     if record:
         _logger.info("EXISTS  [%s] %s", model, vals.get("name", ""))
         return record
+    # Auto-fill `code` (required by generic.mixin.name_with_code) when the
+    # model has the field but the caller didn't provide one. Form-mode
+    # onchange would slugify the name; programmatic create has to do it
+    # explicitly.
+    if "code" in env[model]._fields and not vals.get("code") and vals.get("name"):
+        from odoo.addons.http_routing.models.ir_http import slugify
+        vals = dict(vals, code=slugify(vals["name"], max_length=0))
     record = env[model].create(vals)
     _logger.info("CREATED [%s] %s (id=%s)", model, vals.get("name", ""), record.id)
     return record
@@ -498,9 +505,8 @@ def load_structure(env):
 # =============================================================================
 
 if "env" in dir():
-    with env.cr.savepoint():
-        result = load_structure(env)
-        env.cr.commit()
-        print(f"\n✅  Done. {result}")
+    result = load_structure(env)
+    env.cr.commit()
+    print(f"\n✅  Done. {result}")
 else:
     print("itsm_structure.py loaded. Call load_structure(env) from an Odoo shell.")

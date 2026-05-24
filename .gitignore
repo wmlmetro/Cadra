@@ -5,3 +5,14 @@
 .ropeproject/
 .coverage
 htmlcov.DS_Store
+
+# Local upgrade workspace — version-swapped Odoo/CRND source trees fetched
+# during the 15 -> 16 -> 17 -> 18 OpenUpgrade chain. Not part of the repo.
+_upgrade/
+
+# Pre-cutover DB snapshots (binary pg_dumps). Keep the CSV archives but not
+# the multi-MB binary dumps — they live off-tree.
+docs/upgrade/archive/*.dump
+
+# Smoke-test API credentials written by docs/api/setup_api_smoke.py
+docs/api/.creds

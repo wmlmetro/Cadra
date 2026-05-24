@@ -193,9 +193,8 @@ def load_locations(env):
 # =============================================================================
 
 if "env" in dir():
-    with env.cr.savepoint():
-        result = load_locations(env)
-        env.cr.commit()
-        print(f"\n✅  Done. {result}")
+    result = load_locations(env)
+    env.cr.commit()
+    print(f"\n✅  Done. {result}")
 else:
     print("load_locations.py loaded. Call load_locations(env) from an Odoo shell.")
