@@ -1,0 +1,54 @@
+name: k8s-lint
+
+# Schema + structural validation for the Kubernetes manifests under k8s/dev/.
+# Cheap, no secrets, runs on every PR that touches the manifests so we catch
+# typos and bad apiVersions before they hit the cluster.
+
+on:
+  pull_request:
+    paths:
+      - "k8s/**"
+      - ".github/workflows/k8s-lint.yml"
+  push:
+    branches: ["dev", "main"]
+    paths:
+      - "k8s/**"
+      - ".github/workflows/k8s-lint.yml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: k8s-lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kubeconform
+        run: |
+          curl -fsSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
+            | tar -xz -C /usr/local/bin kubeconform
+          kubeconform -v
+
+      # kubeconform validates against the published OpenAPI schemas, including
+      # cert-manager (via the schema-location flag) so the ClusterIssuer kind
+      # is recognised.
+      - name: kubeconform — strict schema check
+        run: |
+          kubeconform \
+            -strict \
+            -ignore-missing-schemas \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            -summary \
+            k8s/dev/
+
+      - name: kubectl client-side dry-run (sanity)
+        run: |
+          for f in k8s/dev/*.yaml; do
+            echo "── $f"
+            kubectl apply --dry-run=client --validate=false -f "$f"
+          done

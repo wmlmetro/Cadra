@@ -1,0 +1,52 @@
+# nginx Ingress with cert-manager TLS. Routes /longpolling and /websocket
+# to port 8072 (gevent worker) and everything else to 8069 (HTTP workers).
+#
+# Pre-reqs in the cluster:
+#   - ingress-nginx controller installed
+#   - cert-manager installed
+#   - DNS A/CNAME for the host below pointing at the ingress controller's
+#     external IP / LB hostname (cert-manager's HTTP-01 challenge needs it)
+#   - the ClusterIssuer in 61-cluster-issuer.yaml applied
+#
+# Edit `host:` to your real domain before applying.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cadra
+  namespace: cadra-dev
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "200m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "720"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "720"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - dev.cadra.example.com
+      secretName: cadra-tls
+  rules:
+    - host: dev.cadra.example.com
+      http:
+        paths:
+          - path: /longpolling
+            pathType: Prefix
+            backend:
+              service:
+                name: odoo
+                port:
+                  number: 8072
+          - path: /websocket
+            pathType: Prefix
+            backend:
+              service:
+                name: odoo
+                port:
+                  number: 8072
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: odoo
+                port:
+                  number: 8069

@@ -1,0 +1,50 @@
+# Cadra Odoo image for Kubernetes deployments.
+#
+# Unlike Dockerfile.odoo.dev (which is paired with a bind-mounted repo via
+# docker-compose), this image bakes every addon, OCA dependency, seed file,
+# and bootstrap script into the layer. The K8s pod has no host source tree
+# to mount — everything must travel inside the image.
+#
+# Build context = repo root.
+#   docker build -f Dockerfile.odoo.k8s -t <registry>/cadra-odoo:dev-<sha> .
+
+FROM odoo:15.0
+
+USER root
+
+RUN pip3 install --no-cache-dir html2text
+
+# Custom Odoo modules — same set installed by CADRA_BOOTSTRAP_MODULES.
+COPY --chown=odoo:odoo \
+     myservice_api \
+     myservice_asset_register \
+     myservice_barcode_station \
+     myservice_dashboard \
+     myservice_fleet_maintenance \
+     myservice_fm_dashboard \
+     myservice_identity \
+     myservice_nrs_base \
+     myservice_request_fields \
+     myservice_security \
+     myservice_staff_bus \
+     myservice_theme_v5 \
+     myservice_website_theme \
+     myservice_workflow \
+     /mnt/extra-addons/
+
+# OCA + vendored bundle (provides web_responsive and ITSM dependencies).
+# addons_path in odoo.conf already includes /mnt/extra-addons/dist.
+COPY --chown=odoo:odoo dist/ /mnt/extra-addons/dist/
+
+# Seed scripts loaded by scripts/bootstrap.py via exec().
+COPY --chown=odoo:odoo \
+     itsm_structure.py \
+     load_locations.py \
+     load_offices.py \
+     myservice_master_seed.py \
+     /mnt/extra-addons/
+
+# Bootstrap script (consumed by the Kubernetes Job).
+COPY --chown=odoo:odoo scripts/ /opt/cadra/scripts/
+
+USER odoo
