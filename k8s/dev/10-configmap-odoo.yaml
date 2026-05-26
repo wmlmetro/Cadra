@@ -7,8 +7,10 @@ data:
   odoo.conf: |
     [options]
     ; ─── Dev Odoo configuration for Kubernetes ──────────────────────────
-    ; DB connection — overridden by HOST/USER/PASSWORD env vars in the
-    ; Odoo image entrypoint (sourced from the cadra-db Secret).
+    ; db_user / db_password / db_name are appended at container start from
+    ; the cadra-db Secret (see the command: block in the Deployment / Job).
+    ; The pods override the image entrypoint, so its HOST/USER/PASSWORD
+    ; injection does NOT run — credentials must be written here instead.
     db_host = db
     db_port = 5432
 

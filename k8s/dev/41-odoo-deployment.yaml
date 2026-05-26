@@ -47,6 +47,11 @@ spec:
                 secretKeyRef:
                   name: cadra-db
                   key: POSTGRES_PASSWORD
+            - name: DB
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_DB
             - name: ODOO_MASTER_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -55,15 +60,21 @@ spec:
           envFrom:
             - configMapRef:
                 name: odoo-bootstrap
-          # Same trick as docker-compose.prod.yml: copy the read-only conf
-          # template to a writable path and append admin_passwd at start.
+          # We override command (and therefore the image's /entrypoint.sh),
+          # so the DB credentials the entrypoint would normally inject from
+          # HOST/USER/PASSWORD must be written into the conf ourselves.
           command:
             - bash
             - -c
             - |
               set -e
               cp /etc/odoo/odoo.conf.template /tmp/odoo.conf
-              printf '\nadmin_passwd = %s\n' "$ODOO_MASTER_PASSWORD" >> /tmp/odoo.conf
+              {
+                printf '\nadmin_passwd = %s\n' "$ODOO_MASTER_PASSWORD"
+                printf 'db_user = %s\n' "$USER"
+                printf 'db_password = %s\n' "$PASSWORD"
+                printf 'db_name = %s\n' "$DB"
+              } >> /tmp/odoo.conf
               exec odoo -c /tmp/odoo.conf \
                 --workers="${ODOO_WORKERS:-1}" \
                 --max-cron-threads="${ODOO_MAX_CRON_THREADS:-1}"

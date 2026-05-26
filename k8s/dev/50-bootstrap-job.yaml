@@ -84,7 +84,13 @@ spec:
             - |
               set -e
               cp /etc/odoo/odoo.conf.template /tmp/odoo.conf
-              printf '\nadmin_passwd = %s\n' "$ODOO_MASTER_PASSWORD" >> /tmp/odoo.conf
+              # We override command (bypassing /entrypoint.sh), so write the
+              # DB credentials into the conf ourselves.
+              {
+                printf '\nadmin_passwd = %s\n' "$ODOO_MASTER_PASSWORD"
+                printf 'db_user = %s\n' "$USER"
+                printf 'db_password = %s\n' "$PASSWORD"
+              } >> /tmp/odoo.conf
 
               # Skip install if every requested module is already in state=installed.
               # PGPASSWORD lets psql connect non-interactively.
@@ -155,7 +161,13 @@ spec:
             - |
               set -e
               cp /etc/odoo/odoo.conf.template /tmp/odoo.conf
-              printf '\nadmin_passwd = %s\n' "$ODOO_MASTER_PASSWORD" >> /tmp/odoo.conf
+              # We override command (bypassing /entrypoint.sh), so write the
+              # DB credentials into the conf ourselves.
+              {
+                printf '\nadmin_passwd = %s\n' "$ODOO_MASTER_PASSWORD"
+                printf 'db_user = %s\n' "$USER"
+                printf 'db_password = %s\n' "$PASSWORD"
+              } >> /tmp/odoo.conf
 
               # bootstrap.py sets JWT secret + admin groups + API client + seeds.
               # Idempotent — re-running on a populated DB is a no-op except for
