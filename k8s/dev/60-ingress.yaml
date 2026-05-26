@@ -23,10 +23,10 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - dev.cadra.example.com
+        - staging.app.cadra.ng
       secretName: cadra-tls
   rules:
-    - host: dev.cadra.example.com
+    - host: staging.app.cadra.ng
       http:
         paths:
           - path: /longpolling
