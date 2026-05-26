@@ -163,9 +163,13 @@ jobs:
         run: |
           set -e
           # Scale Odoo to 0 so the Deployment releases the PVC for the Job.
-          kubectl -n "${NAMESPACE}" scale deployment/odoo --replicas=0 --ignore-not-found
-          # Wait for the Deployment's pod to actually terminate (releases the volume).
-          kubectl -n "${NAMESPACE}" wait --for=delete pod -l app=odoo,job!=bootstrap --timeout=2m || true
+          # (kubectl scale has no --ignore-not-found, and on the very first
+          # bootstrap the Deployment doesn't exist yet — guard with a get.)
+          if kubectl -n "${NAMESPACE}" get deployment/odoo >/dev/null 2>&1; then
+            kubectl -n "${NAMESPACE}" scale deployment/odoo --replicas=0
+            # Wait for the pod to actually terminate (releases the volume).
+            kubectl -n "${NAMESPACE}" wait --for=delete pod -l app=odoo,job!=bootstrap --timeout=2m || true
+          fi
 
           # Jobs are immutable — delete any prior run before re-applying.
           kubectl -n "${NAMESPACE}" delete job cadra-bootstrap --ignore-not-found
