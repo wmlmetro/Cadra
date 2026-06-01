@@ -1,0 +1,52 @@
+# Cadra Odoo image for Kubernetes deployments.
+#
+# Unlike Dockerfile.odoo.dev (which is paired with a bind-mounted repo via
+# docker-compose), this image bakes every addon, OCA dependency, seed file,
+# and bootstrap script into the layer. The K8s pod has no host source tree
+# to mount — everything must travel inside the image.
+#
+# Build context = repo root.
+#   docker build -f Dockerfile.odoo.k8s -t <registry>/cadra-odoo:dev-<sha> .
+
+FROM odoo:15.0
+
+USER root
+
+RUN pip3 install --no-cache-dir html2text
+
+# Custom Odoo modules — same set installed by CADRA_BOOTSTRAP_MODULES.
+# Each module MUST be copied to its own named destination. A single COPY
+# with multiple source dirs would copy their *contents* (not the dirs),
+# flattening every module into /mnt/extra-addons and losing the module
+# names — Odoo would then report "invalid module names, ignored".
+COPY --chown=odoo:odoo myservice_api               /mnt/extra-addons/myservice_api/
+COPY --chown=odoo:odoo myservice_asset_register    /mnt/extra-addons/myservice_asset_register/
+COPY --chown=odoo:odoo myservice_barcode_station   /mnt/extra-addons/myservice_barcode_station/
+COPY --chown=odoo:odoo myservice_dashboard         /mnt/extra-addons/myservice_dashboard/
+COPY --chown=odoo:odoo myservice_fleet_maintenance /mnt/extra-addons/myservice_fleet_maintenance/
+COPY --chown=odoo:odoo myservice_fm_dashboard      /mnt/extra-addons/myservice_fm_dashboard/
+COPY --chown=odoo:odoo myservice_identity          /mnt/extra-addons/myservice_identity/
+COPY --chown=odoo:odoo myservice_nrs_base          /mnt/extra-addons/myservice_nrs_base/
+COPY --chown=odoo:odoo myservice_request_fields    /mnt/extra-addons/myservice_request_fields/
+COPY --chown=odoo:odoo myservice_security          /mnt/extra-addons/myservice_security/
+COPY --chown=odoo:odoo myservice_staff_bus         /mnt/extra-addons/myservice_staff_bus/
+COPY --chown=odoo:odoo myservice_theme_v5          /mnt/extra-addons/myservice_theme_v5/
+COPY --chown=odoo:odoo myservice_website_theme     /mnt/extra-addons/myservice_website_theme/
+COPY --chown=odoo:odoo myservice_workflow          /mnt/extra-addons/myservice_workflow/
+
+# OCA + vendored bundle (provides web_responsive and ITSM dependencies).
+# addons_path in odoo.conf already includes /mnt/extra-addons/dist.
+COPY --chown=odoo:odoo dist/ /mnt/extra-addons/dist/
+
+# Seed scripts loaded by scripts/bootstrap.py via exec().
+COPY --chown=odoo:odoo \
+     itsm_structure.py \
+     load_locations.py \
+     load_offices.py \
+     myservice_master_seed.py \
+     /mnt/extra-addons/
+
+# Bootstrap script (consumed by the Kubernetes Job).
+COPY --chown=odoo:odoo scripts/ /opt/cadra/scripts/
+
+USER odoo

@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: odoo-config
+  namespace: cadra-dev
+data:
+  odoo.conf: |
+    [options]
+    ; ─── Dev Odoo configuration for Kubernetes ──────────────────────────
+    ; db_user / db_password / db_name are appended at container start from
+    ; the cadra-db Secret (see the command: block in the Deployment / Job).
+    ; The pods override the image entrypoint, so its HOST/USER/PASSWORD
+    ; injection does NOT run — credentials must be written here instead.
+    db_host = db
+    db_port = 5432
+
+    ; HTTP — both ports listened on inside the single pod.
+    http_port = 8069
+    longpolling_port = 8072
+    http_interface = 0.0.0.0
+    proxy_mode = True
+
+    ; Dev convenience: list databases on the manager UI.
+    without_demo = True
+    list_db = True
+
+    ; Logging — kubectl logs captures stdout.
+    log_level = info
+
+    ; Addons (custom modules + OCA bundle under dist/).
+    addons_path = /usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons,/mnt/extra-addons/dist
+
+    ; Resource limits — kept BELOW the pod's K8s memory limit so Odoo
+    ; recycles workers before the kubelet OOMKills the pod.
+    ;   soft = 1.25 GiB, hard = 1.5 GiB  (pod limit = 2 GiB)
+    limit_memory_soft = 1342177280
+    limit_memory_hard = 1610612736
+    limit_request = 8192
+    limit_time_cpu = 600
+    limit_time_real = 1200
+
+    ; admin_passwd is injected at runtime by the container entrypoint
+    ; using ODOO_MASTER_PASSWORD from the cadra-odoo Secret.

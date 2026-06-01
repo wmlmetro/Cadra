@@ -1,6 +1,6 @@
 {
     'name': 'NRS Design System Base',
-    'version': '15.0.1.0.0',
+    'version': '15.0.1.1.0',
     'summary': 'Shared CSS design tokens and component styles for all NRS modules',
     'category': 'Theme',
     'author': 'WestMetro Limited',
@@ -21,6 +21,10 @@
     'assets': {
         'web.assets_backend': [
             ('prepend', 'myservice_nrs_base/static/src/css/nrs_base.css'),
+            # Bridge the legacy bus_service into the wowl registry. Must load
+            # before any native component that does useService("bus_service")
+            # (e.g. generic_mixin's WebClient patch), otherwise /web is blank.
+            ('prepend', 'myservice_nrs_base/static/src/js/bus_service_compat.js'),
             'myservice_nrs_base/static/src/js/nrs_placeholder.js',
         ],
     },

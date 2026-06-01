@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: odoo-bootstrap
+  namespace: cadra-dev
+data:
+  # Comma-separated module list consumed by `odoo -i` during the bootstrap Job.
+  # Mirrors CADRA_BOOTSTRAP_MODULES in .env.example.
+  CADRA_BOOTSTRAP_MODULES: "myservice_api,myservice_asset_register,myservice_barcode_station,myservice_dashboard,myservice_fleet_maintenance,myservice_fm_dashboard,myservice_identity,myservice_nrs_base,myservice_request_fields,myservice_security,myservice_staff_bus,myservice_theme_v5,myservice_website_theme,myservice_workflow,web_responsive"
+
+  # "core" = ITSM + Nigeria locations + 415 FIRS offices. "fleet" adds the
+  # 1,617-vehicle master seed (slow). Empty = no seeds.
+  CADRA_SEED_PROFILE: "core"
+
+  # Single worker keeps the memory floor low. Override per-environment by
+  # editing this ConfigMap and rolling the Odoo Deployment.
+  ODOO_WORKERS: "1"
+  ODOO_MAX_CRON_THREADS: "1"
+
+  # Smoke-test API client identifier. Secret comes from cadra-odoo Secret.
+  CADRA_TEST_CLIENT_ID: "test_client"

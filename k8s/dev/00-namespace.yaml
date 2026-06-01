@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cadra-dev
+  labels:
+    app.kubernetes.io/part-of: cadra
+    app.kubernetes.io/managed-by: kubectl
+    environment: dev
