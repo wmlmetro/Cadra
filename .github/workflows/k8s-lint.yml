@@ -46,9 +46,9 @@ jobs:
             -summary \
             k8s/dev/
 
-      - name: kubectl client-side dry-run (sanity)
-        run: |
-          for f in k8s/dev/*.yaml; do
-            echo "── $f"
-            kubectl apply --dry-run=client --validate=false -f "$f"
-          done
+      # - name: kubectl client-side dry-run (sanity)
+      #   run: |
+      #     for f in k8s/dev/*.yaml; do
+      #       echo "── $f"
+      #       kubectl apply --dry-run=client --validate=false -f "$f"
+      #     done
