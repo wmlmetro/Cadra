@@ -704,7 +704,6 @@ def seed_furniture(floor_code, room_code, type_code, quantity, notes=''):
             'name':           type_rec.name,
             'asset_code':     acode,
             'asset_tag':      tcode,
-            'barcode':        tcode,
             'category_id':    cat.id,
             'subcategory_id': subcat.id,
             'asset_type_id':  type_rec.id,
@@ -712,7 +711,7 @@ def seed_furniture(floor_code, room_code, type_code, quantity, notes=''):
             'location_id':    location.id,
             'floor_room':     f'{floor_code} — {room_code}',
             'condition':      'good',
-            'state':          'draft',
+            'state':          'active',
             'notes':          notes or f'Seeded from HQ Furniture Inventory 11/02/2026',
         })
         n += 1

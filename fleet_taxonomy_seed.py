@@ -142,10 +142,10 @@ def classify(service_id, category_id, type_id):
 # STEP 1 — Service Group
 # ======================================================================
 print("\n[ Service Group ]")
-fleet_group = env['generic.service.group'].browse(5)
-assert fleet_group.exists(), "Fleet Management group (ID:5) not found!"
-print(f"  o EXISTS Fleet Management (ID:5)")
-GID = 5
+fleet_group = env['generic.service.group'].search([('name', '=', 'Fleet Management')], limit=1)
+assert fleet_group, "Fleet Management group not found! Run itsm_structure.py first."
+GID = fleet_group.id
+print(f"  o EXISTS Fleet Management (ID:{GID})")
 env.cr.commit()
 
 

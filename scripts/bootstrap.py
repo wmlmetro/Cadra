@@ -190,6 +190,33 @@ SEED_PROFILES = {
         ("FIRS Offices (415)",    "/mnt/extra-addons/load_offices.py"),
         ("Master Seed (ITSM+Fleet)", "/mnt/extra-addons/myservice_master_seed.py"),
     ],
+    # Full seed = everything validated against a fresh dev DB on 2026-06-01.
+    # Order matters: HQ assets depend on locations, fleet matcher depends on
+    # both vehicles + offices. Uses load_offices_v3 (4-level hierarchy) over
+    # the legacy v1. Geocoding (~30 min OSM run) stays opt-in via the
+    # `full+geo` profile so a normal deploy isn't blocked on rate-limited
+    # external calls.
+    "full": [
+        ("ITSM Structure",           "/mnt/extra-addons/itsm_structure.py"),
+        ("Location Skeleton",        "/mnt/extra-addons/load_locations.py"),
+        ("FIRS Offices v3 (415)",    "/mnt/extra-addons/load_offices_v3.py"),
+        ("Master Seed (ITSM+Fleet)", "/mnt/extra-addons/myservice_master_seed.py"),
+        ("NRS HQ Phase 1 Assets",    "/mnt/extra-addons/scripts/nrs_hq_seed.py"),
+        ("NRS HQ Location Metadata", "/mnt/extra-addons/scripts/nrs_hq_seed_v4.py"),
+        ("Fleet Taxonomy",           "/mnt/extra-addons/fleet_taxonomy_seed.py"),
+        ("Fleet → Location Matcher", "/mnt/extra-addons/fleet_location_matcher.py"),
+    ],
+    "full+geo": [
+        ("ITSM Structure",           "/mnt/extra-addons/itsm_structure.py"),
+        ("Location Skeleton",        "/mnt/extra-addons/load_locations.py"),
+        ("FIRS Offices v3 (415)",    "/mnt/extra-addons/load_offices_v3.py"),
+        ("Master Seed (ITSM+Fleet)", "/mnt/extra-addons/myservice_master_seed.py"),
+        ("NRS HQ Phase 1 Assets",    "/mnt/extra-addons/scripts/nrs_hq_seed.py"),
+        ("NRS HQ Location Metadata", "/mnt/extra-addons/scripts/nrs_hq_seed_v4.py"),
+        ("Fleet Taxonomy",           "/mnt/extra-addons/fleet_taxonomy_seed.py"),
+        ("Geocode Locations (OSM)",  "/mnt/extra-addons/geocode_locations.py"),
+        ("Fleet → Location Matcher", "/mnt/extra-addons/fleet_location_matcher.py"),
+    ],
 }
 
 
