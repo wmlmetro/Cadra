@@ -43,10 +43,17 @@ COPY --chown=odoo:odoo \
      itsm_structure.py \
      load_locations.py \
      load_offices.py \
+     load_offices_v3.py \
      myservice_master_seed.py \
+     fleet_taxonomy_seed.py \
+     fleet_location_matcher.py \
+     geocode_locations.py \
      /mnt/extra-addons/
 
-# Bootstrap script (consumed by the Kubernetes Job).
+# Bootstrap script + scripts/-tree seeds (consumed by the Kubernetes Job).
+# bootstrap.py looks for scripts/*.py under both /mnt/extra-addons/scripts/
+# (the dev bind-mount layout) and /opt/cadra/scripts/ (the in-image path)
+# via _resolve_seed_path, so this COPY only needs to land in one place.
 COPY --chown=odoo:odoo scripts/ /opt/cadra/scripts/
 
 USER odoo

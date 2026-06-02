@@ -9,18 +9,21 @@ data:
   CADRA_BOOTSTRAP_MODULES: "myservice_api,myservice_asset_register,myservice_barcode_station,myservice_dashboard,myservice_fleet_maintenance,myservice_fm_dashboard,myservice_identity,myservice_nrs_base,myservice_request_fields,myservice_security,myservice_staff_bus,myservice_theme_v5,myservice_website_theme,myservice_workflow,web_responsive"
 
   # Seed profiles (defined in scripts/bootstrap.py):
-  #   core      = ITSM + Nigeria locations + 415 FIRS offices (v1 loader)
-  #   fleet     = core + 1,617-vehicle master seed (slow)
-  #   full      = ITSM + locations + 415 offices (v3 loader) + master seed +
-  #               NRS HQ asset register (1,272 assets) + HQ location metadata +
-  #               fleet taxonomy + fleet→location matcher
-  #               Validated 2026-06-01 on a fresh dev DB. Runtime ~7-12 min,
-  #               within the 20 min cap on the bootstrap Job timeout.
-  #   full+geo  = full + OpenStreetMap geocoding (adds ~30 min — EXCEEDS the
-  #               20 min cap; needs the wait-timeout in deploy-dev.yml bumped
-  #               before this profile can run end-to-end via CI).
-  #   ""        = no seeds.
-  CADRA_SEED_PROFILE: "full"
+  #   core            = ITSM + Nigeria locations + 415 FIRS offices (v1 loader)
+  #   fleet           = core + 1,617-vehicle master seed (slow)
+  #   full            = ITSM + locations + 415 offices (v3 loader) + master
+  #                     seed + NRS HQ asset register (1,272 assets) + HQ
+  #                     location metadata + fleet taxonomy + fleet→location
+  #                     matcher. Validated 2026-06-01 on a fresh dev DB.
+  #                     Runtime ~12-15 min, within the 20 min Job cap.
+  #   full-no-master  = full minus master_seed. Use when master has already
+  #                     run and you only need the 4 follow-on seeds — saves
+  #                     ~7 min of idempotent rework.
+  #   full+geo        = full + OpenStreetMap geocoding (adds ~30 min —
+  #                     EXCEEDS the 20 min cap; needs the wait-timeout in
+  #                     deploy-dev.yml bumped before this profile fits CI).
+  #   ""              = no seeds.
+  CADRA_SEED_PROFILE: "full-no-master"
 
   # Single worker keeps the memory floor low. Override per-environment by
   # editing this ConfigMap and rolling the Odoo Deployment.

@@ -17,9 +17,16 @@ Steps:
      or generated). Scopes cover every read+write across all 4 resources
      plus integrations.
   4. Seeds — based on CADRA_SEED_PROFILE env var:
-       core   = ITSM structure + Nigeria location skeleton + 415 FIRS offices
-       fleet  = above + master fleet seed (1,617 vehicles — slow)
-       (empty) = no seeds
+       core            = ITSM structure + Nigeria locations + 415 FIRS offices
+       fleet           = above + master fleet seed (1,617 vehicles — slow)
+       full            = ITSM + locations + offices v3 + master seed + NRS HQ
+                         assets (1,272) + HQ location metadata + fleet taxonomy
+                         + fleet→location matcher (~12-15 min total)
+       full-no-master  = full minus master_seed (use when master already ran;
+                         saves ~7 min of idempotent rework)
+       full+geo        = full + OSM geocoding (~30 min — exceeds the 20 min
+                         bootstrap Job cap; bump the wait timeout first)
+       (empty)         = no seeds
      All seeds are idempotent via the get_or_create helpers in the seed
      scripts themselves.
 
@@ -206,6 +213,18 @@ SEED_PROFILES = {
         ("Fleet Taxonomy",           "/mnt/extra-addons/fleet_taxonomy_seed.py"),
         ("Fleet → Location Matcher", "/mnt/extra-addons/fleet_location_matcher.py"),
     ],
+    # Same as `full` but skips myservice_master_seed.py. Use this when the
+    # master seed has already landed and you only need to fill in the four
+    # follow-on seeds — saves ~7 min of idempotent rework on the master seed.
+    "full-no-master": [
+        ("ITSM Structure",           "/mnt/extra-addons/itsm_structure.py"),
+        ("Location Skeleton",        "/mnt/extra-addons/load_locations.py"),
+        ("FIRS Offices v3 (415)",    "/mnt/extra-addons/load_offices_v3.py"),
+        ("NRS HQ Phase 1 Assets",    "/mnt/extra-addons/scripts/nrs_hq_seed.py"),
+        ("NRS HQ Location Metadata", "/mnt/extra-addons/scripts/nrs_hq_seed_v4.py"),
+        ("Fleet Taxonomy",           "/mnt/extra-addons/fleet_taxonomy_seed.py"),
+        ("Fleet → Location Matcher", "/mnt/extra-addons/fleet_location_matcher.py"),
+    ],
     "full+geo": [
         ("ITSM Structure",           "/mnt/extra-addons/itsm_structure.py"),
         ("Location Skeleton",        "/mnt/extra-addons/load_locations.py"),
@@ -218,6 +237,23 @@ SEED_PROFILES = {
         ("Fleet → Location Matcher", "/mnt/extra-addons/fleet_location_matcher.py"),
     ],
 }
+
+
+def _resolve_seed_path(path):
+    """Resolve a seed-profile path against both dev and k8s layouts.
+
+    In dev (docker-compose), the whole repo is bind-mounted at
+    /mnt/extra-addons, so scripts/ files live at /mnt/extra-addons/scripts/.
+    In k8s (Dockerfile.odoo.k8s), scripts/ is copied to /opt/cadra/scripts/
+    instead. Profile entries are written using the dev layout; this swap
+    lets the same profile work in both environments.
+    """
+    if os.path.exists(path):
+        return path
+    alt = path.replace("/mnt/extra-addons/scripts/", "/opt/cadra/scripts/")
+    if alt != path and os.path.exists(alt):
+        return alt
+    return None
 
 
 def run_seeds():
@@ -238,15 +274,16 @@ def run_seeds():
 
     _say(f"running seed profile: {profile}")
     for label, path in SEED_PROFILES[profile]:
-        if not os.path.exists(path):
+        resolved = _resolve_seed_path(path)
+        if not resolved:
             _say(f"  skip {label} — file not present at {path}", level="WARN")
             continue
-        _say(f"  → {label} ({path})")
+        _say(f"  → {label} ({resolved})")
         try:
             # Inject our own env into the seed's globals (the seed expects
             # `env` to be available, same as Odoo shell does for us).
             seed_globals = {"env": env}
-            exec(compile(open(path).read(), path, "exec"), seed_globals)
+            exec(compile(open(resolved).read(), resolved, "exec"), seed_globals)
             env.cr.commit()
             _say(f"    ✓ {label}")
         except Exception as e:
