@@ -33,6 +33,10 @@ on:
         description: "Re-run the bootstrap Job (install modules + seed). Required on the first deploy."
         type: boolean
         default: false
+      upgrade_modules:
+        description: "Comma-separated modules to upgrade (e.g. 'myservice_nrs_base'). Leave blank to skip. Use after a manifest change (asset list, new data files, version bump)."
+        type: string
+        default: ""
 
 concurrency:
   group: deploy-dev
@@ -180,6 +184,32 @@ jobs:
           kubectl -n "${NAMESPACE}" wait --for=condition=complete job/cadra-bootstrap --timeout=20m
           echo "─── bootstrap Job logs ───"
           kubectl -n "${NAMESPACE}" logs job/cadra-bootstrap --all-containers --tail=200
+
+      # Same Deployment-vs-Job PVC contention as bootstrap: scale Odoo to 0,
+      # run the upgrade, then let the next step roll the Deployment back up
+      # with the new image. Triggered only on workflow_dispatch when the
+      # `upgrade_modules` input is non-empty.
+      - name: (Optional) Run module-upgrade Job
+        if: github.event_name == 'workflow_dispatch' && inputs.upgrade_modules != ''
+        env:
+          IMAGE: ${{ needs.build-and-push.outputs.image }}
+          UPGRADE_MODULES: ${{ inputs.upgrade_modules }}
+        run: |
+          set -e
+          if kubectl -n "${NAMESPACE}" get deployment/odoo >/dev/null 2>&1; then
+            kubectl -n "${NAMESPACE}" scale deployment/odoo --replicas=0
+            kubectl -n "${NAMESPACE}" wait --for=delete pod -l app=odoo,job!=upgrade --timeout=2m || true
+          fi
+
+          kubectl -n "${NAMESPACE}" delete job cadra-upgrade --ignore-not-found
+
+          sed -e "s|REPLACE_ME/cadra-odoo:dev|${IMAGE}|g" \
+              -e "s|REPLACE_ME_UPGRADE_MODULES|${UPGRADE_MODULES}|g" \
+              k8s/dev/51-upgrade-job.yaml | kubectl apply -f -
+
+          kubectl -n "${NAMESPACE}" wait --for=condition=complete job/cadra-upgrade --timeout=20m
+          echo "─── upgrade Job logs ───"
+          kubectl -n "${NAMESPACE}" logs job/cadra-upgrade --all-containers --tail=200
 
       - name: Apply Deployment with new image
         env:
