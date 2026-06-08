@@ -30,7 +30,7 @@
             <field name="active"/>
           </group>
           <group>
-            <field name="client_id" readonly="1"/>
+            <field name="client_id"/>
             <field name="user_id"/>
             <field name="token_ttl_seconds"/>
             <field name="scopes" placeholder="dashboard security osint ..."/>
