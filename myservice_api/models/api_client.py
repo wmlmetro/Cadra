@@ -12,7 +12,10 @@ class MyserviceApiClient(models.Model):
     name = fields.Char(required=True)
     active = fields.Boolean(default=True)
 
-    client_id = fields.Char(required=True, index=True, copy=False)
+    client_id = fields.Char(
+        required=True, index=True, copy=False,
+        default=lambda self: 'cli_' + secrets.token_urlsafe(18),
+    )
     client_secret_hash = fields.Char(string='Client Secret Hash', copy=False)
 
     user_id = fields.Many2one(
