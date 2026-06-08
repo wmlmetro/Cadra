@@ -59,13 +59,20 @@ from .utils import (
 _ROUTE_REGISTRY = []
 
 
-def cadra_route(path, *, method="GET", summary="", scopes=(), idempotent=False, success_status=None):
+def cadra_route(path, *, method="GET", summary="", scopes=(), idempotent=False,
+                success_status=None, request_schema=None, request_example=None):
     """REST route registrar + auth/envelope wrapper.
 
     method:          "GET" | "POST" | "PATCH" | "PUT" | "DELETE"
     success_status:  HTTP status on success. Defaults:
                        - 201 for POST on resource collections (no path-id)
                        - 200 otherwise
+    request_schema:  OpenAPI JSON-schema dict for the request body
+                     (POST/PATCH/PUT only). When omitted, Swagger shows
+                     a generic free-form object stub.
+    request_example: Example body Swagger renders in the "Try it out"
+                     panel. Highly recommended whenever request_schema
+                     is supplied so users see realistic input.
     """
     method = method.upper()
 
@@ -85,6 +92,8 @@ def cadra_route(path, *, method="GET", summary="", scopes=(), idempotent=False, 
             "scopes": list(scopes),
             "idempotent": idempotent,
             "success_status": success_status,
+            "request_schema": request_schema,
+            "request_example": request_example,
         })
         wrapped = cadra_endpoint(
             scopes=scopes,
@@ -235,6 +244,23 @@ class MyserviceApiV1(http.Controller):
                             }
                         },
                     },
+                    "SapEmployee": {
+                        "type": "object",
+                        "description": ("SuccessFactors employee payload. Either "
+                                        "`ir_number` or `userId` must be present so "
+                                        "the row can be matched."),
+                        "properties": {
+                            "ir_number": {"type": "string", "description": "Cadra IR/staff number"},
+                            "userId": {"type": "string", "description": "SAP user id (fallback match key)"},
+                            "firstName": {"type": "string"},
+                            "lastName": {"type": "string"},
+                            "email": {"type": "string", "format": "email"},
+                            "department": {"type": "string"},
+                            "jobTitle": {"type": "string"},
+                            "status": {"type": "string",
+                                       "enum": ["active", "inactive", "terminated"]},
+                        },
+                    },
                 },
             },
             "paths": {},
@@ -288,20 +314,21 @@ class MyserviceApiV1(http.Controller):
 
             # Request body — only for POST/PATCH/PUT.
             if entry["method"] in ("POST", "PATCH", "PUT"):
+                schema = entry.get("request_schema") or {
+                    "type": "object",
+                    "description": (
+                        "Flat JSON body. See the route summary "
+                        "for the expected fields."
+                    ),
+                }
+                media = {"schema": schema}
+                if entry.get("request_example") is not None:
+                    media["example"] = entry["request_example"]
+                else:
+                    media["example"] = {}
                 op["requestBody"] = {
                     "required": True,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "description": (
-                                    "Flat JSON body. See the route summary "
-                                    "for the expected fields."
-                                ),
-                            },
-                            "example": {},
-                        }
-                    },
+                    "content": {"application/json": media},
                 }
 
             spec["paths"].setdefault(spec_path, {})[method_lc] = op
@@ -521,7 +548,32 @@ class MyserviceApiV1(http.Controller):
     @cadra_route("/api/v1/home/quick-submit", method="POST",
                  summary="Submit a service request from the homepage",
                  scopes=[SCOPE_REQUESTS_WRITE],
-                 idempotent=True)
+                 idempotent=True,
+                 request_schema={
+                     "type": "object",
+                     "required": ["type_id", "description"],
+                     "properties": {
+                         "type_id": {"type": "integer", "description": "request.type id"},
+                         "service_id": {"type": "integer", "nullable": True},
+                         "location_id": {"type": "integer", "nullable": True,
+                                         "description": "generic.location id"},
+                         "priority": {"type": "string", "enum": ["0", "1", "2", "3"],
+                                      "description": "0=low, 1=normal, 2=high, 3=urgent"},
+                         "description": {"type": "string"},
+                         "reporter_name": {"type": "string", "nullable": True},
+                         "reporter_contact": {"type": "string", "nullable": True,
+                                              "description": "Phone or email"},
+                     },
+                 },
+                 request_example={
+                     "type_id": 1,
+                     "service_id": 4,
+                     "location_id": 12,
+                     "priority": "2",
+                     "description": "Leaking pipe in the cafeteria sink",
+                     "reporter_name": "Jane Doe",
+                     "reporter_contact": "jane.doe@example.com",
+                 })
     def home_quick_submit(self, **kwargs):
         from odoo.addons.myservice_website_theme.controllers.api import NRSHomepageAPI
         return NRSHomepageAPI().quick_submit(**(get_params() or {}))
@@ -532,7 +584,25 @@ class MyserviceApiV1(http.Controller):
                  summary="Receive SAP SuccessFactors employee sync events",
                  scopes=[SCOPE_INTEGRATIONS_WRITE],
                  idempotent=True,
-                 success_status=200)  # action endpoint, not a resource create
+                 success_status=200,  # action endpoint, not a resource create
+                 request_schema={
+                     "oneOf": [
+                         {"$ref": "#/components/schemas/SapEmployee"},
+                         {"type": "array",
+                          "items": {"$ref": "#/components/schemas/SapEmployee"}},
+                     ],
+                     "description": "Single employee object or a list of employee objects.",
+                 },
+                 request_example=[{
+                     "ir_number": "IR123456",
+                     "userId": "u-123",
+                     "firstName": "Ada",
+                     "lastName": "Lovelace",
+                     "email": "ada@example.com",
+                     "department": "Engineering",
+                     "jobTitle": "Principal Engineer",
+                     "status": "active",
+                 }])
     def sap_employee_sync(self, **kwargs):
         payload = get_params()
         # Allow either a single object or a list of employee dicts
@@ -560,7 +630,30 @@ class MyserviceApiV1(http.Controller):
                  summary="Apply an external workflow engine's decision to a request",
                  scopes=[SCOPE_INTEGRATIONS_WRITE],
                  idempotent=True,
-                 success_status=200)  # action endpoint, not a resource create
+                 success_status=200,  # action endpoint, not a resource create
+                 request_schema={
+                     "type": "object",
+                     "required": ["reference", "outcome"],
+                     "properties": {
+                         "reference": {"type": "string",
+                                       "description": "request.request.name (e.g. INCIDENT-052026-0000002)"},
+                         "outcome": {"type": "string",
+                                     "enum": ["approved", "rejected", "queried"]},
+                         "workspace_ref": {"type": "string", "nullable": True,
+                                           "description": "External workflow engine's workspace identifier"},
+                         "payment_ref": {"type": "string", "nullable": True,
+                                         "description": "Optional payment reference (approved outcomes)"},
+                         "comment": {"type": "string", "nullable": True,
+                                     "description": "Reviewer comment / reason"},
+                     },
+                 },
+                 request_example={
+                     "reference": "INCIDENT-052026-0000002",
+                     "outcome": "approved",
+                     "workspace_ref": "WSP-7788",
+                     "payment_ref": "PAY-2026-04412",
+                     "comment": "Approved by finance",
+                 })
     def workflow_callback_v1(self, **kwargs):
         data = get_params()
         if not isinstance(data, dict):

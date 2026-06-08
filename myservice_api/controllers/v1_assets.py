@@ -262,7 +262,64 @@ class CadraAssetsV1(http.Controller):
     @cadra_route("/api/v1/assets", method="POST",
                  summary="Create a new asset (asset_code auto-generated if omitted)",
                  scopes=[SCOPE_ASSETS_WRITE],
-                 idempotent=True)
+                 idempotent=True,
+                 request_schema={
+                     "type": "object",
+                     "required": ["name"],
+                     "properties": {
+                         "name": {"type": "string"},
+                         "asset_tag": {"type": "string", "nullable": True,
+                                       "description": "Physical tag/barcode"},
+                         "legacy_asset_code": {"type": "string", "nullable": True},
+                         "serial_number": {"type": "string", "nullable": True},
+                         "make": {"type": "string", "nullable": True},
+                         "model_name": {"type": "string", "nullable": True},
+                         "manufacturer": {"type": "string", "nullable": True},
+                         "category_id": {"type": "integer", "nullable": True},
+                         "subcategory_id": {"type": "integer", "nullable": True},
+                         "asset_type_id": {"type": "integer", "nullable": True},
+                         "asset_level": {"type": "string", "nullable": True},
+                         "domain": {"type": "string", "nullable": True},
+                         "parent_id": {"type": "integer", "nullable": True},
+                         "building_id": {"type": "integer", "nullable": True},
+                         "floor_id": {"type": "integer", "nullable": True},
+                         "room_id": {"type": "integer", "nullable": True},
+                         "location_id": {"type": "integer", "nullable": True},
+                         "custodian_id": {"type": "integer", "nullable": True,
+                                          "description": "hr.employee id"},
+                         "department": {"type": "string", "nullable": True},
+                         "condition": {"type": "string",
+                                       "enum": ["new", "good", "fair", "poor", "damaged"]},
+                         "state": {"type": "string",
+                                   "enum": ["active", "in_repair", "disposed",
+                                            "transferred", "missing"]},
+                         "currency_id": {"type": "integer", "nullable": True},
+                         "purchase_date": {"type": "string", "format": "date", "nullable": True},
+                         "warranty_expiry": {"type": "string", "format": "date", "nullable": True},
+                         "purchase_value": {"type": "number", "nullable": True},
+                         "replacement_cost": {"type": "number", "nullable": True},
+                         "acquisition_date": {"type": "string", "format": "date", "nullable": True},
+                         "acquisition_cost": {"type": "number", "nullable": True},
+                         "current_value": {"type": "number", "nullable": True},
+                         "maintenance_vendor_id": {"type": "integer", "nullable": True},
+                         "notes": {"type": "string", "nullable": True},
+                     },
+                 },
+                 request_example={
+                     "name": "Dell Latitude 7430",
+                     "asset_tag": "NRS-LT-00421",
+                     "serial_number": "5XJZ8T3",
+                     "make": "Dell",
+                     "model_name": "Latitude 7430",
+                     "manufacturer": "Dell Inc.",
+                     "category_id": 7,
+                     "location_id": 12,
+                     "custodian_id": 105,
+                     "condition": "new",
+                     "state": "active",
+                     "purchase_date": "2026-05-10",
+                     "purchase_value": 1850.00,
+                 })
     def create_asset(self, **kwargs):
         body = get_params()
         vals, rejected = _filter_writable(body)
@@ -280,7 +337,28 @@ class CadraAssetsV1(http.Controller):
     @cadra_route("/api/v1/assets/<int:id>", method="PATCH",
                  summary="Partial update of an asset",
                  scopes=[SCOPE_ASSETS_WRITE],
-                 idempotent=True)
+                 idempotent=True,
+                 request_schema={
+                     "type": "object",
+                     "description": ("Any subset of the writable fields from POST "
+                                     "/api/v1/assets. Unknown fields are rejected "
+                                     "and reported under `_warnings`."),
+                     "properties": {
+                         "name": {"type": "string"},
+                         "condition": {"type": "string",
+                                       "enum": ["new", "good", "fair", "poor", "damaged"]},
+                         "state": {"type": "string",
+                                   "enum": ["active", "in_repair", "disposed",
+                                            "transferred", "missing"]},
+                         "notes": {"type": "string"},
+                         "custodian_id": {"type": "integer"},
+                         "location_id": {"type": "integer"},
+                     },
+                 },
+                 request_example={
+                     "condition": "fair",
+                     "notes": "Hinge cracked — flagged for replacement.",
+                 })
     def patch_asset(self, id, **kwargs):
         rec, error = _browse_or_404(id)
         if error:
@@ -301,7 +379,20 @@ class CadraAssetsV1(http.Controller):
     @cadra_route("/api/v1/assets/<int:id>/move", method="POST",
                  summary="Move asset to a new location (creates an nrs.asset.transfer row)",
                  scopes=[SCOPE_ASSETS_WRITE],
-                 idempotent=True)
+                 idempotent=True,
+                 request_schema={
+                     "type": "object",
+                     "required": ["to_location_id"],
+                     "properties": {
+                         "to_location_id": {"type": "integer",
+                                            "description": "Destination generic.location id"},
+                         "reason": {"type": "string", "nullable": True},
+                     },
+                 },
+                 request_example={
+                     "to_location_id": 47,
+                     "reason": "Reassigned to new project room",
+                 })
     def move_asset(self, id, **kwargs):
         rec, error = _browse_or_404(id)
         if error:
@@ -352,7 +443,20 @@ class CadraAssetsV1(http.Controller):
     @cadra_route("/api/v1/assets/<int:id>/transfer-custody", method="POST",
                  summary="Transfer custody to a different hr.employee",
                  scopes=[SCOPE_ASSETS_WRITE],
-                 idempotent=True)
+                 idempotent=True,
+                 request_schema={
+                     "type": "object",
+                     "required": ["to_custodian_id"],
+                     "properties": {
+                         "to_custodian_id": {"type": "integer",
+                                             "description": "New custodian hr.employee id"},
+                         "reason": {"type": "string", "nullable": True},
+                     },
+                 },
+                 request_example={
+                     "to_custodian_id": 218,
+                     "reason": "Previous custodian left the company",
+                 })
     def transfer_custody(self, id, **kwargs):
         """Reassign the asset's custodian. The audit trail comes via Odoo's
         mail.thread auto-logging (custodian_id has tracking=True) plus an

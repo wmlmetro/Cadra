@@ -228,7 +228,49 @@ class CadraLocationsV1(http.Controller):
     @cadra_route("/api/v1/locations", method="POST",
                  summary="Create a new location",
                  scopes=[SCOPE_LOCATIONS_WRITE],
-                 idempotent=True)
+                 idempotent=True,
+                 request_schema={
+                     "type": "object",
+                     "required": ["name"],
+                     "properties": {
+                         "name": {"type": "string"},
+                         "description": {"type": "string", "nullable": True},
+                         "active": {"type": "boolean", "default": True},
+                         "parent_id": {"type": "integer", "nullable": True,
+                                       "description": "Parent generic.location id"},
+                         "type_id": {"type": "integer", "nullable": True,
+                                     "description": "generic.location.type id"},
+                         "location_type": {"type": "string", "nullable": True,
+                                           "description": "NRS Selection (zone/state/city/etc.)"},
+                         "street": {"type": "string", "nullable": True},
+                         "street2": {"type": "string", "nullable": True},
+                         "zip": {"type": "string", "nullable": True},
+                         "city": {"type": "string", "nullable": True},
+                         "state_id": {"type": "integer", "nullable": True,
+                                      "description": "res.country.state id"},
+                         "country_id": {"type": "integer", "nullable": True,
+                                        "description": "res.country id"},
+                         "latitude": {"type": "number", "format": "float", "nullable": True},
+                         "longitude": {"type": "number", "format": "float", "nullable": True},
+                         "zone_code": {"type": "string", "nullable": True},
+                         "floor_number": {"type": "integer", "nullable": True},
+                         "building_id": {"type": "integer", "nullable": True},
+                         "partner_id": {"type": "integer", "nullable": True},
+                     },
+                 },
+                 request_example={
+                     "name": "Block C - 3rd Floor",
+                     "description": "Engineering wing",
+                     "parent_id": 12,
+                     "type_id": 4,
+                     "location_type": "floor",
+                     "street": "10 Cadra Way",
+                     "city": "Abuja",
+                     "country_id": 156,
+                     "latitude": 9.0765,
+                     "longitude": 7.3986,
+                     "floor_number": 3,
+                 })
     def create_location(self, **kwargs):
         body = get_params()
         vals, rejected = _filter_writable(body)
@@ -246,7 +288,27 @@ class CadraLocationsV1(http.Controller):
     @cadra_route("/api/v1/locations/<int:id>", method="PATCH",
                  summary="Partial update of a location",
                  scopes=[SCOPE_LOCATIONS_WRITE],
-                 idempotent=True)
+                 idempotent=True,
+                 request_schema={
+                     "type": "object",
+                     "description": ("Any subset of the writable fields from POST "
+                                     "/api/v1/locations. Unknown fields are "
+                                     "rejected and reported under `_warnings`."),
+                     "properties": {
+                         "name": {"type": "string"},
+                         "description": {"type": "string", "nullable": True},
+                         "active": {"type": "boolean"},
+                         "parent_id": {"type": "integer", "nullable": True},
+                         "street": {"type": "string"},
+                         "city": {"type": "string"},
+                         "latitude": {"type": "number", "format": "float"},
+                         "longitude": {"type": "number", "format": "float"},
+                     },
+                 },
+                 request_example={
+                     "description": "Engineering wing — renamed after 2026 reorg",
+                     "active": True,
+                 })
     def patch_location(self, id, **kwargs):
         rec, error = _browse_or_404(id)
         if error:

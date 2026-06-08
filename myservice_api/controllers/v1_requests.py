@@ -278,7 +278,45 @@ class CadraRequestsV1(http.Controller):
     @cadra_route("/api/v1/requests", method="POST",
                  summary="Create a new request (name + stage auto-assigned from type)",
                  scopes=[SCOPE_REQUESTS_WRITE],
-                 idempotent=True)
+                 idempotent=True,
+                 request_schema={
+                     "type": "object",
+                     "required": ["type_id", "request_text"],
+                     "properties": {
+                         "type_id": {"type": "integer", "description": "request.type id"},
+                         "category_id": {"type": "integer", "nullable": True},
+                         "request_text": {"type": "string",
+                                          "description": "Issue description (HTML allowed)"},
+                         "priority": {"type": "string",
+                                      "enum": ["0", "1", "2", "3"],
+                                      "description": "0=low, 1=normal, 2=high, 3=urgent"},
+                         "impact": {"type": "string", "nullable": True},
+                         "urgency": {"type": "string", "nullable": True},
+                         "author_id": {"type": "integer", "nullable": True,
+                                       "description": "res.partner id"},
+                         "user_id": {"type": "integer", "nullable": True,
+                                     "description": "Initial assignee (res.users id)"},
+                         "partner_id": {"type": "integer", "nullable": True},
+                         "service_id": {"type": "integer", "nullable": True},
+                         "parent_id": {"type": "integer", "nullable": True},
+                         "deadline_date": {"type": "string", "format": "date-time", "nullable": True},
+                         "tag_ids": {"type": "array", "items": {"type": "integer"},
+                                     "nullable": True},
+                         "location_id": {"type": "integer", "nullable": True},
+                         "vehicle_id": {"type": "integer", "nullable": True},
+                         "nrs_asset_id": {"type": "integer", "nullable": True,
+                                          "description": "Related nrs.asset id"},
+                     },
+                 },
+                 request_example={
+                     "type_id": 1,
+                     "category_id": 3,
+                     "request_text": "Air conditioner in conference room B-2 is leaking water onto the floor.",
+                     "priority": "2",
+                     "service_id": 4,
+                     "location_id": 12,
+                     "nrs_asset_id": 87,
+                 })
     def create_request(self, **kwargs):
         body = get_params()
         vals, rejected = _filter_writable(body)
@@ -299,7 +337,30 @@ class CadraRequestsV1(http.Controller):
     @cadra_route("/api/v1/requests/<int:id>", method="PATCH",
                  summary="Partial update of a request (stage changes go through /transition)",
                  scopes=[SCOPE_REQUESTS_WRITE],
-                 idempotent=True)
+                 idempotent=True,
+                 request_schema={
+                     "type": "object",
+                     "description": ("Any subset of the writable fields from POST "
+                                     "/api/v1/requests. `stage_id` is intentionally "
+                                     "excluded — use POST .../transition. Unknown "
+                                     "fields are reported under `_warnings`."),
+                     "properties": {
+                         "priority": {"type": "string", "enum": ["0", "1", "2", "3"]},
+                         "impact": {"type": "string"},
+                         "urgency": {"type": "string"},
+                         "kanban_state": {"type": "string",
+                                          "enum": ["normal", "done", "blocked"]},
+                         "response_text": {"type": "string"},
+                         "user_id": {"type": "integer"},
+                         "deadline_date": {"type": "string", "format": "date-time"},
+                         "tag_ids": {"type": "array", "items": {"type": "integer"}},
+                     },
+                 },
+                 request_example={
+                     "priority": "3",
+                     "kanban_state": "blocked",
+                     "response_text": "Waiting on parts ETA from vendor.",
+                 })
     def patch_request(self, id, **kwargs):
         rec, error = _browse_or_404(id)
         if error:
@@ -321,7 +382,16 @@ class CadraRequestsV1(http.Controller):
     @cadra_route("/api/v1/requests/<int:id>/assign", method="POST",
                  summary="Assign request to a res.users (body: {user_id: int|null})",
                  scopes=[SCOPE_REQUESTS_WRITE],
-                 idempotent=True)
+                 idempotent=True,
+                 request_schema={
+                     "type": "object",
+                     "required": ["user_id"],
+                     "properties": {
+                         "user_id": {"type": "integer", "nullable": True,
+                                     "description": "res.users id; null to unassign"},
+                     },
+                 },
+                 request_example={"user_id": 42})
     def assign_request(self, id, **kwargs):
         rec, error = _browse_or_404(id)
         if error:
@@ -348,7 +418,19 @@ class CadraRequestsV1(http.Controller):
     @cadra_route("/api/v1/requests/<int:id>/transition", method="POST",
                  summary="Move the request to the next stage via a stage route (body: {route_id|to_stage_id})",
                  scopes=[SCOPE_REQUESTS_WRITE],
-                 idempotent=True)
+                 idempotent=True,
+                 request_schema={
+                     "type": "object",
+                     "description": ("Provide either `route_id` (request.stage.route id) "
+                                     "or `to_stage_id` (request.stage id). If neither "
+                                     "is given, the error response lists the legal "
+                                     "outbound routes from the current stage."),
+                     "properties": {
+                         "route_id": {"type": "integer", "nullable": True},
+                         "to_stage_id": {"type": "integer", "nullable": True},
+                     },
+                 },
+                 request_example={"to_stage_id": 5})
     def transition_request(self, id, **kwargs):
         rec, error = _browse_or_404(id)
         if error:
@@ -416,7 +498,24 @@ class CadraRequestsV1(http.Controller):
     @cadra_route("/api/v1/requests/<int:id>/comment", method="POST",
                  summary="Post a comment on a request via mail.thread (body: {body, internal?:bool})",
                  scopes=[SCOPE_REQUESTS_WRITE],
-                 idempotent=True)
+                 idempotent=True,
+                 request_schema={
+                     "type": "object",
+                     "required": ["body"],
+                     "properties": {
+                         "body": {"type": "string",
+                                  "description": "HTML or plain text body of the comment"},
+                         "internal": {"type": "boolean", "default": True,
+                                      "description": ("true = internal note "
+                                                      "(mail.mt_note), false = "
+                                                      "customer-visible comment "
+                                                      "(mail.mt_comment)")},
+                     },
+                 },
+                 request_example={
+                     "body": "<p>Customer called — needs ETA before end of day.</p>",
+                     "internal": False,
+                 })
     def comment_request(self, id, **kwargs):
         rec, error = _browse_or_404(id)
         if error:
