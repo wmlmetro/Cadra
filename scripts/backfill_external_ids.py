@@ -98,7 +98,14 @@ def existing_xids(models, db, uid, password, model, names):
 
 def upsert_xids(models, db, uid, password, model, mapping, dry_run, label):
     """`mapping` is {short_xid_name -> db_id}. Create ir.model.data rows for
-    every short name that doesn't already exist. Returns (created, skipped)."""
+    every short name that doesn't already exist. Returns (created, skipped).
+
+    Uses bulk create — one RPC per BATCH rows instead of one per row. On a
+    11k-row backfill against a remote Odoo this is the difference between
+    ~20 min (per-row) and ~1 min (bulk). If a batch fails as a whole, we
+    fall back to per-row inserts for that batch so one bad row doesn't
+    sink the rest.
+    """
     already = existing_xids(models, db, uid, password, model, mapping.keys())
     to_create = [(n, rid) for n, rid in mapping.items() if n not in already]
     print(f"  {label}: {len(mapping)} requested, {len(already)} already there, "
@@ -109,15 +116,21 @@ def upsert_xids(models, db, uid, password, model, mapping, dry_run, label):
     BATCH = 500
     for i in range(0, len(to_create), BATCH):
         chunk = to_create[i:i + BATCH]
-        for name, res_id in chunk:
-            try:
-                rpc(models, db, uid, password, "ir.model.data", "create",
-                    {"module": "__export__", "name": name,
-                     "model": model, "res_id": res_id, "noupdate": False})
-                created += 1
-            except Exception as e:
-                print(f"    ! could not create __export__.{name} for {model} "
-                      f"id={res_id}: {e}")
+        vals_list = [{"module": "__export__", "name": name,
+                      "model": model, "res_id": rid, "noupdate": False}
+                     for name, rid in chunk]
+        try:
+            rpc(models, db, uid, password, "ir.model.data", "create", vals_list)
+            created += len(chunk)
+        except Exception as e:
+            # Fall back to per-row to localise the bad row(s).
+            print(f"    ! bulk batch failed ({e}); falling back row-by-row")
+            for vals, (name, rid) in zip(vals_list, chunk):
+                try:
+                    rpc(models, db, uid, password, "ir.model.data", "create", vals)
+                    created += 1
+                except Exception as e2:
+                    print(f"      ! __export__.{name} → {model} id={rid}: {e2}")
         print(f"    + created {min(i + BATCH, len(to_create))}/{len(to_create)}")
     return created, len(already)
 
