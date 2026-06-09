@@ -35,7 +35,8 @@ body, .o_web_client, input, select, textarea, button {
 /* Nav items */
 .o_main_navbar .o_menu_sections a,
 .o_main_navbar .o_menu_sections .o_nav_entry,
-.o_main_navbar .o_menu_sections .o_dropdown_title {
+.o_main_navbar .o_menu_sections .o_dropdown_title,
+.o_main_navbar .o_menu_sections .o-dropdown .dropdown-toggle {
     color: var(--nrs-ink-1) !important;
     text-decoration: none !important;
     white-space: nowrap !important;
@@ -47,19 +48,33 @@ body, .o_web_client, input, select, textarea, button {
     font-weight: 600 !important;
 }
 
+/* Inner <span> label inside Odoo 17 dropdown-toggle buttons inherits a
+   white-on-dark default; force it to match the navbar text color. */
+.o_main_navbar .o_menu_sections .o-dropdown .dropdown-toggle span {
+    color: var(--nrs-ink-1) !important;
+}
+
 .o_main_navbar .o_menu_sections .o_nav_entry:hover,
-.o_main_navbar .o_menu_sections .o_dropdown_title:hover {
+.o_main_navbar .o_menu_sections .o_dropdown_title:hover,
+.o_main_navbar .o_menu_sections .o-dropdown .dropdown-toggle:hover {
     color: var(--nrs-ink) !important;
     background: var(--nrs-bg-hover) !important;
     border-radius: 5px !important;
 }
+.o_main_navbar .o_menu_sections .o-dropdown .dropdown-toggle:hover span {
+    color: var(--nrs-ink) !important;
+}
 
 /* Systray */
 .o_main_navbar .o_menu_systray .o_nav_entry,
-.o_main_navbar .o_menu_systray a {
-    color: var(--nrs-ink-ghost) !important;
+.o_main_navbar .o_menu_systray a,
+.o_main_navbar .o_menu_systray .o-dropdown .dropdown-toggle,
+.o_main_navbar .o_menu_systray .o-dropdown .dropdown-toggle .oe_topbar_name {
+    color: var(--nrs-ink-1) !important;
 }
-.o_main_navbar .o_menu_systray .o_nav_entry:hover {
+.o_main_navbar .o_menu_systray .o_nav_entry:hover,
+.o_main_navbar .o_menu_systray .o-dropdown .dropdown-toggle:hover,
+.o_main_navbar .o_menu_systray .o-dropdown .dropdown-toggle:hover .oe_topbar_name {
     color: var(--nrs-ink) !important;
     background: var(--nrs-bg-hover) !important;
     border-radius: 5px !important;
