@@ -82,6 +82,10 @@ class IrMailServer(models.Model):
             )
 
         payload = self._build_relay_payload(message, relay_secret)
+        _logger.debug(
+            "email relay: POST %s (secret_len=%d, prefix=%r)",
+            relay_url, len(relay_secret), relay_secret[:6],
+        )
         try:
             response = requests.post(
                 relay_url, json=payload, timeout=RELAY_TIMEOUT_SECONDS,
