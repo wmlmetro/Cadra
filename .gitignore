@@ -24,3 +24,8 @@ tests/.pytest_cache/
 docs/api/test-responses/
 docs/api/test-report.md
 docs/Nominal Roll 230325 TO UPLOADs.xlsx
+docs/employee.xlsx
+docs/temp firs.xlsx
+
+# Seed-data pack (PII: ~11k staff, ~12k asset records). Operator-side only.
+docs/seed/
