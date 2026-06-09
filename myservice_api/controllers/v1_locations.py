@@ -31,7 +31,7 @@ from .utils import (
     paginate,
     parse_limit,
 )
-from .v1 import cadra_route
+from .v1 import PAGINATION_QUERY_PARAMS, cadra_route
 
 
 # ─── serializer ──────────────────────────────────────────────────────
@@ -191,8 +191,20 @@ class CadraLocationsV1(http.Controller):
     # ── List: GET /api/v1/locations ────────────────────────────────
 
     @cadra_route("/api/v1/locations", method="GET",
-                 summary="List locations with filters (?q, ?type_id, ?parent_id, ?country_id, ?state_id, ?location_type, ?active, ?has_coordinates, ?limit, ?cursor) and cursor pagination",
-                 scopes=[SCOPE_LOCATIONS_READ])
+                 summary="List locations with filters and cursor pagination",
+                 scopes=[SCOPE_LOCATIONS_READ],
+                 query_params=[
+                     {"name": "q", "schema": {"type": "string"},
+                      "description": "Free-text search across name and code"},
+                     {"name": "type_id", "schema": {"type": "integer"}},
+                     {"name": "parent_id", "schema": {"type": "integer"}},
+                     {"name": "country_id", "schema": {"type": "integer"}},
+                     {"name": "state_id", "schema": {"type": "integer"}},
+                     {"name": "location_type", "schema": {"type": "string"}},
+                     {"name": "active", "schema": {"type": "boolean"}},
+                     {"name": "has_coordinates", "schema": {"type": "boolean"}},
+                     *PAGINATION_QUERY_PARAMS,
+                 ])
     def list_locations(self, **kwargs):
         qs = get_params()
         Location = request.env["generic.location"].sudo()
@@ -214,8 +226,12 @@ class CadraLocationsV1(http.Controller):
     # ── Get single: GET /api/v1/locations/<id> ─────────────────────
 
     @cadra_route("/api/v1/locations/<int:id>", method="GET",
-                 summary="Get a single location by id (?include=children,ancestors)",
-                 scopes=[SCOPE_LOCATIONS_READ])
+                 summary="Get a single location by id",
+                 scopes=[SCOPE_LOCATIONS_READ],
+                 query_params=[
+                     {"name": "include", "schema": {"type": "string"},
+                      "description": "Comma-separated optional sections: children, ancestors"},
+                 ])
     def get_location(self, id, **kwargs):
         rec, error = _browse_or_404(id)
         if error:

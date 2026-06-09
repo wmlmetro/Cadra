@@ -28,7 +28,7 @@ from .utils import (
     paginate,
     parse_limit,
 )
-from .v1 import cadra_route
+from .v1 import PAGINATION_QUERY_PARAMS, cadra_route
 
 
 # ─── small helpers ───────────────────────────────────────────────────
@@ -211,8 +211,28 @@ class CadraAssetsV1(http.Controller):
     # ── List: GET /api/v1/assets ───────────────────────────────────
 
     @cadra_route("/api/v1/assets", method="GET",
-                 summary="List assets with filters (?q, ?category_id, ?location_id, ?building_id, ?custodian_id, ?state, ?condition, ?domain, ?is_verified, ?limit, ?cursor)",
-                 scopes=[SCOPE_ASSETS_READ])
+                 summary="List assets with filters and cursor pagination",
+                 scopes=[SCOPE_ASSETS_READ],
+                 query_params=[
+                     {"name": "q", "schema": {"type": "string"},
+                      "description": "Free-text search across name, asset_code, asset_tag, serial_number"},
+                     {"name": "category_id", "schema": {"type": "integer"}},
+                     {"name": "subcategory_id", "schema": {"type": "integer"}},
+                     {"name": "location_id", "schema": {"type": "integer"}},
+                     {"name": "building_id", "schema": {"type": "integer"}},
+                     {"name": "floor_id", "schema": {"type": "integer"}},
+                     {"name": "room_id", "schema": {"type": "integer"}},
+                     {"name": "custodian_id", "schema": {"type": "integer"}},
+                     {"name": "parent_id", "schema": {"type": "integer"}},
+                     {"name": "state", "schema": {"type": "string",
+                      "enum": ["active", "in_repair", "disposed", "transferred", "missing"]}},
+                     {"name": "condition", "schema": {"type": "string",
+                      "enum": ["new", "good", "fair", "poor", "damaged"]}},
+                     {"name": "domain", "schema": {"type": "string"}},
+                     {"name": "asset_level", "schema": {"type": "string"}},
+                     {"name": "is_verified", "schema": {"type": "boolean"}},
+                     *PAGINATION_QUERY_PARAMS,
+                 ])
     def list_assets(self, **kwargs):
         qs = get_params()
         Asset = request.env["nrs.asset"].sudo()
@@ -234,8 +254,12 @@ class CadraAssetsV1(http.Controller):
     # ── Get single: GET /api/v1/assets/<id> ────────────────────────
 
     @cadra_route("/api/v1/assets/<int:id>", method="GET",
-                 summary="Get a single asset by id (?include=transfers,pm,children)",
-                 scopes=[SCOPE_ASSETS_READ])
+                 summary="Get a single asset by id",
+                 scopes=[SCOPE_ASSETS_READ],
+                 query_params=[
+                     {"name": "include", "schema": {"type": "string"},
+                      "description": "Comma-separated optional sections: transfers, pm, children"},
+                 ])
     def get_asset(self, id, **kwargs):
         rec, error = _browse_or_404(id)
         if error:
@@ -247,7 +271,11 @@ class CadraAssetsV1(http.Controller):
 
     @cadra_route("/api/v1/assets/by-tag/<string:tag>", method="GET",
                  summary="Get a single asset by asset_tag (or asset_code as fallback)",
-                 scopes=[SCOPE_ASSETS_READ])
+                 scopes=[SCOPE_ASSETS_READ],
+                 query_params=[
+                     {"name": "include", "schema": {"type": "string"},
+                      "description": "Comma-separated optional sections: transfers, pm, children"},
+                 ])
     def get_asset_by_tag(self, tag, **kwargs):
         Asset = request.env["nrs.asset"].sudo()
         rec = Asset.search([("asset_tag", "=", tag)], limit=1) \

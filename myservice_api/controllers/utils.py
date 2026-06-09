@@ -15,7 +15,15 @@ import logging
 import time
 import uuid
 
+import psycopg2
+
 from odoo import fields
+from odoo.exceptions import (
+    AccessError,
+    MissingError,
+    UserError,
+    ValidationError,
+)
 from odoo.http import request
 
 _logger = logging.getLogger(__name__)
@@ -200,20 +208,29 @@ def jwt_encode(payload, secret):
 def jwt_decode(token, secret):
     try:
         header_b64, payload_b64, sig_b64 = token.split(".")
-    except ValueError:
+    except (AttributeError, ValueError):
         raise JwtError("Malformed token")
 
-    header = json.loads(_b64url_decode(header_b64).decode("utf-8"))
-    if header.get("alg") != "HS256":
-        raise JwtError("Unsupported alg")
+    try:
+        header = json.loads(_b64url_decode(header_b64).decode("utf-8"))
+        if header.get("alg") != "HS256":
+            raise JwtError("Unsupported alg")
 
-    signing_input = f"{header_b64}.{payload_b64}".encode("ascii")
-    expected = hmac.new(secret.encode("utf-8"), signing_input, hashlib.sha256).digest()
-    actual = _b64url_decode(sig_b64)
-    if not hmac.compare_digest(expected, actual):
-        raise JwtError("Bad signature")
+        signing_input = f"{header_b64}.{payload_b64}".encode("ascii")
+        expected = hmac.new(secret.encode("utf-8"), signing_input, hashlib.sha256).digest()
+        actual = _b64url_decode(sig_b64)
+        if not hmac.compare_digest(expected, actual):
+            raise JwtError("Bad signature")
 
-    payload = json.loads(_b64url_decode(payload_b64).decode("utf-8"))
+        payload = json.loads(_b64url_decode(payload_b64).decode("utf-8"))
+    except JwtError:
+        raise
+    except Exception:
+        # Catch base64 padding errors, JSON decode errors, unicode errors —
+        # anything that signals "this is not a well-formed JWT". Maps them
+        # all onto JwtError so require_jwt returns 401 instead of 500.
+        raise JwtError("Malformed token")
+
     exp = payload.get("exp")
     if exp and int(exp) < int(time.time()):
         raise JwtError("Token expired")
@@ -258,7 +275,11 @@ def require_jwt(scopes=()):
 
     try:
         claims = jwt_decode(token, secret)
-    except JwtError:
+    except JwtError as e:
+        _logger.info(
+            "JWT rejected (%s) — token_prefix=%r token_len=%d dots=%d",
+            e, token[:24], len(token), token.count("."),
+        )
         return None, err(ERR_UNAUTHORIZED, "Invalid token", status=401), None
 
     uid = claims.get("uid")
@@ -500,8 +521,59 @@ def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
             # Call the endpoint
             try:
                 result = fn(*args, **kwargs)
+            except (UserError, ValidationError) as e:
+                # Odoo-level validation: ondelete, @api.constrains,
+                # explicit raise UserError in business code.
+                request.env.cr.rollback()
+                return _http_response(err(
+                    ERR_VALIDATION_FAILED, str(e) or e.__class__.__name__,
+                    status=400,
+                ))
+            except MissingError as e:
+                request.env.cr.rollback()
+                return _http_response(err(ERR_NOT_FOUND, str(e), status=404))
+            except AccessError as e:
+                request.env.cr.rollback()
+                return _http_response(err(ERR_FORBIDDEN, str(e), status=403))
+            except psycopg2.errors.UniqueViolation as e:
+                request.env.cr.rollback()
+                return _http_response(err(
+                    ERR_CONFLICT, "Unique constraint violation",
+                    status=409,
+                    details={"db_detail": (e.diag.message_detail or "").strip() or None,
+                             "constraint": e.diag.constraint_name},
+                ))
+            except psycopg2.errors.ForeignKeyViolation as e:
+                request.env.cr.rollback()
+                return _http_response(err(
+                    ERR_VALIDATION_FAILED,
+                    "Referenced record does not exist",
+                    status=400,
+                    details={"db_detail": (e.diag.message_detail or "").strip() or None,
+                             "constraint": e.diag.constraint_name},
+                ))
+            except psycopg2.errors.NotNullViolation as e:
+                request.env.cr.rollback()
+                return _http_response(err(
+                    ERR_VALIDATION_FAILED,
+                    f"Required field missing: {e.diag.column_name}",
+                    status=400,
+                    details={"column": e.diag.column_name,
+                             "table": e.diag.table_name},
+                ))
+            except psycopg2.IntegrityError as e:
+                # Catch-all for any other DB integrity issue (check
+                # constraints, exclusion constraints, etc.).
+                request.env.cr.rollback()
+                return _http_response(err(
+                    ERR_VALIDATION_FAILED, "Database constraint violation",
+                    status=400,
+                    details={"db_detail": (e.diag.message_detail or "").strip() or None,
+                             "constraint": e.diag.constraint_name},
+                ))
             except Exception:
                 _logger.exception("Unhandled error in %s", endpoint_path)
+                request.env.cr.rollback()
                 return _http_response(err(ERR_INTERNAL, "Unhandled server error", status=500))
 
             # If the function already returned an envelope (ok()/err()), keep it.

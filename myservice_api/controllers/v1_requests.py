@@ -32,7 +32,7 @@ from .utils import (
     paginate,
     parse_limit,
 )
-from .v1 import cadra_route
+from .v1 import PAGINATION_QUERY_PARAMS, cadra_route
 
 
 # ─── small helpers ───────────────────────────────────────────────────
@@ -228,8 +228,26 @@ class CadraRequestsV1(http.Controller):
     # ── List: GET /api/v1/requests ─────────────────────────────────
 
     @cadra_route("/api/v1/requests", method="GET",
-                 summary="List service requests (?q, ?type_id, ?category_id, ?stage_id, ?user_id, ?priority, ?closed, ?location_id, ?asset_id, ?limit, ?cursor)",
-                 scopes=[SCOPE_REQUESTS_READ])
+                 summary="List service requests with filters and cursor pagination",
+                 scopes=[SCOPE_REQUESTS_READ],
+                 query_params=[
+                     {"name": "q", "schema": {"type": "string"},
+                      "description": "Free-text search across name, description, request reference"},
+                     {"name": "type_id", "schema": {"type": "integer"},
+                      "description": "request.type id"},
+                     {"name": "category_id", "schema": {"type": "integer"}},
+                     {"name": "stage_id", "schema": {"type": "integer"},
+                      "description": "request.stage id"},
+                     {"name": "user_id", "schema": {"type": "integer"},
+                      "description": "Assignee res.users id"},
+                     {"name": "priority", "schema": {"type": "string",
+                      "enum": ["0", "1", "2", "3"]},
+                      "description": "0=low, 1=normal, 2=high, 3=urgent"},
+                     {"name": "closed", "schema": {"type": "boolean"}},
+                     {"name": "location_id", "schema": {"type": "integer"}},
+                     {"name": "asset_id", "schema": {"type": "integer"}},
+                     *PAGINATION_QUERY_PARAMS,
+                 ])
     def list_requests(self, **kwargs):
         qs = get_params()
         Req = request.env["request.request"].sudo()
@@ -251,8 +269,12 @@ class CadraRequestsV1(http.Controller):
     # ── Get single: GET /api/v1/requests/<id> ──────────────────────
 
     @cadra_route("/api/v1/requests/<int:id>", method="GET",
-                 summary="Get a single request by id (?include=routes,events,messages)",
-                 scopes=[SCOPE_REQUESTS_READ])
+                 summary="Get a single request by id",
+                 scopes=[SCOPE_REQUESTS_READ],
+                 query_params=[
+                     {"name": "include", "schema": {"type": "string"},
+                      "description": "Comma-separated optional sections: routes, events, messages"},
+                 ])
     def get_request(self, id, **kwargs):
         rec, error = _browse_or_404(id)
         if error:
@@ -264,7 +286,11 @@ class CadraRequestsV1(http.Controller):
 
     @cadra_route("/api/v1/requests/by-reference/<string:reference>", method="GET",
                  summary="Get a single request by reference (e.g. INCIDENT-052026-0000002)",
-                 scopes=[SCOPE_REQUESTS_READ])
+                 scopes=[SCOPE_REQUESTS_READ],
+                 query_params=[
+                     {"name": "include", "schema": {"type": "string"},
+                      "description": "Comma-separated optional sections: routes, events, messages"},
+                 ])
     def get_request_by_reference(self, reference, **kwargs):
         rec = request.env["request.request"].sudo().search(
             [("name", "=", reference)], limit=1)

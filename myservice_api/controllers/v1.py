@@ -60,8 +60,18 @@ from .utils import (
 _ROUTE_REGISTRY = []
 
 
+# Shared cursor-pagination query params — spread into any list endpoint.
+PAGINATION_QUERY_PARAMS = (
+    {"name": "limit", "schema": {"type": "integer", "default": 50, "maximum": 200, "minimum": 1},
+     "description": "Page size (1–200, default 50)"},
+    {"name": "cursor", "schema": {"type": "string"},
+     "description": "Opaque cursor from a previous response's pagination.next_cursor"},
+)
+
+
 def cadra_route(path, *, method="GET", summary="", scopes=(), idempotent=False,
-                success_status=None, request_schema=None, request_example=None):
+                success_status=None, request_schema=None, request_example=None,
+                query_params=None):
     """REST route registrar + auth/envelope wrapper.
 
     method:          "GET" | "POST" | "PATCH" | "PUT" | "DELETE"
@@ -74,6 +84,14 @@ def cadra_route(path, *, method="GET", summary="", scopes=(), idempotent=False,
     request_example: Example body Swagger renders in the "Try it out"
                      panel. Highly recommended whenever request_schema
                      is supplied so users see realistic input.
+    query_params:    Iterable of OpenAPI parameter dicts to render as
+                     query-string inputs in Swagger. Each entry should
+                     be a partial spec — `in: "query"` is filled in if
+                     omitted. Example:
+                       [{"name": "q", "schema": {"type": "string"},
+                         "description": "Free-text search"}]
+                     PAGINATION_QUERY_PARAMS provides limit+cursor for
+                     list endpoints.
     """
     method = method.upper()
 
@@ -95,6 +113,7 @@ def cadra_route(path, *, method="GET", summary="", scopes=(), idempotent=False,
             "success_status": success_status,
             "request_schema": request_schema,
             "request_example": request_example,
+            "query_params": list(query_params or ()),
         })
         wrapped = cadra_endpoint(
             scopes=scopes,
@@ -301,6 +320,13 @@ class MyserviceApiV1(http.Controller):
             if params:
                 op["parameters"] = list(params)
 
+            # Query-string params declared on the route.
+            for qp in entry.get("query_params") or ():
+                qp = dict(qp)
+                qp.setdefault("in", "query")
+                qp.setdefault("required", False)
+                op.setdefault("parameters", []).append(qp)
+
             # Idempotency header on write methods that declare it.
             if entry["idempotent"]:
                 op.setdefault("parameters", []).append({
@@ -430,8 +456,12 @@ class MyserviceApiV1(http.Controller):
     # ── Asset lookup (barcode + portal) ────────────────────────────
 
     @cadra_route("/api/v1/barcode/lookup", method="GET",
-                 summary="Lookup asset by tag/barcode (query: ?query=...)",
-                 scopes=[SCOPE_ASSETS_READ])
+                 summary="Lookup asset by tag/barcode",
+                 scopes=[SCOPE_ASSETS_READ],
+                 query_params=[
+                     {"name": "query", "schema": {"type": "string"},
+                      "description": "Tag, asset code, or serial number to look up"},
+                 ])
     def barcode_lookup(self, **kwargs):
         from odoo.addons.myservice_barcode_station.controllers.main import BarcodeStationController
         return BarcodeStationController().lookup_tag(query=kwargs.get("query", ""))
@@ -443,8 +473,14 @@ class MyserviceApiV1(http.Controller):
         return BarcodeStationController().get_kpis()
 
     @cadra_route("/api/v1/barcode/recent-tags", method="GET",
-                 summary="Recently scanned/printed tags (query: ?domain_filter=&limit=)",
-                 scopes=[SCOPE_ASSETS_READ])
+                 summary="Recently scanned/printed tags",
+                 scopes=[SCOPE_ASSETS_READ],
+                 query_params=[
+                     {"name": "domain_filter", "schema": {"type": "string"},
+                      "description": "Optional domain filter (e.g. asset domain)"},
+                     {"name": "limit", "schema": {"type": "integer", "default": 50, "minimum": 1},
+                      "description": "Max rows to return (default 50)"},
+                 ])
     def barcode_recent_tags(self, **kwargs):
         from odoo.addons.myservice_barcode_station.controllers.main import BarcodeStationController
         try:
@@ -457,8 +493,14 @@ class MyserviceApiV1(http.Controller):
         )
 
     @cadra_route("/api/v1/barcode/print-url", method="GET",
-                 summary="Generate a tag print URL (query: ?tag_id=&size=)",
-                 scopes=[SCOPE_ASSETS_READ])
+                 summary="Generate a tag print URL",
+                 scopes=[SCOPE_ASSETS_READ],
+                 query_params=[
+                     {"name": "tag_id", "required": True, "schema": {"type": "integer"},
+                      "description": "nrs.asset.tag id to render a label for"},
+                     {"name": "size", "schema": {"type": "string",
+                      "enum": ["small", "medium", "large"], "default": "medium"}},
+                 ])
     def barcode_print_url(self, **kwargs):
         from odoo.addons.myservice_barcode_station.controllers.main import BarcodeStationController
         return BarcodeStationController().get_print_url(
@@ -467,8 +509,12 @@ class MyserviceApiV1(http.Controller):
         )
 
     @cadra_route("/api/v1/tags/lookup", method="GET",
-                 summary="Public-style tag lookup (JWT-protected) — ?query=...",
-                 scopes=[SCOPE_ASSETS_READ])
+                 summary="Public-style tag lookup (JWT-protected)",
+                 scopes=[SCOPE_ASSETS_READ],
+                 query_params=[
+                     {"name": "query", "schema": {"type": "string"},
+                      "description": "Tag, asset code, or serial to look up"},
+                 ])
     def tags_lookup(self, **kwargs):
         from odoo.addons.myservice_barcode_station.controllers.main import BarcodeStationController
         return BarcodeStationController().portal_lookup(query=kwargs.get("query", ""))
