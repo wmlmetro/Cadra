@@ -2,3 +2,4 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_sap_sync_log_admin,nrs.sap.sync.log admin,model_nrs_sap_sync_log,base.group_system,1,1,1,1
 access_sap_sync_log_user,nrs.sap.sync.log user,model_nrs_sap_sync_log,base.group_user,1,0,0,0
 access_sap_import_wizard,nrs.sap.import.wizard,model_nrs_sap_import_wizard,base.group_system,1,1,1,1
+access_employee_import_job_admin,nrs.employee.import.job admin,model_nrs_employee_import_job,base.group_system,1,1,1,1

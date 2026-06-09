@@ -11,4 +11,7 @@
     <menuitem id="menu_identity_import" name="Import from SAP CSV"
               parent="menu_identity_root"
               action="action_sap_import_wizard" sequence="30"/>
+    <menuitem id="menu_identity_import_jobs" name="Employee Import Jobs"
+              parent="menu_identity_root"
+              action="action_employee_import_job" sequence="40"/>
 </odoo>

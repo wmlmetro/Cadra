@@ -21,6 +21,7 @@ Write endpoints (POST/PUT/PATCH/DELETE) support idempotency via the
 `X-Idempotency-Key` header. Two requests with the same key on the same
 endpoint within 24h return the same cached response.
 """
+import base64
 import csv
 import io
 import json
@@ -625,6 +626,69 @@ class MyserviceApiV1(http.Controller):
                 "changes": log.changes_applied or "",
             })
         return {"processed": len(results), "results": results}
+
+    # Bulk employee import — xlsx multipart upload, async processing.
+    # Bypasses @cadra_route because that path expects JSON, not multipart.
+    # JWT + scope check is done inline (same pattern as assets_export_csv).
+    @http.route("/api/v1/integrations/employees/import", type="http",
+                auth="none", methods=["POST"], csrf=False)
+    def employees_import(self, **kwargs):
+        """POST an xlsx nominal-roll file; returns 202 + a job id.
+
+        Body: multipart/form-data with `file` (the xlsx) and optional
+              `sheet` (sheet name; first sheet if omitted).
+        Auth: Bearer JWT with `integrations:write` scope.
+        Response (202): {"data": {"job_id": <int>, "state": "pending"}, "meta": {...}}
+
+        Processing runs in a background thread; poll
+        GET /api/v1/integrations/employees/import/<job_id> for status.
+        """
+        _, envelope, _ = require_jwt(scopes=[SCOPE_INTEGRATIONS_WRITE])
+        if envelope is not None:
+            return _http_response(envelope)
+
+        uploaded = request.httprequest.files.get("file")
+        if uploaded is None or not uploaded.filename:
+            return _http_response(err(
+                ERR_INVALID_REQUEST,
+                "`file` form field is required (multipart upload)",
+            ))
+
+        filename = uploaded.filename
+        if not filename.lower().endswith(".xlsx"):
+            return _http_response(err(
+                ERR_INVALID_REQUEST,
+                "Only .xlsx files are supported in v1",
+                details={"received_filename": filename},
+            ))
+
+        raw = uploaded.read()
+        if not raw:
+            return _http_response(err(ERR_INVALID_REQUEST, "Uploaded file is empty"))
+
+        sheet = (request.httprequest.form.get("sheet") or "").strip() or False
+
+        job = request.env["nrs.employee.import.job"].sudo().create({
+            "file_name": filename,
+            "file_data": base64.b64encode(raw),
+            "sheet_name": sheet,
+        })
+        job.start_async()
+
+        return _http_response(
+            ok({"job_id": job.id, "state": job.state}),
+            success_status=202,
+        )
+
+    @cadra_route("/api/v1/integrations/employees/import/<int:job_id>",
+                 method="GET",
+                 summary="Poll status of an employee bulk-import job",
+                 scopes=[SCOPE_INTEGRATIONS_WRITE])
+    def employees_import_status(self, job_id, **kwargs):
+        job = request.env["nrs.employee.import.job"].sudo().browse(job_id)
+        if not job.exists():
+            return err(ERR_NOT_FOUND, "Import job not found", status=404)
+        return job.to_status_dict()
 
     @cadra_route("/api/v1/integrations/workflow/callback", method="POST",
                  summary="Apply an external workflow engine's decision to a request",

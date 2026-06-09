@@ -18,6 +18,7 @@
         'views/asset_identity_views.xml',
         'views/sap_sync_log_views.xml',
         'views/sap_import_wizard_view.xml',
+        'views/employee_import_job_views.xml',
         'views/identity_menus.xml',
         'data/ir_cron.xml',
     ],

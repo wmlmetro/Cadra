@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_employee_import_job_list" model="ir.ui.view">
+        <field name="name">nrs.employee.import.job.list</field>
+        <field name="model">nrs.employee.import.job</field>
+        <field name="arch" type="xml">
+            <tree decoration-success="state == 'completed' and error_count == 0"
+                  decoration-warning="state == 'completed' and error_count &gt; 0"
+                  decoration-danger="state == 'failed'"
+                  decoration-info="state == 'processing'"
+                  decoration-muted="state == 'pending'">
+                <field name="create_date"/>
+                <field name="file_name"/>
+                <field name="state"/>
+                <field name="total_rows"/>
+                <field name="processed"/>
+                <field name="progress_pct" widget="progressbar"/>
+                <field name="created_count"/>
+                <field name="updated_count"/>
+                <field name="skipped_count"/>
+                <field name="error_count"/>
+                <field name="duration_ms"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_employee_import_job_form" model="ir.ui.view">
+        <field name="name">nrs.employee.import.job.form</field>
+        <field name="model">nrs.employee.import.job</field>
+        <field name="arch" type="xml">
+            <form create="false">
+                <header>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="pending,processing,completed,failed"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="file_name"/>
+                            <field name="sheet_name"/>
+                            <field name="file_data" filename="file_name"/>
+                        </group>
+                        <group>
+                            <field name="started_at"/>
+                            <field name="finished_at"/>
+                            <field name="duration_ms"/>
+                        </group>
+                    </group>
+                    <group string="Progress">
+                        <field name="total_rows"/>
+                        <field name="processed"/>
+                        <field name="progress_pct" widget="progressbar"/>
+                    </group>
+                    <group string="Outcome">
+                        <group>
+                            <field name="created_count"/>
+                            <field name="updated_count"/>
+                        </group>
+                        <group>
+                            <field name="skipped_count"/>
+                            <field name="error_count"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Error Samples">
+                            <field name="errors" widget="text"/>
+                        </page>
+                        <page string="Fatal Error" attrs="{'invisible': [('fatal_message', '=', False)]}">
+                            <field name="fatal_message" widget="text"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_employee_import_job" model="ir.actions.act_window">
+        <field name="name">Employee Import Jobs</field>
+        <field name="res_model">nrs.employee.import.job</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>
