@@ -56,11 +56,15 @@
     </record>
 
     <!-- ── 7. Locations stays top-level so it appears in the sidebar
-              (under the OPERATIONS group), not in the FCC pill bar. -->
+              (under the OPERATIONS group), not in the FCC pill bar.
+              Point the root at the Location list action so clicking the
+              sidebar app loads a default view and renders the children
+              (Configuration, Location Type, Location Tags) in the pill bar. -->
     <record id="generic_location.menu_generic_location_root" model="ir.ui.menu">
         <field name="name">Locations</field>
         <field name="parent_id" eval="False"/>
         <field name="sequence">50</field>
+        <field name="action" ref="generic_location.generic_location_action"/>
     </record>
 
     <!-- ── 8. Quick-access category shortcuts ────────────────────────── -->
