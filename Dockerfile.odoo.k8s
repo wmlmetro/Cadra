@@ -12,7 +12,7 @@ FROM odoo:15.0
 
 USER root
 
-RUN pip3 install --no-cache-dir html2text
+RUN pip3 install --no-cache-dir html2text openpyxl
 
 # Custom Odoo modules — same set installed by CADRA_BOOTSTRAP_MODULES.
 # Each module MUST be copied to its own named destination. A single COPY
