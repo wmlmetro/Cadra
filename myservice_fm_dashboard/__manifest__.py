@@ -1,6 +1,6 @@
 {
     'name': 'NRS Facilities Management Dashboard',
-    'version': '15.0.2.0.0',
+    'version': '15.0.2.0.1',
     'summary': 'FM operations dashboard — KPIs, SLA table, map, request list, team workload',
     'category': 'Facilities',
     'author': 'WestMetro Limited',

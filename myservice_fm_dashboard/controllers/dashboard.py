@@ -17,12 +17,8 @@ DOMAIN_NAMES = [
 ]
 
 # NRS office locations for the map
-NRS_OFFICES = [
-    {'name': 'General Register House', 'lat': 55.9533, 'lng': -3.1883},
-    {'name': 'New Register House', 'lat': 55.9537, 'lng': -3.1880},
-    {'name': 'Thomas Thomson House', 'lat': 55.9220, 'lng': -3.1700},
-    {'name': 'Ladywell House', 'lat': 55.9480, 'lng': -3.1760},
-    {'name': 'West Register House', 'lat': 55.9508, 'lng': -3.2033},
+NRS_HQ_FALLBACK = [
+    {'name': 'NRS Headquarters', 'lat': 9.0579, 'lng': 7.4951},
 ]
 
 
@@ -143,26 +139,23 @@ class FMDashboardController(http.Controller):
             })
 
         # ---------- Map locations ----------
-        # Use generic.location records if they have coords, else NRS offices
         map_locations = []
         Location = request.env['generic.location'].sudo()
-        locs = Location.search([], limit=50)
-        if locs:
-            for loc in locs:
-                if loc.latitude and loc.longitude:
-                    req_count = Req.search_count([
-                        ('generic_location_id', '=', loc.id),
-                        ('closed', '=', False),
-                    ])
-                    map_locations.append({
-                        'name': loc.name,
-                        'lat': loc.latitude,
-                        'lng': loc.longitude,
-                        'request_count': req_count,
-                    })
+        locs = Location.search([('latitude', '!=', False), ('longitude', '!=', False)])
+        for loc in locs:
+            req_count = Req.search_count([
+                ('generic_location_id', '=', loc.id),
+                ('closed', '=', False),
+            ])
+            map_locations.append({
+                'name': loc.name,
+                'lat': loc.latitude,
+                'lng': loc.longitude,
+                'request_count': req_count,
+            })
 
         if not map_locations:
-            map_locations = [dict(o, request_count=0) for o in NRS_OFFICES]
+            map_locations = [dict(o, request_count=0) for o in NRS_HQ_FALLBACK]
 
         return {
             'kpis': kpis,

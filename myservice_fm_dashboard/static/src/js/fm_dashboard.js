@@ -268,7 +268,7 @@ odoo.define('myservice_fm_dashboard.FMDashboard', function (require) {
 
             var map = L.map($container[0], {
                 scrollWheelZoom: false,
-            }).setView([55.945, -3.19], 13);
+            }).setView([9.06, 7.49], 6);
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 18,
@@ -282,13 +282,18 @@ odoo.define('myservice_fm_dashboard.FMDashboard', function (require) {
                 iconAnchor: [7, 7],
             });
 
+            var bounds = [];
             locations.forEach(function (loc) {
                 var marker = L.marker([loc.lat, loc.lng], {icon: redIcon}).addTo(map);
                 marker.bindPopup(
                     '<strong>' + loc.name + '</strong><br>' +
                     'Open requests: <strong>' + loc.request_count + '</strong>'
                 );
+                bounds.push([loc.lat, loc.lng]);
             });
+            if (bounds.length > 1) {
+                map.fitBounds(bounds, { padding: [30, 30], maxZoom: 8 });
+            }
 
             this._map = map;
             setTimeout(function () { map.invalidateSize(); }, 300);
