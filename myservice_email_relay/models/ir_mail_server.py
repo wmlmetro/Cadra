@@ -21,17 +21,59 @@ _logger = logging.getLogger(__name__)
 RELAY_TIMEOUT_SECONDS = 30
 
 
+class _RelaySession:
+    """Stand-in for an smtplib.SMTP instance when the relay is active.
+
+    mail.mail.send() opens an SMTP session before its per-message loop and
+    quits it afterwards. With the relay we never open a real socket, so this
+    no-op object keeps that lifecycle happy without doing anything. Actual
+    delivery is performed in send_email() via HTTPS, ignoring smtp_session.
+    """
+
+    def quit(self):
+        pass
+
+    def close(self):
+        pass
+
+    def noop(self):
+        return (250, b"OK")
+
+
 class IrMailServer(models.Model):
     _inherit = "ir.mail_server"
+
+    def _cadra_relay_config(self):
+        """Return (url, secret) when both are set, else (None, None)."""
+        ICP = self.env["ir.config_parameter"].sudo()
+        url = (ICP.get_param("cadra.email_relay_url") or "").strip()
+        secret = (ICP.get_param("cadra.email_relay_secret") or "").strip()
+        return (url, secret) if (url and secret) else (None, None)
+
+    def connect(self, smtp_server=None, smtp_port=None, smtp_user=None,
+                smtp_password=None, smtp_encryption=None, smtp_from=None,
+                smtp_debug=False, mail_server_id=None):
+        # mail.mail.send() calls connect() before its send_email() loop. On a
+        # DO-blocked cluster the real connect() hangs and times out before we
+        # ever reach send_email(). Short-circuit with a placeholder session so
+        # the lifecycle continues; the actual POST happens in send_email().
+        url, secret = self._cadra_relay_config()
+        if url and secret:
+            _logger.debug("email relay active — skipping SMTP connect")
+            return _RelaySession()
+        return super().connect(
+            smtp_server=smtp_server, smtp_port=smtp_port, smtp_user=smtp_user,
+            smtp_password=smtp_password, smtp_encryption=smtp_encryption,
+            smtp_from=smtp_from, smtp_debug=smtp_debug,
+            mail_server_id=mail_server_id,
+        )
 
     def send_email(self, message, mail_server_id=None, smtp_server=None,
                    smtp_port=None, smtp_user=None, smtp_password=None,
                    smtp_encryption=None, smtp_debug=False, smtp_session=None):
-        ICP = self.env["ir.config_parameter"].sudo()
-        relay_url = (ICP.get_param("cadra.email_relay_url") or "").strip()
-        relay_secret = (ICP.get_param("cadra.email_relay_secret") or "").strip()
+        relay_url, relay_secret = self._cadra_relay_config()
 
-        if not relay_url or not relay_secret:
+        if not relay_url:
             return super().send_email(
                 message, mail_server_id=mail_server_id, smtp_server=smtp_server,
                 smtp_port=smtp_port, smtp_user=smtp_user, smtp_password=smtp_password,
