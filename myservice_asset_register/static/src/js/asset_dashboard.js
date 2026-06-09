@@ -166,36 +166,85 @@ odoo.define('myservice_asset_register.AssetDashboard', function (require) {
 
         _loadLocations: function () {
             var self = this;
-            return $.when(
-                rpc.query({
-                    model: 'nrs.asset',
-                    method: 'read_group',
-                    domain: [],
-                    fields: ['location_id'],
-                    groupBy: ['location_id'],
-                }),
-                rpc.query({
-                    model: 'nrs.asset',
-                    method: 'read_group',
-                    domain: [['state', '=', 'active']],
-                    fields: ['location_id'],
-                    groupBy: ['location_id'],
-                    limit: 6,
-                })
-            ).then(function (allGroups, activeGroups) {
+            return rpc.query({
+                model: 'nrs.asset',
+                method: 'read_group',
+                domain: [],
+                fields: ['location_id'],
+                groupBy: ['location_id'],
+            }).then(function (locGroups) {
                 var counts = {};
-                allGroups.forEach(function (g) {
-                    if (g.location_id) counts[g.location_id[0]] = { name: g.location_id[1], count: g.location_id_count };
+                var locIds = [];
+                locGroups.forEach(function (g) {
+                    if (g.location_id) {
+                        var lid = g.location_id[0];
+                        counts[lid] = { name: g.location_id[1], count: g.location_id_count };
+                        locIds.push(lid);
+                    }
                 });
                 self._data.locations = counts;
 
-                // Top states for state grid (using location groups as proxy)
                 var stateList = [];
                 for (var id in counts) {
                     stateList.push(counts[id]);
                 }
                 stateList.sort(function (a, b) { return b.count - a.count; });
                 self._data.top_locations = stateList.slice(0, 6);
+
+                if (!locIds.length) {
+                    self._data.map_points = [];
+                    return;
+                }
+                return rpc.query({
+                    model: 'generic.location',
+                    method: 'search_read',
+                    domain: [['id', 'in', locIds]],
+                    fields: ['id', 'name', 'latitude', 'longitude', 'parent_path'],
+                }).then(function (locRecs) {
+                    var ancestorIds = {};
+                    locRecs.forEach(function (r) {
+                        if (!r.parent_path) return;
+                        r.parent_path.split('/').forEach(function (s) {
+                            if (s) ancestorIds[parseInt(s)] = true;
+                        });
+                    });
+                    var ancestorList = Object.keys(ancestorIds).map(function (k) { return parseInt(k); });
+                    return rpc.query({
+                        model: 'generic.location',
+                        method: 'search_read',
+                        domain: [['id', 'in', ancestorList], '|', ['latitude', '!=', 0], ['longitude', '!=', 0]],
+                        fields: ['id', 'name', 'latitude', 'longitude'],
+                    }).then(function (geoRecs) {
+                        var geoMap = {};
+                        geoRecs.forEach(function (r) {
+                            geoMap[r.id] = r;
+                        });
+                        var aggregated = {};
+                        locRecs.forEach(function (r) {
+                            var count = counts[r.id] ? counts[r.id].count : 0;
+                            if (!count) return;
+                            var resolved = null;
+                            if ((r.latitude || r.longitude) && geoMap[r.id]) {
+                                resolved = geoMap[r.id];
+                            } else if (r.parent_path) {
+                                var chain = r.parent_path.split('/').filter(Boolean).map(Number);
+                                for (var i = chain.length - 1; i >= 0; i--) {
+                                    if (geoMap[chain[i]]) { resolved = geoMap[chain[i]]; break; }
+                                }
+                            }
+                            if (!resolved) return;
+                            var key = resolved.id;
+                            if (!aggregated[key]) {
+                                aggregated[key] = {
+                                    id: key, name: resolved.name,
+                                    lat: resolved.latitude, lng: resolved.longitude, count: 0,
+                                };
+                            }
+                            aggregated[key].count += count;
+                        });
+                        self._data.map_points = Object.keys(aggregated).map(function (k) { return aggregated[k]; });
+                    });
+                });
             });
         },
 
@@ -351,8 +400,7 @@ odoo.define('myservice_asset_register.AssetDashboard', function (require) {
                 attribution: '\u00a9 OpenStreetMap contributors',
             }).addTo(map);
 
-            // Place markers for locations with assets
-            var locations = this._data.locations || {};
+            var points = this._data.map_points || [];
             var filter = this._mapFilter;
 
             var pinClass = '';
@@ -360,7 +408,6 @@ odoo.define('myservice_asset_register.AssetDashboard', function (require) {
             else if (filter === 'repair') pinClass = 'repair';
             else if (filter === 'unverified') pinClass = 'unverified';
 
-            // State grid locations — use approximate coords for Nigerian locations
             var topLocs = this._data.top_locations || [];
             var $grid = this.$('#ar-state-grid');
             $grid.empty();
@@ -373,22 +420,22 @@ odoo.define('myservice_asset_register.AssetDashboard', function (require) {
                 );
             });
 
-            // Create markers (using location names — real lat/lon would come from generic.location)
-            for (var id in locations) {
-                var loc = locations[id];
+            var bounds = [];
+            points.forEach(function (p) {
                 var icon = L.divIcon({
                     className: 'ms-ar-map-pin',
                     html: '<div class="ms-ar-pin-inner ' + pinClass + '"></div>',
                     iconSize: [14, 14],
                     iconAnchor: [7, 7],
                 });
-                // Default marker at Abuja area with slight random offset per location
-                var lat = 9.06 + (parseInt(id) % 7 - 3) * 0.5;
-                var lng = 7.49 + (parseInt(id) % 5 - 2) * 0.6;
-                var marker = L.marker([lat, lng], { icon: icon }).addTo(map);
+                var marker = L.marker([p.lat, p.lng], { icon: icon }).addTo(map);
                 marker.bindPopup(
-                    '<strong>' + loc.name + '</strong><br>Assets: <strong>' + loc.count + '</strong>'
+                    '<strong>' + _.escape(p.name) + '</strong><br>Assets: <strong>' + p.count + '</strong>'
                 );
+                bounds.push([p.lat, p.lng]);
+            });
+            if (bounds.length > 1) {
+                map.fitBounds(bounds, { padding: [30, 30], maxZoom: 8 });
             }
 
             this._map = map;
