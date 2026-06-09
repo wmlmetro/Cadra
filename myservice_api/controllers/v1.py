@@ -216,7 +216,8 @@ class MyserviceApiV1(http.Controller):
                     "JSON body (no `{params: {...}}` wrapper any more).\n\n"
                 ),
             },
-            "servers": [{"url": "/"}],
+            "servers": [{"url": (request.httprequest.url_root or "/").rstrip("/") or "/",
+                         "description": "Current host"}],
             "components": {
                 "securitySchemes": {
                     "bearerAuth": {
