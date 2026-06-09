@@ -183,6 +183,70 @@ def ensure_test_client():
     return client_id, raw
 
 
+# ─── step 3.5: outgoing mail server ────────────────────────────────
+
+SMTP_ENCRYPTION_CHOICES = {"none", "starttls", "ssl"}
+
+
+def ensure_mail_server():
+    """Create or update the default outgoing mail server (ir.mail_server).
+
+    Driven by env vars (all optional — if SMTP_HOST is blank the whole
+    step is a no-op):
+      SMTP_HOST         — e.g. smtp.zoho.com
+      SMTP_PORT         — int, default 587
+      SMTP_USER         — auth username (full email address for Zoho/Gmail)
+      SMTP_PASS         — auth password / app password
+      SMTP_ENCRYPTION   — one of {none, starttls, ssl}, default starttls
+      SMTP_FROM_FILTER  — optional From-address filter (Odoo "from_filter")
+      EMAIL_FROM        — system-wide default sender, written to
+                          ir.config_parameter `mail.default.from`
+    """
+    host = os.environ.get("SMTP_HOST", "").strip()
+    if not host:
+        _say("SMTP_HOST not set — skipping mail-server setup")
+        return
+
+    Mail = env["ir.mail_server"].sudo()
+    encryption = os.environ.get("SMTP_ENCRYPTION", "starttls").strip().lower()
+    if encryption not in SMTP_ENCRYPTION_CHOICES:
+        _say(f"invalid SMTP_ENCRYPTION={encryption!r} — falling back to starttls", level="WARN")
+        encryption = "starttls"
+
+    try:
+        port = int(os.environ.get("SMTP_PORT", "587"))
+    except ValueError:
+        _say("invalid SMTP_PORT — falling back to 587", level="WARN")
+        port = 587
+
+    vals = {
+        "name": "Cadra Default SMTP",
+        "smtp_host": host,
+        "smtp_port": port,
+        "smtp_user": os.environ.get("SMTP_USER", "").strip() or False,
+        "smtp_pass": os.environ.get("SMTP_PASS", "") or False,
+        "smtp_encryption": encryption,
+        "sequence": 10,
+    }
+    from_filter = os.environ.get("SMTP_FROM_FILTER", "").strip()
+    if from_filter:
+        vals["from_filter"] = from_filter
+
+    rec = Mail.search([("name", "=", vals["name"])], limit=1)
+    if rec:
+        rec.write(vals)
+        _say(f"updated ir.mail_server {rec.name!r} → {host}:{port} ({encryption})")
+    else:
+        Mail.create(vals)
+        _say(f"created ir.mail_server {vals['name']!r} → {host}:{port} ({encryption})")
+
+    # Default From address for system-generated mail.
+    default_from = os.environ.get("EMAIL_FROM", "").strip()
+    if default_from:
+        env["ir.config_parameter"].sudo().set_param("mail.default.from", default_from)
+        _say(f"set ir.config_parameter mail.default.from = {default_from}")
+
+
 # ─── step 4: seeds ─────────────────────────────────────────────────
 
 SEED_PROFILES = {
@@ -310,6 +374,7 @@ def main():
         jwt_secret = ensure_jwt_secret()
         ensure_admin_groups()
         client_id, raw_secret = ensure_test_client()
+        ensure_mail_server()
         env.cr.commit()
         run_seeds()
         env.cr.commit()

@@ -9,12 +9,18 @@ name: deploy-dev
 #   ODOO_MASTER_PASSWORD        Odoo master password (DB manager UI auth)
 #   CADRA_JWT_SECRET            JWT signing key, ≥48 chars random (openssl rand -hex 32)
 #   CADRA_TEST_CLIENT_SECRET    Smoke-test API client secret
+#   SMTP_PASS                   (optional) Outbound SMTP password / app password
 #
 # Required GitHub repository variables (Settings → Secrets and variables → Actions → Variables):
 #   DO_REGISTRY_NAME            e.g. "cadra"  → registry.digitalocean.com/cadra/cadra-odoo
 #   DO_CLUSTER_NAME             e.g. "cadra-dev"
 #   POSTGRES_DB                 (optional, default "odoo") DB name
 #   POSTGRES_USER               (optional, default "odoo") DB user
+#   SMTP_HOST                   (optional) Outbound SMTP host, e.g. smtp.zoho.com
+#   SMTP_PORT                   (optional, default 587)
+#   SMTP_USER                   (optional) SMTP username (full email for Zoho/Gmail)
+#   SMTP_ENCRYPTION             (optional, default starttls) none|starttls|ssl
+#   EMAIL_FROM                  (optional) default From address, e.g. Hello@cadra.ng
 #
 # One-time prerequisites (NOT done by this workflow):
 #   - DOKS cluster exists; ingress-nginx + cert-manager installed.
@@ -124,6 +130,12 @@ jobs:
           ODOO_MASTER_PASSWORD: ${{ secrets.ODOO_MASTER_PASSWORD }}
           CADRA_JWT_SECRET: ${{ secrets.CADRA_JWT_SECRET }}
           CADRA_TEST_CLIENT_SECRET: ${{ secrets.CADRA_TEST_CLIENT_SECRET }}
+          SMTP_HOST: ${{ vars.SMTP_HOST }}
+          SMTP_PORT: ${{ vars.SMTP_PORT || '587' }}
+          SMTP_USER: ${{ vars.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_ENCRYPTION: ${{ vars.SMTP_ENCRYPTION || 'starttls' }}
+          EMAIL_FROM: ${{ vars.EMAIL_FROM }}
         run: |
           set -e
           : "${POSTGRES_PASSWORD:?GitHub secret POSTGRES_PASSWORD is required}"
@@ -137,10 +149,19 @@ jobs:
             --from-literal=POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
+          # SMTP_* are optional — if SMTP_HOST is unset, bootstrap.py treats
+          # the whole mail-server step as a no-op. We still write empty keys
+          # so the Deployment/Job envFrom references don't crash.
           kubectl -n "${NAMESPACE}" create secret generic cadra-odoo \
             --from-literal=ODOO_MASTER_PASSWORD="${ODOO_MASTER_PASSWORD}" \
             --from-literal=CADRA_JWT_SECRET="${CADRA_JWT_SECRET}" \
             --from-literal=CADRA_TEST_CLIENT_SECRET="${CADRA_TEST_CLIENT_SECRET}" \
+            --from-literal=SMTP_HOST="${SMTP_HOST}" \
+            --from-literal=SMTP_PORT="${SMTP_PORT}" \
+            --from-literal=SMTP_USER="${SMTP_USER}" \
+            --from-literal=SMTP_PASS="${SMTP_PASS}" \
+            --from-literal=SMTP_ENCRYPTION="${SMTP_ENCRYPTION}" \
+            --from-literal=EMAIL_FROM="${EMAIL_FROM}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Apply ConfigMaps + Postgres + filestore (workflow owns these)

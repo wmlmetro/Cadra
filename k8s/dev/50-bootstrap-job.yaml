@@ -208,6 +208,44 @@ spec:
                 secretKeyRef:
                   name: cadra-odoo
                   key: CADRA_TEST_CLIENT_SECRET
+            # SMTP — consumed by bootstrap.py ensure_mail_server(). Blank
+            # SMTP_HOST makes the step a no-op (no record created).
+            - name: SMTP_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: SMTP_HOST
+                  optional: true
+            - name: SMTP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: SMTP_PORT
+                  optional: true
+            - name: SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: SMTP_USER
+                  optional: true
+            - name: SMTP_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: SMTP_PASS
+                  optional: true
+            - name: SMTP_ENCRYPTION
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: SMTP_ENCRYPTION
+                  optional: true
+            - name: EMAIL_FROM
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: EMAIL_FROM
+                  optional: true
           envFrom:
             - configMapRef:
                 name: odoo-bootstrap
