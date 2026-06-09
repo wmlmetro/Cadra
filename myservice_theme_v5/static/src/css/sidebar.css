@@ -8,12 +8,12 @@
     --nrs-sidebar-collapsed-width: 52px;
     --nrs-sidebar-bg: #FFFFFF;
     --nrs-sidebar-border: #E5E7EB;
-    --nrs-sidebar-text: #6B7280;
+    --nrs-sidebar-text: #374151;
     --nrs-sidebar-text-hover: #1A1A1A;
     --nrs-sidebar-active-bg: #FBE9EC;
     --nrs-sidebar-active-text: var(--nrs-red);
     --nrs-sidebar-active-border: var(--nrs-red);
-    --nrs-sidebar-label-color: #C0C0C0;
+    --nrs-sidebar-label-color: #6B7280;
 }
 
 /* ── Hide top navbar waffle button — sidebar replaces it ── */
@@ -226,7 +226,7 @@ body.nrs-sidebar-collapsed .nrs-nav-section-label {
     width: 16px;
     height: 16px;
     flex-shrink: 0;
-    color: #9CA3AF;
+    color: #4B5563;
     display: flex;
     align-items: center;
     justify-content: center;
