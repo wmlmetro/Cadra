@@ -134,7 +134,8 @@ ALL_SCOPES = (
     "assets:read assets:write "
     "locations:read locations:write "
     "requests:read requests:write "
-    "integrations:write"
+    "integrations:write "
+    "identity:read"
 )
 
 
