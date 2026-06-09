@@ -246,6 +246,18 @@ spec:
                   name: cadra-odoo
                   key: EMAIL_FROM
                   optional: true
+            - name: CADRA_EMAIL_RELAY_URL
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: CADRA_EMAIL_RELAY_URL
+                  optional: true
+            - name: CADRA_EMAIL_RELAY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: CADRA_EMAIL_RELAY_SECRET
+                  optional: true
           envFrom:
             - configMapRef:
                 name: odoo-bootstrap

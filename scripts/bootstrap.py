@@ -247,6 +247,35 @@ def ensure_mail_server():
         _say(f"set ir.config_parameter mail.default.from = {default_from}")
 
 
+# ─── step 3.6: email relay (HTTPS bridge for DO SMTP-blocked clusters) ───
+
+def ensure_email_relay():
+    """Persist email-relay config so myservice_email_relay's override picks it up.
+
+    Env vars:
+      CADRA_EMAIL_RELAY_URL    — full POST URL of the relay
+      CADRA_EMAIL_RELAY_SECRET — shared secret the relay validates
+
+    Both must be set for the relay to take effect; otherwise the override
+    in myservice_email_relay falls through to native SMTP. Setting an empty
+    string explicitly clears any previously-stored values (useful when
+    rotating off the relay).
+    """
+    ICP = env["ir.config_parameter"].sudo()
+    url = os.environ.get("CADRA_EMAIL_RELAY_URL", "").strip()
+    secret = os.environ.get("CADRA_EMAIL_RELAY_SECRET", "").strip()
+
+    if url:
+        ICP.set_param("cadra.email_relay_url", url)
+        _say(f"set ir.config_parameter cadra.email_relay_url = {url}")
+    if secret:
+        ICP.set_param("cadra.email_relay_secret", secret)
+        _say("set ir.config_parameter cadra.email_relay_secret = ***")
+
+    if not url and not secret:
+        _say("CADRA_EMAIL_RELAY_* not set — relay disabled, native SMTP will be used")
+
+
 # ─── step 4: seeds ─────────────────────────────────────────────────
 
 SEED_PROFILES = {
@@ -375,6 +404,7 @@ def main():
         ensure_admin_groups()
         client_id, raw_secret = ensure_test_client()
         ensure_mail_server()
+        ensure_email_relay()
         env.cr.commit()
         run_seeds()
         env.cr.commit()

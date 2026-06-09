@@ -10,6 +10,8 @@ name: deploy-dev
 #   CADRA_JWT_SECRET            JWT signing key, ≥48 chars random (openssl rand -hex 32)
 #   CADRA_TEST_CLIENT_SECRET    Smoke-test API client secret
 #   SMTP_PASS                   (optional) Outbound SMTP password / app password
+#   CADRA_EMAIL_RELAY_SECRET    (optional) Shared secret for the HTTPS email relay
+#                                — required if CADRA_EMAIL_RELAY_URL is set
 #
 # Required GitHub repository variables (Settings → Secrets and variables → Actions → Variables):
 #   DO_REGISTRY_NAME            e.g. "cadra"  → registry.digitalocean.com/cadra/cadra-odoo
@@ -21,6 +23,9 @@ name: deploy-dev
 #   SMTP_USER                   (optional) SMTP username (full email for Zoho/Gmail)
 #   SMTP_ENCRYPTION             (optional, default starttls) none|starttls|ssl
 #   EMAIL_FROM                  (optional) default From address, e.g. Hello@cadra.ng
+#   CADRA_EMAIL_RELAY_URL       (optional) HTTPS relay endpoint that bypasses
+#                                the DO SMTP egress block. Example:
+#                                https://staging.akraa.io/api/v1/public/email/send
 #
 # One-time prerequisites (NOT done by this workflow):
 #   - DOKS cluster exists; ingress-nginx + cert-manager installed.
@@ -136,6 +141,8 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           SMTP_ENCRYPTION: ${{ vars.SMTP_ENCRYPTION || 'starttls' }}
           EMAIL_FROM: ${{ vars.EMAIL_FROM }}
+          CADRA_EMAIL_RELAY_URL: ${{ vars.CADRA_EMAIL_RELAY_URL }}
+          CADRA_EMAIL_RELAY_SECRET: ${{ secrets.CADRA_EMAIL_RELAY_SECRET }}
         run: |
           set -e
           : "${POSTGRES_PASSWORD:?GitHub secret POSTGRES_PASSWORD is required}"
@@ -162,6 +169,8 @@ jobs:
             --from-literal=SMTP_PASS="${SMTP_PASS}" \
             --from-literal=SMTP_ENCRYPTION="${SMTP_ENCRYPTION}" \
             --from-literal=EMAIL_FROM="${EMAIL_FROM}" \
+            --from-literal=CADRA_EMAIL_RELAY_URL="${CADRA_EMAIL_RELAY_URL}" \
+            --from-literal=CADRA_EMAIL_RELAY_SECRET="${CADRA_EMAIL_RELAY_SECRET}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Apply ConfigMaps + Postgres + filestore (workflow owns these)

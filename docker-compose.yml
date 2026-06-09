@@ -46,6 +46,10 @@ services:
       CADRA_TEST_CLIENT_SECRET: ${CADRA_TEST_CLIENT_SECRET:-}
       CADRA_BOOTSTRAP_MODULES: ${CADRA_BOOTSTRAP_MODULES:-}
       CADRA_SEED_PROFILE: ${CADRA_SEED_PROFILE:-core}
+      # Optional HTTPS email relay (for DO clusters where SMTP egress is
+      # blocked). Both blank → ir.mail_server uses native SMTP.
+      CADRA_EMAIL_RELAY_URL: ${CADRA_EMAIL_RELAY_URL:-}
+      CADRA_EMAIL_RELAY_SECRET: ${CADRA_EMAIL_RELAY_SECRET:-}
     volumes:
       - ./:/mnt/extra-addons:ro
       - cadra_odoo_data:/var/lib/odoo
