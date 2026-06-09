@@ -92,7 +92,7 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 70
     permissions:
       contents: read
     environment:
@@ -181,7 +181,7 @@ jobs:
           # Materialize the image tag into the Job manifest.
           sed "s|REPLACE_ME/cadra-odoo:dev|${IMAGE}|g" k8s/dev/50-bootstrap-job.yaml | kubectl apply -f -
 
-          kubectl -n "${NAMESPACE}" wait --for=condition=complete job/cadra-bootstrap --timeout=20m
+          kubectl -n "${NAMESPACE}" wait --for=condition=complete job/cadra-bootstrap --timeout=60m
           echo "─── bootstrap Job logs ───"
           kubectl -n "${NAMESPACE}" logs job/cadra-bootstrap --all-containers --tail=200
 

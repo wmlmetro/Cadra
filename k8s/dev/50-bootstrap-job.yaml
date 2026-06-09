@@ -14,7 +14,7 @@
 #       -f 11-configmap-bootstrap.yaml -f 30-postgres-statefulset.yaml \
 #       -f 31-postgres-service.yaml -f 40-odoo-pvc.yaml \
 #       -f 50-bootstrap-job.yaml
-#   kubectl -n cadra-dev wait --for=condition=complete job/cadra-bootstrap --timeout=20m
+#   kubectl -n cadra-dev wait --for=condition=complete job/cadra-bootstrap --timeout=60m
 #   kubectl apply -f 41-odoo-deployment.yaml -f 42-odoo-service.yaml \
 #       -f 60-ingress.yaml
 #

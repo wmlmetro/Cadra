@@ -19,11 +19,13 @@ data:
   #   full-no-master  = full minus master_seed. Use when master has already
   #                     run and you only need the 4 follow-on seeds — saves
   #                     ~7 min of idempotent rework.
-  #   full+geo        = full + OpenStreetMap geocoding (adds ~30 min —
-  #                     EXCEEDS the 20 min cap; needs the wait-timeout in
-  #                     deploy-dev.yml bumped before this profile fits CI).
+  #   full+geo        = full + OpenStreetMap geocoding (adds ~30 min;
+  #                     deploy-dev.yml bootstrap-wait raised to 60m).
+  #   full-no-master+geo = full-no-master + geocoding. Adds ~30 min.
+  #                     Required for the dashboard map markers to use real
+  #                     coords. Active profile.
   #   ""              = no seeds.
-  CADRA_SEED_PROFILE: "full-no-master"
+  CADRA_SEED_PROFILE: "full-no-master+geo"
 
   # Single worker keeps the memory floor low. Override per-environment by
   # editing this ConfigMap and rolling the Odoo Deployment.

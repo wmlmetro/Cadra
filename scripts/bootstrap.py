@@ -236,6 +236,18 @@ SEED_PROFILES = {
         ("Geocode Locations (OSM)",  "/mnt/extra-addons/geocode_locations.py"),
         ("Fleet → Location Matcher", "/mnt/extra-addons/fleet_location_matcher.py"),
     ],
+    # full-no-master + geocoding. Use on a populated DB that needs lat/lng
+    # backfilled for the dashboard map without re-running the 7-min master seed.
+    "full-no-master+geo": [
+        ("ITSM Structure",           "/mnt/extra-addons/itsm_structure.py"),
+        ("Location Skeleton",        "/mnt/extra-addons/load_locations.py"),
+        ("FIRS Offices v3 (415)",    "/mnt/extra-addons/load_offices_v3.py"),
+        ("NRS HQ Phase 1 Assets",    "/mnt/extra-addons/scripts/nrs_hq_seed.py"),
+        ("NRS HQ Location Metadata", "/mnt/extra-addons/scripts/nrs_hq_seed_v4.py"),
+        ("Fleet Taxonomy",           "/mnt/extra-addons/fleet_taxonomy_seed.py"),
+        ("Geocode Locations (OSM)",  "/mnt/extra-addons/geocode_locations.py"),
+        ("Fleet → Location Matcher", "/mnt/extra-addons/fleet_location_matcher.py"),
+    ],
 }
 
 
