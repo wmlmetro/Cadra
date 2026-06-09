@@ -22,7 +22,7 @@ const NRS_GROUPS = [
     },
     {
         label: "FACILITIES",
-        apps: ["Facility Command Center", "Building Services", "Plumbing & Drainage", "Plant & Machinery"],
+        apps: ["Building Services", "Plumbing & Drainage", "Plant & Machinery"],
     },
     {
         label: "SECURITY & SAFETY",

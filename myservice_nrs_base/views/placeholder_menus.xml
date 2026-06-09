@@ -55,10 +55,11 @@
         <field name="sequence">45</field>
     </record>
 
-    <!-- ── 7. REPARENT: generic_location → Locations ─────────────────── -->
+    <!-- ── 7. Locations stays top-level so it appears in the sidebar
+              (under the OPERATIONS group), not in the FCC pill bar. -->
     <record id="generic_location.menu_generic_location_root" model="ir.ui.menu">
         <field name="name">Locations</field>
-        <field name="parent_id" ref="menu_facility_command_center"/>
+        <field name="parent_id" eval="False"/>
         <field name="sequence">50</field>
     </record>
 
