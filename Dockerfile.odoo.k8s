@@ -23,6 +23,7 @@ COPY --chown=odoo:odoo myservice_api               /mnt/extra-addons/myservice_a
 COPY --chown=odoo:odoo myservice_asset_register    /mnt/extra-addons/myservice_asset_register/
 COPY --chown=odoo:odoo myservice_barcode_station   /mnt/extra-addons/myservice_barcode_station/
 COPY --chown=odoo:odoo myservice_dashboard         /mnt/extra-addons/myservice_dashboard/
+COPY --chown=odoo:odoo myservice_email_relay       /mnt/extra-addons/myservice_email_relay/
 COPY --chown=odoo:odoo myservice_fleet_maintenance /mnt/extra-addons/myservice_fleet_maintenance/
 COPY --chown=odoo:odoo myservice_fm_dashboard      /mnt/extra-addons/myservice_fm_dashboard/
 COPY --chown=odoo:odoo myservice_identity          /mnt/extra-addons/myservice_identity/
