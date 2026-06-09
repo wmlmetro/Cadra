@@ -1,0 +1,44 @@
+import { Switch, Route, Router as WouterRouter } from "wouter";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ThemeProvider } from "next-themes";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import AppLayout from "@/components/layout/AppLayout";
+import Dashboard from "@/pages/Dashboard";
+import AssetRegister from "@/pages/AssetRegister";
+import AssetDetail from "@/pages/AssetDetail";
+import Locations from "@/pages/Locations";
+import NotFound from "@/pages/not-found";
+
+const queryClient = new QueryClient();
+
+function AppRoutes() {
+  return (
+    <AppLayout>
+      <Switch>
+        <Route path="/" component={Dashboard} />
+        <Route path="/assets" component={AssetRegister} />
+        <Route path="/assets/:id" component={AssetDetail} />
+        <Route path="/locations" component={Locations} />
+        <Route component={NotFound} />
+      </Switch>
+    </AppLayout>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <AppRoutes />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
+  );
+}
+
+export default App;

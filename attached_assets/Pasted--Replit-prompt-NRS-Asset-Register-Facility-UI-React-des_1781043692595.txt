@@ -1,0 +1,127 @@
+# Replit prompt — NRS Asset Register & Facility UI (React design prototype)
+
+> Paste everything below the line into Replit's AI agent (or v0 / Lovable / Cursor).
+> It builds a front-end design prototype with mock data, structured so the mock
+> layer can later be swapped for the Odoo JSON-RPC API.
+
+---
+
+Build a polished, production-looking **web app for the Nigeria Revenue Service (NRS) Asset Register & Facility Management** system. This is a design prototype using mock data (no real backend yet), but architect it so the data layer can later be replaced by calls to an Odoo 17 JSON-RPC API.
+
+## Tech stack
+- React + Vite + TypeScript
+- Tailwind CSS + shadcn/ui components
+- lucide-react for icons
+- React Router for navigation
+- TanStack Table for list views, simple CSS grid for card/kanban views
+- All data from a single `src/mock/` module exporting typed arrays; wrap reads in a `dataProvider` interface (e.g. `listAssets()`, `getAsset(id)`, `listLocations()`) so the implementation can be swapped for Odoo later. Do NOT hardcode fetches in components.
+
+## Brand & visual style
+- Government-grade, clean, trustworthy, but modern and "jazzy" — generous whitespace, soft cards, rounded corners (lg), subtle borders, no heavy shadows.
+- Primary brand colour: NRS red `#C8102E` (use for the logo bar, active nav, primary buttons). Neutral slate grays for surfaces. Light mode default; include a dark-mode toggle.
+- Left sidebar navigation grouped exactly like NRS's current system:
+  - **Dashboards**: Facility Command Center
+  - **Operations**: Locations
+  - **Fleet & Transport**: Staff Bus, Fleet
+  - **Asset Register**: Asset Register
+  - **HR & Staff**: Identity, Employees
+  - **Administration**: Website, Apps, Settings
+- Top bar: page title, global search, user avatar.
+
+## Data model (TypeScript types)
+```ts
+type ApprovalStatus =
+  | 'Cleared'
+  | 'Review — data quality'
+  | 'Review — allottee not in nominal roll'
+  | 'Review — VIN not verifiable'
+  | 'Review — possible duplicate';
+
+interface AssetLocation { zone: string; state: string; office: string; path: string; }
+
+interface Asset {
+  id: string;
+  name: string;                 // "Laptop · HP ProBook 440 G3"
+  assetTag: string;             // NRS-generated, may be blank
+  legacyCode: string;           // FIRS tag or vehicle reg
+  category: 'IT Equipment' | 'Fleet / Vehicles' | 'Furniture & Fittings';
+  subcategory: string;          // e.g. Computers & Peripherals, Executive Vehicles
+  assetType: string;            // Laptop, SUV, Printer ...
+  manufacturer: string;
+  model: string;
+  serial: string;               // device serial OR vehicle VIN/chassis
+  systemDomain?: string;        // ICT only, e.g. ABC-CAL-MST-233
+  registrationNo?: string;      // fleet only
+  engineNo?: string;            // fleet only
+  condition: 'Good' | 'Fair' | 'Poor' | 'Faulty';
+  custodianName?: string;
+  custodianIR?: string;
+  department: string;
+  location: AssetLocation;
+  status: ApprovalStatus;
+  reviewFlags: string[];
+  custodianScore?: number;      // fleet, 0–100
+  imageUrl?: string;            // may be empty → show category icon fallback
+}
+
+interface Location {
+  id: string;
+  name: string;
+  locationType?: 'Zone' | 'State' | 'Office' | 'Floor' | 'Room';
+  zoneCode?: string;            // e.g. F10, FO1
+  parent?: string;              // parent location name
+  street?: string; street2?: string; city?: string; state?: string; country: string;
+  active: boolean;
+  childrenCount?: number;
+}
+```
+
+## Mock data (make it realistic — use these real NRS values)
+- Categories/subcategories: IT Equipment → Computers & Peripherals, Printing & Imaging, Networking, Servers & Storage. Fleet / Vehicles → Executive Vehicles (Saloon Car, SUV), Administrative Vehicles (Staff Bus), Operational Vehicles (Pickup Truck, Utility Van). Furniture & Fittings.
+- Manufacturers: HP, Dell, Lenovo, Cisco, Canon, APC; Toyota, Peugeot, Innoson, Changan, Geely.
+- Zones: North Central, North East, North West, South East, South South, South West, NRS Headquarters. States e.g. Cross River, Lagos, Kano, Enugu, FCT. Offices e.g. Calabar MSTO, Ikom MSTO, Kano GBTO, Abakaliki MSTO; HQ floors "1st Floor … 16th Floor" with zone codes FO1…F16 under "NRS Headquarters", street "Kui Mohammed Avenue", Central Business District, Abuja.
+- Generate ~40 assets spread across all categories/statuses, ~25 locations (include the HQ floors + several state offices forming a Zone → State → Office tree), ~10 employees.
+- Show realistic totals on the dashboard: 13,150 assets (IT 10,259 · Fleet 1,619 · Furniture 1,272); 1,163 locations (7 zones · 38 states · 857 offices · 19 floors · 234 rooms); 11,385 staff.
+
+## Status colour system (semantic, reused everywhere)
+- Cleared → green
+- Review — data quality → amber
+- Review — VIN not verifiable → amber
+- Review — possible duplicate → purple
+- Review — allottee not in nominal roll → red/orange
+Render as a small rounded pill with same-family text colour. Keep wording exactly as above (neutral, non-accusatory).
+
+## Screens to build
+
+### 1. Asset Register (the headline screen)
+- Header with title, count, and a **view switcher**: Kanban (default), List, Map (Map can be a placeholder).
+- **Kanban / thumbnail view**: responsive card grid (`auto-fit, minmax(200px,1fr)`). Each card: image (or category icon fallback in a tinted header), asset name, tag/legacy code, custodian (user icon) or "Pool · <dept>", location (pin icon), and a status pill. Hover lift.
+- **List view**: TanStack Table — columns Name, Tag, Category, Custodian, Location, Status, Condition. Sortable, sticky header.
+- **Filter rail / toolbar**: search box, and filter chips for Category, Status, Zone, Condition. "Group by" option (by category / by zone / by status).
+- Clicking a card/row opens the asset form.
+
+### 2. Asset form (inner page) — make this genuinely nice
+- Header band with a **status bar** (workflow pills: Cleared → In review → Disposed, current one highlighted) and a row of **smart buttons** (Custodian, Location, History — show counts/labels).
+- Left: asset image (or icon fallback). Right: large asset name, tag + legacy code line, and a row of chips (category, subcategory, condition).
+- **Tabbed sections** below:
+  - Details — Identification (serial/VIN, manufacturer, model, system domain) and Classification.
+  - Custodian & assignment — custodian, IR number, department, full location path; for fleet show custodian match score with a small meter.
+  - Audit & review — approval status, review flags list, possible-duplicate link, and **Approve / Override** action buttons.
+  - Legacy data — legacy code, registration/engine no (fleet), source notes.
+
+### 3. Locations
+- **Tree view**: collapsible hierarchy Zone → State → Office → Floor/Room with counts at each node; clicking drills in.
+- **List view** matching the current system columns: Name, Location Type, Zone Code, Parent Location, Street, Street2, City, State, Country, Active. Search + Create button.
+- **Location form**: name, type, zone code, parent (with breadcrumb of ancestors), address block, active toggle, and a related-assets count.
+
+### 4. Facility Command Center (dashboard)
+- Metric cards: Total assets (13,150), by class (IT / Fleet / Furniture), Locations (1,163), Employees (11,385), and a **Review queue** card with the count needing approval.
+- A bar chart of assets by category, a donut of approval-status breakdown, and a table/list of the most recent items in the review queue with quick Approve/Override.
+
+## Quality bar
+- Fully responsive; keyboard accessible; sensible empty/loading states.
+- Consistent spacing and the single status-colour system across all screens.
+- Clean component structure: `components/`, `pages/`, `mock/`, `lib/dataProvider.ts`, `types.ts`.
+- Add a short README explaining how to later replace `dataProvider` with Odoo JSON-RPC (`/web/dataset/call_kw`) calls to models `nrs.asset` and `generic.location`.
+
+Start by scaffolding the project, the types, the mock data, the sidebar layout and the Asset Register kanban view, then build the asset form, locations, and dashboard.
