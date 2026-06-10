@@ -1,9 +1,11 @@
 import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import { useLocation } from "wouter";
 import {
   getDashboardStats, getReviewQueueAssets,
   getAssetsByCategory, getAssetsByStatus,
+  fetchTotals, fetchAssetsPage,
 } from "@/lib/dataProvider";
 import StatusPill from "@/components/StatusPill";
 import {
@@ -168,10 +170,30 @@ export default function Dashboard() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const [, setLocation] = useLocation();
 
-  const stats = getDashboardStats();
-  const reviewAssets = getReviewQueueAssets();
-  const categoryData = getAssetsByCategory();
-  const statusData = getAssetsByStatus();
+  const mockStats = getDashboardStats();
+  // Real totals from the API (cheap — uses total_estimate). Category breakdown
+  // and statusData stay on mocks until backend ships an aggregate endpoint.
+  const { data: totals } = useQuery({
+    queryKey: ["dashboard", "totals"],
+    queryFn: fetchTotals,
+    staleTime: 60_000,
+  });
+  // Review queue sample = first page of unverified assets.
+  const { data: reviewPage } = useQuery({
+    queryKey: ["dashboard", "review-queue"],
+    queryFn: () => fetchAssetsPage(undefined, { status: "Review — data quality" }),
+    staleTime: 60_000,
+  });
+  const stats = {
+    ...mockStats,
+    totalAssets: totals?.assets ?? mockStats.totalAssets,
+    locations:   totals?.locations ?? mockStats.locations,
+    employees:   totals?.employees ?? mockStats.employees,
+    reviewQueue: reviewPage?.totalEstimate ?? mockStats.reviewQueue,
+  };
+  const reviewAssets = reviewPage?.assets.slice(0, 8) ?? getReviewQueueAssets();
+  const categoryData = getAssetsByCategory();   // mock — no API aggregate
+  const statusData = getAssetsByStatus();       // mock — no API aggregate
 
   useEffect(() => {
     setTitle("Facility Command Center");

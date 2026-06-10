@@ -1,8 +1,10 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
-import { fetchEmployees, listEmployees } from "@/lib/dataProvider";
+import { fetchEmployee, fetchEmployeeAssetsApi, fetchEmployeesPage, type EmployeesPage } from "@/lib/dataProvider";
+import type { Asset } from "@/types";
+import { useQuery } from "@tanstack/react-query";
 import { apiConfigured, CadraApiError } from "@/lib/api";
 import type { Employee } from "@/types";
 import {
@@ -127,55 +129,90 @@ export default function Employees() {
     return () => setSearchHandler(undefined);
   }, [setTitle, setSearchHandler]);
 
-  // Real API when VITE_API_TOKEN is set; otherwise fetchEmployees falls back
-  // to mocks so the page stays usable for design work.
-  const { data: employees = [], isLoading, error } = useQuery<Employee[], CadraApiError>({
-    queryKey: ["employees", { dept, zone, status, search }],
-    queryFn: () => fetchEmployees({
-      department: dept || undefined,
-      zone: zone || undefined,
+  // Server-side filters (q + sap_status) go in the queryKey so a new search
+  // resets pagination. Dept/zone stay client-side because the API filters by
+  // FK ids the frontend doesn't yet know — they only narrow the loaded rows.
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery<EmployeesPage, CadraApiError>({
+    queryKey: ["employees", { status, search }],
+    queryFn: ({ pageParam }) => fetchEmployeesPage(pageParam as string | undefined, {
       status: status || undefined,
       search: search || undefined,
     }),
-    staleTime: 30_000,
-  });
-
-  // KPI strip should always show the unfiltered total, regardless of search.
-  const { data: all = [] } = useQuery<Employee[], CadraApiError>({
-    queryKey: ["employees", "all"],
-    queryFn: () => fetchEmployees(),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: 60_000,
   });
 
-  const stats = useMemo(() => ({
-    total:     all.length,
-    active:    all.filter(e => e.status === "Active").length,
-    onLeave:   all.filter(e => e.status === "On Leave").length,
-    suspended: all.filter(e => e.status === "Suspended").length,
-    unverified: all.filter(e => !e.identityVerified).length,
-  }), [all]);
+  const allLoaded = useMemo(
+    () => (data?.pages ?? []).flatMap(p => p.employees),
+    [data],
+  );
+  const employees = useMemo(() => {
+    let r = allLoaded;
+    if (dept) r = r.filter(e => e.department === dept);
+    if (zone) r = r.filter(e => e.zone === zone);
+    return r;
+  }, [allLoaded, dept, zone]);
+
+  // Total comes from the server's first-page total_estimate (cheap), so the
+  // KPI never has to walk every page. Granular breakdowns (active/on-leave/
+  // unverified) would need either a backend aggregate endpoint or N small
+  // status-filtered counts — deferred until the API exposes /stats.
+  const total = data?.pages[0]?.totalEstimate ?? allLoaded.length;
+
+  // Auto-load next page when the sentinel scrolls into view.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const root = scrollRef.current ?? null;
+    const io = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    }, { root, rootMargin: "200px" });
+    io.observe(sentinelRef.current);
+    return () => io.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const hasFilter = !!(search || dept || zone || status);
   const clear = () => { setSearch(""); setDept(""); setZone(""); setStatus(""); };
 
   return (
     <div className="flex flex-col h-full">
-      {/* KPI strip */}
-      <div className="px-5 py-3 border-b border-border bg-card grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: "Total Staff",   value: stats.total,     icon: Users,      color: "text-foreground"         },
-          { label: "Active",        value: stats.active,    icon: UserCheck,  color: "text-green-600 dark:text-green-400" },
-          { label: "On Leave",      value: stats.onLeave,   icon: Clock,      color: "text-blue-600 dark:text-blue-400"   },
-          { label: "ID Unverified", value: stats.unverified,icon: ShieldOff,  color: "text-amber-600 dark:text-amber-400" },
-        ].map(s => (
-          <div key={s.label} className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-background border border-border/50">
-            <s.icon size={14} className={s.color} />
-            <div>
-              <p className={cn("text-[18px] font-extrabold leading-none tabular-nums", s.color)}>{s.value}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{s.label}</p>
-            </div>
+      {/* KPI strip — total is the server total_estimate (cheap); loaded is
+          how much of it has streamed in so far. */}
+      <div className="px-5 py-3 border-b border-border bg-card grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-background border border-border/50">
+          <Users size={14} className="text-foreground" />
+          <div>
+            <p className="text-[18px] font-extrabold leading-none tabular-nums text-foreground">{total.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Total Staff</p>
           </div>
-        ))}
+        </div>
+        <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-background border border-border/50">
+          <UserCheck size={14} className="text-green-600 dark:text-green-400" />
+          <div>
+            <p className="text-[18px] font-extrabold leading-none tabular-nums text-green-600 dark:text-green-400">{allLoaded.length.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Loaded</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-background border border-border/50 col-span-2 sm:col-span-1">
+          <Clock size={14} className="text-blue-600 dark:text-blue-400" />
+          <div className="flex-1">
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+              <div className="h-full bg-blue-500 transition-all" style={{ width: `${total ? Math.min(100, (allLoaded.length / total) * 100) : 0}%` }} />
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1">{total ? Math.round((allLoaded.length / total) * 100) : 0}% loaded</p>
+          </div>
+        </div>
       </div>
 
       {/* Toolbar */}
@@ -214,7 +251,7 @@ export default function Employees() {
       )}
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
         {isLoading && employees.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <Clock size={20} className="text-muted-foreground/40 animate-pulse" />
@@ -267,6 +304,22 @@ export default function Employees() {
             <button onClick={clear} className="text-xs text-primary hover:opacity-80">Clear filters</button>
           </div>
         )}
+
+        {/* Infinite-scroll sentinel: triggers fetchNextPage when visible. */}
+        {hasNextPage && (
+          <div ref={sentinelRef} className="flex items-center justify-center py-5">
+            {isFetchingNextPage ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Clock size={12} className="animate-pulse" />
+                Loading more…
+              </div>
+            ) : (
+              <button onClick={() => fetchNextPage()} className="text-xs text-primary hover:opacity-80">
+                Load more
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -277,14 +330,38 @@ export function EmployeeDetail({ params }: { params: { id: string } }) {
   const [, nav] = useLocation();
   const [tab, setTab] = useState<"overview" | "assets" | "identity">("overview");
 
-  const emp = listEmployees().find(e => e.id === params.id);
-  const assets = emp ? listEmployees().filter(e => e.id === emp.id).map(() => []) : [];
+  const { data: emp, isLoading, error } = useQuery<Employee | null, CadraApiError>({
+    queryKey: ["employee", params.id],
+    queryFn: () => fetchEmployee(params.id),
+    staleTime: 60_000,
+  });
 
   useEffect(() => {
     setTitle(emp?.name ?? "Employee");
     setSearchHandler(undefined);
   }, [emp, setTitle, setSearchHandler]);
 
+  if (isLoading) {
+    return (
+      <div className="p-8 flex flex-col items-center gap-3 text-muted-foreground">
+        <Clock size={20} className="animate-pulse" />
+        <p className="text-sm">Loading employee…</p>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="p-8 max-w-xl mx-auto">
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-2xl p-4 flex items-start gap-3">
+          <AlertCircle size={16} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-[13px] font-semibold text-red-700 dark:text-red-400">{error.code}</p>
+            <p className="text-[12px] text-red-700 dark:text-red-400 mt-0.5">{error.message}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (!emp) return <div className="p-8 text-center text-muted-foreground">Employee not found.</div>;
 
   const initials = emp.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
@@ -346,13 +423,7 @@ export function EmployeeDetail({ params }: { params: { id: string } }) {
           ))}
         </div>
       )}
-      {tab === "assets" && (
-        <div className="bg-card border border-border rounded-2xl p-6 text-center text-muted-foreground">
-          <Briefcase size={28} className="mx-auto mb-3 opacity-30" />
-          <p className="text-sm font-semibold">Asset assignments</p>
-          <p className="text-xs mt-1">Assets linked to {emp.irNumber} will appear here</p>
-        </div>
-      )}
+      {tab === "assets" && <EmployeeAssetsTab employeeId={emp.id} nav={(p: string) => nav(p)} ir={emp.irNumber} />}
       {tab === "identity" && (
         <div className="bg-card border border-border rounded-2xl p-6 space-y-3">
           {[
@@ -370,6 +441,59 @@ export function EmployeeDetail({ params }: { params: { id: string } }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function EmployeeAssetsTab({ employeeId, nav, ir }: { employeeId: string; nav: (path: string) => void; ir: string }) {
+  const { data: assets = [], isLoading, error } = useQuery<Asset[], CadraApiError>({
+    queryKey: ["employee-assets", employeeId],
+    queryFn: () => fetchEmployeeAssetsApi(employeeId),
+    staleTime: 60_000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="bg-card border border-border rounded-2xl p-6 flex flex-col items-center gap-2 text-muted-foreground">
+        <Clock size={18} className="animate-pulse" />
+        <p className="text-xs">Loading custodial assets…</p>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-2xl p-4 flex items-start gap-3">
+        <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+        <p className="text-[12px] text-red-700 dark:text-red-400">
+          <span className="font-semibold">{error.code}:</span> {error.message}
+        </p>
+      </div>
+    );
+  }
+  if (assets.length === 0) {
+    return (
+      <div className="bg-card border border-border rounded-2xl p-6 text-center text-muted-foreground">
+        <Briefcase size={28} className="mx-auto mb-3 opacity-30" />
+        <p className="text-sm font-semibold">No custodial assets</p>
+        <p className="text-xs mt-1">{ir} is not the current custodian of any asset.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="bg-card border border-border rounded-2xl divide-y divide-border">
+      {assets.map(a => (
+        <button
+          key={a.id}
+          onClick={() => nav(`/assets/${a.id}`)}
+          className="w-full text-left px-4 py-3 hover:bg-muted/30 flex items-center justify-between gap-3"
+        >
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold text-foreground truncate">{a.name}</p>
+            <p className="text-[11px] text-muted-foreground font-mono truncate">{a.assetTag}</p>
+          </div>
+          <span className="text-[11px] text-muted-foreground shrink-0">{a.category}</span>
+        </button>
+      ))}
     </div>
   );
 }

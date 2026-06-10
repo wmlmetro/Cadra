@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
-import { getAsset } from "@/lib/dataProvider";
+import { fetchAsset } from "@/lib/dataProvider";
+import { CadraApiError } from "@/lib/api";
+import type { Asset } from "@/types";
 import StatusPill from "@/components/StatusPill";
 import ConditionBadge from "@/components/ConditionBadge";
 import {
@@ -60,13 +63,39 @@ export default function AssetDetail() {
   const [, setNavLocation] = useLocation();
   const { setTitle, setSearchHandler } = useLayoutCtx();
 
-  const asset = getAsset(id ?? "");
+  const { data: asset, isLoading, error } = useQuery<Asset | null, CadraApiError>({
+    queryKey: ["asset", id],
+    queryFn: () => fetchAsset(id ?? ""),
+    enabled: !!id,
+    staleTime: 60_000,
+  });
 
   useEffect(() => {
     setTitle(asset ? asset.name : "Asset Detail");
     setSearchHandler(undefined);
   }, [asset, setTitle, setSearchHandler]);
 
+  if (isLoading) {
+    return (
+      <div className="p-8 flex flex-col items-center gap-3 text-muted-foreground">
+        <Clock size={20} className="animate-pulse" />
+        <p className="text-sm">Loading asset…</p>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="p-8 max-w-xl mx-auto">
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-2xl p-4 flex items-start gap-3">
+          <AlertCircle size={16} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-[13px] font-semibold text-red-700 dark:text-red-400">{error.code}</p>
+            <p className="text-[12px] text-red-700 dark:text-red-400 mt-0.5">{error.message}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (!asset) {
     return (
       <div className="p-8 text-center">

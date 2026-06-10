@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
-import { listLocations } from "@/lib/dataProvider";
+import { fetchAllLocations } from "@/lib/dataProvider";
+import { apiConfigured, CadraApiError } from "@/lib/api";
 import type { Location } from "@/types";
 import {
   Globe, Building2, MapPin, Layers, DoorOpen,
   ChevronRight, ChevronDown, Search, LayoutGrid, List, Network,
-  X, Package, ChevronRight as Chevron,
+  X, Package, ChevronRight as Chevron, Clock, AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -241,7 +243,11 @@ export default function Locations() {
     return () => setSearchHandler(undefined);
   }, [setTitle, setSearchHandler]);
 
-  const allLocations = listLocations();
+  const { data: allLocations = [], isLoading, error } = useQuery<Location[], CadraApiError>({
+    queryKey: ["locations", "all"],
+    queryFn: fetchAllLocations,
+    staleTime: 5 * 60_000, // locations change rarely
+  });
 
   // parent→children map
   const childrenOf = useMemo(() => {
@@ -327,6 +333,29 @@ export default function Locations() {
       return items.length ? { type: t, items } : null;
     }).filter(Boolean) as { type: LocType; items: Location[] }[];
   }, [filtered, groupBy]);
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+        <Clock size={20} className="animate-pulse" />
+        <p className="text-sm">Loading locations…</p>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="p-8 max-w-xl mx-auto">
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-2xl p-4 flex items-start gap-3">
+          <AlertCircle size={16} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-[13px] font-semibold text-red-700 dark:text-red-400">{error.code}</p>
+            <p className="text-[12px] text-red-700 dark:text-red-400 mt-0.5">{error.message}</p>
+            {!apiConfigured && <p className="text-[11px] mt-1">Set VITE_API_TOKEN in .env.local.</p>}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">

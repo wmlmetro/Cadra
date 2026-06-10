@@ -1,14 +1,16 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
-import { listAssets } from "@/lib/dataProvider";
+import { fetchAssetsPage, type AssetsPage } from "@/lib/dataProvider";
+import { apiConfigured, CadraApiError } from "@/lib/api";
 import type { Asset } from "@/types";
 import StatusPill from "@/components/StatusPill";
 import ConditionBadge from "@/components/ConditionBadge";
 import {
   Monitor, Car, Sofa, MapPin, User, Search, X,
   LayoutGrid, List, SlidersHorizontal, ChevronDown,
-  ArrowUpDown, ArrowUp, ArrowDown, Map,
+  ArrowUpDown, ArrowUp, ArrowDown, Map, Clock, AlertCircle,
 } from "lucide-react";
 import {
   useReactTable, getCoreRowModel, getSortedRowModel,
@@ -307,10 +309,48 @@ export default function AssetRegister() {
     return () => setSearchHandler(undefined);
   }, [setTitle, setSearchHandler]);
 
-  const assets = useMemo(
-    () => listAssets({ category: filterCategory || undefined, status: filterStatus || undefined, condition: filterCondition || undefined, search: search || undefined }),
-    [search, filterCategory, filterStatus, filterCondition]
-  );
+  // Server-side: search and condition. Category/status stay client-side
+  // because the frontend's category enum is a 3-bucket projection of the
+  // many real DB categories, and the frontend's status maps to backend
+  // is_verified — both are derived in the adapter, not native API filters.
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery<AssetsPage, CadraApiError>({
+    queryKey: ["assets", { search, filterCondition }],
+    queryFn: ({ pageParam }) => fetchAssetsPage(pageParam as string | undefined, {
+      search: search || undefined,
+      condition: filterCondition || undefined,
+    }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    staleTime: 60_000,
+  });
+
+  const allLoaded = useMemo(() => (data?.pages ?? []).flatMap(p => p.assets), [data]);
+  const assets = useMemo(() => {
+    let r = allLoaded;
+    if (filterCategory) r = r.filter(a => a.category === filterCategory);
+    if (filterStatus)   r = r.filter(a => a.status === filterStatus);
+    return r;
+  }, [allLoaded, filterCategory, filterStatus]);
+  const totalEstimate = data?.pages[0]?.totalEstimate ?? allLoaded.length;
+
+  // Auto-load on scroll.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const io = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) fetchNextPage();
+    }, { root: scrollRef.current ?? null, rootMargin: "200px" });
+    io.observe(sentinelRef.current);
+    return () => io.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const hasFilters = !!(search || filterCategory || filterStatus || filterCondition);
 
@@ -408,7 +448,8 @@ export default function AssetRegister() {
       {/* Count bar */}
       <div className="px-5 py-2 border-b border-border/50 bg-background/60 flex items-center gap-3">
         <p className="text-xs text-muted-foreground">
-          <span className="font-bold text-foreground tabular-nums">{assets.length.toLocaleString()}</span> assets
+          <span className="font-bold text-foreground tabular-nums">{assets.length.toLocaleString()}</span> of{" "}
+          <span className="font-bold text-foreground tabular-nums">{totalEstimate.toLocaleString()}</span> assets
           {hasFilters && <span className="ml-1 text-primary/80">(filtered)</span>}
         </p>
         {hasFilters && (
@@ -420,9 +461,25 @@ export default function AssetRegister() {
         )}
       </div>
 
+      {/* API error banner */}
+      {error && (
+        <div className="px-5 py-2 bg-red-50 dark:bg-red-950/30 border-b border-red-200/70 dark:border-red-800/30 flex items-center gap-2">
+          <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0" />
+          <p className="text-[11px] text-red-700 dark:text-red-400">
+            <span className="font-semibold">{error.code}:</span> {error.message}
+            {!apiConfigured && " (set VITE_API_TOKEN in .env.local)"}
+          </p>
+        </div>
+      )}
+
       {/* Content */}
-      <div className="flex-1 overflow-y-auto">
-        {view === "map" ? (
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+        {isLoading && assets.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <Clock size={20} className="text-muted-foreground/40 animate-pulse" />
+            <p className="text-sm text-muted-foreground">Loading assets…</p>
+          </div>
+        ) : view === "map" ? (
           <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
             <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
               <Map size={22} className="text-muted-foreground/50" />
@@ -449,6 +506,20 @@ export default function AssetRegister() {
               }
             </div>
           ))
+        )}
+
+        {hasNextPage && (
+          <div ref={sentinelRef} className="flex items-center justify-center py-5">
+            {isFetchingNextPage ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Clock size={12} className="animate-pulse" /> Loading more…
+              </div>
+            ) : (
+              <button onClick={() => fetchNextPage()} className="text-xs text-primary hover:opacity-80">
+                Load more
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>
