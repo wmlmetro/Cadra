@@ -30,7 +30,9 @@ import {
   apiEmployeeToEmployee, type ApiEmployee,
   apiAssetToAsset, type ApiAsset,
   apiLocationToLocation, type ApiLocation,
+  apiRequestToRequest, type ApiRequest,
 } from "./adapters";
+import type { ServiceRequest } from "../types";
 
 // ─── ASSETS ───────────────────────────────────────────────────────────────────
 export interface AssetFilters {
@@ -893,4 +895,146 @@ export function getDashboardStats(): DashboardStats {
     employees: 11385,
     reviewQueue: 847,
   };
+}
+
+// ─── SERVICE REQUESTS ────────────────────────────────────────────────────────
+
+export interface RequestFilters {
+  search?: string;
+  stage_id?: number;
+  type_id?: number;
+  category_id?: number;
+  user_id?: number;
+  priority?: string;
+  closed?: boolean;
+  location_id?: number;
+  asset_id?: number;
+}
+
+export type RequestInclude = "routes" | "messages" | "events";
+
+export interface RequestsPage {
+  requests: ServiceRequest[];
+  nextCursor: string | null;
+  totalEstimate: number | null;
+}
+
+export async function fetchRequestsPage(
+  cursor: string | undefined,
+  f?: RequestFilters,
+): Promise<RequestsPage> {
+  if (!apiConfigured) return { requests: [], nextCursor: null, totalEstimate: 0 };
+  const res = await apiGet<ApiRequest[]>("/api/v1/requests", {
+    q: f?.search,
+    stage_id: f?.stage_id,
+    type_id: f?.type_id,
+    category_id: f?.category_id,
+    user_id: f?.user_id,
+    priority: f?.priority,
+    closed: f?.closed,
+    location_id: f?.location_id,
+    asset_id: f?.asset_id,
+    limit: 200,
+    cursor,
+  });
+  return {
+    requests: res.data.map(apiRequestToRequest),
+    nextCursor: res.pagination?.next_cursor ?? null,
+    totalEstimate: res.pagination?.total_estimate ?? null,
+  };
+}
+
+export async function fetchRequest(id: string, includes?: RequestInclude[]): Promise<ServiceRequest | null> {
+  if (!apiConfigured) return null;
+  try {
+    // Note: ?include=events currently 500s on staging — skip it until backend fix.
+    const safe = includes?.filter(i => i !== "events");
+    const res = await apiGet<ApiRequest>(`/api/v1/requests/${id}`, {
+      include: safe?.length ? safe.join(",") : undefined,
+    });
+    return apiRequestToRequest(res.data);
+  } catch (e) {
+    if (e && typeof e === "object" && "code" in e && (e as { code: string }).code === "not_found") {
+      return null;
+    }
+    throw e;
+  }
+}
+
+export async function fetchRequestByReference(ref: string, includes?: RequestInclude[]): Promise<ServiceRequest | null> {
+  if (!apiConfigured) return null;
+  try {
+    const safe = includes?.filter(i => i !== "events");
+    const res = await apiGet<ApiRequest>(`/api/v1/requests/by-reference/${encodeURIComponent(ref)}`, {
+      include: safe?.length ? safe.join(",") : undefined,
+    });
+    return apiRequestToRequest(res.data);
+  } catch (e) {
+    if (e && typeof e === "object" && "code" in e && (e as { code: string }).code === "not_found") {
+      return null;
+    }
+    throw e;
+  }
+}
+
+// ─── REQUEST MUTATIONS ───────────────────────────────────────────────────────
+
+/** Mirrors _WRITABLE_FIELDS in v1_requests.py. stage_id is intentionally excluded
+ *  — use transitionRequest() instead. */
+export interface RequestWriteBody {
+  type_id?: number;
+  category_id?: number | null;
+  priority?: string;
+  impact?: string;
+  urgency?: string;
+  kanban_state?: "normal" | "done" | "blocked";
+  request_text?: string;
+  response_text?: string;
+  author_id?: number | null;
+  user_id?: number | null;
+  partner_id?: number | null;
+  service_id?: number | null;
+  parent_id?: number | null;
+  deadline_date?: string | null;
+  tag_ids?: number[];
+  location_id?: number | null;
+  vehicle_id?: number | null;
+  nrs_asset_id?: number | null;
+}
+
+export async function createRequest(body: RequestWriteBody): Promise<ServiceRequest> {
+  const res = await apiPost<ApiRequest>("/api/v1/requests", body, {
+    idempotencyKey: newIdempotencyKey(),
+  });
+  return apiRequestToRequest(res.data);
+}
+
+export async function updateRequest(id: string, body: RequestWriteBody): Promise<ServiceRequest> {
+  const res = await apiPatch<ApiRequest>(`/api/v1/requests/${id}`, body, {
+    idempotencyKey: newIdempotencyKey(),
+  });
+  return apiRequestToRequest(res.data);
+}
+
+export async function assignRequest(id: string, user_id: number | null): Promise<ServiceRequest> {
+  const res = await apiPost<ApiRequest>(`/api/v1/requests/${id}/assign`, { user_id }, {
+    idempotencyKey: newIdempotencyKey(),
+  });
+  return apiRequestToRequest(res.data);
+}
+
+export async function transitionRequest(
+  id: string,
+  by: { route_id: number } | { to_stage_id: number },
+): Promise<ServiceRequest> {
+  const res = await apiPost<ApiRequest>(`/api/v1/requests/${id}/transition`, by, {
+    idempotencyKey: newIdempotencyKey(),
+  });
+  return apiRequestToRequest(res.data);
+}
+
+export async function commentOnRequest(id: string, body: string, internal = true): Promise<void> {
+  await apiPost(`/api/v1/requests/${id}/comment`, { body, internal }, {
+    idempotencyKey: newIdempotencyKey(),
+  });
 }

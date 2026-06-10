@@ -9,6 +9,7 @@
 import type {
   Employee, EmployeeStatus, EmploymentType,
   Asset, AssetLocation, Location as FrontLocation, ApprovalStatus,
+  ServiceRequest, RequestPriority, RequestKanbanState, RequestStageRoute, RequestMessage,
 } from "../types";
 
 // ─── API shape (from myservice_api/controllers/v1_identity.py:serialize_employee)
@@ -260,5 +261,100 @@ export function apiLocationToLocation(l: ApiLocation & ApiLocationCoords): Front
     childStates: undefined,
     childOffices: undefined,
     coordinates: (typeof lat === "number" && typeof lng === "number") ? { lat, lng } : undefined,
+  };
+}
+
+
+// ─── SERVICE REQUEST ─────────────────────────────────────────────────────
+
+export interface ApiRequestStage {
+  id: number;
+  name: string;
+  code: string | null;
+  type_code: string | null;
+  closed: boolean;
+}
+
+export interface ApiRequest {
+  id: number;
+  reference: string;
+  type: ApiRef | null;
+  category: ApiRef | null;
+  stage: ApiRequestStage;
+  kanban_state: RequestKanbanState;
+  priority: string;
+  impact: string | null;
+  urgency: string | null;
+  active: boolean;
+  subject: string;
+  request_text: string;
+  response_text: string | null;
+  author: ApiRef | null;
+  assignee: ApiRef | null;
+  partner: ApiRef | null;
+  service: ApiRef | null;
+  parent_id: number | null;
+  tags: ApiRef[];
+  deadline_date: string | null;
+  dates: {
+    created: string | null;
+    assigned: string | null;
+    moved: string | null;
+    closed: string | null;
+  };
+  location: ApiRef | null;
+  vehicle: ApiRef | null;
+  asset: ApiRef | null;
+  created_at: string;
+  updated_at: string;
+  routes?: Array<{ id: number; name: string; stage_to: ApiRef }>;
+  messages?: Array<{
+    id: number; date: string;
+    author: ApiRef | null;
+    subject: string | null;
+    body_html: string | null;
+    is_internal?: boolean;
+  }>;
+}
+
+export function apiRequestToRequest(r: ApiRequest): ServiceRequest {
+  const routes: RequestStageRoute[] | undefined = r.routes?.map(rt => ({
+    id: rt.id,
+    name: rt.name,
+    to_stage_id: rt.stage_to.id,
+    to_stage_name: rt.stage_to.name,
+  }));
+  const messages: RequestMessage[] | undefined = r.messages?.map(m => ({
+    id: m.id,
+    date: m.date,
+    author: m.author,
+    subject: m.subject,
+    body_html: m.body_html,
+    is_internal: m.is_internal,
+  }));
+  return {
+    id: String(r.id),
+    reference: r.reference,
+    typeName: r.type?.name ?? "—",
+    typeId: r.type?.id ?? null,
+    categoryName: r.category?.name ?? null,
+    categoryId: r.category?.id ?? null,
+    stageName: r.stage.name,
+    stageId: r.stage.id,
+    stageCode: r.stage.code,
+    stageClosed: r.stage.closed,
+    kanbanState: r.kanban_state,
+    priority: (r.priority as RequestPriority) ?? "2",
+    impact: r.impact,
+    urgency: r.urgency,
+    subject: r.subject,
+    requestText: r.request_text,
+    responseText: r.response_text,
+    author: r.author,
+    assignee: r.assignee,
+    deadline: r.deadline_date,
+    createdAt: r.dates?.created ?? r.created_at,
+    routes,
+    messages,
   };
 }

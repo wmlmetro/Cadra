@@ -9,6 +9,9 @@ import FMOperationsDashboard from "@/pages/FMOperationsDashboard";
 import FleetCommandCenter from "@/pages/FleetCommandCenter";
 import SecurityOperations from "@/pages/SecurityOperations";
 import BarcodeStation from "@/pages/BarcodeStation";
+import RequestsList, { TriageInbox } from "@/pages/RequestsList";
+import RequestDetail from "@/pages/RequestDetail";
+import RequestForm from "@/pages/RequestForm";
 import AssetRegister from "@/pages/AssetRegister";
 import AssetDetail from "@/pages/AssetDetail";
 import AssetForm from "@/pages/AssetForm";
@@ -34,7 +37,13 @@ function AppRoutes() {
         <Route path="/dashboards/fm"       component={FMOperationsDashboard} />
         <Route path="/dashboards/fleet"    component={FleetCommandCenter}   />
         <Route path="/dashboards/security" component={SecurityOperations}   />
-        <Route path="/tools/barcode"       component={BarcodeStation}       />
+        <Route path="/tools/barcode"          component={BarcodeStation}    />
+        {/* Service Desk — order: /new, /triage, /:id/edit, /:id, list */}
+        <Route path="/service-desk/new"       component={() => <RequestForm mode="create" />} />
+        <Route path="/service-desk/triage"    component={TriageInbox}       />
+        <Route path="/service-desk/:id/edit"  component={() => <RequestForm mode="edit"   />} />
+        <Route path="/service-desk/:id"       component={RequestDetail}     />
+        <Route path="/service-desk"           component={() => <RequestsList />} />
         <Route path="/assets"              component={AssetRegister}  />
         <Route path="/assets/new"          component={() => <AssetForm mode="create" />} />
         <Route path="/assets/:id/edit"     component={() => <AssetForm mode="edit"   />} />

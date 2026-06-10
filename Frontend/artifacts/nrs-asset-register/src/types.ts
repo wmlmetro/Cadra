@@ -232,6 +232,54 @@ export interface BusBooking {
   boardingTime?: string;
 }
 
+// ─── SERVICE DESK REQUEST ─────────────────────────────────────────────────────
+
+export type RequestPriority = "0" | "1" | "2" | "3" | "4";
+export type RequestKanbanState = "normal" | "done" | "blocked";
+
+export interface RequestStageRoute {
+  id: number;
+  name: string;
+  to_stage_id: number;
+  to_stage_name: string;
+}
+
+export interface RequestMessage {
+  id: number;
+  date: string;
+  author: { id: number; name: string } | null;
+  subject: string | null;
+  body_html: string | null;
+  is_internal?: boolean;
+}
+
+export interface ServiceRequest {
+  id: string;
+  reference: string;
+  typeName: string;
+  typeId: number | null;
+  categoryName: string | null;
+  categoryId: number | null;
+  stageName: string;
+  stageId: number | null;
+  stageCode: string | null;
+  stageClosed: boolean;
+  kanbanState: RequestKanbanState;
+  priority: RequestPriority;
+  impact: string | null;
+  urgency: string | null;
+  subject: string;
+  requestText: string;
+  responseText: string | null;
+  author: { id: number; name: string } | null;
+  assignee: { id: number; name: string } | null;
+  deadline: string | null;
+  createdAt: string;
+  // Optional embedded collections (via ?include=)
+  routes?: RequestStageRoute[];
+  messages?: RequestMessage[];
+}
+
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 export interface DashboardStats {
   totalAssets: number;
