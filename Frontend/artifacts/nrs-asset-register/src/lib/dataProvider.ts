@@ -25,7 +25,7 @@ import {
   mockBusBookings,
 } from "../mock/staffBus";
 import { mockIdentityRecords } from "../mock/identity";
-import { apiConfigured, apiGet, apiPost, apiPatch, newIdempotencyKey } from "./api";
+import { apiConfigured, apiGet, apiPost, apiPatch, apiUpload, newIdempotencyKey } from "./api";
 import {
   apiEmployeeToEmployee, type ApiEmployee,
   apiAssetToAsset, type ApiAsset,
@@ -417,6 +417,92 @@ export async function updateLocation(id: string, body: LocationWriteBody): Promi
     idempotencyKey: newIdempotencyKey(),
   });
   return apiLocationToLocation(res.data);
+}
+
+// ─── IDENTITY EXTRAS ─────────────────────────────────────────────────────────
+
+/** Fast count via `limit=1` + total_estimate. */
+async function countEmployees(params: Record<string, unknown>): Promise<number> {
+  if (!apiConfigured) return 0;
+  const res = await apiGet<ApiEmployee[]>("/api/v1/identity/employees", { ...params, limit: 1 });
+  return res.pagination?.total_estimate ?? 0;
+}
+
+export async function fetchSapSyncStatusCounts(): Promise<{
+  synced: number; pending: number; error: number; never: number; total: number;
+}> {
+  if (!apiConfigured) {
+    return { synced: 0, pending: 0, error: 0, never: 0, total: 0 };
+  }
+  const [synced, pending, error, never, total] = await Promise.all([
+    countEmployees({ sap_sync_status: "synced" }),
+    countEmployees({ sap_sync_status: "pending" }),
+    countEmployees({ sap_sync_status: "error" }),
+    countEmployees({ sap_sync_status: "never" }),
+    countEmployees({}),
+  ]);
+  return { synced, pending, error, never, total };
+}
+
+/** Latest sync timestamp — found by sorting employees by sap.last_sync DESC. */
+export async function fetchLatestSapSync(): Promise<string | null> {
+  if (!apiConfigured) return null;
+  const res = await apiGet<ApiEmployee[]>("/api/v1/identity/employees", {
+    sap_sync_status: "synced",
+    limit: 200,
+  });
+  const stamps = res.data
+    .map(e => e.sap.last_sync)
+    .filter((s): s is string => !!s)
+    .sort((a, b) => b.localeCompare(a));
+  return stamps[0] ?? null;
+}
+
+/** Lookup an employee by IR number — returns the Employee record or null. */
+export async function fetchEmployeeByIr(ir: string): Promise<Employee | null> {
+  if (!apiConfigured) {
+    return mockEmployees.find(e => e.irNumber === ir) ?? null;
+  }
+  try {
+    const res = await apiGet<ApiEmployee>(`/api/v1/identity/employees/by-ir/${encodeURIComponent(ir)}`);
+    return apiEmployeeToEmployee(res.data);
+  } catch (e) {
+    if (e && typeof e === "object" && "code" in e && (e as { code: string }).code === "not_found") {
+      return null;
+    }
+    throw e;
+  }
+}
+
+// ─── EMPLOYEE BULK IMPORT (multipart + async polling) ────────────────────────
+
+export interface ImportJobStatus {
+  job_id: number;
+  state: "queued" | "running" | "done" | "error" | string;
+  rows_total?: number | null;
+  rows_processed?: number | null;
+  rows_created?: number | null;
+  rows_updated?: number | null;
+  rows_failed?: number | null;
+  errors?: Array<{ row: number; field?: string; message: string }>;
+  started_at?: string | null;
+  finished_at?: string | null;
+  message?: string | null;
+}
+
+export async function submitEmployeeImport(file: File, sheet?: string): Promise<ImportJobStatus> {
+  const form = new FormData();
+  form.append("file", file);
+  if (sheet) form.append("sheet", sheet);
+  const res = await apiUpload<ImportJobStatus>("/api/v1/integrations/employees/import", form, {
+    idempotencyKey: newIdempotencyKey(),
+  });
+  return res.data;
+}
+
+export async function fetchImportJobStatus(jobId: number): Promise<ImportJobStatus> {
+  const res = await apiGet<ImportJobStatus>(`/api/v1/integrations/employees/import/${jobId}`);
+  return res.data;
 }
 
 export async function fetchLocation(id: string): Promise<Location | null> {

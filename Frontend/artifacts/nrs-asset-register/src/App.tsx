@@ -12,6 +12,9 @@ import Locations from "@/pages/Locations";
 import LocationDetail from "@/pages/LocationDetail";
 import LocationForm from "@/pages/LocationForm";
 import Employees, { EmployeeDetail } from "@/pages/Employees";
+import SAPSyncStatus from "@/pages/SAPSyncStatus";
+import EmployeeBulkImport from "@/pages/EmployeeBulkImport";
+import EmployeeByIr from "@/pages/EmployeeByIr";
 import Fleet, { FleetDetail } from "@/pages/Fleet";
 import StaffBus from "@/pages/StaffBus";
 import Identity from "@/pages/Identity";
@@ -32,9 +35,13 @@ function AppRoutes() {
         <Route path="/locations/new"       component={() => <LocationForm mode="create" />} />
         <Route path="/locations/:id/edit"  component={() => <LocationForm mode="edit"   />} />
         <Route path="/locations/:id"       component={LocationDetail} />
-        <Route path="/hr/employees"        component={Employees}      />
-        <Route path="/hr/employees/:id"    component={EmployeeDetail} />
-        <Route path="/hr/identity"         component={Identity}       />
+        <Route path="/hr/sap-sync"            component={SAPSyncStatus}        />
+        <Route path="/hr/import"              component={EmployeeBulkImport}    />
+        <Route path="/hr/employees"           component={Employees}             />
+        {/* by-ir must precede :id so wouter doesn't try to resolve "by-ir" as an id */}
+        <Route path="/hr/employees/by-ir/:ir" component={EmployeeByIr}          />
+        <Route path="/hr/employees/:id"       component={EmployeeDetail}        />
+        <Route path="/hr/identity"            component={Identity}              />
         {/* specific fleet routes must precede the dynamic :id catch-all */}
         <Route path="/fleet/staff-bus"     component={StaffBus}       />
         <Route path="/fleet"               component={Fleet}          />
