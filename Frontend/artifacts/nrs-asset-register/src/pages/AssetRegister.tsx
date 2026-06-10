@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
-import { fetchAssetsPage, type AssetsPage } from "@/lib/dataProvider";
+import { fetchAssetsPage, fetchAllLocations, type AssetsPage } from "@/lib/dataProvider";
+import NigeriaMap, { type MapPinData } from "@/components/NigeriaMap";
 import { apiConfigured, CadraApiError } from "@/lib/api";
 import type { Asset } from "@/types";
 import StatusPill from "@/components/StatusPill";
@@ -10,7 +11,7 @@ import ConditionBadge from "@/components/ConditionBadge";
 import {
   Monitor, Car, Sofa, MapPin, User, Search, X,
   LayoutGrid, List, SlidersHorizontal, ChevronDown,
-  ArrowUpDown, ArrowUp, ArrowDown, Map, Clock, AlertCircle,
+  ArrowUpDown, ArrowUp, ArrowDown, Map as MapIcon, Clock, AlertCircle,
 } from "lucide-react";
 import {
   useReactTable, getCoreRowModel, getSortedRowModel,
@@ -352,6 +353,30 @@ export default function AssetRegister() {
     return () => io.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  // Map view — load location pins only when the user opens the map tab.
+  const { data: mapLocations = [] } = useQuery({
+    queryKey: ["assetregister", "map-locations"],
+    queryFn: fetchAllLocations,
+    enabled: view === "map",
+    staleTime: 5 * 60_000,
+  });
+  const mapPins = useMemo<MapPinData[]>(() => {
+    const byCoord = new Map<string, MapPinData>();
+    for (const l of mapLocations) {
+      if (!l.coordinates) continue;
+      const key = `${l.coordinates.lat.toFixed(4)},${l.coordinates.lng.toFixed(4)}`;
+      if (byCoord.has(key)) continue;
+      byCoord.set(key, {
+        id: l.id,
+        lat: l.coordinates.lat,
+        lng: l.coordinates.lng,
+        label: l.name,
+        sublabel: [l.state, l.country].filter(Boolean).join(" · "),
+      });
+    }
+    return Array.from(byCoord.values());
+  }, [mapLocations]);
+
   const hasFilters = !!(search || filterCategory || filterStatus || filterCondition);
 
   const clearFilters = () => {
@@ -390,7 +415,7 @@ export default function AssetRegister() {
               )}
               data-testid={`button-view-${v}`}
             >
-              {v === "kanban" ? <LayoutGrid size={13} /> : v === "list" ? <List size={13} /> : <Map size={13} />}
+              {v === "kanban" ? <LayoutGrid size={13} /> : v === "list" ? <List size={13} /> : <MapIcon size={13} />}
               <span className="capitalize">{v}</span>
             </button>
           ))}
@@ -480,14 +505,12 @@ export default function AssetRegister() {
             <p className="text-sm text-muted-foreground">Loading assets…</p>
           </div>
         ) : view === "map" ? (
-          <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
-              <Map size={22} className="text-muted-foreground/50" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground">Map view</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Coming soon — geolocation data in progress</p>
-            </div>
+          <div className="p-5 space-y-3">
+            <p className="text-xs text-muted-foreground">
+              <span className="font-bold text-foreground tabular-nums">{mapPins.length}</span> distinct sites
+              {mapPins.length === 0 && " — loading locations…"}
+            </p>
+            <NigeriaMap pins={mapPins} height={520} />
           </div>
         ) : assets.length === 0 ? (
           <EmptyState onClear={clearFilters} />

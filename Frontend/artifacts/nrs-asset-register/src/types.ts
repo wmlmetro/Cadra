@@ -53,6 +53,7 @@ export interface Location {
   assetCount?: number;    // assets at/under this node
   childStates?: number;   // zone-level rollup
   childOffices?: number;  // zone/state-level rollup
+  coordinates?: { lat: number; lng: number };
 }
 
 // ─── EMPLOYEE ─────────────────────────────────────────────────────────────────

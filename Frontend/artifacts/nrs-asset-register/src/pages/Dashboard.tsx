@@ -1,12 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import { useLocation } from "wouter";
 import {
   getDashboardStats, getReviewQueueAssets,
   getAssetsByCategory, getAssetsByStatus,
-  fetchTotals, fetchAssetsPage,
+  fetchTotals, fetchAssetsPage, fetchAllLocations,
 } from "@/lib/dataProvider";
+import NigeriaMap, { type MapPinData } from "@/components/NigeriaMap";
 import StatusPill from "@/components/StatusPill";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
@@ -195,6 +196,42 @@ export default function Dashboard() {
   const categoryData = getAssetsByCategory();   // mock — no API aggregate
   const statusData = getAssetsByStatus();       // mock — no API aggregate
 
+  // Office locations for the map. Dedupe by rounded coord so we get one pin
+  // per physical place (zone/state/office records often share coords).
+  const { data: allLocations = [] } = useQuery({
+    queryKey: ["dashboard", "locations"],
+    queryFn: fetchAllLocations,
+    staleTime: 5 * 60_000,
+  });
+  const officePins = useMemo<MapPinData[]>(() => {
+    const byCoord = new Map<string, MapPinData>();
+    for (const l of allLocations) {
+      if (!l.coordinates) continue;
+      const key = `${l.coordinates.lat.toFixed(4)},${l.coordinates.lng.toFixed(4)}`;
+      const existing = byCoord.get(key);
+      if (existing) {
+        // Keep the shallowest record (most likely the office/state, not the room).
+        // Approximation: prefer entries without a parent over ones with one.
+        if (existing.sublabel && !l.parent) byCoord.set(key, {
+          id: l.id,
+          lat: l.coordinates.lat,
+          lng: l.coordinates.lng,
+          label: l.name,
+          sublabel: [l.state, l.country].filter(Boolean).join(" · "),
+        });
+        continue;
+      }
+      byCoord.set(key, {
+        id: l.id,
+        lat: l.coordinates.lat,
+        lng: l.coordinates.lng,
+        label: l.name,
+        sublabel: [l.state, l.country].filter(Boolean).join(" · "),
+      });
+    }
+    return Array.from(byCoord.values());
+  }, [allLocations]);
+
   useEffect(() => {
     setTitle("Facility Command Center");
     setSearchHandler(undefined);
@@ -298,6 +335,15 @@ export default function Dashboard() {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* NRS Office Locations map */}
+      <div className="bg-card border border-border rounded-2xl p-5">
+        <SectionHeader
+          title="NRS Office Locations"
+          sub={`${officePins.length} distinct sites across Nigeria`}
+        />
+        <NigeriaMap pins={officePins} height={380} />
       </div>
 
       {/* Charts */}

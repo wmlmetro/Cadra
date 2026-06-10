@@ -236,7 +236,13 @@ function mapLocationType(t: string | null): FrontLocationType | undefined {
   return undefined;
 }
 
-export function apiLocationToLocation(l: ApiLocation): FrontLocation {
+interface ApiLocationCoords {
+  coordinates?: { latitude: number | null; longitude: number | null } | null;
+}
+
+export function apiLocationToLocation(l: ApiLocation & ApiLocationCoords): FrontLocation {
+  const lat = l.coordinates?.latitude;
+  const lng = l.coordinates?.longitude;
   return {
     id: String(l.id),
     name: l.name,
@@ -250,9 +256,9 @@ export function apiLocationToLocation(l: ApiLocation): FrontLocation {
     country: l.address.country?.name ?? "Nigeria",
     active: l.active,
     childrenCount: l.child_count,
-    // child_all_count counts every descendant — used by Locations card view.
-    assetCount: undefined, // not on /locations payload; backfilled via /assets count if needed
+    assetCount: undefined,
     childStates: undefined,
     childOffices: undefined,
+    coordinates: (typeof lat === "number" && typeof lng === "number") ? { lat, lng } : undefined,
   };
 }
