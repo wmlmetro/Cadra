@@ -50,6 +50,9 @@ export interface Location {
   country: string;
   active: boolean;
   childrenCount?: number;
+  assetCount?: number;    // assets at/under this node
+  childStates?: number;   // zone-level rollup
+  childOffices?: number;  // zone/state-level rollup
 }
 
 // ─── EMPLOYEE ─────────────────────────────────────────────────────────────────

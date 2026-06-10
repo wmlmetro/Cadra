@@ -67,7 +67,7 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* LIGHT MODE */
+/* ─── LIGHT MODE ────────────────────────────────────────────────────────────── */
 :root {
   --button-outline: rgba(0,0,0,.10);
   --badge-outline: rgba(0,0,0,.05);
@@ -75,41 +75,54 @@
   --elevate-1: rgba(0,0,0,.03);
   --elevate-2: rgba(0,0,0,.08);
 
-  /* NRS Red: #C8102E → hsl(351 85% 42%) */
-  --background: 220 20% 97%;
-  --foreground: 222 47% 11%;
-  --border: 220 15% 88%;
-  --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  --card-border: 220 15% 90%;
-  --sidebar: 222 35% 16%;
-  --sidebar-foreground: 218 20% 80%;
-  --sidebar-border: 222 28% 22%;
-  --sidebar-primary: 351 85% 42%;
+  /* ─── NRS Brand: #E01F26 → hsl(358 76% 50%) — accent only, not for surfaces ─ */
+  --background:         220 18% 97%;   /* #F7F8FA — app background              */
+  --foreground:         222 47% 11%;   /* #1F2937 — primary text                */
+  --border:             220 13% 91%;   /* #E5E7EB — default borders             */
+  --card:               0 0% 100%;     /* #FFFFFF — card / panel surface        */
+  --card-foreground:    222 47% 11%;
+  --card-border:        220 13% 91%;
+  --sidebar:            221 39% 11%;   /* #111827 — dark sidebar                */
+  --sidebar-foreground: 218 20% 78%;
+  --sidebar-border:     222 32% 17%;
+  --sidebar-primary:    358 76% 50%;   /* #E01F26 — active nav pill             */
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 222 28% 22%;
+  --sidebar-accent:     222 32% 17%;
   --sidebar-accent-foreground: 218 20% 90%;
-  --sidebar-ring: 351 85% 42%;
-  --popover: 0 0% 100%;
+  --sidebar-ring:       358 76% 50%;
+  --popover:            0 0% 100%;
   --popover-foreground: 222 47% 11%;
-  --popover-border: 220 15% 88%;
-  --primary: 351 85% 42%;
+  --popover-border:     220 13% 91%;
+  --primary:            358 76% 50%;   /* #E01F26 — primary action / accent     */
   --primary-foreground: 0 0% 100%;
-  --secondary: 220 15% 93%;
+  --secondary:          220 14% 93%;
   --secondary-foreground: 222 47% 20%;
-  --muted: 220 14% 94%;
-  --muted-foreground: 220 10% 52%;
-  --accent: 220 14% 92%;
-  --accent-foreground: 222 47% 15%;
-  --destructive: 0 84% 50%;
+  --muted:              220 14% 94%;   /* #F1F3F5 — tinted tile, table header   */
+  --muted-foreground:   220 9% 46%;    /* #6B7280                               */
+  --accent:             220 14% 92%;
+  --accent-foreground:  222 47% 15%;
+  --destructive:        0 84% 50%;
   --destructive-foreground: 0 0% 100%;
-  --input: 220 14% 84%;
-  --ring: 351 85% 42%;
-  --chart-1: 351 85% 42%;
-  --chart-2: 213 80% 50%;
-  --chart-3: 163 60% 42%;
-  --chart-4: 38 90% 52%;
-  --chart-5: 270 60% 52%;
+  --input:              220 14% 84%;
+  --ring:               358 76% 50%;
+  --chart-1:            358 76% 50%;
+  --chart-2:            213 80% 50%;
+  --chart-3:            163 60% 42%;
+  --chart-4:            38 90% 52%;
+  --chart-5:            270 60% 52%;
+
+  /* ─── NRS Status pill colours (distinct from brand red) ──────────────────── */
+  --st-cleared-bg:    #ECFDF3;  --st-cleared-fg:    #15803D;  /* Cleared — green       */
+  --st-dq-bg:         #FFFBEB;  --st-dq-fg:         #B45309;  /* data quality — amber  */
+  --st-vin-bg:        #FEF3C7;  --st-vin-fg:        #92400E;  /* VIN — amber-deep      */
+  --st-dup-bg:        #F5F3FF;  --st-dup-fg:        #6D28D9;  /* duplicate — violet    */
+  --st-allottee-bg:   #FFF7ED;  --st-allottee-fg:   #C2410C;  /* allottee — orange     */
+
+  /* ─── Condition badge colours ────────────────────────────────────────────── */
+  --cond-good-bg:     #ECFDF3;  --cond-good-fg:     #15803D;
+  --cond-fair-bg:     #EFF6FF;  --cond-fair-fg:     #1D4ED8;
+  --cond-poor-bg:     #FFFBEB;  --cond-poor-fg:     #B45309;
+  --cond-faulty-bg:   #FFF1F2;  --cond-faulty-fg:   #BE123C;  /* rose, NOT brand red   */
 
   --app-font-sans: 'Inter', sans-serif;
   --app-font-serif: Georgia, serif;
@@ -119,13 +132,13 @@
   --spacing: 0.25rem;
 
   --shadow-2xs: 0px 1px 2px 0px hsl(222 47% 11% / 0.04);
-  --shadow-xs: 0px 1px 3px 0px hsl(222 47% 11% / 0.06);
-  --shadow-sm: 0px 1px 3px 0px hsl(222 47% 11% / 0.08), 0px 1px 2px -1px hsl(222 47% 11% / 0.05);
-  --shadow: 0px 2px 4px 0px hsl(222 47% 11% / 0.08), 0px 1px 2px -1px hsl(222 47% 11% / 0.05);
-  --shadow-md: 0px 4px 6px -1px hsl(222 47% 11% / 0.08), 0px 2px 4px -2px hsl(222 47% 11% / 0.05);
-  --shadow-lg: 0px 10px 15px -3px hsl(222 47% 11% / 0.08), 0px 4px 6px -4px hsl(222 47% 11% / 0.05);
-  --shadow-xl: 0px 20px 25px -5px hsl(222 47% 11% / 0.08), 0px 8px 10px -6px hsl(222 47% 11% / 0.05);
-  --shadow-2xl: 0px 25px 50px -12px hsl(222 47% 11% / 0.18);
+  --shadow-xs:  0px 1px 3px 0px hsl(222 47% 11% / 0.06);
+  --shadow-sm:  0px 1px 3px 0px hsl(222 47% 11% / 0.06), 0px 1px 2px -1px hsl(222 47% 11% / 0.04);
+  --shadow:     0px 2px 4px 0px hsl(222 47% 11% / 0.06), 0px 1px 2px -1px hsl(222 47% 11% / 0.04);
+  --shadow-md:  0px 4px 6px -1px hsl(222 47% 11% / 0.06), 0px 2px 4px -2px hsl(222 47% 11% / 0.04);
+  --shadow-lg:  0px 10px 15px -3px hsl(222 47% 11% / 0.06), 0px 4px 6px -4px hsl(222 47% 11% / 0.04);
+  --shadow-xl:  0px 20px 25px -5px hsl(222 47% 11% / 0.06), 0px 8px 10px -6px hsl(222 47% 11% / 0.04);
+  --shadow-2xl: 0px 25px 50px -12px hsl(222 47% 11% / 0.12);
 
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
@@ -143,6 +156,7 @@
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
+/* ─── DARK MODE ─────────────────────────────────────────────────────────────── */
 .dark {
   --button-outline: rgba(255,255,255,.10);
   --badge-outline: rgba(255,255,255,.05);
@@ -150,48 +164,59 @@
   --elevate-1: rgba(255,255,255,.04);
   --elevate-2: rgba(255,255,255,.09);
 
-  --background: 222 35% 9%;
-  --foreground: 218 20% 88%;
-  --border: 222 25% 22%;
-  --card: 222 30% 13%;
-  --card-foreground: 218 20% 88%;
-  --card-border: 222 25% 22%;
-  --sidebar: 222 40% 8%;
+  --background:         222 35% 9%;
+  --foreground:         218 20% 88%;
+  --border:             222 25% 22%;
+  --card:               222 30% 13%;
+  --card-foreground:    218 20% 88%;
+  --card-border:        222 25% 22%;
+  --sidebar:            222 44% 8%;
   --sidebar-foreground: 218 20% 78%;
-  --sidebar-border: 222 28% 18%;
-  --sidebar-primary: 351 80% 52%;
+  --sidebar-border:     222 32% 16%;
+  --sidebar-primary:    358 72% 56%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 222 28% 18%;
+  --sidebar-accent:     222 28% 18%;
   --sidebar-accent-foreground: 218 20% 90%;
-  --sidebar-ring: 351 80% 52%;
-  --popover: 222 30% 13%;
+  --sidebar-ring:       358 72% 56%;
+  --popover:            222 30% 13%;
   --popover-foreground: 218 20% 88%;
-  --popover-border: 222 25% 22%;
-  --primary: 351 80% 55%;
+  --popover-border:     222 25% 22%;
+  --primary:            358 72% 56%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 222 25% 20%;
+  --secondary:          222 25% 20%;
   --secondary-foreground: 218 20% 85%;
-  --muted: 222 25% 18%;
-  --muted-foreground: 220 10% 56%;
-  --accent: 222 25% 20%;
-  --accent-foreground: 218 20% 88%;
-  --destructive: 0 72% 55%;
+  --muted:              222 25% 18%;
+  --muted-foreground:   220 10% 56%;
+  --accent:             222 25% 20%;
+  --accent-foreground:  218 20% 88%;
+  --destructive:        0 72% 55%;
   --destructive-foreground: 0 0% 100%;
-  --input: 222 25% 26%;
-  --ring: 351 80% 55%;
-  --chart-1: 351 75% 58%;
-  --chart-2: 213 75% 58%;
-  --chart-3: 163 55% 50%;
-  --chart-4: 38 80% 58%;
-  --chart-5: 270 55% 60%;
+  --input:              222 25% 26%;
+  --ring:               358 72% 56%;
+  --chart-1:            358 70% 60%;
+  --chart-2:            213 75% 58%;
+  --chart-3:            163 55% 50%;
+  --chart-4:            38 80% 58%;
+  --chart-5:            270 55% 60%;
+
+  /* dark mode status colours — slightly lighter tints */
+  --st-cleared-bg:   #052E16;  --st-cleared-fg:   #4ADE80;
+  --st-dq-bg:        #1C1408;  --st-dq-fg:        #FBBF24;
+  --st-vin-bg:       #1C1408;  --st-vin-fg:       #F59E0B;
+  --st-dup-bg:       #120D23;  --st-dup-fg:       #A78BFA;
+  --st-allottee-bg:  #1C0D05;  --st-allottee-fg:  #FB923C;
+  --cond-good-bg:    #052E16;  --cond-good-fg:    #4ADE80;
+  --cond-fair-bg:    #071E38;  --cond-fair-fg:    #60A5FA;
+  --cond-poor-bg:    #1C1408;  --cond-poor-fg:    #FBBF24;
+  --cond-faulty-bg:  #1F0A0C;  --cond-faulty-fg:  #FB7185;
 
   --shadow-2xs: 0px 1px 2px 0px hsl(222 47% 5% / 0.3);
-  --shadow-xs: 0px 1px 3px 0px hsl(222 47% 5% / 0.35);
-  --shadow-sm: 0px 1px 3px 0px hsl(222 47% 5% / 0.4), 0px 1px 2px -1px hsl(222 47% 5% / 0.3);
-  --shadow: 0px 2px 4px 0px hsl(222 47% 5% / 0.4), 0px 1px 2px -1px hsl(222 47% 5% / 0.3);
-  --shadow-md: 0px 4px 6px -1px hsl(222 47% 5% / 0.4), 0px 2px 4px -2px hsl(222 47% 5% / 0.3);
-  --shadow-lg: 0px 10px 15px -3px hsl(222 47% 5% / 0.4), 0px 4px 6px -4px hsl(222 47% 5% / 0.3);
-  --shadow-xl: 0px 20px 25px -5px hsl(222 47% 5% / 0.4), 0px 8px 10px -6px hsl(222 47% 5% / 0.3);
+  --shadow-xs:  0px 1px 3px 0px hsl(222 47% 5% / 0.35);
+  --shadow-sm:  0px 1px 3px 0px hsl(222 47% 5% / 0.4), 0px 1px 2px -1px hsl(222 47% 5% / 0.3);
+  --shadow:     0px 2px 4px 0px hsl(222 47% 5% / 0.4), 0px 1px 2px -1px hsl(222 47% 5% / 0.3);
+  --shadow-md:  0px 4px 6px -1px hsl(222 47% 5% / 0.4), 0px 2px 4px -2px hsl(222 47% 5% / 0.3);
+  --shadow-lg:  0px 10px 15px -3px hsl(222 47% 5% / 0.4), 0px 4px 6px -4px hsl(222 47% 5% / 0.3);
+  --shadow-xl:  0px 20px 25px -5px hsl(222 47% 5% / 0.4), 0px 8px 10px -6px hsl(222 47% 5% / 0.3);
   --shadow-2xl: 0px 25px 50px -12px hsl(222 47% 5% / 0.5);
 
   --sidebar-primary-border: hsl(var(--sidebar-primary));
@@ -211,18 +236,12 @@
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply font-sans antialiased bg-background text-foreground;
-  }
+  * { @apply border-border; }
+  body { @apply font-sans antialiased bg-background text-foreground; }
 }
 
 @layer utilities {
-  input[type="search"]::-webkit-search-cancel-button {
-    @apply hidden;
-  }
+  input[type="search"]::-webkit-search-cancel-button { @apply hidden; }
 
   [contenteditable][data-placeholder]:empty::before {
     content: attr(data-placeholder);
@@ -235,54 +254,28 @@
 
   .toggle-elevate::before,
   .toggle-elevate-2::before {
-    content: "";
-    pointer-events: none;
-    position: absolute;
-    inset: 0px;
-    border-radius: inherit;
-    z-index: -1;
+    content: ""; pointer-events: none; position: absolute; inset: 0px; border-radius: inherit; z-index: -1;
   }
-
-  .toggle-elevate.toggle-elevated::before {
-    background-color: var(--elevate-2);
-  }
-
+  .toggle-elevate.toggle-elevated::before { background-color: var(--elevate-2); }
   .border.toggle-elevate::before { inset: -1px; }
 
   .hover-elevate:not(.no-default-hover-elevate),
   .active-elevate:not(.no-default-active-elevate),
   .hover-elevate-2:not(.no-default-hover-elevate),
-  .active-elevate-2:not(.no-default-active-elevate) {
-    position: relative;
-    z-index: 0;
-  }
+  .active-elevate-2:not(.no-default-active-elevate) { position: relative; z-index: 0; }
 
   .hover-elevate:not(.no-default-hover-elevate)::after,
   .active-elevate:not(.no-default-active-elevate)::after,
   .hover-elevate-2:not(.no-default-hover-elevate)::after,
   .active-elevate-2:not(.no-default-active-elevate)::after {
-    content: "";
-    pointer-events: none;
-    position: absolute;
-    inset: 0px;
-    border-radius: inherit;
-    z-index: 999;
+    content: ""; pointer-events: none; position: absolute; inset: 0px; border-radius: inherit; z-index: 999;
   }
-
   .hover-elevate:hover:not(.no-default-hover-elevate)::after,
-  .active-elevate:active:not(.no-default-active-elevate)::after {
-    background-color: var(--elevate-1);
-  }
-
+  .active-elevate:active:not(.no-default-active-elevate)::after { background-color: var(--elevate-1); }
   .hover-elevate-2:hover:not(.no-default-hover-elevate)::after,
-  .active-elevate-2:active:not(.no-default-active-elevate)::after {
-    background-color: var(--elevate-2);
-  }
-
+  .active-elevate-2:active:not(.no-default-active-elevate)::after { background-color: var(--elevate-2); }
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after,
   .border.active-elevate:not(.no-active-interaction-elevate)::after,
   .border.hover-elevate-2:not(.no-hover-interaction-elevate)::after,
-  .border.active-elevate-2:not(.no-active-interaction-elevate)::after {
-    inset: -1px;
-  }
+  .border.active-elevate-2:not(.no-active-interaction-elevate)::after { inset: -1px; }
 }

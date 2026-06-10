@@ -1,0 +1,119 @@
+# Replit prompt — Addendum A: NRS theme tokens + Locations thumbnails
+
+> Append this to the main NRS prompt. It locks the visual theme to the NRS brand
+> (accent-only red) and adds the Locations card/thumbnail view.
+
+---
+
+## NRS brand theme (apply globally)
+
+Use these as CSS variables / Tailwind theme tokens. **Red is an accent only** —
+primary buttons, active nav item, the logo wordmark, and rare structural accents
+(geopolitical-zone cards). Never use red for surfaces, status, large fills, or
+body text. Surfaces are neutral slate; the product should read calm and
+authoritative, not loud.
+
+```css
+:root {
+  /* Brand (from NRS logo) */
+  --nrs-red: #E01F26;          /* primary action / active nav / logo wordmark */
+  --nrs-red-hover: #C2181E;
+  --nrs-red-subtle: #FEECEC;   /* tiny accent tints only, used sparingly */
+  --nrs-grey: #7E8083;         /* logo grey — secondary marks, neutral icons */
+
+  /* Neutral surfaces & text (slate) */
+  --bg: #F7F8FA;               /* app background */
+  --surface: #FFFFFF;          /* cards, panels */
+  --surface-2: #F1F3F5;        /* tinted icon tiles, table header */
+  --border: #E5E7EB;
+  --border-strong: #D1D5DB;
+  --text: #1F2937;
+  --text-secondary: #6B7280;
+  --text-tertiary: #9CA3AF;
+
+  /* Sidebar (dark) */
+  --sidebar-bg: #111827;
+  --sidebar-text: #C7CBD1;
+  --sidebar-active-bg: var(--nrs-red);
+  --sidebar-active-text: #FFFFFF;
+
+  /* Radius / elevation */
+  --radius: 12px;              /* cards */
+  --radius-sm: 8px;            /* pills, inputs, buttons */
+  --shadow-card: 0 1px 2px rgba(16,24,40,.04);
+}
+```
+
+### Status colours — `x_approval_status` (kept distinct from brand red)
+Render as a rounded pill, same-family text on a tint. **Do not use the brand red
+for any status** — the "allottee not in nominal roll" flag uses orange, so a
+status pill is never confused with a red action button.
+
+```css
+--st-cleared-bg:#ECFDF3; --st-cleared-fg:#15803D;          /* Cleared            green  */
+--st-dq-bg:#FFFBEB;      --st-dq-fg:#B45309;                /* data quality       amber  */
+--st-vin-bg:#FEF3C7;     --st-vin-fg:#92400E;               /* VIN not verifiable amber-deep */
+--st-dup-bg:#F5F3FF;     --st-dup-fg:#6D28D9;               /* possible duplicate violet */
+--st-allottee-bg:#FFF7ED;--st-allottee-fg:#C2410C;          /* allottee not in roll orange */
+```
+
+### Condition badges (asset health — its own muted set)
+```css
+--cond-good-bg:#ECFDF3; --cond-good-fg:#15803D;   /* Good   green */
+--cond-fair-bg:#EFF6FF; --cond-fair-fg:#1D4ED8;   /* Fair   blue  */
+--cond-poor-bg:#FFFBEB; --cond-poor-fg:#B45309;   /* Poor   amber */
+--cond-faulty-bg:#FFF1F2; --cond-faulty-fg:#BE123C;/* Faulty rose (NOT brand red) */
+```
+
+### Logo & header
+- Sidebar header: NRS logo lockup — grey "NRS" + red "NIGERIA REVENUE SERVICE"
+  wordmark (asset provided separately). Keep clear space; don't recolour it.
+- Primary buttons: solid `--nrs-red` bg, white text, `--nrs-red-hover` on hover.
+- Secondary buttons: white bg, `--border-strong`, `--text` — no red.
+- Active sidebar item: red pill background, white text + icon (as in the build).
+- Focus rings: `0 0 0 3px var(--nrs-red-subtle)`.
+
+### Typography & shape
+- System/Inter sans. Weights 400 and 500 only. Sentence case everywhere.
+- Cards: `--surface`, 0.5px `--border`, `--radius`, `--shadow-card`, hover lift
+  (translateY(-1px) + slightly stronger border). Generous padding (14–16px).
+- Keep it flat: no gradients, no heavy shadows, no neon.
+
+---
+
+## Locations — card / thumbnail view (add alongside Tree and List)
+
+Add a **Kanban view toggle** to Locations (Tree · Kanban · List). Cards use the
+same DNA as asset cards. Each location card shows:
+
+- **Type icon** in a tinted square, chosen by `locationType`:
+  Zone → `building-skyscraper` (red-tinted tile, the only red accent here);
+  State → `map-2`; Office → `map-pin`; Floor → `stack-2`; Room → `door`.
+- **Active indicator** top-right: green dot + "Active" / grey dot + "Inactive".
+- **Name** (e.g. "Calabar MSTO").
+- **Type + zone code** as two neutral pills ("Office" · "CAL").
+- **Parent path** with a turn-down-right icon ("South South / Cross River").
+- **Address** line (street · city) in tertiary text.
+- **Footer** (divider above): asset-count badge ("318 assets") on the left,
+  chevron on the right. For Zone/State cards, show structural counts too
+  ("6 states · 96 offices").
+- Clicking a card drills into that node (its children + assets), mirroring the
+  tree drill-down.
+
+Filters/toolbar for Locations: search, and filter by Type, Zone, and Active.
+Group-by: Zone (default) or Type. Same red-accent rules — only the active view
+toggle and Zone-type tiles use red.
+
+### Location card data shape (extend the Location type)
+```ts
+interface Location {
+  /* ...existing fields... */
+  assetCount?: number;      // assets located at / under this node
+  childStates?: number;     // zone-level rollups
+  childOffices?: number;
+}
+```
+
+Seed mock data so counts roll up sensibly (zone total ≈ sum of its offices).
+Keep the asset-count badge on every card — it is what turns a location list into
+an operational view.
