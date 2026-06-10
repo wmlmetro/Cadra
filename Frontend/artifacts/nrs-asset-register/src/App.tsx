@@ -7,6 +7,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import Dashboard from "@/pages/Dashboard";
 import AssetRegister from "@/pages/AssetRegister";
 import AssetDetail from "@/pages/AssetDetail";
+import AssetForm from "@/pages/AssetForm";
 import Locations from "@/pages/Locations";
 import Employees, { EmployeeDetail } from "@/pages/Employees";
 import Fleet, { FleetDetail } from "@/pages/Fleet";
@@ -22,6 +23,8 @@ function AppRoutes() {
       <Switch>
         <Route path="/"                    component={Dashboard}      />
         <Route path="/assets"              component={AssetRegister}  />
+        <Route path="/assets/new"          component={() => <AssetForm mode="create" />} />
+        <Route path="/assets/:id/edit"     component={() => <AssetForm mode="edit"   />} />
         <Route path="/assets/:id"          component={AssetDetail}    />
         <Route path="/locations"           component={Locations}      />
         <Route path="/hr/employees"        component={Employees}      />

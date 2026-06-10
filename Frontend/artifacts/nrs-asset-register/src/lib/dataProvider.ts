@@ -25,7 +25,7 @@ import {
   mockBusBookings,
 } from "../mock/staffBus";
 import { mockIdentityRecords } from "../mock/identity";
-import { apiConfigured, apiGet } from "./api";
+import { apiConfigured, apiGet, apiPost, apiPatch, newIdempotencyKey } from "./api";
 import {
   apiEmployeeToEmployee, type ApiEmployee,
   apiAssetToAsset, type ApiAsset,
@@ -105,10 +105,45 @@ export async function fetchAssetsPage(
   };
 }
 
-export async function fetchAsset(id: string): Promise<Asset | null> {
+export type AssetInclude = "transfers" | "pm" | "children";
+
+// `include` opts ride along with both single-asset GETs (serialize_asset expands
+// transfers/pm/children inline). We return both the mapped Asset and the raw
+// API shape so the detail page can render the embedded collections.
+export interface FetchAssetResult {
+  asset: Asset;
+  raw: ApiAsset & {
+    transfers?: ApiAssetTransfer[];
+    pm_schedules?: ApiPmSchedule[];
+    children?: { id: number; name: string; asset_code: string }[];
+  };
+}
+
+export interface ApiAssetTransfer {
+  id: number;
+  reference: string;
+  from_location: { id: number; name: string } | null;
+  to_location: { id: number; name: string } | null;
+  from_custodian: { id: number; name: string } | null;
+  to_custodian: { id: number; name: string } | null;
+  transfer_date: string | null;
+  state: string;
+  reason: string | null;
+}
+
+export interface ApiPmSchedule {
+  id: number;
+  name: string | null;
+  next_due_date: string | null;
+  active: boolean;
+}
+
+export async function fetchAsset(id: string, includes?: AssetInclude[]): Promise<Asset | null> {
   if (!apiConfigured) return getAsset(id) ?? null;
   try {
-    const res = await apiGet<ApiAsset>(`/api/v1/assets/${id}`);
+    const res = await apiGet<ApiAsset>(`/api/v1/assets/${id}`, {
+      include: includes?.length ? includes.join(",") : undefined,
+    });
     return apiAssetToAsset(res.data);
   } catch (e) {
     if (e && typeof e === "object" && "code" in e && (e as { code: string }).code === "not_found") {
@@ -117,6 +152,118 @@ export async function fetchAsset(id: string): Promise<Asset | null> {
     throw e;
   }
 }
+
+export async function fetchAssetWithIncludes(
+  id: string,
+  includes: AssetInclude[],
+): Promise<FetchAssetResult | null> {
+  if (!apiConfigured) {
+    const a = getAsset(id);
+    if (!a) return null;
+    // Mock fallback can't synthesize transfers/pm — return the shaped Asset
+    // with empty include collections.
+    return { asset: a, raw: {} as FetchAssetResult["raw"] };
+  }
+  try {
+    const res = await apiGet<FetchAssetResult["raw"]>(`/api/v1/assets/${id}`, {
+      include: includes.join(","),
+    });
+    return { asset: apiAssetToAsset(res.data), raw: res.data };
+  } catch (e) {
+    if (e && typeof e === "object" && "code" in e && (e as { code: string }).code === "not_found") {
+      return null;
+    }
+    throw e;
+  }
+}
+
+// ─── ASSET MUTATIONS ─────────────────────────────────────────────────────────
+
+/** Body shape mirrors _WRITABLE_FIELDS in myservice_api/controllers/v1_assets.py. */
+export interface AssetWriteBody {
+  name?: string;
+  asset_tag?: string | null;
+  legacy_asset_code?: string | null;
+  serial_number?: string | null;
+  make?: string | null;
+  model_name?: string | null;
+  manufacturer?: string | null;
+  category_id?: number | null;
+  subcategory_id?: number | null;
+  asset_type_id?: number | null;
+  asset_level?: string | null;
+  domain?: string | null;
+  parent_id?: number | null;
+  building_id?: number | null;
+  floor_id?: number | null;
+  room_id?: number | null;
+  location_id?: number | null;
+  custodian_id?: number | null;
+  department?: string | null;
+  condition?: "new" | "good" | "fair" | "poor" | "damaged";
+  state?: "active" | "in_repair" | "disposed" | "transferred" | "missing";
+  currency_id?: number | null;
+  purchase_date?: string | null;
+  warranty_expiry?: string | null;
+  purchase_value?: number | null;
+  replacement_cost?: number | null;
+  acquisition_date?: string | null;
+  acquisition_cost?: number | null;
+  current_value?: number | null;
+  disposal_date?: string | null;
+  disposal_reason?: string | null;
+  maintenance_vendor_id?: number | null;
+  last_verified_date?: string | null;
+  verification_notes?: string | null;
+  notes?: string | null;
+}
+
+export async function createAsset(body: AssetWriteBody): Promise<Asset> {
+  const res = await apiPost<ApiAsset>("/api/v1/assets", body, {
+    idempotencyKey: newIdempotencyKey(),
+  });
+  return apiAssetToAsset(res.data);
+}
+
+export async function updateAsset(id: string, body: AssetWriteBody): Promise<Asset> {
+  const res = await apiPatch<ApiAsset>(`/api/v1/assets/${id}`, body, {
+    idempotencyKey: newIdempotencyKey(),
+  });
+  return apiAssetToAsset(res.data);
+}
+
+export async function moveAsset(id: string, to_location_id: number, reason?: string): Promise<Asset> {
+  const res = await apiPost<ApiAsset>(
+    `/api/v1/assets/${id}/move`,
+    { to_location_id, reason },
+    { idempotencyKey: newIdempotencyKey() },
+  );
+  return apiAssetToAsset(res.data);
+}
+
+export async function transferCustody(id: string, to_custodian_id: number, reason?: string): Promise<Asset> {
+  const res = await apiPost<ApiAsset>(
+    `/api/v1/assets/${id}/transfer-custody`,
+    { to_custodian_id, reason },
+    { idempotencyKey: newIdempotencyKey() },
+  );
+  return apiAssetToAsset(res.data);
+}
+
+// Convenience PATCHes — the Odoo asset form has "Mark Verified / Mark Missing /
+// Condemn" as one-click buttons. Same endpoint, different bodies.
+export const markAssetVerified = (id: string) =>
+  updateAsset(id, { last_verified_date: new Date().toISOString().slice(0, 10) });
+
+export const markAssetMissing = (id: string) =>
+  updateAsset(id, { state: "missing" });
+
+export const condemnAsset = (id: string, disposal_reason: string) =>
+  updateAsset(id, {
+    state: "disposed",
+    disposal_date: new Date().toISOString().slice(0, 10),
+    disposal_reason,
+  });
 export function getAssetsByCategory() {
   return [
     { name: "IT Equipment", value: 10259 },

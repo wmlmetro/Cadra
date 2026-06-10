@@ -452,8 +452,15 @@ export default function AssetRegister() {
           </button>
         )}
 
-        {/* Group by — pushed right */}
+        {/* New asset — pushed right */}
         <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => setNavLocation("/assets/new")}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-primary text-white hover:opacity-90"
+            data-testid="button-new-asset"
+          >
+            + New Asset
+          </button>
           <SlidersHorizontal size={12} className="text-muted-foreground/60" />
           <span className="text-xs text-muted-foreground">Group:</span>
           <div className="relative">

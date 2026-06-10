@@ -45,6 +45,16 @@ export class CadraApiError extends Error {
   }
 }
 
+function requireToken() {
+  if (!API_TOKEN) {
+    throw new CadraApiError(
+      "client_misconfigured",
+      "VITE_API_TOKEN is not set — copy .env.example to .env.local and add a token.",
+      0,
+    );
+  }
+}
+
 function buildUrl(path: string, params?: Record<string, unknown>): string {
   const url = `${API_BASE}${path}`;
   if (!params) return url;
@@ -57,26 +67,7 @@ function buildUrl(path: string, params?: Record<string, unknown>): string {
   return s ? `${url}?${s}` : url;
 }
 
-export async function apiGet<T>(
-  path: string,
-  params?: Record<string, unknown>,
-): Promise<CadraResponse<T>> {
-  if (!API_TOKEN) {
-    throw new CadraApiError(
-      "client_misconfigured",
-      "VITE_API_TOKEN is not set — copy .env.example to .env.local and add a token.",
-      0,
-    );
-  }
-
-  const res = await fetch(buildUrl(path, params), {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${API_TOKEN}`,
-      Accept: "application/json",
-    },
-  });
-
+async function parseEnvelope<T>(res: Response, path: string): Promise<CadraResponse<T>> {
   // Cadra always replies JSON, even for errors. The HTTP status reflects the
   // intent; some Odoo-layer errors come back as 200 with an `error` body too.
   let body: unknown = null;
@@ -100,4 +91,74 @@ export async function apiGet<T>(
   }
 
   return body as CadraResponse<T>;
+}
+
+interface MutateOpts {
+  /** Idempotency key for safe retries. Same key + endpoint within 24h returns cached response. */
+  idempotencyKey?: string;
+}
+
+export async function apiGet<T>(
+  path: string,
+  params?: Record<string, unknown>,
+): Promise<CadraResponse<T>> {
+  requireToken();
+  const res = await fetch(buildUrl(path, params), {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${API_TOKEN}`,
+      Accept: "application/json",
+    },
+  });
+  return parseEnvelope<T>(res, path);
+}
+
+async function apiMutate<T>(
+  method: "POST" | "PATCH" | "PUT" | "DELETE",
+  path: string,
+  body?: unknown,
+  opts?: MutateOpts,
+): Promise<CadraResponse<T>> {
+  requireToken();
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${API_TOKEN}`,
+    Accept: "application/json",
+  };
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (opts?.idempotencyKey) headers["X-Idempotency-Key"] = opts.idempotencyKey;
+
+  const res = await fetch(buildUrl(path), {
+    method,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  return parseEnvelope<T>(res, path);
+}
+
+export const apiPost   = <T>(path: string, body?: unknown, opts?: MutateOpts) => apiMutate<T>("POST",   path, body, opts);
+export const apiPatch  = <T>(path: string, body?: unknown, opts?: MutateOpts) => apiMutate<T>("PATCH",  path, body, opts);
+export const apiPut    = <T>(path: string, body?: unknown, opts?: MutateOpts) => apiMutate<T>("PUT",    path, body, opts);
+export const apiDelete = <T>(path: string, opts?: MutateOpts)                 => apiMutate<T>("DELETE", path, undefined, opts);
+
+/** Multipart upload — used by the employee bulk-import endpoint. */
+export async function apiUpload<T>(
+  path: string,
+  form: FormData,
+  opts?: MutateOpts,
+): Promise<CadraResponse<T>> {
+  requireToken();
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${API_TOKEN}`,
+    Accept: "application/json",
+    // Do NOT set Content-Type — fetch sets the multipart boundary automatically.
+  };
+  if (opts?.idempotencyKey) headers["X-Idempotency-Key"] = opts.idempotencyKey;
+
+  const res = await fetch(buildUrl(path), { method: "POST", headers, body: form });
+  return parseEnvelope<T>(res, path);
+}
+
+/** Generate a stable idempotency key for a one-shot UI action. */
+export function newIdempotencyKey(): string {
+  return crypto.randomUUID();
 }

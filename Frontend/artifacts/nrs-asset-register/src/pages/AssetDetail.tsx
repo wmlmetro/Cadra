@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
-import { fetchAsset } from "@/lib/dataProvider";
+import { fetchAsset, markAssetVerified, markAssetMissing } from "@/lib/dataProvider";
 import { CadraApiError } from "@/lib/api";
+import { AssetMoveDialog, CustodyTransferDialog, CondemnAssetDialog } from "@/components/AssetActionDialogs";
 import type { Asset } from "@/types";
 import StatusPill from "@/components/StatusPill";
 import ConditionBadge from "@/components/ConditionBadge";
 import {
   ArrowLeft, Monitor, Car, Sofa, User, MapPin, Clock,
-  CheckCircle2, AlertCircle, ChevronRight,
+  CheckCircle2, AlertCircle, ChevronRight, Edit3, ShieldCheck, AlertTriangle, Trash2, ArrowRightLeft, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -63,12 +64,20 @@ export default function AssetDetail() {
   const [, setNavLocation] = useLocation();
   const { setTitle, setSearchHandler } = useLayoutCtx();
 
+  const qc = useQueryClient();
   const { data: asset, isLoading, error } = useQuery<Asset | null, CadraApiError>({
     queryKey: ["asset", id],
     queryFn: () => fetchAsset(id ?? ""),
     enabled: !!id,
     staleTime: 60_000,
   });
+
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [custodyOpen, setCustodyOpen] = useState(false);
+  const [condemnOpen, setCondemnOpen] = useState(false);
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["asset", id] });
+  const verifyMut = useMutation({ mutationFn: () => markAssetVerified(id ?? ""), onSuccess: invalidate });
+  const missingMut = useMutation({ mutationFn: () => markAssetMissing(id ?? ""), onSuccess: invalidate });
 
   useEffect(() => {
     setTitle(asset ? asset.name : "Asset Detail");
@@ -148,19 +157,57 @@ export default function AssetDetail() {
             </div>
           ))}
 
-          {/* Smart buttons */}
-          <div className="ml-auto flex items-center gap-2 flex-wrap">
-            <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" data-testid="button-custodian">
-              <User size={12} />
-              {asset.custodianName ? `Custodian · ${asset.custodianName}` : "Custodian"}
+          {/* Action bar */}
+          <div className="ml-auto flex items-center gap-1.5 flex-wrap">
+            <button
+              onClick={() => setNavLocation(`/assets/${id}/edit`)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+              data-testid="button-edit"
+            >
+              <Edit3 size={12} /> Edit
             </button>
-            <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" data-testid="button-location-btn">
-              <MapPin size={12} />
-              Location
+            <button
+              onClick={() => setMoveOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+              data-testid="button-move"
+            >
+              <MapPin size={12} /> Move
             </button>
-            <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" data-testid="button-history">
-              <Clock size={12} />
-              History · 3
+            <button
+              onClick={() => setCustodyOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+              data-testid="button-transfer-custody"
+            >
+              <ArrowRightLeft size={12} /> {asset.custodianName ? "Transfer" : "Assign custodian"}
+            </button>
+            <button
+              onClick={() => verifyMut.mutate()}
+              disabled={verifyMut.isPending}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-green-200/70 dark:border-green-800/30 text-xs font-medium text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/30 disabled:opacity-50"
+              data-testid="button-verify"
+            >
+              {verifyMut.isPending ? <Loader2 size={12} className="animate-spin" /> : <ShieldCheck size={12} />}
+              Mark verified
+            </button>
+            <button
+              onClick={() => {
+                if (confirm("Mark this asset as missing? This is reversible — you can move/verify it again later.")) {
+                  missingMut.mutate();
+                }
+              }}
+              disabled={missingMut.isPending}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-200/70 dark:border-amber-800/30 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 disabled:opacity-50"
+              data-testid="button-missing"
+            >
+              {missingMut.isPending ? <Loader2 size={12} className="animate-spin" /> : <AlertTriangle size={12} />}
+              Mark missing
+            </button>
+            <button
+              onClick={() => setCondemnOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200/70 dark:border-red-800/30 text-xs font-medium text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+              data-testid="button-condemn"
+            >
+              <Trash2 size={12} /> Condemn
             </button>
           </div>
         </div>
@@ -307,6 +354,10 @@ export default function AssetDetail() {
           ),
         },
       ]} />
+
+      <AssetMoveDialog        assetId={asset.id} open={moveOpen}    onOpenChange={setMoveOpen} />
+      <CustodyTransferDialog  assetId={asset.id} open={custodyOpen} onOpenChange={setCustodyOpen} />
+      <CondemnAssetDialog     assetId={asset.id} open={condemnOpen} onOpenChange={setCondemnOpen} />
     </div>
   );
 }
