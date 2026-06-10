@@ -19,31 +19,29 @@ const navGroups = [
                                         { name: "Settings",                path: "/admin/settings", icon: Settings        }] },
 ];
 
-function NrsLogo({ isDark }: { isDark: boolean }) {
-  const lockup = (
-    <div className="flex items-center gap-2 min-w-0">
-      {/* Emblem — hexagon mark */}
-      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden>
-        <path d="M15 2L27 8.5V21.5L15 28L3 21.5V8.5L15 2Z" fill="#E01F26" />
-        <path d="M15 6.5L23 11V19L15 23.5L7 19V11L15 6.5Z" fill="white" fillOpacity="0.18" />
-        <text x="15" y="18.5" textAnchor="middle" fontSize="9" fontWeight="700" fill="white" fontFamily="Inter,sans-serif">NRS</text>
-      </svg>
-      {/* Wordmark */}
-      <div className="leading-none">
-        <p className="text-[11px] font-extrabold tracking-[0.06em] uppercase" style={{ color: "#7E8083" }}>NRS</p>
-        <p className="text-[8px] font-bold tracking-[0.04em] uppercase" style={{ color: "#E01F26", letterSpacing: "0.04em" }}>Nigeria Revenue Service</p>
-      </div>
-    </div>
+const logoSrc = `${import.meta.env.BASE_URL}nrs-logo.png`;
+
+function NrsLogoImg({ isDark }: { isDark: boolean }) {
+  const img = (
+    <img
+      src={logoSrc}
+      alt="Nigeria Revenue Service"
+      className="h-7 w-auto object-contain"
+      draggable={false}
+    />
   );
 
   if (isDark) {
     return (
-      <div className="inline-flex rounded-lg px-2.5 py-1.5" style={{ background: "#FFFFFF" }}>
-        {lockup}
+      <div
+        className="inline-flex items-center rounded-lg px-2.5 py-1.5"
+        style={{ background: "#FFFFFF" }}
+      >
+        {img}
       </div>
     );
   }
-  return lockup;
+  return img;
 }
 
 export default function Sidebar() {
@@ -67,7 +65,7 @@ export default function Sidebar() {
         className="h-[56px] px-4 flex items-center shrink-0"
         style={{ borderBottom: "0.5px solid hsl(var(--sidebar-border))" }}
       >
-        <NrsLogo isDark={isDark} />
+        <NrsLogoImg isDark={isDark} />
       </div>
 
       {/* ── Nav ──────────────────────────────────────────────────────────── */}
@@ -92,16 +90,13 @@ export default function Sidebar() {
                   onClick={() => navigate(item.path)}
                   data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
                   aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "nav-item-hover nav-item-active w-full flex items-center gap-2.5 px-2.5 py-[7px] mb-px rounded-xl text-[13px] font-medium transition-colors duration-100 text-left",
-                    active && "nav-item-active"
-                  )}
+                  className="nav-item-hover w-full flex items-center gap-2.5 px-2.5 py-[7px] mb-px rounded-xl text-[13px] font-medium transition-colors duration-100 text-left"
                   style={
                     active
                       ? {
                           background: "#E01F26",
                           color: "#FFFFFF",
-                          boxShadow: "0 1px 6px rgba(224,31,38,0.30)",
+                          boxShadow: "0 1px 6px rgba(224,31,38,0.28)",
                         }
                       : { color: "hsl(var(--sidebar-foreground))" }
                   }
@@ -109,7 +104,7 @@ export default function Sidebar() {
                   <Icon
                     size={14}
                     className="shrink-0"
-                    style={{ color: active ? "#FFFFFF" : "hsl(var(--sidebar-foreground) / 0.6)" }}
+                    style={{ color: active ? "#FFFFFF" : "hsl(var(--sidebar-foreground) / 0.55)" }}
                   />
                   <span className="truncate">{item.name}</span>
                 </button>
@@ -126,7 +121,6 @@ export default function Sidebar() {
       >
         <div
           className="flex items-center gap-2.5 px-2 py-2 rounded-xl cursor-pointer transition-colors"
-          style={{ color: "hsl(var(--sidebar-foreground))" }}
           onMouseEnter={e => (e.currentTarget.style.background = "hsl(var(--sidebar-accent))")}
           onMouseLeave={e => (e.currentTarget.style.background = "")}
         >
@@ -137,10 +131,16 @@ export default function Sidebar() {
             A
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-semibold truncate leading-tight" style={{ color: "hsl(var(--sidebar-foreground))" }}>
+            <p
+              className="text-[12px] font-semibold truncate leading-tight"
+              style={{ color: "hsl(var(--sidebar-foreground))" }}
+            >
               Admin User
             </p>
-            <p className="text-[10px] truncate" style={{ color: "hsl(var(--sidebar-foreground) / 0.45)" }}>
+            <p
+              className="text-[10px] truncate"
+              style={{ color: "hsl(var(--sidebar-foreground) / 0.45)" }}
+            >
               NRS Headquarters
             </p>
           </div>
