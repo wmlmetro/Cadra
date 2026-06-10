@@ -59,6 +59,11 @@ spec:
               memory: 128Mi
           securityContext:
             runAsNonRoot: true
+            # UID 101 = nginx user baked into nginx:1.27-alpine. Naming it
+            # explicitly here means the kubelet can verify it's non-zero
+            # without relying on the image USER directive.
+            runAsUser: 101
+            runAsGroup: 101
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]

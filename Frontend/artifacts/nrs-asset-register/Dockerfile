@@ -42,9 +42,12 @@ EXPOSE 8080
 
 # nginx:alpine ships with a pre-baked "nginx" user (UID 101) we can drop to.
 # It needs write access to its temp/pid dirs.
+# K8s `runAsNonRoot: true` can only statically verify a numeric USER value
+# (a username could be "root" with a non-root UID, so the kubelet refuses
+# to start the pod when USER is non-numeric). Use the UID directly.
 RUN chown -R nginx:nginx /var/cache/nginx /var/run /var/log/nginx \
  && touch /run/nginx.pid && chown nginx:nginx /run/nginx.pid
-USER nginx
+USER 101
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget -qO- http://127.0.0.1:8080/healthz || exit 1
