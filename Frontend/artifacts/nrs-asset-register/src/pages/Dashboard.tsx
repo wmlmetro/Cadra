@@ -5,7 +5,7 @@ import { useLocation } from "wouter";
 import {
   getDashboardStats, getReviewQueueAssets,
   getAssetsByCategory, getAssetsByStatus,
-  fetchTotals, fetchAssetsPage, fetchAllLocations,
+  fetchTotals, fetchAssetsPage, fetchDashboardKpis, fetchDashboardMap,
 } from "@/lib/dataProvider";
 import NigeriaMap, { type MapPinData } from "@/components/NigeriaMap";
 import StatusPill from "@/components/StatusPill";
@@ -185,52 +185,45 @@ export default function Dashboard() {
     queryFn: () => fetchAssetsPage(undefined, { status: "Review — data quality" }),
     staleTime: 60_000,
   });
+  // Server-aggregated KPIs — replaces hardcoded fleet/locations/requests
+  // counts. Cheap single round-trip via /api/v1/dashboard/kpis.
+  const { data: realKpis } = useQuery({
+    queryKey: ["dashboard", "kpis"],
+    queryFn: fetchDashboardKpis,
+    staleTime: 30_000,
+  });
+
   const stats = {
     ...mockStats,
-    totalAssets: totals?.assets ?? mockStats.totalAssets,
-    locations:   totals?.locations ?? mockStats.locations,
-    employees:   totals?.employees ?? mockStats.employees,
-    reviewQueue: reviewPage?.totalEstimate ?? mockStats.reviewQueue,
+    totalAssets:   totals?.assets             ?? mockStats.totalAssets,
+    locations:     realKpis?.locations.total  ?? totals?.locations  ?? mockStats.locations,
+    employees:     totals?.employees          ?? mockStats.employees,
+    fleetVehicles: realKpis?.fleet.total      ?? mockStats.fleetVehicles,
+    reviewQueue:   realKpis?.requests.open    ?? reviewPage?.totalEstimate ?? mockStats.reviewQueue,
   };
   const reviewAssets = reviewPage?.assets.slice(0, 8) ?? getReviewQueueAssets();
   const categoryData = getAssetsByCategory();   // mock — no API aggregate
   const statusData = getAssetsByStatus();       // mock — no API aggregate
 
-  // Office locations for the map. Dedupe by rounded coord so we get one pin
-  // per physical place (zone/state/office records often share coords).
-  const { data: allLocations = [] } = useQuery({
-    queryKey: ["dashboard", "locations"],
-    queryFn: fetchAllLocations,
-    staleTime: 5 * 60_000,
+  // Map pins from /api/v1/dashboard/map.locations — already deduped & geocoded
+  // server-side, way cheaper than walking every Location record.
+  const { data: mapData } = useQuery({
+    queryKey: ["dashboard", "map"],
+    queryFn: fetchDashboardMap,
+    staleTime: 60_000,
   });
   const officePins = useMemo<MapPinData[]>(() => {
-    const byCoord = new Map<string, MapPinData>();
-    for (const l of allLocations) {
-      if (!l.coordinates) continue;
-      const key = `${l.coordinates.lat.toFixed(4)},${l.coordinates.lng.toFixed(4)}`;
-      const existing = byCoord.get(key);
-      if (existing) {
-        // Keep the shallowest record (most likely the office/state, not the room).
-        // Approximation: prefer entries without a parent over ones with one.
-        if (existing.sublabel && !l.parent) byCoord.set(key, {
-          id: l.id,
-          lat: l.coordinates.lat,
-          lng: l.coordinates.lng,
-          label: l.name,
-          sublabel: [l.state, l.country].filter(Boolean).join(" · "),
-        });
-        continue;
-      }
-      byCoord.set(key, {
-        id: l.id,
-        lat: l.coordinates.lat,
-        lng: l.coordinates.lng,
+    return (mapData?.locations ?? [])
+      .filter(l => Number.isFinite(l.lat) && Number.isFinite(l.lng))
+      .map(l => ({
+        id: String(l.id),
+        lat: l.lat,
+        lng: l.lng,
         label: l.name,
-        sublabel: [l.state, l.country].filter(Boolean).join(" · "),
-      });
-    }
-    return Array.from(byCoord.values());
-  }, [allLocations]);
+        sublabel: l.state || undefined,
+        count: l.open_requests || undefined,
+      }));
+  }, [mapData]);
 
   useEffect(() => {
     setTitle("Facility Command Center");

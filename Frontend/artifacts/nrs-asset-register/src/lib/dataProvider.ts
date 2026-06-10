@@ -505,6 +505,110 @@ export async function fetchImportJobStatus(jobId: number): Promise<ImportJobStat
   return res.data;
 }
 
+// ─── DASHBOARDS (aggregate endpoints) ────────────────────────────────────────
+
+export interface DashboardKpis {
+  fleet:     { total: number; overdue: number; due_soon: number; ok: number; no_schedule: number };
+  locations: { total: number; mapped: number };
+  requests:  { open: number; maintenance: number; today: number };
+  vendors:   { total: number; approved: number };
+}
+
+export interface DashboardMapLocation {
+  id: number; name: string; lat: number; lng: number;
+  state: string; type: string; open_requests: number; model: string;
+}
+export interface DashboardMapFleet {
+  id: number; name: string; plate: string; lat: number; lng: number;
+  status: string; driver: string; location: string; state: string; type: string; model: string;
+}
+export interface DashboardMap {
+  locations: DashboardMapLocation[];
+  fleet: DashboardMapFleet[];
+  recent_requests: Array<{
+    id: number; name: string; stage: string; location: string;
+    priority: string; create_date: string;
+  }>;
+}
+
+export const fetchDashboardKpis = async () =>
+  (await apiGet<DashboardKpis>("/api/v1/dashboard/kpis")).data;
+export const fetchDashboardMap = async () =>
+  (await apiGet<DashboardMap>("/api/v1/dashboard/map")).data;
+
+// ── FM dashboard ──────────────────────────────────────────────────────────
+
+export interface FmRecentRequest {
+  id: number; name: string; stage: string; stage_code: string;
+  category: string; location: string; priority: string;
+  deadline: string; is_overdue: boolean; create_date: string;
+}
+export interface FmDashboard {
+  kpis: { open: number; overdue: number; escalated: number; in_progress: number; resolved_today: number };
+  sla_data: Array<{ domain: string; open: number; overdue: number; escalated: number; sla_pct: number }>;
+  recent_requests: FmRecentRequest[];
+  team_workload?: Array<{ user_id: number | null; name: string; assigned: number }>;
+  overdue_list?: FmRecentRequest[];
+  map_locations?: DashboardMapLocation[];
+}
+export const fetchFmDashboard = async () =>
+  (await apiGet<FmDashboard>("/api/v1/fm/dashboard")).data;
+
+// ── Fleet dashboard ──────────────────────────────────────────────────────
+
+export interface FleetVehicleRow {
+  id: number; name: string; license: string; model: string; brand: string;
+  state: string; driver: string; location: string; maint_status: string;
+  next_service: string; fuel_type: string; odometer: number; is_staff_bus: boolean;
+}
+export interface FleetDashboard {
+  kpis: {
+    total: number; active: number; ok: number; due_soon: number; overdue: number;
+    expiring_insurance: number; expiring_roadworthy: number; staff_buses: number;
+    vendors: number; approved_vendors: number;
+  };
+  vehicles: FleetVehicleRow[];
+}
+export const fetchFleetDashboard = async () =>
+  (await apiGet<FleetDashboard>("/api/v1/fleet/dashboard")).data;
+
+// ── Security ──────────────────────────────────────────────────────────────
+
+export interface SecurityKpis {
+  incidents: { open: number; critical: number; high: number; today: number; this_week: number };
+  guards:    { total: number; on_duty: number };
+  access:    { today_in: number; today_out: number; flagged: number };
+}
+export interface SecurityMapData {
+  incidents: Array<{ id: number; name: string; lat: number; lng: number; severity: string }>;
+  guards:    Array<{ id: number; name: string; lat: number; lng: number; status: string }>;
+  locations: Array<{ id: number; name: string; state: string; lat: number; lng: number; open_incidents: number }>;
+}
+export interface SecurityIncident {
+  id: number; name: string; severity: string; stage: string;
+  location: string; create_date: string;
+}
+export const fetchSecurityKpis    = async () => (await apiGet<SecurityKpis>("/api/v1/security/kpis")).data;
+export const fetchSecurityMap     = async () => (await apiGet<SecurityMapData>("/api/v1/security/map-data")).data;
+export const fetchSecurityRecent  = async () => (await apiGet<SecurityIncident[]>("/api/v1/security/recent")).data;
+export const fetchSecurityTrend   = async () => (await apiGet<Array<{ date: string; count: number }>>("/api/v1/security/trend")).data;
+
+// ── Barcode station ──────────────────────────────────────────────────────
+
+export interface BarcodeKpis {
+  total_assets: number; active_tags: number; pending_replacement: number;
+  scrapped_tags: number; untagged: number;
+}
+export interface BarcodeTag {
+  tag_id: number; tag_number: string; tag_state: string;
+  asset_id: number; asset_name: string; domain: string; location: string; condition: string;
+}
+export const fetchBarcodeKpis       = async () => (await apiGet<BarcodeKpis>("/api/v1/barcode/kpis")).data;
+export const fetchBarcodeRecentTags = async (params?: { domain_filter?: string; limit?: number }) =>
+  (await apiGet<BarcodeTag[]>("/api/v1/barcode/recent-tags", params)).data;
+export const lookupBarcode = async (query: string) =>
+  (await apiGet<BarcodeTag | { tag: BarcodeTag | null; asset: ApiAsset | null }>(`/api/v1/barcode/lookup`, { query })).data;
+
 export async function fetchLocation(id: string): Promise<Location | null> {
   if (!apiConfigured) return getLocation(id) ?? null;
   try {

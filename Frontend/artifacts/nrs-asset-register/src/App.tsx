@@ -5,6 +5,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AppLayout from "@/components/layout/AppLayout";
 import Dashboard from "@/pages/Dashboard";
+import FMOperationsDashboard from "@/pages/FMOperationsDashboard";
+import FleetCommandCenter from "@/pages/FleetCommandCenter";
+import SecurityOperations from "@/pages/SecurityOperations";
+import BarcodeStation from "@/pages/BarcodeStation";
 import AssetRegister from "@/pages/AssetRegister";
 import AssetDetail from "@/pages/AssetDetail";
 import AssetForm from "@/pages/AssetForm";
@@ -26,7 +30,11 @@ function AppRoutes() {
   return (
     <AppLayout>
       <Switch>
-        <Route path="/"                    component={Dashboard}      />
+        <Route path="/"                    component={Dashboard}            />
+        <Route path="/dashboards/fm"       component={FMOperationsDashboard} />
+        <Route path="/dashboards/fleet"    component={FleetCommandCenter}   />
+        <Route path="/dashboards/security" component={SecurityOperations}   />
+        <Route path="/tools/barcode"       component={BarcodeStation}       />
         <Route path="/assets"              component={AssetRegister}  />
         <Route path="/assets/new"          component={() => <AssetForm mode="create" />} />
         <Route path="/assets/:id/edit"     component={() => <AssetForm mode="edit"   />} />
