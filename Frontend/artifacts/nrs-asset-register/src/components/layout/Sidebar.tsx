@@ -3,20 +3,43 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, MapPin, Bus, Car, BookOpen,
-  Fingerprint, Users, Globe, AppWindow, Settings,
+  Fingerprint, Users, Activity, ShieldAlert,
+  Inbox, Briefcase, ScanBarcode, Upload, RefreshCw,
 } from "lucide-react";
 
 const navGroups = [
-  { label: "Dashboards",        items: [{ name: "Facility Command Center", path: "/",               icon: LayoutDashboard }] },
-  { label: "Operations",        items: [{ name: "Locations",               path: "/locations",      icon: MapPin          }] },
-  { label: "Fleet & Transport", items: [{ name: "Staff Bus",               path: "/fleet/staff-bus", icon: Bus            },
-                                        { name: "Fleet",                   path: "/fleet",          icon: Car             }] },
-  { label: "Asset Register",    items: [{ name: "Asset Register",          path: "/assets",         icon: BookOpen        }] },
-  { label: "HR & Staff",        items: [{ name: "Identity",                path: "/hr/identity",    icon: Fingerprint     },
-                                        { name: "Employees",               path: "/hr/employees",   icon: Users           }] },
-  { label: "Administration",    items: [{ name: "Website",                 path: "/admin/website",  icon: Globe           },
-                                        { name: "Apps",                    path: "/admin/apps",     icon: AppWindow       },
-                                        { name: "Settings",                path: "/admin/settings", icon: Settings        }] },
+  { label: "Dashboards", items: [
+    { name: "Facility Command Center", path: "/",                     icon: LayoutDashboard },
+    { name: "FM Operations",           path: "/dashboards/fm",        icon: Activity        },
+    { name: "Fleet Command",           path: "/dashboards/fleet",     icon: Car             },
+    { name: "Security Operations",     path: "/dashboards/security",  icon: ShieldAlert     },
+  ]},
+  { label: "Service Desk", items: [
+    { name: "Triage Inbox",            path: "/service-desk/triage",  icon: Inbox          },
+    { name: "All Requests",            path: "/service-desk",         icon: Briefcase      },
+    { name: "+ New Request",           path: "/service-desk/new",     icon: Briefcase      },
+  ]},
+  { label: "Asset Register", items: [
+    { name: "All Assets",              path: "/assets",               icon: BookOpen       },
+    { name: "+ New Asset",             path: "/assets/new",           icon: BookOpen       },
+  ]},
+  { label: "Operations", items: [
+    { name: "Locations",               path: "/locations",            icon: MapPin         },
+    { name: "+ New Location",          path: "/locations/new",        icon: MapPin         },
+  ]},
+  { label: "HR & Staff", items: [
+    { name: "Employees",               path: "/hr/employees",         icon: Users          },
+    { name: "SAP Sync",                path: "/hr/sap-sync",          icon: RefreshCw      },
+    { name: "Bulk Import",             path: "/hr/import",            icon: Upload         },
+    { name: "Identity (clearance)",    path: "/hr/identity",          icon: Fingerprint    },
+  ]},
+  { label: "Fleet & Transport", items: [
+    { name: "Fleet",                   path: "/fleet",                icon: Car            },
+    { name: "Staff Bus",               path: "/fleet/staff-bus",      icon: Bus            },
+  ]},
+  { label: "Tools", items: [
+    { name: "Barcode Station",         path: "/tools/barcode",        icon: ScanBarcode    },
+  ]},
 ];
 
 const logoSrc = `${import.meta.env.BASE_URL}nrs-logo.png`;

@@ -12,6 +12,7 @@ import {
   RefreshCw, ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import MockDataBanner from "@/components/MockDataBanner";
 
 // ─── STATUS CONFIG ────────────────────────────────────────────────────────────
 const SCHED_CFG: Record<BusSchedule["status"], { bg: string; text: string; dot: string }> = {
@@ -309,6 +310,7 @@ export default function StaffBus() {
 
   return (
     <div className="flex flex-col h-full">
+      <MockDataBanner reason="no transport routes/schedules/manifests in the API yet." />
       {/* KPI strip */}
       <div className="px-5 py-3 border-b border-border bg-card grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[

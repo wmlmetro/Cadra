@@ -12,6 +12,7 @@ import {
   ShieldAlert, Calendar, Gauge, ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import MockDataBanner from "@/components/MockDataBanner";
 
 const STATUS_CFG: Record<FleetVehicle["status"], { bg: string; text: string; dot: string }> = {
   "Active":           { bg: "bg-green-50 dark:bg-green-950/30 border-green-200/70",  text: "text-green-700 dark:text-green-400",  dot: "bg-green-500"  },
@@ -129,6 +130,7 @@ export default function Fleet() {
 
   return (
     <div className="flex flex-col h-full">
+      <MockDataBanner reason="no /api/v1/fleet endpoint yet — use Fleet Command Center for the API-backed view." />
       {/* KPI */}
       <div className="px-5 py-3 border-b border-border bg-card grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[

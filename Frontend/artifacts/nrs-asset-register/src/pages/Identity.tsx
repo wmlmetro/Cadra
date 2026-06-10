@@ -7,6 +7,7 @@ import {
   Fingerprint, CreditCard, CheckCircle2, AlertTriangle, XCircle, Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import MockDataBanner from "@/components/MockDataBanner";
 
 const CLEARANCE_CFG: Record<IdentityRecord["clearanceLevel"], { bg: string; text: string; icon: typeof ShieldCheck }> = {
   "Full":    { bg: "bg-green-50 dark:bg-green-950/30 border-green-200/70", text: "text-green-700 dark:text-green-400",  icon: ShieldCheck },
@@ -96,6 +97,7 @@ export default function Identity() {
 
   return (
     <div className="flex flex-col h-full">
+      <MockDataBanner reason="NIN/BVN/biometric fields are excluded from the API for privacy (PRD §10.8)." />
       {/* Summary cards */}
       <div className="px-5 py-4 border-b border-border bg-card">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
