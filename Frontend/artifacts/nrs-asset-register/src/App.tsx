@@ -16,6 +16,7 @@ import RequestsList, { TriageInbox } from "@/pages/RequestsList";
 import RequestDetail from "@/pages/RequestDetail";
 import RequestForm from "@/pages/RequestForm";
 import AssetRegister from "@/pages/AssetRegister";
+import AssetRegisterDashboard from "@/pages/AssetRegisterDashboard";
 import AssetDetail from "@/pages/AssetDetail";
 import AssetForm from "@/pages/AssetForm";
 import Locations from "@/pages/Locations";
@@ -47,7 +48,8 @@ function AppRoutes() {
         <Route path="/service-desk/:id/edit"  component={() => <RequestForm mode="edit"   />} />
         <Route path="/service-desk/:id"       component={RequestDetail}     />
         <Route path="/service-desk"           component={() => <RequestsList />} />
-        <Route path="/assets"              component={AssetRegister}  />
+        <Route path="/assets"              component={AssetRegisterDashboard} />
+        <Route path="/assets/list"         component={AssetRegister}         />
         <Route path="/assets/new"          component={() => <AssetForm mode="create" />} />
         <Route path="/assets/:id/edit"     component={() => <AssetForm mode="edit"   />} />
         <Route path="/assets/:id"          component={AssetDetail}    />

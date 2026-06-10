@@ -252,6 +252,44 @@ export async function transferCustody(id: string, to_custodian_id: number, reaso
   return apiAssetToAsset(res.data);
 }
 
+// ─── ASSET COUNTS (cheap dashboard primitives) ───────────────────────────────
+
+/** Single count via limit=1 + total_estimate. */
+async function countAssets(params: Record<string, unknown>): Promise<number> {
+  if (!apiConfigured) return 0;
+  const res = await apiGet<ApiAsset[]>("/api/v1/assets", { ...params, limit: 1 });
+  return res.pagination?.total_estimate ?? 0;
+}
+
+export interface AssetRegisterCounts {
+  total: number;
+  active: number;
+  inRepair: number;
+  disposed: number;
+  unverified: number;
+  verified: number;
+}
+
+/**
+ * Asset Register dashboard top strip. Runs five count queries in parallel —
+ * each is a single limit=1 call so this is cheap. PM-overdue is deliberately
+ * not here: the API doesn't yet expose a maintenance.due/overdue count for
+ * assets (backend gap noted in the deployment plan).
+ */
+export async function fetchAssetRegisterCounts(): Promise<AssetRegisterCounts> {
+  if (!apiConfigured) {
+    return { total: 0, active: 0, inRepair: 0, disposed: 0, unverified: 0, verified: 0 };
+  }
+  const [total, active, inRepair, disposed, unverified] = await Promise.all([
+    countAssets({}),
+    countAssets({ state: "active" }),
+    countAssets({ state: "in_repair" }),
+    countAssets({ state: "disposed" }),
+    countAssets({ is_verified: false }),
+  ]);
+  return { total, active, inRepair, disposed, unverified, verified: Math.max(0, total - unverified) };
+}
+
 // Convenience PATCHes — the Odoo asset form has "Mark Verified / Mark Missing /
 // Condemn" as one-click buttons. Same endpoint, different bodies.
 export const markAssetVerified = (id: string) =>

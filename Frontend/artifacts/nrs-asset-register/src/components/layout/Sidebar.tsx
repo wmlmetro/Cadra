@@ -22,8 +22,9 @@ const navGroups = [
     { name: "+ New Request",           path: "/service-desk/new",     icon: Briefcase      },
   ]},
   { label: "Asset Register", items: [
-    { name: "All Assets",              path: "/assets",               icon: BookOpen       },
-    { name: "+ New Asset",             path: "/assets/new",           icon: BookOpen       },
+    { name: "Dashboard",               path: "/assets",               icon: LayoutDashboard },
+    { name: "All Assets",              path: "/assets/list",          icon: BookOpen        },
+    { name: "+ New Asset",             path: "/assets/new",           icon: BookOpen        },
   ]},
   { label: "Operations", items: [
     { name: "Locations",               path: "/locations",            icon: MapPin         },
