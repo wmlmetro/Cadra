@@ -337,6 +337,88 @@ export async function fetchAllLocations(): Promise<Location[]> {
   return all.map(apiLocationToLocation);
 }
 
+// ─── LOCATION TREE-WALK ENDPOINTS ────────────────────────────────────────────
+
+export async function fetchLocationChildren(id: string): Promise<Location[]> {
+  if (!apiConfigured) return mockLocations.filter(l => l.parent === id);
+  const res = await apiGet<ApiLocation[]>(`/api/v1/locations/${id}/children`);
+  return res.data.map(apiLocationToLocation);
+}
+
+export async function fetchLocationAncestors(id: string): Promise<Location[]> {
+  if (!apiConfigured) {
+    const out: Location[] = [];
+    let cur = mockLocations.find(l => l.id === id);
+    while (cur?.parent) {
+      const p = mockLocations.find(l => l.id === cur!.parent);
+      if (!p) break;
+      out.unshift(p);
+      cur = p;
+    }
+    return out;
+  }
+  const res = await apiGet<ApiLocation[]>(`/api/v1/locations/${id}/ancestors`);
+  return res.data.map(apiLocationToLocation);
+}
+
+export interface LocationsPageMeta extends LocationsPage {}
+
+export async function fetchLocationDescendantsPage(
+  id: string,
+  cursor: string | undefined,
+): Promise<LocationsPageMeta> {
+  if (!apiConfigured) {
+    const all = mockLocations.filter(l => l.parent === id);
+    return { locations: all, nextCursor: null, totalEstimate: all.length };
+  }
+  const res = await apiGet<ApiLocation[]>(`/api/v1/locations/${id}/descendants`, {
+    limit: 200, cursor,
+  });
+  return {
+    locations: res.data.map(apiLocationToLocation),
+    nextCursor: res.pagination?.next_cursor ?? null,
+    totalEstimate: res.pagination?.total_estimate ?? null,
+  };
+}
+
+// ─── LOCATION MUTATIONS ──────────────────────────────────────────────────────
+
+/** Body shape mirrors _WRITABLE_FIELDS in v1_locations.py. */
+export interface LocationWriteBody {
+  name?: string;
+  description?: string | null;
+  active?: boolean;
+  parent_id?: number | null;
+  type_id?: number | null;
+  location_type?: string | null;
+  street?: string | null;
+  street2?: string | null;
+  zip?: string | null;
+  city?: string | null;
+  state_id?: number | null;
+  country_id?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  zone_code?: string | null;
+  floor_number?: number | null;
+  building_id?: number | null;
+  partner_id?: number | null;
+}
+
+export async function createLocation(body: LocationWriteBody): Promise<Location> {
+  const res = await apiPost<ApiLocation>("/api/v1/locations", body, {
+    idempotencyKey: newIdempotencyKey(),
+  });
+  return apiLocationToLocation(res.data);
+}
+
+export async function updateLocation(id: string, body: LocationWriteBody): Promise<Location> {
+  const res = await apiPatch<ApiLocation>(`/api/v1/locations/${id}`, body, {
+    idempotencyKey: newIdempotencyKey(),
+  });
+  return apiLocationToLocation(res.data);
+}
+
 export async function fetchLocation(id: string): Promise<Location | null> {
   if (!apiConfigured) return getLocation(id) ?? null;
   try {

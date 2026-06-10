@@ -9,6 +9,8 @@ import AssetRegister from "@/pages/AssetRegister";
 import AssetDetail from "@/pages/AssetDetail";
 import AssetForm from "@/pages/AssetForm";
 import Locations from "@/pages/Locations";
+import LocationDetail from "@/pages/LocationDetail";
+import LocationForm from "@/pages/LocationForm";
 import Employees, { EmployeeDetail } from "@/pages/Employees";
 import Fleet, { FleetDetail } from "@/pages/Fleet";
 import StaffBus from "@/pages/StaffBus";
@@ -27,6 +29,9 @@ function AppRoutes() {
         <Route path="/assets/:id/edit"     component={() => <AssetForm mode="edit"   />} />
         <Route path="/assets/:id"          component={AssetDetail}    />
         <Route path="/locations"           component={Locations}      />
+        <Route path="/locations/new"       component={() => <LocationForm mode="create" />} />
+        <Route path="/locations/:id/edit"  component={() => <LocationForm mode="edit"   />} />
+        <Route path="/locations/:id"       component={LocationDetail} />
         <Route path="/hr/employees"        component={Employees}      />
         <Route path="/hr/employees/:id"    component={EmployeeDetail} />
         <Route path="/hr/identity"         component={Identity}       />

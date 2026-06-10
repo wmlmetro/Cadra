@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useLocation as useWouterLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import { fetchAllLocations } from "@/lib/dataProvider";
@@ -165,20 +166,28 @@ function TreeNode({ location, children, depth, onSelect, selectedId }: {
 }
 
 // ─── DETAIL PANEL ────────────────────────────────────────────────────────────
-function DetailPanel({ loc, allLocations }: { loc: Location; allLocations: Location[] }) {
+function DetailPanel({ loc, allLocations, onOpenPage }: { loc: Location; allLocations: Location[]; onOpenPage?: (id: string) => void }) {
   const parentPath = buildParentPath(loc, allLocations);
   const cfg = typeConfig(loc.locationType);
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center border", cfg.tile)}>
+      <div className="flex items-start gap-3">
+        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center border shrink-0", cfg.tile)}>
           <cfg.Icon size={18} className={cfg.icon} />
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <h2 className="text-[15px] font-bold text-foreground">{loc.name}</h2>
           {parentPath && <p className="text-[11px] text-muted-foreground mt-0.5">{parentPath}</p>}
         </div>
+        {onOpenPage && (
+          <button
+            onClick={() => onOpenPage(loc.id)}
+            className="shrink-0 text-[11px] font-semibold text-primary hover:opacity-80"
+          >
+            Open page →
+          </button>
+        )}
       </div>
 
       <dl className="bg-card border border-border rounded-xl overflow-hidden">
@@ -229,6 +238,7 @@ type GroupBy = "zone" | "type";
 
 export default function Locations() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
+  const [, nav] = useWouterLocation();
   const [view, setView] = useState<View>("cards");
   const [groupBy, setGroupBy] = useState<GroupBy>("zone");
   const [selected, setSelected] = useState<Location | null>(null);
@@ -411,6 +421,13 @@ export default function Locations() {
         <FilterBtn label="Status" value={filterActive} options={["Active", "Inactive"]}      onChange={setFilterActive} />
         {hasFilter && <button onClick={clear} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2 py-1.5"><X size={12} /> Clear</button>}
         <p className="ml-auto text-xs text-muted-foreground"><span className="font-bold text-foreground">{filtered.length}</span> locations</p>
+        <button
+          onClick={() => nav("/locations/new")}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-primary text-white hover:opacity-90"
+          data-testid="button-new-location"
+        >
+          + New Location
+        </button>
       </div>
 
       {/* ── BODY ────────────────────────────────────────────────────────────── */}
@@ -426,7 +443,7 @@ export default function Locations() {
             </div>
             <div className="flex-1 overflow-y-auto p-6">
               {selected
-                ? <div className="max-w-lg"><DetailPanel loc={selected} allLocations={allLocations} /></div>
+                ? <div className="max-w-lg"><DetailPanel loc={selected} allLocations={allLocations} onOpenPage={id => nav(`/locations/${id}`)} /></div>
                 : (
                   <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
                     <Globe size={32} className="opacity-30" />
