@@ -8,6 +8,10 @@ import Dashboard from "@/pages/Dashboard";
 import AssetRegister from "@/pages/AssetRegister";
 import AssetDetail from "@/pages/AssetDetail";
 import Locations from "@/pages/Locations";
+import Employees, { EmployeeDetail } from "@/pages/Employees";
+import Fleet, { FleetDetail } from "@/pages/Fleet";
+import StaffBus from "@/pages/StaffBus";
+import Identity from "@/pages/Identity";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -16,10 +20,17 @@ function AppRoutes() {
   return (
     <AppLayout>
       <Switch>
-        <Route path="/" component={Dashboard} />
-        <Route path="/assets" component={AssetRegister} />
-        <Route path="/assets/:id" component={AssetDetail} />
-        <Route path="/locations" component={Locations} />
+        <Route path="/"                    component={Dashboard}      />
+        <Route path="/assets"              component={AssetRegister}  />
+        <Route path="/assets/:id"          component={AssetDetail}    />
+        <Route path="/locations"           component={Locations}      />
+        <Route path="/hr/employees"        component={Employees}      />
+        <Route path="/hr/employees/:id"    component={EmployeeDetail} />
+        <Route path="/hr/identity"         component={Identity}       />
+        {/* specific fleet routes must precede the dynamic :id catch-all */}
+        <Route path="/fleet/staff-bus"     component={StaffBus}       />
+        <Route path="/fleet"               component={Fleet}          />
+        <Route path="/fleet/:id"           component={FleetDetail}    />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>

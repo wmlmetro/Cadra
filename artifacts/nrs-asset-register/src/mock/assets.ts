@@ -204,7 +204,7 @@ export const mockAssets: Asset[] = [
 ];
 
 // Replicate to get ~40 items for realistic volume
-const moreAssets = [];
+const moreAssets: typeof mockAssets = [];
 for (let i = 0; i < 4; i++) {
   mockAssets.forEach(a => {
     moreAssets.push({
