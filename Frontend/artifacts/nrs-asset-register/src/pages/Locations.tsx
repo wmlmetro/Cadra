@@ -115,12 +115,15 @@ function LocationCard({ loc, allLocations, onClick }: { loc: Location; allLocati
         </p>
       )}
 
-      {/* Footer */}
+      {/* Footer — show real sub-location counts from the API instead of the
+          missing asset_count. Asset rollups per location need a backend slice. */}
       <div className="pt-2.5 border-t border-border/60 flex items-center justify-between">
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground bg-muted/60 border border-border/40 px-2 py-0.5 rounded-lg">
-          <Package size={10} />
-          {(loc.assetCount ?? 0).toLocaleString()} asset{(loc.assetCount ?? 0) !== 1 ? "s" : ""}
-        </span>
+        {loc.childAllCount != null && loc.childAllCount > 0 ? (
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground bg-muted/60 border border-border/40 px-2 py-0.5 rounded-lg">
+            <Package size={10} />
+            {loc.childAllCount.toLocaleString()} sub-location{loc.childAllCount !== 1 ? "s" : ""}
+          </span>
+        ) : <span />}
         <Chevron size={13} className="text-muted-foreground/40 group-hover:text-primary/60 group-hover:translate-x-0.5 transition-all" />
       </div>
     </div>
@@ -240,7 +243,7 @@ export default function Locations() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const [, nav] = useWouterLocation();
   const [view, setView] = useState<View>("cards");
-  const [groupBy, setGroupBy] = useState<GroupBy>("zone");
+  const [groupBy, setGroupBy] = useState<GroupBy>("type");
   const [selected, setSelected] = useState<Location | null>(null);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("");
@@ -310,12 +313,14 @@ export default function Locations() {
   const hasFilter = !!(search || filterType || filterZone || filterActive);
   const clear = () => { setSearch(""); setFilterType(""); setFilterZone(""); setFilterActive(""); };
 
-  // KPI totals
+  // KPI totals. We dropped the "Total Assets" tile — the API doesn't report
+  // assetCount per location, so any rollup here would be misleading. The
+  // global total is on the Facility Command Center dashboard.
   const kpi = useMemo(() => ({
+    total:   allLocations.length,
     zones:   allLocations.filter(l => l.locationType === "Zone").length,
     states:  allLocations.filter(l => l.locationType === "State").length,
     offices: allLocations.filter(l => l.locationType === "Office").length,
-    assets:  allLocations.filter(l => l.locationType === "Zone").reduce((s, z) => s + (z.assetCount ?? 0), 0),
   }), [allLocations]);
 
   const VIEWS: { id: View; icon: typeof LayoutGrid; label: string }[] = [
@@ -372,10 +377,10 @@ export default function Locations() {
       {/* KPI strip */}
       <div className="px-5 py-3 border-b border-border bg-card grid grid-cols-4 gap-3">
         {[
-          { label: "Zones",      value: kpi.zones,   icon: Globe,     color: "text-[#E01F26]"                          },
-          { label: "States",     value: kpi.states,  icon: Building2, color: "text-blue-600 dark:text-blue-400"        },
-          { label: "Offices",    value: kpi.offices, icon: MapPin,    color: "text-amber-600 dark:text-amber-400"      },
-          { label: "Total Assets",value: kpi.assets.toLocaleString(), icon: Package, color: "text-muted-foreground"   },
+          { label: "Total Locations", value: kpi.total.toLocaleString(),   icon: Package,   color: "text-foreground"                       },
+          { label: "Zones",           value: kpi.zones,                     icon: Globe,     color: "text-[#E01F26]"                        },
+          { label: "States",          value: kpi.states,                    icon: Building2, color: "text-blue-600 dark:text-blue-400"      },
+          { label: "Offices",         value: kpi.offices,                   icon: MapPin,    color: "text-amber-600 dark:text-amber-400"    },
         ].map(s => (
           <div key={s.label} className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-background border border-border/50">
             <s.icon size={14} className={s.color} />
@@ -470,7 +475,7 @@ export default function Locations() {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "12px" }}>
                   {items.map(loc => (
                     <LocationCard key={loc.id} loc={loc} allLocations={allLocations}
-                      onClick={() => { setSelected(loc); if (window.innerWidth < 1024) setView("tree"); }} />
+                      onClick={() => nav(`/locations/${loc.id}`)} />
                   ))}
                 </div>
               </div>
@@ -486,7 +491,7 @@ export default function Locations() {
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "12px" }}>
                   {items.map(loc => (
-                    <LocationCard key={loc.id} loc={loc} allLocations={allLocations} onClick={() => setSelected(loc)} />
+                    <LocationCard key={loc.id} loc={loc} allLocations={allLocations} onClick={() => nav(`/locations/${loc.id}`)} />
                   ))}
                 </div>
               </div>
@@ -508,14 +513,14 @@ export default function Locations() {
             <table className="w-full min-w-[800px]">
               <thead className="sticky top-0 bg-card/90 backdrop-blur z-10 border-b border-border">
                 <tr>
-                  {["Name", "Type", "Zone / State", "City", "Assets", "Status"].map(h => (
+                  {["Name", "Type", "Zone / State", "City", "Sub-locations", "Status"].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(loc => (
-                  <tr key={loc.id} onClick={() => { setSelected(loc); setView("tree"); }} className="border-b border-border/50 cursor-pointer hover:bg-muted/20 transition-colors group">
+                  <tr key={loc.id} onClick={() => nav(`/locations/${loc.id}`)} className="border-b border-border/50 cursor-pointer hover:bg-muted/20 transition-colors group">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
                         <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center border shrink-0", typeConfig(loc.locationType).tile)}>
@@ -528,8 +533,8 @@ export default function Locations() {
                     <td className="px-4 py-3"><span className="text-[12px] text-muted-foreground">{zoneNameFor[loc.id] || "—"}</span></td>
                     <td className="px-4 py-3"><span className="text-[12px] text-muted-foreground">{loc.city ?? "—"}</span></td>
                     <td className="px-4 py-3">
-                      {loc.assetCount != null
-                        ? <span className="text-[12px] font-semibold text-foreground">{loc.assetCount.toLocaleString()}</span>
+                      {loc.childAllCount
+                        ? <span className="text-[12px] font-semibold text-foreground">{loc.childAllCount.toLocaleString()}</span>
                         : <span className="text-muted-foreground">—</span>
                       }
                     </td>

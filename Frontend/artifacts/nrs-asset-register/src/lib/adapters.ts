@@ -76,7 +76,14 @@ function parseGradeLevel(gl: string | null): number {
 
 // ─── adapter ─────────────────────────────────────────────────────────
 
-export function apiEmployeeToEmployee(e: ApiEmployee): Employee {
+// Manager block is only present on single-employee GETs (include_manager=true);
+// list responses omit it to avoid N+1.
+interface ApiEmployeeExtras {
+  manager?: { id: number | null; ir_number: string | null; name: string | null } | null;
+  assets?: { count?: number; has_pending_retrieval?: boolean };
+}
+
+export function apiEmployeeToEmployee(e: ApiEmployee & ApiEmployeeExtras): Employee {
   const status: EmployeeStatus = e.active
     ? (SAP_TO_FRONTEND_STATUS[e.sap.status ?? ""] ?? "Active")
     : "Inactive";
@@ -91,6 +98,8 @@ export function apiEmployeeToEmployee(e: ApiEmployee): Employee {
     office: e.location?.name ?? "",
     title: e.job_title ?? "",
     gradeLevel: parseGradeLevel(e.grade_level),
+    gradeLevelRaw: e.grade_level ?? undefined,
+    costCentre: e.cost_centre ?? undefined,
     employmentType: "Permanent" as EmploymentType, // not on API yet
     status,
     gender: "Male", // not exposed (sensitive)
@@ -98,10 +107,25 @@ export function apiEmployeeToEmployee(e: ApiEmployee): Employee {
     email: e.work_email ?? "",
     nin: undefined, // never exposed by API
     joinDate: e.employment.start_date ?? "",
+    employmentEndDate: e.employment.end_date ?? undefined,
     avatarColor: avatarColorFor(e.name),
     identityVerified: e.sap.sync_status === "synced",
     biometricEnrolled: false, // not exposed
     accessCardNo: undefined,  // not exposed
+    manager: e.manager ? {
+      id: e.manager.id ?? undefined,
+      irNumber: e.manager.ir_number ?? undefined,
+      name: e.manager.name ?? undefined,
+    } : undefined,
+    sap: {
+      userId:     e.sap.user_id ?? undefined,
+      status:     e.sap.status ?? undefined,
+      syncStatus: e.sap.sync_status ?? undefined,
+      lastSync:   e.sap.last_sync ?? undefined,
+      managerIr:  e.sap.manager_ir_number ?? undefined,
+    },
+    custodialAssetCount: e.assets?.count,
+    hasPendingRetrieval: e.assets?.has_pending_retrieval,
   };
 }
 
@@ -176,11 +200,41 @@ function buildAssetLocation(a: ApiAsset): AssetLocation {
   return { zone: "", state: "", office, path };
 }
 
-export function apiAssetToAsset(a: ApiAsset): Asset {
+// Extra ApiAsset fields the serializer surfaces but my initial adapter dropped.
+// Kept on a separate type so the original list payload (which omits them) still
+// satisfies ApiAsset.
+interface ApiAssetExtras {
+  financial?: {
+    currency: ApiRef | null;
+    purchase_value: number | null;
+    replacement_cost: number | null;
+    acquisition_cost: number | null;
+    current_value: number | null;
+  };
+  dates?: {
+    purchase_date: string | null;
+    warranty_expiry: string | null;
+    acquisition_date: string | null;
+    disposal_date: string | null;
+    last_verified_date: string | null;
+    next_service_date: string | null;
+  };
+  maintenance_vendor?: ApiRef | null;
+  notes?: string | null;
+  pm_count?: number;
+  request_count?: number;
+}
+
+export function apiAssetToAsset(a: ApiAsset & ApiAssetExtras): Asset {
+  const f = a.financial;
+  const d = a.dates;
+  const num = (v: number | null | undefined) => (typeof v === "number" ? v : undefined);
+  const str = (v: string | null | undefined) => (v ? v : undefined);
   return {
     id: String(a.id),
     name: a.name,
     assetTag: a.tag ?? a.asset_code,
+    assetCode: a.asset_code,
     legacyCode: a.legacy_asset_code ?? "",
     category: bucketCategory(a.category?.name),
     subcategory: a.subcategory?.name ?? "",
@@ -190,12 +244,35 @@ export function apiAssetToAsset(a: ApiAsset): Asset {
     serial: a.serial_number ?? "",
     systemDomain: a.domain ?? undefined,
     condition: CONDITION_MAP[a.condition] ?? "Good",
+    lifecycleState: a.state,
+    isVerified: a.is_verified,
     custodianName: a.current_custodian?.name ?? undefined,
     custodianIR: undefined,
     department: a.department ?? "",
     location: buildAssetLocation(a),
     status: deriveStatus(a),
     reviewFlags: a.is_verified ? [] : ["Not yet verified"],
+    parentAssetName: a.parent_asset?.name,
+    childCount: a.child_count || undefined,
+    financials: (f && (f.currency || f.purchase_value || f.replacement_cost || f.acquisition_cost || f.current_value)) ? {
+      currency: f.currency?.name,
+      purchaseValue:    num(f.purchase_value),
+      replacementCost:  num(f.replacement_cost),
+      acquisitionCost:  num(f.acquisition_cost),
+      currentValue:     num(f.current_value),
+    } : undefined,
+    keyDates: d ? {
+      purchaseDate:     str(d.purchase_date),
+      warrantyExpiry:   str(d.warranty_expiry),
+      acquisitionDate:  str(d.acquisition_date),
+      disposalDate:     str(d.disposal_date),
+      lastVerifiedDate: str(d.last_verified_date),
+      nextServiceDate:  str(d.next_service_date),
+    } : undefined,
+    maintenanceVendor: a.maintenance_vendor?.name,
+    notes: a.notes ?? undefined,
+    pmCount:      a.pm_count,
+    requestCount: a.request_count,
   };
 }
 
@@ -241,12 +318,19 @@ interface ApiLocationCoords {
   coordinates?: { latitude: number | null; longitude: number | null } | null;
 }
 
-export function apiLocationToLocation(l: ApiLocation & ApiLocationCoords): FrontLocation {
+// Extra ApiLocation fields the serializer surfaces but the list-time payload
+// often omits. Kept separate so list rows still satisfy ApiLocation.
+interface ApiLocationExtras {
+  updated_at?: string | null;
+}
+
+export function apiLocationToLocation(l: ApiLocation & ApiLocationCoords & ApiLocationExtras): FrontLocation {
   const lat = l.coordinates?.latitude;
   const lng = l.coordinates?.longitude;
   return {
     id: String(l.id),
     name: l.name,
+    description: l.description ?? undefined,
     locationType: mapLocationType(l.location_type),
     zoneCode: l.extras.zone_code ?? undefined,
     parent: l.parent_id ? String(l.parent_id) : undefined,
@@ -255,12 +339,16 @@ export function apiLocationToLocation(l: ApiLocation & ApiLocationCoords): Front
     city: l.address.city ?? undefined,
     state: l.address.state?.name ?? undefined,
     country: l.address.country?.name ?? "Nigeria",
+    zip: l.address.zip ?? undefined,
+    floorNumber: l.extras.floor_number ?? undefined,
     active: l.active,
     childrenCount: l.child_count,
+    childAllCount: l.child_all_count,
     assetCount: undefined,
     childStates: undefined,
     childOffices: undefined,
     coordinates: (typeof lat === "number" && typeof lng === "number") ? { lat, lng } : undefined,
+    updatedAt: l.updated_at ?? undefined,
   };
 }
 
@@ -352,8 +440,19 @@ export function apiRequestToRequest(r: ApiRequest): ServiceRequest {
     responseText: r.response_text,
     author: r.author,
     assignee: r.assignee,
+    partner: r.partner,
+    service: r.service,
+    parentId: r.parent_id,
+    tags: r.tags ?? [],
     deadline: r.deadline_date,
     createdAt: r.dates?.created ?? r.created_at,
+    updatedAt: r.updated_at,
+    assignedAt: r.dates?.assigned ?? undefined,
+    movedAt:    r.dates?.moved ?? undefined,
+    closedAt:   r.dates?.closed ?? undefined,
+    location: r.location,
+    asset:    r.asset,
+    vehicle:  r.vehicle,
     routes,
     messages,
   };

@@ -124,29 +124,55 @@ export default function RequestDetail() {
                 ))}
               </select>
             </div>
-            <p className="text-[13px] text-muted-foreground mt-2">{req.typeName} {req.categoryName && <>· {req.categoryName}</>}</p>
-            <div className="mt-3 prose prose-sm dark:prose-invert max-w-none text-[13px]"
-                 dangerouslySetInnerHTML={{ __html: req.requestText }} />
-          </div>
-          <div className="shrink-0 min-w-[180px] text-right space-y-1.5 text-[12px]">
-            <div className="text-muted-foreground">
-              <p className="text-[10px] uppercase tracking-wider">Created</p>
-              <p className="text-foreground font-semibold">{req.createdAt?.slice(0, 16).replace("T", " ")}</p>
-            </div>
-            {req.deadline && (
-              <div className="text-muted-foreground">
-                <p className="text-[10px] uppercase tracking-wider">Deadline</p>
-                <p className="text-foreground font-semibold">{req.deadline}</p>
+            <p className="text-[13px] text-muted-foreground mt-2">
+              {req.typeName} {req.categoryName && <>· {req.categoryName}</>}
+              {req.kanbanState === "blocked" && (
+                <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+                  Blocked
+                </span>
+              )}
+              {req.kanbanState === "done" && (
+                <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                  Ready
+                </span>
+              )}
+            </p>
+            {(req.impact || req.urgency) && (
+              <div className="mt-1.5 flex gap-3 text-[11px] text-muted-foreground">
+                {req.impact && <span>Impact: <span className="text-foreground font-semibold">{req.impact}</span></span>}
+                {req.urgency && <span>Urgency: <span className="text-foreground font-semibold">{req.urgency}</span></span>}
               </div>
             )}
-            <div className="text-muted-foreground">
-              <p className="text-[10px] uppercase tracking-wider">Author</p>
-              <p className="text-foreground font-semibold">{req.author?.name ?? "—"}</p>
-            </div>
-            <div className="text-muted-foreground">
-              <p className="text-[10px] uppercase tracking-wider">Assignee</p>
-              <p className="text-foreground font-semibold">{req.assignee?.name ?? "Unassigned"}</p>
-            </div>
+            {req.tags.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {req.tags.map(t => (
+                  <span key={t.id} className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-muted text-muted-foreground border border-border">
+                    {t.name}
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="mt-3 prose prose-sm dark:prose-invert max-w-none text-[13px]"
+                 dangerouslySetInnerHTML={{ __html: req.requestText }} />
+            {req.responseText && (
+              <div className="mt-4 border-l-4 border-green-500/50 bg-green-50/50 dark:bg-green-950/20 rounded-r-xl px-4 py-3">
+                <p className="text-[10px] uppercase tracking-wider font-bold text-green-700 dark:text-green-400 mb-1">Resolution</p>
+                <div className="prose prose-sm dark:prose-invert max-w-none text-[13px]"
+                     dangerouslySetInnerHTML={{ __html: req.responseText }} />
+              </div>
+            )}
+          </div>
+          <div className="shrink-0 min-w-[200px] text-right space-y-1.5 text-[12px]">
+            <Meta label="Created"  value={req.createdAt?.slice(0, 16).replace("T", " ")} />
+            <Meta label="Assigned" value={req.assignedAt?.slice(0, 16).replace("T", " ")} />
+            <Meta label="Moved"    value={req.movedAt?.slice(0, 16).replace("T", " ")} />
+            <Meta label="Closed"   value={req.closedAt?.slice(0, 16).replace("T", " ")} />
+            <Meta label="Deadline" value={req.deadline} />
+            <Meta label="Author"   value={req.author?.name} />
+            <Meta label="Assignee" value={req.assignee?.name ?? "Unassigned"} />
+            {req.partner && <Meta label="Partner" value={req.partner.name} />}
+            {req.service && <Meta label="Service" value={req.service.name} />}
+            {req.parentId != null && <Meta label="Parent" value={`#${req.parentId}`} />}
           </div>
         </div>
 
@@ -286,18 +312,36 @@ export default function RequestDetail() {
           )}
 
           {/* Linked records */}
-          <div className="pt-3 border-t border-border space-y-1.5 text-[12px]">
-            <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Linked</p>
-            {(["asset", "location", "vehicle"] as const).map(k => {
-              const v = (req as unknown as Record<string, { id?: number; name?: string } | null>)[k];
-              return v?.id ? (
-                <p key={k} className="text-muted-foreground">{k}: <span className="text-foreground font-semibold">{v.name ?? `#${v.id}`}</span></p>
-              ) : null;
-            })}
-            {!req && <p className="text-[11px] text-muted-foreground italic">None</p>}
-          </div>
+          {(req.asset || req.location || req.vehicle) && (
+            <div className="pt-3 border-t border-border space-y-1.5 text-[12px]">
+              <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Linked</p>
+              {req.asset && (
+                <button onClick={() => nav(`/assets/${req.asset!.id}`)} className="block w-full text-left text-muted-foreground hover:text-foreground">
+                  Asset: <span className="text-primary font-semibold hover:underline">{req.asset.name}</span>
+                </button>
+              )}
+              {req.location && (
+                <button onClick={() => nav(`/locations/${req.location!.id}`)} className="block w-full text-left text-muted-foreground hover:text-foreground">
+                  Location: <span className="text-primary font-semibold hover:underline">{req.location.name}</span>
+                </button>
+              )}
+              {req.vehicle && (
+                <p className="text-muted-foreground">Vehicle: <span className="text-foreground font-semibold">{req.vehicle.name}</span></p>
+              )}
+            </div>
+          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function Meta({ label, value }: { label: string; value?: string | null }) {
+  if (!value) return null;
+  return (
+    <div className="text-muted-foreground">
+      <p className="text-[10px] uppercase tracking-wider">{label}</p>
+      <p className="text-foreground font-semibold">{value}</p>
     </div>
   );
 }

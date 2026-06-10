@@ -12,10 +12,28 @@ export interface AssetLocation {
   path: string;
 }
 
+export interface AssetFinancials {
+  currency?: string;
+  purchaseValue?: number;
+  replacementCost?: number;
+  acquisitionCost?: number;
+  currentValue?: number;
+}
+
+export interface AssetKeyDates {
+  purchaseDate?: string;
+  warrantyExpiry?: string;
+  acquisitionDate?: string;
+  disposalDate?: string;
+  lastVerifiedDate?: string;
+  nextServiceDate?: string;
+}
+
 export interface Asset {
   id: string;
   name: string;
   assetTag: string;
+  assetCode?: string;
   legacyCode: string;
   category: "IT Equipment" | "Fleet / Vehicles" | "Furniture & Fittings";
   subcategory: string;
@@ -27,6 +45,8 @@ export interface Asset {
   registrationNo?: string;
   engineNo?: string;
   condition: "Good" | "Fair" | "Poor" | "Faulty";
+  lifecycleState?: "active" | "in_repair" | "disposed" | "transferred" | "missing";
+  isVerified?: boolean;
   custodianName?: string;
   custodianIR?: string;
   department: string;
@@ -35,11 +55,20 @@ export interface Asset {
   reviewFlags: string[];
   custodianScore?: number;
   imageUrl?: string;
+  financials?: AssetFinancials;
+  keyDates?: AssetKeyDates;
+  maintenanceVendor?: string;
+  notes?: string;
+  pmCount?: number;
+  requestCount?: number;
+  parentAssetName?: string;
+  childCount?: number;
 }
 
 export interface Location {
   id: string;
   name: string;
+  description?: string;
   locationType?: "Zone" | "State" | "Office" | "Floor" | "Room";
   zoneCode?: string;
   parent?: string;
@@ -48,17 +77,35 @@ export interface Location {
   city?: string;
   state?: string;
   country: string;
+  zip?: string;
+  floorNumber?: number;
   active: boolean;
   childrenCount?: number;
-  assetCount?: number;    // assets at/under this node
-  childStates?: number;   // zone-level rollup
-  childOffices?: number;  // zone/state-level rollup
+  childAllCount?: number; // total descendants at any depth
+  assetCount?: number;
+  childStates?: number;
+  childOffices?: number;
   coordinates?: { lat: number; lng: number };
+  updatedAt?: string;
 }
 
 // ─── EMPLOYEE ─────────────────────────────────────────────────────────────────
 export type EmployeeStatus = "Active" | "Inactive" | "On Leave" | "Suspended";
 export type EmploymentType = "Permanent" | "Contract" | "Secondment";
+
+export interface EmployeeManager {
+  id?: number;
+  irNumber?: string;
+  name?: string;
+}
+
+export interface SapMeta {
+  userId?: string;
+  status?: string;        // active|suspended|on_leave|transferred|exited
+  syncStatus?: string;    // synced|pending|error|never
+  lastSync?: string;
+  managerIr?: string;
+}
 
 export interface Employee {
   id: string;
@@ -69,6 +116,8 @@ export interface Employee {
   office: string;
   title: string;
   gradeLevel: number;
+  gradeLevelRaw?: string;
+  costCentre?: string;
   employmentType: EmploymentType;
   status: EmployeeStatus;
   gender: "Male" | "Female";
@@ -76,10 +125,15 @@ export interface Employee {
   email: string;
   nin?: string;
   joinDate: string;
+  employmentEndDate?: string;
   avatarColor: string;
   identityVerified: boolean;
   biometricEnrolled: boolean;
   accessCardNo?: string;
+  manager?: EmployeeManager;
+  sap?: SapMeta;
+  custodialAssetCount?: number;
+  hasPendingRetrieval?: boolean;
 }
 
 // ─── IDENTITY ─────────────────────────────────────────────────────────────────
@@ -273,8 +327,19 @@ export interface ServiceRequest {
   responseText: string | null;
   author: { id: number; name: string } | null;
   assignee: { id: number; name: string } | null;
+  partner: { id: number; name: string } | null;
+  service: { id: number; name: string } | null;
+  parentId: number | null;
+  tags: Array<{ id: number; name: string }>;
   deadline: string | null;
   createdAt: string;
+  updatedAt?: string;
+  assignedAt?: string;
+  movedAt?: string;
+  closedAt?: string;
+  location: { id: number; name: string } | null;
+  asset:    { id: number; name: string } | null;
+  vehicle:  { id: number; name: string } | null;
   // Optional embedded collections (via ?include=)
   routes?: RequestStageRoute[];
   messages?: RequestMessage[];

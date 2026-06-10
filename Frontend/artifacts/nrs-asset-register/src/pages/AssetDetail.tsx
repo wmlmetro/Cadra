@@ -242,6 +242,8 @@ export default function AssetDetail() {
               <section>
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Identification</h3>
                 <dl className="bg-card border border-card-border rounded-xl px-5 py-1">
+                  <DetailRow label="Asset Code" value={asset.assetCode} />
+                  <DetailRow label="Asset Tag" value={asset.assetTag} />
                   <DetailRow label="Serial / VIN" value={asset.serial} />
                   <DetailRow label="Manufacturer" value={asset.manufacturer} />
                   <DetailRow label="Model" value={asset.model} />
@@ -251,6 +253,7 @@ export default function AssetDetail() {
                   {isFleet && <DetailRow label="Engine No." value={asset.engineNo} />}
                 </dl>
               </section>
+
               <section>
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Classification</h3>
                 <dl className="bg-card border border-card-border rounded-xl px-5 py-1">
@@ -258,8 +261,77 @@ export default function AssetDetail() {
                   <DetailRow label="Subcategory" value={asset.subcategory} />
                   <DetailRow label="Asset Type" value={asset.assetType} />
                   <DetailRow label="Condition" value={asset.condition} />
+                  <DetailRow label="Lifecycle State" value={asset.lifecycleState} />
+                  <DetailRow label="Verified" value={asset.isVerified == null ? null : asset.isVerified ? "Yes" : "No"} />
                 </dl>
               </section>
+
+              <section>
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Location</h3>
+                <dl className="bg-card border border-card-border rounded-xl px-5 py-1">
+                  <DetailRow label="Office / Building" value={asset.location.office} />
+                  <DetailRow label="State" value={asset.location.state || undefined} />
+                  <DetailRow label="Zone" value={asset.location.zone || undefined} />
+                  <DetailRow label="Address" value={asset.location.path} />
+                </dl>
+              </section>
+
+              <section>
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Custody</h3>
+                <dl className="bg-card border border-card-border rounded-xl px-5 py-1">
+                  <DetailRow label="Current Custodian" value={asset.custodianName} />
+                  <DetailRow label="Department" value={asset.department} />
+                  {asset.parentAssetName && <DetailRow label="Parent Asset" value={asset.parentAssetName} />}
+                  {asset.childCount ? <DetailRow label="Sub-assets" value={String(asset.childCount)} /> : null}
+                </dl>
+              </section>
+
+              {asset.financials && (
+                <section>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Financials</h3>
+                  <dl className="bg-card border border-card-border rounded-xl px-5 py-1">
+                    <DetailRow label="Currency" value={asset.financials.currency} />
+                    <DetailRow label="Purchase Value" value={asset.financials.purchaseValue != null ? asset.financials.purchaseValue.toLocaleString() : undefined} />
+                    <DetailRow label="Replacement Cost" value={asset.financials.replacementCost != null ? asset.financials.replacementCost.toLocaleString() : undefined} />
+                    <DetailRow label="Acquisition Cost" value={asset.financials.acquisitionCost != null ? asset.financials.acquisitionCost.toLocaleString() : undefined} />
+                    <DetailRow label="Current Value" value={asset.financials.currentValue != null ? asset.financials.currentValue.toLocaleString() : undefined} />
+                  </dl>
+                </section>
+              )}
+
+              {asset.keyDates && Object.values(asset.keyDates).some(Boolean) && (
+                <section>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Key Dates</h3>
+                  <dl className="bg-card border border-card-border rounded-xl px-5 py-1">
+                    <DetailRow label="Purchase Date" value={asset.keyDates.purchaseDate} />
+                    <DetailRow label="Warranty Expiry" value={asset.keyDates.warrantyExpiry} />
+                    <DetailRow label="Acquisition Date" value={asset.keyDates.acquisitionDate} />
+                    <DetailRow label="Last Verified" value={asset.keyDates.lastVerifiedDate} />
+                    <DetailRow label="Next Service" value={asset.keyDates.nextServiceDate} />
+                    <DetailRow label="Disposal Date" value={asset.keyDates.disposalDate} />
+                  </dl>
+                </section>
+              )}
+
+              {(asset.maintenanceVendor || asset.pmCount || asset.requestCount) && (
+                <section>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Maintenance</h3>
+                  <dl className="bg-card border border-card-border rounded-xl px-5 py-1">
+                    <DetailRow label="Vendor" value={asset.maintenanceVendor} />
+                    {asset.pmCount      ? <DetailRow label="PM Schedules"   value={String(asset.pmCount)} /> : null}
+                    {asset.requestCount ? <DetailRow label="Linked Requests" value={String(asset.requestCount)} /> : null}
+                  </dl>
+                </section>
+              )}
+
+              {asset.notes && (
+                <section>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Notes</h3>
+                  <div className="bg-card border border-card-border rounded-xl px-5 py-3">
+                    <p className="text-xs text-foreground whitespace-pre-wrap">{asset.notes}</p>
+                  </div>
+                </section>
+              )}
             </div>
           ),
         },

@@ -121,7 +121,7 @@ export default function FleetCommandCenter() {
       {/* Fleet map */}
       <div className="bg-card border border-border rounded-2xl p-5">
         <h2 className="text-[13px] font-bold mb-3">Vehicle deployment ({pins.length} vehicles plotted)</h2>
-        <NigeriaMap pins={pins} height={360} asCircles />
+        <NigeriaMap pins={pins} height={360} />
       </div>
 
       {/* Fleet register table */}

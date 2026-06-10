@@ -3,13 +3,21 @@ import { MapContainer, TileLayer, Marker, Popup, CircleMarker } from "react-leaf
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-// Leaflet's default marker icons are loaded from URLs that don't resolve
-// under Vite's bundler. Wire them up explicitly. This runs once per import.
-delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl:       "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl:     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+// Custom red pin marker — inline SVG via divIcon. Compact enough to read at
+// country zoom without crowding the tiles, and uses the NRS brand red
+// (#E01F26) so map markers feel native to the rest of the UI.
+const PIN_SVG = `
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 32" width="14" height="18">
+    <path d="M12 0c-6.6 0-12 5.4-12 12 0 9 12 20 12 20s12-11 12-20c0-6.6-5.4-12-12-12z"
+          fill="#E01F26" stroke="#FFFFFF" stroke-width="1.5"/>
+    <circle cx="12" cy="12" r="4" fill="#FFFFFF"/>
+  </svg>`;
+const redPinIcon = L.divIcon({
+  html: PIN_SVG,
+  className: "nrs-pin",
+  iconSize:    [16, 19],
+  iconAnchor:  [ 7, 18],
+  popupAnchor: [ 0, -14],
 });
 
 export interface MapPinData {
@@ -76,6 +84,7 @@ export default function NigeriaMap({
             <Marker
               key={p.id}
               position={[p.lat, p.lng]}
+              icon={redPinIcon}
               eventHandlers={p.onClick ? { click: p.onClick } : undefined}
             >
               <Popup>

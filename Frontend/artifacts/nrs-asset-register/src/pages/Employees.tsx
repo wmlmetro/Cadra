@@ -404,25 +404,52 @@ export function EmployeeDetail({ params }: { params: { id: string } }) {
         ))}
       </div>
 
-      {tab === "overview" && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {[
-            ["IR Number", emp.irNumber],
-            ["Grade Level", `GL-${emp.gradeLevel}`],
-            ["Employment Type", emp.employmentType],
-            ["Gender", emp.gender],
-            ["Join Date", emp.joinDate],
-            ["Access Card", emp.accessCardNo ?? "Not Issued"],
-            ["Biometric", emp.biometricEnrolled ? "Enrolled" : "Not Enrolled"],
-            ["Zone", emp.zone],
-          ].map(([k, v]) => (
-            <div key={k} className="bg-card border border-border rounded-xl px-4 py-3 flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{k}</span>
-              <span className="text-[13px] font-medium text-foreground">{v}</span>
+      {tab === "overview" && (() => {
+        const rows: Array<[string, React.ReactNode] | null> = [
+          ["IR Number",        emp.irNumber],
+          ["Grade Level",      emp.gradeLevelRaw ?? (emp.gradeLevel ? `GL-${emp.gradeLevel}` : "—")],
+          emp.costCentre        ? ["Cost Centre",     emp.costCentre]        : null,
+          ["Department",       emp.department],
+          ["Office / Location", emp.office || "—"],
+          emp.manager?.name     ? ["Manager",         `${emp.manager.name}${emp.manager.irNumber ? ` (${emp.manager.irNumber})` : ""}`] : null,
+          ["Join Date",        emp.joinDate || "—"],
+          emp.employmentEndDate ? ["Employment End",  emp.employmentEndDate] : null,
+          emp.custodialAssetCount != null ? ["Custodial Assets",
+            <span className="inline-flex items-center gap-2">
+              <span>{emp.custodialAssetCount.toLocaleString()}</span>
+              {emp.hasPendingRetrieval && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                  Pending retrieval
+                </span>
+              )}
+            </span>,
+          ] : null,
+        ];
+        return (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {(rows.filter(Boolean) as Array<[string, React.ReactNode]>).map(([k, v]) => (
+                <div key={k} className="bg-card border border-border rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+                  <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide shrink-0">{k}</span>
+                  <span className="text-[13px] font-medium text-foreground text-right">{v}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+            {emp.sap && (emp.sap.userId || emp.sap.syncStatus || emp.sap.lastSync) && (
+              <div className="mt-4 bg-card border border-border rounded-2xl p-4">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">SAP / SuccessFactors</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12px]">
+                  {emp.sap.userId      && <div><span className="text-muted-foreground">SAP User ID: </span><span className="font-mono">{emp.sap.userId}</span></div>}
+                  {emp.sap.status      && <div><span className="text-muted-foreground">SAP Status: </span>{emp.sap.status}</div>}
+                  {emp.sap.syncStatus  && <div><span className="text-muted-foreground">Sync State: </span>{emp.sap.syncStatus}</div>}
+                  {emp.sap.lastSync    && <div><span className="text-muted-foreground">Last Sync: </span>{emp.sap.lastSync.slice(0, 16).replace("T", " ")}</div>}
+                  {emp.sap.managerIr   && <div><span className="text-muted-foreground">Manager IR: </span><span className="font-mono">{emp.sap.managerIr}</span></div>}
+                </div>
+              </div>
+            )}
+          </>
+        );
+      })()}
       {tab === "assets" && <EmployeeAssetsTab employeeId={emp.id} nav={(p: string) => nav(p)} ir={emp.irNumber} />}
       {tab === "identity" && (
         <div className="bg-card border border-border rounded-2xl p-6 space-y-3">

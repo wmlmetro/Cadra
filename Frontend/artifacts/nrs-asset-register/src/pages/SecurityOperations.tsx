@@ -104,7 +104,7 @@ export default function SecurityOperations() {
       {/* Map */}
       <div className="bg-card border border-border rounded-2xl p-5">
         <h2 className="text-[13px] font-bold mb-3">Site coverage ({pins.length} sites)</h2>
-        <NigeriaMap pins={pins} height={380} asCircles />
+        <NigeriaMap pins={pins} height={380} />
       </div>
 
       {/* Recent incidents */}

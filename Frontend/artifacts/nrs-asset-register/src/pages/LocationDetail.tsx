@@ -117,9 +117,12 @@ export default function LocationDetail() {
           </div>
           <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-[12px]">
             {loc.street && <div><span className="text-muted-foreground">Street: </span>{loc.street}</div>}
+            {loc.street2 && <div><span className="text-muted-foreground">Street 2: </span>{loc.street2}</div>}
             {loc.city && <div><span className="text-muted-foreground">City: </span>{loc.city}</div>}
+            {loc.zip && <div><span className="text-muted-foreground">ZIP: </span>{loc.zip}</div>}
             {loc.state && <div><span className="text-muted-foreground">State: </span>{loc.state}</div>}
             {loc.country && <div><span className="text-muted-foreground">Country: </span>{loc.country}</div>}
+            {loc.floorNumber != null && <div><span className="text-muted-foreground">Floor: </span>{loc.floorNumber}</div>}
             {loc.coordinates && (
               <div className="font-mono">
                 <span className="text-muted-foreground">Coords: </span>
@@ -127,7 +130,18 @@ export default function LocationDetail() {
               </div>
             )}
             <div><span className="text-muted-foreground">Status: </span>{loc.active ? "Active" : "Inactive"}</div>
+            {loc.childAllCount != null && (
+              <div><span className="text-muted-foreground">Sub-locations: </span>{loc.childAllCount.toLocaleString()}</div>
+            )}
+            {loc.updatedAt && (
+              <div><span className="text-muted-foreground">Updated: </span>{loc.updatedAt.slice(0, 10)}</div>
+            )}
           </div>
+          {loc.description && (
+            <p className="mt-3 text-[12px] text-foreground whitespace-pre-wrap border-t border-border pt-3">
+              {loc.description}
+            </p>
+          )}
         </div>
       </div>
 
