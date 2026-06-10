@@ -1,0 +1,108 @@
+# Replit prompt — Addendum C: sidebar mode, logo placement, theme toggle
+
+> Append after Addendum A. This overrides the earlier dark-sidebar assumption.
+> Decision: **light sidebar is the default**; dark mode is available via a
+> persisted toggle. Rationale: the NRS logo is grey+red on white (no dark
+> container), and a tax/asset-registry tool reads as more trustworthy in light.
+
+---
+
+## Default: LIGHT sidebar
+
+The sidebar is light by default and shares the brand-neutral palette. The key
+risk with an all-white UI is the sidebar/content edge disappearing — solve it
+with value separation + a hairline divider, not with a dark panel.
+
+```css
+:root {                      /* light mode (default) */
+  --bg: #F7F8FA;             /* main content area */
+  --sidebar-bg: #FFFFFF;     /* sidebar panel — slightly brighter than content */
+  --sidebar-divider: #E5E7EB;/* 0.5px right border on the sidebar */
+  --sidebar-section: #9CA3AF;/* group labels: DASHBOARDS, OPERATIONS … (11px, .04em tracking, uppercase) */
+  --sidebar-text: #374151;   /* nav item label */
+  --sidebar-icon: #6B7280;   /* nav item icon */
+  --sidebar-hover-bg: #F1F3F5;
+  --sidebar-active-bg: var(--nrs-red);   /* active item: red pill */
+  --sidebar-active-fg: #FFFFFF;          /* active label + icon white */
+}
+```
+
+- Sidebar: `background: var(--sidebar-bg)`, `border-right: 0.5px solid var(--sidebar-divider)`.
+- Content: `background: var(--bg)`. The 1-step value gap + divider gives structure
+  without a dark panel.
+- Active nav item: solid red pill (`--sidebar-active-bg`), white text+icon, full
+  width with `border-radius: var(--radius-sm)`, ~8px inset. Only ONE item active.
+- Hover (non-active): `--sidebar-hover-bg`, no red.
+- Section labels (`DASHBOARDS`, `OPERATIONS`, `FLEET & TRANSPORT`, `ASSET
+  REGISTER`, `HR & STAFF`, `ADMINISTRATION`): `--sidebar-section`, 11px, uppercase,
+  letter-spacing .04em, generous top margin between groups.
+
+## Logo placement (light)
+
+- Top of sidebar, on the white panel, **no tile/container** — the logo lives
+  native (this is the whole reason for light default).
+- Lockup: grey "NRS" + red "NIGERIA REVENUE SERVICE" wordmark, as supplied.
+- Clear space: keep padding ≥ the height of the "N" on all sides. Don't recolour,
+  stretch, or add effects. Cap height ~28–32px; let width scale.
+- Below the logo, a `0.5px var(--sidebar-divider)` separator before the nav.
+
+## Dark mode (via toggle)
+
+Provide a theme toggle (sun/moon) in the top bar; **persist the choice**
+(localStorage, key `nrs-theme`, values `light` | `dark`; respect
+`prefers-color-scheme` on first visit). All tokens have dark counterparts.
+
+```css
+[data-theme="dark"] {
+  --bg: #0F141A;
+  --surface: #161D26;
+  --surface-2: #1E2630;
+  --border: #2A323D;
+  --border-strong: #3A434F;
+  --text: #E5E9EF;
+  --text-secondary: #9AA4B2;
+  --text-tertiary: #6B7480;
+
+  --sidebar-bg: #111821;
+  --sidebar-divider: #232C37;
+  --sidebar-section: #6B7480;
+  --sidebar-text: #C7CDD6;
+  --sidebar-icon: #9AA4B2;
+  --sidebar-hover-bg: #1B232E;
+  --sidebar-active-bg: var(--nrs-red);   /* red pill stays the active marker */
+  --sidebar-active-fg: #FFFFFF;
+}
+```
+
+### Logo in dark mode
+The supplied logo is for light backgrounds. In dark mode ONLY, place it on a
+small rounded light chip so it stays legible:
+`background:#FFFFFF; border-radius:var(--radius-sm); padding:6px 10px;`
+This is a deliberate dark-mode affordance — never the light-mode default.
+(If a white/mono logo variant is later supplied, drop the chip and use it directly.)
+
+### Status & condition pills in dark mode
+Keep the same hues but swap to dark-friendly tints (darker translucent fill,
+lighter text). Examples:
+```css
+[data-theme="dark"] {
+  --st-cleared-bg:#0E2A1B; --st-cleared-fg:#5CD08F;
+  --st-dq-bg:#2A2310;      --st-dq-fg:#E2B65C;
+  --st-vin-bg:#2A2310;     --st-vin-fg:#E0A93C;
+  --st-dup-bg:#221A33;     --st-dup-fg:#B79CF0;
+  --st-allottee-bg:#2A1B10;--st-allottee-fg:#E89B5C;
+}
+```
+Brand red (`--nrs-red`) is unchanged across modes — it is the one constant.
+
+## Toggle behaviour
+- Top-bar icon button (sun in dark mode, moon in light), `aria-label="Toggle theme"`.
+- Sets `data-theme` on `<html>`, writes to localStorage, no full reload.
+- Default order: saved choice → OS preference → light.
+- Every screen (sidebar, cards, forms, tables, charts) must be verified in both
+  modes — no hardcoded hex in components; read from the variables above.
+
+## Summary of the decision
+- Light is the front door: logo native, civic/registry tone, red accent pops.
+- Dark is a first-class option behind a persisted toggle, with the logo chip as
+  its only special-case.
