@@ -5,6 +5,21 @@
 .ropeproject/
 .coverage
 htmlcov.DS_Store
+.DS_Store
+
+# Claude Code workspace (per-user, not shared)
+.claude/
+
+# Node / Vite frontend
+node_modules/
+dist/
+.tsbuildinfo
+*.tsbuildinfo
+
+# Local env files — committed example only
+.env
+.env.local
+.env.*.local
 
 # Local upgrade workspace — version-swapped Odoo/CRND source trees fetched
 # during the 15 -> 16 -> 17 -> 18 OpenUpgrade chain. Not part of the repo.
