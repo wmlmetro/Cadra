@@ -11,6 +11,7 @@ class MyServiceDashboard(models.AbstractModel):
         Vehicle = self.env['fleet.vehicle']
         Location = self.env['generic.location']
         Request = self.env['request.request']
+        Asset = self.env.get('nrs.asset')
 
         # Fleet KPIs
         total_vehicles = Vehicle.search_count([])
@@ -50,6 +51,34 @@ class MyServiceDashboard(models.AbstractModel):
             total_vendors = 0
             approved_vendors = 0
 
+        # Asset KPIs + category breakdown.
+        # `read_group` on nrs.asset groups all rows by category_id, returning
+        # one dict per category with {category_id: (id, name), category_id_count}.
+        # We skip when the nrs.asset model isn't installed (this dashboard ships
+        # outside the NRS bundle too) so the rest of the payload still renders.
+        asset_categories = []
+        total_assets = 0
+        if Asset is not None:
+            total_assets = Asset.search_count([])
+            groups = Asset.read_group(
+                domain=[],
+                fields=['category_id'],
+                groupby=['category_id'],
+                lazy=False,
+            )
+            asset_categories = sorted(
+                (
+                    {
+                        'id':    (g['category_id'][0] if g.get('category_id') else None),
+                        'name':  (g['category_id'][1] if g.get('category_id') else 'Uncategorised'),
+                        'count': g['__count'],
+                    }
+                    for g in groups
+                ),
+                key=lambda c: c['count'],
+                reverse=True,
+            )
+
         return {
             'fleet': {
                 'total': total_vehicles,
@@ -70,6 +99,10 @@ class MyServiceDashboard(models.AbstractModel):
             'vendors': {
                 'total': total_vendors,
                 'approved': approved_vendors,
+            },
+            'assets': {
+                'total': total_assets,
+                'categories': asset_categories,
             },
         }
 

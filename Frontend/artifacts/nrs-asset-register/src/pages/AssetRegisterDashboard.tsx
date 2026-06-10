@@ -5,6 +5,7 @@ import { useLayoutCtx } from "@/components/layout/AppLayout";
 import NigeriaMap, { type MapPinData } from "@/components/NigeriaMap";
 import {
   fetchAssetRegisterCounts,
+  fetchDashboardKpis,
   fetchDashboardMap,
   fetchBarcodeRecentTags,
   lookupBarcode,
@@ -53,6 +54,18 @@ export default function AssetRegisterDashboard() {
     queryFn: () => fetchBarcodeRecentTags({ limit: 5 }),
     staleTime: 60_000,
   });
+
+  // The /dashboard/kpis payload now carries an `assets.categories` array
+  // (added in the dashboard model). Older API builds omit it; we render the
+  // panel only when the field is present so the page stays valid against
+  // either version.
+  const kpis = useQuery({
+    queryKey: ["dashboard-kpis"],
+    queryFn: fetchDashboardKpis,
+    staleTime: 60_000,
+  });
+  const categories = kpis.data?.assets?.categories ?? [];
+  const categoryMax = categories.reduce((m, c) => Math.max(m, c.count), 0) || 1;
 
   const pins = useMemo<MapPinData[]>(() => {
     return (mapData.data?.locations ?? [])
@@ -184,6 +197,40 @@ export default function AssetRegisterDashboard() {
           />
         </aside>
       </div>
+
+      {/* ─── Asset Categories breakdown ────────────────────────────────── */}
+      {categories.length > 0 && (
+        <section className="bg-card border border-border rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[13px] font-bold">Asset Categories</h2>
+            <span className="text-[11px] text-muted-foreground">
+              {categories.length} {categories.length === 1 ? "category" : "categories"}
+            </span>
+          </div>
+          <ul className="space-y-2.5">
+            {categories.map(cat => {
+              const pct = (cat.count / categoryMax) * 100;
+              return (
+                <li key={cat.id ?? cat.name} className="flex items-center gap-3">
+                  <span className="text-[12px] font-medium text-foreground w-44 shrink-0 truncate">
+                    {cat.name}
+                  </span>
+                  <div className="flex-1 h-2 bg-muted/40 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${Math.max(2, pct)}%`, background: "#E01F26" }}
+                      title={`${cat.count.toLocaleString()} assets`}
+                    />
+                  </div>
+                  <span className="text-[12px] font-bold text-foreground tabular-nums w-16 text-right shrink-0">
+                    {cat.count.toLocaleString()}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

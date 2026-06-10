@@ -552,6 +552,9 @@ export interface DashboardKpis {
   locations: { total: number; mapped: number };
   requests:  { open: number; maintenance: number; today: number };
   vendors:   { total: number; approved: number };
+  // Added in the asset_categories backend slice. Optional so older API
+  // builds without the change still typecheck.
+  assets?:   { total: number; categories: Array<{ id: number | null; name: string; count: number }> };
 }
 
 export interface DashboardMapLocation {
