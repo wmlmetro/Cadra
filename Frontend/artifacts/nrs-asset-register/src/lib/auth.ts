@@ -103,16 +103,22 @@ interface TokenResponse {
 }
 
 /**
- * Hits POST /api/v1/auth/token directly (bypasses apiPost so we don't need a
+ * Hits POST /api/v1/auth/login directly (bypasses apiPost so we don't need a
  * token to fetch a token). Same-origin in production behind /app/; in dev
  * it goes through the Vite proxy.
+ *
+ * Uses the OAuth2 password-grant endpoint that validates the user's Odoo
+ * res.users credentials — the same login + password they'd use at the
+ * Odoo web UI. M2M consumers (SAP sync, smoke-test client, ...) still use
+ * POST /api/v1/auth/token with client_id/secret; we never call that from
+ * the React frontend.
  */
-export async function login(client_id: string, client_secret: string): Promise<StoredToken> {
+export async function login(loginName: string, password: string): Promise<StoredToken> {
   const base = (import.meta.env.VITE_API_BASE ?? "").replace(/\/$/, "");
-  const res = await fetch(`${base}/api/v1/auth/token`, {
+  const res = await fetch(`${base}/api/v1/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ client_id, client_secret }),
+    body: JSON.stringify({ login: loginName, password }),
   });
   let body: unknown = null;
   try { body = await res.json(); } catch { /* below check handles */ }

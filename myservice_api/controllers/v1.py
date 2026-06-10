@@ -12,10 +12,15 @@ REST conventions:
     PATCH  /resource/<id>         → partial update (200 OK)
     POST   /resource/<id>/<verb>  → action (move, transition, comment, etc.)
 
-JWT auth: clients exchange (client_id, client_secret) for a bearer token at
-POST /api/v1/auth/token, then send `Authorization: Bearer <token>` on every
-subsequent call. Scopes use the resource:action format from the Cadra API
-spec (assets:read, requests:write, etc.) — see utils.SCOPE_* for the list.
+JWT auth — two flows. Both return the same JWT shape; differ only in how
+the caller proves identity:
+    - Human users    → POST /api/v1/auth/login with {login, password}
+                       (validated against Odoo res.users, same creds as the web UI).
+    - Service / M2M  → POST /api/v1/auth/token with {client_id, client_secret}
+                       (myservice.api.client records, scoped per consumer).
+Send `Authorization: Bearer <token>` on every subsequent call. Scopes use
+the resource:action format from the Cadra API spec (assets:read,
+requests:write, etc.) — see utils.SCOPE_* for the list.
 
 Write endpoints (POST/PUT/PATCH/DELETE) support idempotency via the
 `X-Idempotency-Key` header. Two requests with the same key on the same
@@ -29,6 +34,7 @@ import re
 import time
 
 from odoo import fields, http
+from odoo.exceptions import AccessDenied
 from odoo.http import request
 
 from .utils import (
@@ -191,6 +197,83 @@ class MyserviceApiV1(http.Controller):
             "scope": " ".join(scopes),
         }))
 
+    # ── Auth: user login (OAuth2 ROPC) ─────────────────────────────
+
+    @http.route("/api/v1/auth/login", type="http", auth="none",
+                methods=["POST"], csrf=False)
+    def login(self, **kwargs):
+        """Exchange res.users credentials (Odoo username + password) for a
+        JWT bearer token.
+
+        Body (flat JSON): {"login": "user@example.com", "password": "..."}
+        Response: PRD envelope with data = {token_type, access_token, expires_in, scope}.
+
+        This is the OAuth2 "password grant" / ROPC flow — only safe for
+        first-party clients (we control both the React frontend and this
+        backend). Third-party integrations should keep using
+        POST /api/v1/auth/token with client_id/secret.
+
+        Scopes: currently every authenticated user gets ["*"]. Mapping
+        Odoo groups to API scopes is a deliberate follow-up — needs a
+        product decision on which groups gate which resources.
+        """
+        data = get_params()
+        login = (data.get("login") or data.get("username") or "").strip()
+        password = data.get("password") or ""
+        if not login or not password:
+            return _http_response(err(
+                ERR_INVALID_REQUEST,
+                "`login` and `password` are required",
+            ))
+
+        # `authenticate` is a classmethod that opens its own cursor and uses
+        # Odoo's standard password verification (hash check, MFA hooks, etc).
+        # Returns uid on success; older versions return False on failure,
+        # newer versions raise AccessDenied. Handle both.
+        db = request.env.cr.dbname
+        try:
+            uid = request.env["res.users"].authenticate(
+                db, login, password, {"interactive": False},
+            )
+        except AccessDenied:
+            uid = False
+
+        if not uid:
+            return _http_response(err(
+                ERR_UNAUTHORIZED, "Invalid login or password", status=401,
+            ))
+
+        user = request.env["res.users"].sudo().browse(uid)
+        if not user.exists() or not user.active:
+            return _http_response(err(
+                ERR_UNAUTHORIZED, "Account is disabled", status=401,
+            ))
+
+        try:
+            secret = jwt_secret(request.env)
+        except Exception as e:
+            return _http_response(err("server_misconfigured", str(e), status=500))
+
+        now = int(time.time())
+        ttl = 3600
+        scopes = ["*"]  # TODO: derive from user's Odoo groups
+        claims = {
+            "iss": "myservice_api",
+            "sub": user.login,
+            "uid": user.id,
+            "scopes": scopes,
+            "iat": now,
+            "exp": now + ttl,
+        }
+        token = jwt_encode(claims, secret)
+
+        return _http_response(ok({
+            "token_type": "Bearer",
+            "access_token": token,
+            "expires_in": ttl,
+            "scope": " ".join(scopes),
+        }))
+
     # ── OpenAPI + Swagger UI ────────────────────────────────────────
 
     @http.route("/api/v1/openapi.json", type="http", auth="none",
@@ -205,9 +288,14 @@ class MyserviceApiV1(http.Controller):
                 "description": (
                     "Cadra REST API \n\n\n"
                     "## Trying it from this page\n\n"
-                    "1. Run **POST /api/v1/auth/token** with a flat body "
-                    "`{\"client_id\": \"...\", \"client_secret\": \"...\"}`. "
-                    "Copy `data.access_token` from the response.\n\n"
+                    "1. Get a JWT — pick the auth flow that fits:\n"
+                    "   - **POST /api/v1/auth/login** with "
+                    "`{\"login\": \"<your Odoo username>\", \"password\": \"...\"}` — "
+                    "for human users (Odoo res.users credentials, same as the web UI).\n"
+                    "   - **POST /api/v1/auth/token** with "
+                    "`{\"client_id\": \"...\", \"client_secret\": \"...\"}` — "
+                    "for service accounts / integrations.\n\n"
+                    "   Copy `data.access_token` from the response.\n\n"
                     "2. Click **Authorize** at the top. Paste **only the "
                     "raw token** (do NOT include the word `Bearer `). "
                     "Swagger prepends it for you.\n\n"
@@ -287,10 +375,10 @@ class MyserviceApiV1(http.Controller):
             "paths": {},
         }
 
-        # Always-on token endpoint (declared manually since it's not in the registry).
+        # Always-on auth endpoints (declared manually since they're not in the registry).
         spec["paths"]["/api/v1/auth/token"] = {
             "post": {
-                "summary": "Exchange client credentials for a JWT bearer token",
+                "summary": "Exchange client credentials for a JWT bearer token (service accounts / integrations)",
                 "tags": ["Auth"],
                 "requestBody": {
                     "required": True,
@@ -302,6 +390,32 @@ class MyserviceApiV1(http.Controller):
                             "client_secret": {"type": "string"},
                         },
                     }, "example": {"client_id": "test_client", "client_secret": "..."}}},
+                },
+                "responses": _standard_responses(),
+            }
+        }
+        spec["paths"]["/api/v1/auth/login"] = {
+            "post": {
+                "summary": "Exchange res.users credentials for a JWT bearer token (human users)",
+                "tags": ["Auth"],
+                "description": (
+                    "OAuth2 password grant (ROPC). Validates `login` + "
+                    "`password` against the Odoo `res.users` model (same "
+                    "credentials as the Odoo web UI) and returns a 1-hour "
+                    "JWT. Intended for first-party clients like the Cadra "
+                    "web frontend. Third-party integrations should use "
+                    "`/auth/token` with client credentials instead."
+                ),
+                "requestBody": {
+                    "required": True,
+                    "content": {"application/json": {"schema": {
+                        "type": "object",
+                        "required": ["login", "password"],
+                        "properties": {
+                            "login": {"type": "string", "description": "Odoo username (typically an email address)"},
+                            "password": {"type": "string", "format": "password"},
+                        },
+                    }, "example": {"login": "admin", "password": "..."}}},
                 },
                 "responses": _standard_responses(),
             }

@@ -8,9 +8,9 @@ const logoSrc = `${import.meta.env.BASE_URL}nrs-logo.png`;
 
 export default function Login() {
   const [, nav] = useLocation();
-  const [clientId, setClientId] = useState("");
-  const [clientSecret, setClientSecret] = useState("");
-  const [showSecret, setShowSecret] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -19,7 +19,7 @@ export default function Login() {
     setError(null);
     setPending(true);
     try {
-      await login(clientId.trim(), clientSecret.trim());
+      await login(username.trim(), password);
       // App.tsx auth-gate listens for the auth-changed event and re-renders
       // into the authenticated shell. Redirect to / for a clean entry point.
       nav("/");
@@ -36,43 +36,43 @@ export default function Login() {
         <div className="flex flex-col items-center gap-3">
           <img src={logoSrc} alt="Nigeria Revenue Service" className="h-12 w-auto" draggable={false} />
           <div className="text-center">
-            <h1 className="text-[18px] font-bold text-foreground">Cadra Sign-in</h1>
-            <p className="text-[12px] text-muted-foreground mt-1">Authenticate to the Cadra v1 API</p>
+            <h1 className="text-[18px] font-bold text-foreground">Sign in to Cadra</h1>
+            <p className="text-[12px] text-muted-foreground mt-1">Use your Cadra credentials</p>
           </div>
         </div>
 
         <form onSubmit={onSubmit} className="bg-card border border-border rounded-2xl p-6 space-y-4">
           <div className="space-y-1.5">
-            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Client ID</label>
+            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Username</label>
             <input
               type="text"
               autoFocus
               autoComplete="username"
-              value={clientId}
-              onChange={e => setClientId(e.target.value)}
+              value={username}
+              onChange={e => setUsername(e.target.value)}
               required
               className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-              placeholder="e.g. NRS_…"
+              placeholder="e.g. your@email.com"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Client secret</label>
+            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Password</label>
             <div className="relative">
               <input
-                type={showSecret ? "text" : "password"}
+                type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
-                value={clientSecret}
-                onChange={e => setClientSecret(e.target.value)}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
                 required
                 className="w-full px-3 py-2 pr-16 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
               <button
                 type="button"
-                onClick={() => setShowSecret(s => !s)}
+                onClick={() => setShowPassword(s => !s)}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-muted-foreground hover:text-foreground px-1.5 py-0.5"
               >
-                {showSecret ? "HIDE" : "SHOW"}
+                {showPassword ? "HIDE" : "SHOW"}
               </button>
             </div>
           </div>
@@ -86,10 +86,10 @@ export default function Login() {
 
           <button
             type="submit"
-            disabled={!clientId.trim() || !clientSecret.trim() || pending}
+            disabled={!username.trim() || !password || pending}
             className={cn(
               "w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl",
-              clientId.trim() && clientSecret.trim() && !pending
+              username.trim() && password && !pending
                 ? "bg-primary text-white hover:opacity-90"
                 : "bg-muted text-muted-foreground cursor-not-allowed",
             )}
@@ -99,7 +99,7 @@ export default function Login() {
           </button>
 
           <p className="text-[11px] text-muted-foreground text-center">
-            Credentials are exchanged for a 1-hour JWT and stored in this browser only.
+            Your session is held in this browser only and expires after 1 hour.
           </p>
         </form>
       </div>
