@@ -1,9 +1,12 @@
+import { useEffect, useState } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AppLayout from "@/components/layout/AppLayout";
+import { hasLiveSession, onLogout } from "@/lib/auth";
+import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import FMOperationsDashboard from "@/pages/FMOperationsDashboard";
 import FleetCommandCenter from "@/pages/FleetCommandCenter";
@@ -69,13 +72,35 @@ function AppRoutes() {
   );
 }
 
+/** Listens for the logout event + auth-changed event and flips between the
+ *  Login screen and the authenticated app shell. */
+function AuthGate() {
+  const [signedIn, setSignedIn] = useState(hasLiveSession);
+
+  useEffect(() => {
+    const refresh = () => setSignedIn(hasLiveSession());
+    window.addEventListener("cadra:auth-changed", refresh);
+    const off = onLogout(refresh);
+    return () => { window.removeEventListener("cadra:auth-changed", refresh); off(); };
+  }, []);
+
+  // When the user logs out we also wipe the react-query cache so the next
+  // sign-in doesn't read stale per-user data.
+  useEffect(() => {
+    if (!signedIn) queryClient.clear();
+  }, [signedIn]);
+
+  if (!signedIn) return <Login />;
+  return <AppRoutes />;
+}
+
 function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="nrs-theme">
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <AppRoutes />
+            <AuthGate />
           </WouterRouter>
           <Toaster />
         </TooltipProvider>

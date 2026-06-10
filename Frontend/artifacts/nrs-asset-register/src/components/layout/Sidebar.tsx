@@ -5,7 +5,9 @@ import {
   LayoutDashboard, MapPin, Bus, Car, BookOpen,
   Fingerprint, Users, Activity, ShieldAlert,
   Inbox, Briefcase, ScanBarcode, Upload, RefreshCw,
+  LogOut,
 } from "lucide-react";
+import { logout, getScope, getExpiry } from "@/lib/auth";
 
 const navGroups = [
   { label: "Dashboards", items: [
@@ -137,38 +139,47 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* ── Footer / user ────────────────────────────────────────────────── */}
+      {/* ── Footer / session ─────────────────────────────────────────────── */}
       <div
         className="p-3 shrink-0"
         style={{ borderTop: "0.5px solid hsl(var(--sidebar-border))" }}
       >
-        <div
-          className="flex items-center gap-2.5 px-2 py-2 rounded-xl cursor-pointer transition-colors"
-          onMouseEnter={e => (e.currentTarget.style.background = "hsl(var(--sidebar-accent))")}
-          onMouseLeave={e => (e.currentTarget.style.background = "")}
-        >
-          <div
-            className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold text-white"
-            style={{ background: "#E01F26" }}
-          >
-            A
-          </div>
-          <div className="min-w-0 flex-1">
-            <p
-              className="text-[12px] font-semibold truncate leading-tight"
-              style={{ color: "hsl(var(--sidebar-foreground))" }}
-            >
-              Admin User
-            </p>
-            <p
-              className="text-[10px] truncate"
-              style={{ color: "hsl(var(--sidebar-foreground) / 0.45)" }}
-            >
-              NRS Headquarters
-            </p>
-          </div>
-        </div>
+        <SessionChip />
       </div>
     </aside>
+  );
+}
+
+function SessionChip() {
+  const expiry = getExpiry();
+  const scope  = getScope() ?? "*";
+  const expiresIn = expiry ? Math.max(0, Math.round((expiry - Date.now()) / 60_000)) : null;
+
+  return (
+    <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl">
+      <div
+        className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold text-white"
+        style={{ background: "#E01F26" }}
+      >
+        A
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[12px] font-semibold truncate leading-tight" style={{ color: "hsl(var(--sidebar-foreground))" }}>
+          Signed in
+        </p>
+        <p className="text-[10px] truncate" style={{ color: "hsl(var(--sidebar-foreground) / 0.45)" }}>
+          {scope === "*" ? "admin scope" : `scope: ${scope}`}{expiresIn != null && ` · ${expiresIn}m left`}
+        </p>
+      </div>
+      <button
+        onClick={() => logout()}
+        title="Sign out"
+        aria-label="Sign out"
+        className="shrink-0 p-1.5 rounded-lg hover:bg-[hsl(var(--sidebar-accent))]"
+        style={{ color: "hsl(var(--sidebar-foreground) / 0.6)" }}
+      >
+        <LogOut size={13} />
+      </button>
+    </div>
   );
 }

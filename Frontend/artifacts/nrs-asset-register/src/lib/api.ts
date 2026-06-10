@@ -6,10 +6,22 @@
  *   error:   { error: { code, message, request_id, details } }
  */
 
-const API_BASE = (import.meta.env.VITE_API_BASE ?? "").replace(/\/$/, "");
-const API_TOKEN = import.meta.env.VITE_API_TOKEN ?? "";
+import { getToken, hasLiveSession, logout } from "./auth";
 
-export const apiConfigured = Boolean(API_TOKEN);
+const API_BASE = (import.meta.env.VITE_API_BASE ?? "").replace(/\/$/, "");
+
+/**
+ * Live-bound flag: true when there's a stored JWT or the dev env fallback.
+ * Recomputed on the `cadra:auth-changed` event so importers (which see ES
+ * module live bindings) always read the current value after login/logout.
+ */
+export let apiConfigured = hasLiveSession();
+
+if (typeof window !== "undefined") {
+  window.addEventListener("cadra:auth-changed", () => {
+    apiConfigured = hasLiveSession();
+  });
+}
 
 export interface CadraMeta {
   request_id: string;
@@ -45,14 +57,16 @@ export class CadraApiError extends Error {
   }
 }
 
-function requireToken() {
-  if (!API_TOKEN) {
+function requireToken(): string {
+  const t = getToken();
+  if (!t) {
     throw new CadraApiError(
-      "client_misconfigured",
-      "VITE_API_TOKEN is not set — copy .env.example to .env.local and add a token.",
+      "unauthenticated",
+      "No active session — please sign in.",
       0,
     );
   }
+  return t;
 }
 
 function buildUrl(path: string, params?: Record<string, unknown>): string {
@@ -81,6 +95,11 @@ async function parseEnvelope<T>(res: Response, path: string): Promise<CadraRespo
     );
   }
 
+  // Any 401 means the server rejected our token — clear it and bounce the user
+  // back to the login screen. The auth helper emits "cadra:logout" which
+  // App.tsx listens for.
+  if (res.status === 401) logout();
+
   if (body && typeof body === "object" && "error" in body) {
     const e = (body as { error: { code: string; message: string; request_id?: string; details?: unknown } }).error;
     throw new CadraApiError(e.code, e.message, res.status, e.request_id, e.details);
@@ -102,11 +121,11 @@ export async function apiGet<T>(
   path: string,
   params?: Record<string, unknown>,
 ): Promise<CadraResponse<T>> {
-  requireToken();
+  const token = requireToken();
   const res = await fetch(buildUrl(path, params), {
     method: "GET",
     headers: {
-      Authorization: `Bearer ${API_TOKEN}`,
+      Authorization: `Bearer ${token}`,
       Accept: "application/json",
     },
   });
@@ -119,9 +138,9 @@ async function apiMutate<T>(
   body?: unknown,
   opts?: MutateOpts,
 ): Promise<CadraResponse<T>> {
-  requireToken();
+  const token = requireToken();
   const headers: Record<string, string> = {
-    Authorization: `Bearer ${API_TOKEN}`,
+    Authorization: `Bearer ${token}`,
     Accept: "application/json",
   };
   if (body !== undefined) headers["Content-Type"] = "application/json";
@@ -146,9 +165,9 @@ export async function apiUpload<T>(
   form: FormData,
   opts?: MutateOpts,
 ): Promise<CadraResponse<T>> {
-  requireToken();
+  const token = requireToken();
   const headers: Record<string, string> = {
-    Authorization: `Bearer ${API_TOKEN}`,
+    Authorization: `Bearer ${token}`,
     Accept: "application/json",
     // Do NOT set Content-Type — fetch sets the multipart boundary automatically.
   };

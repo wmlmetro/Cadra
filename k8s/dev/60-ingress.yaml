@@ -1,5 +1,8 @@
-# nginx Ingress with cert-manager TLS. Routes /longpolling and /websocket
-# to port 8072 (gevent worker) and everything else to 8069 (HTTP workers).
+# nginx Ingress with cert-manager TLS. Path routing:
+#   /app/*        → frontend Service (modern React SPA, 43/44-frontend-*.yaml)
+#   /longpolling  → odoo:8072
+#   /websocket    → odoo:8072
+#   /  (catch)    → odoo:8069 (HTTP workers, including /api/v1/* and /web/*)
 #
 # Pre-reqs in the cluster:
 #   - ingress-nginx controller installed
@@ -29,6 +32,15 @@ spec:
     - host: staging.app.cadra.ng
       http:
         paths:
+          # Modern React SPA — served by the `frontend` Service. Must precede
+          # the `/` catch-all so /app/* doesn't fall through to Odoo.
+          - path: /app
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
           - path: /longpolling
             pathType: Prefix
             backend:

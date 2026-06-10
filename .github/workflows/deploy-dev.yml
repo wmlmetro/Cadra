@@ -55,6 +55,7 @@ concurrency:
 
 env:
   IMAGE_NAME: cadra-odoo
+  FRONTEND_IMAGE_NAME: cadra-frontend
   NAMESPACE: cadra-dev
 
 jobs:
@@ -100,8 +101,53 @@ jobs:
           cache-to: type=gha,mode=max
           platforms: linux/amd64
 
+  # Modern React SPA. Builds in parallel with the Odoo image; deploy step
+  # waits for both. The bundle lands behind nginx and is routed at /app/*
+  # by the shared ingress (see k8s/dev/60-ingress.yaml).
+  build-and-push-frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Log into DigitalOcean Container Registry
+        run: doctl registry login --expiry-seconds 1200
+
+      - name: Compute image reference
+        id: meta
+        run: |
+          SHA_SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
+          IMAGE="registry.digitalocean.com/${{ vars.DO_REGISTRY_NAME }}/${FRONTEND_IMAGE_NAME}:dev-${SHA_SHORT}"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "Image: ${IMAGE}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: Frontend/artifacts/nrs-asset-register
+          file: Frontend/artifacts/nrs-asset-register/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            registry.digitalocean.com/${{ vars.DO_REGISTRY_NAME }}/${{ env.FRONTEND_IMAGE_NAME }}:dev-latest
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+          platforms: linux/amd64
+
   deploy:
-    needs: build-and-push
+    needs: [build-and-push, build-and-push-frontend]
     runs-on: ubuntu-latest
     timeout-minutes: 70
     permissions:
@@ -241,24 +287,37 @@ jobs:
           echo "─── upgrade Job logs ───"
           kubectl -n "${NAMESPACE}" logs job/cadra-upgrade --all-containers --tail=200
 
-      - name: Apply Deployment with new image
+      - name: Apply Odoo Deployment with new image
         env:
           IMAGE: ${{ needs.build-and-push.outputs.image }}
         run: |
           sed "s|REPLACE_ME/cadra-odoo:dev|${IMAGE}|g" k8s/dev/41-odoo-deployment.yaml | kubectl apply -f -
 
+      - name: Apply Frontend Service + Deployment with new image
+        env:
+          FRONTEND_IMAGE: ${{ needs.build-and-push-frontend.outputs.image }}
+        run: |
+          kubectl apply -f k8s/dev/44-frontend-service.yaml
+          sed "s|REPLACE_ME/cadra-frontend:dev|${FRONTEND_IMAGE}|g" k8s/dev/43-frontend-deployment.yaml | kubectl apply -f -
+
       - name: Apply Ingress
         run: kubectl apply -f k8s/dev/60-ingress.yaml
 
-      - name: Wait for rollout
+      - name: Wait for Odoo rollout
         run: kubectl -n "${NAMESPACE}" rollout status deployment/odoo --timeout=10m
+
+      - name: Wait for Frontend rollout
+        run: kubectl -n "${NAMESPACE}" rollout status deployment/frontend --timeout=5m
 
       - name: Show pod state on failure
         if: failure()
         run: |
           kubectl -n "${NAMESPACE}" get pods,svc,ingress,pvc -o wide || true
           kubectl -n "${NAMESPACE}" describe deployment/odoo || true
+          kubectl -n "${NAMESPACE}" describe deployment/frontend || true
           echo "─── recent events ───"
           kubectl -n "${NAMESPACE}" get events --sort-by=.lastTimestamp | tail -30 || true
           echo "─── odoo pod logs (last 200) ───"
           kubectl -n "${NAMESPACE}" logs -l app=odoo --tail=200 --all-containers || true
+          echo "─── frontend pod logs (last 100) ───"
+          kubectl -n "${NAMESPACE}" logs -l app=frontend --tail=100 --all-containers || true
