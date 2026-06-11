@@ -12,9 +12,14 @@
  * follow-up — encrypted-at-rest secrets need a real plan.
  */
 
-const TOKEN_KEY  = "cadra.token";
-const EXPIRY_KEY = "cadra.tokenExpiresAt";
-const SCOPE_KEY  = "cadra.tokenScope";
+const TOKEN_KEY      = "cadra.token";
+const EXPIRY_KEY     = "cadra.tokenExpiresAt";
+const SCOPE_KEY      = "cadra.tokenScope";
+// Sticky flag set on logout. Suppresses the dev .env.local token fallback
+// so the user actually stays logged out — without this, hasLiveSession()
+// would re-affirm a session from the env token on every page load and the
+// login form would never appear.
+const LOGGED_OUT_KEY = "cadra.loggedOut";
 
 const LOGOUT_EVENT = "cadra:logout";
 const AUTH_CHANGED_EVENT = "cadra:auth-changed";
@@ -37,9 +42,17 @@ function envToken(): string {
   return (import.meta.env.VITE_API_TOKEN ?? "") as string;
 }
 
+function envFallbackAllowed(): boolean {
+  // The env token only seeds a session when the user hasn't explicitly
+  // logged out. Once they do, this flag is sticky until the next successful
+  // login() call clears it.
+  try { return localStorage.getItem(LOGGED_OUT_KEY) === null; } catch { return true; }
+}
+
 export function getToken(): string | null {
   const stored = readStored();
   if (stored && stored.expiresAt > Date.now()) return stored.token;
+  if (!envFallbackAllowed()) return null;
   const env = envToken();
   return env || null;
 }
@@ -47,6 +60,7 @@ export function getToken(): string | null {
 export function hasLiveSession(): boolean {
   const stored = readStored();
   if (stored && stored.expiresAt > Date.now()) return true;
+  if (!envFallbackAllowed()) return false;
   return !!envToken();
 }
 
@@ -64,6 +78,9 @@ export function storeToken({ token, expiresIn, scope }: { token: string; expires
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(EXPIRY_KEY, String(expiresAt));
   if (scope) localStorage.setItem(SCOPE_KEY, scope);
+  // A successful login lifts the "explicitly logged out" guard so the dev
+  // env fallback can apply again on subsequent reloads.
+  localStorage.removeItem(LOGGED_OUT_KEY);
   notifyAuthChanged();
   return { token, expiresAt, scope };
 }
@@ -72,6 +89,9 @@ export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(EXPIRY_KEY);
   localStorage.removeItem(SCOPE_KEY);
+  // Set the sticky logged-out marker so hasLiveSession()/getToken() stop
+  // falling back to the dev env token until the next login.
+  localStorage.setItem(LOGGED_OUT_KEY, "1");
   notifyAuthChanged();
 }
 
