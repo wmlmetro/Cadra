@@ -36,12 +36,17 @@ from .v1 import PAGINATION_QUERY_PARAMS, cadra_route
 
 # ─── serializer ──────────────────────────────────────────────────────
 
-def serialize_location(loc, *, include=()):
+def serialize_location(loc, *, include=(), include_counts=False):
     """Map a generic.location record to the Cadra-shaped dict.
 
     `include` is a set/sequence of optional expansions:
       - "children"  : embeds direct children as a list of {id, name}
       - "ancestors" : embeds ancestor chain (root → parent) as a list
+
+    `include_counts` toggles on relatively expensive per-location aggregate
+    counters (currently just `asset_count`). The list endpoint serializes
+    many records per request, so we keep this off by default and only
+    enable it on single-record GETs.
 
     Address fields surface the *effective* values (computed from parents
     when use_parent flags are set). The internal "_*" cache fields are
@@ -87,6 +92,28 @@ def serialize_location(loc, *, include=()):
         "created_by": {"id": loc.create_uid.id, "name": loc.create_uid.name} if loc.create_uid else None,
         "updated_by": {"id": loc.write_uid.id, "name": loc.write_uid.name} if loc.write_uid else None,
     }
+    if include_counts:
+        # Asset rollup across this location and every descendant.
+        # `parent_path` on generic.location is a slash-separated id chain
+        # (e.g. "1/4/12/") — descendants share this prefix, so a single
+        # =like clause picks up self + all descendants.
+        # Gated behind `include_counts` because list endpoints fan this
+        # out across hundreds of rows; only single-record GETs pay it.
+        asset_count = 0
+        try:
+            Asset = loc.env.get('nrs.asset')
+            if Asset is not None and loc.parent_path:
+                descendant_locs = loc.search(
+                    [('parent_path', '=like', loc.parent_path + '%')]
+                )
+                asset_count = Asset.search_count(
+                    [('location_id', 'in', descendant_locs.ids)]
+                )
+        except Exception:
+            # nrs.asset not installed, or transient query error — fall back
+            # to 0 rather than 500-ing the whole serialization.
+            asset_count = 0
+        data['asset_count'] = asset_count
     if "children" in include:
         data["children"] = [{"id": c.id, "name": c.name} for c in loc.child_ids]
     if "ancestors" in include:
@@ -237,7 +264,7 @@ class CadraLocationsV1(http.Controller):
         if error:
             return error
         include = [s.strip() for s in (kwargs.get("include") or "").split(",") if s.strip()]
-        return serialize_location(rec, include=include)
+        return serialize_location(rec, include=include, include_counts=True)
 
     # ── Create: POST /api/v1/locations ─────────────────────────────
 
