@@ -313,13 +313,20 @@ def require_jwt(scopes=()):
 
 DEFAULT_PAGE_LIMIT = 50
 MAX_PAGE_LIMIT = 200
-# Hard ceiling for tokens NOT issued to the Cadra web frontend. Service
-# accounts (POST /auth/token with client credentials) and anonymous /
-# external consumers can only ask for up to this many records per page.
-# The frontend identifies itself by carrying `"aud": "frontend"` in its
-# JWT claims (set by POST /auth/login at issuance time).
+# Hard caps for tokens NOT issued to the Cadra web frontend (service
+# accounts via POST /auth/token, partner integrations, ad-hoc curl).
+#   - EXTERNAL_MAX_PAGE_LIMIT clamps the per-request `limit=` query param
+#     (parse_limit). Asking for more silently returns this many.
+#   - EXTERNAL_TOTAL_CAP clamps the *cumulative* records visible across
+#     all cursor pages (paginate). External callers can never see more
+#     than this many records of any resource — paginating with cursor
+#     just exhausts the cap and then next_cursor goes to null. This is
+#     the paywall safeguard.
+# The Cadra web frontend lifts both limits by carrying `"aud": "frontend"`
+# in its JWT claims (stamped by POST /auth/login at issuance time).
 EXTERNAL_MAX_PAGE_LIMIT = 100
-FRONTEND_AUDIENCE = "frontend"
+EXTERNAL_TOTAL_CAP      = 100
+FRONTEND_AUDIENCE       = "frontend"
 
 
 def encode_cursor(payload):
@@ -374,9 +381,29 @@ def paginate(model, domain, *, limit, cursor=None, order="id"):
     `total_estimate` is a separate search_count — fine at our scale, but
     expensive on very large tables. Suppress it via `?total=0` from the
     caller if needed.
+
+    External (non-frontend) tokens are bounded to the first
+    EXTERNAL_TOTAL_CAP records of the domain (sorted by `order`).
+    Pagination still works inside that window; once the cumulative
+    records served exceed the cap, next_cursor goes to null and the
+    total_estimate reflects the cap rather than the true count.
     """
     cursor_data = decode_cursor(cursor) if cursor else {}
     effective_domain = list(domain)
+
+    # Compute the visible window for external tokens once, before any
+    # cursor filtering. We do this even when the cursor is set so the
+    # cap survives across pages.
+    external_cap = None
+    allowed_total = None
+    if not _request_is_frontend():
+        external_cap = EXTERNAL_TOTAL_CAP
+        allowed = model.search(domain, order=order, limit=external_cap)
+        allowed_total = len(allowed)
+        if not allowed_total:
+            return model.browse([]), None, 0
+        effective_domain.append(("id", "in", allowed.ids))
+
     if "last_id" in cursor_data:
         effective_domain.append(("id", ">", int(cursor_data["last_id"])))
 
@@ -389,7 +416,10 @@ def paginate(model, domain, *, limit, cursor=None, order="id"):
     if has_more and page:
         next_cursor = encode_cursor({"last_id": page[-1].id})
 
-    total_estimate = model.search_count(domain)
+    if external_cap is not None:
+        total_estimate = allowed_total
+    else:
+        total_estimate = model.search_count(domain)
     return page, next_cursor, total_estimate
 
 

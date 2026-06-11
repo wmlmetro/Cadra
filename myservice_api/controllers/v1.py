@@ -16,12 +16,16 @@ JWT auth — two flows. Both return the same JWT shape; differ only in how
 the caller proves identity:
     - Human users    → POST /api/v1/auth/login with {login, password}
                        (validated against Odoo res.users, same creds as the web UI).
-                       Issued with `aud: "frontend"` so utils.parse_limit
-                       lets list endpoints return up to MAX_PAGE_LIMIT (200).
+                       Issued with `aud: "frontend"` so list endpoints
+                       expose the full data set (up to MAX_PAGE_LIMIT/page).
     - Service / M2M  → POST /api/v1/auth/token with {client_id, client_secret}
                        (myservice.api.client records, scoped per consumer).
-                       No `aud` claim — clamped to EXTERNAL_MAX_PAGE_LIMIT (100)
-                       on every list endpoint regardless of the requested limit.
+                       No `aud` claim — list endpoints expose only the first
+                       EXTERNAL_TOTAL_CAP (100) records of any resource and
+                       per-request limit is clamped to EXTERNAL_MAX_PAGE_LIMIT
+                       (100). Bulk export endpoints honour the same cap.
+                       This is the paywall safeguard against external
+                       consumers pulling the full dataset.
 Send `Authorization: Bearer <token>` on every subsequent call. Scopes use
 the resource:action format from the Cadra API spec (assets:read,
 requests:write, etc.) — see utils.SCOPE_* for the list.
@@ -46,12 +50,14 @@ from .utils import (
     ERR_INVALID_REQUEST,
     ERR_NOT_FOUND,
     ERR_UNAUTHORIZED,
+    EXTERNAL_TOTAL_CAP,
     SCOPE_ASSETS_READ,
     SCOPE_DASHBOARDS_READ,
     SCOPE_INTEGRATIONS_WRITE,
     SCOPE_REQUESTS_READ,
     SCOPE_REQUESTS_WRITE,
     _http_response,
+    _request_is_frontend,
     cadra_endpoint,
     err,
     get_params,
@@ -704,7 +710,11 @@ class MyserviceApiV1(http.Controller):
                  summary="Export all assets as JSON (paginated externally if needed)",
                  scopes=[SCOPE_ASSETS_READ])
     def assets_export(self, **kwargs):
-        assets = request.env["nrs.asset"].sudo().search([])
+        # External (non-frontend) tokens see only the first EXTERNAL_TOTAL_CAP
+        # records — same paywall safeguard as the cursor-paginated endpoints.
+        # The frontend always receives the full set.
+        cap = None if _request_is_frontend() else EXTERNAL_TOTAL_CAP
+        assets = request.env["nrs.asset"].sudo().search([], limit=cap)
         items = [{
             "asset_code": a.asset_code,
             "name": a.name,
@@ -731,7 +741,10 @@ class MyserviceApiV1(http.Controller):
         if envelope is not None:
             return _http_response(envelope)
 
-        assets = request.env["nrs.asset"].sudo().search([])
+        # External (non-frontend) tokens see only the first EXTERNAL_TOTAL_CAP
+        # rows — same paywall safeguard as the JSON paths.
+        cap = None if _request_is_frontend() else EXTERNAL_TOTAL_CAP
+        assets = request.env["nrs.asset"].sudo().search([], limit=cap)
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow([
