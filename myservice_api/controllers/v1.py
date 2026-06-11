@@ -274,6 +274,40 @@ class MyserviceApiV1(http.Controller):
             "scope": " ".join(scopes),
         }))
 
+    # ── Auth: whoami (resolve current bearer token to user profile) ─
+
+    @cadra_route("/api/v1/auth/whoami", method="GET",
+                 summary="Resolve the current bearer token to the caller's profile",
+                 scopes=[])
+    def whoami(self, **kwargs):
+        """Return the caller's basic profile + token claims.
+
+        Any authenticated bearer token works (scopes=[] means "no
+        additional scope required beyond a valid token"). Useful for the
+        frontend after a refresh to recover {user_id, name, email, scopes,
+        exp} without re-logging in.
+        """
+        claims = getattr(request, "jwt_claims", {}) or {}
+        user = request.env["res.users"].sudo().browse(request.env.user.id)
+        if not user.exists():
+            # Token decoded fine but the uid no longer points to a row.
+            return err(ERR_UNAUTHORIZED, "Token subject no longer exists", status=401)
+        rows = user.read(["id", "login", "name", "email", "partner_id"])
+        row = rows[0] if rows else {}
+        # res.users.read returns partner_id as [id, display_name]; flatten to id.
+        partner = row.get("partner_id")
+        partner_id = partner[0] if isinstance(partner, (list, tuple)) and partner else partner
+        return {
+            "id": row.get("id"),
+            "login": row.get("login"),
+            "name": row.get("name"),
+            "email": row.get("email"),
+            "partner_id": partner_id,
+            "scopes": claims.get("scopes") or [],
+            "token_type": "Bearer",
+            "expires_at": claims.get("exp"),
+        }
+
     # ── OpenAPI + Swagger UI ────────────────────────────────────────
 
     @http.route("/api/v1/openapi.json", type="http", auth="none",
@@ -420,6 +454,11 @@ class MyserviceApiV1(http.Controller):
                 "responses": _standard_responses(),
             }
         }
+        # /auth/whoami is declared via @cadra_route (so the runtime decorator
+        # enforces auth), but we override its OpenAPI entry below the
+        # registry loop so we can pin the `bearerAuth` security tag — the
+        # registry generator omits security when `scopes=[]` and we want
+        # Swagger to know this endpoint requires a token.
 
         # Routes from the @cadra_route registry
         for entry in _ROUTE_REGISTRY:
@@ -474,6 +513,21 @@ class MyserviceApiV1(http.Controller):
                 }
 
             spec["paths"].setdefault(spec_path, {})[method_lc] = op
+
+        # Override the auto-generated /auth/whoami entry so it advertises
+        # bearerAuth (the registry strips security tags when scopes=[]).
+        spec["paths"].setdefault("/api/v1/auth/whoami", {})["get"] = {
+            "summary": "Resolve the current bearer token to the caller's profile",
+            "tags": ["Auth"],
+            "security": [{"bearerAuth": []}],
+            "description": (
+                "Returns the calling user's basic profile and the active "
+                "token claims. Any valid bearer token works — no extra "
+                "scope is required. Useful after a page refresh to "
+                "recover the session without re-prompting for credentials."
+            ),
+            "responses": _standard_responses(),
+        }
 
         return request.make_response(
             json.dumps(spec, indent=2),
