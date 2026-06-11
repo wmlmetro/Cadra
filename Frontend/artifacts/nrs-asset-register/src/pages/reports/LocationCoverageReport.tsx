@@ -151,7 +151,7 @@ export default function LocationCoverageReport() {
       {/* Map */}
       <div className="bg-card border border-border rounded-2xl p-5">
         <h2 className="text-[13px] font-bold mb-3">Mapped sites ({mappedPins.length.toLocaleString()})</h2>
-        <NigeriaMap pins={mappedPins} height={400} asCircles={mappedPins.length > 400} />
+        <NigeriaMap pins={mappedPins} height={400} />
       </div>
 
       {/* Unmapped list */}
