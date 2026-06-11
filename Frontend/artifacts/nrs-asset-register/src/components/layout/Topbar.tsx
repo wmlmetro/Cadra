@@ -12,6 +12,8 @@ export default function Topbar({ title, onSearch }: TopbarProps) {
   const [mounted, setMounted] = useState(false);
   const [query, setQuery] = useState("");
 
+  // next-themes hydrates `resolvedTheme` after mount; guard the toggle render
+  // so the icon doesn't flash the wrong state on first paint.
   useEffect(() => setMounted(true), []);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,7 +51,10 @@ export default function Topbar({ title, onSearch }: TopbarProps) {
       {/* Right: actions */}
       <div className="ml-auto flex items-center gap-1.5">
         {/* Notifications */}
-        <button className="relative w-8 h-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-all">
+        <button
+          aria-label="Notifications"
+          className="relative w-8 h-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
+        >
           <Bell size={14} />
           <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary" />
         </button>

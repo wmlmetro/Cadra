@@ -10,7 +10,7 @@ import StatusPill from "@/components/StatusPill";
 import ConditionBadge from "@/components/ConditionBadge";
 import {
   ArrowLeft, Monitor, Car, Sofa, User, MapPin, Clock,
-  CheckCircle2, AlertCircle, ChevronRight, Edit3, ShieldCheck, AlertTriangle, Trash2, ArrowRightLeft, Loader2,
+  AlertCircle, ChevronRight, Edit3, ShieldCheck, AlertTriangle, Trash2, ArrowRightLeft, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -394,22 +394,6 @@ export default function AssetDetail() {
                 )}
               </div>
 
-              <div className="flex gap-3">
-                <button
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-green-600 hover:bg-green-700 text-white transition-colors"
-                  onClick={() => console.log("Approve", asset.id)}
-                  data-testid="button-approve"
-                >
-                  <CheckCircle2 size={14} /> Approve
-                </button>
-                <button
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
-                  onClick={() => console.log("Override", asset.id)}
-                  data-testid="button-override"
-                >
-                  Override
-                </button>
-              </div>
             </div>
           ),
         },

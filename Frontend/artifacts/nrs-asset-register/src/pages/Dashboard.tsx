@@ -12,9 +12,11 @@ import StatusPill from "@/components/StatusPill";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
+import type { TooltipProps } from "recharts";
+import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 import {
   Monitor, MapPin, Users, AlertTriangle,
-  ArrowUpRight, CheckCircle2, TrendingUp,
+  ArrowUpRight, TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -123,13 +125,15 @@ function SectionHeader({ title, sub, action, onAction }: { title: string; sub?: 
   );
 }
 
-const CustomBarTooltip = ({ active, payload, label }: any) => {
+const CustomBarTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
   if (!active || !payload?.length) return null;
+  const value = payload[0].value;
+  const valueText = typeof value === "number" ? value.toLocaleString() : String(value ?? "");
   return (
     <div className="bg-popover border border-border rounded-xl px-3 py-2 shadow-lg text-xs">
       <p className="font-semibold text-foreground mb-1">{label}</p>
       <p className="text-muted-foreground">
-        <span className="font-bold text-foreground">{payload[0].value.toLocaleString()}</span> assets
+        <span className="font-bold text-foreground">{valueText}</span> assets
       </p>
     </div>
   );
@@ -437,7 +441,6 @@ export default function Dashboard() {
                 <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</th>
                 <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Custodian</th>
                 <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Location</th>
-                <th className="text-right px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -459,24 +462,6 @@ export default function Dashboard() {
                   <td className="px-4 py-3.5"><StatusPill status={asset.status} /></td>
                   <td className="px-4 py-3.5 text-xs text-muted-foreground">{asset.custodianName ?? `Pool · ${asset.department}`}</td>
                   <td className="px-4 py-3.5 text-xs text-muted-foreground max-w-[160px] truncate">{asset.location.office}</td>
-                  <td className="px-6 py-3.5">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        className="h-7 px-3 rounded-lg text-[11px] font-semibold bg-green-600 hover:bg-green-700 text-white transition-colors flex items-center gap-1"
-                        onClick={(e) => { e.stopPropagation(); console.log("Approve", asset.id); }}
-                        data-testid={`button-approve-${asset.id}`}
-                      >
-                        <CheckCircle2 size={11} /> Approve
-                      </button>
-                      <button
-                        className="h-7 px-3 rounded-lg text-[11px] font-semibold border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                        onClick={(e) => { e.stopPropagation(); console.log("Override", asset.id); }}
-                        data-testid={`button-override-${asset.id}`}
-                      >
-                        Override
-                      </button>
-                    </div>
-                  </td>
                 </tr>
               ))}
             </tbody>

@@ -83,9 +83,12 @@ export default function AssetRegisterDashboard() {
   const err = (counts.error ?? mapData.error ?? recent.error) as CadraApiError | null;
 
   const refreshAll = () => {
-    counts.refetch();
-    mapData.refetch();
-    recent.refetch();
+    return Promise.all([
+      counts.refetch(),
+      mapData.refetch(),
+      recent.refetch(),
+      kpis.refetch(),
+    ]);
   };
 
   const lastUpdated = counts.dataUpdatedAt
@@ -116,7 +119,7 @@ export default function AssetRegisterDashboard() {
             onClick={refreshAll}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl border border-border hover:bg-accent"
           >
-            <RefreshCw size={12} className={cn((counts.isFetching || mapData.isFetching || recent.isFetching) && "animate-spin")} /> Refresh
+            <RefreshCw size={12} className={cn((counts.isFetching || mapData.isFetching || recent.isFetching || kpis.isFetching) && "animate-spin")} /> Refresh
           </button>
           <button
             onClick={() => nav("/assets/list")}
@@ -294,6 +297,7 @@ function BarcodeStation() {
         "tag_id" in result ? result.asset_id :
         (result.asset?.id ?? result.tag?.asset_id ?? null);
       if (assetId) nav(`/assets/${assetId}`);
+      setQuery("");
     },
   });
 

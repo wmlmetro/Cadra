@@ -52,7 +52,7 @@ export default function Login() {
               onChange={e => setUsername(e.target.value)}
               required
               className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-              placeholder="e.g. your@email.com"
+              placeholder="Your Cadra username"
             />
           </div>
 
