@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
@@ -5,7 +6,7 @@ import {
   LayoutDashboard, MapPin, Bus, Car, BookOpen,
   Fingerprint, Users, Activity, ShieldAlert,
   Inbox, Briefcase, ScanBarcode, Upload, RefreshCw,
-  Wrench, Tag,
+  Wrench, Tag, ChevronDown,
   LogOut,
 } from "lucide-react";
 import { logout, getScope, getExpiry } from "@/lib/auth";
@@ -27,13 +28,6 @@ const navGroups = [
     { name: "All Assets",              path: "/assets/list",          icon: BookOpen        },
     { name: "+ New Asset",             path: "/assets/new",           icon: BookOpen        },
   ]},
-  { label: "Reports", items: [
-    { name: "Fleet Roster",            path: "/reports/fleet-roster",          icon: Car      },
-    { name: "Asset Inventory",         path: "/reports/asset-inventory",       icon: BookOpen },
-    { name: "Maintenance Readiness",   path: "/reports/maintenance-readiness", icon: Wrench   },
-    { name: "Location Coverage",       path: "/reports/location-coverage",     icon: MapPin   },
-    { name: "Tag Adoption",            path: "/reports/tag-adoption",          icon: Tag      },
-  ]},
   { label: "Operations", items: [
     { name: "Locations",               path: "/locations",            icon: MapPin         },
     { name: "+ New Location",          path: "/locations/new",        icon: MapPin         },
@@ -48,10 +42,32 @@ const navGroups = [
     { name: "Fleet",                   path: "/fleet",                icon: Car            },
     { name: "Staff Bus",               path: "/fleet/staff-bus",      icon: Bus            },
   ]},
+  { label: "Reports", items: [
+    { name: "Fleet Roster",            path: "/reports/fleet-roster",          icon: Car      },
+    { name: "Asset Inventory",         path: "/reports/asset-inventory",       icon: BookOpen },
+    { name: "Maintenance Readiness",   path: "/reports/maintenance-readiness", icon: Wrench   },
+    { name: "Location Coverage",       path: "/reports/location-coverage",     icon: MapPin   },
+    { name: "Tag Adoption",            path: "/reports/tag-adoption",          icon: Tag      },
+  ]},
   { label: "Tools", items: [
     { name: "Barcode Station",         path: "/tools/barcode",        icon: ScanBarcode    },
   ]},
 ];
+
+// localStorage key for per-group collapse state. Survives reloads so users
+// don't have to re-collapse every time.
+const COLLAPSE_STORAGE_KEY = "cadra.sidebar.collapsed";
+
+function readCollapsed(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(COLLAPSE_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function writeCollapsed(state: Record<string, boolean>) {
+  try { localStorage.setItem(COLLAPSE_STORAGE_KEY, JSON.stringify(state)); } catch { /* noop */ }
+}
 
 const logoSrc = `${import.meta.env.BASE_URL}nrs-logo.png`;
 
@@ -100,6 +116,19 @@ export default function Sidebar() {
   })();
   const isActive = (path: string) => path === activePath;
 
+  // Which group contains the active item? That group is force-expanded so
+  // the user can always see where they are.
+  const activeGroup = navGroups.find(g => g.items.some(i => i.path === activePath))?.label ?? null;
+
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => readCollapsed());
+  const toggleGroup = (label: string) => {
+    setCollapsed(prev => {
+      const next = { ...prev, [label]: !prev[label] };
+      writeCollapsed(next);
+      return next;
+    });
+  };
+
   return (
     <aside
       className="w-[220px] shrink-0 flex flex-col h-full select-none"
@@ -118,48 +147,73 @@ export default function Sidebar() {
 
       {/* ── Nav ──────────────────────────────────────────────────────────── */}
       <nav className="flex-1 overflow-y-auto py-2 px-2.5" aria-label="Primary navigation">
-        {navGroups.map((group, gi) => (
-          <div key={group.label} className={cn("mb-0.5", gi > 0 && "mt-3")}>
-            {/* Section label */}
-            <p
-              className="px-2 pt-1 pb-1 text-[10px] font-bold uppercase select-none"
-              style={{ color: "#9CA3AF", letterSpacing: "0.07em" }}
-            >
-              {group.label}
-            </p>
-
-            {/* Nav items */}
-            {group.items.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.path);
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => navigate(item.path)}
-                  data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
-                  aria-current={active ? "page" : undefined}
-                  className="nav-item-hover w-full flex items-center gap-2.5 px-2.5 py-[7px] mb-px rounded-xl text-[13px] font-medium transition-colors duration-100 text-left"
-                  style={
-                    active
-                      ? {
-                          background: "#E01F26",
-                          color: "#FFFFFF",
-                          boxShadow: "0 1px 6px rgba(224,31,38,0.28)",
-                        }
-                      : { color: "hsl(var(--sidebar-foreground))" }
-                  }
+        {navGroups.map((group, gi) => {
+          // The active group is always open regardless of the user's saved
+          // preference — never hide where they currently are.
+          const isOpen = group.label === activeGroup || !collapsed[group.label];
+          const groupId = `nav-group-${group.label.toLowerCase().replace(/\s+/g, "-")}`;
+          return (
+            <div key={group.label} className={cn("mb-0.5", gi > 0 && "mt-3")}>
+              {/* Collapsible section header */}
+              <button
+                onClick={() => toggleGroup(group.label)}
+                aria-expanded={isOpen}
+                aria-controls={groupId}
+                className="w-full group flex items-center gap-1.5 px-2 pt-1 pb-1 rounded-md hover:bg-[hsl(var(--sidebar-accent))] transition-colors text-left"
+              >
+                <ChevronDown
+                  size={10}
+                  className={cn(
+                    "shrink-0 transition-transform duration-150",
+                    !isOpen && "-rotate-90",
+                  )}
+                  style={{ color: "#9CA3AF" }}
+                />
+                <span
+                  className="flex-1 text-[10px] font-bold uppercase select-none truncate"
+                  style={{ color: "#9CA3AF", letterSpacing: "0.07em" }}
                 >
-                  <Icon
-                    size={14}
-                    className="shrink-0"
-                    style={{ color: active ? "#FFFFFF" : "hsl(var(--sidebar-foreground) / 0.55)" }}
-                  />
-                  <span className="truncate">{item.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        ))}
+                  {group.label}
+                </span>
+              </button>
+
+              {/* Nav items — hidden when collapsed (unless this is the active group) */}
+              {isOpen && (
+                <div id={groupId}>
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const active = isActive(item.path);
+                    return (
+                      <button
+                        key={item.path}
+                        onClick={() => navigate(item.path)}
+                        data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
+                        aria-current={active ? "page" : undefined}
+                        className="nav-item-hover w-full flex items-center gap-2.5 px-2.5 py-[7px] mb-px rounded-xl text-[13px] font-medium transition-colors duration-100 text-left"
+                        style={
+                          active
+                            ? {
+                                background: "#E01F26",
+                                color: "#FFFFFF",
+                                boxShadow: "0 1px 6px rgba(224,31,38,0.28)",
+                              }
+                            : { color: "hsl(var(--sidebar-foreground))" }
+                        }
+                      >
+                        <Icon
+                          size={14}
+                          className="shrink-0"
+                          style={{ color: active ? "#FFFFFF" : "hsl(var(--sidebar-foreground) / 0.55)" }}
+                        />
+                        <span className="truncate">{item.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </nav>
 
       {/* ── Footer / session ─────────────────────────────────────────────── */}
