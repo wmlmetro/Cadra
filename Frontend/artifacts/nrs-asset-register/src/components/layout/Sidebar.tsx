@@ -75,8 +75,22 @@ export default function Sidebar() {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
-  const isActive = (path: string) =>
-    path === "/" ? location === "/" : location === path || location.startsWith(path + "/");
+  // Pick the single best-matching nav item rather than highlighting every
+  // ancestor. "Best" = the longest path that is a prefix of the current URL.
+  // That keeps "All Requests" (/service-desk) lit on /service-desk/123 but
+  // hands off to "Triage Inbox" (/service-desk/triage) when we're there.
+  const activePath = (() => {
+    let best = "";
+    for (const g of navGroups) {
+      for (const it of g.items) {
+        const p = it.path;
+        const matches = p === "/" ? location === "/" : (location === p || location.startsWith(p + "/"));
+        if (matches && p.length > best.length) best = p;
+      }
+    }
+    return best;
+  })();
+  const isActive = (path: string) => path === activePath;
 
   return (
     <aside
