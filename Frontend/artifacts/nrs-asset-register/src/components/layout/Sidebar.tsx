@@ -14,15 +14,14 @@ import { logout, getScope, getExpiry } from "@/lib/auth";
 const navGroups = [
   { label: "Dashboards", items: [
     { name: "Facility Command Center", path: "/",                     icon: LayoutDashboard },
-    { name: "FM Operations",           path: "/dashboards/fm",        icon: Activity        },
+    // Hidden for now (routes still work via direct URL):
+    // { name: "FM Operations",           path: "/dashboards/fm",        icon: Activity        },
     { name: "Fleet Command",           path: "/dashboards/fleet",     icon: Car             },
-    { name: "Security Operations",     path: "/dashboards/security",  icon: ShieldAlert     },
+    // { name: "Security Operations",     path: "/dashboards/security",  icon: ShieldAlert     },
   ]},
-  { label: "Service Desk", items: [
-    { name: "Triage Inbox",            path: "/service-desk/triage",  icon: Inbox          },
-    { name: "All Requests",            path: "/service-desk",         icon: Briefcase      },
-    { name: "+ New Request",           path: "/service-desk/new",     icon: Briefcase      },
-  ]},
+  // Service Desk group hidden in its entirety for now. Routes (/service-desk,
+  // /service-desk/triage, /service-desk/new, /service-desk/:id) still resolve
+  // via direct URL — only the sidebar entries are gone.
   { label: "Asset Register", items: [
     { name: "Dashboard",               path: "/assets",               icon: LayoutDashboard },
     { name: "All Assets",              path: "/assets/list",          icon: BookOpen        },
