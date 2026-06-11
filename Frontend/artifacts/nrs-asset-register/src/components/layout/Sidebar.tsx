@@ -5,6 +5,7 @@ import {
   LayoutDashboard, MapPin, Bus, Car, BookOpen,
   Fingerprint, Users, Activity, ShieldAlert,
   Inbox, Briefcase, ScanBarcode, Upload, RefreshCw,
+  Wrench, Tag,
   LogOut,
 } from "lucide-react";
 import { logout, getScope, getExpiry } from "@/lib/auth";
@@ -25,6 +26,13 @@ const navGroups = [
     { name: "Dashboard",               path: "/assets",               icon: LayoutDashboard },
     { name: "All Assets",              path: "/assets/list",          icon: BookOpen        },
     { name: "+ New Asset",             path: "/assets/new",           icon: BookOpen        },
+  ]},
+  { label: "Reports", items: [
+    { name: "Fleet Roster",            path: "/reports/fleet-roster",          icon: Car      },
+    { name: "Asset Inventory",         path: "/reports/asset-inventory",       icon: BookOpen },
+    { name: "Maintenance Readiness",   path: "/reports/maintenance-readiness", icon: Wrench   },
+    { name: "Location Coverage",       path: "/reports/location-coverage",     icon: MapPin   },
+    { name: "Tag Adoption",            path: "/reports/tag-adoption",          icon: Tag      },
   ]},
   { label: "Operations", items: [
     { name: "Locations",               path: "/locations",            icon: MapPin         },

@@ -29,6 +29,11 @@ import EmployeeByIr from "@/pages/EmployeeByIr";
 import Fleet, { FleetDetail } from "@/pages/Fleet";
 import StaffBus from "@/pages/StaffBus";
 import Identity from "@/pages/Identity";
+import FleetRosterReport from "@/pages/reports/FleetRosterReport";
+import AssetInventoryReport from "@/pages/reports/AssetInventoryReport";
+import MaintenanceReadinessReport from "@/pages/reports/MaintenanceReadinessReport";
+import LocationCoverageReport from "@/pages/reports/LocationCoverageReport";
+import TagAdoptionReport from "@/pages/reports/TagAdoptionReport";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -57,6 +62,12 @@ function AppRoutes() {
         <Route path="/locations/new"       component={() => <LocationForm mode="create" />} />
         <Route path="/locations/:id/edit"  component={() => <LocationForm mode="edit"   />} />
         <Route path="/locations/:id"       component={LocationDetail} />
+        {/* Reports — focused single-page views built on the dashboard APIs */}
+        <Route path="/reports/fleet-roster"           component={FleetRosterReport}           />
+        <Route path="/reports/asset-inventory"        component={AssetInventoryReport}        />
+        <Route path="/reports/maintenance-readiness"  component={MaintenanceReadinessReport}  />
+        <Route path="/reports/location-coverage"      component={LocationCoverageReport}      />
+        <Route path="/reports/tag-adoption"           component={TagAdoptionReport}           />
         <Route path="/hr/sap-sync"            component={SAPSyncStatus}        />
         <Route path="/hr/import"              component={EmployeeBulkImport}    />
         <Route path="/hr/employees"           component={Employees}             />
