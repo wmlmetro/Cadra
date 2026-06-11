@@ -16,8 +16,12 @@ JWT auth — two flows. Both return the same JWT shape; differ only in how
 the caller proves identity:
     - Human users    → POST /api/v1/auth/login with {login, password}
                        (validated against Odoo res.users, same creds as the web UI).
+                       Issued with `aud: "frontend"` so utils.parse_limit
+                       lets list endpoints return up to MAX_PAGE_LIMIT (200).
     - Service / M2M  → POST /api/v1/auth/token with {client_id, client_secret}
                        (myservice.api.client records, scoped per consumer).
+                       No `aud` claim — clamped to EXTERNAL_MAX_PAGE_LIMIT (100)
+                       on every list endpoint regardless of the requested limit.
 Send `Authorization: Bearer <token>` on every subsequent call. Scopes use
 the resource:action format from the Cadra API spec (assets:read,
 requests:write, etc.) — see utils.SCOPE_* for the list.
@@ -257,10 +261,16 @@ class MyserviceApiV1(http.Controller):
         now = int(time.time())
         ttl = 3600
         scopes = ["*"]  # TODO: derive from user's Odoo groups
+        # `aud: "frontend"` marks this token as belonging to the Cadra web
+        # frontend; utils.parse_limit lets it pull up to MAX_PAGE_LIMIT
+        # records per page (200). Service tokens issued via /auth/token
+        # deliberately don't carry this claim and are clamped to
+        # EXTERNAL_MAX_PAGE_LIMIT (100).
         claims = {
             "iss": "myservice_api",
             "sub": user.login,
             "uid": user.id,
+            "aud": "frontend",
             "scopes": scopes,
             "iat": now,
             "exp": now + ttl,

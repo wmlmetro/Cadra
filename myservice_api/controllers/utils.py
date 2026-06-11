@@ -313,6 +313,13 @@ def require_jwt(scopes=()):
 
 DEFAULT_PAGE_LIMIT = 50
 MAX_PAGE_LIMIT = 200
+# Hard ceiling for tokens NOT issued to the Cadra web frontend. Service
+# accounts (POST /auth/token with client credentials) and anonymous /
+# external consumers can only ask for up to this many records per page.
+# The frontend identifies itself by carrying `"aud": "frontend"` in its
+# JWT claims (set by POST /auth/login at issuance time).
+EXTERNAL_MAX_PAGE_LIMIT = 100
+FRONTEND_AUDIENCE = "frontend"
 
 
 def encode_cursor(payload):
@@ -333,15 +340,31 @@ def decode_cursor(token):
         return {}
 
 
+def _request_is_frontend():
+    """True when the validated JWT claims identify the Cadra web frontend
+    (i.e. issued via POST /auth/login with `aud=frontend`). False for
+    service accounts, external integrations, or when the auth layer
+    didn't run (e.g. open endpoints that don't gate on token claims)."""
+    claims = getattr(request, "jwt_claims", None) or {}
+    return claims.get("aud") == FRONTEND_AUDIENCE
+
+
 def parse_limit(kwargs):
-    """Read and clamp `limit` from kwargs. Default DEFAULT_PAGE_LIMIT,
-    capped at MAX_PAGE_LIMIT."""
+    """Read and clamp `limit` from kwargs. Default DEFAULT_PAGE_LIMIT;
+    cap at MAX_PAGE_LIMIT for the Cadra web frontend and at
+    EXTERNAL_MAX_PAGE_LIMIT for everyone else.
+
+    External callers (service accounts, partner integrations, ad-hoc curl)
+    therefore can never pull more than EXTERNAL_MAX_PAGE_LIMIT records per
+    page — they can still paginate via `cursor` if they need the rest.
+    """
     raw = kwargs.get("limit", DEFAULT_PAGE_LIMIT)
     try:
         limit = int(raw)
     except (TypeError, ValueError):
         limit = DEFAULT_PAGE_LIMIT
-    return max(1, min(limit, MAX_PAGE_LIMIT))
+    ceiling = MAX_PAGE_LIMIT if _request_is_frontend() else EXTERNAL_MAX_PAGE_LIMIT
+    return max(1, min(limit, ceiling))
 
 
 def paginate(model, domain, *, limit, cursor=None, order="id"):
