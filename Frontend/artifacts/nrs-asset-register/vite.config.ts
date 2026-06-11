@@ -33,6 +33,30 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        // Split big vendors into their own chunks so they cache independently
+        // of route code. Route chunks get lazy-loaded (see App.tsx) so first
+        // paint only pulls react + the entry shell + the route the user is on.
+        manualChunks: {
+          react:    ["react", "react-dom", "react/jsx-runtime", "scheduler"],
+          tanstack: ["@tanstack/react-query", "@tanstack/react-table"],
+          leaflet:  ["leaflet", "react-leaflet"],
+          charts:   ["recharts"],
+          radix:    [
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-dropdown-menu",
+            "@radix-ui/react-popover",
+            "@radix-ui/react-tooltip",
+            "@radix-ui/react-select",
+            "@radix-ui/react-tabs",
+            "@radix-ui/react-toast",
+          ],
+          icons:    ["lucide-react", "react-icons"],
+        },
+      },
+    },
   },
   server: {
     port,
