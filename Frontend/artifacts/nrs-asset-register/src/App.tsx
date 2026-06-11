@@ -26,6 +26,7 @@ const Login                      = lazy(() => import("@/pages/Login"));
 const Dashboard                  = lazy(() => import("@/pages/Dashboard"));
 const FMOperationsDashboard      = lazy(() => import("@/pages/FMOperationsDashboard"));
 const FleetCommandCenter         = lazy(() => import("@/pages/FleetCommandCenter"));
+const ITAssetsCommand            = lazy(() => import("@/pages/ITAssetsCommand"));
 const SecurityOperations         = lazy(() => import("@/pages/SecurityOperations"));
 const BarcodeStation             = lazy(() => import("@/pages/BarcodeStation"));
 const RequestsList               = lazy(() => import("@/pages/RequestsList"));
@@ -99,6 +100,7 @@ function AppRoutes() {
           <Route path="/"                    component={Dashboard}            />
           <Route path="/dashboards/fm"       component={FMOperationsDashboard} />
           <Route path="/dashboards/fleet"    component={FleetCommandCenter}   />
+          <Route path="/dashboards/it"       component={ITAssetsCommand}      />
           <Route path="/dashboards/security" component={SecurityOperations}   />
           <Route path="/tools/barcode"          component={BarcodeStation}    />
           {/* Service Desk — order: /new, /triage, /:id/edit, /:id, list */}

@@ -290,6 +290,68 @@ export async function fetchAssetRegisterCounts(): Promise<AssetRegisterCounts> {
   return { total, active, inRepair, disposed, unverified, verified: Math.max(0, total - unverified) };
 }
 
+// ─── CATEGORY-SCOPED DASHBOARD (e.g. IT Assets Command) ──────────────────────
+
+export interface CategoryDashboardData {
+  categoryId: number;
+  categoryName: string;
+  total: number;
+  active: number;
+  inRepair: number;
+  disposed: number;
+  unverified: number;
+  byCondition: { new: number; good: number; fair: number; poor: number; damaged: number };
+  recent: Asset[];
+}
+
+/** Resolves a category id by name match against the /dashboard/kpis payload.
+ *  Returns null when the category isn't present (or the kpi payload doesn't
+ *  carry the assets block — older API builds). */
+async function findCategoryByName(rx: RegExp): Promise<{ id: number; name: string } | null> {
+  const res = await apiGet<{ assets?: { categories?: Array<{ id: number | null; name: string; count: number }> } }>(
+    "/api/v1/dashboard/kpis",
+  );
+  const cats = res.data.assets?.categories ?? [];
+  const found = cats.find(c => c.id != null && rx.test(c.name));
+  return found?.id != null ? { id: found.id, name: found.name } : null;
+}
+
+/** Build a category-scoped command-centre payload. Internal helper — the IT
+ *  flavour is exposed below; mirror for other categories (Furniture, etc.) as
+ *  needed without re-implementing the orchestration. */
+async function fetchCategoryDashboard(categoryRegex: RegExp): Promise<CategoryDashboardData | null> {
+  if (!apiConfigured) return null;
+  const cat = await findCategoryByName(categoryRegex);
+  if (!cat) return null;
+  const id = cat.id;
+  const [
+    total, active, inRepair, disposed, unverified,
+    cNew, cGood, cFair, cPoor, cDamaged,
+    recentRes,
+  ] = await Promise.all([
+    countAssets({ category_id: id }),
+    countAssets({ category_id: id, state: "active" }),
+    countAssets({ category_id: id, state: "in_repair" }),
+    countAssets({ category_id: id, state: "disposed" }),
+    countAssets({ category_id: id, is_verified: false }),
+    countAssets({ category_id: id, condition: "new" }),
+    countAssets({ category_id: id, condition: "good" }),
+    countAssets({ category_id: id, condition: "fair" }),
+    countAssets({ category_id: id, condition: "poor" }),
+    countAssets({ category_id: id, condition: "damaged" }),
+    apiGet<ApiAsset[]>("/api/v1/assets", { category_id: id, limit: 20 }),
+  ]);
+  return {
+    categoryId: id,
+    categoryName: cat.name,
+    total, active, inRepair, disposed, unverified,
+    byCondition: { new: cNew, good: cGood, fair: cFair, poor: cPoor, damaged: cDamaged },
+    recent: recentRes.data.map(apiAssetToAsset),
+  };
+}
+
+export const fetchITAssetsDashboard = () => fetchCategoryDashboard(/IT|computer|laptop|server/i);
+
 // Convenience PATCHes — the Odoo asset form has "Mark Verified / Mark Missing /
 // Condemn" as one-click buttons. Same endpoint, different bodies.
 export const markAssetVerified = (id: string) =>

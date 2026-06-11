@@ -6,7 +6,7 @@ import {
   LayoutDashboard, MapPin, Bus, Car, BookOpen,
   Fingerprint, Users, Activity, ShieldAlert,
   Inbox, Briefcase, ScanBarcode, Upload, RefreshCw,
-  Wrench, Tag, ChevronDown,
+  Wrench, Tag, ChevronDown, Monitor,
   LogOut,
 } from "lucide-react";
 import { logout, getScope, getExpiry } from "@/lib/auth";
@@ -17,6 +17,7 @@ const navGroups = [
     // Hidden for now (routes still work via direct URL):
     // { name: "FM Operations",           path: "/dashboards/fm",        icon: Activity        },
     { name: "Fleet Command",           path: "/dashboards/fleet",     icon: Car             },
+    { name: "IT Assets Command",       path: "/dashboards/it",        icon: Monitor         },
     // { name: "Security Operations",     path: "/dashboards/security",  icon: ShieldAlert     },
   ]},
   // Service Desk group hidden in its entirety for now. Routes (/service-desk,
