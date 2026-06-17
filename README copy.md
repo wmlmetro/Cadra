@@ -7,17 +7,17 @@ Running at [myservice.com.ng](https://myservice.com.ng)
 
 ## What's in this repo
 
-| Path | Purpose |
-|------|---------|
-| `install.sh` | One-shot server install (Ubuntu 22.04) |
-| `web/index.html` | Portal homepage with live request search |
+| Path                     | Purpose                                     |
+| ------------------------ | ------------------------------------------- |
+| `install.sh`             | One-shot server install (Ubuntu 22.04)      |
+| `web/index.html`         | Portal homepage with live request search    |
 | `data/itsm_structure.py` | ITSM Groups → Services → Categories → Types |
-| `data/load_locations.py` | Nigeria zone/state/city skeleton |
-| `data/load_offices.py` | Load 400+ office sites from CSV |
-| `scripts/load_all.sh` | Run all data loaders in order |
-| `config/odoo.conf` | Odoo config template |
-| `config/nginx.conf` | Nginx reverse proxy config |
-| `config/odoo.service` | Systemd unit file |
+| `data/load_locations.py` | Nigeria zone/state/city skeleton            |
+| `data/load_offices.py`   | Load 400+ office sites from CSV             |
+| `scripts/load_all.sh`    | Run all data loaders in order               |
+| `config/odoo.conf`       | Odoo config template                        |
+| `config/nginx.conf`      | Nginx reverse proxy config                  |
+| `config/odoo.service`    | Systemd unit file                           |
 
 ---
 
@@ -39,6 +39,7 @@ Nginx reverse proxy.
 **Estimated runtime: 15–25 minutes** on a clean VPS.
 
 After install, credentials are saved to:
+
 - `/etc/odoo/.masterpass` — Odoo master/admin password
 - `/etc/odoo/.dbpass` — PostgreSQL database password
 
@@ -113,6 +114,7 @@ SKIP_LOCS=1 bash scripts/load_all.sh
 `web/index.html` is a static page served by Nginx at `https://myservice.com.ng/`.
 
 Features:
+
 - Live request search via Odoo JSON-RPC (authenticated users only)
 - Real-time stats (open, in-progress, closed this month)
 - Quick-submit buttons per service group
@@ -128,3 +130,8 @@ The page detects the Odoo session automatically — no additional config needed.
 - Bureaucrat ITSM requires a licence from [crnd.pro](https://crnd.pro)
 - `generic.location` symlinks to other Odoo location models via:
   `Settings → Technical → Generic Location → Location Types → Link to Model`
+
+{
+"client_id": "test_client",
+"client_secret": "wvHr54kAlQeGtoOOaiNLy_7uzAl0Ey1WNac4K3X0HivaxwHctqSKnw"
+}

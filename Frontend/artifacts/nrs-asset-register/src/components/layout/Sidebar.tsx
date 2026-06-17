@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, MapPin, Bus, Car, BookOpen,
@@ -71,8 +70,8 @@ function writeCollapsed(state: Record<string, boolean>) {
 
 const logoSrc = `${import.meta.env.BASE_URL}nrs-logo.png`;
 
-function NrsLogoImg({ isDark }: { isDark: boolean }) {
-  const img = (
+function NrsLogoImg() {
+  return (
     <img
       src={logoSrc}
       alt="Nigeria Revenue Service"
@@ -80,24 +79,10 @@ function NrsLogoImg({ isDark }: { isDark: boolean }) {
       draggable={false}
     />
   );
-
-  if (isDark) {
-    return (
-      <div
-        className="inline-flex items-center rounded-lg px-2.5 py-1.5"
-        style={{ background: "#FFFFFF" }}
-      >
-        {img}
-      </div>
-    );
-  }
-  return img;
 }
 
 export default function Sidebar() {
   const [location, navigate] = useLocation();
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
 
   // Pick the single best-matching nav item rather than highlighting every
   // ancestor. "Best" = the longest path that is a prefix of the current URL.
@@ -142,7 +127,7 @@ export default function Sidebar() {
         className="h-[56px] px-4 flex items-center shrink-0"
         style={{ borderBottom: "0.5px solid hsl(var(--sidebar-border))" }}
       >
-        <NrsLogoImg isDark={isDark} />
+        <NrsLogoImg />
       </div>
 
       {/* ── Nav ──────────────────────────────────────────────────────────── */}
