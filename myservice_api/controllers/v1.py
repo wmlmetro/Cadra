@@ -545,6 +545,57 @@ class MyserviceApiV1(http.Controller):
                 "responses": _standard_responses(),
             }
         }
+        spec["paths"]["/api/v1/auth/refresh"] = {
+            "post": {
+                "summary": "Rotate a refresh token for a fresh access + refresh token pair",
+                "tags": ["Auth"],
+                "description": (
+                    "Exchange an opaque, single-use refresh token (issued by "
+                    "`/auth/token` and `/auth/login`) for a new access token "
+                    "and a rotated refresh token. The presented token is "
+                    "revoked on use; replaying a spent token revokes the whole "
+                    "token family (theft detection) and returns 401. Clients "
+                    "must store the newly returned `refresh_token` after each "
+                    "call. 30-day sliding window."
+                ),
+                "requestBody": {
+                    "required": True,
+                    "content": {"application/json": {"schema": {
+                        "type": "object",
+                        "required": ["refresh_token"],
+                        "properties": {
+                            "refresh_token": {"type": "string"},
+                        },
+                    }, "example": {"refresh_token": "..."}}},
+                },
+                "responses": _standard_responses(),
+            }
+        }
+        spec["paths"]["/api/v1/auth/revoke"] = {
+            "post": {
+                "summary": "Revoke a refresh token and its whole rotation family (logout)",
+                "tags": ["Auth"],
+                "description": (
+                    "Revoke the presented refresh token and every token "
+                    "rotated from it. Idempotent and constant-response: an "
+                    "unknown token still returns 200 `{\"revoked\": true}`, so "
+                    "the endpoint never reveals whether a token existed. "
+                    "Outstanding access tokens stay valid until their short "
+                    "TTL elapses; this only stops further refresh."
+                ),
+                "requestBody": {
+                    "required": True,
+                    "content": {"application/json": {"schema": {
+                        "type": "object",
+                        "required": ["refresh_token"],
+                        "properties": {
+                            "refresh_token": {"type": "string"},
+                        },
+                    }, "example": {"refresh_token": "..."}}},
+                },
+                "responses": _standard_responses(),
+            }
+        }
         # /auth/whoami is declared via @cadra_route (so the runtime decorator
         # enforces auth), but we override its OpenAPI entry below the
         # registry loop so we can pin the `bearerAuth` security tag — the
