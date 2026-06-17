@@ -31,8 +31,14 @@ export default function RecordLink({ to, enabled = true, children, className, su
       type="button"
       onClick={(e) => { e.stopPropagation(); nav(to); }}
       className={cn(
-        "inline text-left text-primary hover:opacity-80",
-        !subtle && "hover:underline",
+        // Soft NRS-red chip on hover so links are obviously interactive
+        // — combines a tinted background with an underline. Subtle mode
+        // skips the underline since the surrounding row already shows
+        // it's clickable.
+        "inline text-left text-primary rounded px-0.5 -mx-0.5",
+        "transition-colors duration-100",
+        "hover:bg-primary/10 hover:text-primary focus-visible:bg-primary/10",
+        !subtle && "underline-offset-[3px] hover:underline",
         className,
       )}
     >
