@@ -197,7 +197,22 @@ function buildAssetLocation(a: ApiAsset): AssetLocation {
   const path = a.address_display
     ?? [a.location_hierarchy.building?.name, a.location_hierarchy.floor?.name, a.location_hierarchy.room?.name]
       .filter(Boolean).join(" / ");
-  return { zone: "", state: "", office, path };
+  // Prefer the most specific location id available (room > floor > building >
+  // current_location). The asset detail page uses this for the clickable link;
+  // the FK pickers in the edit form still consume them individually.
+  const locationId =
+    a.location_hierarchy.room?.id
+    ?? a.location_hierarchy.floor?.id
+    ?? a.location_hierarchy.building?.id
+    ?? a.current_location?.id
+    ?? undefined;
+  return {
+    zone: "", state: "", office, path,
+    locationId: locationId ?? undefined,
+    buildingId: a.location_hierarchy.building?.id ?? undefined,
+    floorId:    a.location_hierarchy.floor?.id ?? undefined,
+    roomId:     a.location_hierarchy.room?.id ?? undefined,
+  };
 }
 
 // Extra ApiAsset fields the serializer surfaces but my initial adapter dropped.
@@ -246,12 +261,14 @@ export function apiAssetToAsset(a: ApiAsset & ApiAssetExtras): Asset {
     condition: CONDITION_MAP[a.condition] ?? "Good",
     lifecycleState: a.state,
     isVerified: a.is_verified,
+    custodianId: a.current_custodian?.id ?? undefined,
     custodianName: a.current_custodian?.name ?? undefined,
     custodianIR: undefined,
     department: a.department ?? "",
     location: buildAssetLocation(a),
     status: deriveStatus(a),
     reviewFlags: a.is_verified ? [] : ["Not yet verified"],
+    parentAssetId:   a.parent_asset?.id ?? undefined,
     parentAssetName: a.parent_asset?.name,
     childCount: a.child_count || undefined,
     financials: (f && (f.currency || f.purchase_value || f.replacement_cost || f.acquisition_cost || f.current_value)) ? {

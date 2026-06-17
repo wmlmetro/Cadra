@@ -3,6 +3,7 @@ import { useLocation, useParams } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import RecordPicker from "@/components/RecordPicker";
+import RecordLink from "@/components/RecordLink";
 import {
   fetchRequest, assignRequest, transitionRequest, commentOnRequest, updateRequest,
 } from "@/lib/dataProvider";
@@ -168,8 +169,20 @@ export default function RequestDetail() {
             <Meta label="Moved"    value={req.movedAt?.slice(0, 16).replace("T", " ")} />
             <Meta label="Closed"   value={req.closedAt?.slice(0, 16).replace("T", " ")} />
             <Meta label="Deadline" value={req.deadline} />
-            <Meta label="Author"   value={req.author?.name} />
-            <Meta label="Assignee" value={req.assignee?.name ?? "Unassigned"} />
+            <Meta
+              label="Author"
+              value={req.author?.name && (
+                <RecordLink to={`/hr/employees/${req.author.id}`} enabled={!!req.author.id}>
+                  {req.author.name}
+                </RecordLink>
+              )}
+            />
+            <Meta
+              label="Assignee"
+              value={req.assignee?.name
+                ? <RecordLink to={`/hr/employees/${req.assignee.id}`} enabled={!!req.assignee.id}>{req.assignee.name}</RecordLink>
+                : "Unassigned"}
+            />
             {req.partner && <Meta label="Partner" value={req.partner.name} />}
             {req.service && <Meta label="Service" value={req.service.name} />}
             {req.parentId != null && <Meta label="Parent" value={`#${req.parentId}`} />}
@@ -336,7 +349,7 @@ export default function RequestDetail() {
   );
 }
 
-function Meta({ label, value }: { label: string; value?: string | null }) {
+function Meta({ label, value }: { label: string; value?: React.ReactNode }) {
   if (!value) return null;
   return (
     <div className="text-muted-foreground">

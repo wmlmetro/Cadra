@@ -5,6 +5,7 @@ import { useLayoutCtx } from "@/components/layout/AppLayout";
 import { fetchAsset, markAssetVerified, markAssetMissing } from "@/lib/dataProvider";
 import { CadraApiError } from "@/lib/api";
 import { AssetMoveDialog, CustodyTransferDialog, CondemnAssetDialog } from "@/components/AssetActionDialogs";
+import RecordLink from "@/components/RecordLink";
 import type { Asset } from "@/types";
 import StatusPill from "@/components/StatusPill";
 import ConditionBadge from "@/components/ConditionBadge";
@@ -23,8 +24,8 @@ function CategoryIcon({ category }: { category: string }) {
   return <Sofa className={cls} />;
 }
 
-function DetailRow({ label, value }: { label: string; value?: string | null }) {
-  if (!value) return null;
+function DetailRow({ label, value }: { label: string; value?: React.ReactNode }) {
+  if (value === null || value === undefined || value === "") return null;
   return (
     <div className="flex flex-col sm:flex-row sm:gap-4 py-2.5 border-b border-border last:border-0">
       <dt className="text-xs font-medium text-muted-foreground w-44 shrink-0">{label}</dt>
@@ -269,7 +270,14 @@ export default function AssetDetail() {
               <section>
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Location</h3>
                 <dl className="bg-card border border-card-border rounded-xl px-5 py-1">
-                  <DetailRow label="Office / Building" value={asset.location.office} />
+                  <DetailRow
+                    label="Office / Building"
+                    value={asset.location.office && (
+                      <RecordLink to={`/locations/${asset.location.locationId}`} enabled={!!asset.location.locationId}>
+                        {asset.location.office}
+                      </RecordLink>
+                    )}
+                  />
                   <DetailRow label="State" value={asset.location.state || undefined} />
                   <DetailRow label="Zone" value={asset.location.zone || undefined} />
                   <DetailRow label="Address" value={asset.location.path} />
@@ -279,9 +287,25 @@ export default function AssetDetail() {
               <section>
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Custody</h3>
                 <dl className="bg-card border border-card-border rounded-xl px-5 py-1">
-                  <DetailRow label="Current Custodian" value={asset.custodianName} />
+                  <DetailRow
+                    label="Current Custodian"
+                    value={asset.custodianName && (
+                      <RecordLink to={`/hr/employees/${asset.custodianId}`} enabled={!!asset.custodianId}>
+                        {asset.custodianName}
+                      </RecordLink>
+                    )}
+                  />
                   <DetailRow label="Department" value={asset.department} />
-                  {asset.parentAssetName && <DetailRow label="Parent Asset" value={asset.parentAssetName} />}
+                  {asset.parentAssetName && (
+                    <DetailRow
+                      label="Parent Asset"
+                      value={
+                        <RecordLink to={`/assets/${asset.parentAssetId}`} enabled={!!asset.parentAssetId}>
+                          {asset.parentAssetName}
+                        </RecordLink>
+                      }
+                    />
+                  )}
                   {asset.childCount ? <DetailRow label="Sub-assets" value={String(asset.childCount)} /> : null}
                 </dl>
               </section>
@@ -340,12 +364,26 @@ export default function AssetDetail() {
           content: (
             <div className="space-y-4">
               <dl className="bg-card border border-card-border rounded-xl px-5 py-1">
-                <DetailRow label="Custodian Name" value={asset.custodianName} />
+                <DetailRow
+                  label="Custodian Name"
+                  value={asset.custodianName && (
+                    <RecordLink to={`/hr/employees/${asset.custodianId}`} enabled={!!asset.custodianId}>
+                      {asset.custodianName}
+                    </RecordLink>
+                  )}
+                />
                 <DetailRow label="IR Number" value={asset.custodianIR} />
                 <DetailRow label="Department" value={asset.department} />
                 <DetailRow label="Zone" value={asset.location.zone} />
                 <DetailRow label="State" value={asset.location.state} />
-                <DetailRow label="Office" value={asset.location.office} />
+                <DetailRow
+                  label="Office"
+                  value={asset.location.office && (
+                    <RecordLink to={`/locations/${asset.location.locationId}`} enabled={!!asset.location.locationId}>
+                      {asset.location.office}
+                    </RecordLink>
+                  )}
+                />
                 <DetailRow label="Full Path" value={asset.location.path} />
               </dl>
               {isFleet && asset.custodianScore !== undefined && (

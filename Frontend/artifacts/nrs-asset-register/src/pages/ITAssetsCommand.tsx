@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import NigeriaMap, { type MapPinData } from "@/components/NigeriaMap";
+import RecordLink from "@/components/RecordLink";
 import {
   fetchITAssetsDashboard, fetchDashboardMap,
   type CategoryDashboardData,
@@ -178,7 +179,11 @@ export default function ITAssetsCommand() {
                     <td className="px-3 py-2 text-[12px] font-semibold text-foreground truncate max-w-[260px]">{a.name}</td>
                     <td className="px-3 py-2 text-[11px] font-mono text-muted-foreground">{a.assetTag || "—"}</td>
                     <td className="px-3 py-2 text-[12px] text-muted-foreground">{a.subcategory || a.assetType || "—"}</td>
-                    <td className="px-3 py-2 text-[12px] text-muted-foreground truncate max-w-[180px]">{a.location.office || "—"}</td>
+                    <td className="px-3 py-2 text-[12px] truncate max-w-[180px]">
+                      {a.location.office
+                        ? <RecordLink to={`/locations/${a.location.locationId}`} enabled={!!a.location.locationId} subtle>{a.location.office}</RecordLink>
+                        : <span className="text-muted-foreground">—</span>}
+                    </td>
                     <td className="px-3 py-2">
                       <span className={cn(
                         "inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-semibold border",
@@ -188,7 +193,11 @@ export default function ITAssetsCommand() {
                         a.condition === "Faulty" && "bg-red-50 dark:bg-red-950/30 border-red-200/70 text-red-700 dark:text-red-400",
                       )}>{a.condition}</span>
                     </td>
-                    <td className="px-3 py-2 text-[12px] text-muted-foreground truncate max-w-[180px]">{a.custodianName || "Unassigned"}</td>
+                    <td className="px-3 py-2 text-[12px] truncate max-w-[180px]">
+                      {a.custodianName
+                        ? <RecordLink to={`/hr/employees/${a.custodianId}`} enabled={!!a.custodianId} subtle>{a.custodianName}</RecordLink>
+                        : <span className="text-muted-foreground">Unassigned</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -10,6 +10,12 @@ export interface AssetLocation {
   state: string;
   office: string;
   path: string;
+  // FK ids exposed by the API. Populated when present so the asset detail
+  // page can render clickable links into LocationDetail.
+  locationId?: number;
+  buildingId?: number;
+  floorId?: number;
+  roomId?: number;
 }
 
 export interface AssetFinancials {
@@ -47,8 +53,10 @@ export interface Asset {
   condition: "Good" | "Fair" | "Poor" | "Faulty";
   lifecycleState?: "active" | "in_repair" | "disposed" | "transferred" | "missing";
   isVerified?: boolean;
+  custodianId?: number;
   custodianName?: string;
   custodianIR?: string;
+  parentAssetId?: number;
   department: string;
   location: AssetLocation;
   status: ApprovalStatus;

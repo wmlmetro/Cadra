@@ -6,6 +6,7 @@ import { fetchEmployee, fetchEmployeeAssetsApi, fetchEmployeesPage, type Employe
 import type { Asset } from "@/types";
 import { useQuery } from "@tanstack/react-query";
 import { apiConfigured, CadraApiError } from "@/lib/api";
+import RecordLink from "@/components/RecordLink";
 import type { Employee } from "@/types";
 import {
   Search, X, ChevronDown, Users, UserCheck, UserX, Clock,
@@ -411,7 +412,20 @@ export function EmployeeDetail({ params }: { params: { id: string } }) {
           emp.costCentre        ? ["Cost Centre",     emp.costCentre]        : null,
           ["Department",       emp.department],
           ["Office / Location", emp.office || "—"],
-          emp.manager?.name     ? ["Manager",         `${emp.manager.name}${emp.manager.irNumber ? ` (${emp.manager.irNumber})` : ""}`] : null,
+          emp.manager?.name ? [
+            "Manager",
+            <span className="inline-flex items-center gap-1.5">
+              <RecordLink
+                to={emp.manager.id ? `/hr/employees/${emp.manager.id}` : `/hr/employees/by-ir/${emp.manager.irNumber}`}
+                enabled={!!(emp.manager.id || emp.manager.irNumber)}
+              >
+                {emp.manager.name}
+              </RecordLink>
+              {emp.manager.irNumber && (
+                <span className="text-[11px] text-muted-foreground">({emp.manager.irNumber})</span>
+              )}
+            </span>,
+          ] : null,
           ["Join Date",        emp.joinDate || "—"],
           emp.employmentEndDate ? ["Employment End",  emp.employmentEndDate] : null,
           emp.custodialAssetCount != null ? ["Custodial Assets",
