@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useLocation as useWouterLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
-import { fetchAllLocations } from "@/lib/dataProvider";
+import { fetchLocationsPage, type LocationsPage } from "@/lib/dataProvider";
 import { apiConfigured, CadraApiError } from "@/lib/api";
 import type { Location } from "@/types";
 import {
@@ -256,11 +256,34 @@ export default function Locations() {
     return () => setSearchHandler(undefined);
   }, [setTitle, setSearchHandler]);
 
-  const { data: allLocations = [], isLoading, error } = useQuery<Location[], CadraApiError>({
-    queryKey: ["locations", "all"],
-    queryFn: fetchAllLocations,
-    staleTime: 5 * 60_000, // locations change rarely
+  // Progressive load — render the shell as soon as page 1 lands instead of
+  // waiting for all ~6 cursor round-trips to finish. Remaining pages stream
+  // in via the auto-prefetch effect below; KPIs and cards grow as the data
+  // arrives. Cached for 5 min so navigating away/back is instant.
+  const locsQuery = useInfiniteQuery<LocationsPage, CadraApiError>({
+    queryKey: ["locations", "all", "stream"],
+    queryFn: ({ pageParam }) => fetchLocationsPage(pageParam as string | undefined),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    staleTime: 5 * 60_000,
   });
+
+  const allLocations = useMemo<Location[]>(
+    () => (locsQuery.data?.pages ?? []).flatMap(p => p.locations),
+    [locsQuery.data],
+  );
+  const isLoading = locsQuery.isLoading;     // only true until page 1 lands
+  const error = locsQuery.error;
+  const totalEstimate = locsQuery.data?.pages[0]?.totalEstimate ?? null;
+  const hasNextPage = locsQuery.hasNextPage;
+  const isFetchingNextPage = locsQuery.isFetchingNextPage;
+
+  // Auto-stream remaining pages once page 1 has rendered.
+  useEffect(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      locsQuery.fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, allLocations.length, locsQuery]);
 
   // parent→children map
   const childrenOf = useMemo(() => {
@@ -425,7 +448,15 @@ export default function Locations() {
         <FilterBtn label="Zone"   value={filterZone}   options={zoneNames}                   onChange={setFilterZone}   />
         <FilterBtn label="Status" value={filterActive} options={["Active", "Inactive"]}      onChange={setFilterActive} />
         {hasFilter && <button onClick={clear} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2 py-1.5"><X size={12} /> Clear</button>}
-        <p className="ml-auto text-xs text-muted-foreground"><span className="font-bold text-foreground">{filtered.length}</span> locations</p>
+        <p className="ml-auto text-xs text-muted-foreground inline-flex items-center gap-1.5">
+          <span className="font-bold text-foreground">{filtered.length}</span> locations
+          {(hasNextPage || isFetchingNextPage) && totalEstimate != null && (
+            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/70">
+              <Clock size={9} className="animate-pulse" />
+              loading {allLocations.length.toLocaleString()}/{totalEstimate.toLocaleString()}…
+            </span>
+          )}
+        </p>
         <button
           onClick={() => nav("/locations/new")}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-primary text-white hover:opacity-90"

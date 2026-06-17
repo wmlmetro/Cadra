@@ -312,7 +312,12 @@ def require_jwt(scopes=()):
 # ─── cursor pagination ───────────────────────────────────────────────
 
 DEFAULT_PAGE_LIMIT = 50
-MAX_PAGE_LIMIT = 200
+# Lifted from 200 → 2000 so the frontend can pull resources that have to be
+# eager-loaded (Locations, ~1.2k rows, used to build the tree + zone lookups)
+# in a single round-trip. The list endpoints don't fan out N+1 work, so a
+# bigger page is just a longer SELECT, not a longer wall-clock per record.
+# External tokens are still clamped to EXTERNAL_MAX_PAGE_LIMIT (100) below.
+MAX_PAGE_LIMIT = 2000
 # Hard caps for tokens NOT issued to the Cadra web frontend (service
 # accounts via POST /auth/token, partner integrations, ad-hoc curl).
 #   - EXTERNAL_MAX_PAGE_LIMIT clamps the per-request `limit=` query param

@@ -412,9 +412,12 @@ export async function fetchLocationsPage(
       : mockLocations;
     return { locations: r, nextCursor: null, totalEstimate: r.length };
   }
+  // Backend bumped MAX_PAGE_LIMIT to 2000 for frontend tokens, so the full
+  // ~1.2k location set fits in a single round-trip. External tokens still
+  // get clamped to 100 server-side regardless of what we ask for.
   const res = await apiGet<ApiLocation[]>("/api/v1/locations", {
     q: search,
-    limit: 200,
+    limit: 2000,
     cursor,
   });
   return {
