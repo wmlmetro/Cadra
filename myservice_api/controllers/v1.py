@@ -336,22 +336,7 @@ class MyserviceApiV1(http.Controller):
                 "title": "Cadra API",
                 "version": API_VERSION,
                 "description": (
-                    "Cadra REST API \n\n\n"
-                    "## Trying it from this page\n\n"
-                    "1. Get a JWT — pick the auth flow that fits:\n"
-                    "   - **POST /api/v1/auth/login** with "
-                    "`{\"login\": \"<your Odoo username>\", \"password\": \"...\"}` — "
-                    "for human users (Odoo res.users credentials, same as the web UI).\n"
-                    "   - **POST /api/v1/auth/token** with "
-                    "`{\"client_id\": \"...\", \"client_secret\": \"...\"}` — "
-                    "for service accounts / integrations.\n\n"
-                    "   Copy `data.access_token` from the response.\n\n"
-                    "2. Click **Authorize** at the top. Paste **only the "
-                    "raw token** (do NOT include the word `Bearer `). "
-                    "Swagger prepends it for you.\n\n"
-                    "3. Use any endpoint's *Try it out*. GET endpoints take "
-                    "query-string params; POST/PATCH endpoints take a flat "
-                    "JSON body (no `{params: {...}}` wrapper any more).\n\n"
+                    "Cadra REST API"
                 ),
             },
             "servers": [{"url": (request.httprequest.url_root or "/").rstrip("/") or "/",
