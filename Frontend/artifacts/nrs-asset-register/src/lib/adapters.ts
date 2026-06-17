@@ -96,6 +96,7 @@ export function apiEmployeeToEmployee(e: ApiEmployee & ApiEmployeeExtras): Emplo
     // API doesn't break out zone separately yet — derive nothing rather than guess.
     zone: "",
     office: e.location?.name ?? "",
+    officeId: e.location?.id ?? undefined,
     title: e.job_title ?? "",
     gradeLevel: parseGradeLevel(e.grade_level),
     gradeLevelRaw: e.grade_level ?? undefined,

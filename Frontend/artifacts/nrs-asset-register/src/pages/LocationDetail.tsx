@@ -3,6 +3,7 @@ import { useLocation, useParams } from "wouter";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import NigeriaMap, { type MapPinData } from "@/components/NigeriaMap";
+import RecordLink from "@/components/RecordLink";
 import {
   fetchLocation, fetchLocationAncestors, fetchLocationDescendantsPage,
   type LocationsPageMeta,
@@ -81,13 +82,10 @@ export default function LocationDetail() {
       {ancestors.length > 0 && (
         <div className="flex items-center gap-1 flex-wrap text-[12px]">
           <Globe size={11} className="text-muted-foreground/60" />
-          {ancestors.map((a, i) => (
+          {ancestors.map((a) => (
             <span key={a.id} className="inline-flex items-center gap-1">
-              <button onClick={() => nav(`/locations/${a.id}`)} className="text-primary hover:underline">
-                {a.name}
-              </button>
-              {i < ancestors.length - 1 && <ChevronRight size={10} className="text-muted-foreground/40" />}
-              {i === ancestors.length - 1 && <ChevronRight size={10} className="text-muted-foreground/40" />}
+              <RecordLink to={`/locations/${a.id}`}>{a.name}</RecordLink>
+              <ChevronRight size={10} className="text-muted-foreground/40" />
             </span>
           ))}
           <span className="text-foreground font-semibold">{loc.name}</span>

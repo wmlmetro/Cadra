@@ -411,7 +411,11 @@ export function EmployeeDetail({ params }: { params: { id: string } }) {
           ["Grade Level",      emp.gradeLevelRaw ?? (emp.gradeLevel ? `GL-${emp.gradeLevel}` : "—")],
           emp.costCentre        ? ["Cost Centre",     emp.costCentre]        : null,
           ["Department",       emp.department],
-          ["Office / Location", emp.office || "—"],
+          ["Office / Location",
+            emp.office
+              ? <RecordLink to={`/locations/${emp.officeId}`} enabled={!!emp.officeId}>{emp.office}</RecordLink>
+              : "—",
+          ],
           emp.manager?.name ? [
             "Manager",
             <span className="inline-flex items-center gap-1.5">

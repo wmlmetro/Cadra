@@ -122,6 +122,7 @@ export interface Employee {
   department: string;
   zone: string;
   office: string;
+  officeId?: number;
   title: string;
   gradeLevel: number;
   gradeLevelRaw?: string;
