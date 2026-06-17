@@ -7,14 +7,19 @@
  *  - api.ts reads it via getToken() on every request
  *  - On a 401, clearToken() + emit "cadra:logout" so App.tsx can route to /login
  *
- * No refresh flow yet: tokens expire after 1h; once they do, the user is
- * sent back to the login page. Silent re-auth via stored credentials is a
- * follow-up — encrypted-at-rest secrets need a real plan.
+ * Refresh flow: login() and the access token come paired with an opaque,
+ * rotating refresh token (30-day sliding window, stored server-side). When
+ * the ~1h access token expires, refreshSession() silently exchanges the
+ * refresh token for a fresh pair via POST /api/v1/auth/refresh, so the user
+ * stays logged in. Only when the refresh token itself is gone/expired/revoked
+ * are they sent back to the login page.
  */
 
 const TOKEN_KEY      = "cadra.token";
 const EXPIRY_KEY     = "cadra.tokenExpiresAt";
 const SCOPE_KEY      = "cadra.tokenScope";
+const REFRESH_KEY        = "cadra.refreshToken";
+const REFRESH_EXPIRY_KEY = "cadra.refreshTokenExpiresAt";
 // Sticky flag set on logout. Suppresses the dev .env.local token fallback
 // so the user actually stays logged out — without this, hasLiveSession()
 // would re-affirm a session from the env token on every page load and the
@@ -73,11 +78,31 @@ export function getScope(): string | null {
   return localStorage.getItem(SCOPE_KEY);
 }
 
-export function storeToken({ token, expiresIn, scope }: { token: string; expiresIn: number; scope?: string }): StoredToken {
+/** The raw refresh token, or null if absent or itself past expiry. */
+export function getRefreshToken(): string | null {
+  const t = localStorage.getItem(REFRESH_KEY);
+  const exp = localStorage.getItem(REFRESH_EXPIRY_KEY);
+  if (!t || !exp) return null;
+  const expiresAt = Number(exp);
+  if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) return null;
+  return t;
+}
+
+export function storeToken(
+  { token, expiresIn, scope, refreshToken, refreshExpiresIn }:
+  { token: string; expiresIn: number; scope?: string; refreshToken?: string; refreshExpiresIn?: number },
+): StoredToken {
   const expiresAt = Date.now() + Math.max(0, expiresIn - 30) * 1000;  // 30s safety margin
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(EXPIRY_KEY, String(expiresAt));
   if (scope) localStorage.setItem(SCOPE_KEY, scope);
+  if (refreshToken) {
+    localStorage.setItem(REFRESH_KEY, refreshToken);
+    // No safety-margin shave here — the refresh endpoint is the authority on
+    // whether the token is still live; this expiry is only a client-side hint
+    // to avoid a doomed round-trip.
+    localStorage.setItem(REFRESH_EXPIRY_KEY, String(Date.now() + (refreshExpiresIn ?? 0) * 1000));
+  }
   // A successful login lifts the "explicitly logged out" guard so the dev
   // env fallback can apply again on subsequent reloads.
   localStorage.removeItem(LOGGED_OUT_KEY);
@@ -89,6 +114,8 @@ export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(EXPIRY_KEY);
   localStorage.removeItem(SCOPE_KEY);
+  localStorage.removeItem(REFRESH_KEY);
+  localStorage.removeItem(REFRESH_EXPIRY_KEY);
   // Set the sticky logged-out marker so hasLiveSession()/getToken() stop
   // falling back to the dev env token until the next login.
   localStorage.setItem(LOGGED_OUT_KEY, "1");
@@ -97,6 +124,19 @@ export function clearToken(): void {
 
 /** Wipe the token and notify the app shell (App.tsx listens for this). */
 export function logout(): void {
+  // Best-effort server-side revocation so the refresh-token family is killed
+  // immediately rather than lingering until its 30-day expiry. Fire-and-forget:
+  // we never block logout on the network, and a failure is harmless.
+  const rt = localStorage.getItem(REFRESH_KEY);
+  if (rt) {
+    const base = (import.meta.env.VITE_API_BASE ?? "").replace(/\/$/, "");
+    void fetch(`${base}/api/v1/auth/revoke`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ refresh_token: rt }),
+      keepalive: true,
+    }).catch(() => { /* logout proceeds regardless */ });
+  }
   clearToken();
   window.dispatchEvent(new CustomEvent(LOGOUT_EVENT));
 }
@@ -119,7 +159,14 @@ function readStored(): StoredToken | null {
 // ─── Login API call ─────────────────────────────────────────────────────────
 
 interface TokenResponse {
-  data: { token_type: string; access_token: string; expires_in: number; scope: string };
+  data: {
+    token_type: string;
+    access_token: string;
+    expires_in: number;
+    scope: string;
+    refresh_token?: string;
+    refresh_token_expires_in?: number;
+  };
 }
 
 /**
@@ -154,5 +201,61 @@ export async function login(loginName: string, password: string): Promise<Stored
     token: tr.data.access_token,
     expiresIn: tr.data.expires_in ?? 3600,
     scope: tr.data.scope,
+    refreshToken: tr.data.refresh_token,
+    refreshExpiresIn: tr.data.refresh_token_expires_in,
   });
+}
+
+// ─── Silent refresh ──────────────────────────────────────────────────────────
+
+// Dedupes concurrent refreshes: if N requests 401 at once (or fire while the
+// access token is already expired), they all await the same single round-trip
+// instead of stampeding /auth/refresh and rotating the token N times — which,
+// because of reuse-detection, would otherwise nuke the whole family.
+let refreshInFlight: Promise<string | null> | null = null;
+
+/**
+ * Exchange the stored refresh token for a fresh access+refresh pair.
+ * Returns the new access token on success, or null if there's nothing to
+ * refresh or the refresh was rejected. A definitive rejection (the refresh
+ * token is expired/revoked/replayed) triggers logout() so the app routes to
+ * the login screen; transient network errors leave the session intact.
+ */
+export function refreshSession(): Promise<string | null> {
+  if (refreshInFlight) return refreshInFlight;
+
+  refreshInFlight = (async () => {
+    const rt = getRefreshToken();
+    if (!rt) return null;  // nothing to refresh — caller decides what to do
+    try {
+      const base = (import.meta.env.VITE_API_BASE ?? "").replace(/\/$/, "");
+      const res = await fetch(`${base}/api/v1/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ refresh_token: rt }),
+      });
+      if (!res.ok) {
+        // 401 => the refresh token is dead; the session is over.
+        if (res.status === 401) logout();
+        return null;
+      }
+      const body = (await res.json().catch(() => null)) as TokenResponse | null;
+      const at = body?.data?.access_token;
+      if (!at) return null;
+      storeToken({
+        token: at,
+        expiresIn: body!.data.expires_in ?? 3600,
+        scope: body!.data.scope,
+        refreshToken: body!.data.refresh_token,
+        refreshExpiresIn: body!.data.refresh_token_expires_in,
+      });
+      return at;
+    } catch {
+      // Network blip — keep the session so the caller can surface the error
+      // and a later request can retry the refresh.
+      return null;
+    }
+  })();
+
+  return refreshInFlight.finally(() => { refreshInFlight = null; });
 }

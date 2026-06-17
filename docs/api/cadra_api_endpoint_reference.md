@@ -66,6 +66,8 @@ curl -sX POST $API/api/v1/auth/token \
     "token_type": "Bearer",
     "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJteXNlcnZpY2VfYXBpIiwic3ViIjoidGVzdF9jbGllbnQiLCJ1aWQiOjIs…",
     "expires_in": 3600,
+    "refresh_token": "x7mE…opaque-not-a-jwt…",
+    "refresh_token_expires_in": 2592000,
     "scope": "dashboards:read assets:read assets:write locations:read locations:write requests:read requests:write integrations:write"
   },
   "meta": { "request_id": "bff6ef80…", "timestamp": "2026-06-08T10:00:00", "version": "v1" }
@@ -107,6 +109,85 @@ curl -sX POST $API/api/v1/auth/token \
     "request_id": "4c97774c…",
     "details": { "http_status": 401 }
   }
+}
+```
+
+## 1.2 POST `/api/v1/auth/refresh` — rotate a refresh token for a fresh pair
+
+Auth: **none** (the refresh token is the credential).
+Success: **200**.
+
+Issued by both `/auth/token` and `/auth/login`. The refresh token is an
+opaque, server-side, **single-use** string (not a JWT) with a 30-day sliding
+window — each refresh rotates it and resets the window. Use it to get a new
+access token when the old one nears expiry, without re-sending credentials.
+
+**Rotation + theft detection.** The presented token is revoked and replaced by
+its successor on every call. Replaying an already-used token is treated as
+theft: the entire token family is revoked and a `401` is returned. The client
+must store the newly returned `refresh_token` after each call.
+
+### Request
+
+```bash
+curl -sX POST $API/api/v1/auth/refresh \
+  -H 'Content-Type: application/json' \
+  -d '{"refresh_token": "x7mE…opaque-not-a-jwt…"}'
+```
+
+### Success — `200 OK`
+
+```json
+{
+  "data": {
+    "token_type": "Bearer",
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…",
+    "expires_in": 3600,
+    "refresh_token": "q3Zb…new-rotated-token…",
+    "refresh_token_expires_in": 2592000,
+    "scope": "assets:read assets:write …"
+  },
+  "meta": { "request_id": "a1b2c3…", "timestamp": "2026-06-17T12:00:00", "version": "v1" }
+}
+```
+
+### Error — `401 unauthorized` (unknown / expired / revoked / replayed)
+
+```json
+{
+  "error": {
+    "code": "unauthorized",
+    "message": "Invalid or expired refresh token",
+    "request_id": "9f8e7d…",
+    "details": { "http_status": 401 }
+  }
+}
+```
+
+## 1.3 POST `/api/v1/auth/revoke` — log out (kill a refresh-token family)
+
+Auth: **none**. Success: **200** (always).
+
+Revokes the presented refresh token and its whole rotation family. Idempotent
+and constant-response: an unknown token still returns `200 {"revoked": true}`,
+so the endpoint never reveals whether a token existed. Outstanding access
+tokens remain valid until their short TTL elapses; this only stops further
+refresh.
+
+### Request
+
+```bash
+curl -sX POST $API/api/v1/auth/revoke \
+  -H 'Content-Type: application/json' \
+  -d '{"refresh_token": "q3Zb…"}'
+```
+
+### Success — `200 OK`
+
+```json
+{
+  "data": { "revoked": true },
+  "meta": { "request_id": "c4d5e6…", "timestamp": "2026-06-17T12:05:00", "version": "v1" }
 }
 ```
 

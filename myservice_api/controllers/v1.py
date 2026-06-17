@@ -152,13 +152,51 @@ class MyserviceApiV1(http.Controller):
 
     # ── Auth ────────────────────────────────────────────────────────
 
+    def _mint_access(self, secret, *, sub, uid, scopes, aud=None, ttl=3600):
+        """Build and sign the short-lived access JWT. Returns the token string."""
+        now = int(time.time())
+        claims = {
+            "iss": "myservice_api",
+            "sub": sub,
+            "uid": uid,
+            "scopes": scopes,
+            "iat": now,
+            "exp": now + ttl,
+        }
+        if aud:
+            claims["aud"] = aud
+        return jwt_encode(claims, secret)
+
+    def _session_payload(self, secret, *, sub, user, scopes, aud=None,
+                         access_ttl=3600, client=None):
+        """Mint an access JWT + a fresh refresh-token family and return the
+        PRD `data` block shared by /auth/token, /auth/login and /auth/refresh.
+        """
+        access_token = self._mint_access(
+            secret, sub=sub, uid=user.id, scopes=scopes, aud=aud, ttl=access_ttl,
+        )
+        rec, raw = request.env["myservice.api.refresh_token"].sudo()._issue(
+            user=user, scopes=scopes, aud=aud, client=client,
+            ip=request.httprequest.remote_addr,
+        )
+        refresh_ttl = int((rec.expires_at - fields.Datetime.now()).total_seconds())
+        return {
+            "token_type": "Bearer",
+            "access_token": access_token,
+            "expires_in": access_ttl,
+            "refresh_token": raw,
+            "refresh_token_expires_in": refresh_ttl,
+            "scope": " ".join(scopes),
+        }
+
     @http.route("/api/v1/auth/token", type="http", auth="none",
                 methods=["POST"], csrf=False)
     def token(self, **kwargs):
-        """Exchange client credentials for a JWT bearer token.
+        """Exchange client credentials for a JWT bearer token + refresh token.
 
         Body (flat JSON): {"client_id": "...", "client_secret": "..."}
-        Response: PRD envelope with data = {token_type, access_token, expires_in, scope}.
+        Response: PRD envelope with data = {token_type, access_token,
+        expires_in, refresh_token, refresh_token_expires_in, scope}.
         """
         data = get_params()
 
@@ -183,29 +221,17 @@ class MyserviceApiV1(http.Controller):
         except Exception as e:
             return _http_response(err("server_misconfigured", str(e), status=500))
 
-        now = int(time.time())
-        ttl = int(client.token_ttl_seconds or 3600)
         scopes = (client.scopes or "").split() or ["*"]
-        claims = {
-            "iss": "myservice_api",
-            "sub": client.client_id,
-            "uid": client.user_id.id,
-            "scopes": scopes,
-            "iat": now,
-            "exp": now + ttl,
-        }
-        token = jwt_encode(claims, secret)
+        payload = self._session_payload(
+            secret, sub=client.client_id, user=client.user_id, scopes=scopes,
+            access_ttl=int(client.token_ttl_seconds or 3600), client=client,
+        )
         client.sudo().write({
             "last_used_at": fields.Datetime.now(),
             "last_used_ip": request.httprequest.remote_addr,
         })
 
-        return _http_response(ok({
-            "token_type": "Bearer",
-            "access_token": token,
-            "expires_in": ttl,
-            "scope": " ".join(scopes),
-        }))
+        return _http_response(ok(payload))
 
     # ── Auth: user login (OAuth2 ROPC) ─────────────────────────────
 
@@ -264,31 +290,95 @@ class MyserviceApiV1(http.Controller):
         except Exception as e:
             return _http_response(err("server_misconfigured", str(e), status=500))
 
-        now = int(time.time())
-        ttl = 3600
         scopes = ["*"]  # TODO: derive from user's Odoo groups
         # `aud: "frontend"` marks this token as belonging to the Cadra web
         # frontend; utils.parse_limit lets it pull up to MAX_PAGE_LIMIT
         # records per page (200). Service tokens issued via /auth/token
         # deliberately don't carry this claim and are clamped to
         # EXTERNAL_MAX_PAGE_LIMIT (100).
-        claims = {
-            "iss": "myservice_api",
-            "sub": user.login,
-            "uid": user.id,
-            "aud": "frontend",
-            "scopes": scopes,
-            "iat": now,
-            "exp": now + ttl,
-        }
-        token = jwt_encode(claims, secret)
+        payload = self._session_payload(
+            secret, sub=user.login, user=user, scopes=scopes,
+            aud="frontend", access_ttl=3600,
+        )
+        return _http_response(ok(payload))
+
+    # ── Auth: refresh (exchange a refresh token for a fresh pair) ───
+
+    @http.route("/api/v1/auth/refresh", type="http", auth="none",
+                methods=["POST"], csrf=False)
+    def refresh(self, **kwargs):
+        """Exchange a refresh token for a new access token + rotated refresh token.
+
+        Body (flat JSON): {"refresh_token": "..."}
+        Response: PRD envelope with the same data shape as /auth/login and
+        /auth/token. The presented refresh token is single-use: this call
+        revokes it and returns its successor. Replaying a spent token revokes
+        the whole family (theft response) and returns 401.
+        """
+        data = get_params()
+        raw = data.get("refresh_token")
+        if not raw:
+            return _http_response(err(
+                ERR_INVALID_REQUEST, "`refresh_token` is required",
+            ))
+
+        try:
+            secret = jwt_secret(request.env)
+        except Exception as e:
+            return _http_response(err("server_misconfigured", str(e), status=500))
+
+        result, error = request.env["myservice.api.refresh_token"].sudo().verify_and_rotate(
+            raw, ip=request.httprequest.remote_addr,
+        )
+        if error:
+            # One generic 401 for every failure mode — don't leak which check
+            # tripped (unknown vs expired vs revoked vs disabled account).
+            return _http_response(err(
+                ERR_UNAUTHORIZED, "Invalid or expired refresh token", status=401,
+            ))
+
+        user = result["user"]
+        client = result["client"]
+        scopes = result["scopes"]
+        access_ttl = int((client.token_ttl_seconds if client else 3600) or 3600)
+        access_token = self._mint_access(
+            secret,
+            sub=client.client_id if client else user.login,
+            uid=user.id, scopes=scopes, aud=result["aud"], ttl=access_ttl,
+        )
+        new_rec = result["new_record"]
+        refresh_ttl = int((new_rec.expires_at - fields.Datetime.now()).total_seconds())
 
         return _http_response(ok({
             "token_type": "Bearer",
-            "access_token": token,
-            "expires_in": ttl,
+            "access_token": access_token,
+            "expires_in": access_ttl,
+            "refresh_token": result["new_raw"],
+            "refresh_token_expires_in": refresh_ttl,
             "scope": " ".join(scopes),
         }))
+
+    # ── Auth: revoke (logout — kill a refresh-token family) ─────────
+
+    @http.route("/api/v1/auth/revoke", type="http", auth="none",
+                methods=["POST"], csrf=False)
+    def revoke(self, **kwargs):
+        """Revoke a refresh token (and its whole rotation family).
+
+        Body (flat JSON): {"refresh_token": "..."}
+        Always returns 200 {"revoked": true} — revocation is idempotent and
+        the response never reveals whether the token existed. Outstanding
+        access tokens remain valid until their short TTL elapses; this stops
+        any further refresh.
+        """
+        data = get_params()
+        raw = data.get("refresh_token")
+        if not raw:
+            return _http_response(err(
+                ERR_INVALID_REQUEST, "`refresh_token` is required",
+            ))
+        request.env["myservice.api.refresh_token"].sudo().revoke(raw, reason="logout")
+        return _http_response(ok({"revoked": True}))
 
     # ── Auth: whoami (resolve current bearer token to user profile) ─
 

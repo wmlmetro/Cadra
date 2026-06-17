@@ -6,7 +6,7 @@
  *   error:   { error: { code, message, request_id, details } }
  */
 
-import { getToken, hasLiveSession, logout } from "./auth";
+import { getToken, hasLiveSession, logout, refreshSession } from "./auth";
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? "").replace(/\/$/, "");
 
@@ -57,8 +57,14 @@ export class CadraApiError extends Error {
   }
 }
 
-function requireToken(): string {
-  const t = getToken();
+/**
+ * Resolve a usable access token. If the stored one is missing/expired, try a
+ * silent refresh first so an idle-but-refreshable session doesn't surface as
+ * "please sign in". Throws only when there's genuinely nothing to use.
+ */
+async function authToken(): Promise<string> {
+  let t = getToken();
+  if (!t) t = await refreshSession();
   if (!t) {
     throw new CadraApiError(
       "unauthenticated",
@@ -67,6 +73,25 @@ function requireToken(): string {
     );
   }
   return t;
+}
+
+/**
+ * Run an authenticated request, transparently refreshing on a 401. `make`
+ * builds the fetch from a token so we can call it again with a rotated token.
+ * A single retry: if the refreshed token is also rejected, the 401 falls
+ * through to parseEnvelope, which logs the user out.
+ */
+async function sendWithAuth<T>(
+  path: string,
+  make: (token: string) => Promise<Response>,
+): Promise<CadraResponse<T>> {
+  const token = await authToken();
+  let res = await make(token);
+  if (res.status === 401) {
+    const refreshed = await refreshSession();
+    if (refreshed) res = await make(refreshed);
+  }
+  return parseEnvelope<T>(res, path);
 }
 
 function buildUrl(path: string, params?: Record<string, unknown>): string {
@@ -121,15 +146,13 @@ export async function apiGet<T>(
   path: string,
   params?: Record<string, unknown>,
 ): Promise<CadraResponse<T>> {
-  const token = requireToken();
-  const res = await fetch(buildUrl(path, params), {
+  return sendWithAuth<T>(path, (token) => fetch(buildUrl(path, params), {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/json",
     },
-  });
-  return parseEnvelope<T>(res, path);
+  }));
 }
 
 async function apiMutate<T>(
@@ -138,20 +161,20 @@ async function apiMutate<T>(
   body?: unknown,
   opts?: MutateOpts,
 ): Promise<CadraResponse<T>> {
-  const token = requireToken();
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${token}`,
-    Accept: "application/json",
-  };
-  if (body !== undefined) headers["Content-Type"] = "application/json";
-  if (opts?.idempotencyKey) headers["X-Idempotency-Key"] = opts.idempotencyKey;
+  return sendWithAuth<T>(path, (token) => {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    };
+    if (body !== undefined) headers["Content-Type"] = "application/json";
+    if (opts?.idempotencyKey) headers["X-Idempotency-Key"] = opts.idempotencyKey;
 
-  const res = await fetch(buildUrl(path), {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    return fetch(buildUrl(path), {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
   });
-  return parseEnvelope<T>(res, path);
 }
 
 export const apiPost   = <T>(path: string, body?: unknown, opts?: MutateOpts) => apiMutate<T>("POST",   path, body, opts);
@@ -165,16 +188,16 @@ export async function apiUpload<T>(
   form: FormData,
   opts?: MutateOpts,
 ): Promise<CadraResponse<T>> {
-  const token = requireToken();
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${token}`,
-    Accept: "application/json",
-    // Do NOT set Content-Type — fetch sets the multipart boundary automatically.
-  };
-  if (opts?.idempotencyKey) headers["X-Idempotency-Key"] = opts.idempotencyKey;
+  return sendWithAuth<T>(path, (token) => {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+      // Do NOT set Content-Type — fetch sets the multipart boundary automatically.
+    };
+    if (opts?.idempotencyKey) headers["X-Idempotency-Key"] = opts.idempotencyKey;
 
-  const res = await fetch(buildUrl(path), { method: "POST", headers, body: form });
-  return parseEnvelope<T>(res, path);
+    return fetch(buildUrl(path), { method: "POST", headers, body: form });
+  });
 }
 
 /** Generate a stable idempotency key for a one-shot UI action. */
