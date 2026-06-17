@@ -25,7 +25,10 @@ services:
     volumes:
       - ./config/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8069/web/login || exit 1"]
+      # Use 127.0.0.1, not "localhost": in the alpine image localhost resolves
+      # to IPv6 ::1 first, but nginx only listens on IPv4 — so "localhost"
+      # gives a spurious "connection refused" and a permanently-unhealthy flag.
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8069/web/login || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 5
