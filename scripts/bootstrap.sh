@@ -64,7 +64,7 @@ ODOO_USER_DB="${POSTGRES_USER:-odoo}"
 
 # Strip web_responsive from the install list if its source isn't vendored
 # (we ship it under dist/ — see dist/web_responsive/). Defensive only.
-MODULES="${CADRA_BOOTSTRAP_MODULES:-myservice_api,myservice_asset_register,myservice_barcode_station,myservice_dashboard,myservice_fleet_maintenance,myservice_fm_dashboard,myservice_identity,myservice_nrs_base,cadra_brand_nrs,myservice_request_fields,myservice_security,myservice_staff_bus,myservice_theme_v5,myservice_website_theme,myservice_workflow,web_responsive}"
+MODULES="${CADRA_BOOTSTRAP_MODULES:-myservice_api,myservice_asset_register,myservice_barcode_station,myservice_dashboard,myservice_fleet_maintenance,myservice_fm_dashboard,myservice_identity,myservice_nrs_base,myservice_request_fields,myservice_security,myservice_staff_bus,myservice_theme_v5,myservice_website_theme,myservice_workflow,web_responsive}"
 
 echo "═══════════════════════════════════════════════════════════════════"
 echo "  Cadra bootstrap — profile: $CADRA_PROFILE"

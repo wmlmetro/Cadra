@@ -10,9 +10,9 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800;9..40,900&display=swap');
 
 :root {
-    --nrs-red: var(--brand-primary,       #C8102E);
-    --nrs-red-dark: var(--brand-primary-dark,  #A00D24);
-    --nrs-red-light: var(--brand-primary-light, #FBE9EC);
+    --nrs-red: #C8102E;
+    --nrs-red-dark: #A00D24;
+    --nrs-red-light: #FBE9EC;
     --nrs-ink: #1A1A1A;
     --nrs-ink-muted: #6B7280;
     --nrs-bg: #F5F5F5;

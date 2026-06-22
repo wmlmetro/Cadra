@@ -5,14 +5,10 @@
 /* Fonts loaded via myservice_nrs_base/views/assets.xml template */
 
 :root {
-    /* ── Palette ─────────────────────────────────────────────────
-       Brand colour resolves from cadra_brand_<client>; the literal
-       is a fallback so the design system still renders if no brand
-       module is installed. Change the colour in the brand module,
-       NOT here. ─────────────────────────────────────────────────── */
-    --nrs-red:        var(--brand-primary,       #C8102E);
-    --nrs-red-dark:   var(--brand-primary-dark,  #A00D24);
-    --nrs-red-light:  var(--brand-primary-light, #FBE9EC);
+    /* ── Palette ─────────────────────────────────────── */
+    --nrs-red:        #C8102E;
+    --nrs-red-dark:   #A00D24;
+    --nrs-red-light:  #FBE9EC;
 
     /* ── Surfaces ────────────────────────────────────── */
     --nrs-bg:         #F0F1F3;
@@ -38,7 +34,7 @@
     --nrs-ok-bg:      #D1FAE5;
     --nrs-warn:       #B45309;
     --nrs-warn-bg:    #FEF3C7;
-    --nrs-danger:     var(--brand-primary, #C8102E);
+    --nrs-danger:     #C8102E;
     --nrs-info:       #1D4ED8;
     --nrs-info-bg:    #DBEAFE;
 

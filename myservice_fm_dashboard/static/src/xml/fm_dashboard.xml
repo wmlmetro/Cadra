@@ -7,7 +7,7 @@
             <div class="ms-fm-header">
                 <div>
                     <div class="ms-fm-header-title">
-                        <span class="o_brand_code">NRS</span> FM Operations Dashboard
+                        <span>NRS</span> FM Operations Dashboard
                     </div>
                     <div class="ms-fm-header-sub" id="fm-last-updated">Loading...</div>
                 </div>
@@ -75,7 +75,7 @@
                     <!-- Map -->
                     <div class="ms-fm-card">
                         <div class="ms-fm-card-hdr">
-                            <span><span class="o_brand_code">NRS</span> Office Locations</span>
+                            <span>NRS Office Locations</span>
                         </div>
                         <div id="fm-map" style="height:340px;"></div>
                     </div>

@@ -13,8 +13,8 @@
                 <!-- ── Top announcement bar ── -->
                 <div style="background:#1A1A1A;color:#9CA3AF;font-size:12px;padding:8px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <span style="width:6px;height:6px;background:var(--nrs-red);border-radius:50%;display:inline-block;"></span>
-                        <t t-esc="res_company.name"/> — Facilities Management Division
+                        <span style="width:6px;height:6px;background:#C8102E;border-radius:50%;display:inline-block;"></span>
+                        Nigeria Revenue Service — Facilities Management Division
                     </div>
                     <div style="display:flex;align-items:center;gap:20px;">
                         <span>Emergency: <strong style="color:#fff;">0800-NRS-HELP</strong></span>
@@ -41,7 +41,7 @@
                         </div>
                     </div>
                     <div style="display:flex;align-items:center;gap:12px;">
-                        <a href="/service-request" style="background:var(--nrs-red);color:#fff;padding:10px 22px;border-radius:6px;font-size:14px;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:6px;">
+                        <a href="/service-request" style="background:#C8102E;color:#fff;padding:10px 22px;border-radius:6px;font-size:14px;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:6px;">
                             + Submit a Request
                         </a>
                         <a href="/web/login" style="border:1.5px solid #E5E7EB;color:#374151;padding:10px 20px;border-radius:6px;font-size:14px;font-weight:600;text-decoration:none;">
@@ -60,13 +60,13 @@
                             </div>
                             <h1 style="font-size:52px;font-weight:900;color:#1A1A1A;line-height:1.1;margin-bottom:20px;letter-spacing:-1px;">
                                 Facilities Support,<br/>
-                                <em style="color:var(--nrs-red);font-style:italic;font-weight:900;">When You Need It</em>
+                                <em style="color:#C8102E;font-style:italic;font-weight:900;">When You Need It</em>
                             </h1>
                             <p style="font-size:17px;color:#6B7280;line-height:1.7;margin-bottom:36px;max-width:480px;">
                                 Submit maintenance requests, track resolution progress, and access all NRS facility services — building, fleet, security and more — in one unified portal.
                             </p>
                             <div style="display:flex;gap:14px;flex-wrap:wrap;">
-                                <a href="/service-request" style="background:var(--nrs-red);color:#fff;padding:14px 28px;border-radius:7px;font-size:15px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:8px;">
+                                <a href="/service-request" style="background:#C8102E;color:#fff;padding:14px 28px;border-radius:7px;font-size:15px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:8px;">
                                     Submit a Request &#x2192;
                                 </a>
                                 <a href="#how-it-works" style="background:#fff;border:1.5px solid #E5E7EB;color:#374151;padding:14px 28px;border-radius:7px;font-size:15px;font-weight:600;text-decoration:none;">
@@ -112,7 +112,7 @@
                 <section id="services" style="padding:80px 0;background:#fff;">
                     <div style="max-width:1200px;margin:0 auto;padding:0 40px;">
                         <div style="text-align:center;margin-bottom:52px;">
-                            <div style="font-size:10px;font-weight:700;color:var(--nrs-red);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">What We Manage</div>
+                            <div style="font-size:10px;font-weight:700;color:#C8102E;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">What We Manage</div>
                             <h2 style="font-size:34px;font-weight:900;color:#1A1A1A;margin:0;">Facilities Services</h2>
                         </div>
                         <div class="row g-4">
@@ -177,26 +177,26 @@
                 <!-- ── How it works ── -->
                 <section id="how-it-works" style="padding:80px 0;background:#F5F5F5;">
                     <div style="max-width:1200px;margin:0 auto;padding:0 40px;text-align:center;">
-                        <div style="font-size:10px;font-weight:700;color:var(--nrs-red);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">Simple Process</div>
+                        <div style="font-size:10px;font-weight:700;color:#C8102E;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">Simple Process</div>
                         <h2 style="font-size:34px;font-weight:900;color:#1A1A1A;margin-bottom:48px;">How It Works</h2>
                         <div class="row g-4">
                             <div class="col-md-4">
                                 <div style="background:#fff;border-radius:10px;padding:32px 24px;border:1px solid #E5E7EB;">
-                                    <div style="width:40px;height:40px;background:var(--nrs-red);border-radius:50%;color:#fff;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">1</div>
+                                    <div style="width:40px;height:40px;background:#C8102E;border-radius:50%;color:#fff;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">1</div>
                                     <h5 style="font-size:16px;font-weight:700;color:#1A1A1A;margin-bottom:8px;">Submit Request</h5>
                                     <p style="font-size:13px;color:#6B7280;line-height:1.6;margin:0;">Fill in the request form with details of the issue, your location and contact information.</p>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div style="background:#fff;border-radius:10px;padding:32px 24px;border:1px solid #E5E7EB;">
-                                    <div style="width:40px;height:40px;background:var(--nrs-red);border-radius:50%;color:#fff;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">2</div>
+                                    <div style="width:40px;height:40px;background:#C8102E;border-radius:50%;color:#fff;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">2</div>
                                     <h5 style="font-size:16px;font-weight:700;color:#1A1A1A;margin-bottom:8px;">Team Assignment</h5>
                                     <p style="font-size:13px;color:#6B7280;line-height:1.6;margin:0;">Our FM team reviews and assigns the request to the appropriate technician within SLA.</p>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div style="background:#fff;border-radius:10px;padding:32px 24px;border:1px solid #E5E7EB;">
-                                    <div style="width:40px;height:40px;background:var(--nrs-red);border-radius:50%;color:#fff;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">3</div>
+                                    <div style="width:40px;height:40px;background:#C8102E;border-radius:50%;color:#fff;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">3</div>
                                     <h5 style="font-size:16px;font-weight:700;color:#1A1A1A;margin-bottom:8px;">Resolution</h5>
                                     <p style="font-size:13px;color:#6B7280;line-height:1.6;margin:0;">Issue resolved and closed. Track progress at any time using your reference number.</p>
                                 </div>
@@ -210,7 +210,7 @@
                     <div style="max-width:600px;margin:0 auto;padding:0 40px;">
                         <h2 style="font-size:32px;font-weight:900;color:#fff;margin-bottom:14px;">Ready to submit a request?</h2>
                         <p style="font-size:15px;color:#9CA3AF;margin-bottom:32px;">Our facilities team is on standby. Average response time under 2 hours.</p>
-                        <a href="/service-request" style="background:var(--nrs-red);color:#fff;padding:14px 36px;border-radius:7px;font-size:15px;font-weight:700;text-decoration:none;display:inline-block;">Submit a Request &#x2192;</a>
+                        <a href="/service-request" style="background:#C8102E;color:#fff;padding:14px 36px;border-radius:7px;font-size:15px;font-weight:700;text-decoration:none;display:inline-block;">Submit a Request &#x2192;</a>
                     </div>
                 </section>
 
