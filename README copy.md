@@ -131,7 +131,4 @@ The page detects the Odoo session automatically — no additional config needed.
 - `generic.location` symlinks to other Odoo location models via:
   `Settings → Technical → Generic Location → Location Types → Link to Model`
 
-{
-"client_id": "test_client",
-"client_secret": "wvHr54kAlQeGtoOOaiNLy_7uzAl0Ey1WNac4K3X0HivaxwHctqSKnw"
-}
+https://staging.app.cadra.ng/web/database/manager

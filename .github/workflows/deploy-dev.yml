@@ -175,7 +175,7 @@ jobs:
       # Deployment on the next pod restart.
       - name: Sync K8s Secrets from GitHub Secrets
         env:
-          POSTGRES_DB: ${{ vars.POSTGRES_DB || 'odoo' }}
+          POSTGRES_DB: ${{ vars.POSTGRES_DB || 'staging' }}
           POSTGRES_USER: ${{ vars.POSTGRES_USER || 'odoo' }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           ODOO_MASTER_PASSWORD: ${{ secrets.ODOO_MASTER_PASSWORD }}
