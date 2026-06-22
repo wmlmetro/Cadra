@@ -28,6 +28,9 @@ re-skin those too.
     'category': 'Theme',
     'author': 'WestMetro Limited',
     'depends': ['myservice_nrs_base'],
+    'data': [
+        'data/brand_params.xml',
+    ],
     'assets': {
         # Loaded into both the backend and the public website so the brand
         # tokens are in :root scope everywhere. Order is irrelevant: consumers

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- noupdate so a hand-edited value survives module upgrades. -->
+    <data noupdate="1">
+        <!-- The short brand code shown in dashboard titles ("NRS FM
+             Operations Dashboard", "NRS Office Locations", ...). For a new
+             client, change this value (e.g. "MoH", "Jizzy"). -->
+        <record id="param_brand_short_name" model="ir.config_parameter">
+            <field name="key">cadra.brand_short_name</field>
+            <field name="value">NRS</field>
+        </record>
+    </data>
+</odoo>

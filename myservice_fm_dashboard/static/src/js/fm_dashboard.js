@@ -4,6 +4,7 @@ odoo.define('myservice_fm_dashboard.FMDashboard', function (require) {
     var AbstractAction = require('web.AbstractAction');
     var core = require('web.core');
     var ajax = require('web.ajax');
+    var session = require('web.session');
 
     var STAGE_CLASS = {
         'Draft':          'stage-draft',
@@ -30,6 +31,7 @@ odoo.define('myservice_fm_dashboard.FMDashboard', function (require) {
             this._stageFilter = 'all';
             this._data = {};
             return this._super.apply(this, arguments).then(function () {
+                self._applyBrandCode();
                 self._bindEvents();
                 self._loadData();
                 self._refreshTimer = setInterval(function () {
@@ -49,6 +51,15 @@ odoo.define('myservice_fm_dashboard.FMDashboard', function (require) {
 
         refresh: function () {
             this._loadData();
+        },
+
+        // Replace the per-client brand tag (".o_brand_code") with the value
+        // surfaced via session_info (cadra.brand_short_name). Static template
+        // text is the fallback if no brand module is installed.
+        _applyBrandCode: function () {
+            if (session.brand_short_name) {
+                this.$('.o_brand_code').text(session.brand_short_name);
+            }
         },
 
         _bindEvents: function () {
