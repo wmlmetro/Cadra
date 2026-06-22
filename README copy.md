@@ -130,3 +130,5 @@ The page detects the Odoo session automatically — no additional config needed.
 - Bureaucrat ITSM requires a licence from [crnd.pro](https://crnd.pro)
 - `generic.location` symlinks to other Odoo location models via:
   `Settings → Technical → Generic Location → Location Types → Link to Model`
+
+https://staging.app.cadra.ng/web/database/manager
