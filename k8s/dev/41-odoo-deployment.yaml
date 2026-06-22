@@ -69,13 +69,11 @@ spec:
             - |
               set -e
               cp /etc/odoo/odoo.conf.template /tmp/odoo.conf
-              # NOTE: db_name is deliberately NOT written here. The server picks
-              # the tenant DB per-request via dbfilter (see the ConfigMap). The
-              # bootstrap/upgrade Jobs DO pin db_name to target one tenant.
               {
                 printf '\nadmin_passwd = %s\n' "$ODOO_MASTER_PASSWORD"
                 printf 'db_user = %s\n' "$USER"
                 printf 'db_password = %s\n' "$PASSWORD"
+                printf 'db_name = %s\n' "$DB"
               } >> /tmp/odoo.conf
               exec odoo -c /tmp/odoo.conf \
                 --workers="${ODOO_WORKERS:-1}" \
@@ -87,17 +85,10 @@ spec:
               readOnly: true
             - name: odoo-filestore
               mountPath: /var/lib/odoo
-          # Probes send a Host header for a known tenant so dbfilter resolves
-          # to a real DB and /web/login returns 200. Without it the probe hits
-          # the pod IP, which matches no tenant DB. Keep this Host in sync with
-          # the primary tenant (the renamed staging DB).
           readinessProbe:
             httpGet:
               path: /web/login
               port: 8069
-              httpHeaders:
-                - name: Host
-                  value: staging.app.cadra.ng
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
@@ -106,9 +97,6 @@ spec:
             httpGet:
               path: /web/login
               port: 8069
-              httpHeaders:
-                - name: Host
-                  value: staging.app.cadra.ng
             initialDelaySeconds: 90
             periodSeconds: 30
             timeoutSeconds: 5

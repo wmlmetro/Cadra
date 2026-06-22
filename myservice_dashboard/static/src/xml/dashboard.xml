@@ -5,7 +5,7 @@
         <div class="ms-dash-header">
             <div>
                 <h1><span>myservice</span> Operations Dashboard</h1>
-                <div class="ms-dash-subtitle"><span class="o_brand_code">NRS</span> Facilities Management Platform</div>
+                <div class="ms-dash-subtitle">NRS Facilities Management Platform</div>
             </div>
             <button class="ms-dash-refresh"><i class="fa fa-refresh"/> Refresh</button>
         </div>
@@ -115,7 +115,7 @@
                 <div class="ms-fleet-card wide">
                     <div class="ms-fleet-card-hdr">
                         <span><i class="fa fa-map-marker"/> Vehicles by location</span>
-                        <span class="ms-fleet-card-sub">Top 10 <span class="o_brand_code">NRS</span> offices</span>
+                        <span class="ms-fleet-card-sub">Top 10 NRS offices</span>
                     </div>
                     <div class="ms-fleet-loc-bars"><div class="ms-fleet-empty">Loading...</div></div>
                 </div>

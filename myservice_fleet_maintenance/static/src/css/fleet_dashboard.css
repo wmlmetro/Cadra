@@ -30,7 +30,7 @@
     display: inline-block;
     width: 10px;
     height: 10px;
-    background: var(--nrs-red);
+    background: #C8102E;
     border-radius: 50%;
     flex-shrink: 0;
 }
@@ -42,7 +42,7 @@
 }
 
 .flt-refresh {
-    background: var(--nrs-red);
+    background: #C8102E;
     color: #fff;
     border: none;
     border-radius: 6px;

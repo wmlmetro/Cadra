@@ -7,13 +7,10 @@ data:
   odoo.conf: |
     [options]
     ; ─── Dev Odoo configuration for Kubernetes ──────────────────────────
-    ; db_user / db_password are appended at container start from the cadra-db
-    ; Secret (see the command: block in the Deployment / Job). The pods
-    ; override the image entrypoint, so its HOST/USER/PASSWORD injection does
-    ; NOT run — credentials must be written here instead.
-    ; NOTE: db_name is intentionally NOT set on the server — the database is
-    ; chosen per-request by dbfilter (below). The bootstrap/upgrade JOBS still
-    ; pin db_name to target one specific tenant DB.
+    ; db_user / db_password / db_name are appended at container start from
+    ; the cadra-db Secret (see the command: block in the Deployment / Job).
+    ; The pods override the image entrypoint, so its HOST/USER/PASSWORD
+    ; injection does NOT run — credentials must be written here instead.
     db_host = db
     db_port = 5432
 
@@ -23,19 +20,9 @@ data:
     http_interface = 0.0.0.0
     proxy_mode = True
 
-    ; ─── Multi-tenant routing ───────────────────────────────────────────
-    ; Select the database from the request host. %d = the first label of the
-    ; host, so <client>.cadra.ng -> DB "<client>". The DB name MUST equal the
-    ; subdomain label (e.g. staging.app.cadra.ng -> DB "staging",
-    ; nrs.cadra.ng -> DB "nrs"). One pod serves every tenant DB.
-    dbfilter = ^%d$
-
+    ; Dev convenience: list databases on the manager UI.
     without_demo = True
-
-    ; Multi-tenant: hide the DB manager so one tenant can't enumerate or open
-    ; another's database. New client DBs are created via the bootstrap Job
-    ; (odoo -d <db> -i ...), not the web UI.
-    list_db = False
+    list_db = True
 
     ; Logging — kubectl logs captures stdout.
     log_level = info
