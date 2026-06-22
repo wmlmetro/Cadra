@@ -1,8 +1,10 @@
-# One-shot module-upgrade Job — runs `odoo -u <modules> --stop-after-init`
-# against the existing DB. Use this whenever a module's `__manifest__.py`
-# changes in a way that needs to be re-read (asset bundle changes, new data
-# files, version bump, etc.) — a plain Deployment rollout does NOT re-read
-# manifests of already-installed modules.
+# One-shot module install/upgrade Job — runs
+# `odoo [-i <install>] [-u <upgrade>] --stop-after-init` against the existing
+# DB. Use `-u` (upgrade) whenever a module's `__manifest__.py` changes in a way
+# that needs to be re-read (asset bundle changes, new data files, version bump)
+# — a plain Deployment rollout does NOT re-read manifests of already-installed
+# modules. Use `-i` (install) to add a NEW module to a live DB (e.g. a new
+# per-client `cadra_brand_<client>`) without re-running the bootstrap seed.
 #
 # The workflow scales the Odoo Deployment to 0 before applying this Job so
 # the RWO filestore PVC is free. After the Job completes, the workflow rolls
@@ -91,15 +93,21 @@ spec:
                 printf 'db_password = %s\n' "$PASSWORD"
               } >> /tmp/odoo.conf
 
-              modules="REPLACE_ME_UPGRADE_MODULES"
-              if [ -z "$modules" ]; then
-                echo "FATAL: REPLACE_ME_UPGRADE_MODULES was not substituted" >&2
+              # Install (-i) brings in NEW modules; upgrade (-u) re-reads
+              # manifests of already-installed ones. Either or both may be set.
+              install="REPLACE_ME_INSTALL_MODULES"
+              upgrade="REPLACE_ME_UPGRADE_MODULES"
+
+              args=""
+              [ -n "$install" ] && args="$args -i $install"
+              [ -n "$upgrade" ] && args="$args -u $upgrade"
+              if [ -z "$args" ]; then
+                echo "FATAL: neither install nor upgrade modules provided" >&2
                 exit 1
               fi
 
-              echo "upgrading modules: $modules"
-              exec odoo -c /tmp/odoo.conf -d "$DB" \
-                -u "$modules" \
+              echo "running: odoo -d $DB$args --stop-after-init"
+              exec odoo -c /tmp/odoo.conf -d "$DB" $args \
                 --stop-after-init --no-http
           env:
             - name: HOST

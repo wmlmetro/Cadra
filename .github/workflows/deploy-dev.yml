@@ -48,6 +48,10 @@ on:
         description: "Comma-separated modules to upgrade (e.g. 'myservice_nrs_base'). Leave blank to skip. Use after a manifest change (asset list, new data files, version bump)."
         type: string
         default: ""
+      install_modules:
+        description: "Comma-separated NEW modules to install (e.g. 'cadra_brand_nrs'). Leave blank to skip. Adds a module to the live DB without re-running the bootstrap seed."
+        type: string
+        default: ""
 
 concurrency:
   group: deploy-dev
@@ -265,11 +269,12 @@ jobs:
       # run the upgrade, then let the next step roll the Deployment back up
       # with the new image. Triggered only on workflow_dispatch when the
       # `upgrade_modules` input is non-empty.
-      - name: (Optional) Run module-upgrade Job
-        if: github.event_name == 'workflow_dispatch' && inputs.upgrade_modules != ''
+      - name: (Optional) Run module install/upgrade Job
+        if: github.event_name == 'workflow_dispatch' && (inputs.upgrade_modules != '' || inputs.install_modules != '')
         env:
           IMAGE: ${{ needs.build-and-push.outputs.image }}
           UPGRADE_MODULES: ${{ inputs.upgrade_modules }}
+          INSTALL_MODULES: ${{ inputs.install_modules }}
         run: |
           set -e
           if kubectl -n "${NAMESPACE}" get deployment/odoo >/dev/null 2>&1; then
@@ -280,11 +285,12 @@ jobs:
           kubectl -n "${NAMESPACE}" delete job cadra-upgrade --ignore-not-found
 
           sed -e "s|REPLACE_ME/cadra-odoo:dev|${IMAGE}|g" \
+              -e "s|REPLACE_ME_INSTALL_MODULES|${INSTALL_MODULES}|g" \
               -e "s|REPLACE_ME_UPGRADE_MODULES|${UPGRADE_MODULES}|g" \
               k8s/dev/51-upgrade-job.yaml | kubectl apply -f -
 
           kubectl -n "${NAMESPACE}" wait --for=condition=complete job/cadra-upgrade --timeout=20m
-          echo "─── upgrade Job logs ───"
+          echo "─── install/upgrade Job logs ───"
           kubectl -n "${NAMESPACE}" logs job/cadra-upgrade --all-containers --tail=200
 
       - name: Apply Odoo Deployment with new image
