@@ -33,12 +33,22 @@ kubectl -n $NS wait --for=delete pod -l app=odoo --timeout=120s
 kubectl -n $NS exec statefulset/db -- \
   psql -U odoo -d postgres -c 'ALTER DATABASE odoo RENAME TO staging;'
 
-# 3. Rename the filestore to match (Odoo keys the filestore by DB name).
-#    Run in a throwaway pod that mounts the odoo-filestore PVC, or exec a
-#    short-lived odoo pod:
+# 3. REQUIRED — move the filestore to match (Odoo keys the filestore by DB
+#    name: it reads filestore/<db>/). SKIPPING THIS = every attachment and
+#    compiled asset bundle 404s, leaving /web blank with
+#    "odoo.define is not a function" (web.assets_common 404). The DB rename
+#    alone is NOT enough.
 kubectl -n $NS exec deploy/odoo -- \
-  sh -c 'mv /var/lib/odoo/filestore/odoo /var/lib/odoo/filestore/staging' \
-  || echo "do this via a maintenance pod if the deploy is scaled to 0"
+  sh -c 'mv /var/lib/odoo/filestore/odoo /var/lib/odoo/filestore/staging'
+#    If `staging/` already exists (e.g. a module was installed before this
+#    step ran), merge instead of move:
+#      kubectl -n $NS exec deploy/odoo -- \
+#        sh -c 'cd /var/lib/odoo/filestore && cp -rn odoo/. staging/'
+#
+#    NO CLUSTER ACCESS? Do it through CI instead (the Actions runner has
+#    kubectl) — this merges old -> new on the live pod:
+#      gh workflow run deploy-dev.yml --ref dev \
+#        -f filestore_from=odoo -f filestore_to=staging
 
 # 4. Point the bootstrap/upgrade Jobs at the new name: set the POSTGRES_DB
 #    repo variable (used by .github/workflows/deploy-dev.yml) to "staging",
