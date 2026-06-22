@@ -24,13 +24,25 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-send-timeout: "720"
 spec:
   ingressClassName: nginx
+  # One SAN cert (HTTP-01) covering every tenant host. Add new clients to BOTH
+  # this list and the rules below. (A wildcard *.cadra.ng would remove the
+  # per-client edit, but needs a DNS-01 issuer — deferred until onboarding
+  # cadence justifies it.)
   tls:
     - hosts:
         - staging.app.cadra.ng
+        - nrs.cadra.ng
       secretName: cadra-tls
   rules:
-    - host: staging.app.cadra.ng
-      http:
+    # Each tenant host reuses the same path routing (anchored below). The
+    # tenant database is selected by Odoo's dbfilter from the host's first
+    # label, so <client>.cadra.ng -> DB "<client>" (see 10-configmap-odoo.yaml).
+    #
+    # To onboard a client: (1) add its host here with `http: *odoo-paths`,
+    # (2) add the host to the tls list above, (3) create + bootstrap the DB
+    # named after the subdomain label, (4) point DNS at the ingress LB.
+    - host: staging.app.cadra.ng   # -> DB "staging"
+      http: &odoo-paths
         paths:
           # Modern React SPA — served by the `frontend` Service. Must precede
           # the `/` catch-all so /app/* doesn't fall through to Odoo.
@@ -62,3 +74,5 @@ spec:
                 name: odoo
                 port:
                   number: 8069
+    - host: nrs.cadra.ng           # -> DB "nrs"
+      http: *odoo-paths

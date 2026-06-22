@@ -1,0 +1,98 @@
+# Multi-tenant routing (subdomain → database)
+
+One Odoo deployment serves every client. The database is chosen **per request**
+from the host's first label via Odoo's `dbfilter = ^%d$`:
+
+| URL | `%d` | Database |
+|-----|------|----------|
+| `staging.app.cadra.ng` | `staging` | `staging` |
+| `nrs.cadra.ng` | `nrs` | `nrs` |
+| `jizzy.cadra.ng` | `jizzy` | `jizzy` |
+
+**Invariant: the database name MUST equal the subdomain's first label.**
+
+Config lives in:
+- [`10-configmap-odoo.yaml`](10-configmap-odoo.yaml) — `dbfilter = ^%d$`, `list_db = False`, no `db_name`.
+- [`41-odoo-deployment.yaml`](41-odoo-deployment.yaml) — server writes **no** `db_name`; probes carry a `Host` header for a real tenant.
+- [`60-ingress.yaml`](60-ingress.yaml) — one host rule per tenant (shared `*odoo-paths` anchor) + a SAN TLS cert.
+
+---
+
+## One-time migration: rename the staging DB `odoo` → `staging`
+
+The pre-existing staging database is named `odoo`, but `staging.app.cadra.ng`
+resolves to `%d = staging`. Reconcile once:
+
+```sh
+NS=cadra-dev
+# 1. Stop the server so nothing holds a connection to the source DB.
+kubectl -n $NS scale deploy/odoo --replicas=0
+kubectl -n $NS wait --for=delete pod -l app=odoo --timeout=120s
+
+# 2. Rename the database (run inside the postgres pod, as the odoo superuser).
+kubectl -n $NS exec statefulset/db -- \
+  psql -U odoo -d postgres -c 'ALTER DATABASE odoo RENAME TO staging;'
+
+# 3. Rename the filestore to match (Odoo keys the filestore by DB name).
+#    Run in a throwaway pod that mounts the odoo-filestore PVC, or exec a
+#    short-lived odoo pod:
+kubectl -n $NS exec deploy/odoo -- \
+  sh -c 'mv /var/lib/odoo/filestore/odoo /var/lib/odoo/filestore/staging' \
+  || echo "do this via a maintenance pod if the deploy is scaled to 0"
+
+# 4. Point the bootstrap/upgrade Jobs at the new name: set the POSTGRES_DB
+#    repo variable (used by .github/workflows/deploy-dev.yml) to "staging",
+#    OR patch the secret directly:
+kubectl -n $NS create secret generic cadra-db \
+  --from-literal=POSTGRES_DB=staging \
+  --from-literal=POSTGRES_USER=odoo \
+  --from-literal=POSTGRES_PASSWORD=<pw> \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+# 5. Apply the updated config + bring the server back.
+kubectl -n $NS apply -f 10-configmap-odoo.yaml -f 41-odoo-deployment.yaml -f 60-ingress.yaml
+kubectl -n $NS scale deploy/odoo --replicas=1
+```
+
+---
+
+## Onboard a new client (e.g. `jizzy`)
+
+1. **DNS** — point `jizzy.cadra.ng` at the ingress LoadBalancer.
+2. **Ingress** — in [`60-ingress.yaml`](60-ingress.yaml): add `jizzy.cadra.ng`
+   to the `tls.hosts` list and add a rule `- host: jizzy.cadra.ng` with
+   `http: *odoo-paths`. Apply it (cert-manager re-issues the SAN cert).
+3. **Brand** — copy `cadra_brand_nrs` → `cadra_brand_jizzy`, change the 3
+   `--brand-primary*` hexes + `cadra.brand_short_name`, and add it to
+   `CADRA_BOOTSTRAP_MODULES`.
+4. **Database** — create + bootstrap a DB named exactly `jizzy`:
+   ```sh
+   kubectl -n cadra-dev exec deploy/odoo -- \
+     odoo -d jizzy -i <CADRA_BOOTSTRAP_MODULES> --stop-after-init --no-http
+   ```
+   (or run the bootstrap Job with `POSTGRES_DB=jizzy`).
+5. **Seed** — run that client's seed script against DB `jizzy`.
+
+`https://jizzy.cadra.ng` now serves the Jizzy tenant. No new pods.
+
+---
+
+## Test the routing locally (without disturbing your running dev stack)
+
+Local dev keeps `db_name = odoo` and **no** dbfilter, so `localhost` works as
+usual. To verify host→DB routing, launch a throwaway server with dbfilter on a
+spare port and curl it with `Host:` headers (this is exactly how the mechanism
+was validated):
+
+```sh
+docker run --rm -d --name dbfilter-test \
+  --network myservicenrs_default -p 8099:8069 \
+  -v "$PWD":/mnt/extra-addons:ro cadra-odoo:15.0-dev \
+  odoo --db_host=db --db_user=odoo --db_password=odoo \
+       --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons,/mnt/extra-addons/dist \
+       --db-filter='^%d$' --workers=0 --max-cron-threads=0
+
+curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: odoo.cadra.ng'  localhost:8099/web/login  # 200 (DB odoo)
+curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: jizzy.cadra.ng' localhost:8099/web/login  # 303 (no DB)
+docker rm -f dbfilter-test
+```

@@ -6,7 +6,7 @@ metadata:
 data:
   # Comma-separated module list consumed by `odoo -i` during the bootstrap Job.
   # Mirrors CADRA_BOOTSTRAP_MODULES in .env.example.
-  CADRA_BOOTSTRAP_MODULES: "myservice_api,myservice_asset_register,myservice_barcode_station,myservice_dashboard,myservice_email_relay,myservice_fleet_maintenance,myservice_fm_dashboard,myservice_identity,myservice_nrs_base,cadra_brand_nrs,myservice_request_fields,myservice_security,myservice_staff_bus,myservice_theme_v5,myservice_website_theme,myservice_workflow,web_responsive,cadra_brand_nrs"
+  CADRA_BOOTSTRAP_MODULES: "myservice_api,myservice_asset_register,myservice_barcode_station,myservice_dashboard,myservice_email_relay,myservice_fleet_maintenance,myservice_fm_dashboard,myservice_identity,myservice_nrs_base,cadra_brand_nrs,myservice_request_fields,myservice_security,myservice_staff_bus,myservice_theme_v5,myservice_website_theme,myservice_workflow,web_responsive"
 
   # Seed profiles (defined in scripts/bootstrap.py):
   #   core            = ITSM + Nigeria locations + 415 FIRS offices (v1 loader)

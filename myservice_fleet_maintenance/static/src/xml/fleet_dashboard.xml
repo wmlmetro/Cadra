@@ -82,7 +82,7 @@
     <!-- Map -->
     <div class="flt-card" style="margin-top:16px;">
         <div class="flt-card-header">
-            <span class="flt-card-title">NRS Office Locations</span>
+            <span class="flt-card-title"><span class="o_brand_code">NRS</span> Office Locations</span>
             <span class="flt-card-count">Vehicle deployment map</span>
         </div>
         <div id="fleet-map"/>

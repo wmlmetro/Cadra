@@ -4,6 +4,7 @@ odoo.define('myservice_dashboard.Dashboard', function (require) {
     const AbstractAction = require('web.AbstractAction');
     const core = require('web.core');
     const rpc = require('web.rpc');
+    const session = require('web.session');
 
     const LEAFLET_CSS = '/myservice_dashboard/static/lib/leaflet/leaflet.css';
     const LEAFLET_JS  = '/myservice_dashboard/static/lib/leaflet/leaflet.js';
@@ -93,6 +94,9 @@ odoo.define('myservice_dashboard.Dashboard', function (require) {
         },
         start: async function() {
             await this._super.apply(this, arguments);
+            if (session.brand_short_name) {
+                this.$('.o_brand_code').text(session.brand_short_name);
+            }
             await loadLeaflet();
             this._initTabs();
             await this._loadData();

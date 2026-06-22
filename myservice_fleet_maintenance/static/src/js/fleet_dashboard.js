@@ -4,6 +4,7 @@ odoo.define('myservice_fleet_maintenance.FleetDashboard', function (require) {
     var AbstractAction = require('web.AbstractAction');
     var core = require('web.core');
     var ajax = require('web.ajax');
+    var session = require('web.session');
 
     var MAINT_BADGE = {
         ok:          { label: 'OK',          bg: '#ECFDF5', fg: '#065F46' },
@@ -29,12 +30,20 @@ odoo.define('myservice_fleet_maintenance.FleetDashboard', function (require) {
             var self = this;
             this._data = {};
             return this._super.apply(this, arguments).then(function () {
+                self._applyBrandCode();
                 self._bindEvents();
                 self._loadData();
                 self._refreshTimer = setInterval(function () {
                     self._loadData();
                 }, 180000);
             });
+        },
+
+        // Per-client brand tag, surfaced via session_info (cadra.brand_short_name).
+        _applyBrandCode: function () {
+            if (session.brand_short_name) {
+                this.$('.o_brand_code').text(session.brand_short_name);
+            }
         },
 
         destroy: function () {

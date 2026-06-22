@@ -6,9 +6,9 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap');
 
 :root {
-    --nrs-red:      #C8102E;
-    --nrs-red-d:    #A00D24;
-    --nrs-red-bg:   #FBE9EC;
+    --nrs-red:      var(--brand-primary,       #C8102E);
+    --nrs-red-d:    var(--brand-primary-dark,  #A00D24);
+    --nrs-red-bg:   var(--brand-primary-light, #FBE9EC);
     --nrs-topbar:   #FFFFFF;
     --nrs-sidebar:  #FFFFFF;
     --nrs-bg:       #F0F1F3;
