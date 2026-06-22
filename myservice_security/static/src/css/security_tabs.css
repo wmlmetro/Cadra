@@ -41,7 +41,7 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #C8102E;
+    background: var(--nrs-red);
     flex-shrink: 0;
 }
 .nrs-tabs {
@@ -74,8 +74,8 @@
     background: #F9FAFB;
 }
 .nrs-tab.active {
-    color: #C8102E;
-    border-bottom-color: #C8102E;
+    color: var(--nrs-red);
+    border-bottom-color: var(--nrs-red);
     font-weight: 600;
 }
 
@@ -216,7 +216,7 @@
     width: 14px;
     height: 14px;
     border: 2px solid #E5E7EB;
-    border-top-color: #C8102E;
+    border-top-color: var(--nrs-red);
     border-radius: 50%;
     animation: nrs-spin 0.7s linear infinite;
     margin-right: 8px;

@@ -1,6 +1,6 @@
 /* NRS myservice Barcode Station v4 */
 /* Fonts loaded via myservice_nrs_base/views/assets.xml */
-:root{--r:#C8102E;--rd:#A00D24;--rb:#FBE9EC;--bg:#F0F1F3;--w:#FFFFFF;--p:#F8F9FA;--b1:#E4E6EA;--b2:#CDD0D6;--ink:#0D1117;--ink1:#1C2128;--mid:#444D56;--muted:#6A737D;--ghost:#959DA5;--faint:#C0C5CC;--sans:'DM Sans',system-ui,sans-serif;--mono:'DM Mono',monospace}
+:root{--r:var(--brand-primary,#C8102E);--rd:var(--brand-primary-dark,#A00D24);--rb:var(--brand-primary-light,#FBE9EC);--bg:#F0F1F3;--w:#FFFFFF;--p:#F8F9FA;--b1:#E4E6EA;--b2:#CDD0D6;--ink:#0D1117;--ink1:#1C2128;--mid:#444D56;--muted:#6A737D;--ghost:#959DA5;--faint:#C0C5CC;--sans:'DM Sans',system-ui,sans-serif;--mono:'DM Mono',monospace}
 .ms-bc-station{background:var(--bg);min-height:100vh;font-family:var(--sans)}
 .ms-bc-header{background:var(--w);border-bottom:1px solid var(--b1);padding:12px 22px;display:flex;align-items:center;justify-content:space-between}
 .ms-bc-title{font-size:16px;font-weight:600;color:var(--ink);letter-spacing:-.3px}
