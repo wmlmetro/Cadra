@@ -57,7 +57,7 @@
 
                 <div class="oe_title">
                     <h1><field name="name" readonly="1"
-                               style="color:#C8102E;font-family:monospace;"/></h1>
+                               style="color:var(--nrs-red);font-family:monospace;"/></h1>
                 </div>
 
                 <group>
@@ -137,7 +137,7 @@
                         #{record.sla_breached.raw_value ? 'border-danger' : ''}">
                         <div class="o_kanban_record_top">
                             <div class="o_kanban_record_headings">
-                                <strong style="color:#C8102E;font-family:monospace;font-size:12px;">
+                                <strong style="color:var(--nrs-red);font-family:monospace;font-size:12px;">
                                     <field name="name"/>
                                 </strong>
                             </div>

@@ -31,7 +31,7 @@
 .o_main_navbar .o_menu_sections > li.active > span,
 .o_main_navbar .o_menu_sections > li > a.active {
     color: #ffffff !important;
-    border-bottom-color: #c8102e !important;   /* NRS red underline */
+    border-bottom-color: var(--nrs-red) !important;   /* NRS red underline */
     background: transparent !important;
 }
 

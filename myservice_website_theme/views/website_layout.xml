@@ -3,15 +3,15 @@
     <!-- Override footer with NRS branded footer -->
     <template id="nrs_footer" inherit_id="website.footer_custom" name="NRS Footer" priority="20">
         <xpath expr="//div[@id='footer']" position="replace">
-            <div id="footer" class="o_footer" style="background:#1A1A1A;border-top:3px solid #C8102E;padding:40px 0 0;">
+            <div id="footer" class="o_footer" style="background:#1A1A1A;border-top:3px solid var(--nrs-red);padding:40px 0 0;">
                 <div class="container">
                     <div class="row">
                         <div class="col-md-4 mb-4">
                             <img src="/web/image/res.company/1/logo"
-                                 alt="NRS"
+                                 t-att-alt="res_company.name"
                                  style="height:40px;width:auto;filter:brightness(0) invert(1);margin-bottom:16px;display:block;"/>
                             <p style="color:#9CA3AF;font-size:13px;line-height:1.7;">
-                                Nigeria Revenue Service — myservice platform for facilities and resource management.
+                                <t t-esc="res_company.name"/> — facilities and resource management platform.
                             </p>
                         </div>
                         <div class="col-md-2 mb-4">
@@ -35,12 +35,12 @@
                         <div class="col-md-3 mb-4">
                             <h5 style="color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px;">Support</h5>
                             <p style="color:#9CA3AF;font-size:13px;">Help Desk hours: Mon–Fri, 8am–5pm WAT</p>
-                            <a href="/service-request" style="display:inline-block;margin-top:8px;background:#C8102E;color:#fff;padding:8px 18px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;">Submit a Request</a>
+                            <a href="/service-request" style="display:inline-block;margin-top:8px;background:var(--nrs-red);color:#fff;padding:8px 18px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;">Submit a Request</a>
                         </div>
                     </div>
                 </div>
                 <div style="border-top:1px solid #2A2A2A;margin-top:20px;padding:14px 0;text-align:center;">
-                    <span style="color:#6B7280;font-size:12px;">© 2025 Nigeria Revenue Service. All rights reserved. Powered by <span style="color:#C8102E;">WestMetro Limited</span></span>
+                    <span style="color:#6B7280;font-size:12px;">© <t t-esc="res_company.name"/>. All rights reserved. Powered by <span style="color:var(--nrs-red);">WestMetro Limited</span></span>
                 </div>
             </div>
         </xpath>
