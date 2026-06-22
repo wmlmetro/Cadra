@@ -1,0 +1,325 @@
+name: deploy-gtb
+
+# Builds the Cadra Odoo image, pushes it to DigitalOcean Container Registry,
+# and rolls the gtb-dev namespace on the DOKS cluster (parallel GTB instance).
+# Same cluster + registry + GitHub secrets as deploy-dev; only the namespace,
+# the k8s/gtb overlay, the image tag prefix (gtb-) and the brand layer differ.
+#
+# Required GitHub secrets:
+#   DIGITALOCEAN_ACCESS_TOKEN   PAT with `read/write` on registry + k8s scopes
+#   POSTGRES_PASSWORD           Postgres password (any strong random string)
+#   ODOO_MASTER_PASSWORD        Odoo master password (DB manager UI auth)
+#   CADRA_JWT_SECRET            JWT signing key, ≥48 chars random (openssl rand -hex 32)
+#   CADRA_TEST_CLIENT_SECRET    Smoke-test API client secret
+#   SMTP_PASS                   (optional) Outbound SMTP password / app password
+#   CADRA_EMAIL_RELAY_SECRET    (optional) Shared secret for the HTTPS email relay
+#                                — required if CADRA_EMAIL_RELAY_URL is set
+#
+# Required GitHub repository variables (Settings → Secrets and variables → Actions → Variables):
+#   DO_REGISTRY_NAME            e.g. "cadra"  → registry.digitalocean.com/cadra/cadra-odoo
+#   DO_CLUSTER_NAME             e.g. "cadra-dev"
+#   POSTGRES_DB                 (optional, default "odoo") DB name
+#   POSTGRES_USER               (optional, default "odoo") DB user
+#   SMTP_HOST                   (optional) Outbound SMTP host, e.g. smtp.zoho.com
+#   SMTP_PORT                   (optional, default 587)
+#   SMTP_USER                   (optional) SMTP username (full email for Zoho/Gmail)
+#   SMTP_ENCRYPTION             (optional, default starttls) none|starttls|ssl
+#   EMAIL_FROM                  (optional) default From address, e.g. Hello@cadra.ng
+#   CADRA_EMAIL_RELAY_URL       (optional) HTTPS relay endpoint that bypasses
+#                                the DO SMTP egress block. Example:
+#                                https://staging.akraa.io/api/v1/public/email/send
+#
+# One-time prerequisites (NOT done by this workflow):
+#   - DOKS cluster exists; ingress-nginx + cert-manager installed.
+#   - DNS for the ingress host points at the cluster's LoadBalancer.
+
+on:
+  push:
+    branches: ["gtb"]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".gitignore"
+  workflow_dispatch:
+    inputs:
+      run_bootstrap:
+        description: "Re-run the bootstrap Job (install modules + seed). Required on the first deploy."
+        type: boolean
+        default: false
+      upgrade_modules:
+        description: "Comma-separated modules to upgrade (e.g. 'myservice_nrs_base'). Leave blank to skip. Use after a manifest change (asset list, new data files, version bump)."
+        type: string
+        default: ""
+
+concurrency:
+  group: deploy-gtb
+  cancel-in-progress: false   # Don't kill a deploy mid-flight; queue instead.
+
+env:
+  IMAGE_NAME: cadra-odoo
+  FRONTEND_IMAGE_NAME: cadra-frontend
+  NAMESPACE: gtb-dev
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Log into DigitalOcean Container Registry
+        run: doctl registry login --expiry-seconds 1200
+
+      - name: Compute image reference
+        id: meta
+        run: |
+          SHA_SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
+          IMAGE="registry.digitalocean.com/${{ vars.DO_REGISTRY_NAME }}/${IMAGE_NAME}:gtb-${SHA_SHORT}"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "Image: ${IMAGE}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.odoo.k8s
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            registry.digitalocean.com/${{ vars.DO_REGISTRY_NAME }}/${{ env.IMAGE_NAME }}:gtb-latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+  # Modern React SPA. Builds in parallel with the Odoo image; deploy step
+  # waits for both. The bundle lands behind nginx and is routed at /app/*
+  # by the shared ingress (see k8s/gtb/60-ingress.yaml).
+  build-and-push-frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Log into DigitalOcean Container Registry
+        run: doctl registry login --expiry-seconds 1200
+
+      - name: Compute image reference
+        id: meta
+        run: |
+          SHA_SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
+          IMAGE="registry.digitalocean.com/${{ vars.DO_REGISTRY_NAME }}/${FRONTEND_IMAGE_NAME}:gtb-${SHA_SHORT}"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "Image: ${IMAGE}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: Frontend/artifacts/nrs-asset-register
+          file: Frontend/artifacts/nrs-asset-register/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            registry.digitalocean.com/${{ vars.DO_REGISTRY_NAME }}/${{ env.FRONTEND_IMAGE_NAME }}:gtb-latest
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+          platforms: linux/amd64
+
+  deploy:
+    needs: [build-and-push, build-and-push-frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    permissions:
+      contents: read
+    environment:
+      name: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Save DOKS kubeconfig
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 1200 "${{ vars.DO_CLUSTER_NAME }}"
+
+      - name: Ensure namespace exists
+        run: kubectl apply -f k8s/gtb/00-namespace.yaml
+
+      # Upsert the two K8s Secrets from GitHub Actions secrets.
+      # `--dry-run=client -o yaml | kubectl apply -f -` is the idiomatic
+      # idempotent "create or replace" for opaque Secrets — values that
+      # don't change generate a no-op apply; rotated values roll the
+      # Deployment on the next pod restart.
+      - name: Sync K8s Secrets from GitHub Secrets
+        env:
+          POSTGRES_DB: ${{ vars.POSTGRES_DB || 'odoo' }}
+          POSTGRES_USER: ${{ vars.POSTGRES_USER || 'odoo' }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          ODOO_MASTER_PASSWORD: ${{ secrets.ODOO_MASTER_PASSWORD }}
+          CADRA_JWT_SECRET: ${{ secrets.CADRA_JWT_SECRET }}
+          CADRA_TEST_CLIENT_SECRET: ${{ secrets.CADRA_TEST_CLIENT_SECRET }}
+          SMTP_HOST: ${{ vars.SMTP_HOST }}
+          SMTP_PORT: ${{ vars.SMTP_PORT || '587' }}
+          SMTP_USER: ${{ vars.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_ENCRYPTION: ${{ vars.SMTP_ENCRYPTION || 'starttls' }}
+          EMAIL_FROM: ${{ vars.EMAIL_FROM }}
+          CADRA_EMAIL_RELAY_URL: ${{ vars.CADRA_EMAIL_RELAY_URL }}
+          CADRA_EMAIL_RELAY_SECRET: ${{ secrets.CADRA_EMAIL_RELAY_SECRET }}
+        run: |
+          set -e
+          : "${POSTGRES_PASSWORD:?GitHub secret POSTGRES_PASSWORD is required}"
+          : "${ODOO_MASTER_PASSWORD:?GitHub secret ODOO_MASTER_PASSWORD is required}"
+          : "${CADRA_JWT_SECRET:?GitHub secret CADRA_JWT_SECRET is required}"
+          : "${CADRA_TEST_CLIENT_SECRET:?GitHub secret CADRA_TEST_CLIENT_SECRET is required}"
+
+          kubectl -n "${NAMESPACE}" create secret generic cadra-db \
+            --from-literal=POSTGRES_DB="${POSTGRES_DB}" \
+            --from-literal=POSTGRES_USER="${POSTGRES_USER}" \
+            --from-literal=POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          # SMTP_* are optional — if SMTP_HOST is unset, bootstrap.py treats
+          # the whole mail-server step as a no-op. We still write empty keys
+          # so the Deployment/Job envFrom references don't crash.
+          kubectl -n "${NAMESPACE}" create secret generic cadra-odoo \
+            --from-literal=ODOO_MASTER_PASSWORD="${ODOO_MASTER_PASSWORD}" \
+            --from-literal=CADRA_JWT_SECRET="${CADRA_JWT_SECRET}" \
+            --from-literal=CADRA_TEST_CLIENT_SECRET="${CADRA_TEST_CLIENT_SECRET}" \
+            --from-literal=SMTP_HOST="${SMTP_HOST}" \
+            --from-literal=SMTP_PORT="${SMTP_PORT}" \
+            --from-literal=SMTP_USER="${SMTP_USER}" \
+            --from-literal=SMTP_PASS="${SMTP_PASS}" \
+            --from-literal=SMTP_ENCRYPTION="${SMTP_ENCRYPTION}" \
+            --from-literal=EMAIL_FROM="${EMAIL_FROM}" \
+            --from-literal=CADRA_EMAIL_RELAY_URL="${CADRA_EMAIL_RELAY_URL}" \
+            --from-literal=CADRA_EMAIL_RELAY_SECRET="${CADRA_EMAIL_RELAY_SECRET}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Apply ConfigMaps + Postgres + filestore (workflow owns these)
+        run: |
+          kubectl apply -f k8s/gtb/10-configmap-odoo.yaml
+          kubectl apply -f k8s/gtb/11-configmap-bootstrap.yaml
+          kubectl apply -f k8s/gtb/30-postgres-statefulset.yaml
+          kubectl apply -f k8s/gtb/31-postgres-service.yaml
+          kubectl apply -f k8s/gtb/40-odoo-pvc.yaml
+          kubectl apply -f k8s/gtb/42-odoo-service.yaml
+
+      - name: Wait for Postgres ready
+        run: |
+          kubectl -n "${NAMESPACE}" rollout status statefulset/db --timeout=5m
+
+      # The Job and the Deployment both want the filestore PVC (RWO), so they
+      # can't co-exist. For routine rolls we skip the Job (modules + seed are
+      # already in the DB). For the first deploy — or any time we want to
+      # re-run install/seed — set `run_bootstrap=true` on workflow_dispatch.
+      - name: (Optional) Run bootstrap Job
+        if: github.event_name == 'workflow_dispatch' && inputs.run_bootstrap == true
+        env:
+          IMAGE: ${{ needs.build-and-push.outputs.image }}
+        run: |
+          set -e
+          # Scale Odoo to 0 so the Deployment releases the PVC for the Job.
+          # (kubectl scale has no --ignore-not-found, and on the very first
+          # bootstrap the Deployment doesn't exist yet — guard with a get.)
+          if kubectl -n "${NAMESPACE}" get deployment/odoo >/dev/null 2>&1; then
+            kubectl -n "${NAMESPACE}" scale deployment/odoo --replicas=0
+            # Wait for the pod to actually terminate (releases the volume).
+            kubectl -n "${NAMESPACE}" wait --for=delete pod -l app=odoo,job!=bootstrap --timeout=2m || true
+          fi
+
+          # Jobs are immutable — delete any prior run before re-applying.
+          kubectl -n "${NAMESPACE}" delete job cadra-bootstrap --ignore-not-found
+
+          # Materialize the image tag into the Job manifest.
+          sed "s|REPLACE_ME/cadra-odoo:dev|${IMAGE}|g" k8s/gtb/50-bootstrap-job.yaml | kubectl apply -f -
+
+          kubectl -n "${NAMESPACE}" wait --for=condition=complete job/cadra-bootstrap --timeout=60m
+          echo "─── bootstrap Job logs ───"
+          kubectl -n "${NAMESPACE}" logs job/cadra-bootstrap --all-containers --tail=200
+
+      # Same Deployment-vs-Job PVC contention as bootstrap: scale Odoo to 0,
+      # run the upgrade, then let the next step roll the Deployment back up
+      # with the new image. Triggered only on workflow_dispatch when the
+      # `upgrade_modules` input is non-empty.
+      - name: (Optional) Run module-upgrade Job
+        if: github.event_name == 'workflow_dispatch' && inputs.upgrade_modules != ''
+        env:
+          IMAGE: ${{ needs.build-and-push.outputs.image }}
+          UPGRADE_MODULES: ${{ inputs.upgrade_modules }}
+        run: |
+          set -e
+          if kubectl -n "${NAMESPACE}" get deployment/odoo >/dev/null 2>&1; then
+            kubectl -n "${NAMESPACE}" scale deployment/odoo --replicas=0
+            kubectl -n "${NAMESPACE}" wait --for=delete pod -l app=odoo,job!=upgrade --timeout=2m || true
+          fi
+
+          kubectl -n "${NAMESPACE}" delete job cadra-upgrade --ignore-not-found
+
+          sed -e "s|REPLACE_ME/cadra-odoo:dev|${IMAGE}|g" \
+              -e "s|REPLACE_ME_UPGRADE_MODULES|${UPGRADE_MODULES}|g" \
+              k8s/gtb/51-upgrade-job.yaml | kubectl apply -f -
+
+          kubectl -n "${NAMESPACE}" wait --for=condition=complete job/cadra-upgrade --timeout=20m
+          echo "─── upgrade Job logs ───"
+          kubectl -n "${NAMESPACE}" logs job/cadra-upgrade --all-containers --tail=200
+
+      - name: Apply Odoo Deployment with new image
+        env:
+          IMAGE: ${{ needs.build-and-push.outputs.image }}
+        run: |
+          sed "s|REPLACE_ME/cadra-odoo:dev|${IMAGE}|g" k8s/gtb/41-odoo-deployment.yaml | kubectl apply -f -
+
+      - name: Apply Frontend Service + Deployment with new image
+        env:
+          FRONTEND_IMAGE: ${{ needs.build-and-push-frontend.outputs.image }}
+        run: |
+          kubectl apply -f k8s/gtb/44-frontend-service.yaml
+          sed "s|REPLACE_ME/cadra-frontend:dev|${FRONTEND_IMAGE}|g" k8s/gtb/43-frontend-deployment.yaml | kubectl apply -f -
+
+      - name: Apply Ingress
+        run: kubectl apply -f k8s/gtb/60-ingress.yaml
+
+      - name: Wait for Odoo rollout
+        run: kubectl -n "${NAMESPACE}" rollout status deployment/odoo --timeout=10m
+
+      - name: Wait for Frontend rollout
+        run: kubectl -n "${NAMESPACE}" rollout status deployment/frontend --timeout=5m
+
+      - name: Show pod state on failure
+        if: failure()
+        run: |
+          kubectl -n "${NAMESPACE}" get pods,svc,ingress,pvc -o wide || true
+          kubectl -n "${NAMESPACE}" describe deployment/odoo || true
+          kubectl -n "${NAMESPACE}" describe deployment/frontend || true
+          echo "─── recent events ───"
+          kubectl -n "${NAMESPACE}" get events --sort-by=.lastTimestamp | tail -30 || true
+          echo "─── odoo pod logs (last 200) ───"
+          kubectl -n "${NAMESPACE}" logs -l app=odoo --tail=200 --all-containers || true
+          echo "─── frontend pod logs (last 100) ───"
+          kubectl -n "${NAMESPACE}" logs -l app=frontend --tail=100 --all-containers || true

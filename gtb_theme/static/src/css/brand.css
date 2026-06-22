@@ -1,0 +1,57 @@
+/* ================================================================
+   GTB brand layer
+   Overrides the shared NRS design tokens (defined in
+   myservice_nrs_base/nrs_base.css and consumed across every dashboard)
+   with GTB colours, and swaps the navbar wordmark.
+
+   Loaded after myservice_theme_v5's CSS (dependency order), so these
+   :root declarations win the cascade by source order.
+
+   ⚠️ PLACEHOLDER COLOURS — replace the four brand hexes below with the
+      official GTB palette when available. Everything else is derived
+      from these tokens, so this is the only block you normally touch.
+   ================================================================ */
+
+:root {
+    /* ── GTB primary (placeholder: GTBank orange) ──────────────── */
+    --nrs-red:        #E35205;   /* primary brand */
+    --nrs-red-dark:   #B8420A;   /* hover / pressed */
+    --nrs-red-light:  #FDEEE5;   /* tint / active background */
+
+    /* Keep "danger" a true red so error states don't read as brand. */
+    --nrs-danger:     #DC2626;
+
+    /* ── Sidebar active state (sidebar.css hard-codes a pink literal;
+          re-point it at the brand tint). ──────────────────────── */
+    --nrs-sidebar-active-bg: var(--nrs-red-light);
+}
+
+/* ── Navbar wordmark (shown only when the sidebar is hidden/collapsed;
+      the sidebar itself shows the company logo). ─────────────────── */
+.o_main_navbar .o_menu_brand::before {
+    content: "GTB" !important;
+    color: var(--nrs-red) !important;
+}
+
+/* ── Re-tint the few brand literals baked into myservice_theme_v5 ── */
+.o_field_widget input:focus,
+.o_field_widget textarea:focus {
+    box-shadow: 0 0 0 3px rgba(227, 82, 5, .10) !important;
+}
+
+.nrs-tile:hover {
+    background: var(--nrs-red-light) !important;
+}
+.nrs-tile-featured:hover {
+    background: #FBDFCD !important;
+}
+
+.o_navbar_apps_menu .dropdown-menu .o_app a:hover,
+.o_navbar_apps_menu .dropdown-menu .o_app a:focus {
+    background: var(--nrs-red-light) !important;
+}
+
+.o_navbar_apps_menu .search-container .search-result.highlight,
+.o_navbar_apps_menu .search-container .search-result:hover {
+    background-color: rgba(227, 82, 5, .06) !important;
+}

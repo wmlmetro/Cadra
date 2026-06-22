@@ -1,0 +1,284 @@
+# One-shot bootstrap Job — runs after the Postgres StatefulSet is up but
+# BEFORE the Odoo Deployment claims the filestore PVC. Because the PVC is
+# ReadWriteOnce, the Job and the Deployment cannot run concurrently.
+#
+# In CI the .github/workflows/deploy-dev.yml workflow runs this Job behind a
+# `workflow_dispatch` input (`run_bootstrap=true`). The Secrets it references
+# (cadra-db, cadra-odoo) are synced from GitHub Actions secrets by the same
+# workflow — they are NOT stored in this repo.
+#
+# Manual run (e.g. kubectl from a workstation): create the two Secrets first
+# with `kubectl -n gtb-dev create secret generic cadra-db --from-literal=...`
+# (see deploy-dev.yml for the canonical key set), then apply in order:
+#   kubectl apply -f 00-namespace.yaml -f 10-configmap-odoo.yaml \
+#       -f 11-configmap-bootstrap.yaml -f 30-postgres-statefulset.yaml \
+#       -f 31-postgres-service.yaml -f 40-odoo-pvc.yaml \
+#       -f 50-bootstrap-job.yaml
+#   kubectl -n gtb-dev wait --for=condition=complete job/cadra-bootstrap --timeout=60m
+#   kubectl apply -f 41-odoo-deployment.yaml -f 42-odoo-service.yaml \
+#       -f 60-ingress.yaml
+#
+# Re-run by deleting and reapplying:
+#   kubectl -n gtb-dev delete job cadra-bootstrap
+#   kubectl apply -f 50-bootstrap-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cadra-bootstrap
+  namespace: gtb-dev
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: odoo
+        job: bootstrap
+    spec:
+      restartPolicy: Never
+      securityContext:
+        fsGroup: 101
+      initContainers:
+        - name: wait-for-db
+          image: postgres:13
+          command:
+            - sh
+            - -c
+            - |
+              echo "waiting for postgres at db:5432..."
+              for i in $(seq 1 120); do
+                if pg_isready -h db -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1; then
+                  echo "postgres ready after ${i}s"
+                  exit 0
+                fi
+                sleep 1
+              done
+              echo "FATAL: postgres did not become ready in 120s" >&2
+              exit 1
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_USER
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 64Mi
+
+        - name: install-modules
+          # ─── REPLACE before applying ─────────────────────────────────
+          image: REPLACE_ME/cadra-odoo:dev
+          imagePullPolicy: IfNotPresent
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+              cp /etc/odoo/odoo.conf.template /tmp/odoo.conf
+              # We override command (bypassing /entrypoint.sh), so write the
+              # DB credentials into the conf ourselves.
+              {
+                printf '\nadmin_passwd = %s\n' "$ODOO_MASTER_PASSWORD"
+                printf 'db_user = %s\n' "$USER"
+                printf 'db_password = %s\n' "$PASSWORD"
+              } >> /tmp/odoo.conf
+
+              # Skip install if every requested module is already in state=installed.
+              # PGPASSWORD lets psql connect non-interactively.
+              export PGPASSWORD="$PASSWORD"
+              wanted=$(echo "$CADRA_BOOTSTRAP_MODULES" | tr ',' '\n' | sort -u | wc -l)
+              installed=$(psql -h "$HOST" -U "$USER" -d "$DB" -tAc \
+                  "SELECT count(*) FROM ir_module_module WHERE state='installed' AND name = ANY (string_to_array('$CADRA_BOOTSTRAP_MODULES', ','))" \
+                  2>/dev/null || echo 0)
+
+              if [ "$installed" = "$wanted" ]; then
+                echo "all $wanted modules already installed — skipping -i"
+                exit 0
+              fi
+
+              echo "installing modules: $CADRA_BOOTSTRAP_MODULES"
+              exec odoo -c /tmp/odoo.conf -d "$DB" \
+                -i "$CADRA_BOOTSTRAP_MODULES" \
+                --stop-after-init --no-http
+          env:
+            - name: HOST
+              value: db
+            - name: USER
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_USER
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_PASSWORD
+            - name: DB
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_DB
+            - name: ODOO_MASTER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: ODOO_MASTER_PASSWORD
+          envFrom:
+            - configMapRef:
+                name: odoo-bootstrap
+          volumeMounts:
+            - name: odoo-config
+              mountPath: /etc/odoo/odoo.conf.template
+              subPath: odoo.conf
+              readOnly: true
+            - name: odoo-filestore
+              mountPath: /var/lib/odoo
+          resources:
+            requests:
+              cpu: 200m
+              memory: 1Gi
+            limits:
+              cpu: 1500m
+              memory: 2Gi
+
+      containers:
+        - name: seed
+          # ─── REPLACE before applying ─────────────────────────────────
+          image: REPLACE_ME/cadra-odoo:dev
+          imagePullPolicy: IfNotPresent
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+              cp /etc/odoo/odoo.conf.template /tmp/odoo.conf
+              # We override command (bypassing /entrypoint.sh), so write the
+              # DB credentials into the conf ourselves.
+              {
+                printf '\nadmin_passwd = %s\n' "$ODOO_MASTER_PASSWORD"
+                printf 'db_user = %s\n' "$USER"
+                printf 'db_password = %s\n' "$PASSWORD"
+              } >> /tmp/odoo.conf
+
+              # bootstrap.py sets JWT secret + admin groups + API client + seeds.
+              # Idempotent — re-running on a populated DB is a no-op except for
+              # the credential block it prints at the end.
+              echo "running scripts/bootstrap.py inside odoo shell"
+              odoo shell -c /tmp/odoo.conf -d "$DB" --no-http \
+                <<< "exec(open('/opt/cadra/scripts/bootstrap.py').read())"
+          env:
+            - name: HOST
+              value: db
+            - name: USER
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_USER
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_PASSWORD
+            - name: DB
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_DB
+            - name: ODOO_MASTER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: ODOO_MASTER_PASSWORD
+            - name: CADRA_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: CADRA_JWT_SECRET
+            - name: CADRA_TEST_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: CADRA_TEST_CLIENT_SECRET
+            # SMTP — consumed by bootstrap.py ensure_mail_server(). Blank
+            # SMTP_HOST makes the step a no-op (no record created).
+            - name: SMTP_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: SMTP_HOST
+                  optional: true
+            - name: SMTP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: SMTP_PORT
+                  optional: true
+            - name: SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: SMTP_USER
+                  optional: true
+            - name: SMTP_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: SMTP_PASS
+                  optional: true
+            - name: SMTP_ENCRYPTION
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: SMTP_ENCRYPTION
+                  optional: true
+            - name: EMAIL_FROM
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: EMAIL_FROM
+                  optional: true
+            - name: CADRA_EMAIL_RELAY_URL
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: CADRA_EMAIL_RELAY_URL
+                  optional: true
+            - name: CADRA_EMAIL_RELAY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: CADRA_EMAIL_RELAY_SECRET
+                  optional: true
+          envFrom:
+            - configMapRef:
+                name: odoo-bootstrap
+          volumeMounts:
+            - name: odoo-config
+              mountPath: /etc/odoo/odoo.conf.template
+              subPath: odoo.conf
+              readOnly: true
+            - name: odoo-filestore
+              mountPath: /var/lib/odoo
+          resources:
+            requests:
+              cpu: 200m
+              memory: 1Gi
+            limits:
+              cpu: 1500m
+              memory: 2Gi
+      volumes:
+        - name: odoo-config
+          configMap:
+            name: odoo-config
+        - name: odoo-filestore
+          persistentVolumeClaim:
+            claimName: odoo-filestore

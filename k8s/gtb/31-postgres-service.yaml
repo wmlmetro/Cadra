@@ -1,0 +1,16 @@
+# ClusterIP Service named `db` so the existing `db_host = db` line in
+# odoo.conf (and the HOST=db env var the Odoo image entrypoint expects)
+# resolves without any code change.
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+  namespace: gtb-dev
+spec:
+  selector:
+    app: db
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP

@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: odoo
+  namespace: gtb-dev
+  labels:
+    app: odoo
+spec:
+  replicas: 1
+  strategy:
+    # Odoo can't run two writers against the same DB row state — Recreate
+    # avoids the brief overlap window that RollingUpdate would create.
+    type: Recreate
+  selector:
+    matchLabels:
+      app: odoo
+  template:
+    metadata:
+      labels:
+        app: odoo
+    spec:
+      securityContext:
+        # odoo:15.0 image runs as uid/gid 101 (odoo:odoo). fsGroup ensures
+        # the mounted PVC is group-writable by that user.
+        fsGroup: 101
+      containers:
+        - name: odoo
+          # ─── REPLACE before applying ─────────────────────────────────
+          image: REPLACE_ME/cadra-odoo:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8069
+            - name: longpoll
+              containerPort: 8072
+          env:
+            # Odoo image entrypoint expects HOST/USER/PASSWORD env names.
+            - name: HOST
+              value: db
+            - name: USER
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_USER
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_PASSWORD
+            - name: DB
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_DB
+            - name: ODOO_MASTER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: ODOO_MASTER_PASSWORD
+          envFrom:
+            - configMapRef:
+                name: odoo-bootstrap
+          # We override command (and therefore the image's /entrypoint.sh),
+          # so the DB credentials the entrypoint would normally inject from
+          # HOST/USER/PASSWORD must be written into the conf ourselves.
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+              cp /etc/odoo/odoo.conf.template /tmp/odoo.conf
+              {
+                printf '\nadmin_passwd = %s\n' "$ODOO_MASTER_PASSWORD"
+                printf 'db_user = %s\n' "$USER"
+                printf 'db_password = %s\n' "$PASSWORD"
+                printf 'db_name = %s\n' "$DB"
+              } >> /tmp/odoo.conf
+              exec odoo -c /tmp/odoo.conf \
+                --workers="${ODOO_WORKERS:-1}" \
+                --max-cron-threads="${ODOO_MAX_CRON_THREADS:-1}"
+          volumeMounts:
+            - name: odoo-config
+              mountPath: /etc/odoo/odoo.conf.template
+              subPath: odoo.conf
+              readOnly: true
+            - name: odoo-filestore
+              mountPath: /var/lib/odoo
+          readinessProbe:
+            httpGet:
+              path: /web/login
+              port: 8069
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /web/login
+              port: 8069
+            initialDelaySeconds: 90
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 4
+          resources:
+            requests:
+              cpu: 250m
+              memory: 1Gi
+            limits:
+              cpu: 1500m
+              memory: 2Gi
+      volumes:
+        - name: odoo-config
+          configMap:
+            name: odoo-config
+        - name: odoo-filestore
+          persistentVolumeClaim:
+            claimName: odoo-filestore

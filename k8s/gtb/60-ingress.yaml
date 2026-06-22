@@ -1,0 +1,68 @@
+# nginx Ingress with cert-manager TLS. Path routing:
+#   /app/*        → frontend Service (modern React SPA, 43/44-frontend-*.yaml)
+#   /longpolling  → odoo:8072
+#   /websocket    → odoo:8072
+#   /  (catch)    → odoo:8069 (HTTP workers, including /api/v1/* and /web/*)
+#
+# Pre-reqs in the cluster:
+#   - ingress-nginx controller installed
+#   - cert-manager installed
+#   - DNS A/CNAME for the host below pointing at the ingress controller's
+#     external IP / LB hostname (cert-manager's HTTP-01 challenge needs it)
+#   - the ClusterIssuer in 61-cluster-issuer.yaml applied
+#
+# Edit `host:` to your real domain before applying.
+#
+# ⚠️ GTB PLACEHOLDER HOST — replace every `staging.app.gtb.ng` below with the
+#    real GTB hostname, then point its DNS A record at the same ingress-nginx
+#    LoadBalancer IP used by cadra-dev (see k8s/gtb/CLUSTER-SETUP.md).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cadra
+  namespace: gtb-dev
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "200m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "720"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "720"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - staging.app.gtb.ng
+      secretName: gtb-tls
+  rules:
+    - host: staging.app.gtb.ng
+      http:
+        paths:
+          # Modern React SPA — served by the `frontend` Service. Must precede
+          # the `/` catch-all so /app/* doesn't fall through to Odoo.
+          - path: /app
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+          - path: /longpolling
+            pathType: Prefix
+            backend:
+              service:
+                name: odoo
+                port:
+                  number: 8072
+          - path: /websocket
+            pathType: Prefix
+            backend:
+              service:
+                name: odoo
+                port:
+                  number: 8072
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: odoo
+                port:
+                  number: 8069

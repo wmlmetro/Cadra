@@ -34,6 +34,7 @@ COPY --chown=odoo:odoo myservice_staff_bus         /mnt/extra-addons/myservice_s
 COPY --chown=odoo:odoo myservice_theme_v5          /mnt/extra-addons/myservice_theme_v5/
 COPY --chown=odoo:odoo myservice_website_theme     /mnt/extra-addons/myservice_website_theme/
 COPY --chown=odoo:odoo myservice_workflow          /mnt/extra-addons/myservice_workflow/
+COPY --chown=odoo:odoo gtb_theme                   /mnt/extra-addons/gtb_theme/
 
 # OCA + vendored bundle (provides web_responsive and ITSM dependencies).
 # addons_path in odoo.conf already includes /mnt/extra-addons/dist.

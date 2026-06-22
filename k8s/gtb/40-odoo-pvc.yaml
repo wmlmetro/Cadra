@@ -1,0 +1,12 @@
+# Odoo filestore — attachments, binary fields, sessions.
+# Equivalent to the cadra_odoo_data volume in docker-compose.yml.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: odoo-filestore
+  namespace: gtb-dev
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi
