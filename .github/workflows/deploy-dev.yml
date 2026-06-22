@@ -52,6 +52,14 @@ on:
         description: "Comma-separated NEW modules to install (e.g. 'cadra_brand_nrs'). Leave blank to skip. Adds a module to the live DB without re-running the bootstrap seed."
         type: string
         default: ""
+      filestore_from:
+        description: "One-off filestore migration: source dir name under /var/lib/odoo/filestore (e.g. the OLD db name 'odoo'). Use after renaming a DB so attachments/assets resolve. Leave blank to skip."
+        type: string
+        default: ""
+      filestore_to:
+        description: "Filestore migration target dir (the NEW db name, e.g. 'staging'). Required if filestore_from is set."
+        type: string
+        default: ""
 
 concurrency:
   group: deploy-dev
@@ -311,6 +319,31 @@ jobs:
 
       - name: Wait for Odoo rollout
         run: kubectl -n "${NAMESPACE}" rollout status deployment/odoo --timeout=10m
+
+      # One-off: after a DB rename, Odoo reads filestore/<db-name>/ but the
+      # files still live under the old name → attachments + asset bundles 404
+      # (blank /web). Merge old → new (cp -n: keeps any already-regenerated
+      # files, fills in the rest; leaves the source dir as a backup). Safe to
+      # run with Odoo up — the filestore is read on demand and cp is additive.
+      - name: (Optional) Migrate filestore directory after a DB rename
+        if: github.event_name == 'workflow_dispatch' && inputs.filestore_from != '' && inputs.filestore_to != ''
+        env:
+          FROM: ${{ inputs.filestore_from }}
+          TO: ${{ inputs.filestore_to }}
+        run: |
+          set -e
+          echo "── filestore BEFORE ──"
+          kubectl -n "${NAMESPACE}" exec deployment/odoo -- ls -la /var/lib/odoo/filestore/
+          kubectl -n "${NAMESPACE}" exec deployment/odoo -- sh -c '
+            cd /var/lib/odoo/filestore
+            from="$1"; to="$2"
+            [ -d "$from" ] || { echo "FATAL: source dir $from not found" >&2; exit 1; }
+            mkdir -p "$to"
+            cp -rn "$from/." "$to/"
+            echo "merged $from -> $to"
+          ' _ "$FROM" "$TO"
+          echo "── filestore AFTER ──"
+          kubectl -n "${NAMESPACE}" exec deployment/odoo -- ls -la /var/lib/odoo/filestore/
 
       - name: Wait for Frontend rollout
         run: kubectl -n "${NAMESPACE}" rollout status deployment/frontend --timeout=5m
