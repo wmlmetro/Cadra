@@ -5,19 +5,20 @@ GTB demo data depth — staff, assets, fleet + their interconnections.
 Runs in the `gtb` profile after the branches + company + requests seeds.
 All DEMO data (generated), tied to the 122 GTB branches and to each other:
 
-  * ~60 employees           — assigned to a branch (work_location)
+  * ~60 employees           — mapped to a branch (in-memory, for co-location)
   * ~150 facilities assets  — GTB-AST-#### code, located at a branch, with a
                               custodian who works at that branch
   * ~30 fleet vehicles      — located at a branch, with a driver
   * requests                — each assigned to an officer (res.users)
 
 Idempotent + backfilling: ensures the target counts AND wires the relationships
-onto records that already exist (so re-running fixes prior un-linked data). The
-asset-code prefix is switched from NRS-AST- to GTB-AST- for the GTB tenant
-(the ir.sequence is per-DB) and existing codes are renamed. Defensive: each
-step is guarded and never breaks the seed.
+onto records that already exist (re-running fixes prior un-linked data). The
+asset-code prefix is switched from NRS-AST- to GTB-AST- for the GTB tenant.
 
-Exec'd by scripts/bootstrap.py with only {env} in scope (no __file__).
+ROBUSTNESS: every create/write goes through a SAVEPOINT (_sp_create/_sp_write),
+so a DB-level error (constraint, etc.) rolls back just that operation instead
+of aborting the whole transaction and cascading. Exec'd by bootstrap.py with
+only {env} in scope (no __file__).
 """
 import logging
 import random
@@ -28,7 +29,7 @@ random.seed(7)
 N_EMPLOYEES = 60
 N_ASSETS = 150
 N_VEHICLES = 30
-N_OFFICERS = 8          # employees promoted to res.users to assign requests to
+N_OFFICERS = 8
 
 _FIRST = ["Adebayo", "Chidinma", "Ifeoma", "Emeka", "Aisha", "Tunde", "Ngozi",
           "Yusuf", "Folake", "Obinna", "Halima", "Segun", "Amaka", "Musa",
@@ -43,124 +44,106 @@ _TITLES = ["Branch Manager", "Operations Officer", "Customer Service Officer",
            "Funds Transfer Officer", "Compliance Officer"]
 
 
+def _sp_create(env, Model, vals):
+    """Create inside a savepoint; return the record or None on DB/validation error."""
+    try:
+        with env.cr.savepoint():
+            return Model.create(vals)
+    except Exception as ex:  # noqa: BLE001
+        _logger.info("create %s skipped: %s", Model._name, str(ex)[:120])
+        return None
+
+
+def _sp_write(env, rec, vals):
+    """Write inside a savepoint; return True/False."""
+    try:
+        with env.cr.savepoint():
+            rec.write(vals)
+            return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _slug(name, i):
     return name.lower().replace(" ", ".") + f".{i}@gtb.demo"
 
 
 def fix_asset_code_prefix(env):
-    """The asset_code ir.sequence ships with prefix 'NRS-AST-'. For the GTB
-    tenant, switch it to 'GTB-AST-' (the sequence is per-DB) and rename any
-    already-created NRS-prefixed codes so the tenant is uniform."""
-    try:
-        seq = env["ir.sequence"].search([("code", "=", "nrs.asset")], limit=1)
-        if seq and (seq.prefix or "").startswith("NRS-"):
-            seq.write({"prefix": "GTB-AST-"})
-            print(f"  ✓ asset_code sequence prefix → GTB-AST-")
-        renamed = 0
-        for a in env["nrs.asset"].search([("asset_code", "=like", "NRS-%")]):
-            try:
-                a.write({"asset_code": a.asset_code.replace("NRS-", "GTB-", 1)})
-                renamed += 1
-            except Exception:  # noqa: BLE001
-                pass
-        if renamed:
-            print(f"  ✓ renamed {renamed} existing asset codes NRS- → GTB-")
-        env.cr.commit()
-    except Exception as ex:  # noqa: BLE001
-        _logger.warning("asset code prefix fix skipped: %s", ex)
-        print(f"  ! asset code prefix fix skipped: {ex}")
+    """Switch the per-DB asset_code sequence prefix NRS-AST- → GTB-AST- and
+    rename any already-created NRS-prefixed codes (tenant uniformity)."""
+    seq = env["ir.sequence"].search([("code", "=", "nrs.asset")], limit=1)
+    if seq and (seq.prefix or "").startswith("NRS-"):
+        if _sp_write(env, seq, {"prefix": "GTB-AST-"}):
+            print("  ✓ asset_code sequence prefix → GTB-AST-")
+    renamed = 0
+    for a in env["nrs.asset"].search([("asset_code", "=like", "NRS-%")]):
+        if _sp_write(env, a, {"asset_code": a.asset_code.replace("NRS-", "GTB-", 1)}):
+            renamed += 1
+    if renamed:
+        print(f"  ✓ renamed {renamed} existing asset codes NRS- → GTB-")
+    env.cr.commit()
 
 
 def seed_employees(env, branches):
-    """Ensure N employees, each assigned to a branch (work_location). Returns
-    the recordset. Also promotes N_OFFICERS of them to res.users (assignees)."""
+    """Ensure N employees; map each to a branch in-memory (for co-location);
+    promote N_OFFICERS to res.users (request assignees). Returns (emps, officers, by_branch)."""
     Emp = env["hr.employee"]
     efields = Emp.fields_get()
     have = Emp.search_count([])
     made = 0
     for i in range(max(0, N_EMPLOYEES - have)):
-        name = f"{random.choice(_FIRST)} {random.choice(_LAST)}"
-        vals = {"name": name}
+        vals = {"name": f"{random.choice(_FIRST)} {random.choice(_LAST)}"}
         if "job_title" in efields:
             vals["job_title"] = _TITLES[i % len(_TITLES)]
-        try:
-            Emp.create(vals)
+        if _sp_create(env, Emp, vals) is not None:
             made += 1
-        except Exception as ex:  # noqa: BLE001
-            _logger.info("emp create skipped: %s", ex)
     emps = Emp.search([], limit=N_EMPLOYEES)
 
-    # Assign each employee to a branch (deterministic round-robin) so assets /
-    # vehicles can co-locate their custodian / driver. hr.employee has no
-    # free-text branch field here, so the mapping is kept in-memory (rebuilt
-    # identically on every run) and best-effort persisted to work_location_id.
+    # Deterministic in-memory employee→branch map (no hr.employee branch field
+    # here; hr.work.location needs an address we don't want to fabricate).
     by_branch = {}
-    work_loc_cache = {}
-    WL = env["hr.work.location"] if "hr.work.location" in env else None
-    has_wl_field = "work_location_id" in efields
     for i, e in enumerate(emps):
-        if not branches:
-            break
-        b = branches[i % len(branches)]
-        by_branch.setdefault(b.name, []).append(e)
-        if WL is not None and has_wl_field and not e.work_location_id:
-            try:
-                wl = work_loc_cache.get(b.name)
-                if wl is None:
-                    wl = WL.search([("name", "=", b.name)], limit=1) or WL.create({"name": b.name})
-                    work_loc_cache[b.name] = wl
-                e.work_location_id = wl.id
-            except Exception:  # noqa: BLE001
-                pass
+        if branches:
+            by_branch.setdefault(branches[i % len(branches)].name, []).append(e)
 
     # Promote a few employees to internal users (request assignees). Random
     # passwords — they exist to be assignees, not to log in.
     officers = env["res.users"]
-    try:
-        grp = env.ref("base.group_user", raise_if_not_found=False)
-        for i, e in enumerate(emps[:N_OFFICERS]):
-            if "user_id" in efields and e.user_id:
-                officers |= e.user_id
-                continue
-            login = _slug(e.name, i)
-            existing = env["res.users"].search([("login", "=", login)], limit=1)
-            if existing:
-                u = existing
-            else:
-                uvals = {"name": e.name, "login": login,
-                         "password": "Gtb!" + "".join(random.choice("abcdefghjkmnpqrstuvwxyz23456789") for _ in range(14))}
-                if grp:
-                    uvals["groups_id"] = [(6, 0, [grp.id])]
-                u = env["res.users"].create(uvals)
+    grp = env.ref("base.group_user", raise_if_not_found=False)
+    for i, e in enumerate(emps[:N_OFFICERS]):
+        if "user_id" in efields and e.user_id:
+            officers |= e.user_id
+            continue
+        login = _slug(e.name, i)
+        u = env["res.users"].search([("login", "=", login)], limit=1)
+        if not u:
+            uvals = {"name": e.name, "login": login,
+                     "password": "Gtb!" + "".join(random.choice("abcdefghjkmnpqrstuvwxyz23456789") for _ in range(14))}
+            if grp:
+                uvals["groups_id"] = [(6, 0, [grp.id])]
+            u = _sp_create(env, env["res.users"], uvals)
+        if u:
             if "user_id" in efields:
-                try:
-                    e.user_id = u.id
-                except Exception:  # noqa: BLE001
-                    pass
+                _sp_write(env, e, {"user_id": u.id})
             officers |= u
-    except Exception as ex:  # noqa: BLE001
-        _logger.warning("officer users skipped: %s", ex)
     env.cr.commit()
     print(f"  ✓ Employees: {len(emps)} (+{made} new) | officer-users: {len(officers)} | branches mapped: {len(by_branch)}")
     return emps, officers, by_branch
 
 
 def wire_assets(env, branches, emps, by_branch):
-    """Ensure N assets and give EVERY asset a custodian — an employee at the
-    asset's own branch when possible, else any employee."""
+    """Ensure N assets; give EVERY asset a custodian (employee at its branch)."""
     Asset = env["nrs.asset"]
     afields = Asset.fields_get()
     have = Asset.search_count([])
-    cat_names = sorted({t[2] for t in _ASSET_TYPES})
     Cat = env["nrs.asset.category"]
     cat_map = {c.name: c for c in Cat.search([])}
-    for cn in cat_names:
+    for cn in sorted({t[2] for t in _ASSET_TYPES}):
         if cn not in cat_map:
-            try:
-                cat_map[cn] = Cat.create({"name": cn})
-            except Exception:  # noqa: BLE001
-                pass
-    made, first_err = 0, None
+            rec = _sp_create(env, Cat, {"name": cn})
+            if rec:
+                cat_map[cn] = rec
+    made = 0
     for i in range(max(0, N_ASSETS - have)):
         name, mfr, cat_name = _ASSET_TYPES[i % len(_ASSET_TYPES)]
         branch = branches[i % len(branches)] if branches else None
@@ -171,35 +154,24 @@ def wire_assets(env, branches, emps, by_branch):
             vals["location_id"] = branch.id
         if "manufacturer" in afields:
             vals["manufacturer"] = mfr
-        try:
-            Asset.create(vals)
+        if _sp_create(env, Asset, vals) is not None:
             made += 1
-        except Exception as ex:  # noqa: BLE001
-            first_err = first_err or str(ex)
     env.cr.commit()
 
-    # Backfill custodians on every asset missing one (co-located by branch).
     all_emps = list(emps)
     wired = 0
     if "custodian_id" in afields and all_emps:
         for a in Asset.search([("custodian_id", "=", False)]):
             pool = by_branch.get(a.location_id.name) if a.location_id else None
             cust = random.choice(pool) if pool else random.choice(all_emps)
-            try:
-                a.custodian_id = cust.id
+            if _sp_write(env, a, {"custodian_id": cust.id}):
                 wired += 1
-            except Exception:  # noqa: BLE001
-                pass
         env.cr.commit()
-    msg = f"  ✓ Assets: {Asset.search_count([])} (+{made} new) | custodians wired: {wired}"
-    if made == 0 and have == 0 and first_err:
-        msg += f"  (first error: {first_err[:120]})"
-    print(msg)
+    print(f"  ✓ Assets: {Asset.search_count([])} (+{made} new) | custodians wired: {wired}")
 
 
 def wire_fleet(env, branches, emps, by_branch):
-    """Ensure N vehicles and give each a driver (res.partner) — the home-address
-    partner of an employee at the vehicle's branch (created if needed)."""
+    """Ensure N vehicles; give each a driver (res.partner via the employee)."""
     Veh = env["fleet.vehicle"]
     vfields = Veh.fields_get()
     have = Veh.search_count([])
@@ -207,27 +179,27 @@ def wire_fleet(env, branches, emps, by_branch):
     Model = env["fleet.vehicle.model"]
     model_ids = []
     for brand_name, model_name in _VEHICLES:
-        brand = Brand.search([("name", "=", brand_name)], limit=1) or Brand.create({"name": brand_name})
+        brand = Brand.search([("name", "=", brand_name)], limit=1) or _sp_create(env, Brand, {"name": brand_name})
+        if not brand:
+            continue
         model = Model.search([("name", "=", model_name), ("brand_id", "=", brand.id)], limit=1)
         if not model:
-            model = Model.create({"name": model_name, "brand_id": brand.id})
-        model_ids.append(model.id)
-    made, first_err = 0, None
-    for i in range(max(0, N_VEHICLES - have)):
-        branch = branches[i % len(branches)] if branches else None
-        vals = {"model_id": model_ids[i % len(model_ids)]}
-        if "license_plate" in vfields:
-            vals["license_plate"] = f"GTB-{random.randint(100,999)}{chr(65+i%26)}{chr(65+(i//26)%26)}"
-        if "location" in vfields and branch:
-            vals["location"] = branch.name
-        try:
-            Veh.create(vals)
-            made += 1
-        except Exception as ex:  # noqa: BLE001
-            first_err = first_err or str(ex)
+            model = _sp_create(env, Model, {"name": model_name, "brand_id": brand.id})
+        if model:
+            model_ids.append(model.id)
+    made = 0
+    if model_ids:
+        for i in range(max(0, N_VEHICLES - have)):
+            branch = branches[i % len(branches)] if branches else None
+            vals = {"model_id": model_ids[i % len(model_ids)]}
+            if "license_plate" in vfields:
+                vals["license_plate"] = f"GTB-{random.randint(100,999)}{chr(65+i%26)}{chr(65+(i//26)%26)}"
+            if "location" in vfields and branch:
+                vals["location"] = branch.name
+            if _sp_create(env, Veh, vals) is not None:
+                made += 1
     env.cr.commit()
 
-    # Backfill drivers (res.partner via employee.address_home_id).
     all_emps = list(emps)
     wired = 0
     if "driver_id" in vfields and all_emps:
@@ -235,45 +207,30 @@ def wire_fleet(env, branches, emps, by_branch):
         for v in Veh.search([("driver_id", "=", False)]):
             pool = by_branch.get(v.location) if getattr(v, "location", None) else None
             emp = random.choice(pool) if pool else random.choice(all_emps)
-            try:
-                partner = emp.address_home_id
-                if not partner:
-                    partner = Partner.create({"name": emp.name})
-                    try:
-                        emp.address_home_id = partner.id
-                    except Exception:  # noqa: BLE001
-                        pass
-                v.driver_id = partner.id
+            partner = emp.address_home_id
+            if not partner:
+                partner = _sp_create(env, Partner, {"name": emp.name})
+                if partner:
+                    _sp_write(env, emp, {"address_home_id": partner.id})
+            if partner and _sp_write(env, v, {"driver_id": partner.id}):
                 wired += 1
-            except Exception:  # noqa: BLE001
-                pass
         env.cr.commit()
-    msg = f"  ✓ Fleet: {Veh.search_count([])} (+{made} new) | drivers wired: {wired}"
-    if made == 0 and have == 0 and first_err:
-        msg += f"  (first error: {first_err[:120]})"
-    print(msg)
+    print(f"  ✓ Fleet: {Veh.search_count([])} (+{made} new) | drivers wired: {wired}")
 
 
 def wire_request_assignees(env, officers):
     """Give every request an assignee (res.users), round-robin across officers."""
-    try:
-        Req = env["request.request"]
-        if "user_id" not in Req.fields_get() or not officers:
-            print("  ! Request assignees: no user_id field or no officers — skipping")
-            return
-        pool = list(officers)
-        wired = 0
-        for i, r in enumerate(Req.search([("user_id", "=", False)])):
-            try:
-                r.user_id = pool[i % len(pool)].id
-                wired += 1
-            except Exception:  # noqa: BLE001
-                pass
-        env.cr.commit()
-        print(f"  ✓ Request assignees wired: {wired}")
-    except Exception as ex:  # noqa: BLE001
-        _logger.warning("request assignees skipped: %s", ex)
-        print(f"  ! Request assignees skipped: {ex}")
+    Req = env["request.request"]
+    if "user_id" not in Req.fields_get() or not officers:
+        print("  ! Request assignees: no user_id field or no officers — skipping")
+        return
+    pool = list(officers)
+    wired = 0
+    for i, r in enumerate(Req.search([("user_id", "=", False)])):
+        if _sp_write(env, r, {"user_id": pool[i % len(pool)].id}):
+            wired += 1
+    env.cr.commit()
+    print(f"  ✓ Request assignees wired: {wired}")
 
 
 # (asset name, manufacturer, category)
@@ -312,6 +269,6 @@ _branches = env["generic.location"].search([("latitude", "!=", False)])  # noqa:
 print(f"  GTB demo data depth across {len(_branches)} branches:")
 fix_asset_code_prefix(env)                          # noqa: F821
 _emps, _officers, _by_branch = seed_employees(env, _branches)   # noqa: F821
-wire_assets(env, _branches, _emps, _by_branch)                  # noqa: F821
-wire_fleet(env, _branches, _emps, _by_branch)                   # noqa: F821
+wire_assets(env, _branches, _emps, _by_branch)      # noqa: F821
+wire_fleet(env, _branches, _emps, _by_branch)       # noqa: F821
 wire_request_assignees(env, _officers)              # noqa: F821
