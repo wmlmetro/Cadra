@@ -178,9 +178,10 @@ export default function Sidebar() {
                         style={
                           active
                             ? {
-                                background: "#E01F26",
+                                // Per-tenant brand colour (was hardcoded NRS red).
+                                background: getBrand().primary,
                                 color: "#FFFFFF",
-                                boxShadow: "0 1px 6px rgba(224,31,38,0.28)",
+                                boxShadow: `0 1px 6px ${getBrand().primary}47`,
                               }
                             : { color: "hsl(var(--sidebar-foreground))" }
                         }

@@ -108,6 +108,28 @@ def load_gtb_locations(env):
         stats["real" if not b.get("demo") else "demo"] += 1
 
     env.cr.commit()
+
+    # Robust location_type backfill via RAW SQL. ORM writes in this seed
+    # pipeline have been observed to silently roll back (see the asset-tag
+    # rename), which left location_type NULL and the frontend Locations page
+    # blank. SQL guarantees it persists. In a GTB tenant DB every row is a GTB
+    # location: branches have coords → "building" (→ Office in the frontend);
+    # their parent state nodes have no coords but a parent → "zone" (→ a
+    # grouping tier; the Selection has no "state" key); the root has no parent.
+    env.cr.execute("""
+        UPDATE generic_location SET location_type = 'building'
+        WHERE latitude IS NOT NULL
+          AND location_type IS DISTINCT FROM 'building'
+    """)
+    branch_n = env.cr.rowcount
+    env.cr.execute("""
+        UPDATE generic_location SET location_type = 'zone'
+        WHERE latitude IS NULL AND parent_id IS NOT NULL
+          AND location_type IS DISTINCT FROM 'zone'
+    """)
+    zone_n = env.cr.rowcount
+    env.cr.commit()
+
     _logger.info(
         "\n  ✅ GTB branches loaded\n"
         "  ──────────────────────\n"
@@ -115,7 +137,8 @@ def load_gtb_locations(env):
         "  Branches : %(branches)d  (real=%(real)d, demo-fill=%(demo)d)\n",
         stats,
     )
-    print("  ✓ GTB locations:", stats)
+    print(f"  ✓ GTB locations: {stats}")
+    print(f"  ✓ location_type set via SQL → branches/building={branch_n}, states/zone={zone_n}")
 
 
 load_gtb_locations(env)  # noqa: F821  (env injected by bootstrap.py)

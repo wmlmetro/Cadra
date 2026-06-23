@@ -62,10 +62,24 @@ function hexToHslParts(hex: string): string | null {
   return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
+const CACHE_KEY = "cadra.brand.v1";
+
+/** Last successfully-fetched brand for this host, if any. Lets the app render
+ *  the correct brand instantly on every page load and avoids flashing the NRS
+ *  fallback when a later fetch is slow or fails. */
+export function getCachedBrand(): Brand | null {
+  try {
+    const raw = sessionStorage.getItem(CACHE_KEY);
+    return raw ? (JSON.parse(raw) as Brand) : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchBrand(): Promise<Brand> {
   try {
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 2500);
+    const t = setTimeout(() => ctrl.abort(), 6000);
     const res = await fetch("/api/v1/brand", {
       headers: { Accept: "application/json" },
       signal: ctrl.signal,
@@ -74,15 +88,18 @@ export async function fetchBrand(): Promise<Brand> {
     if (!res.ok) throw new Error(`brand ${res.status}`);
     const json = await res.json();
     const d = (json && json.data) || {};
-    return {
+    const brand: Brand = {
       name: d.name || DEFAULT_BRAND.name,
       short_name: d.short_name || "",
       primary: d.primary || DEFAULT_BRAND.primary,
       primary_dark: d.primary_dark || DEFAULT_BRAND.primary_dark,
       logo: d.logo || "",
     };
+    try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(brand)); } catch { /* ignore */ }
+    return brand;
   } catch {
-    return DEFAULT_BRAND;
+    // Prefer a previously-cached brand over the NRS default on a transient fail.
+    return getCachedBrand() ?? DEFAULT_BRAND;
   }
 }
 
