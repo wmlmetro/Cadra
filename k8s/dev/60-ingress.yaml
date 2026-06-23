@@ -31,7 +31,6 @@ spec:
   tls:
     - hosts:
         - staging.app.cadra.ng
-        - nrs.cadra.ng
         - gtb.cadra.ng
       secretName: cadra-tls
   rules:
@@ -75,7 +74,5 @@ spec:
                 name: odoo
                 port:
                   number: 8069
-    - host: nrs.cadra.ng           # -> DB "nrs"
-      http: *odoo-paths
     - host: gtb.cadra.ng           # -> DB "gtb" (Guaranty Trust Bank)
       http: *odoo-paths
