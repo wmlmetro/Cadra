@@ -6,7 +6,7 @@ import re
 
 class NRSAssetTag(models.Model):
     _name = 'nrs.asset.tag.label'
-    _description = 'NRS Asset Barcode Tag'
+    _description = 'Asset Barcode Tag'
     _inherit = ['mail.thread']
     _order = 'create_date desc'
 
@@ -159,7 +159,10 @@ class NRSAsset(models.Model):
             'furniture':'FRN',
             'other':    'OTH',
         }
-        prefix = 'NRS-%s-' % domain_codes.get(self.domain, 'AST')
+        # Brand-aware prefix: each tenant's short code (NRS, GTB, ...) from the
+        # per-DB config param, so barcode tags match the tenant's branding.
+        brand = self.env['ir.config_parameter'].sudo().get_param('cadra.brand_short_name', 'NRS')
+        prefix = '%s-%s-' % (brand, domain_codes.get(self.domain, 'AST'))
         # Find highest existing sequence for this prefix
         existing = self.env['nrs.asset.tag.label'].search(
             [('name', 'like', prefix)], order='name desc', limit=1)

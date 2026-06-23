@@ -97,16 +97,16 @@ class NRSAssetPM(models.Model):
             except Exception as e:
                 self.env.cr.rollback()
         _logger = __import__('logging').getLogger(__name__)
-        _logger.info('NRS Asset PM cron: created %d PM requests', created)
+        _logger.info('Asset PM cron: created %d PM requests', created)
         return True
 
 
 class RequestRequestAsset(models.Model):
-    """Extend request.request to link to NRS asset."""
+    """Extend request.request to link to an asset."""
     _inherit = 'request.request'
 
     nrs_asset_id = fields.Many2one(
         'nrs.asset', string='Related Asset', tracking=True,
-        help='The NRS asset this request relates to')
+        help='The asset this request relates to')
     asset_code = fields.Char(
         related='nrs_asset_id.asset_code', string='Asset Code', store=True)

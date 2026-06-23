@@ -4,7 +4,7 @@ from odoo.exceptions import ValidationError
 
 class NRSAsset(models.Model):
     _name = 'nrs.asset'
-    _description = 'NRS Fixed Asset'
+    _description = 'Fixed Asset'
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'asset_code'
 
@@ -52,7 +52,7 @@ class NRSAsset(models.Model):
         'generic.location', string='Room', tracking=True,
         domain="[('parent_id', '=', floor_id)]")
     location_id = fields.Many2one(
-        'generic.location', string='NRS Location', tracking=True)
+        'generic.location', string='Location', tracking=True)
     floor_room = fields.Char(string='Floor / Room')
     address_display = fields.Text(
         string='Address', compute='_compute_address_display')
