@@ -75,7 +75,7 @@ function NrsLogoImg() {
     <img
       src={brandLogoSrc()}
       alt={getBrand().name}
-      className="h-7 w-auto object-contain"
+      className="h-10 w-auto object-contain"
       draggable={false}
     />
   );

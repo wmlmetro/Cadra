@@ -58,19 +58,18 @@ def _get_or_create(env, model, name, parent_id=None, vals=None):
     if parent_id:
         domain.append(("parent_id", "=", parent_id))
     rec = Loc.search(domain, limit=1)
-    create_vals = dict(vals or {})
-    create_vals["name"] = name
     fields = Loc.fields_get()
+    # Keep only fields the model actually has (drops coords/location_type on
+    # models that lack them).
+    create_vals = {k: v for k, v in (vals or {}).items() if k in fields}
+    create_vals["name"] = name
     if parent_id and "parent_id" in fields:
         create_vals["parent_id"] = parent_id
-    # Drop any coord fields the model doesn't actually have.
-    for f in ("latitude", "longitude"):
-        if f in create_vals and f not in fields:
-            create_vals.pop(f)
     if rec:
-        # Backfill coordinates on an existing record if missing.
-        patch = {f: create_vals[f] for f in ("latitude", "longitude")
-                 if f in create_vals and not rec[f]}
+        # Backfill any provided field that is currently empty (so a re-run sets
+        # location_type / lat / lng on records created before this fix).
+        patch = {k: v for k, v in create_vals.items()
+                 if k not in ("name", "parent_id") and not rec[k]}
         if patch:
             rec.write(patch)
         return rec
@@ -90,13 +89,20 @@ def load_gtb_locations(env):
         state_name = (b.get("state") or "Unknown").strip() or "Unknown"
         state = states.get(state_name)
         if state is None:
-            state = _get_or_create(env, model, state_name, parent_id=root.id)
+            # generic.location.location_type has no "state" key (only
+            # building/floor/wing/room/zone). The frontend groups by it, so we
+            # make each state a "zone" tier → branches group by state on the
+            # Locations page (instead of the whole list rendering blank).
+            state = _get_or_create(env, model, state_name, parent_id=root.id,
+                                   vals={"location_type": "zone"})
             states[state_name] = state
             stats["states"] += 1
 
+        # Branches are bank offices → "building" maps to Office in the frontend.
         _get_or_create(
             env, model, b["name"], parent_id=state.id,
-            vals={"latitude": b["lat"], "longitude": b["lng"]},
+            vals={"latitude": b["lat"], "longitude": b["lng"],
+                  "location_type": "building"},
         )
         stats["branches"] += 1
         stats["real" if not b.get("demo") else "demo"] += 1
