@@ -90,15 +90,28 @@ def seed_employees(env, branches):
             _logger.info("emp create skipped: %s", ex)
     emps = Emp.search([], limit=N_EMPLOYEES)
 
-    # Assign each employee to a branch (round-robin) so assets/vehicles can
-    # co-locate their custodian/driver.
-    if branches and "work_location" in efields:
-        for i, e in enumerate(emps):
-            if not e.work_location:
-                try:
-                    e.work_location = branches[i % len(branches)].name
-                except Exception:  # noqa: BLE001
-                    pass
+    # Assign each employee to a branch (deterministic round-robin) so assets /
+    # vehicles can co-locate their custodian / driver. hr.employee has no
+    # free-text branch field here, so the mapping is kept in-memory (rebuilt
+    # identically on every run) and best-effort persisted to work_location_id.
+    by_branch = {}
+    work_loc_cache = {}
+    WL = env["hr.work.location"] if "hr.work.location" in env else None
+    has_wl_field = "work_location_id" in efields
+    for i, e in enumerate(emps):
+        if not branches:
+            break
+        b = branches[i % len(branches)]
+        by_branch.setdefault(b.name, []).append(e)
+        if WL is not None and has_wl_field and not e.work_location_id:
+            try:
+                wl = work_loc_cache.get(b.name)
+                if wl is None:
+                    wl = WL.search([("name", "=", b.name)], limit=1) or WL.create({"name": b.name})
+                    work_loc_cache[b.name] = wl
+                e.work_location_id = wl.id
+            except Exception:  # noqa: BLE001
+                pass
 
     # Promote a few employees to internal users (request assignees). Random
     # passwords — they exist to be assignees, not to log in.
@@ -128,20 +141,11 @@ def seed_employees(env, branches):
     except Exception as ex:  # noqa: BLE001
         _logger.warning("officer users skipped: %s", ex)
     env.cr.commit()
-    print(f"  ✓ Employees: {len(emps)} (+{made} new) | officer-users: {len(officers)}")
-    return emps, officers
+    print(f"  ✓ Employees: {len(emps)} (+{made} new) | officer-users: {len(officers)} | branches mapped: {len(by_branch)}")
+    return emps, officers, by_branch
 
 
-def _emps_by_branch(emps):
-    m = {}
-    for e in emps:
-        key = (e.work_location or "").strip()
-        if key:
-            m.setdefault(key, []).append(e)
-    return m
-
-
-def wire_assets(env, branches, emps):
+def wire_assets(env, branches, emps, by_branch):
     """Ensure N assets and give EVERY asset a custodian — an employee at the
     asset's own branch when possible, else any employee."""
     Asset = env["nrs.asset"]
@@ -175,7 +179,6 @@ def wire_assets(env, branches, emps):
     env.cr.commit()
 
     # Backfill custodians on every asset missing one (co-located by branch).
-    by_branch = _emps_by_branch(emps)
     all_emps = list(emps)
     wired = 0
     if "custodian_id" in afields and all_emps:
@@ -194,7 +197,7 @@ def wire_assets(env, branches, emps):
     print(msg)
 
 
-def wire_fleet(env, branches, emps):
+def wire_fleet(env, branches, emps, by_branch):
     """Ensure N vehicles and give each a driver (res.partner) — the home-address
     partner of an employee at the vehicle's branch (created if needed)."""
     Veh = env["fleet.vehicle"]
@@ -225,7 +228,6 @@ def wire_fleet(env, branches, emps):
     env.cr.commit()
 
     # Backfill drivers (res.partner via employee.address_home_id).
-    by_branch = _emps_by_branch(emps)
     all_emps = list(emps)
     wired = 0
     if "driver_id" in vfields and all_emps:
@@ -309,7 +311,7 @@ _VEHICLES = [
 _branches = env["generic.location"].search([("latitude", "!=", False)])  # noqa: F821
 print(f"  GTB demo data depth across {len(_branches)} branches:")
 fix_asset_code_prefix(env)                          # noqa: F821
-_emps, _officers = seed_employees(env, _branches)   # noqa: F821
-wire_assets(env, _branches, _emps)                  # noqa: F821
-wire_fleet(env, _branches, _emps)                   # noqa: F821
+_emps, _officers, _by_branch = seed_employees(env, _branches)   # noqa: F821
+wire_assets(env, _branches, _emps, _by_branch)                  # noqa: F821
+wire_fleet(env, _branches, _emps, _by_branch)                   # noqa: F821
 wire_request_assignees(env, _officers)              # noqa: F821
