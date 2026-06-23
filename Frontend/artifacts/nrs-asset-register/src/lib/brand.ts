@@ -117,4 +117,22 @@ export function applyBrand(brand: Brand): void {
   // Raw-hex accent token used directly in a few places.
   root.style.setProperty("--nrs-red", brand.primary);
   document.title = brand.name ? `${brand.name} · Cadra` : "Cadra";
+
+  // Per-tenant favicon: point the icon at the tenant logo (data URI). The
+  // bundled NRS favicon.svg / nrs-logo.png in index.html stay as the fallback
+  // when brand.logo is empty. Remove the bundled alternates so they can't
+  // out-rank the data URI in the browser's favicon selection.
+  if (brand.logo) {
+    let icon = document.querySelector<HTMLLinkElement>("link[rel='icon']");
+    if (!icon) {
+      icon = document.createElement("link");
+      icon.rel = "icon";
+      document.head.appendChild(icon);
+    }
+    icon.type = brand.logo.startsWith("data:image/svg") ? "image/svg+xml" : "image/png";
+    icon.href = brand.logo;
+    document.head
+      .querySelectorAll("link[rel='alternate icon'], link[rel='apple-touch-icon']")
+      .forEach((el) => el.remove());
+  }
 }
