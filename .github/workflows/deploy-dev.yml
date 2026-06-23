@@ -44,6 +44,18 @@ on:
         description: "Re-run the bootstrap Job (install modules + seed). Required on the first deploy."
         type: boolean
         default: false
+      bootstrap_db:
+        description: "Onboard/target a specific tenant DB for the bootstrap Job (e.g. 'gtb'). Blank = the default POSTGRES_DB. A new name is created by Odoo on install."
+        type: string
+        default: ""
+      bootstrap_seed_profile:
+        description: "Seed profile for the bootstrap Job (e.g. 'gtb'). Blank = the configmap default (CADRA_SEED_PROFILE)."
+        type: string
+        default: ""
+      bootstrap_extra_modules:
+        description: "Extra modules to install alongside the shared list for this bootstrap (e.g. a client brand 'cadra_brand_gtb'). Comma-separated; blank = none."
+        type: string
+        default: ""
       upgrade_modules:
         description: "Comma-separated modules to upgrade (e.g. 'myservice_nrs_base'). Leave blank to skip. Use after a manifest change (asset list, new data files, version bump)."
         type: string
@@ -252,6 +264,9 @@ jobs:
         if: github.event_name == 'workflow_dispatch' && inputs.run_bootstrap == true
         env:
           IMAGE: ${{ needs.build-and-push.outputs.image }}
+          BOOTSTRAP_DB: ${{ inputs.bootstrap_db }}
+          BOOTSTRAP_SEED_PROFILE: ${{ inputs.bootstrap_seed_profile }}
+          BOOTSTRAP_EXTRA_MODULES: ${{ inputs.bootstrap_extra_modules }}
         run: |
           set -e
           # Scale Odoo to 0 so the Deployment releases the PVC for the Job.
@@ -266,8 +281,15 @@ jobs:
           # Jobs are immutable — delete any prior run before re-applying.
           kubectl -n "${NAMESPACE}" delete job cadra-bootstrap --ignore-not-found
 
-          # Materialize the image tag into the Job manifest.
-          sed "s|REPLACE_ME/cadra-odoo:dev|${IMAGE}|g" k8s/dev/50-bootstrap-job.yaml | kubectl apply -f -
+          # Materialize the image tag + per-client onboarding overrides into
+          # the Job manifest. Blank inputs become empty strings, so the Job's
+          # ${TARGET_DB:-$DB} / ${SEED_PROFILE_OVERRIDE:-...} fall back to the
+          # secret DB and configmap profile (unchanged for normal staging runs).
+          sed -e "s|REPLACE_ME/cadra-odoo:dev|${IMAGE}|g" \
+              -e "s|REPLACE_ME_TARGET_DB|${BOOTSTRAP_DB}|g" \
+              -e "s|REPLACE_ME_SEED_PROFILE|${BOOTSTRAP_SEED_PROFILE}|g" \
+              -e "s|REPLACE_ME_EXTRA_MODULES|${BOOTSTRAP_EXTRA_MODULES}|g" \
+              k8s/dev/50-bootstrap-job.yaml | kubectl apply -f -
 
           kubectl -n "${NAMESPACE}" wait --for=condition=complete job/cadra-bootstrap --timeout=60m
           echo "─── bootstrap Job logs ───"
