@@ -1,0 +1,13 @@
+/* ================================================================
+   Cadra Brand — GTB (Guaranty Trust Bank)
+   ----------------------------------------------------------------
+   THE single source of truth for this client's primary colour.
+   GTB's signature orange (#E8540F — well-established brand value,
+   medium confidence; refine against official brand guidelines if
+   needed — a colour change is just an edit + push, no -u).
+   ================================================================ */
+:root {
+    --brand-primary:       #E8540F;   /* GTB orange         */
+    --brand-primary-dark:  #B83E0A;   /* hover / active     */
+    --brand-primary-light: #FCE7DC;   /* tints / soft fills */
+}

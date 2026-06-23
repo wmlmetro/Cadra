@@ -1,0 +1,1222 @@
+[
+ {
+  "name": "GT Bank",
+  "lat": 10.53556,
+  "lng": 7.438119,
+  "city": "Unguwar Sarki",
+  "state": "Kaduna",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GT Bank",
+  "lat": 6.489563,
+  "lng": 3.356677,
+  "city": "Surulere",
+  "state": "Lagos",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GT Bank",
+  "lat": 6.453947,
+  "lng": 3.385289,
+  "city": "Lagos",
+  "state": "Lagos",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GT Bank",
+  "lat": 6.497973,
+  "lng": 3.379276,
+  "city": "Makoko",
+  "state": "Lagos",
+  "suburb": "Makoko",
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GUARANTY TRUST BANK",
+  "lat": 6.298537,
+  "lng": 5.602174,
+  "city": "Oredo",
+  "state": "Edo",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GTBank",
+  "lat": 12.008026,
+  "lng": 8.548576,
+  "city": "Giginyu",
+  "state": "Kano",
+  "suburb": "Giginyu",
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GTBank",
+  "lat": 6.334534,
+  "lng": 5.606549,
+  "city": "Oredo",
+  "state": "Edo",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GTBank",
+  "lat": 7.417412,
+  "lng": 3.911275,
+  "city": "Ibadan North",
+  "state": "Oyo",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "Guaranty Trust Bank (GTB)",
+  "lat": 6.435045,
+  "lng": 7.491054,
+  "city": "Enugu",
+  "state": "Enugu",
+  "suburb": "Ogui",
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "Guaranty Trust Bank (GTB)",
+  "lat": 6.445166,
+  "lng": 7.515239,
+  "city": "Enugu",
+  "state": "Enugu",
+  "suburb": "Independence Layout",
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GT Bank",
+  "lat": 10.467079,
+  "lng": 7.43164,
+  "city": "Kaduna South",
+  "state": "Kaduna",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GTBank",
+  "lat": 6.449622,
+  "lng": 3.397567,
+  "city": "Lagos",
+  "state": "Lagos",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GT Bank",
+  "lat": 7.830016,
+  "lng": 3.923064,
+  "city": "\u1ecc\u0300y\u1ecd\u0301",
+  "state": "Oyo",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GT Bank",
+  "lat": 4.848307,
+  "lng": 7.050053,
+  "city": "Obio/Akpor",
+  "state": "Rivers",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GT Bank",
+  "lat": 6.438534,
+  "lng": 3.432198,
+  "city": "Eti Osa",
+  "state": "Lagos",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "Guaranty Trust Bank",
+  "lat": 12.970843,
+  "lng": 7.619195,
+  "city": "Muhammadu Dikko Stadium",
+  "state": "Katsina",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GTBank",
+  "lat": 6.640153,
+  "lng": 3.365502,
+  "city": "Ikeja",
+  "state": "Lagos",
+  "suburb": "Omole",
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GTBank",
+  "lat": 11.716194,
+  "lng": 9.356212,
+  "city": "Dutse",
+  "state": "Jigawa",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GTBank",
+  "lat": 6.614788,
+  "lng": 3.501719,
+  "city": "\u00cck\u00f2r\u00f2d\u00fa",
+  "state": "Lagos",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GTBank",
+  "lat": 6.5824,
+  "lng": 3.28379,
+  "city": "Idimu",
+  "state": "Lagos",
+  "suburb": "Idimu",
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GTBank",
+  "lat": 6.604913,
+  "lng": 3.392012,
+  "city": "Erukan",
+  "state": "Lagos",
+  "suburb": "Erukan",
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "Guaranty trust bank 1 Ogui road",
+  "lat": 6.438166,
+  "lng": 7.493438,
+  "city": "Enugu",
+  "state": "Enugu",
+  "suburb": "Ogui",
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "Gt Bank",
+  "lat": 9.07205,
+  "lng": 7.477527,
+  "city": "Abuja",
+  "state": "Federal Capital Territory",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GT Bank, Wahab Folawiyo Road, Unity Road, Oko Erin, Nigeria",
+  "lat": 8.481176,
+  "lng": 4.555108,
+  "city": "\u00ccl\u1ecdrin",
+  "state": "Kwara",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GT Bank, Oko Erin, Nigeria",
+  "lat": 8.486003,
+  "lng": 4.590244,
+  "city": "Mandate Estate, Ilorin, Nigeria",
+  "state": "Kwara",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GT Bank, Ibrahim Taiwo Road, Oko Erin, Nigeria",
+  "lat": 8.481687,
+  "lng": 4.548726,
+  "city": "\u00ccl\u1ecdrin",
+  "state": "Kwara",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "Block 158 Ibrahim Taiwo Rd, opposite Guaranty Trust Bank, Oko Erin 240101, Kwara, Nigeria",
+  "lat": 8.481636,
+  "lng": 4.542874,
+  "city": "Oja Tuntun, Oko Erin, Nigeria",
+  "state": "Kwara",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GT Bank",
+  "lat": 6.517123,
+  "lng": 3.397835,
+  "city": "Akoka",
+  "state": "Lagos",
+  "suburb": "Akoka",
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GT Bank",
+  "lat": 6.337096,
+  "lng": 5.627573,
+  "city": "Benin City",
+  "state": "Edo",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GT Bank",
+  "lat": 9.030373,
+  "lng": 7.477372,
+  "city": "Abuja",
+  "state": "Federal Capital Territory",
+  "suburb": "Garki I",
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GT Bank",
+  "lat": 9.029365,
+  "lng": 7.476384,
+  "city": "Abuja",
+  "state": "Federal Capital Territory",
+  "suburb": "Garki I",
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "Guaranty Trust Bank Plc",
+  "lat": 11.96815,
+  "lng": 8.426086,
+  "city": "Rijiyar Zaki",
+  "state": "Kano",
+  "suburb": "Buk New Site",
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GT Bank",
+  "lat": 9.058285,
+  "lng": 7.485779,
+  "city": "Municipal Area Council",
+  "state": "Federal Capital Territory",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GT Bank",
+  "lat": 13.05889,
+  "lng": 5.232434,
+  "city": "Sarkin Addar A",
+  "state": "Sokoto",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GTBank Centre",
+  "lat": 6.423587,
+  "lng": 3.44259,
+  "city": "Eti Osa",
+  "state": "Lagos",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GT Bank",
+  "lat": 6.435596,
+  "lng": 3.448884,
+  "city": "Maroko",
+  "state": "Lagos",
+  "suburb": "Maroko",
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "Gt Bank",
+  "lat": 6.475216,
+  "lng": 3.310873,
+  "city": "Satellite Town",
+  "state": "Lagos",
+  "suburb": "Festac",
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GTBank",
+  "lat": 7.300994,
+  "lng": 5.139861,
+  "city": "Akure South",
+  "state": "Ondo",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GTBank",
+  "lat": 6.524705,
+  "lng": 3.361698,
+  "city": "Tinubu",
+  "state": "Lagos",
+  "suburb": "Tinubu",
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GT Bank",
+  "lat": 10.515439,
+  "lng": 7.428001,
+  "city": "Maiburiji",
+  "state": "Kaduna",
+  "suburb": null,
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GT Bank",
+  "lat": 9.011995,
+  "lng": 7.473958,
+  "city": "Abuja",
+  "state": "Federal Capital Territory",
+  "suburb": "Garki",
+  "source": "OSM (real)",
+  "demo": false
+ },
+ {
+  "name": "GTBank Ikeja",
+  "lat": 6.465254,
+  "lng": 3.356701,
+  "city": "Lagos",
+  "state": "Lagos",
+  "suburb": "Ikeja",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Victoria Island",
+  "lat": 6.436102,
+  "lng": 3.372557,
+  "city": "Lagos",
+  "state": "Lagos",
+  "suburb": "Victoria Island",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Lekki Phase 1",
+  "lat": 6.473018,
+  "lng": 3.408836,
+  "city": "Lagos",
+  "state": "Lagos",
+  "suburb": "Lekki Phase 1",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Yaba",
+  "lat": 6.447854,
+  "lng": 3.357084,
+  "city": "Lagos",
+  "state": "Lagos",
+  "suburb": "Yaba",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Apapa",
+  "lat": 6.431591,
+  "lng": 3.395128,
+  "city": "Lagos",
+  "state": "Lagos",
+  "suburb": "Apapa",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Festac Town",
+  "lat": 6.416223,
+  "lng": 3.370607,
+  "city": "Lagos",
+  "state": "Lagos",
+  "suburb": "Festac Town",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Ajah",
+  "lat": 6.466091,
+  "lng": 3.398295,
+  "city": "Lagos",
+  "state": "Lagos",
+  "suburb": "Ajah",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Maryland",
+  "lat": 6.431735,
+  "lng": 3.401841,
+  "city": "Lagos",
+  "state": "Lagos",
+  "suburb": "Maryland",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Ikorodu",
+  "lat": 6.478854,
+  "lng": 3.35522,
+  "city": "Lagos",
+  "state": "Lagos",
+  "suburb": "Ikorodu",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Oshodi",
+  "lat": 6.478566,
+  "lng": 3.410551,
+  "city": "Lagos",
+  "state": "Lagos",
+  "suburb": "Oshodi",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Ojodu Berger",
+  "lat": 6.44132,
+  "lng": 3.367138,
+  "city": "Lagos",
+  "state": "Lagos",
+  "suburb": "Ojodu Berger",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Gbagada",
+  "lat": 6.42152,
+  "lng": 3.362437,
+  "city": "Lagos",
+  "state": "Lagos",
+  "suburb": "Gbagada",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Wuse 2",
+  "lat": 9.0857,
+  "lng": 7.503398,
+  "city": "Abuja",
+  "state": "Federal Capital Territory",
+  "suburb": "Wuse 2",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Garki",
+  "lat": 9.08247,
+  "lng": 7.513479,
+  "city": "Abuja",
+  "state": "Federal Capital Territory",
+  "suburb": "Garki",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Maitama",
+  "lat": 9.060798,
+  "lng": 7.532949,
+  "city": "Abuja",
+  "state": "Federal Capital Territory",
+  "suburb": "Maitama",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Gwarinpa",
+  "lat": 9.048183,
+  "lng": 7.499263,
+  "city": "Abuja",
+  "state": "Federal Capital Territory",
+  "suburb": "Gwarinpa",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Asokoro",
+  "lat": 9.084252,
+  "lng": 7.504582,
+  "city": "Abuja",
+  "state": "Federal Capital Territory",
+  "suburb": "Asokoro",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Central Business District",
+  "lat": 9.086837,
+  "lng": 7.501288,
+  "city": "Abuja",
+  "state": "Federal Capital Territory",
+  "suburb": "Central Business District",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Utako",
+  "lat": 9.074266,
+  "lng": 7.458766,
+  "city": "Abuja",
+  "state": "Federal Capital Territory",
+  "suburb": "Utako",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank GRA Phase 2",
+  "lat": 4.78368,
+  "lng": 7.032038,
+  "city": "Port Harcourt",
+  "state": "Rivers",
+  "suburb": "GRA Phase 2",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Trans-Amadi",
+  "lat": 4.826455,
+  "lng": 7.038987,
+  "city": "Port Harcourt",
+  "state": "Rivers",
+  "suburb": "Trans-Amadi",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Aba Road",
+  "lat": 4.805214,
+  "lng": 7.026561,
+  "city": "Port Harcourt",
+  "state": "Rivers",
+  "suburb": "Aba Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Rumuokoro",
+  "lat": 4.796958,
+  "lng": 7.084732,
+  "city": "Port Harcourt",
+  "state": "Rivers",
+  "suburb": "Rumuokoro",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Woji",
+  "lat": 4.827443,
+  "lng": 7.05853,
+  "city": "Port Harcourt",
+  "state": "Rivers",
+  "suburb": "Woji",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Olu Obasanjo Road",
+  "lat": 4.789291,
+  "lng": 7.06813,
+  "city": "Port Harcourt",
+  "state": "Rivers",
+  "suburb": "Olu Obasanjo Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Bompai",
+  "lat": 11.975272,
+  "lng": 8.582256,
+  "city": "Kano",
+  "state": "Kano",
+  "suburb": "Bompai",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Sabon Gari",
+  "lat": 12.041362,
+  "lng": 8.6031,
+  "city": "Kano",
+  "state": "Kano",
+  "suburb": "Sabon Gari",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Fagge",
+  "lat": 12.006756,
+  "lng": 8.606669,
+  "city": "Kano",
+  "state": "Kano",
+  "suburb": "Fagge",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Nassarawa",
+  "lat": 12.029628,
+  "lng": 8.61398,
+  "city": "Kano",
+  "state": "Kano",
+  "suburb": "Nassarawa",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Zoo Road",
+  "lat": 11.980524,
+  "lng": 8.554468,
+  "city": "Kano",
+  "state": "Kano",
+  "suburb": "Zoo Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Bodija",
+  "lat": 7.362836,
+  "lng": 3.928419,
+  "city": "Ibadan",
+  "state": "Oyo",
+  "suburb": "Bodija",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Ring Road",
+  "lat": 7.354479,
+  "lng": 3.982433,
+  "city": "Ibadan",
+  "state": "Oyo",
+  "suburb": "Ring Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Dugbe",
+  "lat": 7.407709,
+  "lng": 3.932174,
+  "city": "Ibadan",
+  "state": "Oyo",
+  "suburb": "Dugbe",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Challenge",
+  "lat": 7.390035,
+  "lng": 3.938651,
+  "city": "Ibadan",
+  "state": "Oyo",
+  "suburb": "Challenge",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Iwo Road",
+  "lat": 7.410764,
+  "lng": 3.943708,
+  "city": "Ibadan",
+  "state": "Oyo",
+  "suburb": "Iwo Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Akpakpava",
+  "lat": 6.31939,
+  "lng": 5.60553,
+  "city": "Benin City",
+  "state": "Edo",
+  "suburb": "Akpakpava",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Ugbowo",
+  "lat": 6.344967,
+  "lng": 5.657626,
+  "city": "Benin City",
+  "state": "Edo",
+  "suburb": "Ugbowo",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Ahmadu Bello Way",
+  "lat": 10.562003,
+  "lng": 7.439062,
+  "city": "Kaduna",
+  "state": "Kaduna",
+  "suburb": "Ahmadu Bello Way",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Kawo",
+  "lat": 10.489473,
+  "lng": 7.402069,
+  "city": "Kaduna",
+  "state": "Kaduna",
+  "suburb": "Kawo",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Barnawa",
+  "lat": 10.490972,
+  "lng": 7.448496,
+  "city": "Kaduna",
+  "state": "Kaduna",
+  "suburb": "Barnawa",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Independence Layout",
+  "lat": 6.464666,
+  "lng": 7.492573,
+  "city": "Enugu",
+  "state": "Enugu",
+  "suburb": "Independence Layout",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank New Haven",
+  "lat": 6.406382,
+  "lng": 7.48933,
+  "city": "Enugu",
+  "state": "Enugu",
+  "suburb": "New Haven",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Okpara Avenue",
+  "lat": 6.48099,
+  "lng": 7.501129,
+  "city": "Enugu",
+  "state": "Enugu",
+  "suburb": "Okpara Avenue",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Ariaria",
+  "lat": 5.144286,
+  "lng": 7.395562,
+  "city": "Aba",
+  "state": "Abia",
+  "suburb": "Ariaria",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Asa Road",
+  "lat": 5.067518,
+  "lng": 7.384358,
+  "city": "Aba",
+  "state": "Abia",
+  "suburb": "Asa Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Awka Road",
+  "lat": 6.160137,
+  "lng": 6.788458,
+  "city": "Onitsha",
+  "state": "Anambra",
+  "suburb": "Awka Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Bridgehead",
+  "lat": 6.126946,
+  "lng": 6.796777,
+  "city": "Onitsha",
+  "state": "Anambra",
+  "suburb": "Bridgehead",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Wetheral Road",
+  "lat": 5.452524,
+  "lng": 7.028081,
+  "city": "Owerri",
+  "state": "Imo",
+  "suburb": "Wetheral Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Douglas Road",
+  "lat": 5.479898,
+  "lng": 7.069605,
+  "city": "Owerri",
+  "state": "Imo",
+  "suburb": "Douglas Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Effurun",
+  "lat": 5.546768,
+  "lng": 5.731071,
+  "city": "Warri",
+  "state": "Delta",
+  "suburb": "Effurun",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Airport Road",
+  "lat": 5.516747,
+  "lng": 5.724292,
+  "city": "Warri",
+  "state": "Delta",
+  "suburb": "Airport Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Nnebisi Road",
+  "lat": 6.23101,
+  "lng": 6.757641,
+  "city": "Asaba",
+  "state": "Delta",
+  "suburb": "Nnebisi Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Aka Road",
+  "lat": 5.021576,
+  "lng": 7.923916,
+  "city": "Uyo",
+  "state": "Akwa Ibom",
+  "suburb": "Aka Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Oron Road",
+  "lat": 5.046418,
+  "lng": 7.885027,
+  "city": "Uyo",
+  "state": "Akwa Ibom",
+  "suburb": "Oron Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Marian Road",
+  "lat": 4.996701,
+  "lng": 8.34485,
+  "city": "Calabar",
+  "state": "Cross River",
+  "suburb": "Marian Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Ibara",
+  "lat": 7.17799,
+  "lng": 3.347528,
+  "city": "Abeokuta",
+  "state": "Ogun",
+  "suburb": "Ibara",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Panseke",
+  "lat": 7.115746,
+  "lng": 3.331032,
+  "city": "Abeokuta",
+  "state": "Ogun",
+  "suburb": "Panseke",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Alagbaka",
+  "lat": 7.214158,
+  "lng": 5.227428,
+  "city": "Akure",
+  "state": "Ondo",
+  "suburb": "Alagbaka",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Ibrahim Taiwo Road",
+  "lat": 8.526898,
+  "lng": 4.568633,
+  "city": "Ilorin",
+  "state": "Kwara",
+  "suburb": "Ibrahim Taiwo Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Ahmadu Bello Way",
+  "lat": 9.881101,
+  "lng": 8.822934,
+  "city": "Jos",
+  "state": "Plateau",
+  "suburb": "Ahmadu Bello Way",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Rayfield",
+  "lat": 9.926741,
+  "lng": 8.894056,
+  "city": "Jos",
+  "state": "Plateau",
+  "suburb": "Rayfield",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Baga Road",
+  "lat": 11.800152,
+  "lng": 13.148879,
+  "city": "Maiduguri",
+  "state": "Borno",
+  "suburb": "Baga Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Sultan Abubakar Road",
+  "lat": 12.971437,
+  "lng": 5.268448,
+  "city": "Sokoto",
+  "state": "Sokoto",
+  "suburb": "Sultan Abubakar Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank IBB Way",
+  "lat": 7.823567,
+  "lng": 6.703571,
+  "city": "Lokoja",
+  "state": "Kogi",
+  "suburb": "IBB Way",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Old GRA",
+  "lat": 7.731323,
+  "lng": 8.520684,
+  "city": "Makurdi",
+  "state": "Benue",
+  "suburb": "Old GRA",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Paiko Road",
+  "lat": 9.595105,
+  "lng": 6.586695,
+  "city": "Minna",
+  "state": "Niger",
+  "suburb": "Paiko Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Yandoka Road",
+  "lat": 10.309651,
+  "lng": 9.821144,
+  "city": "Bauchi",
+  "state": "Bauchi",
+  "suburb": "Yandoka Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Atiku Abubakar Way",
+  "lat": 9.206644,
+  "lng": 12.513794,
+  "city": "Yola",
+  "state": "Adamawa",
+  "suburb": "Atiku Abubakar Way",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Gbongan Road",
+  "lat": 7.742992,
+  "lng": 4.541837,
+  "city": "Osogbo",
+  "state": "Osun",
+  "suburb": "Gbongan Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Bank Road",
+  "lat": 7.660712,
+  "lng": 5.23339,
+  "city": "Ado-Ekiti",
+  "state": "Ekiti",
+  "suburb": "Bank Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Ogoja Road",
+  "lat": 6.319948,
+  "lng": 8.115106,
+  "city": "Abakaliki",
+  "state": "Ebonyi",
+  "suburb": "Ogoja Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Library Avenue",
+  "lat": 5.49458,
+  "lng": 7.472176,
+  "city": "Umuahia",
+  "state": "Abia",
+  "suburb": "Library Avenue",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Zik Avenue",
+  "lat": 6.199047,
+  "lng": 7.080965,
+  "city": "Awka",
+  "state": "Anambra",
+  "suburb": "Zik Avenue",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank IBB Way",
+  "lat": 12.969209,
+  "lng": 7.579417,
+  "city": "Katsina",
+  "state": "Katsina",
+  "suburb": "IBB Way",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank New Market Road",
+  "lat": 10.255379,
+  "lng": 11.177788,
+  "city": "Gombe",
+  "state": "Gombe",
+  "suburb": "New Market Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Hammaruwa Way",
+  "lat": 8.861615,
+  "lng": 11.399134,
+  "city": "Jalingo",
+  "state": "Taraba",
+  "suburb": "Hammaruwa Way",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Maiduguri Road",
+  "lat": 11.775771,
+  "lng": 11.926469,
+  "city": "Damaturu",
+  "state": "Yobe",
+  "suburb": "Maiduguri Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Canteen Road",
+  "lat": 12.14184,
+  "lng": 6.674918,
+  "city": "Gusau",
+  "state": "Zamfara",
+  "suburb": "Canteen Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Ahmadu Bello Way",
+  "lat": 12.431039,
+  "lng": 4.168085,
+  "city": "Birnin Kebbi",
+  "state": "Kebbi",
+  "suburb": "Ahmadu Bello Way",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Kiyawa Road",
+  "lat": 11.790841,
+  "lng": 9.343683,
+  "city": "Dutse",
+  "state": "Jigawa",
+  "suburb": "Kiyawa Road",
+  "source": "demo-fill",
+  "demo": true
+ },
+ {
+  "name": "GTBank Jos Road",
+  "lat": 8.481114,
+  "lng": 8.53947,
+  "city": "Lafia",
+  "state": "Nasarawa",
+  "suburb": "Jos Road",
+  "source": "demo-fill",
+  "demo": true
+ }
+]

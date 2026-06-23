@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Short brand code shown in dashboard titles ("GTB FM Operations
+             Dashboard", "GTB Office Locations", ...). -->
+        <record id="param_brand_short_name" model="ir.config_parameter">
+            <field name="key">cadra.brand_short_name</field>
+            <field name="value">GTB</field>
+        </record>
+    </data>
+</odoo>
