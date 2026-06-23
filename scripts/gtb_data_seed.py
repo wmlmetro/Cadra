@@ -68,20 +68,43 @@ def _slug(name, i):
     return name.lower().replace(" ", ".") + f".{i}@gtb.demo"
 
 
-def fix_asset_code_prefix(env):
-    """Switch the per-DB asset_code sequence prefix NRS-AST- → GTB-AST- and
-    rename any already-created NRS-prefixed codes (tenant uniformity)."""
+def fix_asset_codes_and_tags(env):
+    """Re-brand asset codes AND barcode tags to the tenant's short code
+    (NRS- → <brand>-). The asset module auto-generates both on create with a
+    prefix; the brand-aware code only affects NEW records, so existing ones
+    (seeded earlier) keep the old NRS- prefix and must be renamed in place."""
+    brand = env["ir.config_parameter"].sudo().get_param("cadra.brand_short_name", "NRS")
+    if brand == "NRS":
+        return  # NRS tenant — already correct, nothing to re-brand
+    old = "NRS-"
+    new = f"{brand}-"
+
+    # asset_code sequence prefix (future codes)
     seq = env["ir.sequence"].search([("code", "=", "nrs.asset")], limit=1)
-    if seq and (seq.prefix or "").startswith("NRS-"):
-        if _sp_write(env, seq, {"prefix": "GTB-AST-"}):
-            print("  ✓ asset_code sequence prefix → GTB-AST-")
-    renamed = 0
-    for a in env["nrs.asset"].search([("asset_code", "=like", "NRS-%")]):
-        if _sp_write(env, a, {"asset_code": a.asset_code.replace("NRS-", "GTB-", 1)}):
-            renamed += 1
-    if renamed:
-        print(f"  ✓ renamed {renamed} existing asset codes NRS- → GTB-")
+    if seq and (seq.prefix or "").startswith(old):
+        if _sp_write(env, seq, {"prefix": f"{brand}-AST-"}):
+            print(f"  ✓ asset_code sequence prefix → {brand}-AST-")
+
+    # existing asset_code + asset_tag on every asset
+    codes = tags = 0
+    for a in env["nrs.asset"].search(["|", ("asset_code", "=like", "NRS-%"), ("asset_tag", "=like", "NRS-%")]):
+        vals = {}
+        if a.asset_code and a.asset_code.startswith(old):
+            vals["asset_code"] = a.asset_code.replace(old, new, 1)
+        if a.asset_tag and a.asset_tag.startswith(old):
+            vals["asset_tag"] = a.asset_tag.replace(old, new, 1)
+        if vals and _sp_write(env, a, vals):
+            codes += 1 if "asset_code" in vals else 0
+            tags += 1 if "asset_tag" in vals else 0
+
+    # the barcode tag.label history records
+    labels = 0
+    if "nrs.asset.tag.label" in env:
+        for t in env["nrs.asset.tag.label"].search([("name", "=like", "NRS-%")]):
+            if _sp_write(env, t, {"name": t.name.replace(old, new, 1)}):
+                labels += 1
     env.cr.commit()
+    print(f"  ✓ re-branded → {brand}-  (asset_code:{codes} asset_tag:{tags} tag-labels:{labels})")
 
 
 def seed_employees(env, branches):
@@ -267,7 +290,7 @@ _VEHICLES = [
 
 _branches = env["generic.location"].search([("latitude", "!=", False)])  # noqa: F821
 print(f"  GTB demo data depth across {len(_branches)} branches:")
-fix_asset_code_prefix(env)                          # noqa: F821
+fix_asset_codes_and_tags(env)                       # noqa: F821
 _emps, _officers, _by_branch = seed_employees(env, _branches)   # noqa: F821
 wire_assets(env, _branches, _emps, _by_branch)      # noqa: F821
 wire_fleet(env, _branches, _emps, _by_branch)       # noqa: F821
