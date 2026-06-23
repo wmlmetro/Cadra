@@ -9,5 +9,16 @@
             <field name="key">cadra.brand_short_name</field>
             <field name="value">NRS</field>
         </record>
+        <!-- Surfaced to the React frontend via GET /api/v1/brand. Keep in sync
+             with static/src/css/brand.css. No logo param → the frontend falls
+             back to its bundled NRS logo. -->
+        <record id="param_brand_primary" model="ir.config_parameter">
+            <field name="key">cadra.brand_primary</field>
+            <field name="value">#C8102E</field>
+        </record>
+        <record id="param_brand_primary_dark" model="ir.config_parameter">
+            <field name="key">cadra.brand_primary_dark</field>
+            <field name="value">#A00D24</field>
+        </record>
     </data>
 </odoo>

@@ -1,11 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data noupdate="1">
-        <!-- Short brand code shown in dashboard titles ("GTB FM Operations
-             Dashboard", "GTB Office Locations", ...). -->
+        <!-- Per-client brand, read by the Odoo backend (brand.css mirrors the
+             colour) AND surfaced to the React frontend via GET /api/v1/brand.
+             Keep cadra.brand_primary in sync with static/src/css/brand.css. -->
         <record id="param_brand_short_name" model="ir.config_parameter">
             <field name="key">cadra.brand_short_name</field>
             <field name="value">GTB</field>
+        </record>
+        <record id="param_brand_primary" model="ir.config_parameter">
+            <field name="key">cadra.brand_primary</field>
+            <field name="value">#E04403</field>
+        </record>
+        <record id="param_brand_primary_dark" model="ir.config_parameter">
+            <field name="key">cadra.brand_primary_dark</field>
+            <field name="value">#B33503</field>
+        </record>
+        <!-- Official GTCO logo (SVG) as a data URI; rendered by the React app. -->
+        <record id="param_brand_logo" model="ir.config_parameter">
+            <field name="key">cadra.brand_logo</field>
+            <field name="value">data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjU5LjIzIDAgMTcxLjg2IDE3MS44NyI+PHBhdGggZmlsbD0iI0UwNDQwMyIgZD0iTTU5LjIzIDBoMTcxLjg2djE3MS44N0g1OS4yM3oiLz48cGF0aCBmaWxsPSIjRkZGIiBkPSJNMTU3LjYxIDI0LjQzaDQyLjk3VjY3LjRoLTQyLjk3ek0xMDMuNzIgMTM5LjEzYy03IDAtMTQuNDYtMS45NS0xNC40Ni0xOC45NXM5LTIwIDE2LjU3LTIwYTE5LjU3IDE5LjU3IDAgMCAxIDguODkgMnY2LjA2YTMxLjI1IDMxLjI1IDAgMCAwLTguODktMS44OWMtMy44NCAwLTkgMi4wNi05IDEzLjM3IDAgMTIgNCAxMy40NCA2Ljc3IDEzLjQ0YTMzIDMzIDAgMCAwIDUuMTUtLjU1VjEyMS4xaC01LjE1bC0uNTQtNS44aDEzLjI3djIxLjg4YTUyLjc5IDUyLjc5IDAgMCAxLTEyLjYxIDEuOTVaTTE0NS44IDEwNy4xOGgtOC4zNHYzMS40MWgtNy41OXYtMzEuNDFoLTkuMnYtNi41aDI2ek0xNjIgMTM5LjEzYy02LjM0IDAtMTMuNDMtMi0xMy40My0xOS41czguOTMtMTkuNDkgMTQuMTMtMTkuNDlhMTcgMTcgMCAwIDEgNyAxLjM1djYuMTJhMjQuMTQgMjQuMTQgMCAwIDAtNi42MS0xLjNjLTMuNjggMC02LjkzIDIuMjItNi45MyAxMy4zMiAwIDkuOTIgMi4zMyAxMy4yNyA2LjM5IDEzLjI3YTI0LjE4IDI0LjE4IDAgMCAwIDcuMTUtMS4zNXY2LjEyYTE4LjI5IDE4LjI5IDAgMCAxLTcuNyAxLjQ2Wk0xODcuMjggMTM5LjEzYy01Ljg1IDAtMTMuNTQtMS4xOS0xMy41NC0xOS41czguMTgtMTkuNDkgMTMuNTQtMTkuNDljNS4zNiAwIDEzLjU0IDEuMyAxMy41NCAxOS40OSAwIDE4LjQ3LTcuODIgMTkuNS0xMy41NCAxOS41Wm0wLTMzLjU4Yy0zLjc5IDAtNiAyLjQ5LTYgMTQuMDggMCAxMS43NiAyLjc2IDE0LjA5IDYgMTQuMDlzNS45NS0yLjE3IDUuOTUtMTQuMDljMC0xMS4zNy0yLjIzLTE0LjA4LTUuOTUtMTQuMDhaIi8+PC9zdmc+Cg==</field>
         </record>
     </data>
 </odoo>
