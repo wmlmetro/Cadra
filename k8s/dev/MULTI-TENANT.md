@@ -72,10 +72,18 @@ kubectl -n $NS scale deploy/odoo --replicas=1
 2. **Ingress** — in [`60-ingress.yaml`](60-ingress.yaml): add `jizzy.cadra.ng`
    to the `tls.hosts` list and add a rule `- host: jizzy.cadra.ng` with
    `http: *odoo-paths`. Apply it (cert-manager re-issues the SAN cert).
-3. **Brand** — copy `cadra_brand_nrs` → `cadra_brand_jizzy`, change the 3
-   `--brand-primary*` hexes + `cadra.brand_short_name`, and add it to
-   `CADRA_BOOTSTRAP_MODULES`.
-4. **Database** — create + bootstrap a DB named exactly `jizzy`:
+3. **Brand** — copy `cadra_brand_nrs` → `cadra_brand_jizzy`; change the 3
+   `--brand-primary*` hexes (in `static/src/css/brand.css`) and the params in
+   `data/brand_params.xml` (`cadra.brand_short_name`, `cadra.brand_primary`,
+   `cadra.brand_primary_dark`, optional `cadra.brand_logo` data URI).
+   ⚠️ **REQUIRED: add a COPY line for it in [`Dockerfile.odoo.k8s`](../../Dockerfile.odoo.k8s)**
+   (each module needs its own line — a glob would flatten them). Without this
+   the module isn't on the image addons path and `-i`/`-u` silently ignore it
+   ("invalid module names, ignored: …") so the brand never loads. Do NOT add
+   brand modules to the shared `CADRA_BOOTSTRAP_MODULES` (that would brand every
+   tenant) — install per-client via `bootstrap_extra_modules` / `install_modules`.
+4. **Database** — create + bootstrap a DB named exactly `jizzy`, installing the
+   brand module alongside the shared list:
    ```sh
    kubectl -n cadra-dev exec deploy/odoo -- \
      odoo -d jizzy -i <CADRA_BOOTSTRAP_MODULES> --stop-after-init --no-http
