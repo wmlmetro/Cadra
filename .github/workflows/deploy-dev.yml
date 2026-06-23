@@ -64,6 +64,10 @@ on:
         description: "Comma-separated NEW modules to install (e.g. 'cadra_brand_nrs'). Leave blank to skip. Adds a module to the live DB without re-running the bootstrap seed."
         type: string
         default: ""
+      target_db:
+        description: "Tenant DB for the install/upgrade Job (e.g. 'gtb'). Blank = default POSTGRES_DB (staging)."
+        type: string
+        default: ""
       filestore_from:
         description: "One-off filestore migration: source dir name under /var/lib/odoo/filestore (e.g. the OLD db name 'odoo'). Use after renaming a DB so attachments/assets resolve. Leave blank to skip."
         type: string
@@ -305,6 +309,7 @@ jobs:
           IMAGE: ${{ needs.build-and-push.outputs.image }}
           UPGRADE_MODULES: ${{ inputs.upgrade_modules }}
           INSTALL_MODULES: ${{ inputs.install_modules }}
+          TARGET_DB: ${{ inputs.target_db }}
         run: |
           set -e
           if kubectl -n "${NAMESPACE}" get deployment/odoo >/dev/null 2>&1; then
@@ -317,6 +322,7 @@ jobs:
           sed -e "s|REPLACE_ME/cadra-odoo:dev|${IMAGE}|g" \
               -e "s|REPLACE_ME_INSTALL_MODULES|${INSTALL_MODULES}|g" \
               -e "s|REPLACE_ME_UPGRADE_MODULES|${UPGRADE_MODULES}|g" \
+              -e "s|REPLACE_ME_TARGET_DB|${TARGET_DB}|g" \
               k8s/dev/51-upgrade-job.yaml | kubectl apply -f -
 
           kubectl -n "${NAMESPACE}" wait --for=condition=complete job/cadra-upgrade --timeout=20m

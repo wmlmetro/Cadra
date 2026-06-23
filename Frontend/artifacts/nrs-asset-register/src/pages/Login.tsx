@@ -3,8 +3,7 @@ import { useLocation } from "wouter";
 import { login } from "@/lib/auth";
 import { Loader2, ShieldCheck, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const logoSrc = `${import.meta.env.BASE_URL}nrs-logo.png`;
+import { brandLogoSrc, getBrand } from "@/lib/brand";
 
 export default function Login() {
   const [, nav] = useLocation();
@@ -34,7 +33,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-background p-6">
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-3">
-          <img src={logoSrc} alt="Nigeria Revenue Service" className="h-12 w-auto" draggable={false} />
+          <img src={brandLogoSrc()} alt={getBrand().name} className="h-12 w-auto" draggable={false} />
           <div className="text-center">
             <h1 className="text-[18px] font-bold text-foreground">Sign in to Cadra</h1>
             <p className="text-[12px] text-muted-foreground mt-1">Use your Cadra credentials</p>

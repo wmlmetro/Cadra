@@ -9,6 +9,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { logout, getScope, getExpiry } from "@/lib/auth";
+import { brandLogoSrc, getBrand } from "@/lib/brand";
 
 const navGroups = [
   { label: "Dashboards", items: [
@@ -68,13 +69,12 @@ function writeCollapsed(state: Record<string, boolean>) {
   try { localStorage.setItem(COLLAPSE_STORAGE_KEY, JSON.stringify(state)); } catch { /* noop */ }
 }
 
-const logoSrc = `${import.meta.env.BASE_URL}nrs-logo.png`;
-
 function NrsLogoImg() {
+  // Per-tenant logo + name, resolved at render time (applyBrand ran before mount).
   return (
     <img
-      src={logoSrc}
-      alt="Nigeria Revenue Service"
+      src={brandLogoSrc()}
+      alt={getBrand().name}
       className="h-7 w-auto object-contain"
       draggable={false}
     />

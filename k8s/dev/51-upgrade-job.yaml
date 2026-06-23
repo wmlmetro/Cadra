@@ -93,6 +93,9 @@ spec:
                 printf 'db_password = %s\n' "$PASSWORD"
               } >> /tmp/odoo.conf
 
+              # Target a specific tenant DB (e.g. "gtb"); blank → secret DB.
+              DB="${TARGET_DB:-$DB}"
+
               # Install (-i) brings in NEW modules; upgrade (-u) re-reads
               # manifests of already-installed ones. Either or both may be set.
               install="REPLACE_ME_INSTALL_MODULES"
@@ -127,6 +130,9 @@ spec:
                 secretKeyRef:
                   name: cadra-db
                   key: POSTGRES_DB
+            # Per-tenant override (sed-substituted by the workflow; blank → DB).
+            - name: TARGET_DB
+              value: "REPLACE_ME_TARGET_DB"
             - name: ODOO_MASTER_PASSWORD
               valueFrom:
                 secretKeyRef:
