@@ -65,11 +65,16 @@ _DEMO_REQUESTS = [
 ]
 
 
-def seed_demo_requests(env, target=28):
-    """Best-effort: create a handful of demo requests across branches/stages."""
+def seed_demo_requests(env, target=30):
+    """Best-effort: create demo requests so the FM dashboard KPIs aren't zero.
+
+    The create uses ONLY the proven-minimal fields (type_id + request_text) —
+    everything else defaults. Location and stage are attached AFTER, in
+    separate guarded writes, so a rejected enrichment never loses the record
+    (an earlier version put the location in the create() and every record was
+    silently rejected → 0 created). Never breaks the seed.
+    """
     try:
-        if "request.request" not in env:
-            return
         Req = env["request.request"]
         rfields = Req.fields_get()
         existing = Req.search_count([])
@@ -77,37 +82,46 @@ def seed_demo_requests(env, target=28):
             print(f"  ✓ Demo requests: {existing} already present — skipping")
             return
 
-        types = env["request.type"].search([]) if "request.type" in env else []
+        types = env["request.type"].search([])
         if not types:
             print("  ! Demo requests: no request.type found — skipping")
             return
 
-        # Branch locations (with coords) to attach as the request's location.
-        Loc = env["generic.location"]
-        branches = Loc.search([("latitude", "!=", False)]) if "latitude" in Loc.fields_get() else Loc.search([])
-
-        loc_field = next((f for f in ("location_id", "request_location_id") if f in rfields), None)
         text_field = next((f for f in ("request_text", "description", "note") if f in rfields), None)
+        loc_field = next((f for f in ("request_location_id", "location_id") if f in rfields), None)
+        branches = env["generic.location"].search([("latitude", "!=", False)])
+        stages = env["request.stage"].search([]) if "request.stage" in env else None
 
-        made = 0
+        made, first_err = 0, None
         for i in range(target - existing):
             rtype = types[i % len(types)]
+            branch = branches[i % len(branches)] if branches else None
+            blurb = _DEMO_REQUESTS[i % len(_DEMO_REQUESTS)]
             vals = {"type_id": rtype.id}
-            if "category_id" in rfields and getattr(rtype, "category_id", False):
-                vals["category_id"] = rtype.category_id.id
             if text_field:
-                blurb = _DEMO_REQUESTS[i % len(_DEMO_REQUESTS)]
-                branch = branches[i % len(branches)].name if branches else "branch"
-                vals[text_field] = f"{blurb} — {branch}"
-            if loc_field and branches:
-                vals[loc_field] = branches[i % len(branches)].id
+                vals[text_field] = blurb + (f" — {branch.name}" if branch else "")
             try:
-                Req.create(vals)
-                made += 1
-            except Exception as ex:  # noqa: BLE001 — defensive per-record
-                _logger.info("GTB demo request skipped: %s", ex)
+                rec = Req.create(vals)          # proven-minimal create
+            except Exception as ex:             # noqa: BLE001 — per-record
+                first_err = first_err or str(ex)
+                continue
+            made += 1
+            # Enrichment — guarded; a failure here keeps the (already-created) record.
+            if loc_field and branch:
+                try:
+                    rec.write({loc_field: branch.id})
+                except Exception:  # noqa: BLE001
+                    pass
+            if stages:
+                try:
+                    rec.write({"stage_id": stages[i % len(stages)].id})
+                except Exception:  # noqa: BLE001
+                    pass
         env.cr.commit()
-        print(f"  ✓ Demo requests created: {made}")
+        msg = f"  ✓ Demo requests created: {made}"
+        if made == 0 and first_err:
+            msg += f"  (first error: {first_err[:140]})"
+        print(msg)
     except Exception as ex:  # noqa: BLE001 — must never break the seed
         _logger.warning("GTB demo-request seeding skipped: %s", ex)
         print(f"  ! Demo requests skipped: {ex}")
