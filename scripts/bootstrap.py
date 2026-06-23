@@ -351,6 +351,7 @@ SEED_PROFILES = {
         ("ITSM Structure",              "/mnt/extra-addons/itsm_structure.py"),
         ("GTB Branches (122)",          "/mnt/extra-addons/scripts/load_gtb_locations.py"),
         ("GTB Company + Demo Requests", "/mnt/extra-addons/scripts/gtb_seed.py"),
+        ("GTB Demo Data (staff/assets/fleet)", "/mnt/extra-addons/scripts/gtb_data_seed.py"),
     ],
 }
 
