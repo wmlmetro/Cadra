@@ -92,22 +92,32 @@ spec:
                 printf 'db_password = %s\n' "$PASSWORD"
               } >> /tmp/odoo.conf
 
+              # Per-client overrides (blank by default → fall back to the
+              # secret DB / configmap modules). Used to onboard a NEW tenant:
+              #   TARGET_DB     → which database to create/seed (e.g. "gtb")
+              #   EXTRA_MODULES → appended to the shared list (e.g. the client
+              #                   brand module "cadra_brand_gtb")
+              DB="${TARGET_DB:-$DB}"
+              MODULES="${CADRA_BOOTSTRAP_MODULES}${EXTRA_MODULES:+,$EXTRA_MODULES}"
+
               # Skip install if every requested module is already in state=installed.
-              # PGPASSWORD lets psql connect non-interactively.
+              # PGPASSWORD lets psql connect non-interactively. On a brand-new DB
+              # the psql probe fails (db absent) → installed=0 → install runs and
+              # Odoo creates the database.
               export PGPASSWORD="$PASSWORD"
-              wanted=$(echo "$CADRA_BOOTSTRAP_MODULES" | tr ',' '\n' | sort -u | wc -l)
+              wanted=$(echo "$MODULES" | tr ',' '\n' | sort -u | wc -l)
               installed=$(psql -h "$HOST" -U "$USER" -d "$DB" -tAc \
-                  "SELECT count(*) FROM ir_module_module WHERE state='installed' AND name = ANY (string_to_array('$CADRA_BOOTSTRAP_MODULES', ','))" \
+                  "SELECT count(*) FROM ir_module_module WHERE state='installed' AND name = ANY (string_to_array('$MODULES', ','))" \
                   2>/dev/null || echo 0)
 
               if [ "$installed" = "$wanted" ]; then
-                echo "all $wanted modules already installed — skipping -i"
+                echo "all $wanted modules already installed in $DB — skipping -i"
                 exit 0
               fi
 
-              echo "installing modules: $CADRA_BOOTSTRAP_MODULES"
+              echo "installing into $DB: $MODULES"
               exec odoo -c /tmp/odoo.conf -d "$DB" \
-                -i "$CADRA_BOOTSTRAP_MODULES" \
+                -i "$MODULES" \
                 --stop-after-init --no-http
           env:
             - name: HOST
@@ -127,6 +137,12 @@ spec:
                 secretKeyRef:
                   name: cadra-db
                   key: POSTGRES_DB
+            # Per-client onboarding overrides (sed-substituted by the workflow;
+            # blank → fall back to the secret DB / shared module list).
+            - name: TARGET_DB
+              value: "REPLACE_ME_TARGET_DB"
+            - name: EXTRA_MODULES
+              value: "REPLACE_ME_EXTRA_MODULES"
             - name: ODOO_MASTER_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -169,10 +185,16 @@ spec:
                 printf 'db_password = %s\n' "$PASSWORD"
               } >> /tmp/odoo.conf
 
+              # Per-client onboarding overrides (blank → secret DB / configmap
+              # profile). TARGET_DB picks the tenant database; SEED_PROFILE_OVERRIDE
+              # selects its seed profile (e.g. "gtb").
+              DB="${TARGET_DB:-$DB}"
+              export CADRA_SEED_PROFILE="${SEED_PROFILE_OVERRIDE:-$CADRA_SEED_PROFILE}"
+
               # bootstrap.py sets JWT secret + admin groups + API client + seeds.
               # Idempotent — re-running on a populated DB is a no-op except for
               # the credential block it prints at the end.
-              echo "running scripts/bootstrap.py inside odoo shell"
+              echo "seeding $DB with profile '${CADRA_SEED_PROFILE:-<none>}'"
               odoo shell -c /tmp/odoo.conf -d "$DB" --no-http \
                 <<< "exec(open('/opt/cadra/scripts/bootstrap.py').read())"
           env:
@@ -193,6 +215,11 @@ spec:
                 secretKeyRef:
                   name: cadra-db
                   key: POSTGRES_DB
+            # Per-client onboarding overrides (sed-substituted by the workflow).
+            - name: TARGET_DB
+              value: "REPLACE_ME_TARGET_DB"
+            - name: SEED_PROFILE_OVERRIDE
+              value: "REPLACE_ME_SEED_PROFILE"
             - name: ODOO_MASTER_PASSWORD
               valueFrom:
                 secretKeyRef:

@@ -342,6 +342,16 @@ SEED_PROFILES = {
         ("Geocode Locations (OSM)",  "/mnt/extra-addons/geocode_locations.py"),
         ("Fleet → Location Matcher", "/mnt/extra-addons/fleet_location_matcher.py"),
     ],
+    # Guaranty Trust Bank demo tenant. Generic ITSM structure + GTB company
+    # branding + 122 GTB branches (41 real from OpenStreetMap with live coords,
+    # 81 demo-fill across the remaining states) + light bank-facilities demo
+    # requests. Branches load BEFORE the company seed so its demo requests can
+    # attach to real branch locations. No FIRS/NRS data.
+    "gtb": [
+        ("ITSM Structure",              "/mnt/extra-addons/itsm_structure.py"),
+        ("GTB Branches (122)",          "/mnt/extra-addons/scripts/load_gtb_locations.py"),
+        ("GTB Company + Demo Requests", "/mnt/extra-addons/scripts/gtb_seed.py"),
+    ],
 }
 
 
