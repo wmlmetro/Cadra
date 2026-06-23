@@ -85,26 +85,25 @@ def fix_asset_codes_and_tags(env):
         if _sp_write(env, seq, {"prefix": f"{brand}-AST-"}):
             print(f"  ✓ asset_code sequence prefix → {brand}-AST-")
 
-    # existing asset_code + asset_tag on every asset
-    codes = tags = 0
-    for a in env["nrs.asset"].search(["|", ("asset_code", "=like", "NRS-%"), ("asset_tag", "=like", "NRS-%")]):
-        vals = {}
-        if a.asset_code and a.asset_code.startswith(old):
-            vals["asset_code"] = a.asset_code.replace(old, new, 1)
-        if a.asset_tag and a.asset_tag.startswith(old):
-            vals["asset_tag"] = a.asset_tag.replace(old, new, 1)
-        if vals and _sp_write(env, a, vals):
-            codes += 1 if "asset_code" in vals else 0
-            tags += 1 if "asset_tag" in vals else 0
-
-    # the barcode tag.label history records
+    # Rename existing codes/tags via RAW SQL. The ORM write() path was being
+    # silently rolled back (a write hook/constraint on nrs.asset, swallowed by
+    # the per-record savepoint), so asset_tag stayed NRS-. Raw UPDATEs bypass
+    # that. substring(x FROM 5) drops the 4-char "NRS-" prefix.
+    cr = env.cr
+    cr.execute("UPDATE nrs_asset SET asset_code = %s || substring(asset_code FROM 5) "
+               "WHERE asset_code LIKE 'NRS-%%'", (new,))
+    codes = cr.rowcount
+    cr.execute("UPDATE nrs_asset SET asset_tag = %s || substring(asset_tag FROM 5) "
+               "WHERE asset_tag LIKE 'NRS-%%'", (new,))
+    tags = cr.rowcount
     labels = 0
     if "nrs.asset.tag.label" in env:
-        for t in env["nrs.asset.tag.label"].search([("name", "=like", "NRS-%")]):
-            if _sp_write(env, t, {"name": t.name.replace(old, new, 1)}):
-                labels += 1
+        cr.execute("UPDATE nrs_asset_tag_label SET name = %s || substring(name FROM 5) "
+                   "WHERE name LIKE 'NRS-%%'", (new,))
+        labels = cr.rowcount
     env.cr.commit()
-    print(f"  ✓ re-branded → {brand}-  (asset_code:{codes} asset_tag:{tags} tag-labels:{labels})")
+    env["nrs.asset"].invalidate_cache()
+    print(f"  ✓ re-branded via SQL → {brand}-  (asset_code:{codes} asset_tag:{tags} tag-labels:{labels})")
 
 
 def seed_employees(env, branches):
