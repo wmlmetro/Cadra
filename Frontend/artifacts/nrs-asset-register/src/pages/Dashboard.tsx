@@ -206,7 +206,12 @@ export default function Dashboard() {
     reviewQueue:   realKpis?.requests.open    ?? reviewPage?.totalEstimate ?? mockStats.reviewQueue,
   };
   const reviewAssets = reviewPage?.assets.slice(0, 8) ?? getReviewQueueAssets();
-  const categoryData = getAssetsByCategory();   // mock — no API aggregate
+  // Real per-tenant asset-category breakdown from /api/v1/dashboard/kpis
+  // (assets.categories, sorted desc). Top 3 to match the palette/legend.
+  // Falls back to mock only if the API didn't carry the assets block.
+  const categoryData = (realKpis?.assets?.categories?.length ?? 0) > 0
+    ? realKpis!.assets!.categories.slice(0, 3).map(c => ({ name: c.name, value: c.count }))
+    : getAssetsByCategory();
   const statusData = getAssetsByStatus();       // mock — no API aggregate
 
   // Map pins from /api/v1/dashboard/map.locations — already deduped & geocoded
@@ -276,19 +281,19 @@ export default function Dashboard() {
             <p className="text-4xl font-bold tracking-tight text-foreground tabular-nums leading-none">
               {stats.totalAssets.toLocaleString()}
             </p>
+            {/* Top-3 real asset categories (per-tenant) from the kpis payload. */}
             <div className="flex gap-4 mt-3 pt-3 border-t border-border">
-              <div>
-                <p className="text-[10px] uppercase tracking-wider font-medium text-blue-500">IT</p>
-                <p className="text-sm font-bold text-foreground tabular-nums">{stats.itEquipment.toLocaleString()}</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-wider font-medium text-emerald-500">Fleet</p>
-                <p className="text-sm font-bold text-foreground tabular-nums">{stats.fleetVehicles.toLocaleString()}</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-wider font-medium text-amber-500">Furn.</p>
-                <p className="text-sm font-bold text-foreground tabular-nums">{stats.furniture.toLocaleString()}</p>
-              </div>
+              {categoryData.slice(0, 3).map((c, i) => (
+                <div key={c.name}>
+                  <p
+                    className={`text-[10px] uppercase tracking-wider font-medium ${["text-blue-500", "text-emerald-500", "text-amber-500"][i]}`}
+                    title={c.name}
+                  >
+                    {c.name.length > 10 ? c.name.slice(0, 9) + "…" : c.name}
+                  </p>
+                  <p className="text-sm font-bold text-foreground tabular-nums">{c.value.toLocaleString()}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -349,7 +354,7 @@ export default function Dashboard() {
         <div className="bg-card border border-border rounded-2xl p-5 lg:col-span-3">
           <SectionHeader
             title="Assets by Category"
-            sub="Breakdown across three primary asset classes"
+            sub="Top asset categories by count"
           />
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={categoryData} barSize={52} barGap={12}>
@@ -363,7 +368,7 @@ export default function Dashboard() {
                 tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))", fontFamily: "inherit" }}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v))}
                 width={28}
               />
               <Tooltip content={<CustomBarTooltip />} cursor={{ fill: "hsl(var(--muted) / 0.5)", radius: 6 }} />
