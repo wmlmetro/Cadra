@@ -1,0 +1,92 @@
+name: e2e
+
+# Browser end-to-end tests (Playwright) for the Cadra /app SPA.
+# Brings the full stack up cold (same bootstrap the pytest job uses), builds
+# the frontend bundle so nginx can serve /app, then drives real Chromium
+# against http://localhost:8069/app.
+#
+# Runs on PRs + pushes to the long-lived branches + manual dispatch (a full
+# docker bootstrap per run, so we don't run it on every feature-branch push).
+on:
+  push:
+    branches: ["main", "dev"]
+  pull_request:
+    branches: ["**"]
+  workflow_dispatch: {}
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Build the SPA FIRST so dist/public exists before nginx (the compose
+      # `proxy` service) bind-mounts it during bootstrap.
+      - name: Build the /app frontend bundle
+        working-directory: Frontend/artifacts/nrs-asset-register
+        run: |
+          npm ci
+          BASE_PATH=/app/ npm run build
+
+      - name: Seed .env from .env.example (CI dev defaults)
+        run: cp .env.example .env
+
+      - name: Bootstrap the stack (build → install → seed → API client)
+        run: |
+          export CADRA_SEED_PROFILE=core
+          ./scripts/bootstrap.sh
+
+      - name: Wait for /app to be served
+        run: |
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" -L http://localhost:8069/app/ || true)
+            echo "attempt $i: /app/ -> $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 3
+          done
+          echo "FAIL: http://localhost:8069/app/ never returned 200"
+          exit 1
+
+      - name: Install E2E deps + Chromium
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run Playwright E2E suite
+        working-directory: e2e
+        env:
+          # Single-DB dev bootstrap serves the `odoo` DB on every host.
+          E2E_ORIGIN: http://localhost:8069
+          E2E_USER: admin
+          E2E_PASS: admin
+        run: npx playwright test
+
+      - name: Upload Playwright report + traces (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          retention-days: 14
+
+      - name: Show docker logs on failure
+        if: failure()
+        run: |
+          echo "─── odoo logs (last 200) ───"
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml logs --tail=200 odoo || true
+          echo "─── proxy (nginx) logs (last 50) ───"
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml logs --tail=50 proxy || true

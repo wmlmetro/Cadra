@@ -235,21 +235,23 @@ export async function updateAsset(id: string, body: AssetWriteBody): Promise<Ass
 }
 
 export async function moveAsset(id: string, to_location_id: number, reason?: string): Promise<Asset> {
-  const res = await apiPost<ApiAsset>(
+  // The move endpoint returns an envelope { asset, transfer }, not a bare asset.
+  const res = await apiPost<{ asset: ApiAsset; transfer: ApiAssetTransfer }>(
     `/api/v1/assets/${id}/move`,
     { to_location_id, reason },
     { idempotencyKey: newIdempotencyKey() },
   );
-  return apiAssetToAsset(res.data);
+  return apiAssetToAsset(res.data.asset);
 }
 
 export async function transferCustody(id: string, to_custodian_id: number, reason?: string): Promise<Asset> {
-  const res = await apiPost<ApiAsset>(
+  // The transfer-custody endpoint returns an envelope { asset, custody_change }.
+  const res = await apiPost<{ asset: ApiAsset; custody_change: unknown }>(
     `/api/v1/assets/${id}/transfer-custody`,
     { to_custodian_id, reason },
     { idempotencyKey: newIdempotencyKey() },
   );
-  return apiAssetToAsset(res.data);
+  return apiAssetToAsset(res.data.asset);
 }
 
 // ─── ASSET COUNTS (cheap dashboard primitives) ───────────────────────────────
