@@ -47,20 +47,22 @@ jobs:
           export CADRA_SEED_PROFILE=core
           ./scripts/bootstrap.sh
 
-      - name: Diagnose + (re)start proxy so it sees the built bundle
+      - name: Load nginx config + built SPA into the proxy
+        # The docker-compose dev bind-mounts (nginx.dev.conf + dist/public) do
+        # not land reliably on the GitHub runner — the proxy comes up with stock
+        # nginx content, so /app/ falls through to Odoo (301). Copy the real
+        # config and the built bundle into the running proxy and reload nginx.
+        # Deterministic regardless of the runner's bind-mount behaviour.
         run: |
           CF="-f docker-compose.yml -f docker-compose.dev.yml"
-          echo "─── compose ps ───"; docker compose $CF ps
-          echo "─── host dist/public ───"; ls -la Frontend/artifacts/nrs-asset-register/dist/public/ | head
           PROXY=$(docker compose $CF ps -q proxy)
           echo "proxy container = $PROXY"
-          echo "─── proxy: /usr/share/nginx/html ───"; docker exec "$PROXY" ls -la /usr/share/nginx/html/ | head || true
-          echo "─── proxy: mounted default.conf (/app block) ───"; docker exec "$PROXY" sh -c 'grep -n "location /app" /etc/nginx/conf.d/default.conf' || true
-          echo "─── curl -i /app/ ───"; curl -is http://127.0.0.1:8069/app/ | head -5 || true
-          # Restart the proxy so it re-reads the bind-mounted bundle/config in
-          # case it came up before the mount was populated.
-          docker compose $CF restart proxy
-          sleep 4
+          docker cp config/nginx.dev.conf "$PROXY:/etc/nginx/conf.d/default.conf"
+          docker exec "$PROXY" sh -c 'rm -rf /usr/share/nginx/html/* /usr/share/nginx/html/.[!.]* 2>/dev/null; mkdir -p /usr/share/nginx/html'
+          docker cp Frontend/artifacts/nrs-asset-register/dist/public/. "$PROXY:/usr/share/nginx/html/"
+          docker exec "$PROXY" nginx -t
+          docker exec "$PROXY" nginx -s reload
+          echo "─── proxy html after copy ───"; docker exec "$PROXY" ls /usr/share/nginx/html/ | head
 
       - name: Wait for /app to be served
         # Use 127.0.0.1, not localhost: the nginx image listens on IPv4 only,
