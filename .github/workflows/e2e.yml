@@ -48,14 +48,17 @@ jobs:
           ./scripts/bootstrap.sh
 
       - name: Wait for /app to be served
+        # Use 127.0.0.1, not localhost: the nginx image listens on IPv4 only,
+        # but "localhost" resolves to IPv6 ::1 first on the runner -> spurious
+        # connection-refused (same reason the dev compose healthcheck does this).
         run: |
-          for i in $(seq 1 30); do
-            code=$(curl -s -o /dev/null -w "%{http_code}" -L http://localhost:8069/app/ || true)
+          for i in $(seq 1 40); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" -L http://127.0.0.1:8069/app/ || true)
             echo "attempt $i: /app/ -> $code"
             [ "$code" = "200" ] && exit 0
             sleep 3
           done
-          echo "FAIL: http://localhost:8069/app/ never returned 200"
+          echo "FAIL: http://127.0.0.1:8069/app/ never returned 200"
           exit 1
 
       - name: Install E2E deps + Chromium
@@ -68,7 +71,8 @@ jobs:
         working-directory: e2e
         env:
           # Single-DB dev bootstrap serves the `odoo` DB on every host.
-          E2E_ORIGIN: http://localhost:8069
+          # 127.0.0.1 (not localhost) — nginx listens on IPv4 only.
+          E2E_ORIGIN: http://127.0.0.1:8069
           E2E_USER: admin
           E2E_PASS: admin
         run: npx playwright test
