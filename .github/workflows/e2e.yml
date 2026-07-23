@@ -47,25 +47,27 @@ jobs:
           export CADRA_SEED_PROFILE=core
           ./scripts/bootstrap.sh
 
-      - name: Recreate the proxy so it picks up the config + built SPA mounts
-        # The proxy first comes up during bootstrap and can start before its
-        # bind-mounts (nginx.dev.conf + dist/public) are in place, leaving nginx
-        # running stale config so /app/ falls through to Odoo (301). Recreate it
-        # now that the bundle is built — the mounts (which DO work: the config
-        # path is a live mountpoint) re-apply and nginx boots with the right
-        # config. Reload as belt-and-suspenders, then assert the /app block + SPA.
+      - name: Replace the proxy with a dedicated nginx (absolute mounts)
+        # The compose `proxy` service's relative bind-mounts don't apply reliably
+        # on the GitHub runner (nginx ends up on stock config, so /app/ falls
+        # through to Odoo → 301). Stop it and run our own nginx with ABSOLUTE -v
+        # mounts of the real dev config + the built SPA, joined to the compose
+        # network so `odoo` still resolves. Deterministic path resolution.
         run: |
           CF="-f docker-compose.yml -f docker-compose.dev.yml"
-          test -f Frontend/artifacts/nrs-asset-register/dist/public/index.html
-          docker compose $CF up -d --force-recreate --no-deps proxy
-          sleep 5
-          PROXY=$(docker compose $CF ps -q proxy)
-          echo "proxy container = $PROXY"
-          docker exec "$PROXY" nginx -s reload || true
-          echo "─── /app block present in active config? ───"
-          docker exec "$PROXY" grep -c "location /app/" /etc/nginx/conf.d/default.conf
-          echo "─── SPA files in proxy html root ───"
-          docker exec "$PROXY" ls /usr/share/nginx/html/ | head
+          test -f "$PWD/Frontend/artifacts/nrs-asset-register/dist/public/index.html"
+          NET=$(docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}' "$(docker compose $CF ps -q odoo)")
+          echo "compose network = $NET"
+          docker compose $CF stop proxy || true
+          docker rm -f e2e-proxy 2>/dev/null || true
+          docker run -d --name e2e-proxy --network "$NET" -p 8069:8069 \
+            -v "$PWD/config/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro" \
+            -v "$PWD/Frontend/artifacts/nrs-asset-register/dist/public:/usr/share/nginx/html:ro" \
+            nginx:alpine
+          sleep 4
+          echo "─── /app block present? ───"; docker exec e2e-proxy grep -c "location /app/" /etc/nginx/conf.d/default.conf
+          echo "─── SPA files? ───"; docker exec e2e-proxy ls /usr/share/nginx/html/ | head
+          docker exec e2e-proxy nginx -t
 
       - name: Wait for /app to be served
         # Use 127.0.0.1, not localhost: the nginx image listens on IPv4 only,
@@ -112,5 +114,5 @@ jobs:
         run: |
           echo "─── odoo logs (last 200) ───"
           docker compose -f docker-compose.yml -f docker-compose.dev.yml logs --tail=200 odoo || true
-          echo "─── proxy (nginx) logs (last 50) ───"
-          docker compose -f docker-compose.yml -f docker-compose.dev.yml logs --tail=50 proxy || true
+          echo "─── e2e-proxy (nginx) logs (last 50) ───"
+          docker logs --tail=50 e2e-proxy || true
