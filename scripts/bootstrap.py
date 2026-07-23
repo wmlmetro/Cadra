@@ -353,6 +353,14 @@ SEED_PROFILES = {
         ("GTB Company + Demo Requests", "/mnt/extra-addons/scripts/gtb_seed.py"),
         ("GTB Demo Data (staff/assets/fleet)", "/mnt/extra-addons/scripts/gtb_data_seed.py"),
     ],
+    # Jaiz Bank Plc demo tenant. Generic ITSM structure + 39 real client-supplied
+    # branches + company + demo requests + full demo depth (staff/assets/fleet).
+    "jaiz": [
+        ("ITSM Structure",               "/mnt/extra-addons/itsm_structure.py"),
+        ("Jaiz Branches (39)",           "/mnt/extra-addons/scripts/load_jaiz_locations.py"),
+        ("Jaiz Company + Demo Requests",  "/mnt/extra-addons/scripts/jaiz_seed.py"),
+        ("Jaiz Demo Data (staff/assets/fleet)", "/mnt/extra-addons/scripts/jaiz_data_seed.py"),
+    ],
 }
 
 

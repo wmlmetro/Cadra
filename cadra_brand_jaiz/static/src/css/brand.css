@@ -1,0 +1,14 @@
+/* ================================================================
+   Cadra Brand — Jaiz (Jaiz Bank Plc)
+   ----------------------------------------------------------------
+   THE single source of truth for this client's primary colour.
+   Jaiz's deep blue (#004080 — the wordmark colour from the official
+   logo supplied by the client; gold #FFBF00 is the accent). Keep this
+   in sync with the cadra.brand_primary config param
+   (data/brand_params.xml), which is what the API / React frontend read.
+   ================================================================ */
+:root {
+    --brand-primary:       #004080;   /* Jaiz blue (from logo) */
+    --brand-primary-dark:  #00305F;   /* hover / active        */
+    --brand-primary-light: #E6EEF5;   /* tints / soft fills    */
+}
