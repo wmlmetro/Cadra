@@ -122,6 +122,29 @@ def seed_employees(env, branches):
             made += 1
     emps = Emp.search([], limit=N_EMPLOYEES)
 
+    # Ensure every employee carries a unique IR number — the cross-system staff
+    # key used for custodian linking and the /hr/employees/by-ir lookup. Real
+    # NRS staff import their IR from SAP/xlsx; demo employees have none, so we
+    # assign tenant-prefixed IRs here. Idempotent: only fills in the blanks.
+    if "ir_number" in efields:
+        brand = env["ir.config_parameter"].sudo().get_param("cadra.brand_short_name", "NRS")
+        prefix = f"{brand.upper()}-IR-"
+        used = {e.ir_number for e in Emp.search([("ir_number", "!=", False)])}
+        seq = 0
+        assigned = 0
+        for e in Emp.search([("ir_number", "=", False)]):
+            seq += 1
+            code = f"{prefix}{seq:05d}"
+            while code in used:
+                seq += 1
+                code = f"{prefix}{seq:05d}"
+            used.add(code)
+            if _sp_write(env, e, {"ir_number": code}):
+                assigned += 1
+        if assigned:
+            env.cr.commit()
+            print(f"  ✓ IR numbers assigned: {assigned} (prefix {prefix})")
+
     # Deterministic in-memory employee→branch map (no hr.employee branch field
     # here; hr.work.location needs an address we don't want to fabricate).
     by_branch = {}

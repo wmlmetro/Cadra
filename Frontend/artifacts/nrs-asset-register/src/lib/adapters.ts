@@ -192,27 +192,30 @@ function deriveStatus(a: ApiAsset): ApprovalStatus {
 }
 
 function buildAssetLocation(a: ApiAsset): AssetLocation {
-  const office = a.location_hierarchy.building?.name
+  // location_hierarchy can be absent for some payloads (e.g. locations with no
+  // building ancestry) — guard it so mapping never throws.
+  const lh = a.location_hierarchy ?? { building: null, floor: null, room: null };
+  const office = lh.building?.name
     ?? a.current_location?.name
     ?? "";
   const path = a.address_display
-    ?? [a.location_hierarchy.building?.name, a.location_hierarchy.floor?.name, a.location_hierarchy.room?.name]
+    ?? [lh.building?.name, lh.floor?.name, lh.room?.name]
       .filter(Boolean).join(" / ");
   // Prefer the most specific location id available (room > floor > building >
   // current_location). The asset detail page uses this for the clickable link;
   // the FK pickers in the edit form still consume them individually.
   const locationId =
-    a.location_hierarchy.room?.id
-    ?? a.location_hierarchy.floor?.id
-    ?? a.location_hierarchy.building?.id
+    lh.room?.id
+    ?? lh.floor?.id
+    ?? lh.building?.id
     ?? a.current_location?.id
     ?? undefined;
   return {
     zone: "", state: "", office, path,
     locationId: locationId ?? undefined,
-    buildingId: a.location_hierarchy.building?.id ?? undefined,
-    floorId:    a.location_hierarchy.floor?.id ?? undefined,
-    roomId:     a.location_hierarchy.room?.id ?? undefined,
+    buildingId: lh.building?.id ?? undefined,
+    floorId:    lh.floor?.id ?? undefined,
+    roomId:     lh.room?.id ?? undefined,
   };
 }
 
