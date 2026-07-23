@@ -32,6 +32,7 @@ spec:
     - hosts:
         - staging.app.cadra.ng
         - gtb.cadra.ng
+        - jaizbankplc.cadra.ng
       secretName: cadra-tls
   rules:
     # Each tenant host reuses the same path routing (anchored below). The
@@ -75,4 +76,6 @@ spec:
                 port:
                   number: 8069
     - host: gtb.cadra.ng           # -> DB "gtb" (Guaranty Trust Bank)
+      http: *odoo-paths
+    - host: jaizbankplc.cadra.ng   # -> DB "jaizbankplc" (Jaiz Bank Plc)
       http: *odoo-paths
