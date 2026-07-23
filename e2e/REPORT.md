@@ -55,12 +55,18 @@ Both #1 and #2 hit primary asset-lifecycle actions on every attempt; the fixes a
   fails (stays on the form with the server error). Consider client-side requiring category, or
   making it optional server-side. Same pattern applies to the raw FK id inputs generally.
 
-## 🔁 CI
+## 🔁 Where this runs
 
-Added [`.github/workflows/e2e.yml`](../.github/workflows/e2e.yml): builds the `/app` bundle, brings the
-stack up via the existing `bootstrap.sh`, and runs this Playwright suite against `localhost:8069` on
-PRs + pushes to `main`/`dev` (uploads the HTML report + traces as an artifact). Jaiz-specific
-assertions run only when `E2E_ORIGIN` targets the Jaiz tenant, so the suite is portable across tenants.
+Run **locally** against any tenant — default Jaiz, or point elsewhere:
+
+```bash
+cd e2e && npm install && npx playwright install chromium
+npx playwright test                                   # -> Jaiz (jaizbankplc.localhost:8069)
+E2E_ORIGIN=http://odoo.localhost:8069 npx playwright test   # -> any other tenant
+```
+
+Jaiz-specific assertions run only when `E2E_ORIGIN` targets the Jaiz tenant, so the suite is portable.
+(Not wired into CI — verification is local + the staging deploy.)
 
 ## 🟡 Known stubs (by design — documented, not failures)
 
