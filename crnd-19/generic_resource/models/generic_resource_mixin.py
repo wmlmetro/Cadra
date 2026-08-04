@@ -12,6 +12,8 @@ class GenericResourceMixin(models.AbstractModel):
         'generic.mixin.track.changes',
         'generic.mixin.delegation.implementation',
     ]
+    # Odoo 19 requires the _inherits dict for delegate=True fields (resource_id).
+    _inherits = {'generic.resource': 'resource_id'}
 
     resource_id = fields.Many2one(
         'generic.resource', index=True, auto_join=True,

@@ -24,7 +24,7 @@ def migrate(cr, installed_version):
             'multi': True,
             'res_model': 'generic.resource',
             'src_model': resource_type.model,
-            'view_mode': 'tree,form',
+            'view_mode': 'list,form',
             'target': 'current',
             'view_type': 'form',
             'domain': (

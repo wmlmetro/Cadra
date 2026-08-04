@@ -80,10 +80,10 @@
                                     </div>
                                     <div class="o_kanban_primary_left">
                                         <div class="o_primary">
-                                            <span> <t t-esc="record.display_name.value"/></span>
+                                            <span> <t t-out="record.display_name.value"/></span>
                                         </div>
                                         <div class="text-muted">
-                                            <span> <t t-esc="record.model_id.value"/></span>
+                                            <span> <t t-out="record.model_id.value"/></span>
                                         </div>
                                         <div class="o_buttons">
                                         </div>
@@ -94,7 +94,7 @@
                             <div class="o_resource_dashboard_kanban_boxes">
                                 <div class="o_resource_dashboard_kanban_box" title="Resources">
                                     <a name="action_show_resources" type="object">
-                                        <span class="o_value"><t t-esc="record.resource_count.value"/></span>
+                                        <span class="o_value"><t t-out="record.resource_count.value"/></span>
                                     </a>
                                 </div>
                             </div>

@@ -21,7 +21,7 @@
                          t-att-src="'data:image/png;base64,' + o.get_barcode_base64('Code128', tag_val, width=400, height=80, humanreadable=1)"
                          style="width: 100%; height: 12mm;" alt="barcode"/>
                     <div style="font-size: 8px; font-weight: bold; letter-spacing: 1px; margin-top: 1px;">
-                        <t t-esc="tag_val"/>
+                        <t t-out="tag_val"/>
                     </div>
                 </div>
             </t>
@@ -73,7 +73,7 @@
                                             font-size: 11pt; font-weight: 700;
                                             letter-spacing: 1px; color: #000;
                                             line-height: 1; margin: 0; padding: 0;">
-                                    <t t-esc="tag_val"/>
+                                    <t t-out="tag_val"/>
                                 </div>
 
                                 <!-- ASSET CODE label + value -->
@@ -82,7 +82,7 @@
                                 <div style="font-family: 'Courier New', monospace;
                                             font-size: 8pt; color: #666;
                                             line-height: 1; margin: 0; padding: 0;">
-                                    <t t-esc="o.asset_code or ''"/>
+                                    <t t-out="o.asset_code or ''"/>
                                 </div>
 
                                 <!-- Barcodes: Code128 left, QR right -->
@@ -148,7 +148,7 @@
                     <div style="padding: 2mm 3mm;">
                         <!-- Asset name -->
                         <div style="font-size: 11px; font-weight: 700; color: #1A1A1A; margin-bottom: 3px; line-height: 1.3;">
-                            <t t-esc="(o.name or '')[:55]"/>
+                            <t t-out="(o.name or '')[:55]"/>
                         </div>
 
                         <!-- Barcodes row: Code128 left, QR right -->
@@ -159,7 +159,7 @@
                                          t-att-src="'data:image/png;base64,' + o.get_barcode_base64('Code128', tag_val, width=600, height=100, humanreadable=1)"
                                          style="width: 100%; height: 16mm;" alt="barcode"/>
                                     <div style="font-family: 'DM Mono', 'Courier New', monospace; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; margin-top: 1px;">
-                                        <t t-esc="tag_val"/>
+                                        <t t-out="tag_val"/>
                                     </div>
                                 </td>
                                 <td style="text-align: center; vertical-align: top; width: 35%; padding-left: 4px;">
@@ -175,35 +175,35 @@
                             <tr>
                                 <td style="color: #888; width: 25%;">Category</td>
                                 <td style="color: #1A1A1A; font-weight: 600; width: 25%;">
-                                    <t t-esc="o.category_id.name if o.category_id else ''"/>
+                                    <t t-out="o.category_id.name if o.category_id else ''"/>
                                 </td>
                                 <td style="color: #888; width: 20%;">Serial No.</td>
                                 <td style="font-family: 'DM Mono', monospace; color: #1A1A1A;">
-                                    <t t-esc="o.serial_number or ''"/>
+                                    <t t-out="o.serial_number or ''"/>
                                 </td>
                             </tr>
                             <tr>
                                 <td style="color: #888;">Location</td>
                                 <td style="color: #1A1A1A; font-weight: 600;" colspan="3">
-                                    <t t-esc="(o.location_id.name or '')[:45]"/>
+                                    <t t-out="(o.location_id.name or '')[:45]"/>
                                     <t t-if="o.floor_room">
                                         <span style="color: #888;"> / </span>
-                                        <t t-esc="o.floor_room"/>
+                                        <t t-out="o.floor_room"/>
                                     </t>
                                 </td>
                             </tr>
                             <tr>
                                 <td style="color: #888;">Custodian</td>
                                 <td style="color: #1A1A1A;" colspan="3">
-                                    <t t-esc="(o.custodian_id.name or '')[:40]"/>
+                                    <t t-out="(o.custodian_id.name or '')[:40]"/>
                                 </td>
                             </tr>
                         </table>
 
                         <!-- Footer -->
                         <div style="border-top: 0.5px solid #eee; margin-top: 3px; padding-top: 1px; font-size: 6px; color: #aaa;">
-                            <span>myservice.com.ng/a/<t t-esc="o.asset_code"/></span>
-                            <span style="float: right;" t-esc="o.asset_code"/>
+                            <span>myservice.com.ng/a/<t t-out="o.asset_code"/></span>
+                            <span style="float: right;" t-out="o.asset_code"/>
                         </div>
                     </div>
                 </div>
@@ -254,17 +254,17 @@
                             <div style="padding: 2mm 3mm;">
                                 <!-- Name (truncated to 20 chars) -->
                                 <div style="font-size: 8px; font-weight: 700; color: #1A1A1A; margin-bottom: 2px; line-height: 1.2;">
-                                    <t t-esc="(o.name or '')[:20]"/>
+                                    <t t-out="(o.name or '')[:20]"/>
                                 </div>
                                 <!-- Tag code (large) -->
                                 <div style="font-family: 'Courier New', monospace;
                                             font-size: 9px; font-weight: 900;
                                             letter-spacing: 1px; color: #000;">
-                                    <t t-esc="tag_val"/>
+                                    <t t-out="tag_val"/>
                                 </div>
                                 <!-- Asset code (small) -->
                                 <div style="font-size: 5.5px; color: #888; margin-bottom: 2px;">
-                                    <t t-esc="o.asset_code or ''"/>
+                                    <t t-out="o.asset_code or ''"/>
                                 </div>
                                 <!-- Barcodes row: Code128 left, QR right -->
                                 <table style="width: 100%; margin: 2px 0;" cellpadding="0" cellspacing="0">
@@ -285,7 +285,7 @@
                                 <div t-if="o.floor_room"
                                      style="font-size: 5px; color: #666; margin-top: 1px;
                                             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                    <t t-esc="o.floor_room"/>
+                                    <t t-out="o.floor_room"/>
                                 </div>
                             </div>
                         </div>

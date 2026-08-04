@@ -63,15 +63,11 @@ class GenericResourceMixinInvNumber(models.AbstractModel):
         result = super(GenericResourceMixinInvNumber, self).create(values)
         return result
 
-    def name_get(self):
-        result = super(GenericResourceMixinInvNumber, self).name_get()
+    @api.depends('inv_number')
+    def _compute_display_name(self):
+        super()._compute_display_name()
         if not self._inv_number_in_display_name:
-            return result
-
-        name_map = dict(result)
-        result = []
+            return
         for rec in self:
-            result.append(
-                (rec.id, "%s [%s]" % (name_map[rec.id], rec.inv_number))
-            )
-        return result
+            if rec.inv_number:
+                rec.display_name = "%s [%s]" % (rec.display_name, rec.inv_number)

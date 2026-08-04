@@ -37,6 +37,8 @@ class GenericResourceType(models.Model):
         'generic.mixin.track.changes',
         'image.mixin',
     ]
+    # Odoo 19 requires the _inherits dict for delegate=True fields (model_id).
+    _inherits = {'ir.model': 'model_id'}
     _description = "Generic Resource Type"
     _order = 'sequence asc, name asc, model_id asc'
     _log_access = False
@@ -101,7 +103,7 @@ class GenericResourceType(models.Model):
                 'binding_type': 'action',
                 'binding_model_id': self.model_id.id,
                 'res_model': 'generic.resource',
-                'view_mode': 'tree,form',
+                'view_mode': 'list,form',
                 'target': 'current',
                 'domain': (
                     "[('res_id', 'in', active_ids),"
@@ -153,17 +155,18 @@ class GenericResourceType(models.Model):
             'resource_visibility': self.resource_visibility,
         }
 
-    @api.model
+    @api.model_create_multi
     def create(self, vals):
-        record = super(GenericResourceType, self).create(vals)
-        self._get_resource_type_id.clear_cache(self)
-        record._create_context_action_for_target_model()
-        return record
+        records = super(GenericResourceType, self).create(vals)
+        self.env.registry.clear_cache()
+        for record in records:
+            record._create_context_action_for_target_model()
+        return records
 
     def unlink(self):
         self.mapped('resource_related_res_action_id').unlink()
         res = super(GenericResourceType, self).unlink()
-        self._get_resource_type_id.clear_cache(self)
+        self.env.registry.clear_cache()
         return res
 
     def action_show_resources(self):
@@ -174,6 +177,6 @@ class GenericResourceType(models.Model):
             'type': 'ir.actions.act_window',
             'name': self.sudo().model_id.name,
             'res_model': self.sudo().model_id.model,
-            'view_mode': 'tree,form',
+            'view_mode': 'list,form',
             'target': 'current',
         }
