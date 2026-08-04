@@ -8,9 +8,9 @@
             <form>
                 <header>
                     <button name="action_activate" string="Activate" type="object"
-                            class="btn-primary" attrs="{'invisible': [('state','not in',['draft','suspended'])]}"/>
+                            class="btn-primary" invisible="state not in ['draft', 'suspended']"/>
                     <button name="action_suspend" string="Suspend" type="object"
-                            attrs="{'invisible': [('state','!=','active')]}"/>
+                            invisible="state != 'active'"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,active,suspended"/>
                 </header>
@@ -45,7 +45,7 @@
                     <notebook>
                         <page string="Stops" name="stops">
                             <field name="stop_ids">
-                                <tree editable="bottom">
+                                <list editable="bottom">
                                     <field name="sequence" widget="handle"/>
                                     <field name="name"/>
                                     <field name="landmark"/>
@@ -55,18 +55,18 @@
                                     <field name="longitude"/>
                                     <field name="avg_boarding"/>
                                     <field name="is_terminal"/>
-                                </tree>
+                                </list>
                             </field>
                         </page>
                         <page string="AI Optimisation History" name="optimisation">
                             <field name="optimization_ids">
-                                <tree>
+                                <list>
                                     <field name="date_run"/>
                                     <field name="efficiency_score"/>
                                     <field name="status"/>
                                     <field name="applied_by"/>
                                     <field name="applied_date"/>
-                                </tree>
+                                </list>
                             </field>
                         </page>
                         <field name="notes" placeholder="Route notes..."/>
@@ -86,7 +86,7 @@
         <field name="name">bus.route.tree</field>
         <field name="model">bus.route</field>
         <field name="arch" type="xml">
-            <tree decoration-success="state=='active'"
+            <list decoration-success="state=='active'"
                   decoration-muted="state=='suspended'"
                   decoration-info="state=='draft'">
                 <field name="code"/>
@@ -99,7 +99,7 @@
                 <field name="schedule_count"/>
                 <field name="distance_km"/>
                 <field name="state"/>
-            </tree>
+            </list>
         </field>
     </record>
 
@@ -116,7 +116,7 @@
                 <filter name="draft" string="Draft" domain="[('state','=','draft')]"/>
                 <filter name="morning" string="Morning" domain="[('direction','in',['morning','both'])]"/>
                 <filter name="evening" string="Evening" domain="[('direction','in',['evening','both'])]"/>
-                <group expand="0" string="Group By">
+                <group>
                     <filter name="grp_direction" string="Direction" context="{'group_by':'direction'}"/>
                     <filter name="grp_state" string="Status" context="{'group_by':'state'}"/>
                 </group>
@@ -128,7 +128,7 @@
     <record id="action_bus_route" model="ir.actions.act_window">
         <field name="name">Routes</field>
         <field name="res_model">bus.route</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
         <field name="search_view_id" ref="view_bus_route_search"/>
         <field name="context">{'search_default_active': 1}</field>
     </record>
@@ -137,6 +137,6 @@
     <record id="action_bus_route_stop" model="ir.actions.act_window">
         <field name="name">Route Stops</field>
         <field name="res_model">bus.route.stop</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
     </record>
 </odoo>

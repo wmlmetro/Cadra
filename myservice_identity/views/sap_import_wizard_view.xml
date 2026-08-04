@@ -18,11 +18,11 @@
                     <button string="Close" class="btn-secondary" special="cancel"/>
                 </footer>
                 <group string="Preview"
-                       attrs="{'invisible': [('preview_html', '=', False)]}">
+                       invisible="preview_html == False">
                     <field name="preview_html" nolabel="1"/>
                 </group>
                 <group string="Result"
-                       attrs="{'invisible': [('result_html', '=', False)]}">
+                       invisible="result_html == False">
                     <field name="result_html" nolabel="1"/>
                 </group>
             </form>

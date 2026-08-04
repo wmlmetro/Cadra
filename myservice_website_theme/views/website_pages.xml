@@ -14,7 +14,7 @@
                 <div style="background:#1A1A1A;color:#9CA3AF;font-size:12px;padding:8px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
                     <div style="display:flex;align-items:center;gap:8px;">
                         <span style="width:6px;height:6px;background:var(--nrs-red);border-radius:50%;display:inline-block;"></span>
-                        <t t-esc="res_company.name"/> — Facilities Management Division
+                        <t t-out="res_company.name"/> — Facilities Management Division
                     </div>
                     <div style="display:flex;align-items:center;gap:20px;">
                         <span>Emergency: <strong style="color:#fff;">0800-NRS-HELP</strong></span>

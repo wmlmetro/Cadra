@@ -1,13 +1,13 @@
 {
     'name': 'myservice Fleet Maintenance',
-    'version': '15.0.2.0.0',
+    'version': '19.0.2.0.0',
     'summary': 'Fleet Command Center dashboard, preventive maintenance alerts, vendor registry and auto ITSM ticket creation',
     'author': 'WestMetro Limited',
     'website': 'https://westmetrong.com',
     'category': 'Fleet',
     'depends': [
         'fleet',
-        'generic_request',
+        'myservice_request_core',
         'generic_location',
         'myservice_request_fields',
         'mail',

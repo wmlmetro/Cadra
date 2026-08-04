@@ -30,10 +30,10 @@ class BusRoute(models.Model):
     ], default='daily')
 
     origin_location_id = fields.Many2one(
-        'myservice.location', string='Origin / Start Point',
+        'generic.location', string='Origin / Start Point',
         help='Starting point of this route')
     destination_location_id = fields.Many2one(
-        'myservice.location', string='Destination / End Point',
+        'generic.location', string='Destination / End Point',
         help='Final destination of this route')
 
     distance_km = fields.Float('Estimated Distance (km)')

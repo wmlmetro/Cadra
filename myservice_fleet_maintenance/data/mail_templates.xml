@@ -4,7 +4,7 @@
 
         <record id="email_template_maintenance_alert" model="mail.template">
             <field name="name">Fleet: Preventive Maintenance Alert</field>
-            <field name="model_id" ref="generic_request.model_request_request"/>
+            <field name="model_id" ref="myservice_request_core.model_request_request"/>
             <field name="subject">⚠️ Maintenance Due — {{ctx.get('vehicle').name}} [{{ctx.get('vehicle').license_plate or ctx.get('vehicle').vin_sn or 'N/A'}}]</field>
             <field name="email_to">{{ctx.get('email_to', '')}}</field>
             <field name="email_from">{{(object.company_id.email or user.email or '') | safe}}</field>

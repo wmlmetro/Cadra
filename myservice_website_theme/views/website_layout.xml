@@ -11,7 +11,7 @@
                                  t-att-alt="res_company.name"
                                  style="height:40px;width:auto;filter:brightness(0) invert(1);margin-bottom:16px;display:block;"/>
                             <p style="color:#9CA3AF;font-size:13px;line-height:1.7;">
-                                <t t-esc="res_company.name"/> — facilities and resource management platform.
+                                <t t-out="res_company.name"/> — facilities and resource management platform.
                             </p>
                         </div>
                         <div class="col-md-2 mb-4">
@@ -40,7 +40,7 @@
                     </div>
                 </div>
                 <div style="border-top:1px solid #2A2A2A;margin-top:20px;padding:14px 0;text-align:center;">
-                    <span style="color:#6B7280;font-size:12px;">© <t t-esc="res_company.name"/>. All rights reserved. Powered by <span style="color:var(--nrs-red);">WestMetro Limited</span></span>
+                    <span style="color:#6B7280;font-size:12px;">© <t t-out="res_company.name"/>. All rights reserved. Powered by <span style="color:var(--nrs-red);">WestMetro Limited</span></span>
                 </div>
             </div>
         </xpath>

@@ -6,7 +6,8 @@ import time
 
 import openpyxl
 
-from odoo import _, api, fields, models, registry, SUPERUSER_ID
+from odoo import _, api, fields, models, SUPERUSER_ID
+from odoo.modules.registry import Registry
 
 _logger = logging.getLogger(__name__)
 
@@ -115,7 +116,7 @@ class NrsEmployeeImportJob(models.Model):
 
         We must NOT reuse self.env here — the request transaction will commit
         and close before the worker is done. The worker opens its own cursor
-        via registry(db_name).cursor() so it owns its lifecycle.
+        via Registry(db_name).cursor() so it owns its lifecycle.
         """
         self.ensure_one()
         db_name = self.env.cr.dbname
@@ -166,7 +167,7 @@ class NrsEmployeeImportJob(models.Model):
     def _worker_entrypoint(db_name, job_id):
         """Top-level thread target. Owns its registry cursor + env."""
         try:
-            with registry(db_name).cursor() as cr:
+            with Registry(db_name).cursor() as cr:
                 env = api.Environment(cr, SUPERUSER_ID, {})
                 job = env['nrs.employee.import.job'].browse(job_id)
                 job._run()
@@ -176,7 +177,7 @@ class NrsEmployeeImportJob(models.Model):
             # status endpoint shows something useful instead of "processing
             # forever".
             try:
-                with registry(db_name).cursor() as cr:
+                with Registry(db_name).cursor() as cr:
                     env = api.Environment(cr, SUPERUSER_ID, {})
                     env['nrs.employee.import.job'].browse(job_id).write({
                         'state': 'failed',

@@ -1,6 +1,6 @@
 {
     'name': 'NRS Staff Bus Management',
-    'version': '15.0.1.0.0',
+    'version': '19.0.1.0.0',
     'summary': 'Staff bus routes, scheduling, passenger manifests, fuel and maintenance',
     'category': 'Fleet',
     'author': 'WestMetro Limited',

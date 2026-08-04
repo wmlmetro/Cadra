@@ -6,7 +6,7 @@
         <field name="name">fleet.service.vendor.list</field>
         <field name="model">fleet.service.vendor</field>
         <field name="arch" type="xml">
-            <tree string="Service Vendors" decoration-muted="not is_approved">
+            <list string="Service Vendors" decoration-muted="not is_approved">
                 <field name="name"/>
                 <field name="specialisation"/>
                 <field name="phone"/>
@@ -14,7 +14,7 @@
                 <field name="location_ids" widget="many2many_tags"/>
                 <field name="is_approved" widget="boolean_toggle"/>
                 <field name="vehicle_count"/>
-            </tree>
+            </list>
         </field>
     </record>
 
@@ -29,7 +29,7 @@
                         type="object"
                         string="View Vehicles"
                         class="btn-secondary"
-                        attrs="{'invisible': [('vehicle_count', '=', 0)]}"/>
+                        invisible="vehicle_count == 0"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
@@ -90,7 +90,7 @@
                 <field name="location_ids"/>
                 <filter name="approved" string="Approved" domain="[('is_approved','=',True)]"/>
                 <filter name="active" string="Active" domain="[('active','=',True)]"/>
-                <group expand="0" string="Group By">
+                <group>
                     <filter name="group_specialisation" string="Specialisation"
                         context="{'group_by': 'specialisation'}"/>
                 </group>

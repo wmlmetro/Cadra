@@ -11,9 +11,9 @@
                     <field name="reason" widget="text" required="1"/>
                     <field name="notify_police" widget="boolean_toggle"/>
                     <field name="police_station"
-                        attrs="{'invisible': [('notify_police','=',False)]}"/>
+                        invisible="notify_police == False"/>
                     <field name="police_report_number"
-                        attrs="{'invisible': [('notify_police','=',False)]}"/>
+                        invisible="notify_police == False"/>
                 </group>
                 <footer>
                     <button name="action_escalate" string="Escalate"

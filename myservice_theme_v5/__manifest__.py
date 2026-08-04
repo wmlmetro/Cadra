@@ -1,6 +1,6 @@
 {
     'name': 'myservice NRS Theme v5',
-    'version': '15.0.5.0.3',
+    'version': '19.0.5.0.3',
     'summary': 'NRS brand theme — NRS red applied via primary_variables.scss patch',
     'category': 'Themes/Backend',
     'author': 'WestMetro Limited',

@@ -19,7 +19,7 @@
                     <group string="Send Options">
                         <field name="note" placeholder="Add context for the approver (optional)..."/>
                         <field name="resend" widget="boolean_toggle"
-                            attrs="{'invisible': [('workflow_status','!=','pending')]}"/>
+                            invisible="workflow_status != 'pending'"/>
                     </group>
                 </sheet>
                 <footer>

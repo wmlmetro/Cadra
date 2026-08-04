@@ -8,13 +8,11 @@
 
         <record id="group_bus_user" model="res.groups">
             <field name="name">Staff Bus User</field>
-            <field name="category_id" ref="module_category_staff_bus"/>
             <field name="comment">Can view routes, book seats, and log fuel.</field>
         </record>
 
         <record id="group_bus_manager" model="res.groups">
             <field name="name">Staff Bus Manager</field>
-            <field name="category_id" ref="module_category_staff_bus"/>
             <field name="implied_ids" eval="[(4, ref('group_bus_user'))]"/>
             <field name="comment">Full access — routes, schedules, manifests, fuel, compliance.</field>
         </record>
