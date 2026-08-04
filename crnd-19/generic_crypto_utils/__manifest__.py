@@ -1,0 +1,25 @@
+{
+    "name": "Generic Crypto Utils",
+    "version": "19.0.0.8.1",
+    "author": "Center of Research and Development",
+    "website": "https://crnd.pro",
+    "license": "LGPL-3",
+    "summary": """Technical utils to add encryption to other addons""",
+    'category': 'Technical Settings',
+    'depends': [
+        'base',
+    ],
+    'demo': [
+    ],
+    'data': [
+        'security/ir.model.access.csv',
+    ],
+    'external_dependencies': {
+        'python': [
+            'cryptography',
+        ],
+    },
+    'images': ['static/description/banner.png'],
+    'installable': True,
+    'auto_install': False,
+}

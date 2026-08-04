@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="demo_condition_partner_city_not_kyiv" model="generic.condition">
+        <field name="name">Not (city: Kyiv)</field>
+        <field name="model_id" ref="base.model_res_partner"/>
+        <field name="type">condition</field>
+        <field name="invert" eval="True"/>
+        <field name="condition_condition_id" ref="generic_condition.demo_condition_partner_city_kyiv"/>
+    </record>
+
+    <record id="test_rule_on_write" model="base.automation">
+        <field name="name">Generic Condition: Test rule on write</field>
+        <field name="trigger">on_write</field>
+        <field name="model_id" ref="base.model_res_partner"/>
+        <field name="pre_condition_ids" eval="[(4, ref('generic_condition.demo_condition_partner_city_kyiv'))]"/>
+        <field name="post_condition_ids" eval="[(4, ref('generic_condition_automation.demo_condition_partner_city_not_kyiv'))]"/>
+    </record>
+</odoo>

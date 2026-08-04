@@ -1,0 +1,99 @@
+from odoo import api, models, _
+from odoo.exceptions import ValidationError
+from odoo.fields import Domain
+
+
+# Inspired by default product.category implementation
+class GenericMixinParentNames(models.AbstractModel):
+    """ Simple class to add generic name_get / name_search
+        to models that have parent / child relationship
+
+        To use it, just inherit from `generic.mixin.parent.names`
+        which have already implemented name_get, name_search and
+        recursion check constraint
+
+        Do not forget to specifu model attribute `_parent_name`
+        which tells this mixin what field is used for parent / child relation
+
+        Example:
+
+            class MyCoolModel(models.Model):
+                _name = 'my.cool.model'
+                _inherit = ['generic.mixin.parent.names']
+                _parent_name = 'parent_id'
+
+                parent_id = fields.Many2one('my.cool.model')
+    """
+    _name = "generic.mixin.parent.names"
+    _description = "Generic Mixin: Parent Names"
+
+    # Overridden to add recursion check constraint
+    @classmethod
+    def _build_model(cls, pool, cr):
+        if not cls._parent_name:
+            raise AssertionError(
+                'do not forget to define `_parent_name` on model '
+                'if it inherits `generic.mixin.parent.names`')
+
+        @api.constrains(cls._parent_name)
+        def _recursion_constraint(self):
+            if self._has_cycle():
+                raise ValidationError(_(
+                    'Error ! You cannot create recursive %s.'
+                    '') % self._description)
+        cls._check_parent_recursion_recursion = _recursion_constraint
+
+        return super(GenericMixinParentNames, cls)._build_model(pool, cr)
+
+    @api.depends('name', 'parent_id.name')
+    def _compute_display_name(self):
+        if self.env.context.get('_use_standart_name_get_', False):
+            return super()._compute_display_name()
+
+        def get_names(rec):
+            """ Return the list [rec.name, rec.parent_id.name, ...] """
+            res = []
+            name_field = self._rec_name_fallback()
+            while rec:
+                if rec[name_field]:
+                    res.append(rec[name_field])
+                rec = rec[self._parent_name]
+            return res
+        for rec in self:
+            rec.display_name = " / ".join(
+                reversed(get_names(rec.sudo())))
+        return True
+
+    @api.model
+    def name_search(self, name='', domain=None, operator='ilike', limit=100):
+        if not domain:
+            domain = []
+        if name:
+            # Be sure name_search is symetric to name_get
+            record_names = name.split(' / ')
+            parents = list(record_names)
+            child = parents.pop()
+            r_domain = [('name', operator, child)]
+            if parents:
+                names_ids = self.name_search(
+                    ' / '.join(parents),
+                    domain=domain, operator='ilike', limit=limit)
+                record_ids = [name_id[0] for name_id in names_ids]
+                if operator in Domain.NEGATIVE_OPERATORS:
+                    records = self.search([('id', 'not in', record_ids)])
+                    r_domain = Domain.OR(
+                        [[(self._parent_name, 'in', records.ids)], r_domain])
+                else:
+                    r_domain = Domain.AND(
+                        [[(self._parent_name, 'in', record_ids)], r_domain])
+                for i in range(1, len(record_names)):
+                    names = ' / '.join(record_names[-1 - i:])
+                    r_domain = [[('name', operator, names)], r_domain]
+                    if operator in Domain.NEGATIVE_OPERATORS:
+                        r_domain = Domain.AND(r_domain)
+                    else:
+                        r_domain = Domain.OR(r_domain)
+            records = self.search(Domain.AND([r_domain, domain]), limit=limit)
+        else:
+            records = self.search(domain, limit=limit)
+        return [(record.id, record.display_name) for record in records]

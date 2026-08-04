@@ -1,0 +1,27 @@
+{
+    "name": "Generic M2O Widget",
+    "version": "19.0.1.9.3",
+    "author": "Center of Research and Development",
+    "website": "https://crnd.pro",
+    "license": "LGPL-3",
+    "summary": "Generic Many2one widget",
+    'category': 'Web',
+    'depends': [
+        'web',
+    ],
+    'data': [
+    ],
+    'assets': {
+        'web.assets_backend': [
+            '/generic_m2o/static/src/js/generic_m2o.js',
+            '/generic_m2o/static/src/js/generic_m2o.xml',
+        ],
+        'web.assets_unit_tests': [
+            '/generic_m2o/static/tests/**/*.test.js',
+        ],
+    },
+    'images': ['static/description/banner.png'],
+    'installable': True,
+    'auto_install': False,
+    'application': False,
+}

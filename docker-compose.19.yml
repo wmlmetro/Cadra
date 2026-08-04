@@ -1,0 +1,44 @@
+# Odoo 19 rebuild override — branch feat/rebuild-odoo-19.
+#
+# Use WITH the base compose (NOT together with docker-compose.dev.yml — this
+# file replaces it, and mounts its own odoo.19.conf so the two don't collide):
+#
+#   docker compose -f docker-compose.yml -f docker-compose.19.yml up -d
+#
+# Mirrors the dev stack (nginx proxy on 8069, exposed db port, bind-mounted
+# repo) but builds from Dockerfile.odoo.19.dev on the Odoo 19.0 base.
+services:
+  proxy:
+    image: nginx:alpine
+    depends_on:
+      odoo:
+        condition: service_started
+    ports:
+      - "8069:8069"
+    volumes:
+      - ./config/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./Frontend/artifacts/nrs-asset-register/dist/public:/usr/share/nginx/html:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8069/web/login || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  db:
+    ports:
+      - "5432:5432"
+
+  odoo:
+    build:
+      context: .
+      dockerfile: Dockerfile.odoo.19.dev
+    image: cadra-odoo:19.0-dev
+    volumes:
+      - ./config/odoo.19.conf:/etc/odoo/odoo.conf:ro
+    ports:
+      - "8072:8072"
+    command:
+      - odoo
+      - --workers=${ODOO_WORKERS:-2}
+      - --max-cron-threads=${ODOO_MAX_CRON_THREADS:-1}
+      - --db-filter=${ODOO_DBFILTER:-}

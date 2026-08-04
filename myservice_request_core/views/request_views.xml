@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ══════════════ request.request ══════════════ -->
+    <record id="view_request_request_list" model="ir.ui.view">
+        <field name="name">request.request.list</field>
+        <field name="model">request.request</field>
+        <field name="arch" type="xml">
+            <list string="Requests" decoration-muted="closed">
+                <field name="name"/>
+                <field name="type_id"/>
+                <field name="category_id" optional="show"/>
+                <field name="generic_location_id" optional="show"/>
+                <field name="user_id"/>
+                <field name="priority" widget="priority"/>
+                <field name="stage_id"/>
+                <field name="closed" column_invisible="1"/>
+                <field name="date_created" optional="hide"/>
+                <field name="deadline_date" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_request_request_form" model="ir.ui.view">
+        <field name="name">request.request.form</field>
+        <field name="model">request.request</field>
+        <field name="arch" type="xml">
+            <form string="Request">
+                <header>
+                    <field name="stage_id" widget="statusbar" options="{'clickable': '1'}"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="type_id"/>
+                            <field name="category_id"/>
+                            <field name="service_id"/>
+                            <field name="generic_location_id"/>
+                            <field name="tag_ids" widget="many2many_tags"/>
+                        </group>
+                        <group>
+                            <field name="author_id"/>
+                            <field name="user_id"/>
+                            <field name="team_id"/>
+                            <field name="priority" widget="priority"/>
+                            <field name="impact"/>
+                            <field name="urgency"/>
+                            <field name="deadline_date"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Description" name="description">
+                            <field name="request_text" placeholder="Describe the request..."/>
+                        </page>
+                        <page string="Response" name="response">
+                            <field name="response_text" placeholder="Resolution / response..."/>
+                        </page>
+                        <page string="Sub-requests" name="children">
+                            <field name="child_ids">
+                                <list><field name="name"/><field name="stage_id"/><field name="user_id"/></list>
+                            </field>
+                        </page>
+                        <page string="Events" name="events">
+                            <field name="request_event_ids" readonly="1">
+                                <list><field name="date"/><field name="event_type_id"/><field name="user_id"/></list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_request_request_search" model="ir.ui.view">
+        <field name="name">request.request.search</field>
+        <field name="model">request.request</field>
+        <field name="arch" type="xml">
+            <search string="Requests">
+                <field name="name" string="Reference"/>
+                <field name="type_id"/>
+                <field name="category_id"/>
+                <field name="user_id"/>
+                <field name="generic_location_id"/>
+                <filter name="open" string="Open" domain="[('closed','=',False)]"/>
+                <filter name="closed" string="Closed" domain="[('closed','=',True)]"/>
+                <filter name="mine" string="Assigned to me" domain="[('user_id','=',uid)]"/>
+                <group name="group_by">
+                    <filter name="g_stage" string="Stage" context="{'group_by': 'stage_id'}"/>
+                    <filter name="g_type" string="Type" context="{'group_by': 'type_id'}"/>
+                    <filter name="g_user" string="Assignee" context="{'group_by': 'user_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_request_request" model="ir.actions.act_window">
+        <field name="name">Requests</field>
+        <field name="res_model">request.request</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_request_request_search"/>
+    </record>
+
+    <!-- ══════════════ config models (stages / types / categories) ══════════════ -->
+    <record id="view_request_stage_list" model="ir.ui.view">
+        <field name="name">request.stage.list</field>
+        <field name="model">request.stage</field>
+        <field name="arch" type="xml">
+            <list string="Stages" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/><field name="code"/>
+                <field name="stage_type_id"/><field name="closed"/><field name="fold"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_request_stage" model="ir.actions.act_window">
+        <field name="name">Stages</field>
+        <field name="res_model">request.stage</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_request_type_list" model="ir.ui.view">
+        <field name="name">request.type.list</field>
+        <field name="model">request.type</field>
+        <field name="arch" type="xml">
+            <list string="Types" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/><field name="code"/>
+                <field name="category_id"/><field name="start_stage_id"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_request_type" model="ir.actions.act_window">
+        <field name="name">Types</field>
+        <field name="res_model">request.type</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_request_category" model="ir.actions.act_window">
+        <field name="name">Categories</field>
+        <field name="res_model">request.category</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ══════════════ menus ══════════════ -->
+    <menuitem id="menu_request_root" name="Requests" sequence="10" web_icon="mail,static/description/icon.png"/>
+    <menuitem id="menu_request_all" name="Requests" parent="menu_request_root"
+              action="action_request_request" sequence="10"/>
+    <menuitem id="menu_request_config" name="Configuration" parent="menu_request_root" sequence="90"/>
+    <menuitem id="menu_request_config_stages" name="Stages" parent="menu_request_config"
+              action="action_request_stage" sequence="10"/>
+    <menuitem id="menu_request_config_types" name="Types" parent="menu_request_config"
+              action="action_request_type" sequence="20"/>
+    <menuitem id="menu_request_config_categories" name="Categories" parent="menu_request_config"
+              action="action_request_category" sequence="30"/>
+</odoo>

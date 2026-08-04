@@ -1,0 +1,73 @@
+from odoo import models, fields, api, _
+
+
+class GenericTagModel(models.Model):
+    _name = "generic.tag.model"
+    _inherits = {'ir.model': 'res_model_id'}
+    _description = "Generic Tag Model"
+    _access_log = False
+
+    def _compute_tags_count(self):
+        for model in self:
+            model.tags_count = self.env['generic.tag'].search_count(
+                [('model_id', '=', model.id)])
+
+    res_model_id = fields.Many2one(
+        'ir.model', 'Odoo Model', required=True, index=True,
+        bypass_search_access=True,
+        domain=[('transient', '=', False),
+                ('field_id.name', '=', 'tag_ids')],
+        ondelete='cascade')
+
+    tags_count = fields.Integer(
+        string="Tags", compute="_compute_tags_count", store=False,
+        readonly=True, help="How many tags related to this model exists")
+
+    act_manage_tags_id = fields.Many2one(
+        'ir.actions.act_window', readonly=True)
+
+    _res_model_id_uniq = models.Constraint(
+        'UNIQUE (res_model_id)',
+        "For each Odoo model only one Tag Model could be created!",
+    )
+
+    def _create_context_action_for_target_model(self):
+        self.env['ir.actions.act_window'].create([
+            {
+                'name': 'Manage Tags',
+                'binding_type': 'action',
+                'binding_model_id': record.res_model_id.id,
+                'res_model': 'generic.tag.wizard.manage.tags',
+                'view_mode': 'form',
+                'target': 'new',
+                'context': (
+                    "{"
+                    "'manage_tags_model': active_model,"
+                    "'manage_tags_object_ids': active_ids,"
+                    "}"),
+            }
+            for record in self
+            if not record.act_manage_tags_id
+        ])
+
+    @api.model_create_multi
+    def create(self, vals):
+        records = super(GenericTagModel, self).create(vals)
+        records._create_context_action_for_target_model()
+        return records
+
+    def unlink(self):
+        self.mapped('act_manage_tags_id').unlink()
+        return super(GenericTagModel, self).unlink()
+
+    def action_show_tags(self):
+        self.ensure_one()
+        ctx = dict(self.env.context, default_model_id=self.id)
+        return {
+            'name': _('Tags related to model %s') % self.name,
+            'view_mode': 'list,form',
+            'res_model': 'generic.tag',
+            'type': 'ir.actions.act_window',
+            'context': ctx,
+            'domain': [('model_id.id', '=', self.id)],
+        }
