@@ -149,6 +149,32 @@ Apply these to every remaining module port:
 - **Infra:** base `odoo:19.0` = Python 3.12; conf uses `gevent_port` (not `longpolling_port`);
   `--without-demo=1` (not `all`); give test runs their own `--data-dir` to dodge shared-volume perms.
 
+## STATUS: full app installs on Odoo 19 (2026-08-04)
+Every module installs on a fresh Odoo 19 DB (`test19`), exit 0, and the backend
+web client serves authenticated (`/web` = 200; `web.assets_backend.js` bundle
+compiles). Commits: `1c4fb04`, `fa1ac9a`, `180a592`, `217a26b`, `8e45ec9`.
+
+**Installed & boot-verified (27):** LGPL foundation (generic_service/team/
+location/resource/mixin/tag/rule/m2o) + OCA `web_responsive` (oca-19/) +
+`myservice_request_core` + all 14 feature modules (nrs_base, request_fields,
+asset_register, identity, fleet_maintenance, staff_bus, security, workflow,
+dashboard, fm_dashboard, barcode_station, theme, theme_v5, website_theme,
+email_relay, api) + `cadra_brand_nrs`. Brands gtb/jaiz/lasg got identical
+transforms (per-tenant, not co-installed).
+
+**Remaining known work (needs a browser to validate — not caught by
+--stop-after-init):** legacy OWL/JS in 6 modules still uses `odoo.define` +
+`require('web.*')` (dashboard, fm_dashboard, barcode_station, security, theme,
+theme_v5). The bundle *includes* them (Odoo 19 still processes odoo.define), but
+whether each executes depends on legacy base classes (e.g. web.AbstractAction)
+still existing in 19. Validate in-browser; rewrite to OWL2 (or disable pending
+rewrite) any that throw. React SPA UX (/app) is independent of this.
+
+**Deferred cosmetic (models kept, views dropped):** generic_location/service
+res.config.settings + res_partner smart buttons; generic_team res_users tab.
+**Runtime ref to fix:** website_theme api.py uses env.ref('generic_request.
+request_channel_website') — request_core has no channels (runtime-only).
+
 ## Risks / open items
 
 - `generic_request_location` on 19 unconfirmed — verify early in P0 (fallback: fold its fields
