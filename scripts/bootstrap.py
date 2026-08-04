@@ -361,6 +361,16 @@ SEED_PROFILES = {
         ("Jaiz Company + Demo Requests",  "/mnt/extra-addons/scripts/jaiz_seed.py"),
         ("Jaiz Demo Data (staff/assets/fleet)", "/mnt/extra-addons/scripts/jaiz_data_seed.py"),
     ],
+    # Lagos State Ministry of Health demo tenant. Generic ITSM structure + 90
+    # real public health facilities (60 PHCs + 30 General hospitals) + company +
+    # demo requests + full demo depth (staff w/ 30 real Medical Directors,
+    # healthcare-themed assets, ambulance fleet).
+    "lasg": [
+        ("ITSM Structure",               "/mnt/extra-addons/itsm_structure.py"),
+        ("LASG Facilities (90)",         "/mnt/extra-addons/scripts/load_lasg_locations.py"),
+        ("LASG Company + Demo Requests", "/mnt/extra-addons/scripts/lasg_seed.py"),
+        ("LASG Demo Data (staff/assets/fleet)", "/mnt/extra-addons/scripts/lasg_data_seed.py"),
+    ],
 }
 
 

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Per-client brand, read by the Odoo backend (brand.css mirrors the
+             colour) AND surfaced to the React frontend via GET /api/v1/brand.
+             Keep cadra.brand_primary in sync with static/src/css/brand.css. -->
+        <record id="param_brand_short_name" model="ir.config_parameter">
+            <field name="key">cadra.brand_short_name</field>
+            <field name="value">LASG Health</field>
+        </record>
+        <record id="param_brand_primary" model="ir.config_parameter">
+            <field name="key">cadra.brand_primary</field>
+            <field name="value">#1B2A6B</field>
+        </record>
+        <record id="param_brand_primary_dark" model="ir.config_parameter">
+            <field name="key">cadra.brand_primary_dark</field>
+            <field name="value">#111C48</field>
+        </record>
+        <!-- Lagos State Ministry of Health logo (SVG) as a data URI; rendered by
+             the React app via GET /api/v1/brand. Added once the client supplies
+             an official logo (drop it in docs/lasg/, then re-add this record with
+             the base64 data URI). Until then /api/v1/brand returns no logo and
+             the frontend falls back to the app default. -->
+        <!-- <record id="param_brand_logo" model="ir.config_parameter">
+            <field name="key">cadra.brand_logo</field>
+            <field name="value">data:image/svg+xml;base64,...</field>
+        </record> -->
+    </data>
+</odoo>

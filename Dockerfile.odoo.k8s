@@ -31,6 +31,7 @@ COPY --chown=odoo:odoo myservice_nrs_base          /mnt/extra-addons/myservice_n
 COPY --chown=odoo:odoo cadra_brand_nrs            /mnt/extra-addons/cadra_brand_nrs/
 COPY --chown=odoo:odoo cadra_brand_gtb            /mnt/extra-addons/cadra_brand_gtb/
 COPY --chown=odoo:odoo cadra_brand_jaiz           /mnt/extra-addons/cadra_brand_jaiz/
+COPY --chown=odoo:odoo cadra_brand_lasg           /mnt/extra-addons/cadra_brand_lasg/
 COPY --chown=odoo:odoo myservice_request_fields    /mnt/extra-addons/myservice_request_fields/
 COPY --chown=odoo:odoo myservice_security          /mnt/extra-addons/myservice_security/
 COPY --chown=odoo:odoo myservice_staff_bus         /mnt/extra-addons/myservice_staff_bus/

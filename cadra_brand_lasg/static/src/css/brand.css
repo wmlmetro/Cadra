@@ -1,0 +1,14 @@
+/* ================================================================
+   Cadra Brand — LASG Health (Lagos State Ministry of Health)
+   ----------------------------------------------------------------
+   THE single source of truth for this client's primary colour.
+   Lagos State's deep navy (#1B2A6B — the platform navy from the
+   client concept deck). Keep this in sync with the cadra.brand_primary
+   config param (data/brand_params.xml), which is what the API / React
+   frontend read.
+   ================================================================ */
+:root {
+    --brand-primary:       #1B2A6B;   /* Lagos State navy      */
+    --brand-primary-dark:  #111C48;   /* hover / active        */
+    --brand-primary-light: #E7EAF4;   /* tints / soft fills    */
+}
