@@ -5,7 +5,7 @@
 <record id="action_triage_inbox" model="ir.actions.act_window">
     <field name="name">Triage Inbox</field>
     <field name="res_model">request.request</field>
-    <field name="view_mode">tree,kanban,form</field>
+    <field name="view_mode">list,kanban,form</field>
     <field name="search_view_id" ref="view_request_triage_search"/>
     <field name="domain">[('user_id','=',False),('closed','=',False)]</field>
     <field name="context">{'search_default_unassigned': 1}</field>
@@ -17,7 +17,7 @@
 </record>
 <record id="action_triage_inbox_tree" model="ir.actions.act_window.view">
     <field name="sequence">1</field>
-    <field name="view_mode">tree</field>
+    <field name="view_mode">list</field>
     <field name="view_id" ref="view_request_triage_tree"/>
     <field name="act_window_id" ref="action_triage_inbox"/>
 </record>
@@ -38,7 +38,7 @@
 <record id="action_all_requests_fm" model="ir.actions.act_window">
     <field name="name">All Requests</field>
     <field name="res_model">request.request</field>
-    <field name="view_mode">tree,kanban,form</field>
+    <field name="view_mode">list,kanban,form</field>
     <field name="search_view_id" ref="view_request_triage_search"/>
     <field name="context">{'search_default_group_stage': 1}</field>
     <field name="help" type="html">
@@ -49,7 +49,7 @@
 </record>
 <record id="action_all_requests_fm_tree" model="ir.actions.act_window.view">
     <field name="sequence">1</field>
-    <field name="view_mode">tree</field>
+    <field name="view_mode">list</field>
     <field name="view_id" ref="view_request_triage_tree"/>
     <field name="act_window_id" ref="action_all_requests_fm"/>
 </record>
@@ -70,14 +70,14 @@
 <record id="action_overdue_requests" model="ir.actions.act_window">
     <field name="name">Overdue Requests</field>
     <field name="res_model">request.request</field>
-    <field name="view_mode">tree,form</field>
+    <field name="view_mode">list,form</field>
     <field name="search_view_id" ref="view_request_triage_search"/>
     <field name="domain">[('sla_breached','=',True),('closed','=',False)]</field>
     <field name="context">{'search_default_sla_breached': 1}</field>
 </record>
 <record id="action_overdue_requests_tree" model="ir.actions.act_window.view">
     <field name="sequence">1</field>
-    <field name="view_mode">tree</field>
+    <field name="view_mode">list</field>
     <field name="view_id" ref="view_request_triage_tree"/>
     <field name="act_window_id" ref="action_overdue_requests"/>
 </record>
@@ -92,7 +92,7 @@
 <record id="action_my_jobs" model="ir.actions.act_window">
     <field name="name">My Jobs</field>
     <field name="res_model">request.request</field>
-    <field name="view_mode">tree,kanban,form</field>
+    <field name="view_mode">list,kanban,form</field>
     <field name="search_view_id" ref="view_request_triage_search"/>
     <field name="domain">[('user_id','=',uid),('closed','=',False)]</field>
     <field name="context">{'search_default_my_requests': 1}</field>
@@ -104,7 +104,7 @@
 </record>
 <record id="action_my_jobs_tree" model="ir.actions.act_window.view">
     <field name="sequence">1</field>
-    <field name="view_mode">tree</field>
+    <field name="view_mode">list</field>
     <field name="view_id" ref="view_request_triage_tree"/>
     <field name="act_window_id" ref="action_my_jobs"/>
 </record>

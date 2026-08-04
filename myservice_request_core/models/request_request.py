@@ -1,4 +1,5 @@
 from odoo import models, fields, api
+from odoo.tools import html2plaintext
 
 
 class RequestRequest(models.Model):
@@ -55,6 +56,15 @@ class RequestRequest(models.Model):
     # ── Content ───────────────────────────────────────────────────────
     request_text = fields.Html(string='Description', sanitize_style=True)
     response_text = fields.Html(string='Response', sanitize_style=True)
+    request_text_sample = fields.Char(
+        string='Subject', compute='_compute_request_text_sample', store=True,
+        help='Short plain-text preview of the description, for list views.')
+
+    @api.depends('request_text')
+    def _compute_request_text_sample(self):
+        for rec in self:
+            text = html2plaintext(rec.request_text or '').strip()
+            rec.request_text_sample = (text[:100] + '…') if len(text) > 100 else text
 
     # ── People ────────────────────────────────────────────────────────
     author_id = fields.Many2one(

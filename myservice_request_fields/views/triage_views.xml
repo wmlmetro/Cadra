@@ -7,7 +7,7 @@
     <field name="model">request.request</field>
     <field name="priority">20</field>
     <field name="arch" type="xml">
-        <tree string="FM Triage Inbox"
+        <list string="FM Triage Inbox"
               decoration-danger="sla_breached == True"
               decoration-warning="priority_display == '2'"
               decoration-muted="stage_id">
@@ -24,7 +24,7 @@
             <field name="sla_breached" string="Breached" optional="show"/>
             <field name="stage_id" string="Status"/>
             <field name="create_date" string="Received"/>
-        </tree>
+        </list>
     </field>
 </record>
 
@@ -40,17 +40,17 @@
                 <button name="action_assign_and_notify"
                         string="Assign &amp; Notify" type="object"
                         class="btn-primary"
-                        attrs="{'invisible': [('user_id','=',False)]}"/>
+                        invisible="user_id == False"/>
                 <button name="action_mark_resolved"
                         string="Mark Resolved" type="object"
                         class="btn-success"
-                        attrs="{'invisible': [('work_log','=',False)]}"/>
+                        invisible="work_log == False"/>
             </header>
 
             <sheet>
                 <!-- SLA breach banner -->
                 <div class="alert alert-danger" role="alert"
-                     attrs="{'invisible': [('sla_breached','=',False)]}">
+                     invisible="sla_breached == False">
                     <strong>SLA Breached</strong> — This request is past its
                     response deadline. Escalate immediately.
                 </div>
@@ -88,7 +88,7 @@
 
                 <!-- Resolution panel -->
                 <group string="Work Log &amp; Resolution"
-                       attrs="{'invisible': [('user_id','=',False)]}">
+                       invisible="user_id == False">
                     <group>
                         <field name="work_log" string="Work Done"
                                placeholder="Describe what was done..."
@@ -218,7 +218,7 @@
             <filter name="open" string="Open"
                     domain="[('closed','=',False)]"/>
 
-            <group expand="0" string="Group By">
+            <group name="group_by">
                 <filter name="group_stage" string="Stage"
                         context="{'group_by': 'stage_id'}"/>
                 <filter name="group_team" string="Team"
