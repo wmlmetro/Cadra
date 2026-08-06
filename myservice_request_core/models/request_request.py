@@ -1,4 +1,5 @@
-from odoo import models, fields, api
+from odoo import models, fields, api, _
+from odoo.exceptions import ValidationError
 from odoo.tools import html2plaintext
 
 
@@ -46,6 +47,7 @@ class RequestRequest(models.Model):
     # ── ITIL fields (kept for API/frontend parity) ────────────────────
     priority = fields.Selection([
         ('0', 'Low'), ('1', 'Normal'), ('2', 'High'), ('3', 'Critical'),
+        ('4', 'Very Urgent'),
     ], default='1', tracking=True)
     impact = fields.Selection([
         ('1', 'Low'), ('2', 'Medium'), ('3', 'High'),
@@ -161,6 +163,25 @@ class RequestRequest(models.Model):
         return res
 
     # ── Helpers ───────────────────────────────────────────────────────
+    def api_move_request(self, route_id):
+        """Move this request along a stage route.
+
+        Back-compat helper that the /api/v1 transition endpoint calls —
+        reimplements CRND generic_request's method on the in-house engine.
+        The caller validates route legality; we re-check defensively. The
+        stage write triggers the normal ``write`` hooks (event log,
+        date_moved, close-on-closed-stage)."""
+        self.ensure_one()
+        route = self.env['request.stage.route'].browse(route_id)
+        if not route.exists():
+            raise ValidationError(_("Unknown stage route %s") % route_id)
+        if route.stage_from_id.id != self.stage_id.id:
+            raise ValidationError(
+                _("Route %s does not start from the request's current stage.")
+                % route_id)
+        self.write({'stage_id': route.stage_to_id.id})
+        return True
+
     def _log_event(self, code):
         self.ensure_one()
         etype = self.env['request.event.type'].search([('code', '=', code)], limit=1)
