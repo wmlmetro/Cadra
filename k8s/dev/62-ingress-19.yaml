@@ -24,7 +24,6 @@ spec:
   tls:
     - hosts:
         - staging19.app.cadra.ng
-        - gtb19.cadra.ng
         - jaizbankplc19.cadra.ng
         - lasg19.cadra.ng
       secretName: cadra-19-tls
@@ -62,8 +61,8 @@ spec:
                 name: odoo-19
                 port:
                   number: 8069
-    - host: gtb19.cadra.ng           # -> DB "gtb19"
-      http: *odoo19-paths
+    # gtb is served on its real host gtb.cadra.ng (flipped to odoo-19 in the
+    # cadra ingress, 60-ingress.yaml) — no separate gtb19 host needed.
     - host: jaizbankplc19.cadra.ng   # -> DB "jaizbankplc19"
       http: *odoo19-paths
     - host: lasg19.cadra.ng          # -> DB "lasg19"
