@@ -21,7 +21,13 @@
     ],
     'assets': {
         'web.assets_backend': [
+            # Odoo 19 dropped jQuery auto-loading; the legacy NRS dashboards need
+            # it. Load it first, then the legacy-module compatibility shim (which
+            # re-provides web.core / web.rpc / web.ajax / web.session /
+            # web.AbstractAction backed by real Odoo 19 services).
+            ('prepend', 'web/static/lib/jquery/jquery.js'),
             ('prepend', 'myservice_nrs_base/static/src/css/nrs_base.css'),
+            'myservice_nrs_base/static/src/js/legacy_compat.js',
             # NOTE (Odoo 19 rebuild): the 15.0 bus_service_compat.js shim and the
             # legacy odoo.define-based nrs_placeholder.js client action were both
             # removed — bus_service is native in 19 and the placeholder was unused.

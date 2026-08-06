@@ -28,12 +28,12 @@
     ],
     'assets': {
         'web.assets_backend': [
+            'myservice_asset_register/static/src/xml/asset_dashboard.xml',
+
             'myservice_asset_register/static/src/css/asset_dashboard.css',
             'myservice_asset_register/static/src/js/asset_dashboard.js',
         ],
-        'web.assets_qweb': [
-            'myservice_asset_register/static/src/xml/asset_dashboard.xml',
-        ],
+        
     },
     'installable': True,
     'auto_install': False,

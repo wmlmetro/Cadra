@@ -11,12 +11,12 @@
     ],
     'assets': {
         'web.assets_backend': [
+            'myservice_fm_dashboard/static/src/xml/fm_dashboard.xml',
+
             'myservice_fm_dashboard/static/src/css/fm_dashboard.css',
             'myservice_fm_dashboard/static/src/js/fm_dashboard.js',
         ],
-        'web.assets_qweb': [
-            'myservice_fm_dashboard/static/src/xml/fm_dashboard.xml',
-        ],
+        
     },
     'installable': True,
     'auto_install': False,

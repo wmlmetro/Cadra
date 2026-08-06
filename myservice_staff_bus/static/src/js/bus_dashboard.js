@@ -1,4 +1,4 @@
-odoo.define('myservice_staff_bus.BusDashboard', function(require) {
+odoo.define('myservice_staff_bus.BusDashboard', ['web.AbstractAction', 'web.core', 'web.rpc'], function(require) {
     'use strict';
 
     var AbstractAction = require('web.AbstractAction');

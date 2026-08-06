@@ -2,7 +2,8 @@
 /* NRS Theme v5 — Grouped apps menu replacing web_responsive default grid */
 
 import {AppsMenu} from "@web_responsive/components/apps_menu/apps_menu.esm";
-import {patch} from "web.utils";
+import {patch} from "@web/core/utils/patch";
+import {onMounted, onPatched} from "@odoo/owl";
 
 const APP_GROUPS = [
     {label: "Service Desk", names: ["Requests", "Discuss"], featured: true},
@@ -11,14 +12,12 @@ const APP_GROUPS = [
     {label: "Administration", names: ["Settings", "Apps", "Dashboards", "Link Tracker"]},
 ];
 
-patch(AppsMenu.prototype, "myservice_theme_v5.GroupedAppsMenu", {
-    mounted() {
-        this._super(...arguments);
-        this._nrsGroupApps();
-    },
-    patched() {
-        this._super(...arguments);
-        this._nrsGroupApps();
+patch(AppsMenu.prototype, {
+    setup() {
+        super.setup(...arguments);
+        // Odoo 19: OWL2 lifecycle via hooks, not mounted()/patched() methods.
+        onMounted(() => this._nrsGroupApps());
+        onPatched(() => this._nrsGroupApps());
     },
     _nrsGroupApps() {
         if (!this.state.open) return;

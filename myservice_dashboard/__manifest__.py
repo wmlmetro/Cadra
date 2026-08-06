@@ -15,12 +15,12 @@
     ],
     'assets': {
         'web.assets_backend': [
+            'myservice_dashboard/static/src/xml/dashboard.xml',
+
             'myservice_dashboard/static/src/css/dashboard.css',
             'myservice_dashboard/static/src/js/dashboard.js',
         ],
-        'web.assets_qweb': [
-            'myservice_dashboard/static/src/xml/dashboard.xml',
-        ],
+        
     },
     'installable': True,
     'auto_install': False,

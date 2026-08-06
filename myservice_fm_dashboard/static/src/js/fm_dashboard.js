@@ -1,4 +1,4 @@
-odoo.define('myservice_fm_dashboard.FMDashboard', function (require) {
+odoo.define('myservice_fm_dashboard.FMDashboard', ['web.AbstractAction', 'web.ajax', 'web.core', 'web.session'], function (require) {
     'use strict';
 
     var AbstractAction = require('web.AbstractAction');

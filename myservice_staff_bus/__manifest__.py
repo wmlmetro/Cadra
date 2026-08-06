@@ -26,12 +26,12 @@
     ],
     'assets': {
         'web.assets_backend': [
+            'myservice_staff_bus/static/src/xml/bus_dashboard.xml',
+
             'myservice_staff_bus/static/src/css/bus_dashboard.css',
             'myservice_staff_bus/static/src/js/bus_dashboard.js',
         ],
-        'web.assets_qweb': [
-            'myservice_staff_bus/static/src/xml/bus_dashboard.xml',
-        ],
+        
     },
     'installable': True,
     'auto_install': False,

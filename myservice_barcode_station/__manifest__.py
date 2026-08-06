@@ -16,12 +16,12 @@
     ],
     'assets': {
         'web.assets_backend': [
+            'myservice_barcode_station/static/src/xml/barcode_station.xml',
+
             'myservice_barcode_station/static/src/css/barcode_station.css',
             'myservice_barcode_station/static/src/js/barcode_station.js',
         ],
-        'web.assets_qweb': [
-            'myservice_barcode_station/static/src/xml/barcode_station.xml',
-        ],
+        
         'web.assets_frontend': [
             'myservice_barcode_station/static/src/css/barcode_portal.css',
             'myservice_barcode_station/static/src/js/barcode_portal.js',

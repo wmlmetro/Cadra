@@ -1,4 +1,4 @@
-odoo.define('myservice_theme_v5.Theme', function(require) {
+odoo.define('myservice_theme_v5.Theme', [], function(require) {
     'use strict';
 
     // Style the brand using CSS only — do NOT touch innerHTML (breaks Owl).

@@ -22,12 +22,12 @@
     ],
     'assets': {
         'web.assets_backend': [
+            'myservice_fleet_maintenance/static/src/xml/fleet_dashboard.xml',
+
             'myservice_fleet_maintenance/static/src/css/fleet_dashboard.css',
             'myservice_fleet_maintenance/static/src/js/fleet_dashboard.js',
         ],
-        'web.assets_qweb': [
-            'myservice_fleet_maintenance/static/src/xml/fleet_dashboard.xml',
-        ],
+        
     },
     'installable': True,
     'auto_install': False,

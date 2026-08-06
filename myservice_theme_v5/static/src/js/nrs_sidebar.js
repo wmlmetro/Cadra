@@ -3,7 +3,8 @@
 
 import {WebClient} from "@web/webclient/webclient";
 import {useService} from "@web/core/utils/hooks";
-import {patch} from "web.utils";
+import {patch} from "@web/core/utils/patch";
+import {onMounted} from "@odoo/owl";
 
 const COLLAPSED_KEY = "nrs_sidebar_collapsed";
 
@@ -50,17 +51,20 @@ const NRS_GROUPS = [
     },
 ];
 
-patch(WebClient.prototype, "myservice_theme_v5.NRSSidebar", {
+patch(WebClient.prototype, {
     setup() {
-        this._super(...arguments);
+        super.setup(...arguments);
         this._nrsMenuService = useService("menu");
-    },
-
-    mounted() {
-        this._super(...arguments);
-        this._nrsInitSidebar();
-        this.env.bus.on("ACTION_MANAGER:UI-UPDATED", this, () => {
-            this._nrsSetActiveItem();
+        // Odoo 19: OWL2 lifecycle via hooks, not a mounted() method.
+        onMounted(() => {
+            try {
+                this._nrsInitSidebar();
+                this.env.bus.addEventListener("ACTION_MANAGER:UI-UPDATED", () =>
+                    this._nrsSetActiveItem()
+                );
+            } catch (e) {
+                console.warn("[nrs-sidebar] init failed", e);
+            }
         });
     },
 
