@@ -1,0 +1,277 @@
+# One-shot bootstrap Job for the Odoo 19 stack. 19 counterpart of
+# 50-bootstrap-job.yaml — installs the ported module set into a 19 tenant DB
+# then runs scripts/bootstrap.py (JWT secret + admin groups + API client +
+# seeds). Uses the odoo-19-filestore PVC (ReadWriteOnce), so it cannot run
+# concurrently with the odoo-19 Deployment.
+#
+# Onboard/seed a 19 tenant (deploy-dev.yml sed-substitutes TARGET_DB /
+# EXTRA_MODULES / SEED_PROFILE_OVERRIDE):
+#   TARGET_DB=gtb19  EXTRA_MODULES=cadra_brand_gtb  SEED_PROFILE_OVERRIDE=gtb
+#
+# Re-run: kubectl -n cadra-dev delete job cadra-bootstrap-19 && kubectl apply -f -
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cadra-bootstrap-19
+  namespace: cadra-dev
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: odoo-19
+        job: bootstrap
+    spec:
+      restartPolicy: Never
+      securityContext:
+        fsGroup: 101
+      initContainers:
+        - name: wait-for-db
+          image: postgres:13
+          command:
+            - sh
+            - -c
+            - |
+              echo "waiting for postgres at db:5432..."
+              for i in $(seq 1 120); do
+                if pg_isready -h db -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1; then
+                  echo "postgres ready after ${i}s"
+                  exit 0
+                fi
+                sleep 1
+              done
+              echo "FATAL: postgres did not become ready in 120s" >&2
+              exit 1
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_USER
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 64Mi
+
+        - name: install-modules
+          # ─── REPLACE before applying ─────────────────────────────────
+          image: REPLACE_ME/cadra-odoo-19:dev
+          imagePullPolicy: IfNotPresent
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+              cp /etc/odoo/odoo.conf.template /tmp/odoo.conf
+              {
+                printf '\nadmin_passwd = %s\n' "$ODOO_MASTER_PASSWORD"
+                printf 'db_user = %s\n' "$USER"
+                printf 'db_password = %s\n' "$PASSWORD"
+              } >> /tmp/odoo.conf
+
+              # TARGET_DB → which 19 database to create/seed (e.g. "gtb19").
+              # EXTRA_MODULES → appended to the shared list (client brand module).
+              DB="${TARGET_DB:-$DB}"
+              MODULES="${CADRA_BOOTSTRAP_MODULES}${EXTRA_MODULES:+,$EXTRA_MODULES}"
+
+              export PGPASSWORD="$PASSWORD"
+              wanted=$(echo "$MODULES" | tr ',' '\n' | sort -u | wc -l)
+              installed=$(psql -h "$HOST" -U "$USER" -d "$DB" -tAc \
+                  "SELECT count(*) FROM ir_module_module WHERE state='installed' AND name = ANY (string_to_array('$MODULES', ','))" \
+                  2>/dev/null || echo 0)
+
+              if [ "$installed" = "$wanted" ]; then
+                echo "all $wanted modules already installed in $DB — skipping -i"
+                exit 0
+              fi
+
+              echo "installing into $DB: $MODULES"
+              exec odoo -c /tmp/odoo.conf -d "$DB" \
+                -i "$MODULES" \
+                --stop-after-init --no-http
+          env:
+            - name: HOST
+              value: db
+            - name: USER
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_USER
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_PASSWORD
+            - name: DB
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_DB
+            - name: TARGET_DB
+              value: "REPLACE_ME_TARGET_DB"
+            - name: EXTRA_MODULES
+              value: "REPLACE_ME_EXTRA_MODULES"
+            - name: ODOO_MASTER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: ODOO_MASTER_PASSWORD
+          envFrom:
+            - configMapRef:
+                name: odoo-bootstrap-19
+          volumeMounts:
+            - name: odoo-config
+              mountPath: /etc/odoo/odoo.conf.template
+              subPath: odoo.conf
+              readOnly: true
+            - name: odoo-filestore
+              mountPath: /var/lib/odoo
+          resources:
+            requests:
+              cpu: 200m
+              memory: 1Gi
+            limits:
+              cpu: 1500m
+              memory: 2Gi
+
+      containers:
+        - name: seed
+          # ─── REPLACE before applying ─────────────────────────────────
+          image: REPLACE_ME/cadra-odoo-19:dev
+          imagePullPolicy: IfNotPresent
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+              cp /etc/odoo/odoo.conf.template /tmp/odoo.conf
+              {
+                printf '\nadmin_passwd = %s\n' "$ODOO_MASTER_PASSWORD"
+                printf 'db_user = %s\n' "$USER"
+                printf 'db_password = %s\n' "$PASSWORD"
+              } >> /tmp/odoo.conf
+
+              DB="${TARGET_DB:-$DB}"
+              export CADRA_SEED_PROFILE="${SEED_PROFILE_OVERRIDE:-$CADRA_SEED_PROFILE}"
+
+              echo "seeding $DB with profile '${CADRA_SEED_PROFILE:-<none>}'"
+              odoo shell -c /tmp/odoo.conf -d "$DB" --no-http \
+                <<< "exec(open('/opt/cadra/scripts/bootstrap.py').read())"
+          env:
+            - name: HOST
+              value: db
+            - name: USER
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_USER
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_PASSWORD
+            - name: DB
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_DB
+            - name: TARGET_DB
+              value: "REPLACE_ME_TARGET_DB"
+            - name: SEED_PROFILE_OVERRIDE
+              value: "REPLACE_ME_SEED_PROFILE"
+            - name: ODOO_MASTER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: ODOO_MASTER_PASSWORD
+            - name: CADRA_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: CADRA_JWT_SECRET
+            - name: CADRA_TEST_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: CADRA_TEST_CLIENT_SECRET
+            - name: SMTP_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: SMTP_HOST
+                  optional: true
+            - name: SMTP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: SMTP_PORT
+                  optional: true
+            - name: SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: SMTP_USER
+                  optional: true
+            - name: SMTP_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: SMTP_PASS
+                  optional: true
+            - name: SMTP_ENCRYPTION
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: SMTP_ENCRYPTION
+                  optional: true
+            - name: EMAIL_FROM
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: EMAIL_FROM
+                  optional: true
+            - name: CADRA_EMAIL_RELAY_URL
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: CADRA_EMAIL_RELAY_URL
+                  optional: true
+            - name: CADRA_EMAIL_RELAY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: CADRA_EMAIL_RELAY_SECRET
+                  optional: true
+          envFrom:
+            - configMapRef:
+                name: odoo-bootstrap-19
+          volumeMounts:
+            - name: odoo-config
+              mountPath: /etc/odoo/odoo.conf.template
+              subPath: odoo.conf
+              readOnly: true
+            - name: odoo-filestore
+              mountPath: /var/lib/odoo
+          resources:
+            requests:
+              cpu: 200m
+              memory: 1Gi
+            limits:
+              cpu: 1500m
+              memory: 2Gi
+      volumes:
+        - name: odoo-config
+          configMap:
+            name: odoo-config-19
+        - name: odoo-filestore
+          persistentVolumeClaim:
+            claimName: odoo-19-filestore

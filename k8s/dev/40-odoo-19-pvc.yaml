@@ -1,0 +1,12 @@
+# Odoo 19 filestore — separate from the live 15 filestore (ReadWriteOnce, so
+# the two stacks cannot share it). Attachments, binary fields, sessions.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: odoo-19-filestore
+  namespace: cadra-dev
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi

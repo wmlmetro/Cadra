@@ -1,0 +1,70 @@
+# Additive Ingress for the Odoo 19 rebuild stack, in the same cadra-dev
+# namespace as the live 15 ingress (`cadra`, 60-ingress.yaml). Routes the
+# <tenant>19 hostnames to the odoo-19 Service so the 19 stack can be validated
+# on staging ALONGSIDE the live 15 tenants — the live hostnames keep hitting 15.
+#
+# At cutover, repoint the real hostnames (staging.app.cadra.ng, gtb.cadra.ng, …)
+# to odoo-19 and rename the 19 DBs to match (or add the real hosts here), then
+# retire the 15 stack.
+#
+# Onboard a 19 tenant: (1) add <tenant>19 host here, (2) add it to the tls list,
+# (3) create + bootstrap DB "<tenant>19", (4) point DNS at the ingress LB.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cadra-19
+  namespace: cadra-dev
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "200m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "720"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "720"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - staging19.app.cadra.ng
+        - gtb19.cadra.ng
+        - jaizbankplc19.cadra.ng
+        - lasg19.cadra.ng
+      secretName: cadra-19-tls
+  rules:
+    - host: staging19.app.cadra.ng   # -> DB "staging19"
+      http: &odoo19-paths
+        paths:
+          # Modern React SPA — shared frontend Service (brand-agnostic; it reads
+          # /api/v1/brand at runtime). Must precede the `/` catch-all.
+          - path: /app
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+          - path: /longpolling
+            pathType: Prefix
+            backend:
+              service:
+                name: odoo-19
+                port:
+                  number: 8072
+          - path: /websocket
+            pathType: Prefix
+            backend:
+              service:
+                name: odoo-19
+                port:
+                  number: 8072
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: odoo-19
+                port:
+                  number: 8069
+    - host: gtb19.cadra.ng           # -> DB "gtb19"
+      http: *odoo19-paths
+    - host: jaizbankplc19.cadra.ng   # -> DB "jaizbankplc19"
+      http: *odoo19-paths
+    - host: lasg19.cadra.ng          # -> DB "lasg19"
+      http: *odoo19-paths

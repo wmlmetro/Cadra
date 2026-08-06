@@ -1,0 +1,66 @@
+# Cadra Odoo 19 image for Kubernetes (the rebuild stack).
+#
+# 19 counterpart of Dockerfile.odoo.k8s. Bakes every ported addon, the CRND 19
+# foundation (crnd-19/), the OCA 19 bundle (oca-19/), the seed files, and the
+# bootstrap script into the layer — the K8s pod has no host source tree.
+#
+# Build context = repo root.
+#   docker build -f Dockerfile.odoo.19.k8s -t <registry>/cadra-odoo-19:dev-<sha> .
+#
+# Deployed ALONGSIDE the 15 stack in the same cadra-dev namespace (odoo-19
+# Deployment, odoo-19 Service, cadra-bootstrap-19 Job, its own filestore PVC),
+# serving 19 tenant DBs on <tenant>19 hostnames until the DNS flip.
+
+FROM odoo:19.0
+
+USER root
+
+RUN pip3 install --no-cache-dir --break-system-packages html2text openpyxl || \
+    pip3 install --no-cache-dir html2text openpyxl
+
+# In-house + ported Odoo modules (the set that installs on 19). Each module
+# MUST land in its own named destination (a single multi-source COPY would
+# flatten their contents and lose the module names).
+COPY --chown=odoo:odoo myservice_request_core       /mnt/extra-addons/myservice_request_core/
+COPY --chown=odoo:odoo myservice_api                /mnt/extra-addons/myservice_api/
+COPY --chown=odoo:odoo myservice_asset_register     /mnt/extra-addons/myservice_asset_register/
+COPY --chown=odoo:odoo myservice_barcode_station    /mnt/extra-addons/myservice_barcode_station/
+COPY --chown=odoo:odoo myservice_dashboard          /mnt/extra-addons/myservice_dashboard/
+COPY --chown=odoo:odoo myservice_email_relay        /mnt/extra-addons/myservice_email_relay/
+COPY --chown=odoo:odoo myservice_fleet_maintenance  /mnt/extra-addons/myservice_fleet_maintenance/
+COPY --chown=odoo:odoo myservice_fm_dashboard       /mnt/extra-addons/myservice_fm_dashboard/
+COPY --chown=odoo:odoo myservice_identity           /mnt/extra-addons/myservice_identity/
+COPY --chown=odoo:odoo myservice_nrs_base           /mnt/extra-addons/myservice_nrs_base/
+COPY --chown=odoo:odoo cadra_brand_nrs              /mnt/extra-addons/cadra_brand_nrs/
+COPY --chown=odoo:odoo cadra_brand_gtb              /mnt/extra-addons/cadra_brand_gtb/
+COPY --chown=odoo:odoo cadra_brand_jaiz             /mnt/extra-addons/cadra_brand_jaiz/
+COPY --chown=odoo:odoo cadra_brand_lasg             /mnt/extra-addons/cadra_brand_lasg/
+COPY --chown=odoo:odoo myservice_request_fields     /mnt/extra-addons/myservice_request_fields/
+COPY --chown=odoo:odoo myservice_security           /mnt/extra-addons/myservice_security/
+COPY --chown=odoo:odoo myservice_staff_bus          /mnt/extra-addons/myservice_staff_bus/
+COPY --chown=odoo:odoo myservice_theme              /mnt/extra-addons/myservice_theme/
+COPY --chown=odoo:odoo myservice_theme_v5           /mnt/extra-addons/myservice_theme_v5/
+COPY --chown=odoo:odoo myservice_website_theme      /mnt/extra-addons/myservice_website_theme/
+COPY --chown=odoo:odoo myservice_workflow           /mnt/extra-addons/myservice_workflow/
+
+# CRND 19 foundation (LGPL generics) + OCA 19 bundle (web_responsive). These
+# replace the legacy 15.0 dist/ tree; odoo.conf addons_path points at them.
+COPY --chown=odoo:odoo crnd-19/ /mnt/extra-addons/crnd-19/
+COPY --chown=odoo:odoo oca-19/  /mnt/extra-addons/oca-19/
+
+# Seed scripts loaded by scripts/bootstrap.py via exec().
+COPY --chown=odoo:odoo \
+     itsm_structure.py \
+     load_locations.py \
+     load_offices.py \
+     load_offices_v3.py \
+     myservice_master_seed.py \
+     fleet_taxonomy_seed.py \
+     fleet_location_matcher.py \
+     geocode_locations.py \
+     /mnt/extra-addons/
+
+# Bootstrap script + scripts/-tree seeds (consumed by the Kubernetes Job).
+COPY --chown=odoo:odoo scripts/ /opt/cadra/scripts/
+
+USER odoo
