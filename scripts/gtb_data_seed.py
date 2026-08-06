@@ -142,7 +142,9 @@ def seed_employees(env, branches):
             uvals = {"name": e.name, "login": login,
                      "password": "Gtb!" + "".join(random.choice("abcdefghjkmnpqrstuvwxyz23456789") for _ in range(14))}
             if grp:
-                uvals["groups_id"] = [(6, 0, [grp.id])]
+                # Odoo 19 renamed res.users.groups_id → group_ids.
+                grp_field = "group_ids" if "group_ids" in env["res.users"]._fields else "groups_id"
+                uvals[grp_field] = [(6, 0, [grp.id])]
             u = _sp_create(env, env["res.users"], uvals)
         if u:
             if "user_id" in efields:
@@ -229,10 +231,17 @@ def wire_fleet(env, branches, emps, by_branch):
         for v in Veh.search([("driver_id", "=", False)]):
             pool = by_branch.get(v.location) if getattr(v, "location", None) else None
             emp = random.choice(pool) if pool else random.choice(all_emps)
-            partner = emp.address_home_id
+            # Odoo 19 removed hr.employee.address_home_id; the fleet driver just
+            # needs a res.partner, so fall back to the work contact / user
+            # partner, else create one (and backfill address_home_id on 15).
+            has_home = "address_home_id" in emp._fields
+            partner = emp.address_home_id if has_home else False
+            if not partner:
+                partner = getattr(emp, "work_contact_id", False) \
+                    or (emp.user_id.partner_id if emp.user_id else False)
             if not partner:
                 partner = _sp_create(env, Partner, {"name": emp.name})
-                if partner:
+                if partner and has_home:
                     _sp_write(env, emp, {"address_home_id": partner.id})
             if partner and _sp_write(env, v, {"driver_id": partner.id}):
                 wired += 1
