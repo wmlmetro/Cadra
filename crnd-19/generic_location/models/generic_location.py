@@ -214,7 +214,8 @@ class GenericLocation(models.Model):
     @post_create('parent_id')
     @post_write('parent_id')
     def _post_write_invalidate_childs_cache(self, changes):
-        self.invalidate_cache(['parent_ids'])
+        # Odoo 17+: invalidate_cache(fnames) -> invalidate_recordset(fnames).
+        self.invalidate_recordset(['parent_ids'])
 
     # TODO rewrite method
     # this decorator is deprecated and removed in Odoo 13

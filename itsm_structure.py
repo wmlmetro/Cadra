@@ -409,8 +409,10 @@ def get_or_create(env, model, domain, vals):
     # onchange would slugify the name; programmatic create has to do it
     # explicitly.
     if "code" in env[model]._fields and not vals.get("code") and vals.get("name"):
-        from odoo.addons.http_routing.models.ir_http import slugify
-        vals = dict(vals, code=slugify(vals["name"], max_length=0))
+        # Odoo 19 removed the public slugify import; inline a simple slug.
+        import re as _re
+        _slug = _re.sub(r'[^a-z0-9]+', '-', vals["name"].lower()).strip('-')
+        vals = dict(vals, code=_slug)
     record = env[model].create(vals)
     _logger.info("CREATED [%s] %s (id=%s)", model, vals.get("name", ""), record.id)
     return record

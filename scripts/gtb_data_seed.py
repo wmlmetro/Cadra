@@ -102,7 +102,7 @@ def fix_asset_codes_and_tags(env):
                    "WHERE name LIKE 'NRS-%%'", (new,))
         labels = cr.rowcount
     env.cr.commit()
-    env["nrs.asset"].invalidate_cache()
+    env.invalidate_all()
     print(f"  ✓ re-branded via SQL → {brand}-  (asset_code:{codes} asset_tag:{tags} tag-labels:{labels})")
 
 
