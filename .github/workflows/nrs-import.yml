@@ -1,0 +1,71 @@
+name: nrs-import
+
+# Run the one-off NRS master-data import as an in-cluster Job. Prereqs:
+#   1. staging19 bootstrapped (deploy-19: run_bootstrap=true bootstrap_db=staging19
+#      bootstrap_extra_modules=cadra_brand_nrs bootstrap_seed_profile=core).
+#   2. cadra-nrs-import image built LOCALLY (Dockerfile.nrs-import bakes the
+#      gitignored NRS_asset_seed pack) and pushed to the DO registry — pass its
+#      ref as the `image` input.
+#
+# workflow_dispatch only. Reproduces ~11.4k employees + ~11.9k assets on
+# staging19 (location bridge + asset/employee import via odoo-19 XML-RPC).
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: "Full cadra-nrs-import image ref (registry.digitalocean.com/<reg>/cadra-nrs-import:<tag>)."
+        type: string
+        required: true
+      target_db:
+        description: "Target 19 DB."
+        type: string
+        default: "staging19"
+      source_db:
+        description: "Live 15 DB to export the location tree from."
+        type: string
+        default: "staging"
+
+env:
+  NAMESPACE: cadra-dev
+
+concurrency:
+  group: nrs-import
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment:
+      name: dev
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      - name: Save DOKS kubeconfig
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 1800 "${{ vars.DO_CLUSTER_NAME }}"
+
+      - name: Run cadra-nrs-import Job
+        env:
+          IMAGE: ${{ inputs.image }}
+          TARGET_DB: ${{ inputs.target_db }}
+          SOURCE_DB: ${{ inputs.source_db }}
+        run: |
+          set -e
+          kubectl -n "${NAMESPACE}" delete job cadra-nrs-import --ignore-not-found
+          sed -e "s|REPLACE_ME_IMAGE|${IMAGE}|g" \
+              -e "s|value: \"staging19\"|value: \"${TARGET_DB}\"|" \
+              -e "s|value: \"staging\"       # live 15 DB to export locations from|value: \"${SOURCE_DB}\"|" \
+              k8s/dev/71-nrs-import-job.yaml | kubectl apply -f -
+          # ~11.4k emp + ~11.9k assets over XML-RPC → allow up to 45m.
+          kubectl -n "${NAMESPACE}" wait --for=condition=complete job/cadra-nrs-import --timeout=45m &
+          WAIT_PID=$!
+          # Stream logs while it runs.
+          sleep 8
+          kubectl -n "${NAMESPACE}" logs -f job/cadra-nrs-import --all-containers || true
+          wait $WAIT_PID
+          echo "─── final log tail ───"
+          kubectl -n "${NAMESPACE}" logs job/cadra-nrs-import --all-containers --tail=40

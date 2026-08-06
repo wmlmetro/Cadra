@@ -16,7 +16,21 @@ then `staging.app.cadra.ng` is repointed to `odoo-19`.
   provisioning `staging19` does NOT disturb the live gtb/jaiz/lasg on odoo-19.
 - gtb/jaiz/lasg already on 19; `staging` still on 15 (untouched, rollback).
 
-## The one open decision — how to deliver the data to a cluster Job
+## Delivery method: DECIDED — one-off local image (option A), BUILT
+The import path is now built: `Dockerfile.nrs-import` (bakes the pack + the two
+stdlib scripts), `scripts/nrs_import_entrypoint.sh` (export → bridge → import),
+`k8s/dev/71-nrs-import-job.yaml`, and `.github/workflows/nrs-import.yml`. Steps 3-4
+below collapse into a single Job. To use it:
+```
+# once, locally (needs the pack in docs/seed/NRS_asset_seed/ + registry access):
+doctl registry login
+docker build -f Dockerfile.nrs-import -t registry.digitalocean.com/<reg>/cadra-nrs-import:latest .
+docker push registry.digitalocean.com/<reg>/cadra-nrs-import:latest
+# then run the in-cluster import (after staging19 is bootstrapped):
+gh workflow run nrs-import.yml -f image=registry.digitalocean.com/<reg>/cadra-nrs-import:latest
+```
+
+## (historical) delivery options considered
 The import runs as an in-cluster Job that talks to the `odoo-19` Service over
 XML-RPC. It needs two inputs that are NOT in the normal image:
 1. **`NRS_asset_seed` CSV pack** — `docs/seed/NRS_asset_seed/` is gitignored

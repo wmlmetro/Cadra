@@ -132,6 +132,39 @@ def build_aliases(models, db, uid, password, asset_pack, dry):
     print(f"  aliases created={len(vals)} (dropped {len(old)}) missing_source={missing}")
 
 
+def build_categories(models, db, uid, password, asset_pack, dry):
+    """Create the nrs.asset.category / .subcategory records the asset CSVs
+    reference by NAME (seed_nrs_assets matches them by name; missing ones make
+    every asset row fail). Idempotent."""
+    cats, subs = set(), {}
+    for f in glob.glob(os.path.join(asset_pack, "0[34]_assets*", "IMPORT_*_nrs_asset.csv")):
+        with open(f, newline="") as fh:
+            for row in csv.DictReader(fh):
+                c = (row.get("category_id") or "").strip()
+                s = (row.get("subcategory_id") or "").strip()
+                if c:
+                    cats.add(c)
+                if s:
+                    subs[s] = c
+    print(f"asset taxonomy: {len(cats)} categories, {len(subs)} sub-categories")
+    if dry:
+        return
+    Cat, Sub = "nrs.asset.category", "nrs.asset.subcategory"
+    cat_id = {}
+    for name in sorted(cats):
+        found = models.execute_kw(db, uid, password, Cat, "search", [[["name", "=", name]]], {"limit": 1})
+        cat_id[name] = found[0] if found else models.execute_kw(db, uid, password, Cat, "create", [{"name": name}])
+    sfields = models.execute_kw(db, uid, password, Sub, "fields_get", [], {"attributes": ["type"]})
+    for name, parent in sorted(subs.items()):
+        if models.execute_kw(db, uid, password, Sub, "search_count", [[["name", "=", name]]]):
+            continue
+        vals = {"name": name}
+        if "category_id" in sfields and parent in cat_id:
+            vals["category_id"] = cat_id[parent]
+        models.execute_kw(db, uid, password, Sub, "create", [vals])
+    print(f"  categories ensured={len(cat_id)}, sub-categories ensured={len(subs)}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--url", default=os.getenv("ODOO_URL"))
@@ -146,6 +179,7 @@ def main():
     uid, models = connect(args.url, args.db, args.user, args.password)
     load_locations(models, args.db, uid, args.password, args.locations_csv, args.dry_run)
     build_aliases(models, args.db, uid, args.password, args.asset_pack, args.dry_run)
+    build_categories(models, args.db, uid, args.password, args.asset_pack, args.dry_run)
     print("Done.")
 
 

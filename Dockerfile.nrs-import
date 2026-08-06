@@ -1,0 +1,34 @@
+# One-off NRS import image (built LOCALLY — the NRS_asset_seed pack is gitignored
+# and must NOT reach git/CI). Run as the cadra-nrs-import Job (k8s/dev/71) to
+# reproduce NRS master data on a fresh 19 DB (staging19) from source:
+#   1. export the real location tree from the live `staging` (15) DB via psql;
+#   2. reference bridge — import locations + categories + rebuild the __export__
+#      external ids (scripts/migrate_nrs_locations.py);
+#   3. employees + assets (scripts/seed_nrs_assets.py) via XML-RPC to odoo-19.
+#
+# Build + push (needs the pack present locally + registry access):
+#   docker build -f Dockerfile.nrs-import -t registry.digitalocean.com/<reg>/cadra-nrs-import:latest .
+#   doctl registry login && docker push registry.digitalocean.com/<reg>/cadra-nrs-import:latest
+#
+# Then run the Job: gh workflow run nrs-import.yml -f image=<that ref>
+
+FROM python:3.12-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Pure-stdlib scripts (csv + xmlrpc.client) — no pip deps.
+COPY scripts/migrate_nrs_locations.py scripts/seed_nrs_assets.py /opt/cadra/scripts/
+# The gitignored CSV pack (departments, jobs, 11,385 employees, ICT + fleet assets).
+COPY docs/seed/NRS_asset_seed/ /opt/pack/NRS_asset_seed/
+COPY scripts/nrs_import_entrypoint.sh /opt/cadra/entrypoint.sh
+RUN chmod +x /opt/cadra/entrypoint.sh
+
+ENV ODOO_URL=http://odoo-19:8069 \
+    SOURCE_DB=staging \
+    TARGET_DB=staging19 \
+    DB_HOST=db \
+    ODOO_ADMIN_PW=admin \
+    PACK=/opt/pack/NRS_asset_seed
+
+ENTRYPOINT ["/opt/cadra/entrypoint.sh"]
