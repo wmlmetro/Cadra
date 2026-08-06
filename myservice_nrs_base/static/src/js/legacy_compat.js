@@ -13,6 +13,21 @@
  * register legacy module *names* that the dashboards import via `require(...)`.
  */
 
+// underscore.js is no longer global in the Odoo 19 backend bundle; the legacy
+// dashboards only use `_.escape`. Provide a minimal `_` shim so their render
+// code (e.g. `_.escape(name)`) doesn't throw and abort the dashboard.
+(function () {
+    "use strict";
+    const ENT = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#x27;", "`": "&#x60;" };
+    const escapeHtml = (s) => String(s == null ? "" : s).replace(/[&<>"'`]/g, (c) => ENT[c]);
+    if (typeof window._ === "undefined") {
+        window._ = {};
+    }
+    if (typeof window._.escape !== "function") {
+        window._.escape = escapeHtml;
+    }
+})();
+
 // Legacy Odoo added Deferred/Promise.prototype.guardedCatch (a .catch() that
 // ignores "unloaded widget" rejections). Native promises lack it; re-add a
 // simple alias so legacy dashboards' rpc chains keep working.
@@ -46,19 +61,45 @@ odoo.define("web.core", ["@web/core/registry", "@web/core/l10n/translation"], fu
 });
 
 // ── web.rpc → rpc.query({model, method, args, kwargs}) / ({route, params}) ───
+// Also supports the legacy rpc.query convenience form used by the dashboards,
+// where domain/fields/groupBy/order/limit are passed as TOP-LEVEL keys (not in
+// args/kwargs). We translate those into the correct call_kw args/kwargs per
+// method, mapping the 15.0 names to the Odoo 19 ORM signatures
+// (groupBy -> groupby, order -> orderby for read_group).
 odoo.define("web.rpc", ["@web/core/network/rpc"], function (require) {
     "use strict";
     const { rpc } = require("@web/core/network/rpc");
     return {
-        query(params) {
-            if (params && params.route) {
-                return rpc(params.route, params.params || {});
+        query(p) {
+            if (p && p.route) {
+                return rpc(p.route, p.params || {});
+            }
+            let args = p.args || [];
+            const kwargs = Object.assign({}, p.kwargs || {});
+            const hasConvenience =
+                p.domain !== undefined || p.fields !== undefined ||
+                p.groupBy !== undefined || p.groupby !== undefined;
+            if (hasConvenience) {
+                if (p.method === "read_group") {
+                    args = [p.domain || [], p.fields || [], p.groupBy || p.groupby || []];
+                    if (p.offset !== undefined) kwargs.offset = p.offset;
+                    if (p.limit !== undefined) kwargs.limit = p.limit;
+                    if (p.order !== undefined) kwargs.orderby = p.order;
+                    if (p.lazy !== undefined) kwargs.lazy = p.lazy;
+                } else {
+                    // search_read and friends.
+                    if (p.domain !== undefined) kwargs.domain = p.domain;
+                    if (p.fields !== undefined) kwargs.fields = p.fields;
+                    if (p.offset !== undefined) kwargs.offset = p.offset;
+                    if (p.limit !== undefined) kwargs.limit = p.limit;
+                    if (p.order !== undefined) kwargs.order = p.order;
+                }
             }
             return rpc("/web/dataset/call_kw", {
-                model: params.model,
-                method: params.method,
-                args: params.args || [],
-                kwargs: params.kwargs || {},
+                model: p.model,
+                method: p.method,
+                args: args,
+                kwargs: kwargs,
             });
         },
     };
