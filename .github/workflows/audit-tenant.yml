@@ -1,0 +1,88 @@
+name: audit-tenant
+
+# READ-ONLY operational-data audit of a live tenant DB on the DOKS cadra-dev
+# cluster. Manual-only (workflow_dispatch). Runs SELECT-only SQL via psql inside
+# the in-cluster postgres pod — never writes, never migrates. Purpose: size the
+# 15 -> 19 data migration (how much is real user activity vs. regenerable seed).
+#
+# Uses the same secrets/vars as deploy-dev.yml:
+#   secrets.DIGITALOCEAN_ACCESS_TOKEN   vars.DO_CLUSTER_NAME   vars.POSTGRES_USER
+
+on:
+  workflow_dispatch:
+    inputs:
+      tenant_db:
+        description: "Tenant DB to audit (e.g. staging, jaizbankplc, gtb, lasg). Leave blank to only LIST the databases."
+        type: string
+        default: ""
+
+concurrency:
+  group: audit-tenant
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Save DOKS kubeconfig
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 1200 "${{ vars.DO_CLUSTER_NAME }}"
+
+      - name: Locate postgres pod
+        run: |
+          POD=$(kubectl -n cadra-dev get pod -l app=db -o jsonpath='{.items[0].metadata.name}')
+          if [ -z "$POD" ]; then echo "FAIL: no postgres pod (app=db) in cadra-dev" >&2; exit 1; fi
+          echo "PG_POD=$POD" >> "$GITHUB_ENV"
+          echo "Postgres pod: $POD"
+
+      - name: List tenant databases
+        env:
+          PGUSER: ${{ vars.POSTGRES_USER || 'odoo' }}
+        run: |
+          echo "── databases on cadra-dev ──"
+          kubectl -n cadra-dev exec "$PG_POD" -- \
+            psql -U "$PGUSER" -tAc \
+            "SELECT datname FROM pg_database WHERE datistemplate=false AND datname NOT IN ('postgres') ORDER BY 1;"
+
+      - name: Read-only operational-data audit
+        if: ${{ inputs.tenant_db != '' }}
+        env:
+          PGUSER: ${{ vars.POSTGRES_USER || 'odoo' }}
+          DB: ${{ inputs.tenant_db }}
+        run: |
+          echo "════════ AUDIT: ${DB} ════════"
+          # ON_ERROR_STOP=0 so a model missing in one tenant doesn't abort the rest.
+          kubectl -n cadra-dev exec -i "$PG_POD" -- \
+            psql -U "$PGUSER" -d "$DB" -v ON_ERROR_STOP=0 <<'SQL'
+          \echo '── requests: total vs real-authored (uid not in system 1/2/4) ──'
+          SELECT count(*) AS total,
+                 count(*) FILTER (WHERE create_uid NOT IN (1,2,4)) AS real_authored,
+                 min(create_date)::date AS first_created,
+                 max(create_date)::date AS last_created,
+                 count(*) FILTER (WHERE write_date > create_date + interval '5 minutes') AS edited_after_create
+          FROM request_request;
+          \echo '── chatter: human comments vs system notifications ──'
+          SELECT message_type, count(*) FROM mail_message GROUP BY 1 ORDER BY 2 DESC;
+          \echo '── attachments on OPERATIONAL records (real user uploads) ──'
+          SELECT res_model, count(*) FROM ir_attachment
+          WHERE res_model IN ('request.request','nrs.asset','generic.location','hr.employee','fleet.vehicle')
+          GROUP BY 1 ORDER BY 2 DESC;
+          \echo '── asset custody transfers ──'
+          SELECT count(*) AS asset_transfers FROM nrs_asset_transfer;
+          \echo '── users: non-system + those with real login history ──'
+          SELECT count(*) FILTER (WHERE id NOT IN (1,2,4)) AS non_system_users FROM res_users;
+          SELECT count(DISTINCT create_uid) AS users_with_login_events FROM res_users_log WHERE create_uid NOT IN (1,2,4);
+          \echo '── core record counts (mostly regenerable seed) ──'
+          SELECT 'locations' AS model, count(*) FROM generic_location
+          UNION ALL SELECT 'assets', count(*) FROM nrs_asset
+          UNION ALL SELECT 'fleet', count(*) FROM fleet_vehicle
+          UNION ALL SELECT 'employees', count(*) FROM hr_employee;
+          SQL
+          echo "════════ END AUDIT ════════"
