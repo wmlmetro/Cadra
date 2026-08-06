@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: odoo-bootstrap-19
+  namespace: cadra-dev
+data:
+  # Module set that installs on Odoo 19 (validated on fresh gtb19/nrs19 DBs).
+  # myservice_request_core (the in-house engine) is pulled in via
+  # myservice_request_fields' dependency; web_responsive resolves from oca-19/.
+  # Per-tenant brand modules are appended via EXTRA_MODULES by the deploy step.
+  CADRA_BOOTSTRAP_MODULES: "myservice_api,myservice_asset_register,myservice_barcode_station,myservice_dashboard,myservice_fleet_maintenance,myservice_fm_dashboard,myservice_identity,myservice_nrs_base,myservice_request_fields,myservice_security,myservice_staff_bus,myservice_theme,myservice_theme_v5,myservice_website_theme,myservice_workflow,web_responsive"
+
+  # Seed profiles are defined in scripts/bootstrap.py. Per-tenant profile is set
+  # via SEED_PROFILE_OVERRIDE on the bootstrap Job (gtb / jaiz / lasg / full…).
+  CADRA_SEED_PROFILE: "core"
+
+  ODOO_WORKERS: "1"
+  ODOO_MAX_CRON_THREADS: "1"
+
+  CADRA_TEST_CLIENT_ID: "test_client"

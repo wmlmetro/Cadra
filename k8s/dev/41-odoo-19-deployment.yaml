@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: odoo-19
+  namespace: cadra-dev
+  labels:
+    app: odoo-19
+spec:
+  replicas: 1
+  strategy:
+    # Odoo can't run two writers against the same DB row state — Recreate
+    # avoids the brief overlap window that RollingUpdate would create.
+    type: Recreate
+  selector:
+    matchLabels:
+      app: odoo-19
+  template:
+    metadata:
+      labels:
+        app: odoo-19
+    spec:
+      securityContext:
+        # odoo:19.0 image runs as uid/gid 101 (odoo:odoo), same as 15.0.
+        fsGroup: 101
+      containers:
+        - name: odoo
+          # ─── REPLACE before applying (deploy-dev.yml sed-substitutes it) ──
+          image: REPLACE_ME/cadra-odoo-19:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8069
+            - name: gevent
+              containerPort: 8072
+          env:
+            - name: HOST
+              value: db
+            - name: USER
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_USER
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_PASSWORD
+            - name: ODOO_MASTER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: ODOO_MASTER_PASSWORD
+          envFrom:
+            - configMapRef:
+                name: odoo-bootstrap-19
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+              cp /etc/odoo/odoo.conf.template /tmp/odoo.conf
+              {
+                printf '\nadmin_passwd = %s\n' "$ODOO_MASTER_PASSWORD"
+                printf 'db_user = %s\n' "$USER"
+                printf 'db_password = %s\n' "$PASSWORD"
+              } >> /tmp/odoo.conf
+              exec odoo -c /tmp/odoo.conf \
+                --workers="${ODOO_WORKERS:-1}" \
+                --max-cron-threads="${ODOO_MAX_CRON_THREADS:-1}"
+          volumeMounts:
+            - name: odoo-config
+              mountPath: /etc/odoo/odoo.conf.template
+              subPath: odoo.conf
+              readOnly: true
+            - name: odoo-filestore
+              mountPath: /var/lib/odoo
+          # Probe with a Host header for a real 19 tenant so dbfilter resolves
+          # to an existing DB and /web/login returns 200. Keep in sync with the
+          # primary 19 tenant DB name (staging19).
+          readinessProbe:
+            httpGet:
+              path: /web/login
+              port: 8069
+              httpHeaders:
+                - name: Host
+                  value: staging19.app.cadra.ng
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /web/login
+              port: 8069
+              httpHeaders:
+                - name: Host
+                  value: staging19.app.cadra.ng
+            initialDelaySeconds: 90
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 4
+          resources:
+            requests:
+              cpu: 250m
+              memory: 1Gi
+            limits:
+              cpu: 1500m
+              memory: 2Gi
+      volumes:
+        - name: odoo-config
+          configMap:
+            name: odoo-config-19
+        - name: odoo-filestore
+          persistentVolumeClaim:
+            claimName: odoo-19-filestore

@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: odoo-config-19
+  namespace: cadra-dev
+data:
+  odoo.conf: |
+    [options]
+    ; ─── Odoo 19 configuration for Kubernetes (the rebuild stack) ────────
+    ; 19 counterpart of odoo-config. db_user / db_password are appended at
+    ; container start from the cadra-db Secret (the pods override the image
+    ; entrypoint, so its HOST/USER/PASSWORD injection does not run).
+    ; db_name is intentionally NOT set — the DB is chosen per-request by
+    ; dbfilter. The bootstrap/upgrade Jobs pin db_name to one tenant.
+    db_host = db
+    db_port = 5432
+
+    ; HTTP. Odoo 16+ renamed longpolling_port -> gevent_port (websocket).
+    http_port = 8069
+    gevent_port = 8072
+    http_interface = 0.0.0.0
+    proxy_mode = True
+
+    ; ─── Multi-tenant routing ───────────────────────────────────────────
+    ; DB = the first host label. The 19 stack serves 19 tenant DBs on
+    ; <tenant>19 hostnames (e.g. staging19.app.cadra.ng -> DB "staging19"),
+    ; alongside the live 15 stack, until the DNS flip.
+    dbfilter = ^%d$
+
+    without_demo = True
+    list_db = False
+    log_level = info
+
+    ; Addons: Odoo 19 core + repo root + CRND 19 foundation + OCA 19 bundle.
+    ; (No legacy dist/ tree — the rebuild installs a trimmed, ported set.)
+    addons_path = /usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons,/mnt/extra-addons/crnd-19,/mnt/extra-addons/oca-19
+
+    ; Resource limits — kept BELOW the pod's K8s memory limit so Odoo
+    ; recycles workers before the kubelet OOMKills the pod.
+    limit_memory_soft = 1342177280
+    limit_memory_hard = 1610612736
+    limit_request = 8192
+    limit_time_cpu = 600
+    limit_time_real = 1200
+
+    ; admin_passwd is injected at runtime by the container command
+    ; using ODOO_MASTER_PASSWORD from the cadra-odoo Secret.

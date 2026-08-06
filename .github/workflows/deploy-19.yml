@@ -1,0 +1,152 @@
+name: deploy-19
+
+# Manual-only deploy of the Odoo 19 rebuild stack into the SAME cadra-dev
+# namespace, ALONGSIDE the live 15 stack. Builds cadra-odoo-19 and applies only
+# the `-19` resources (odoo-19 Deployment/Service, odoo-config-19,
+# odoo-bootstrap-19, odoo-19-filestore PVC, cadra-19 Ingress) + optionally the
+# cadra-bootstrap-19 Job for one tenant DB. It reuses the shared cadra-db /
+# cadra-odoo Secrets and the shared `db` Postgres StatefulSet, and NEVER touches
+# the live 15 Deployment/Service/Ingress. workflow_dispatch only — it does not
+# run on push, so it can never take down live tenants by accident.
+#
+# Typical first roll per tenant (Run workflow inputs):
+#   run_bootstrap = true
+#   bootstrap_db  = gtb19        (DB is created on install)
+#   bootstrap_extra_modules = cadra_brand_gtb
+#   bootstrap_seed_profile  = gtb
+# NRS needs the location bridge + asset/employee import run separately (they
+# depend on the NRS_asset_seed CSV pack + a staging location export) — see
+# docs/upgrade/nrs-cutover-runbook.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_bootstrap:
+        description: "Run the cadra-bootstrap-19 Job (install modules + seed the tenant DB). Required on a tenant's first deploy."
+        type: boolean
+        default: false
+      bootstrap_db:
+        description: "19 tenant DB to create/seed (e.g. gtb19, staging19). Blank = the shared POSTGRES_DB."
+        type: string
+        default: ""
+      bootstrap_seed_profile:
+        description: "Seed profile for the bootstrap Job (e.g. gtb, jaiz, lasg, core, full-no-master+geo)."
+        type: string
+        default: "core"
+      bootstrap_extra_modules:
+        description: "Extra modules appended to the install list (e.g. cadra_brand_gtb)."
+        type: string
+        default: ""
+
+env:
+  IMAGE_NAME: cadra-odoo-19
+  NAMESPACE: cadra-dev
+
+concurrency:
+  group: deploy-19
+  cancel-in-progress: false
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      - name: Log into DigitalOcean Container Registry
+        run: doctl registry login --expiry-seconds 1200
+      - name: Compute image reference
+        id: meta
+        run: |
+          SHA_SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
+          IMAGE="registry.digitalocean.com/${{ vars.DO_REGISTRY_NAME }}/${IMAGE_NAME}:dev-${SHA_SHORT}"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "Image: ${IMAGE}"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build & push (Odoo 19 k8s image)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.odoo.19.k8s
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            registry.digitalocean.com/${{ vars.DO_REGISTRY_NAME }}/${{ env.IMAGE_NAME }}:dev-latest
+          cache-from: type=gha,scope=odoo19
+          cache-to: type=gha,mode=max,scope=odoo19
+          platforms: linux/amd64
+
+  deploy:
+    needs: [build-and-push]
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    environment:
+      name: dev
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      - name: Save DOKS kubeconfig
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 1200 "${{ vars.DO_CLUSTER_NAME }}"
+
+      # Namespace + Secrets + Postgres are owned by deploy-dev.yml (the 15 stack)
+      # and shared. We only apply the 19-specific ConfigMaps + PVC + Service.
+      - name: Apply 19 ConfigMaps + filestore PVC + Service
+        run: |
+          kubectl apply -f k8s/dev/10-configmap-odoo-19.yaml
+          kubectl apply -f k8s/dev/11-configmap-bootstrap-19.yaml
+          kubectl apply -f k8s/dev/40-odoo-19-pvc.yaml
+          kubectl apply -f k8s/dev/42-odoo-19-service.yaml
+
+      - name: (Optional) Run cadra-bootstrap-19 Job
+        if: ${{ inputs.run_bootstrap == true }}
+        env:
+          IMAGE: ${{ needs.build-and-push.outputs.image }}
+          BOOTSTRAP_DB: ${{ inputs.bootstrap_db }}
+          BOOTSTRAP_SEED_PROFILE: ${{ inputs.bootstrap_seed_profile }}
+          BOOTSTRAP_EXTRA_MODULES: ${{ inputs.bootstrap_extra_modules }}
+        run: |
+          set -e
+          # The Job and the odoo-19 Deployment both want odoo-19-filestore (RWO);
+          # scale the Deployment to 0 so the Job can claim it.
+          if kubectl -n "${NAMESPACE}" get deployment/odoo-19 >/dev/null 2>&1; then
+            kubectl -n "${NAMESPACE}" scale deployment/odoo-19 --replicas=0
+            kubectl -n "${NAMESPACE}" wait --for=delete pod -l app=odoo-19,job!=bootstrap --timeout=2m || true
+          fi
+          kubectl -n "${NAMESPACE}" delete job cadra-bootstrap-19 --ignore-not-found
+          sed -e "s|REPLACE_ME/cadra-odoo-19:dev|${IMAGE}|g" \
+              -e "s|REPLACE_ME_TARGET_DB|${BOOTSTRAP_DB}|g" \
+              -e "s|REPLACE_ME_SEED_PROFILE|${BOOTSTRAP_SEED_PROFILE}|g" \
+              -e "s|REPLACE_ME_EXTRA_MODULES|${BOOTSTRAP_EXTRA_MODULES}|g" \
+              k8s/dev/50-bootstrap-19-job.yaml | kubectl apply -f -
+          kubectl -n "${NAMESPACE}" wait --for=condition=complete job/cadra-bootstrap-19 --timeout=90m
+          echo "─── cadra-bootstrap-19 logs ───"
+          kubectl -n "${NAMESPACE}" logs job/cadra-bootstrap-19 --all-containers --tail=200
+
+      - name: Apply odoo-19 Deployment with new image
+        env:
+          IMAGE: ${{ needs.build-and-push.outputs.image }}
+        run: |
+          sed "s|REPLACE_ME/cadra-odoo-19:dev|${IMAGE}|g" k8s/dev/41-odoo-19-deployment.yaml | kubectl apply -f -
+          kubectl -n "${NAMESPACE}" rollout status deployment/odoo-19 --timeout=5m
+
+      - name: Apply cadra-19 Ingress
+        run: kubectl apply -f k8s/dev/62-ingress-19.yaml
+
+      - name: Summary
+        run: |
+          echo "19 stack rolled. Tenants served on <tenant>19 hostnames via odoo-19."
+          kubectl -n "${NAMESPACE}" get deploy,svc,ingress -l app=odoo-19 2>/dev/null || true
+          kubectl -n "${NAMESPACE}" get ingress cadra-19 2>/dev/null || true
