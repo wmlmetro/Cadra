@@ -76,8 +76,41 @@ spec:
                 name: odoo
                 port:
                   number: 8069
-    - host: gtb.cadra.ng           # -> DB "gtb" (Guaranty Trust Bank)
-      http: *odoo-paths
+    # CUTOVER: gtb is flipped to the Odoo 19 stack. Its backend points at the
+    # odoo-19 Service (the DB "gtb" was renamed from the seeded "gtb19"; the old
+    # 15 DB is preserved as "gtb_15bak"). /app still uses the shared frontend.
+    # Rollback: switch these backends back to `odoo` and rename the DBs back.
+    - host: gtb.cadra.ng           # -> DB "gtb" on odoo-19 (Guaranty Trust Bank)
+      http:
+        paths:
+          - path: /app
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+          - path: /longpolling
+            pathType: Prefix
+            backend:
+              service:
+                name: odoo-19
+                port:
+                  number: 8072
+          - path: /websocket
+            pathType: Prefix
+            backend:
+              service:
+                name: odoo-19
+                port:
+                  number: 8072
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: odoo-19
+                port:
+                  number: 8069
     - host: jaizbankplc.cadra.ng   # -> DB "jaizbankplc" (Jaiz Bank Plc)
       http: *odoo-paths
     - host: lasg.cadra.ng          # -> DB "lasg" (Lagos State Ministry of Health)

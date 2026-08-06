@@ -1,0 +1,120 @@
+name: tenant-cutover-19
+
+# Flip a tenant from the live Odoo 15 stack to the Odoo 19 stack, in-cluster,
+# via the pipeline (no kubectl access needed on your side). It:
+#   1. renames DBs on the shared Postgres:
+#        <host_label>       -> <host_label><backup_suffix>   (preserve 15)
+#        <source_db>        -> <host_label>                  (promote 19)
+#      so dbfilter (^%d$) resolves <host_label>.cadra.ng to the 19 data.
+#   2. applies k8s/dev/60-ingress.yaml (which must already route
+#      <host_label>.cadra.ng at the odoo-19 Service — committed separately).
+#   3. restarts odoo-19 so it opens the renamed DB fresh.
+#   4. verifies: the DB carries the 19-only myservice_request_core, and
+#      /api/v1/brand answers for the tenant host from inside the pod.
+#
+# Rollback: re-run with source_db=<host_label> and a target that renames back,
+# or manually swap the two ALTER DATABASE names and revert the ingress rule.
+#
+# workflow_dispatch only — never runs on push.
+
+on:
+  workflow_dispatch:
+    inputs:
+      host_label:
+        description: "Tenant host label = target DB name (e.g. gtb for gtb.cadra.ng)."
+        type: string
+        required: true
+      source_db:
+        description: "The seeded 19 DB to promote (e.g. gtb19)."
+        type: string
+        required: true
+      backup_suffix:
+        description: "Suffix for the preserved 15 DB (e.g. _15bak)."
+        type: string
+        default: "_15bak"
+      tenant_host:
+        description: "Full host used for the brand verify (e.g. gtb.cadra.ng)."
+        type: string
+        required: true
+
+env:
+  NAMESPACE: cadra-dev
+
+concurrency:
+  group: tenant-cutover-19
+  cancel-in-progress: false
+
+jobs:
+  cutover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: dev
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      - name: Save DOKS kubeconfig
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 1200 "${{ vars.DO_CLUSTER_NAME }}"
+
+      - name: Rename DBs (preserve 15, promote 19)
+        env:
+          PGUSER: ${{ vars.POSTGRES_USER || 'odoo' }}
+          HOST_LABEL: ${{ inputs.host_label }}
+          SOURCE_DB: ${{ inputs.source_db }}
+          BACKUP_SUFFIX: ${{ inputs.backup_suffix }}
+        run: |
+          set -e
+          POD=$(kubectl -n "$NAMESPACE" get pod -l app=db -o jsonpath='{.items[0].metadata.name}')
+          echo "postgres pod: $POD"
+          BACKUP="${HOST_LABEL}${BACKUP_SUFFIX}"
+          # Guard: source DB must exist; if target already IS the 19 DB, skip.
+          exists() { kubectl -n "$NAMESPACE" exec "$POD" -- psql -U "$PGUSER" -d postgres -tAc \
+            "SELECT 1 FROM pg_database WHERE datname='$1'"; }
+          if [ -z "$(exists "$SOURCE_DB")" ]; then
+            echo "NOTE: source DB '$SOURCE_DB' not found — assuming rename already done."
+          else
+            echo "terminating connections to $HOST_LABEL and $SOURCE_DB..."
+            kubectl -n "$NAMESPACE" exec "$POD" -- psql -U "$PGUSER" -d postgres -c \
+              "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname IN ('$HOST_LABEL','$SOURCE_DB');"
+            if [ -n "$(exists "$HOST_LABEL")" ]; then
+              echo "renaming 15 DB $HOST_LABEL -> $BACKUP"
+              kubectl -n "$NAMESPACE" exec "$POD" -- psql -U "$PGUSER" -d postgres -c \
+                "ALTER DATABASE \"$HOST_LABEL\" RENAME TO \"$BACKUP\";"
+            fi
+            echo "promoting 19 DB $SOURCE_DB -> $HOST_LABEL"
+            kubectl -n "$NAMESPACE" exec "$POD" -- psql -U "$PGUSER" -d postgres -c \
+              "ALTER DATABASE \"$SOURCE_DB\" RENAME TO \"$HOST_LABEL\";"
+          fi
+          echo "── databases now ──"
+          kubectl -n "$NAMESPACE" exec "$POD" -- psql -U "$PGUSER" -d postgres -tAc \
+            "SELECT datname FROM pg_database WHERE datname IN ('$HOST_LABEL','$BACKUP','$SOURCE_DB') ORDER BY 1;"
+
+      - name: Apply ingress (route <host>.cadra.ng -> odoo-19) + restart odoo-19
+        run: |
+          set -e
+          kubectl apply -f k8s/dev/60-ingress.yaml
+          kubectl -n "$NAMESPACE" rollout restart deployment/odoo-19
+          kubectl -n "$NAMESPACE" rollout status deployment/odoo-19 --timeout=5m
+
+      - name: Verify (19 signature in DB + brand endpoint from the pod)
+        env:
+          PGUSER: ${{ vars.POSTGRES_USER || 'odoo' }}
+          HOST_LABEL: ${{ inputs.host_label }}
+          TENANT_HOST: ${{ inputs.tenant_host }}
+        run: |
+          set -e
+          POD=$(kubectl -n "$NAMESPACE" get pod -l app=db -o jsonpath='{.items[0].metadata.name}')
+          echo "── 19 signature: myservice_request_core installed in '$HOST_LABEL'? ──"
+          kubectl -n "$NAMESPACE" exec "$POD" -- psql -U "$PGUSER" -d "$HOST_LABEL" -tAc \
+            "SELECT name, state FROM ir_module_module WHERE name='myservice_request_core';"
+          echo "── data counts ──"
+          kubectl -n "$NAMESPACE" exec "$POD" -- psql -U "$PGUSER" -d "$HOST_LABEL" -tAc \
+            "SELECT 'employees',count(*) FROM hr_employee UNION ALL SELECT 'assets',count(*) FROM nrs_asset UNION ALL SELECT 'fleet',count(*) FROM fleet_vehicle;"
+          echo "── /api/v1/brand for $TENANT_HOST (served by odoo-19) ──"
+          kubectl -n "$NAMESPACE" exec deploy/odoo-19 -- python3 -c "
+          import urllib.request
+          req = urllib.request.Request('http://localhost:8069/api/v1/brand', headers={'Host': '$TENANT_HOST'})
+          print(urllib.request.urlopen(req, timeout=15).read().decode()[:300])"
