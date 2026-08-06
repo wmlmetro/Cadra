@@ -170,8 +170,12 @@ whether each executes depends on legacy base classes (e.g. web.AbstractAction)
 still existing in 19. Validate in-browser; rewrite to OWL2 (or disable pending
 rewrite) any that throw. React SPA UX (/app) is independent of this.
 
-**Deferred cosmetic (models kept, views dropped):** generic_location/service
-res.config.settings + res_partner smart buttons; generic_team res_users tab.
+**Deferred cosmetic — DONE (2026-08-06):** generic_location/service
+res.config.settings (ported to 19 `<app>/<block>/<setting>`) + res_partner
+smart buttons (Locations stat button, Service Info page); generic_team
+res_users Teams tab. All 5 views re-added to manifests and browser-verified
+rendering on cadra19 (Odoo 19). 19 gotcha applied: inherited views can't set
+`group_ids` on the record — moved `groups=` onto the button/page elements.
 **Runtime ref to fix:** website_theme api.py uses env.ref('generic_request.
 request_channel_website') — request_core has no channels (runtime-only).
 

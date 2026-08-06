@@ -3,8 +3,8 @@
     <record id="view_partner_form" model="ir.ui.view">
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="base.view_partner_form" />
-        <field name="group_ids"
-               eval="[(4, ref('generic_location.group_generic_location_user'))]"/>
+        <!-- Odoo 19: inherited views can't set group_ids on the record; the
+             stat button already carries its own groups= attribute below. -->
         <field name="arch" type="xml">
             <div name="button_box" position="inside">
                 <button class="oe_stat_button"

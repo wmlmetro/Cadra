@@ -28,6 +28,9 @@
         'views/generic_location.xml',
         'views/generic_location_type.xml',
         'views/generic_location_tag_menu.xml',
+        # Odoo 19 rebuild: cosmetic backend views re-added (ported to 19).
+        'views/res_partner.xml',
+        'views/res_config_settings.xml',
     ],
     # only loaded in demonstration mode
     'demo': [

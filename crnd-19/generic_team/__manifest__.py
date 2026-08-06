@@ -28,6 +28,8 @@
         'views/generic_team_menu.xml',
         'views/generic_team.xml',
         'views/generic_team_member_view.xml',
+        # Odoo 19 rebuild: res.users Teams tab re-added (already 19-compatible).
+        'views/res_users.xml',
     ],
 
     "demo": [

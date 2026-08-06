@@ -9,35 +9,23 @@
         <field name="context">{'module' : 'generic_location'}</field>
     </record>
 
+    <!-- Odoo 19 rebuild: the settings form is now built from <app>/<block>/
+         <setting> tags (the old <div class="settings">/app_settings_block
+         structure was removed), so we add a Generic Locations app block. -->
     <record id="res_config_settings_view_form" model="ir.ui.view">
         <field name="model">res.config.settings</field>
         <field name="priority" eval="21"/>
         <field name="inherit_id" ref="base.res_config_settings_view_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//div[hasclass('settings')]" position="inside">
-                <div data-string="Generic Locations"
-                     class="app_settings_block"
-                     string="Generic Locations"
-                     data-key="generic_location">
-
-                    <h2>Generic location settings</h2>
-                    <div class="row mt16 o_settings_container">
-                        <div class="col-xs-12 o_setting_box">
-                            <div class="o_setting_left_pane">
-                                <field name="group_use_hierarchical_locations"
-                                       string="Use hierarchical locations"/>
-                            </div>
-                            <div class="o_setting_right_pane">
-                                <label for="group_use_hierarchical_locations"/>
-                                <div class="text-muted">
-                                    Enable this checkbox to build hierarchical location structures.
-                                    When enable, you will be able to set parent location for any location,
-                                    and see sub-locations of location.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <xpath expr="//form" position="inside">
+                <app string="Generic Locations" name="generic_location">
+                    <block title="Generic location settings">
+                        <setting string="Use hierarchical locations"
+                                 help="Build hierarchical location structures. When enabled, you can set a parent location for any location and see its sub-locations.">
+                            <field name="group_use_hierarchical_locations"/>
+                        </setting>
+                    </block>
+                </app>
             </xpath>
         </field>
     </record>

@@ -23,7 +23,10 @@
         'views/generic_service_views.xml',
         'views/generic_service_level_views.xml',
         'views/generic_service_group.xml',
-        'data/generic_service_default.xml'
+        'data/generic_service_default.xml',
+        # Odoo 19 rebuild: cosmetic backend views re-added (ported to 19).
+        'views/res_partner_views.xml',
+        'views/res_config_settings_view.xml',
     ],
     'demo': [
         'demo/generic_service_group.xml',
