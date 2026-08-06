@@ -1,0 +1,60 @@
+# One-off NRS master-data import Job. Runs the locally-built cadra-nrs-import
+# image (Dockerfile.nrs-import — bakes the gitignored NRS_asset_seed pack) to
+# reproduce NRS employees + assets on a fresh 19 DB (staging19), pulling the
+# location tree from the live `staging` (15) DB. Talks to the odoo-19 Service
+# over XML-RPC and the shared `db` Postgres directly. Idempotent.
+#
+# Prereq: staging19 already bootstrapped (deploy-19 run_bootstrap=true,
+# bootstrap_db=staging19, extra=cadra_brand_nrs) — that installs modules + grants
+# admin the Asset Manager group (required, or asset creates are denied).
+#
+# The image ref is sed-substituted by nrs-import.yml (REPLACE_ME_IMAGE). Admin
+# XML-RPC password defaults to 'admin' (image env ODOO_ADMIN_PW) — override in
+# the Job env if the tenant's admin password differs.
+#
+# Re-run: kubectl -n cadra-dev delete job cadra-nrs-import && kubectl apply -f -
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cadra-nrs-import
+  namespace: cadra-dev
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: odoo-19
+        job: nrs-import
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: nrs-import
+          image: REPLACE_ME_IMAGE
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: ODOO_URL
+              value: "http://odoo-19:8069"
+            - name: SOURCE_DB
+              value: "staging"       # live 15 DB to export locations from
+            - name: TARGET_DB
+              value: "staging19"     # fresh 19 DB to load into
+            - name: DB_HOST
+              value: db
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_PASSWORD
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi

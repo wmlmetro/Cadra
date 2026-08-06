@@ -119,12 +119,10 @@ jobs:
           BOOTSTRAP_EXTRA_MODULES: ${{ inputs.bootstrap_extra_modules }}
         run: |
           set -e
-          # The Job and the odoo-19 Deployment both want odoo-19-filestore (RWO);
-          # scale the Deployment to 0 so the Job can claim it.
-          if kubectl -n "${NAMESPACE}" get deployment/odoo-19 >/dev/null 2>&1; then
-            kubectl -n "${NAMESPACE}" scale deployment/odoo-19 --replicas=0
-            kubectl -n "${NAMESPACE}" wait --for=delete pod -l app=odoo-19,job!=bootstrap --timeout=2m || true
-          fi
+          # Zero-downtime: the bootstrap Job uses an ephemeral emptyDir filestore
+          # (the DB it seeds is in the shared Postgres), so it no longer contends
+          # for the odoo-19 filestore PVC — odoo-19 keeps serving live tenants
+          # while a new tenant is installed/seeded. No scale-to-0.
           kubectl -n "${NAMESPACE}" delete job cadra-bootstrap-19 --ignore-not-found
           sed -e "s|REPLACE_ME/cadra-odoo-19:dev|${IMAGE}|g" \
               -e "s|REPLACE_ME_TARGET_DB|${BOOTSTRAP_DB}|g" \
@@ -138,9 +136,21 @@ jobs:
       - name: Apply odoo-19 Deployment with new image
         env:
           IMAGE: ${{ needs.build-and-push.outputs.image }}
+          RUN_BOOTSTRAP: ${{ inputs.run_bootstrap }}
         run: |
-          sed "s|REPLACE_ME/cadra-odoo-19:dev|${IMAGE}|g" k8s/dev/41-odoo-19-deployment.yaml | kubectl apply -f -
-          kubectl -n "${NAMESPACE}" rollout status deployment/odoo-19 --timeout=5m
+          set -e
+          # A pure tenant SEED changes no code and odoo-19 is already running —
+          # dbfilter serves the new tenant DB on its next request with no re-roll.
+          # Re-applying the Deployment (new per-SHA image tag + Recreate + RWO
+          # PVC) would needlessly blip every live 19 tenant, so skip it when
+          # bootstrapping onto an existing odoo-19. First deploy (no odoo-19 yet)
+          # and code deploys (run_bootstrap=false) still roll normally.
+          if [ "$RUN_BOOTSTRAP" = "true" ] && kubectl -n "${NAMESPACE}" get deployment/odoo-19 >/dev/null 2>&1; then
+            echo "odoo-19 already running; tenant seed needs no re-roll — skipping Deployment apply (zero downtime)."
+          else
+            sed "s|REPLACE_ME/cadra-odoo-19:dev|${IMAGE}|g" k8s/dev/41-odoo-19-deployment.yaml | kubectl apply -f -
+            kubectl -n "${NAMESPACE}" rollout status deployment/odoo-19 --timeout=5m
+          fi
 
       - name: Apply cadra-19 Ingress
         run: kubectl apply -f k8s/dev/62-ingress-19.yaml
