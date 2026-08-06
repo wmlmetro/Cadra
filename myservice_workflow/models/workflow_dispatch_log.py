@@ -79,12 +79,13 @@ class WorkflowDispatchLog(models.Model):
         readonly=True,
     )
 
-    @api.model
-    def create(self, vals):
-        if not vals.get('name'):
-            seq = self.env['ir.sequence'].next_by_code('workflow.dispatch.log')
-            vals['name'] = seq or 'WDL-NEW'
-        return super().create(vals)
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if not vals.get('name'):
+                seq = self.env['ir.sequence'].next_by_code('workflow.dispatch.log')
+                vals['name'] = seq or 'WDL-NEW'
+        return super().create(vals_list)
 
     def action_view_request(self):
         if self.request_id:

@@ -45,11 +45,11 @@ class BusManifestLine(models.Model):
     route_id = fields.Many2one(related='schedule_id.route_id', store=True)
     date = fields.Date(related='schedule_id.date', store=True)
 
-    @api.model
-    def create(self, vals):
-        rec = super().create(vals)
-        rec._generate_booking_ref()
-        return rec
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        records._generate_booking_ref()
+        return records
 
     def _generate_booking_ref(self):
         for r in self:

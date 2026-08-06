@@ -42,11 +42,12 @@ class BusSchedule(models.Model):
 
     direction = fields.Selection(related='route_id.direction', store=True)
 
-    @api.model
-    def create(self, vals):
-        if vals.get('name', _('New')) == _('New'):
-            vals['name'] = self.env['ir.sequence'].next_by_code('bus.schedule') or _('New')
-        return super().create(vals)
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get('name', _('New')) == _('New'):
+                vals['name'] = self.env['ir.sequence'].next_by_code('bus.schedule') or _('New')
+        return super().create(vals_list)
 
     @api.depends('manifest_ids', 'manifest_ids.state', 'capacity')
     def _compute_bookings(self):

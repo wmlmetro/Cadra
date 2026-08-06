@@ -23,6 +23,7 @@ class RequestRequest(models.Model):
 
     # ── Classification ────────────────────────────────────────────────
     type_id = fields.Many2one('request.type', string='Type', tracking=True)
+    kind_id = fields.Many2one('request.kind', string='Kind')
     category_id = fields.Many2one('request.category', string='Category', tracking=True)
     tag_ids = fields.Many2many('request.tag', string='Tags')
 
