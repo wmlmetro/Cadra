@@ -33,9 +33,10 @@ cd "$REPO_ROOT"
 CADRA_PROFILE="${CADRA_PROFILE:-dev}"
 COMPOSE_FILES=(-f docker-compose.yml)
 case "$CADRA_PROFILE" in
-    dev)  COMPOSE_FILES+=(-f docker-compose.dev.yml) ;;
-    prod) COMPOSE_FILES+=(-f docker-compose.prod.yml) ;;
-    *)    echo "FATAL: CADRA_PROFILE must be 'dev' or 'prod', got '$CADRA_PROFILE'" >&2; exit 1 ;;
+    dev)   COMPOSE_FILES+=(-f docker-compose.dev.yml) ;;
+    dev19) COMPOSE_FILES+=(-f docker-compose.19.yml) ;;   # Odoo 19 rebuild stack
+    prod)  COMPOSE_FILES+=(-f docker-compose.prod.yml) ;;
+    *)     echo "FATAL: CADRA_PROFILE must be 'dev', 'dev19' or 'prod', got '$CADRA_PROFILE'" >&2; exit 1 ;;
 esac
 
 if ! command -v docker >/dev/null 2>&1; then
