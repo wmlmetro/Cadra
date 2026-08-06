@@ -8,22 +8,19 @@
 
         <record id="group_security_officer" model="res.groups">
             <field name="name">Security Officer</field>
-            <field name="category_id" ref="module_category_security"/>
             <field name="comment">Can log incidents and manage access logs</field>
         </record>
 
         <record id="group_security_manager" model="res.groups">
             <field name="name">Security Manager</field>
-            <field name="category_id" ref="module_category_security"/>
             <field name="implied_ids" eval="[(4, ref('group_security_officer'))]"/>
             <field name="comment">Full security access including incident management and guard roster</field>
         </record>
 
         <record id="group_security_admin" model="res.groups">
             <field name="name">Security Administrator</field>
-            <field name="category_id" ref="module_category_security"/>
             <field name="implied_ids" eval="[(4, ref('group_security_manager'))]"/>
-            <field name="users" eval="[(4, ref('base.user_admin'))]"/>
+            <field name="user_ids" eval="[(4, ref('base.user_admin'))]"/>
             <field name="comment">Full admin including all security operations</field>
         </record>
     </data>

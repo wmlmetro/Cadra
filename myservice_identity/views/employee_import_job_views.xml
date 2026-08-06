@@ -4,7 +4,7 @@
         <field name="name">nrs.employee.import.job.list</field>
         <field name="model">nrs.employee.import.job</field>
         <field name="arch" type="xml">
-            <tree decoration-success="state == 'completed' and error_count == 0"
+            <list decoration-success="state == 'completed' and error_count == 0"
                   decoration-warning="state == 'completed' and error_count &gt; 0"
                   decoration-danger="state == 'failed'"
                   decoration-info="state == 'processing'"
@@ -20,7 +20,7 @@
                 <field name="skipped_count"/>
                 <field name="error_count"/>
                 <field name="duration_ms"/>
-            </tree>
+            </list>
         </field>
     </record>
 
@@ -65,7 +65,7 @@
                         <page string="Error Samples">
                             <field name="errors" widget="text"/>
                         </page>
-                        <page string="Fatal Error" attrs="{'invisible': [('fatal_message', '=', False)]}">
+                        <page string="Fatal Error" invisible="fatal_message == False">
                             <field name="fatal_message" widget="text"/>
                         </page>
                     </notebook>

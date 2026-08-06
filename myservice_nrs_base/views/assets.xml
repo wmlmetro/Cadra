@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Inject DM Sans + DM Mono Google Fonts into the backend head -->
+    <!-- Inject DM Sans + DM Mono Google Fonts into the backend <head>.
+         Odoo 19's web.webclient_bootstrap builds the head inside a
+         <t t-set="head_web"> block (the legacy web.assets_common t-call is
+         gone), so we xpath into that block. -->
     <template id="nrs_google_fonts" name="NRS Google Fonts"
               inherit_id="web.webclient_bootstrap" priority="5">
-        <xpath expr="//t[@t-call-assets='web.assets_common'][1]" position="before">
+        <xpath expr="//t[@t-set='head_web']" position="inside">
             <link rel="preconnect" href="https://fonts.googleapis.com"/>
             <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
             <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300..700&amp;family=DM+Mono:wght@400;500&amp;display=swap"/>

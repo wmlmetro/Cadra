@@ -15,12 +15,12 @@
                     <group>
                         <field name="retrieval_flag"/>
                         <field name="retrieval_reason"
-                               attrs="{'invisible': [('retrieval_flag', '=', False)]}"/>
+                               invisible="retrieval_flag == False"/>
                         <field name="retrieval_date"
-                               attrs="{'invisible': [('retrieval_flag', '=', False)]}"/>
+                               invisible="retrieval_flag == False"/>
                     </group>
                 </group>
-                <div attrs="{'invisible': [('retrieval_flag', '=', False)]}">
+                <div invisible="retrieval_flag == False">
                     <button name="action_mark_retrieved" type="object"
                             string="Mark as Retrieved" class="btn-success"/>
                 </div>

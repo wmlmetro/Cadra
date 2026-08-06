@@ -7,19 +7,19 @@
         <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//sheet/group[1]" position="before">
-                <group string="Staff Bus" attrs="{'invisible': [('is_staff_bus','=',False)]}">
+                <group string="Staff Bus" invisible="is_staff_bus == False">
                     <field name="is_staff_bus" widget="boolean_toggle"/>
                     <field name="bus_capacity"
-                           attrs="{'invisible': [('is_staff_bus','=',False)]}"/>
+                           invisible="is_staff_bus == False"/>
                     <field name="current_route_id"
-                           attrs="{'invisible': [('is_staff_bus','=',False)]}"/>
+                           invisible="is_staff_bus == False"/>
                     <field name="roadworthy_expiry"
-                           attrs="{'invisible': [('is_staff_bus','=',False)]}"/>
+                           invisible="is_staff_bus == False"/>
                     <field name="insurance_expiry"
-                           attrs="{'invisible': [('is_staff_bus','=',False)]}"/>
+                           invisible="is_staff_bus == False"/>
                 </group>
                 <group string="Bus Compliance Status"
-                       attrs="{'invisible': [('is_staff_bus','=',False)]}">
+                       invisible="is_staff_bus == False">
                     <field name="is_roadworthy" readonly="1"/>
                     <field name="is_insured" readonly="1"/>
                     <field name="last_fuel_date" readonly="1"/>
@@ -35,7 +35,7 @@
         <field name="name">fleet.vehicle.bus.tree</field>
         <field name="model">fleet.vehicle</field>
         <field name="arch" type="xml">
-            <tree decoration-danger="not is_roadworthy or not is_insured"
+            <list decoration-danger="not is_roadworthy or not is_insured"
                   decoration-success="is_roadworthy and is_insured">
                 <field name="name"/>
                 <field name="license_plate"/>
@@ -49,7 +49,7 @@
                 <field name="total_fuel_cost_ytd"/>
                 <field name="schedules_this_month"/>
                 <field name="state_id"/>
-            </tree>
+            </list>
         </field>
     </record>
 
@@ -57,7 +57,7 @@
     <record id="action_staff_bus_fleet" model="ir.actions.act_window">
         <field name="name">Staff Buses</field>
         <field name="res_model">fleet.vehicle</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
         <field name="view_id" ref="view_fleet_vehicle_bus_tree"/>
         <field name="domain">[('is_staff_bus','=',True)]</field>
         <field name="context">{'default_is_staff_bus': True}</field>

@@ -2,7 +2,6 @@
 <odoo>
     <record id="group_identity_manager" model="res.groups">
         <field name="name">Identity Manager</field>
-        <field name="category_id" ref="base.module_category_human_resources"/>
         <field name="comment">Can manage employee identity, SAP sync and asset assignments</field>
     </record>
 </odoo>

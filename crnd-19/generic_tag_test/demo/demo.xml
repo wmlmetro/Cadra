@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- pylint: disable=dangerous-filter-wo-user -->
+<odoo>
+
+    <record id="test_tag_model" model="generic.tag.model">
+        <field name="res_model_id" ref="model_generic_tag_test_model"/>
+    </record>
+    <!-- define new taggable model -->
+
+    <!-- define new tag category -->
+    <record id="test_tag_category_1" model="generic.tag.category">
+        <field name="model_id" ref="test_tag_model"/>
+        <field name="name">Test Category 1</field>
+        <field name="code">tag_cat_1</field>
+    </record>
+
+    <!--define few test tags -->
+    <record id="test_tag_1" model="generic.tag">
+        <field name="name">TC1</field>
+        <field name="code">tc1</field>
+        <field name="model_id" ref="test_tag_model"/>
+        <field name="category_id" ref="test_tag_category_1"/>
+    </record>
+
+    <record id="test_tag_2" model="generic.tag">
+        <field name="name">TC2</field>
+        <field name="code">tc2</field>
+        <field name="model_id" ref="test_tag_model"/>
+        <field name="category_id" ref="test_tag_category_1"/>
+    </record>
+
+    <record id="test_tag_3" model="generic.tag">
+        <field name="name">TC3</field>
+        <field name="code">tc3</field>
+        <field name="model_id" ref="test_tag_model"/>
+    </record>
+
+    <record id="test_tag_4" model="generic.tag">
+        <field name="name">TC4</field>
+        <field name="code">tc4</field>
+        <field name="model_id" ref="test_tag_model"/>
+        <field name="group_ids" eval="[(4, ref('generic_tag_test.group_tags_test_group'))]"/>
+    </record>
+
+
+
+
+    <!-- define test taggable object -->
+    <record id="taggable_object_1" model="generic.tag.test.model">
+        <field name="name">Taggable object 1</field>
+        <field name="test_field">This is test</field>
+    </record>
+    <record id="taggable_object_2" model="generic.tag.test.model">
+        <field name="name">Taggable object 2</field>
+        <field name="test_field">This is test</field>
+    </record>
+
+    <!-- filters -->
+    <record id="filter_test_field_eq_add" model="ir.filters">
+        <field name="name">Test model test field = 'add'</field>
+        <field name="is_default" eval="False"/>
+        <field name="model_id">generic.tag.test.model</field>
+        <field name="domain">[('test_field','=','add')]</field>
+        <field name="user_ids" eval="False"/>
+    </record>
+    <record id="filter_test_field_eq_remove" model="ir.filters">
+        <field name="name">Test model test field = 'remove'</field>
+        <field name="is_default" eval="False"/>
+        <field name="model_id">generic.tag.test.model</field>
+        <field name="domain">[('test_field','=','remove')]</field>
+        <field name="user_ids" eval="False"/>
+    </record>
+
+</odoo>

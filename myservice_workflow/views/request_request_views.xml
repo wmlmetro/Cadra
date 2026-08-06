@@ -4,7 +4,7 @@
     <record id="view_request_workflow_form" model="ir.ui.view">
         <field name="name">request.request.workflow.form</field>
         <field name="model">request.request</field>
-        <field name="inherit_id" ref="generic_request.view_request_request_form"/>
+        <field name="inherit_id" ref="myservice_request_core.view_request_request_form"/>
         <field name="arch" type="xml">
 
             <!-- Send to WorkSpace button in header -->
@@ -14,7 +14,7 @@
                     type="object"
                     class="btn-warning"
                     icon="fa-share-square"
-                    attrs="{'invisible': [('workflow_status','in',['approved'])]}"/>
+                    invisible="workflow_status in ['approved']"/>
             </xpath>
 
             <!-- Workflow status smart button -->
@@ -23,7 +23,7 @@
                     type="object"
                     class="oe_stat_button"
                     icon="fa-exchange"
-                    attrs="{'invisible': [('workflow_dispatch_count','=',0)]}">
+                    invisible="workflow_dispatch_count == 0">
                     <field name="workflow_dispatch_count" widget="statinfo" string="Workflow"/>
                 </button>
             </xpath>
@@ -31,11 +31,11 @@
             <!-- Workflow status + refs — anchor on stage_id which always exists -->
             <xpath expr="//field[@name='stage_id']" position="after">
                 <field name="workflow_status" readonly="1"
-                    attrs="{'invisible': [('workflow_status','=','not_sent')]}"/>
+                    invisible="workflow_status == 'not_sent'"/>
                 <field name="workspace_ref" readonly="1"
-                    attrs="{'invisible': [('workspace_ref','=',False)]}"/>
+                    invisible="workspace_ref == False"/>
                 <field name="workflow_payment_ref" readonly="1"
-                    attrs="{'invisible': [('workflow_payment_ref','=',False)]}"/>
+                    invisible="workflow_payment_ref == False"/>
             </xpath>
 
         </field>

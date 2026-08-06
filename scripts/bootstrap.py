@@ -110,16 +110,19 @@ def ensure_admin_groups():
     admin = env.ref("base.user_admin")
     added = 0
     skipped_missing = []
+    # Odoo 19's res.groups refactor renamed `users` → `user_ids`; support both
+    # so bootstrap works on the 15 staging and the 19 rebuild.
     for xmlid in REQUIRED_ADMIN_GROUPS:
         try:
             group = env.ref(xmlid)
         except ValueError:
             skipped_missing.append(xmlid)
             continue
-        if admin.id in group.users.ids:
+        users_field = "user_ids" if "user_ids" in group._fields else "users"
+        if admin.id in group[users_field].ids:
             _say(f"admin already in {group.name!r}")
         else:
-            group.users = [(4, admin.id)]
+            group.write({users_field: [(4, admin.id)]})
             added += 1
             _say(f"added admin to {group.name!r}")
     if skipped_missing:

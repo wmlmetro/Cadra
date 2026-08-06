@@ -1,4 +1,4 @@
-odoo.define('myservice_fleet_maintenance.FleetDashboard', function (require) {
+odoo.define('myservice_fleet_maintenance.FleetDashboard', ['web.AbstractAction', 'web.ajax', 'web.core', 'web.session'], function (require) {
     'use strict';
 
     var AbstractAction = require('web.AbstractAction');

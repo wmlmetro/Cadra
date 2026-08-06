@@ -131,21 +131,22 @@ class NRSAsset(models.Model):
             active = r.tag_ids.filtered(lambda t: t.state == 'active')
             r.active_tag_id = active[0] if active else False
 
-    @api.model
-    def create(self, vals):
-        rec = super().create(vals)
-        # Auto-generate tag unless one is provided via import
-        if not vals.get('asset_tag') and vals.get('tag_source', 'auto') == 'auto':
-            rec._generate_tag(source='auto')
-        elif vals.get('asset_tag'):
-            # Preserve imported tag number
-            self.env['nrs.asset.tag.label'].create({
-                'name': vals['asset_tag'],
-                'asset_id': rec.id,
-                'source': vals.get('tag_source', 'other'),
-                'state': 'active',
-            })
-        return rec
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        for rec, vals in zip(records, vals_list):
+            # Auto-generate tag unless one is provided via import
+            if not vals.get('asset_tag') and vals.get('tag_source', 'auto') == 'auto':
+                rec._generate_tag(source='auto')
+            elif vals.get('asset_tag'):
+                # Preserve imported tag number
+                self.env['nrs.asset.tag.label'].create({
+                    'name': vals['asset_tag'],
+                    'asset_id': rec.id,
+                    'source': vals.get('tag_source', 'other'),
+                    'state': 'active',
+                })
+        return records
 
     def _generate_tag(self, source='auto'):
         """Generate a new unique tag number for this asset."""

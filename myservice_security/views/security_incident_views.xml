@@ -5,7 +5,7 @@
         <field name="name">security.incident.list</field>
         <field name="model">security.incident</field>
         <field name="arch" type="xml">
-            <tree string="Security Incidents" decoration-danger="severity=='critical'"
+            <list string="Security Incidents" decoration-danger="severity=='critical'"
                   decoration-warning="severity=='high'" decoration-muted="state=='closed'">
                 <field name="name"/>
                 <field name="incident_type"/>
@@ -23,7 +23,7 @@
                     decoration-success="state=='resolved'"
                     decoration-muted="state in ('new','closed')"/>
                 <field name="assigned_to"/>
-            </tree>
+            </list>
         </field>
     </record>
 
@@ -35,19 +35,19 @@
                 <header>
                     <button name="action_investigate" string="Start Investigation"
                         type="object" class="btn-primary"
-                        attrs="{'invisible': [('state','!=','new')]}"/>
+                        invisible="state != 'new'"/>
                     <button name="action_escalate" string="Escalate"
                         type="object" class="btn-warning"
-                        attrs="{'invisible': [('state','not in',['new','investigating'])]}"/>
+                        invisible="state not in ['new', 'investigating']"/>
                     <button name="action_resolve" string="Mark Resolved"
                         type="object" class="btn-success"
-                        attrs="{'invisible': [('state','not in',['investigating','escalated'])]}"/>
+                        invisible="state not in ['investigating', 'escalated']"/>
                     <button name="action_close" string="Close"
                         type="object"
-                        attrs="{'invisible': [('state','!=','resolved')]}"/>
+                        invisible="state != 'resolved'"/>
                     <button name="action_reopen" string="Reopen"
                         type="object"
-                        attrs="{'invisible': [('state','not in',['resolved','closed'])]}"/>
+                        invisible="state not in ['resolved', 'closed']"/>
                     <field name="state" widget="statusbar"
                         statusbar_visible="new,investigating,escalated,resolved,closed"/>
                 </header>
@@ -70,7 +70,7 @@
                             <field name="reported_by" options="{'no_create': True}"/>
                             <field name="assigned_to"/>
                             <field name="guard_id" options="{'no_create': True}"/>
-                            <field name="date_resolved" attrs="{'invisible': [('state','not in',['resolved','closed'])]}"/>
+                            <field name="date_resolved" invisible="state not in ['resolved', 'closed']"/>
                         </group>
                     </group>
                     <notebook>
@@ -91,7 +91,7 @@
                                 <field name="police_station"/>
                             </group>
                         </page>
-                        <page string="Resolution" attrs="{'invisible': [('state','not in',['resolved','closed'])]}">
+                        <page string="Resolution" invisible="state not in ['resolved', 'closed']">
                             <field name="resolution_notes" widget="html"/>
                         </page>
                     </notebook>
@@ -117,7 +117,7 @@
                 <filter name="critical" string="Critical" domain="[('severity','=','critical')]"/>
                 <filter name="high" string="High" domain="[('severity','=','high')]"/>
                 <filter name="today" string="Today" domain="[('date_incident','&gt;=',datetime.date.today().strftime('%Y-%m-%d'))]"/>
-                <group expand="0" string="Group By">
+                <group>
                     <filter name="by_type" string="Type" context="{'group_by':'incident_type'}"/>
                     <filter name="by_severity" string="Severity" context="{'group_by':'severity'}"/>
                     <filter name="by_location" string="Location" context="{'group_by':'location_id'}"/>

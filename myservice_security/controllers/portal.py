@@ -1,6 +1,5 @@
 from odoo import http
 from odoo.http import request
-from odoo.addons.crnd_wsd.controllers.main import WebsiteRequest
 
 
 class SecurityPortalController(http.Controller):

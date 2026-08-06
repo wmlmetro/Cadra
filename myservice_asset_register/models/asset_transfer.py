@@ -33,11 +33,12 @@ class NRSAssetTransfer(models.Model):
     approved_date = fields.Datetime('Approved Date')
     notes = fields.Text('Notes')
 
-    @api.model
-    def create(self, vals):
-        if vals.get('name', _('New')) == _('New'):
-            vals['name'] = self.env['ir.sequence'].next_by_code('nrs.asset.transfer') or '/'
-        return super().create(vals)
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get('name', _('New')) == _('New'):
+                vals['name'] = self.env['ir.sequence'].next_by_code('nrs.asset.transfer') or '/'
+        return super().create(vals_list)
 
     @api.constrains('from_location_id', 'to_location_id')
     def _check_locations(self):

@@ -1,0 +1,1 @@
+- Changed get_name method .

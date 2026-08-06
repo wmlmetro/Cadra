@@ -1,4 +1,4 @@
-odoo.define('myservice_barcode_station.BarcodeStation', function(require) {
+odoo.define('myservice_barcode_station.BarcodeStation', ['web.AbstractAction', 'web.core', 'web.rpc'], function(require) {
     'use strict';
 
     var AbstractAction = require('web.AbstractAction');

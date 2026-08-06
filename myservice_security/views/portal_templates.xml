@@ -10,7 +10,7 @@
                     </div>
                 </t>
                 <t t-elif="error">
-                    <div class="alert alert-danger"><t t-esc="error"/></div>
+                    <div class="alert alert-danger"><t t-out="error"/></div>
                 </t>
                 <t t-if="not submitted">
                     <form method="POST" action="/security/incident/report">
@@ -19,7 +19,7 @@
                             <label>Incident Type *</label>
                             <select name="incident_type" class="form-control" required="required">
                                 <t t-foreach="incident_types" t-as="itype">
-                                    <option t-att-value="itype[0]"><t t-esc="itype[1]"/></option>
+                                    <option t-att-value="itype[0]"><t t-out="itype[1]"/></option>
                                 </t>
                             </select>
                         </div>
@@ -37,7 +37,7 @@
                             <select name="location_id" class="form-control" required="required">
                                 <option value="">— Select location —</option>
                                 <t t-foreach="locations" t-as="loc">
-                                    <option t-att-value="loc.id"><t t-esc="loc.name"/></option>
+                                    <option t-att-value="loc.id"><t t-out="loc.name"/></option>
                                 </t>
                             </select>
                         </div>

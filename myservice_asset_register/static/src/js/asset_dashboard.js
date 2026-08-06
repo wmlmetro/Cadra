@@ -1,4 +1,4 @@
-odoo.define('myservice_asset_register.AssetDashboard', function (require) {
+odoo.define('myservice_asset_register.AssetDashboard', ['web.AbstractAction', 'web.core', 'web.rpc'], function (require) {
     'use strict';
 
     var AbstractAction = require('web.AbstractAction');

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ── Stage types (lifecycle position, stable codes for the API) ── -->
+    <record id="stype_new" model="request.stage.type">
+        <field name="name">New</field><field name="code">new</field><field name="sequence">10</field>
+    </record>
+    <record id="stype_in_progress" model="request.stage.type">
+        <field name="name">In Progress</field><field name="code">in_progress</field><field name="sequence">20</field>
+    </record>
+    <record id="stype_done" model="request.stage.type">
+        <field name="name">Done</field><field name="code">done</field><field name="sequence">30</field>
+    </record>
+
+    <!-- ── Default stages ── -->
+    <record id="stage_new" model="request.stage">
+        <field name="name">New</field><field name="code">new</field>
+        <field name="sequence">10</field>
+        <field name="stage_type_id" ref="stype_new"/>
+    </record>
+    <record id="stage_triage" model="request.stage">
+        <field name="name">Triage</field><field name="code">triage</field>
+        <field name="sequence">20</field>
+        <field name="stage_type_id" ref="stype_new"/>
+    </record>
+    <record id="stage_in_progress" model="request.stage">
+        <field name="name">In Progress</field><field name="code">in_progress</field>
+        <field name="sequence">30</field>
+        <field name="stage_type_id" ref="stype_in_progress"/>
+    </record>
+    <record id="stage_resolved" model="request.stage">
+        <field name="name">Resolved</field><field name="code">resolved</field>
+        <field name="sequence">40</field>
+        <field name="stage_type_id" ref="stype_done"/>
+        <field name="closed" eval="True"/>
+    </record>
+    <record id="stage_closed" model="request.stage">
+        <field name="name">Closed</field><field name="code">closed</field>
+        <field name="sequence">50</field>
+        <field name="stage_type_id" ref="stype_done"/>
+        <field name="closed" eval="True"/>
+        <field name="fold" eval="True"/>
+    </record>
+
+    <!-- ── Default forward routes ── -->
+    <record id="route_new_triage" model="request.stage.route">
+        <field name="name">Start Triage</field>
+        <field name="stage_from_id" ref="stage_new"/>
+        <field name="stage_to_id" ref="stage_triage"/>
+    </record>
+    <record id="route_triage_progress" model="request.stage.route">
+        <field name="name">Begin Work</field>
+        <field name="stage_from_id" ref="stage_triage"/>
+        <field name="stage_to_id" ref="stage_in_progress"/>
+    </record>
+    <record id="route_progress_resolved" model="request.stage.route">
+        <field name="name">Resolve</field>
+        <field name="stage_from_id" ref="stage_in_progress"/>
+        <field name="stage_to_id" ref="stage_resolved"/>
+    </record>
+    <record id="route_resolved_closed" model="request.stage.route">
+        <field name="name">Close</field>
+        <field name="stage_from_id" ref="stage_resolved"/>
+        <field name="stage_to_id" ref="stage_closed"/>
+    </record>
+
+    <!-- ── Event types referenced by _log_event() ── -->
+    <record id="etype_created" model="request.event.type">
+        <field name="name">Created</field><field name="code">created</field>
+    </record>
+    <record id="etype_stage_changed" model="request.event.type">
+        <field name="name">Stage Changed</field><field name="code">stage_changed</field>
+    </record>
+
+    <!-- ── A default category + type so records can be created out of the box ── -->
+    <record id="category_general" model="request.category">
+        <field name="name">General</field><field name="code">general</field>
+    </record>
+    <record id="type_general" model="request.type">
+        <field name="name">General Request</field><field name="code">general</field>
+        <field name="category_id" ref="category_general"/>
+        <field name="start_stage_id" ref="stage_new"/>
+    </record>
+</odoo>

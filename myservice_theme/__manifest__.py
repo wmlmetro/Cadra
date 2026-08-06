@@ -1,6 +1,6 @@
 {
     'name': 'myservice NRS Theme',
-    'version': '15.0.1.0.0',
+    'version': '19.0.1.0.0',
     'summary': 'NRS brand theme for myservice — red/dark, clean sidebar, modern cards',
     'category': 'Themes/Backend',
     'author': 'WestMetro Limited',

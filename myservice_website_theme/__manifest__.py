@@ -1,6 +1,6 @@
 {
     'name': 'NRS Website Theme',
-    'version': '15.0.1.0.0',
+    'version': '19.0.1.0.0',
     'summary': 'NRS branded public website theme',
     'category': 'Website/Theme',
     'author': 'WestMetro Limited',

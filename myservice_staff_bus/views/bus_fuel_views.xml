@@ -9,13 +9,13 @@
                 <header>
                     <button name="action_confirm" string="Confirm" type="object"
                             class="btn-primary"
-                            attrs="{'invisible': [('state','!=','draft')]}"/>
+                            invisible="state != 'draft'"/>
                     <button name="action_approve" string="Approve" type="object"
                             class="btn-primary"
                             groups="myservice_staff_bus.group_bus_manager"
-                            attrs="{'invisible': [('state','!=','confirmed')]}"/>
+                            invisible="state != 'confirmed'"/>
                     <button name="action_reset" string="Reset to Draft" type="object"
-                            attrs="{'invisible': [('state','not in',['confirmed'])]}"/>
+                            invisible="state not in ['confirmed']"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,confirmed,approved"/>
                 </header>
@@ -64,7 +64,7 @@
         <field name="name">bus.fuel.log.tree</field>
         <field name="model">bus.fuel.log</field>
         <field name="arch" type="xml">
-            <tree decoration-success="state=='approved'"
+            <list decoration-success="state=='approved'"
                   decoration-info="state=='confirmed'"
                   decoration-muted="state=='draft'">
                 <field name="date"/>
@@ -79,7 +79,7 @@
                 <field name="station"/>
                 <field name="receipt_ref"/>
                 <field name="state"/>
-            </tree>
+            </list>
         </field>
     </record>
 
@@ -88,7 +88,7 @@
         <field name="name">bus.fuel.budget.tree</field>
         <field name="model">bus.fuel.budget</field>
         <field name="arch" type="xml">
-            <tree>
+            <list>
                 <field name="year"/>
                 <field name="month"/>
                 <field name="vehicle_id"/>
@@ -96,7 +96,7 @@
                 <field name="actual_amount" sum="Total Actual"/>
                 <field name="variance" sum="Total Variance"/>
                 <field name="utilisation_pct" widget="progressbar"/>
-            </tree>
+            </list>
         </field>
     </record>
 
@@ -115,7 +115,7 @@
                 <filter name="approved" string="Approved" domain="[('state','=','approved')]"/>
                 <filter name="this_month" string="This Month"
                         domain="[('date','&gt;=', (context_today()).strftime('%Y-%m-01'))]"/>
-                <group expand="0" string="Group By">
+                <group>
                     <filter name="grp_vehicle" string="Bus" context="{'group_by':'vehicle_id'}"/>
                     <filter name="grp_month" string="Month" context="{'group_by':'date:month'}"/>
                     <filter name="grp_station" string="Station" context="{'group_by':'station'}"/>
@@ -128,7 +128,7 @@
     <record id="action_bus_fuel" model="ir.actions.act_window">
         <field name="name">Fuel Logs</field>
         <field name="res_model">bus.fuel.log</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
         <field name="search_view_id" ref="view_bus_fuel_search"/>
         <field name="context">{'search_default_this_month': 1}</field>
     </record>
@@ -136,6 +136,6 @@
     <record id="action_bus_fuel_budget" model="ir.actions.act_window">
         <field name="name">Fuel Budget</field>
         <field name="res_model">bus.fuel.budget</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
     </record>
 </odoo>

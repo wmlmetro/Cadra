@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <menuitem id="menu_workflow_root" name="Workflow"
-        parent="generic_request.menu_request_root"
+        parent="myservice_request_core.menu_request_root"
         sequence="90"/>
     <menuitem id="menu_workflow_log" name="Dispatch Log"
         parent="menu_workflow_root" sequence="10"

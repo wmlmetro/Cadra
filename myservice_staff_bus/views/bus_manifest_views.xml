@@ -9,9 +9,9 @@
                 <header>
                     <button name="action_check_in" string="Check In" type="object"
                             class="btn-primary"
-                            attrs="{'invisible': [('state','!=','booked')]}"/>
+                            invisible="state != 'booked'"/>
                     <button name="action_cancel" string="Cancel Booking" type="object"
-                            attrs="{'invisible': [('state','in',['checked_in','cancelled','no_show'])]}"/>
+                            invisible="state in ['checked_in', 'cancelled', 'no_show']"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="booked,checked_in"/>
                 </header>
@@ -49,7 +49,7 @@
         <field name="name">bus.manifest.line.tree</field>
         <field name="model">bus.manifest.line</field>
         <field name="arch" type="xml">
-            <tree decoration-success="state=='checked_in'"
+            <list decoration-success="state=='checked_in'"
                   decoration-danger="state=='no_show'"
                   decoration-muted="state=='cancelled'">
                 <field name="date"/>
@@ -65,8 +65,8 @@
                 <field name="state"/>
                 <button name="action_check_in" string="Check In" type="object"
                         icon="fa-check"
-                        attrs="{'invisible': [('state','!=','booked')]}"/>
-            </tree>
+                        invisible="state != 'booked'"/>
+            </list>
         </field>
     </record>
 
@@ -86,7 +86,7 @@
                 <filter name="booked" string="Booked" domain="[('state','=','booked')]"/>
                 <filter name="checked_in" string="Checked In" domain="[('state','=','checked_in')]"/>
                 <filter name="no_show" string="No Shows" domain="[('state','=','no_show')]"/>
-                <group expand="0" string="Group By">
+                <group>
                     <filter name="grp_route" string="Route" context="{'group_by':'route_id'}"/>
                     <filter name="grp_schedule" string="Schedule" context="{'group_by':'schedule_id'}"/>
                     <filter name="grp_dept" string="Department" context="{'group_by':'department_id'}"/>
@@ -100,7 +100,7 @@
     <record id="action_bus_manifest" model="ir.actions.act_window">
         <field name="name">Passenger Manifest</field>
         <field name="res_model">bus.manifest.line</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
         <field name="search_view_id" ref="view_bus_manifest_search"/>
         <field name="context">{'search_default_today': 1}</field>
     </record>

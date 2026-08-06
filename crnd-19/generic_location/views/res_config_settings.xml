@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="generic_location_action_location_settings" model="ir.actions.act_window">
+        <field name="name">Settings</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+        <field name="context">{'module' : 'generic_location'}</field>
+    </record>
+
+    <!-- Odoo 19 rebuild: the settings form is now built from <app>/<block>/
+         <setting> tags (the old <div class="settings">/app_settings_block
+         structure was removed), so we add a Generic Locations app block. -->
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="21"/>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app string="Generic Locations" name="generic_location">
+                    <block title="Generic location settings">
+                        <setting string="Use hierarchical locations"
+                                 help="Build hierarchical location structures. When enabled, you can set a parent location for any location and see its sub-locations.">
+                            <field name="group_use_hierarchical_locations"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <menuitem name="Settings"
+              id="menu_settings_generic_location"
+              parent="menu_configuration"
+              action="generic_location_action_location_settings"
+              sequence="1"/>
+</odoo>

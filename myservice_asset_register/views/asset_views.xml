@@ -9,11 +9,11 @@
                 <header>
                     <button name="action_verify" string="Mark Verified" type="object"
                             class="btn-primary"
-                            attrs="{'invisible': [('state','not in',['active','missing'])]}"/>
+                            invisible="state not in ['active', 'missing']"/>
                     <button name="action_mark_missing" string="Mark Missing" type="object"
-                            attrs="{'invisible': [('state','in',['missing','disposed'])]}"/>
+                            invisible="state in ['missing', 'disposed']"/>
                     <button name="action_condemn" string="Condemn / Dispose" type="object"
-                            attrs="{'invisible': [('state','=','disposed')]}"/>
+                            invisible="state == 'disposed'"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="active,in_repair,disposed"/>
                 </header>
@@ -59,18 +59,18 @@
                         <group string="Location &amp; Custodian">
                             <field name="building_id"/>
                             <field name="floor_id"
-                                   attrs="{'invisible': [('building_id','=',False)]}"/>
+                                   invisible="building_id == False"/>
                             <field name="room_id"
-                                   attrs="{'invisible': [('floor_id','=',False)]}"/>
+                                   invisible="floor_id == False"/>
                             <field name="location_id" readonly="1"/>
                             <field name="floor_room" readonly="1"/>
                             <separator string="Address (from building)"/>
                             <field name="address_display" readonly="1" nolabel="1"
-                                   attrs="{'invisible': [('building_id','=',False)]}"/>
+                                   invisible="building_id == False"/>
                             <field name="latitude_display" readonly="1"
-                                   attrs="{'invisible': [('building_id','=',False)]}"/>
+                                   invisible="building_id == False"/>
                             <field name="longitude_display" readonly="1"
-                                   attrs="{'invisible': [('building_id','=',False)]}"/>
+                                   invisible="building_id == False"/>
                             <separator/>
                             <field name="custodian_id"/>
                             <field name="department"/>
@@ -94,7 +94,7 @@
                             <field name="acquisition_cost"/>
                             <field name="current_value"/>
                             <field name="disposal_date"
-                                   attrs="{'invisible': [('state','!=','disposed')]}"/>
+                                   invisible="state != 'disposed'"/>
                         </group>
                     </group>
                     <group string="Maintenance">
@@ -106,18 +106,18 @@
                     <notebook>
                         <page string="Sub-Assets" name="children">
                             <field name="child_ids">
-                                <tree>
+                                <list>
                                     <field name="asset_code"/>
                                     <field name="name"/>
                                     <field name="asset_level"/>
                                     <field name="condition"/>
                                     <field name="state"/>
-                                </tree>
+                                </list>
                             </field>
                         </page>
                         <page string="PM Schedules" name="pm">
                             <field name="pm_schedule_ids">
-                                <tree editable="bottom">
+                                <list editable="bottom">
                                     <field name="name"/>
                                     <field name="interval_days"/>
                                     <field name="last_done_date"/>
@@ -129,12 +129,12 @@
                                     <field name="advance_days"/>
                                     <button name="action_mark_done" string="Done"
                                             type="object" icon="fa-check"/>
-                                </tree>
+                                </list>
                             </field>
                         </page>
                         <page string="Transfers" name="transfers">
                             <field name="transfer_ids">
-                                <tree>
+                                <list>
                                     <field name="name"/>
                                     <field name="transfer_date"/>
                                     <field name="from_location_id"/>
@@ -142,7 +142,7 @@
                                     <field name="from_custodian_id"/>
                                     <field name="to_custodian_id"/>
                                     <field name="state"/>
-                                </tree>
+                                </list>
                             </field>
                         </page>
                         <page string="Verification Notes" name="verification">
@@ -169,7 +169,7 @@
         <field name="name">nrs.asset.tree</field>
         <field name="model">nrs.asset</field>
         <field name="arch" type="xml">
-            <tree decoration-danger="condition == 'decommissioned'"
+            <list decoration-danger="condition == 'decommissioned'"
                   decoration-warning="condition == 'poor'"
                   decoration-success="is_verified"
                   decoration-muted="state == 'disposed'">
@@ -191,7 +191,7 @@
                 <field name="last_verified_date"/>
                 <field name="next_service_date"/>
                 <field name="acquisition_cost" sum="Total Cost"/>
-            </tree>
+            </list>
         </field>
     </record>
 
@@ -255,7 +255,7 @@
                 <filter name="security" string="Security" domain="[('domain','=','security')]"/>
                 <filter name="fleet" string="Fleet" domain="[('domain','=','fleet')]"/>
                 <filter name="it" string="IT" domain="[('domain','=','it')]"/>
-                <group expand="0" string="Group By">
+                <group>
                     <filter name="grp_building" string="Building" context="{'group_by':'building_id'}"/>
                     <filter name="grp_location" string="Location" context="{'group_by':'location_id'}"/>
                     <filter name="grp_category" string="Category" context="{'group_by':'category_id'}"/>
@@ -272,13 +272,13 @@
         <field name="name">nrs.asset.category.tree</field>
         <field name="model">nrs.asset.category</field>
         <field name="arch" type="xml">
-            <tree editable="bottom">
+            <list editable="bottom">
                 <field name="name"/>
                 <field name="code"/>
                 <field name="domain"/>
                 <field name="pm_interval_days"/>
                 <field name="asset_count"/>
-            </tree>
+            </list>
         </field>
     </record>
 
@@ -286,7 +286,7 @@
     <record id="action_nrs_asset" model="ir.actions.act_window">
         <field name="name">Asset Register</field>
         <field name="res_model">nrs.asset</field>
-        <field name="view_mode">tree,kanban,form</field>
+        <field name="view_mode">list,kanban,form</field>
         <field name="search_view_id" ref="view_nrs_asset_search"/>
         <field name="context">{'search_default_active': 1}</field>
     </record>
@@ -294,14 +294,14 @@
     <record id="action_nrs_asset_missing" model="ir.actions.act_window">
         <field name="name">Missing / Unverified Assets</field>
         <field name="res_model">nrs.asset</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
         <field name="domain">[('state','in',['missing']),('is_verified','=',False)]</field>
     </record>
 
     <record id="action_nrs_asset_category" model="ir.actions.act_window">
         <field name="name">Asset Categories</field>
         <field name="res_model">nrs.asset.category</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
     </record>
 
     <!-- ── Sub-category Views ── -->
@@ -309,20 +309,20 @@
         <field name="name">nrs.asset.subcategory.tree</field>
         <field name="model">nrs.asset.subcategory</field>
         <field name="arch" type="xml">
-            <tree editable="bottom">
+            <list editable="bottom">
                 <field name="sequence" widget="handle"/>
                 <field name="name"/>
                 <field name="code"/>
                 <field name="category_id"/>
                 <field name="asset_count"/>
-            </tree>
+            </list>
         </field>
     </record>
 
     <record id="action_nrs_asset_subcategory" model="ir.actions.act_window">
         <field name="name">Asset Sub-categories</field>
         <field name="res_model">nrs.asset.subcategory</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
     </record>
 
     <!-- ── Asset Type Views ── -->
@@ -330,20 +330,20 @@
         <field name="name">nrs.asset.type.tree</field>
         <field name="model">nrs.asset.type</field>
         <field name="arch" type="xml">
-            <tree editable="bottom">
+            <list editable="bottom">
                 <field name="name"/>
                 <field name="code"/>
                 <field name="subcategory_id"/>
                 <field name="category_id"/>
                 <field name="asset_count"/>
-            </tree>
+            </list>
         </field>
     </record>
 
     <record id="action_nrs_asset_type" model="ir.actions.act_window">
         <field name="name">Asset Types</field>
         <field name="res_model">nrs.asset.type</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
     </record>
 
     <!-- ── Asset Dashboard (Client Action) ── -->

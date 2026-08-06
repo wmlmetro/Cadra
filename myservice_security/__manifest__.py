@@ -1,12 +1,12 @@
 {
     'name': 'myservice Security & Safety',
-    'version': '15.0.2.1.0',
+    'version': '19.0.2.1.0',
     'summary': 'Incident management, guard ops, access control & security dashboard',
     'author': 'WestMetro Limited',
     'website': 'https://westmetrong.com',
     'category': 'Security',
     'depends': [
-        'web', 'mail', 'generic_location', 'generic_request',
+        'web', 'mail', 'generic_location', 'myservice_request_core',
         'myservice_request_fields', 'website', 'myservice_nrs_base',
     ],
     'data': [

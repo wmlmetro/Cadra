@@ -5,7 +5,7 @@
         <field name="name">nrs.asset.tag.label.tree</field>
         <field name="model">nrs.asset.tag.label</field>
         <field name="arch" type="xml">
-            <tree decoration-success="state=='active'"
+            <list decoration-success="state=='active'"
                   decoration-warning="state=='pending'"
                   decoration-muted="state=='scrapped'">
                 <field name="name"/>
@@ -17,11 +17,11 @@
                 <field name="scrapped_date"/>
                 <button name="action_print_tag" string="Print" type="object"
                         icon="fa-print"
-                        attrs="{'invisible': [('state','!=','active')]}"/>
+                        invisible="state != 'active'"/>
                 <button name="action_request_replacement" string="Replace" type="object"
                         icon="fa-refresh"
-                        attrs="{'invisible': [('state','!=','active')]}"/>
-            </tree>
+                        invisible="state != 'active'"/>
+            </list>
         </field>
     </record>
 
@@ -34,17 +34,17 @@
                 <header>
                     <button name="action_request_replacement" string="Request Replacement"
                             type="object" class="btn-primary"
-                            attrs="{'invisible': [('state','!=','active')]}"/>
+                            invisible="state != 'active'"/>
                     <button name="action_approve_replacement" string="Approve Replacement"
                             type="object" class="btn-primary"
                             groups="myservice_asset_register.group_asset_manager"
-                            attrs="{'invisible': [('state','!=','pending')]}"/>
+                            invisible="state != 'pending'"/>
                     <button name="action_reject_replacement" string="Reject"
                             type="object"
-                            attrs="{'invisible': [('state','!=','pending')]}"/>
+                            invisible="state != 'pending'"/>
                     <button name="action_print_tag" string="Print Tag"
                             type="object" class="btn-secondary"
-                            attrs="{'invisible': [('state','!=','active')]}"/>
+                            invisible="state != 'active'"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="active,pending,scrapped"/>
                 </header>
@@ -115,7 +115,7 @@
                 <page string="Tag History" name="tags">
                     <field name="active_tag_id" invisible="1"/>
                     <field name="tag_ids">
-                        <tree decoration-success="state=='active'"
+                        <list decoration-success="state=='active'"
                               decoration-muted="state=='scrapped'">
                             <field name="name"/>
                             <field name="source"/>
@@ -123,17 +123,17 @@
                             <field name="state"/>
                             <field name="scrapped_date"/>
                             <field name="approved_by"/>
-                        </tree>
+                        </list>
                     </field>
                     <div style="margin-top:8px">
                         <button name="action_request_tag_replacement"
                                 string="Request Tag Replacement"
                                 type="object" class="btn-warning"
-                                attrs="{'invisible': [('active_tag_id','=',False)]}"/>
+                                invisible="active_tag_id == False"/>
                         <button name="action_print_asset_tag"
                                 string="Print Active Tag"
                                 type="object" class="btn-secondary"
-                                attrs="{'invisible': [('active_tag_id','=',False)]}"/>
+                                invisible="active_tag_id == False"/>
                     </div>
                 </page>
             </xpath>
@@ -143,7 +143,7 @@
     <record id="action_nrs_asset_import_lines" model="ir.actions.act_window">
         <field name="name">Import Lines</field>
         <field name="res_model">nrs.asset.import.line</field>
-        <field name="view_mode">tree</field>
+        <field name="view_mode">list</field>
     </record>
 
     <!-- ── Import Views ── -->
@@ -155,10 +155,10 @@
                 <header>
                     <button name="action_validate" string="Validate" type="object"
                             class="btn-primary"
-                            attrs="{'invisible': [('state','!=','draft')]}"/>
+                            invisible="state != 'draft'"/>
                     <button name="action_import" string="Execute Import" type="object"
                             class="btn-primary"
-                            attrs="{'invisible': [('state','!=','validated')]}"/>
+                            invisible="state != 'validated'"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,validated,imported"/>
                 </header>
@@ -191,7 +191,7 @@
                         </page>
                         <page string="Import Lines" name="lines">
                             <field name="line_ids">
-                                <tree decoration-success="status=='imported'"
+                                <list decoration-success="status=='imported'"
                                       decoration-warning="status in ['update','skip']"
                                       decoration-danger="status=='error'">
                                     <field name="asset_code"/>
@@ -203,7 +203,7 @@
                                     <field name="status"/>
                                     <field name="status_note"/>
                                     <field name="asset_id"/>
-                                </tree>
+                                </list>
                             </field>
                         </page>
                         <page string="Notes">
@@ -223,7 +223,7 @@
         <field name="name">nrs.asset.import.tree</field>
         <field name="model">nrs.asset.import</field>
         <field name="arch" type="xml">
-            <tree decoration-success="state=='imported'"
+            <list decoration-success="state=='imported'"
                   decoration-info="state=='validated'"
                   decoration-danger="state=='error'">
                 <field name="name"/>
@@ -235,7 +235,7 @@
                 <field name="skip_count"/>
                 <field name="error_count"/>
                 <field name="state"/>
-            </tree>
+            </list>
         </field>
     </record>
 
@@ -243,14 +243,14 @@
     <record id="action_nrs_asset_tags" model="ir.actions.act_window">
         <field name="name">Asset Tags</field>
         <field name="res_model">nrs.asset.tag.label</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
         <field name="context">{'search_default_active': 1}</field>
     </record>
 
     <record id="action_nrs_asset_import" model="ir.actions.act_window">
         <field name="name">Asset Import</field>
         <field name="res_model">nrs.asset.import</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
     </record>
 
     <!-- A4 sheet report action -->

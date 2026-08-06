@@ -33,11 +33,12 @@ class MyserviceApiClient(models.Model):
     last_used_at = fields.Datetime(readonly=True)
     last_used_ip = fields.Char(readonly=True)
 
-    @api.model
-    def create(self, vals):
-        if not vals.get('client_id'):
-            vals['client_id'] = 'cli_' + secrets.token_urlsafe(18)
-        return super().create(vals)
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if not vals.get('client_id'):
+                vals['client_id'] = 'cli_' + secrets.token_urlsafe(18)
+        return super().create(vals_list)
 
     def set_client_secret(self, raw_secret):
         self.ensure_one()

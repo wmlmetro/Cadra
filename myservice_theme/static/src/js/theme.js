@@ -1,4 +1,4 @@
-odoo.define('myservice_theme.Theme', function(require) {
+odoo.define('myservice_theme.Theme', ['web.core'], function(require) {
     'use strict';
 
     var core = require('web.core');
@@ -21,7 +21,9 @@ odoo.define('myservice_theme.Theme', function(require) {
     // Run on load and after DOM mutations
     document.addEventListener('DOMContentLoaded', applyNRSColors);
 
-    // Watch for dynamic content
+    // Watch for dynamic content. NOTE (Odoo 19): this module is evaluated by the
+    // asset loader before <body> exists, so guard observe() until the body is
+    // ready — otherwise MutationObserver throws and halts the module graph.
     if (typeof MutationObserver !== 'undefined') {
         var observer = new MutationObserver(function(mutations) {
             var hasNewNodes = mutations.some(function(m) {
@@ -31,10 +33,14 @@ odoo.define('myservice_theme.Theme', function(require) {
                 applyNRSColors();
             }
         });
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true,
-        });
+        var startObserving = function() {
+            if (document.body) {
+                observer.observe(document.body, { childList: true, subtree: true });
+            } else {
+                document.addEventListener('DOMContentLoaded', startObserving);
+            }
+        };
+        startObserving();
     }
 
     return { applyNRSColors: applyNRSColors };

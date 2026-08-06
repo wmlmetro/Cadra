@@ -1,4 +1,4 @@
-odoo.define('myservice_dashboard.Dashboard', function (require) {
+odoo.define('myservice_dashboard.Dashboard', ['web.AbstractAction', 'web.core', 'web.rpc', 'web.session'], function (require) {
     'use strict';
 
     const AbstractAction = require('web.AbstractAction');

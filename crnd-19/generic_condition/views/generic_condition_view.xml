@@ -1,0 +1,767 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Generic Condition Views -->
+    <record id="generic_condition_search_view" model="ir.ui.view">
+        <field name="model">generic.condition</field>
+        <field name="arch" type="xml">
+            <search string="Condition search">
+                <field name="name"/>
+                <field name="model_id"/>
+
+                <separator/>
+                <filter name="with_sudo"
+                        domain="[('with_sudo', '=', True)]"
+                        string="With sudo"/>
+                <filter name="type_eval"
+                        domain="[('type', '=', 'eval')]"
+                        string="Expression"/>
+                <filter name="type_filter"
+                        domain="[('type', '=', 'filter')]"
+                        string="Filter"/>
+
+                <filter name="type_condition"
+                        domain="[('type', '=', 'condition')]"
+                        string="Condition"/>
+                <filter name="type_related_conditions"
+                        domain="[('type', '=', 'related_conditions')]"
+                        string="Related conditions"/>
+                <filter name="type_date_diff"
+                        domain="[('type', '=', 'date_diff')]"
+                        string="Date difference"/>
+                <filter name="type_condition_group"
+                        domain="[('type', '=', 'condition_group')]"
+                        string="Condition group"/>
+                <separator/>
+
+                <group>
+                    <filter string='Type'
+                            name="group_by_type"
+                            domain="[]"
+                            context="{'group_by' : 'type'}"/>
+                    <filter string='With sudo'
+                            name="group_by_with_sudo"
+                            domain="[]"
+                            context="{'group_by' : 'with_sudo'}"/>
+                    <filter string='Based on'
+                            name="group_by_based_on"
+                            domain="[]"
+                            context="{'group_by' : 'model_id'}"/>
+                </group>
+
+            </search>
+        </field>
+    </record>
+
+    <record id="generic_condition_tree_view" model="ir.ui.view">
+        <field name="model">generic.condition</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="sequence" column_invisible="1"/>
+                <field name="type"/>
+                <field name="model_id"/>
+                <field name="enable_caching"/>
+                <field name="with_sudo"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="generic_condition_form_view" model="ir.ui.view">
+        <field name="model">generic.condition</field>
+        <field name="arch" type="xml">
+            <form string="Condition">
+                <sheet>
+                    <field name="sequence" invisible="1"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_show_test_wizard"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-check-circle-o"
+                                string="Test"/>
+                        <button name="toggle_active" type="object"
+                                class="oe_stat_button" icon="fa-archive">
+                            <field name="active" widget="boolean_button"
+                                   options='{"terminology": "archive"}'/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="model_id"/>
+                            <field name="based_on" invisible="1"/>
+                            <field name="type"/>
+                        </group>
+                        <group>
+                            <field name="enable_caching"/>
+                            <field name="invert"/>
+                            <field name="with_sudo"/>
+                        </group>
+                    </group>
+                    <group string="Condition" colspan="4">
+
+                        <!-- 'Filter' condition data -->
+                        <group colspan="4" name="group_condition_filter"
+                               invisible="type != 'filter'">
+
+                            <div class="alert alert-warning" role="alert" colspan="4">
+                                <p><b>Warning:</b> This feature is deprecated,
+                                because filters cannot handle NewId records that used
+                                during onchange computation.</p>
+                                <p>Please, change this condition to use other types.</p>
+                            </div>
+                            <div colspan="4">
+                                Here you can specify the filter for verification. <br />
+                                <br />
+                            </div>
+
+                            <field name="condition_filter_id"
+                                   domain="[('model_id','=',based_on)]"
+                                   context="{'default_model_id': based_on}"
+                                   required="type == 'filter'"/>
+                        </group>
+
+                        <!-- 'Condition' condition data -->
+                        <group colspan="4" name="group_condition_condition"
+                               invisible="type != 'condition'">
+
+                            <div colspan="4">
+                                In that case you can select one of the already created conditions (this could be useful if you use the same condition but with inversion or as a superuser). <br />
+                                <br />
+                            </div>     
+
+                            <field name="condition_condition_id"
+                                   required="type == 'condition'"
+                                   context="{'default_model_id': model_id}"
+                                   domain="[('model_id','=',model_id)]"/>
+                        </group>
+
+                        <!-- 'Eval' condition data -->
+                        <group colspan="4" name="group_condition_eval"
+                               invisible="type != 'eval'">
+
+                            <div colspan="4">
+                                By this type you can describe the condition as an expression in the Python programming language. <br />
+                                <br />
+                            </div>
+
+                            <field name="condition_eval"
+                                   widget="ace" options="{'mode': 'python'}"
+                                   required="type == 'eval'"/>
+
+                            <div colspan="4">
+                                The following variables are available:
+                                <ul>
+                                    <li>obj - object that is checked</li>
+                                    <li>record - record of the object that is checked (same as obj)</li>
+                                    <li>env - environment</li>
+                                    <li>model - model</li>
+                                    <li>uid - current user id</li>
+                                    <li>user - current user</li>
+                                    <li>time - python module "time"</li>
+                                    <li>datetime - python module "datetime"</li>
+                                    <li>dateutil - python module "dateutil"</li>
+                                    <li>timezone - python module "timezone"</li>
+                                </ul>
+                            </div>
+
+                        </group>
+
+                        <!-- 'Condition group' condition data -->
+                        <group colspan="4" name="group_condition_group"
+                               invisible="type != 'condition_group'">
+
+                            <div colspan="4">
+                                With this type of condition you can use multiple conditions simultaneously. <br />
+                                <br /> 
+                            </div>
+
+                            <field name="condition_condition_ids_operator"
+                                   required="type == 'condition_group'"/>
+                            <field name="condition_condition_ids"
+                                   required="type == 'condition_group'"
+                                   context="{'default_model_id': model_id}"
+                                   domain="[('model_id','=',model_id)]"
+                                   widget="many2many_tags"
+                                   options="{'no_quick_create': true, 'open': true}"/>
+
+                        </group>
+
+                        <!-- 'Related condition' condition data -->
+                        <group colspan="4" col="4"
+                               name="group_condition_related_conditions"
+                               invisible="type != 'related_conditions'">
+
+                            <div colspan="4">
+                                This type of condition is used to check the properties of related objects. <br />
+                                <br />
+                            </div>
+
+                            <table colspan="4" class="generic_condition_definition">
+                                <tr>
+                                    <td>
+                                        <label for="condition_rel_field_id"/>
+                                    </td>
+                                    <td>
+                                        <field name="condition_rel_record_operator"
+                                               required="type == 'related_conditions'"/>
+                                    </td>
+                                    <td>
+                                        <field name="condition_rel_field_id"
+                                               required="type == 'related_conditions'"
+                                               context="{'default_model_id': model_id}"
+                                               domain="[('model_id','=',model_id),('ttype', 'in', ('many2many', 'one2many', 'many2one'))]"/>
+                                        <field name="condition_rel_field_id_model_id" invisible="1"/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <label for="condition_rel_filter_conditions"/>
+                                    </td>
+                                    <td>
+                                        <field name="condition_rel_filter_conditions_operator"/></td>
+                                    <td>
+                                        <field name="condition_rel_filter_conditions"
+                                               context="{'default_model_id': condition_rel_field_id_model_id}"
+                                               domain="[('model_id','=',condition_rel_field_id_model_id)]"
+                                               widget="many2many_tags"
+                                               options="{'no_quick_create': true, 'open': true}"/></td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <label for="condition_rel_conditions"/></td>
+                                    <td>
+                                        <field name="condition_rel_conditions_operator"
+                                               required="type == 'related_conditions'"/></td>
+                                    <td>
+                                        <field name="condition_rel_conditions"
+                                               required="type == 'related_conditions'"
+                                               context="{'default_model_id': condition_rel_field_id_model_id}"
+                                               domain="[('model_id','=',condition_rel_field_id_model_id)]"
+                                               widget="many2many_tags"
+                                               options="{'no_quick_create': true, 'open': true}"/></td>
+                                </tr>
+                            </table>
+                        </group>
+
+                        <!-- 'Current user' condition data -->
+                        <group colspan="4" col="4"
+                               name="group_condition_current_user"
+                               invisible="type != 'current_user'">
+
+                            <div colspan="4">
+                                <p>This type of condition refers to the current user and verifies whether the current user satisfies conditions.</p>
+                                <p>There following check types</p>
+                                <ul>
+                                    <li>Field: Check if current user is present in field of object</li>
+                                    <li>One of: Check if current user is present in specified list of users</li>
+                                    <li>Checks: Check if current user satisfies specified conditions</li>
+                                </ul>
+                            </div>
+
+                            <group colspan="2">
+                                <field name="condition_user_check_type"
+                                    required="type == 'current_user'"/>
+                            </group>
+                            <group colspan="2">
+                                <field name="condition_user_user_field_id"
+                                       required="type == 'current_user' and condition_user_check_type == 'field'"
+                                       invisible="type != 'current_user' or condition_user_check_type != 'field'"
+                                       domain="[('model_id','=',model_id),
+                                                ('ttype', 'in', ('many2one', 'one2many', 'many2many')),
+                                                ('relation', '=', 'res.users')]"/>
+                                <field name="condition_user_one_of_user_ids"
+                                       required="type == 'current_user' and condition_user_check_type == 'one_of'"
+                                       invisible="type != 'current_user' or condition_user_check_type != 'one_of'"
+                                       widget="many2many_tags"/>
+                                <field name="condition_user_checks_condition_ids"
+                                       required="type == 'current_user' and condition_user_check_type == 'checks'"
+                                       invisible="type != 'current_user' or condition_user_check_type != 'checks'"
+                                       context="{'default_based_on': 'res.users'}"
+                                       widget="many2many_tags"/>
+                            </group>
+                        </group>
+
+                        <!-- 'Date diff' condition data -->
+                        <group colspan="4" col="4"
+                               name="group_condition_date_diff"
+                               invisible="type != 'date_diff'">
+
+                            <div colspan="4">
+                                This type of the condition allows you to estimate the date difference between certain events. <br />
+                                <br />
+                            </div>
+
+                            <table colspan="4" class="generic_condition_definition">
+                                <tr>
+                                    <td>
+                                        <label for="condition_date_diff_date_end_type" string="End Date"/>
+                                    </td>
+                                    <td>
+                                        &#160; &#160; &#160; &#160;
+                                    </td>
+                                    <td>
+                                        <label for="condition_date_diff_date_start_type" string="Start Date"/>
+                                    </td>
+                                    <td>
+                                        <label for="condition_date_diff_operator" string="Operator"/>
+                                    </td>
+                                    <td>
+                                        <label for="condition_date_diff_value" string="Result"/>
+                                    </td>
+                                    <td>
+                                        <label for="condition_date_diff_absolute"/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <field name="condition_date_diff_date_end_type"
+                                               required="type == 'date_diff'"/>
+                                    </td>
+                                    <td rowspan="2">
+                                        &#160; &#8211; &#160;
+                                    </td>
+                                    <td>
+                                        <field name="condition_date_diff_date_start_type"
+                                               required="type == 'date_diff'"/>
+                                    </td>
+                                    <td rowspan="2">
+                                        <field name="condition_date_diff_operator"
+                                               required="type == 'date_diff'"/>
+                                    </td>
+                                    <td rowspan="2">
+                                        <field name="condition_date_diff_value" class="oe_inline"
+                                               required="type == 'date_diff'"/>
+                                        <field name="condition_date_diff_uom" class="oe_inline"
+                                               required="type == 'date_diff'"/>
+                                    </td>
+                                    <td rowspan="2">
+                                        <field name="condition_date_diff_absolute"/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <field name="condition_date_diff_date_end_field"
+                                               context="{'default_model_id': model_id}"
+                                               domain="[('model_id','=',model_id),('ttype', 'in', ('datetime', 'date'))]"
+                                               required="type == 'date_diff' and condition_date_diff_date_end_type == 'field'"
+                                               invisible="condition_date_diff_date_end_type != 'field'"/>
+                                        <field name="condition_date_diff_date_end_date"
+                                               required="type == 'date_diff' and condition_date_diff_date_end_type == 'date'"
+                                               invisible="condition_date_diff_date_end_type != 'date'"/>
+                                        <field name="condition_date_diff_date_end_datetime"
+                                               required="type == 'date_diff' and condition_date_diff_date_end_type == 'datetime'"
+                                               invisible="condition_date_diff_date_end_type != 'datetime'"/>
+                                        <div invisible="condition_date_diff_date_end_type != 'now'">
+                                            Current date
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <field name="condition_date_diff_date_start_field"
+                                               context="{'default_model_id': model_id}"
+                                               domain="[('model_id','=',model_id),('ttype', 'in', ('datetime', 'date'))]"
+                                               required="type == 'date_diff' and condition_date_diff_date_start_type == 'field'"
+                                               invisible="condition_date_diff_date_start_type != 'field'"/>
+                                        <field name="condition_date_diff_date_start_date"
+                                               required="type == 'date_diff' and condition_date_diff_date_start_type == 'date'"
+                                               invisible="condition_date_diff_date_start_type != 'date'"/>
+                                        <field name="condition_date_diff_date_start_datetime"
+                                               required="type == 'date_diff' and condition_date_diff_date_start_type == 'datetime'"
+                                               invisible="condition_date_diff_date_start_type != 'datetime'"/>
+                                        <div invisible="condition_date_diff_date_start_type != 'now'">
+                                            Current date
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </group>
+
+                        <!-- 'Simple field' condition data -->
+                        <group colspan="4" col="4"
+                               name="group_condition_simple_field"
+                               invisible="type != 'simple_field'">
+
+                            <div colspan="4">
+                                Here you can create a condition that relates to the simple field of the Odoo object. <br />
+                                <br />
+                            </div>
+
+                            <span><field name="condition_simple_field_type"
+                                         invisible="1"/></span>
+                            <table colspan="4" class="generic_condition_definition">
+                                <tr>
+                                    <td>
+                                        <label for="condition_simple_field_field_id" string="Field"/>
+                                    </td>
+                                    <td>
+                                        <label for="condition_simple_field_number_operator" string="Operator"/>
+                                    </td>
+                                    <td>
+                                        <label for="condition_simple_field_value_char" string="Value"
+                                               invisible="condition_simple_field_type == 'boolean'"/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <field name="condition_simple_field_field_id"
+                                               context="{'default_model_id': model_id}"
+                                               domain="[('model_id','=',model_id), ('ttype', 'in', ('boolean', 'char', 'text', 'html', 'float', 'integer', 'selection', 'date', 'datetime'))]"
+                                               required="type == 'simple_field'"/>
+                                    </td>
+                                    <td>
+                                        <field name="condition_simple_field_selection_operator"
+                                               required="type == 'simple_field' and condition_simple_field_type == 'selection'"
+                                               invisible="condition_simple_field_type != 'selection'"/>
+                                        <field name="condition_simple_field_number_operator"
+                                               required="type == 'simple_field' and condition_simple_field_type in ('float', 'integer')"
+                                               invisible="condition_simple_field_type not in ('float', 'integer')"/>
+                                        <field name="condition_simple_field_string_operator"
+                                               required="type == 'simple_field' and condition_simple_field_type in ('char', 'text')"
+                                               invisible="condition_simple_field_type not in ('char', 'text')"/>
+                                        <field name="condition_simple_field_string_operator_html"
+                                               required="type == 'simple_field' and condition_simple_field_type == 'html'"
+                                               invisible="condition_simple_field_type != 'html'"/>
+                                        <field name="condition_simple_field_date_operator"
+                                               required="type == 'simple_field' and condition_simple_field_type in ('date', 'datetime')"
+                                               invisible="condition_simple_field_type not in ('date', 'datetime')"/>
+                                        <div>
+                                            <span invisible="(condition_simple_field_type not in ('char', 'text', 'html')) or (condition_simple_field_string_operator in ('set', 'not set'))">
+                                                <field name="condition_simple_field_string_operator_icase"/>
+                                                <label for="condition_simple_field_string_operator_icase"/>
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span invisible="(condition_simple_field_type not in ('char', 'text', 'html')) or (condition_simple_field_string_operator in ('set', 'not set'))">
+                                                <field name="condition_simple_field_string_operator_regex"/>
+                                                <label for="condition_simple_field_string_operator_regex"/>
+                                            </span>
+                                        </div>
+                                        <field name="condition_simple_field_value_boolean"
+                                               required="type == 'simple_field' and condition_simple_field_type == 'boolean'"
+                                               invisible="condition_simple_field_type != 'boolean'"/>
+                                    </td>
+                                    <td>
+                                        <field name="condition_simple_field_value_char"
+                                               required="type == 'simple_field' and condition_simple_field_type in ('char', 'text', 'html') and condition_simple_field_string_operator not in ('set', 'not set')"
+                                               invisible="(condition_simple_field_type not in ('char', 'text', 'html')) or (condition_simple_field_string_operator in ('set', 'not set'))"/>
+                                        <field name="condition_simple_field_value_integer"
+                                               required="type == 'simple_field' and condition_simple_field_type == 'integer'"
+                                               invisible="condition_simple_field_type != 'integer'"/>
+                                        <field name="condition_simple_field_value_float"
+                                               required="type == 'simple_field' and condition_simple_field_type == 'float'"
+                                               invisible="condition_simple_field_type != 'float'"/>
+                                        <field name="condition_simple_field_value_selection"
+                                               widget="fake_selection"
+                                               selection_field="condition_simple_field_field_id"
+                                               required="type == 'simple_field' and condition_simple_field_type == 'selection'"
+                                               invisible="condition_simple_field_type != 'selection' or condition_simple_field_selection_operator in ('set', 'not set')"/>
+                                        <field name="condition_simple_field_value_date"
+                                               required="type == 'simple_field' and condition_simple_field_type == 'date' and condition_simple_field_date_operator not in ('set', 'not set')"
+                                               invisible="condition_simple_field_type != 'date' or condition_simple_field_date_operator in ('set', 'not set')"/>
+                                        <field name="condition_simple_field_value_datetime"
+                                               required="type == 'simple_field' and condition_simple_field_type == 'datetime' and condition_simple_field_date_operator not in ('set', 'not set')"
+                                               invisible="condition_simple_field_type != 'datetime' or condition_simple_field_date_operator in ('set', 'not set')"/>
+                                    </td>
+                                </tr>
+                            </table>
+                        </group>
+                        <!-- 'Related field' condition data -->
+                        <group colspan="4" col="4"
+                               name="group_condition_related_field"
+                               invisible="type != 'related_field'">
+
+                            <div colspan="4">
+                                This type of condition applies to related fields. <br />
+                                <br />
+                            </div>
+
+                            <span><field name="condition_related_field_model"
+                                         invisible="1"/></span>
+                            <table colspan="4" class="generic_condition_definition">
+                                <tr>
+                                    <td>
+
+                                        <label for="condition_related_field_field_id" string="Field"/>
+                                    </td>
+                                    <td>
+                                        <label for="condition_related_field_operator" string="Operator"/>
+                                    </td>
+                                    <td>
+                                        <label for="condition_related_field_value_id"
+                                               string="Value"
+                                               invisible="condition_related_field_operator in ('set', 'not set')"/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <field name="condition_related_field_field_id"
+                                               context="{'default_model_id': model_id}"
+                                               domain="[('model_id','=',model_id), ('ttype', 'in', ('many2one', 'many2many'))]"
+                                               required="type == 'related_field'"/>
+                                    </td>
+                                    <td>
+                                        <field name="condition_related_field_operator"
+                                               required="type == 'related_field'"/>
+                                    </td>
+                                    <td>
+                                        <field name="condition_related_field_value_id"
+                                               required="type == 'related_field' and condition_related_field_operator == 'contains'"
+                                               invisible="condition_related_field_operator in ('set', 'not set')"/>
+                                    </td>
+                                </tr>
+                            </table>
+                        </group>
+                        <!-- 'Monetary field' condition data -->
+
+                       <group colspan="4" col="4"
+                              name="group_condition_monetary_field"
+                              invisible="type != 'monetary_field'">
+
+                           <div colspan="4">
+                               By this type you can create the condition to compare monetary indicators. <br />
+                               <br />
+                           </div>
+
+                           <table colspan="4" class="generic_condition_definition">
+                               <tr>
+                                   <td>
+                                       <label for="condition_monetary_field_id" string="Field"/>
+                                   </td>
+                                   <td>
+                                       <label for="condition_monetary_operator" string="Operator"/>
+                                   </td>
+                                   <td>
+                                       <label for="condition_monetary_value" string="Result"/>
+                                   </td>
+                                   <td>
+                                       <label for="condition_monetary_curency_date_type" string="Accounting date"/>
+                                   </td>
+                               </tr>
+                               <tr>
+                                   <td>
+                                       <field name="condition_monetary_field_id"
+                                              context="{'default_model_id': model_id}"
+                                              domain="[('model_id','=',model_id), ('ttype', '=', 'monetary')]"
+                                              required="type == 'monetary_field'"
+                                              placeholder="Field"
+                                              options="{'no_create': True}"/>
+                                   </td>
+                                   <td>
+                                       <field name="condition_monetary_operator"
+                                              required="type == 'monetary_field'"/>
+                                   </td>
+                                   <td>
+                                       <field name="condition_monetary_value"
+                                              required="type == 'monetary_field'"/>
+                                   </td>
+                                   <td>
+                                       <field name="condition_monetary_curency_date_type"
+                                              required="type == 'monetary_field'"/>
+                                   </td>
+                               </tr>
+                               <tr>
+                                   <td>
+                                       <field name="condition_monetary_currency_field_id"
+                                              context="{'default_model_id': model_id}"
+                                              domain="[('model_id','=',model_id), ('relation', '=', 'res.currency')]"
+                                              required="type == 'monetary_field'"
+                                              placeholder="Currency"
+                                              options="{'no_create': True}"/>
+                                   </td>
+                                   <td>
+                                   </td>
+                                   <td>
+                                       <field name="condition_monetary_value_currency_id"
+                                              required="type == 'monetary_field'"
+                                              placeholder="Currency"
+                                              options="{'no_create': True}"/>
+                                   </td>
+                                   <td>
+                                       <field name="condition_monetary_curency_date_field_id"
+                                              placeholder="Field"
+                                              options="{'no_create': True}"
+                                              context="{'default_model_id': model_id}"
+                                              domain="[('model_id','=',model_id),('ttype', 'in', ('datetime', 'date'))]"
+                                              required="type == 'monetary_field' and condition_monetary_curency_date_type == 'field'"
+                                              invisible="condition_monetary_curency_date_type != 'field'"/>
+                                       <field name="condition_monetary_curency_date_date"
+                                              required="type == 'monetary_field' and condition_monetary_curency_date_type == 'date'"
+                                              invisible="condition_monetary_curency_date_type != 'date'"/>
+                                       <label string="Current date"
+                                              for="condition_monetary_curency_date_date"
+                                              invisible="condition_monetary_curency_date_type != 'now'"/>
+                                   </td>
+                               </tr>
+                           </table>
+                       </group>
+
+                        <!-- 'Monetary field' condition data -->
+                        <group colspan="4" col="4"
+                               name="group_condition_find"
+                               invisible="type != 'find'">
+                            <div class="alert alert-warning" role="alert" colspan="4">
+                                <b>Warning:</b> This feature is experimental.
+                            </div>
+                            <div colspan="4">
+                                This type of condition can be used to find related objects in arbitary table
+                                and check them.
+                            </div>
+                            <group name="generic_condition_find_search"
+                                   string="Search"
+                                   colspan="2">
+                                <field name="condition_find_search_model_id"
+                                       required="type == 'find'"
+                                       string="Model"/>
+                                <field name="condition_find_search_model_name"
+                                       string="Model Name"/>
+                                <field name="condition_find_order_by_field_id"
+                                       domain="[('model_id', '=', condition_find_search_model_id), ('store', '=', True)]"
+                                       required="type == 'find'"
+                                       string="Order By Field"/>
+                                <field name="condition_find_order_by_direction"
+                                       required="type == 'find'"
+                                       string="Order By Direction"/>
+
+                            </group>
+                            <group name="generic_condition_find_check"
+                                   string="Check"
+                                   colspan="2">
+                                <field name="condition_find_if_not_found"
+                                       required="type == 'find'"
+                                       string="If records not found"/>
+                                <field name="condition_find_fetch_type"
+                                       required="type == 'find'"
+                                       string="Type"/>
+                                <field name="condition_find_check_condition_ids"
+                                       context="{'default_model_id': condition_find_search_model_id}"
+                                       domain="[('model_id', '=', condition_find_search_model_id)]"
+                                       required="type == 'find'"
+                                       widget="many2many_tags"
+                                       string="Conditions"/>
+                            </group>
+                            <group colspan="4"
+                                   name="generic_condition_find_domain"
+                                   string="Filter records">
+                                <field name="condition_find_search_domain_ids"
+                                       required="type == 'find'"
+                                       mode="list,form"
+                                       nolabel="1"
+                                       colspan="2">
+                                    <list>
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="type"/>
+                                        <field name="check_field_id"
+                                               domain="[('model_id', '=', parent.condition_find_search_model_id),('store', '=', True)]"
+                                               required="type == 'search-condition'"
+                                               invisible="type != 'search-condition'"/>
+                                        <field name="value_field_operator"
+                                               required="type == 'search-condition'"
+                                               invisible="type != 'search-condition'"/>
+                                        <field name="value_display"
+                                               invisible="type != 'search-condition'"/>
+                                    </list>
+                                    <form>
+                                        <group>
+                                            <group>
+                                                <field name="type"/>
+                                            </group>
+                                            <group>
+                                                <field name="sequence"/>
+                                            </group>
+                                        </group>
+                                        <group name="group_leaf"
+                                               string="Search condition"
+                                               invisible="type != 'search-condition'">
+                                            <table colspan="4" class="generic_condition_definition">
+                                            <tr>
+                                                <th>
+                                                    <label for="check_field_id" string="Check Field"/>
+                                                </th>
+                                                <th>
+                                                    <label for="value_field_operator" string="Operator"/>
+                                                </th>
+                                                <th>
+                                                    <label for="value_char" string="Value"/>
+                                                </th>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    <field name="check_field_id"
+                                                           domain="[('model_id', '=', parent.condition_find_search_model_id),('store', '=', True)]"
+                                                           context="{'default_model_id': parent.condition_find_search_model_id}"
+                                                           required="type == 'search-condition'"
+                                                           invisible="type != 'search-condition'"/>
+                                                    <field name="check_field_type" invisible="1"/>
+                                                    <field name="check_field_relation" invisible="1"/>
+                                                </td>
+                                                <td>
+                                                    <field name="value_field_operator"
+                                                           required="type == 'search-condition'"
+                                                           invisible="type != 'search-condition'"/>
+                                                </td>
+                                                <td>
+                                                    <!-- Fields to check static value -->
+                                                    <field name="value_type"
+                                                           required="type == 'search-condition'"
+                                                           invisible="type != 'search-condition'"/>
+                                                    <field name="value_char"
+                                                           required="value_type == 'static-value' and check_field_type in ('char', 'text', 'html')"
+                                                           invisible="value_type != 'static-value' or check_field_type not in ('char', 'text', 'html')"/>
+                                                    <field name="value_integer"
+                                                           required="value_type == 'static-value' and check_field_type == 'integer'"
+                                                           invisible="value_type != 'static-value' or check_field_type != 'integer'"/>
+                                                    <field name="value_float"
+                                                           required="value_type == 'static-value' and check_field_type == 'float'"
+                                                           invisible="value_type != 'static-value' or check_field_type != 'float'"/>
+                                                    <!-- TODO: Allow only selection and res_id static checks to simplify code -->
+                                                    <field name="value_selection"
+                                                           widget="fake_selection"
+                                                           selection_field="check_field_id"
+                                                           required="value_type == 'static-value' and check_field_type == 'selection'"
+                                                           invisible="value_type != 'static-value' or check_field_type != 'selection'"/>
+                                                    <field name="value_res_id"
+                                                           required="value_type == 'static-value' and check_field_type in ('many2one', 'one2many', 'many2many')"
+                                                           invisible="value_type != 'static-value' or check_field_type not in ('many2one', 'one2many', 'many2many')"/>
+
+                                                    <!-- Fields to check against object field -->
+                                                    <field name="value_field_id"
+                                                           required="value_type == 'object-field'"
+                                                           invisible="value_type != 'object-field'"
+                                                           domain="[('model_id', '=', parent.model_id), ('ttype', '=', check_field_type)]"/>
+                                                </td>
+                                            </tr>
+                                            </table>
+                                        </group>
+                                    </form>
+                                </field>
+                            </group>
+                        </group>
+                    </group>
+                    <group colspan="4" string="Description">
+                        <field name="description"
+                               nolabel="1"
+                               placeholder="Description..."/>
+                    </group>
+                </sheet>
+                <chatter reload_on_attachment="True"/>
+            </form>
+        </field>
+    </record>
+
+    <record id="generic_condition_action" model="ir.actions.act_window">
+        <field name="name">Generic Conditions</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">generic.condition</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!--menus -->
+    <menuitem id="menu_generic_condition"
+              name="Generic Conditions"
+              parent="generic_rule.menu_generic_rule" sequence="60"
+              groups="generic_condition.group_generic_condition_manage"
+              action="generic_condition_action"/>
+</odoo>

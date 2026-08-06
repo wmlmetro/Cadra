@@ -1,6 +1,6 @@
 {
     'name': 'Cadra Brand — LASG Health',
-    'version': '15.0.1.0.0',
+    'version': '19.0.1.0.0',
     'summary': 'Per-client brand package (Lagos State Ministry of Health): primary colour tokens.',
     'description': """
 Cadra Brand — LASG Health

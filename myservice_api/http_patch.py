@@ -39,17 +39,23 @@ _logger = logging.getLogger(__name__)
 
 API_PREFIX = "/api/v1/"
 
-_ORIGINAL_GET_REQUEST = http.Root.get_request
+# ── Odoo 19 rebuild ────────────────────────────────────────────────────────
+# Odoo 17+ rewrote HTTP dispatching: the dispatcher is chosen by the ROUTE's
+# declared ``type`` (http vs jsonrpc), NOT by the inbound Content-Type. A
+# ``type='http'`` route therefore handles a JSON body natively, so the 15.0
+# ``http.Root.get_request`` monkeypatch below is no longer needed — and
+# ``http.Root`` no longer exists. Keep this as a guarded no-op for history.
+if hasattr(http, "Root") and hasattr(http.Root, "get_request"):
+    _ORIGINAL_GET_REQUEST = http.Root.get_request
 
+    def _cadra_get_request(self, httprequest):
+        """Force HttpRequest for /api/v1/* paths; delegate everything else."""
+        if httprequest.path.startswith(API_PREFIX):
+            return http.HttpRequest(httprequest)
+        return _ORIGINAL_GET_REQUEST(self, httprequest)
 
-def _cadra_get_request(self, httprequest):
-    """Force HttpRequest for /api/v1/* paths; delegate everything else."""
-    if httprequest.path.startswith(API_PREFIX):
-        return http.HttpRequest(httprequest)
-    return _ORIGINAL_GET_REQUEST(self, httprequest)
-
-
-# Idempotent install — re-importing this module doesn't double-wrap.
-if http.Root.get_request is not _cadra_get_request:
-    http.Root.get_request = _cadra_get_request
-    _logger.info("Cadra API: HttpRequest dispatcher forced for %s* paths", API_PREFIX)
+    if http.Root.get_request is not _cadra_get_request:
+        http.Root.get_request = _cadra_get_request
+        _logger.info("Cadra API: HttpRequest dispatcher forced for %s* paths", API_PREFIX)
+else:
+    _logger.info("Cadra API: http.Root absent (Odoo 17+); dispatcher patch not needed")

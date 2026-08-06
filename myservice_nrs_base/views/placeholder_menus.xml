@@ -13,8 +13,8 @@
         <field name="sequence">20</field>
     </record>
 
-    <!-- ── 1. REPARENT: generic_request → Request Management ─────────── -->
-    <record id="generic_request.menu_request_root" model="ir.ui.menu">
+    <!-- ── 1. REPARENT: request engine → Request Management ─────────── -->
+    <record id="myservice_request_core.menu_request_root" model="ir.ui.menu">
         <field name="name">Request Management</field>
         <field name="parent_id" ref="menu_facility_command_center"/>
         <field name="sequence">10</field>
@@ -27,12 +27,9 @@
         <field name="sequence">25</field>
     </record>
 
-    <!-- ── 3. REPARENT: generic_resource → Resource Management ───────── -->
-    <record id="generic_resource.menu_generic_resource_toplevel" model="ir.ui.menu">
-        <field name="name">Resource Management</field>
-        <field name="parent_id" ref="menu_facility_command_center"/>
-        <field name="sequence">30</field>
-    </record>
+    <!-- ── 3. REPARENT: generic_resource → Resource Management ─────────
+         Deferred: generic_resource is not yet ported to 19 (asset_register
+         stage). Re-add this reparent when it lands. -->
 
     <!-- ── 4. REPARENT: generic_team → Team Management ───────────────── -->
     <record id="generic_team.menu_generic_team_root" model="ir.ui.menu">

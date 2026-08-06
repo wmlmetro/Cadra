@@ -10,7 +10,7 @@
             <xpath expr="//div[@name='button_box']" position="inside">
                 <button name="action_view_maintenance_tickets" type="object"
                     class="oe_stat_button" icon="fa-wrench"
-                    attrs="{'invisible': [('open_maintenance_ticket_count', '=', 0)]}">
+                    invisible="open_maintenance_ticket_count == 0">
                     <field name="open_maintenance_ticket_count"
                         widget="statinfo" string="Maint. Tickets"/>
                 </button>
@@ -57,19 +57,19 @@
     <record id="view_request_maintenance_fields" model="ir.ui.view">
         <field name="name">request.request.form.maintenance</field>
         <field name="model">request.request</field>
-        <field name="inherit_id" ref="generic_request.view_request_request_form"/>
+        <field name="inherit_id" ref="myservice_request_core.view_request_request_form"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='vehicle_id']" position="after">
                 <field name="is_maintenance_ticket" invisible="1"/>
                 <field name="service_completion_date"
-                    attrs="{'invisible': [('is_maintenance_ticket','=',False)]}"/>
+                    invisible="is_maintenance_ticket == False"/>
                 <field name="service_odometer_reading"
-                    attrs="{'invisible': [('is_maintenance_ticket','=',False)]}"/>
+                    invisible="is_maintenance_ticket == False"/>
                 <field name="service_vendor_id"
-                    attrs="{'invisible': [('is_maintenance_ticket','=',False)]}"
+                    invisible="is_maintenance_ticket == False"
                     options="{'no_create': True}"/>
                 <field name="service_notes"
-                    attrs="{'invisible': [('is_maintenance_ticket','=',False)]}"/>
+                    invisible="is_maintenance_ticket == False"/>
             </xpath>
         </field>
     </record>

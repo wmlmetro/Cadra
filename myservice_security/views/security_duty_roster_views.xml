@@ -5,7 +5,7 @@
         <field name="name">security.duty.roster.list</field>
         <field name="model">security.duty.roster</field>
         <field name="arch" type="xml">
-            <tree string="Duty Roster"
+            <list string="Duty Roster"
                   decoration-success="status=='active'"
                   decoration-muted="status in ('completed','absent')">
                 <field name="date"/>
@@ -21,11 +21,11 @@
                 <field name="check_out"/>
                 <button name="action_check_in" string="Check In" type="object"
                     class="btn-sm btn-success"
-                    attrs="{'invisible': [('status','!=','scheduled')]}"/>
+                    invisible="status != 'scheduled'"/>
                 <button name="action_check_out" string="Check Out" type="object"
                     class="btn-sm btn-secondary"
-                    attrs="{'invisible': [('status','!=','active')]}"/>
-            </tree>
+                    invisible="status != 'active'"/>
+            </list>
         </field>
     </record>
 
@@ -37,12 +37,12 @@
                 <header>
                     <button name="action_check_in" string="Check In" type="object"
                         class="btn-primary"
-                        attrs="{'invisible': [('status','!=','scheduled')]}"/>
+                        invisible="status != 'scheduled'"/>
                     <button name="action_check_out" string="Check Out" type="object"
                         class="btn-secondary"
-                        attrs="{'invisible': [('status','!=','active')]}"/>
+                        invisible="status != 'active'"/>
                     <button name="action_mark_absent" string="Mark Absent" type="object"
-                        attrs="{'invisible': [('status','not in',['scheduled','active'])]}"/>
+                        invisible="status not in ['scheduled', 'active']"/>
                     <field name="status" widget="statusbar"
                         statusbar_visible="scheduled,active,completed"/>
                 </header>

@@ -1,6 +1,6 @@
 {
     'name': 'Cadra Email Relay',
-    'version': '15.0.1.0.0',
+    'version': '19.0.1.0.0',
     'summary': 'Send outbound mail via an HTTPS relay (bypasses SMTP egress blocks).',
     'description': """
 Temporary outbound mail bridge for environments where direct SMTP egress

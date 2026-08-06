@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Test records -->
+    <record id="test_generic_condition_related_model_rec" model="test.generic.condition.test.model.relation">
+        <field name="name">name</field>
+    </record>
+    <record id="test_generic_condition_model_rec" model="test.generic.condition.test.model">
+        <field name="test_m2o" ref="test_generic_condition_related_model_rec"/>
+    </record>
+
+    <!-- TODO: uncomment when odoo solve monetary fields -->
+
+<!--    <record id="test_generic_condition_model_rec_monetary" model="test.generic.condition.test.model">-->
+<!--        <field name="test_monetary_currency" ref="base.USD"/>-->
+<!--        <field name="test_monetary" eval="150.0"/>-->
+<!--        <field name="date_test">2012-05-03</field>-->
+<!--    </record>-->
+</odoo>

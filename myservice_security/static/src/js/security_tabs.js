@@ -1,4 +1,4 @@
-odoo.define('myservice_security.SecurityTabs', function (require) {
+odoo.define('myservice_security.SecurityTabs', ['web.AbstractAction', 'web.core', 'web.rpc'], function (require) {
     'use strict';
 
     var AbstractAction = require('web.AbstractAction');

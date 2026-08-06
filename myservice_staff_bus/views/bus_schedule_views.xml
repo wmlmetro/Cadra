@@ -9,14 +9,14 @@
                 <header>
                     <button name="action_start_boarding" string="Start Boarding" type="object"
                             class="btn-primary"
-                            attrs="{'invisible': [('state','!=','scheduled')]}"/>
+                            invisible="state != 'scheduled'"/>
                     <button name="action_depart" string="Mark Departed" type="object"
                             class="btn-primary"
-                            attrs="{'invisible': [('state','!=','boarding')]}"/>
+                            invisible="state != 'boarding'"/>
                     <button name="action_complete" string="Complete" type="object"
-                            attrs="{'invisible': [('state','!=','departed')]}"/>
+                            invisible="state != 'departed'"/>
                     <button name="action_cancel" string="Cancel" type="object"
-                            attrs="{'invisible': [('state','in',['completed','cancelled'])]}"/>
+                            invisible="state in ['completed', 'cancelled']"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="scheduled,boarding,departed,completed"/>
                 </header>
@@ -51,7 +51,7 @@
                     <notebook>
                         <page string="Passenger Manifest" name="manifest">
                             <field name="manifest_ids">
-                                <tree decoration-success="state=='checked_in'"
+                                <list decoration-success="state=='checked_in'"
                                       decoration-danger="state=='no_show'"
                                       decoration-muted="state=='cancelled'">
                                     <field name="employee_id"/>
@@ -64,8 +64,8 @@
                                     <field name="state"/>
                                     <button name="action_check_in" string="Check In"
                                             type="object" icon="fa-check"
-                                            attrs="{'invisible': [('state','!=','booked')]}"/>
-                                </tree>
+                                            invisible="state != 'booked'"/>
+                                </list>
                             </field>
                         </page>
                         <page string="Notes">
@@ -87,7 +87,7 @@
         <field name="name">bus.schedule.tree</field>
         <field name="model">bus.schedule</field>
         <field name="arch" type="xml">
-            <tree decoration-success="state=='completed'"
+            <list decoration-success="state=='completed'"
                   decoration-primary="state=='boarding'"
                   decoration-info="state=='departed'"
                   decoration-muted="state=='cancelled'">
@@ -103,7 +103,7 @@
                 <field name="available_seats"/>
                 <field name="occupancy_pct" widget="progressbar"/>
                 <field name="state"/>
-            </tree>
+            </list>
         </field>
     </record>
 
@@ -145,7 +145,7 @@
                         domain="[('direction','in',['morning','both'])]"/>
                 <filter name="evening" string="Evening"
                         domain="[('direction','in',['evening','both'])]"/>
-                <group expand="0" string="Group By">
+                <group>
                     <filter name="grp_route" string="Route" context="{'group_by':'route_id'}"/>
                     <filter name="grp_date" string="Date" context="{'group_by':'date'}"/>
                     <filter name="grp_vehicle" string="Bus" context="{'group_by':'vehicle_id'}"/>
@@ -159,7 +159,7 @@
     <record id="action_bus_schedule" model="ir.actions.act_window">
         <field name="name">Schedules</field>
         <field name="res_model">bus.schedule</field>
-        <field name="view_mode">tree,calendar,form</field>
+        <field name="view_mode">list,calendar,form</field>
         <field name="search_view_id" ref="view_bus_schedule_search"/>
         <field name="context">{'search_default_today': 1}</field>
     </record>

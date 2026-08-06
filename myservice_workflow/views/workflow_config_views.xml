@@ -22,15 +22,15 @@
                         <group string="Callback / Webhook">
                             <field name="callback_enabled" widget="boolean_toggle"/>
                             <field name="callback_token"
-                                attrs="{'invisible': [('callback_enabled','=',False)]}"/>
+                                invisible="callback_enabled == False"/>
                             <field name="callback_url_hint"
-                                attrs="{'invisible': [('callback_enabled','=',False)]}"
+                                invisible="callback_enabled == False"
                                 widget="url"/>
                         </group>
                     </group>
                     <notebook>
                         <page string="REST API Settings"
-                            attrs="{'invisible': [('adapter_type','!=','rest')]}">
+                            invisible="adapter_type != 'rest'">
                             <group>
                                 <group>
                                     <field name="rest_base_url" placeholder="https://workflow.nrs.gov.ng/api/v1"/>
@@ -40,20 +40,20 @@
                                 <group string="Authentication">
                                     <field name="rest_auth_type"/>
                                     <field name="rest_api_key_header"
-                                        attrs="{'invisible': [('rest_auth_type','not in',['apikey'])]}"/>
+                                        invisible="rest_auth_type not in ['apikey']"/>
                                     <field name="rest_api_key"
-                                        attrs="{'invisible': [('rest_auth_type','not in',['apikey','bearer'])]}"
+                                        invisible="rest_auth_type not in ['apikey', 'bearer']"
                                         password="True"/>
                                     <field name="rest_username"
-                                        attrs="{'invisible': [('rest_auth_type','!=','basic')]}"/>
+                                        invisible="rest_auth_type != 'basic'"/>
                                     <field name="rest_password"
-                                        attrs="{'invisible': [('rest_auth_type','!=','basic')]}"
+                                        invisible="rest_auth_type != 'basic'"
                                         password="True"/>
                                 </group>
                             </group>
                         </page>
                         <page string="Email Settings"
-                            attrs="{'invisible': [('adapter_type','!=','email')]}">
+                            invisible="adapter_type != 'email'">
                             <group>
                                 <field name="email_to" placeholder="workflow-inbox@nrs.gov.ng"/>
                                 <field name="email_subject_prefix"/>
@@ -87,12 +87,12 @@
         <field name="name">workflow.config.list</field>
         <field name="model">workflow.config</field>
         <field name="arch" type="xml">
-            <tree string="Workflow Configurations">
+            <list string="Workflow Configurations">
                 <field name="name"/>
                 <field name="adapter_type"/>
                 <field name="callback_enabled"/>
                 <field name="active" widget="boolean_toggle"/>
-            </tree>
+            </list>
         </field>
     </record>
 

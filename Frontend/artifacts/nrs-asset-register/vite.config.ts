@@ -1,84 +1,82 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
-// PORT is only used by the dev server + preview; production `vite build`
-// doesn't need it. Default to 5173 so `npm run build` works in CI without
-// an env file.
-const port = Number(process.env.PORT ?? 5173);
-if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${process.env.PORT}"`);
-}
+export default defineConfig(({ mode }) => {
+  // Load env file based on `mode` in the current directory.
+  const env = loadEnv(mode, path.resolve(import.meta.dirname), "");
 
-// BASE_PATH controls the public base under which the bundle is served.
-// Dev: "/" so wouter routes line up.
-// Prod sub-path: "/app/" (set by the docker build).
-const basePath = process.env.BASE_PATH ?? "/";
+  const port = Number(env.PORT || process.env.PORT || 5173);
+  if (Number.isNaN(port) || port <= 0) {
+    throw new Error(`Invalid PORT value: "${env.PORT || process.env.PORT}"`);
+  }
 
-export default defineConfig({
-  base: basePath,
-  plugins: [
-    react(),
-    tailwindcss(),
-  ],
-  resolve: {
-    alias: {
-      "@": path.resolve(import.meta.dirname, "src"),
-      "@assets": path.resolve(import.meta.dirname, "..", "..", "attached_assets"),
+  const basePath = env.BASE_PATH || process.env.BASE_PATH || "/";
+  const apiProxy = env.VITE_API_PROXY || process.env.VITE_API_PROXY;
+
+  return {
+    base: basePath,
+    plugins: [
+      react(),
+      tailwindcss(),
+    ],
+    resolve: {
+      alias: {
+        "@": path.resolve(import.meta.dirname, "src"),
+        "@assets": path.resolve(import.meta.dirname, "..", "..", "attached_assets"),
+      },
+      dedupe: ["react", "react-dom"],
     },
-    dedupe: ["react", "react-dom"],
-  },
-  root: path.resolve(import.meta.dirname),
-  build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
-    emptyOutDir: true,
-    chunkSizeWarningLimit: 800,
-    rollupOptions: {
-      output: {
-        // Split big vendors into their own chunks so they cache independently
-        // of route code. Route chunks get lazy-loaded (see App.tsx) so first
-        // paint only pulls react + the entry shell + the route the user is on.
-        manualChunks: {
-          react:    ["react", "react-dom", "react/jsx-runtime", "scheduler"],
-          tanstack: ["@tanstack/react-query", "@tanstack/react-table"],
-          leaflet:  ["leaflet", "react-leaflet"],
-          charts:   ["recharts"],
-          radix:    [
-            "@radix-ui/react-dialog",
-            "@radix-ui/react-dropdown-menu",
-            "@radix-ui/react-popover",
-            "@radix-ui/react-tooltip",
-            "@radix-ui/react-select",
-            "@radix-ui/react-tabs",
-            "@radix-ui/react-toast",
-          ],
-          icons:    ["lucide-react", "react-icons"],
+    root: path.resolve(import.meta.dirname),
+    build: {
+      outDir: path.resolve(import.meta.dirname, "dist/public"),
+      emptyOutDir: true,
+      chunkSizeWarningLimit: 800,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            react:    ["react", "react-dom", "react/jsx-runtime", "scheduler"],
+            tanstack: ["@tanstack/react-query", "@tanstack/react-table"],
+            leaflet:  ["leaflet", "react-leaflet"],
+            charts:   ["recharts"],
+            radix:    [
+              "@radix-ui/react-dialog",
+              "@radix-ui/react-dropdown-menu",
+              "@radix-ui/react-popover",
+              "@radix-ui/react-tooltip",
+              "@radix-ui/react-select",
+              "@radix-ui/react-tabs",
+              "@radix-ui/react-toast",
+            ],
+            icons:    ["lucide-react", "react-icons"],
+          },
         },
       },
     },
-  },
-  server: {
-    port,
-    strictPort: true,
-    host: "0.0.0.0",
-    allowedHosts: true,
-    fs: {
-      strict: true,
+    server: {
+      port,
+      strictPort: true,
+      host: "0.0.0.0",
+      allowedHosts: true,
+      fs: {
+        strict: true,
+      },
+      proxy: apiProxy
+        ? {
+            "/api": {
+              target: apiProxy,
+              changeOrigin: true,
+              secure: false,
+            },
+          }
+        : undefined,
     },
-    proxy: process.env.VITE_API_PROXY
-      ? {
-          "/api": {
-            target: process.env.VITE_API_PROXY,
-            changeOrigin: true,
-            secure: true,
-          },
-        }
-      : undefined,
-  },
-  preview: {
-    port,
-    host: "0.0.0.0",
-    allowedHosts: true,
-  },
+    preview: {
+      port,
+      host: "0.0.0.0",
+      allowedHosts: true,
+    },
+  };
 });
+

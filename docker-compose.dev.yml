@@ -24,6 +24,10 @@ services:
       - "8069:8069"
     volumes:
       - ./config/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+      # Modern React SPA (built with BASE_PATH=/app/) served at /app/* — the
+      # local equivalent of the staging `frontend` pod. Rebuild the bundle with
+      # `BASE_PATH=/app/ npm run build` in Frontend/artifacts/nrs-asset-register.
+      - ./Frontend/artifacts/nrs-asset-register/dist/public:/usr/share/nginx/html:ro
     healthcheck:
       # Use 127.0.0.1, not "localhost": in the alpine image localhost resolves
       # to IPv6 ::1 first, but nginx only listens on IPv4 — so "localhost"
@@ -49,3 +53,9 @@ services:
       - odoo
       - --workers=${ODOO_WORKERS:-2}
       - --max-cron-threads=${ODOO_MAX_CRON_THREADS:-1}
+      # Multi-tenant host routing is OPT-IN. Default empty => Odoo falls back to
+      # `db_name = odoo` (config/odoo.dev.conf) and serves that DB on any host,
+      # so plain http://localhost:8069 and CI both work unchanged. To run all
+      # tenants locally (staging/gtb/jaizbankplc → <db>.localhost:8069), set
+      # `export ODOO_DBFILTER='^%d$'` before `docker compose ... up`.
+      - --db-filter=${ODOO_DBFILTER:-}

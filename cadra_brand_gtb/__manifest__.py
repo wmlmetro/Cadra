@@ -1,6 +1,6 @@
 {
     'name': 'Cadra Brand — GTB',
-    'version': '15.0.1.0.0',
+    'version': '19.0.1.0.0',
     'summary': 'Per-client brand package (Guaranty Trust Bank): primary colour tokens.',
     'description': """
 Cadra Brand — GTB

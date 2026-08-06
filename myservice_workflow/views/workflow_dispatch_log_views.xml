@@ -5,7 +5,7 @@
         <field name="name">workflow.dispatch.log.list</field>
         <field name="model">workflow.dispatch.log</field>
         <field name="arch" type="xml">
-            <tree string="WorkSpace Dispatch Log"
+            <list string="WorkSpace Dispatch Log"
                   decoration-success="status in ('approved')"
                   decoration-danger="status in ('rejected','error')"
                   decoration-warning="status in ('queried')"
@@ -24,7 +24,7 @@
                 <field name="sent_at"/>
                 <field name="responded_at"/>
                 <field name="adapter_type"/>
-            </tree>
+            </list>
         </field>
     </record>
 
@@ -60,7 +60,7 @@
                             <field name="response_received" readonly="1" widget="code"/>
                             <field name="workflow_comment" readonly="1"/>
                         </page>
-                        <page string="Error" attrs="{'invisible': [('error_message','=',False)]}">
+                        <page string="Error" invisible="error_message == False">
                             <field name="error_message" readonly="1"/>
                         </page>
                     </notebook>
@@ -81,7 +81,7 @@
                 <filter name="approved" string="Approved" domain="[('status','=','approved')]"/>
                 <filter name="rejected" string="Rejected" domain="[('status','=','rejected')]"/>
                 <filter name="errors" string="Errors" domain="[('status','=','error')]"/>
-                <group expand="0" string="Group By">
+                <group>
                     <filter name="by_status" string="Status" context="{'group_by':'status'}"/>
                     <filter name="by_adapter" string="Adapter" context="{'group_by':'adapter_type'}"/>
                 </group>

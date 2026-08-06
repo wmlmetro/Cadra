@@ -51,19 +51,26 @@ class HrEmployee(models.Model):
     nrs_asset_ids = fields.One2many(
         'nrs.asset', 'custodian_id', string='Assigned Assets',
     )
+    # Odoo 19: fields sharing a compute method must agree on both compute_sudo
+    # AND store. asset_count is non-stored and has_pending_retrieval is stored,
+    # so they need distinct compute methods.
     asset_count = fields.Integer(
         string='Assets', compute='_compute_asset_count',
     )
     has_pending_retrieval = fields.Boolean(
         string='Assets Pending Retrieval',
-        compute='_compute_asset_count',
+        compute='_compute_has_pending_retrieval',
         store=True,
     )
 
-    @api.depends('nrs_asset_ids', 'nrs_asset_ids.retrieval_flag')
+    @api.depends('nrs_asset_ids')
     def _compute_asset_count(self):
         for emp in self:
             emp.asset_count = len(emp.nrs_asset_ids)
+
+    @api.depends('nrs_asset_ids', 'nrs_asset_ids.retrieval_flag')
+    def _compute_has_pending_retrieval(self):
+        for emp in self:
             emp.has_pending_retrieval = any(
                 a.retrieval_flag for a in emp.nrs_asset_ids
             )

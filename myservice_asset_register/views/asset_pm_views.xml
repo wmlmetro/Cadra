@@ -4,7 +4,7 @@
         <field name="name">nrs.asset.pm.tree</field>
         <field name="model">nrs.asset.pm</field>
         <field name="arch" type="xml">
-            <tree decoration-danger="is_overdue"
+            <list decoration-danger="is_overdue"
                   decoration-warning="next_due_date and next_due_date &lt;= (context_today() + datetime.timedelta(days=7)).strftime('%Y-%m-%d')">
                 <field name="asset_id"/>
                 <field name="name"/>
@@ -18,7 +18,7 @@
                 <field name="last_request_id"/>
                 <button name="action_mark_done" string="Mark Done"
                         type="object" icon="fa-check"/>
-            </tree>
+            </list>
         </field>
     </record>
 
@@ -55,14 +55,14 @@
     <record id="action_nrs_asset_pm" model="ir.actions.act_window">
         <field name="name">PM Schedules</field>
         <field name="res_model">nrs.asset.pm</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
         <field name="context">{'search_default_active': 1}</field>
     </record>
 
     <record id="action_nrs_asset_pm_overdue" model="ir.actions.act_window">
         <field name="name">Overdue PM Schedules</field>
         <field name="res_model">nrs.asset.pm</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
         <field name="domain">[('is_overdue','=',True)]</field>
     </record>
 
@@ -70,7 +70,7 @@
     <record id="view_request_request_asset_inherit" model="ir.ui.view">
         <field name="name">request.request.asset.inherit</field>
         <field name="model">request.request</field>
-        <field name="inherit_id" ref="generic_request.view_request_request_form"/>
+        <field name="inherit_id" ref="myservice_request_core.view_request_request_form"/>
         <field name="arch" type="xml">
             <xpath expr="//sheet//group[1]" position="after">
                 <group string="Asset">

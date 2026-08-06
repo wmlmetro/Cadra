@@ -262,15 +262,17 @@ class MyserviceApiV1(http.Controller):
                 "`login` and `password` are required",
             ))
 
-        # `authenticate` is a classmethod that opens its own cursor and uses
-        # Odoo's standard password verification (hash check, MFA hooks, etc).
-        # Returns uid on success; older versions return False on failure,
-        # newer versions raise AccessDenied. Handle both.
-        db = request.env.cr.dbname
+        # Odoo 19's `authenticate(credential, user_agent_env)` takes a
+        # credential dict (no db arg) and returns an `auth_info` dict
+        # ({'uid': ..., 'auth_method': ...}) instead of a bare uid; it raises
+        # AccessDenied on failure. It uses Odoo's standard password
+        # verification (hash check, MFA hooks, etc).
         try:
-            uid = request.env["res.users"].authenticate(
-                db, login, password, {"interactive": False},
+            auth_info = request.env["res.users"].authenticate(
+                {"type": "password", "login": login, "password": password},
+                {"interactive": False},
             )
+            uid = auth_info.get("uid") if isinstance(auth_info, dict) else auth_info
         except AccessDenied:
             uid = False
 

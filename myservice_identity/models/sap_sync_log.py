@@ -39,6 +39,7 @@ class NRSSapSyncLog(models.Model):
     )
     sync_type = fields.Selection([
         ('webhook', 'SAP Webhook'),
+        ('api', 'REST API'),
         ('manual', 'Manual'),
         ('csv_import', 'CSV Import'),
         ('scheduled', 'Scheduled Pull'),
