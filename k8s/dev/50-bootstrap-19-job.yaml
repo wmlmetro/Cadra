@@ -1,8 +1,9 @@
 # One-shot bootstrap Job for the Odoo 19 stack. 19 counterpart of
 # 50-bootstrap-job.yaml — installs the ported module set into a 19 tenant DB
 # then runs scripts/bootstrap.py (JWT secret + admin groups + API client +
-# seeds). Uses the odoo-19-filestore PVC (ReadWriteOnce), so it cannot run
-# concurrently with the odoo-19 Deployment.
+# seeds). Uses an ephemeral emptyDir filestore (the DB is durable in the shared
+# Postgres), so it runs WITHOUT scaling odoo-19 down — zero downtime for other
+# already-live 19 tenants.
 #
 # Onboard/seed a 19 tenant (deploy-dev.yml sed-substitutes TARGET_DB /
 # EXTRA_MODULES / SEED_PROFILE_OVERRIDE):
@@ -272,6 +273,11 @@ spec:
         - name: odoo-config
           configMap:
             name: odoo-config-19
+        # Ephemeral filestore: the DB is seeded in the shared Postgres (durable);
+        # filestore here only holds transient install artefacts (compiled web
+        # assets Odoo regenerates on demand; brand logos are config params, not
+        # files). Using emptyDir instead of the odoo-19-filestore PVC lets the
+        # bootstrap Job run WITHOUT scaling odoo-19 down — zero downtime for
+        # already-live 19 tenants (essential once NRS is live alongside others).
         - name: odoo-filestore
-          persistentVolumeClaim:
-            claimName: odoo-19-filestore
+          emptyDir: {}
