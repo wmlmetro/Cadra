@@ -142,7 +142,7 @@ spec:
               memory: 1Gi
             limits:
               cpu: 1500m
-              memory: 2Gi
+              memory: 4Gi   # bumped from 2Gi: 27-module install OOMKilled at 2Gi under cluster load
 
       containers:
         - name: seed
@@ -268,7 +268,7 @@ spec:
               memory: 1Gi
             limits:
               cpu: 1500m
-              memory: 2Gi
+              memory: 4Gi   # bumped from 2Gi: 27-module install OOMKilled at 2Gi under cluster load
       volumes:
         - name: odoo-config
           configMap:
