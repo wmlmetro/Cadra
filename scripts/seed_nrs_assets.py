@@ -90,12 +90,43 @@ VALUE_MAPS = {
 }
 
 
+import http.client as _http_client
+import socket as _socket
+import time as _time
+
+# Transient network errors worth retrying — a single-worker Odoo recycles under
+# the import load (limit_memory_hard) and briefly refuses connections. NOT
+# xmlrpc.client.Fault (that's a real application/validation error).
+_RETRY_ERRORS = (ConnectionError, _socket.timeout, _socket.gaierror,
+                 _http_client.HTTPException, xmlrpc.client.ProtocolError, OSError)
+
+
+class _RetryProxy:
+    """Wraps the /object ServerProxy so execute_kw retries transient network
+    errors with backoff, recreating the (possibly dead) socket each attempt."""
+
+    def __init__(self, url, retries=10, backoff=3.0):
+        self._url, self._retries, self._backoff = url, retries, backoff
+        self._proxy = xmlrpc.client.ServerProxy(url)
+
+    def execute_kw(self, *args):
+        last = None
+        for attempt in range(self._retries):
+            try:
+                return self._proxy.execute_kw(*args)
+            except _RETRY_ERRORS as e:
+                last = e
+                self._proxy = xmlrpc.client.ServerProxy(self._url)
+                _time.sleep(self._backoff * (attempt + 1))
+        raise last if last is not None else RuntimeError("execute_kw: retries exhausted")
+
+
 def connect(url, db, user, password):
     common = xmlrpc.client.ServerProxy(f"{url}/xmlrpc/2/common")
     uid = common.authenticate(db, user, password, {})
     if not uid:
         sys.exit("Authentication failed — check --url/--db/--user/--password.")
-    models = xmlrpc.client.ServerProxy(f"{url}/xmlrpc/2/object")
+    models = _RetryProxy(f"{url}/xmlrpc/2/object")
     return uid, models
 
 
