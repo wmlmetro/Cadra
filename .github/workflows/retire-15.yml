@@ -1,0 +1,62 @@
+name: retire-15
+
+# Post-migration cleanup: all tenants are on odoo-19, so retire the Odoo 15
+# stack and redundant resources. Reversible (nothing is deleted that can't be
+# re-applied from k8s/dev/). workflow_dispatch only.
+#
+# Does:
+#   1. Scale the 15 `odoo` Deployment to 0 (frees ~2Gi node memory). The
+#      committed 41-odoo-deployment.yaml is also replicas:0 so deploy-dev won't
+#      resurrect it.
+#   2. Delete the redundant `cadra-19` Ingress (its <tenant>19 hosts point to
+#      DBs that were renamed to the real names during cutover — dead routes).
+#   3. Print the ingress LoadBalancer address (for pointing gtb.cadra.ng DNS).
+#
+# NOT done (deliberately): dropping the *_15bak / *_preflip / lasg_15bak backup
+# DBs — keep them for a soak period; drop later once confident.
+
+on:
+  workflow_dispatch: {}
+
+env:
+  NAMESPACE: cadra-dev
+
+concurrency:
+  group: retire-15
+  cancel-in-progress: false
+
+jobs:
+  retire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: dev
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      - name: Save DOKS kubeconfig
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 1200 "${{ vars.DO_CLUSTER_NAME }}"
+
+      - name: Scale down the 15 odoo Deployment
+        run: |
+          if kubectl -n "$NAMESPACE" get deployment/odoo >/dev/null 2>&1; then
+            kubectl -n "$NAMESPACE" scale deployment/odoo --replicas=0
+            echo "scaled deployment/odoo -> 0"
+          else
+            echo "deployment/odoo not found (already gone)"
+          fi
+
+      - name: Delete redundant cadra-19 Ingress
+        run: kubectl -n "$NAMESPACE" delete ingress cadra-19 --ignore-not-found
+
+      - name: Report state + ingress LoadBalancer (for gtb DNS)
+        run: |
+          echo "── deployments ──"
+          kubectl -n "$NAMESPACE" get deploy -o wide 2>&1 || true
+          echo "── ingresses ──"
+          kubectl -n "$NAMESPACE" get ingress 2>&1 || true
+          echo "── ingress LoadBalancer address (point <tenant>.cadra.ng DNS here) ──"
+          kubectl -n "$NAMESPACE" get ingress cadra -o jsonpath='{.status.loadBalancer.ingress[0].ip}{" "}{.status.loadBalancer.ingress[0].hostname}{"\n"}' 2>&1 || true
