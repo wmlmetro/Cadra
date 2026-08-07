@@ -43,8 +43,9 @@ spec:
     # To onboard a client: (1) add its host here with `http: *odoo-paths`,
     # (2) add the host to the tls list above, (3) create + bootstrap the DB
     # named after the subdomain label, (4) point DNS at the ingress LB.
-    # Last tenant still on Odoo 15 (lasg) — flip it the same way when ready.
-    - host: lasg.cadra.ng          # -> DB "lasg" (Lagos State Ministry of Health, still on 15)
+    # CUTOVER: lasg flipped to Odoo 19 — the LAST tenant. All four now on odoo-19;
+    # the 15 `odoo`/`cadra` stack can be retired. (lasg->lasg_15bak, lasg19->lasg.)
+    - host: lasg.cadra.ng          # -> DB "lasg" on odoo-19 (Lagos State Ministry of Health)
       http:
         paths:
           # Modern React SPA — served by the `frontend` Service. Must precede
@@ -60,21 +61,21 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: odoo
+                name: odoo-19
                 port:
                   number: 8072
           - path: /websocket
             pathType: Prefix
             backend:
               service:
-                name: odoo
+                name: odoo-19
                 port:
                   number: 8072
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: odoo
+                name: odoo-19
                 port:
                   number: 8069
     # CUTOVER: gtb is flipped to the Odoo 19 stack. Its backend points at the
