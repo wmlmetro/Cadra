@@ -23,8 +23,11 @@ spec:
   ttlSecondsAfterFinished: 86400
   template:
     metadata:
+      # NOT app: odoo-19 — that is the odoo-19 Service selector, so labelling the
+      # Job pod with it makes it a bogus Service endpoint and XML-RPC calls to
+      # odoo-19:8069 round-robin onto this pod (no listener) → Connection refused.
       labels:
-        app: odoo-19
+        app: nrs-import
         job: nrs-import
     spec:
       restartPolicy: Never
