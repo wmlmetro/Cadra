@@ -3,12 +3,13 @@ name: nrs-import
 # Run the one-off NRS master-data import as an in-cluster Job. Prereqs:
 #   1. staging19 bootstrapped (deploy-19: run_bootstrap=true bootstrap_db=staging19
 #      bootstrap_extra_modules=cadra_brand_nrs bootstrap_seed_profile=core).
-#   2. cadra-nrs-import image built LOCALLY (Dockerfile.nrs-import bakes the
-#      gitignored NRS_asset_seed pack) and pushed to the DO registry — pass its
-#      ref as the `image` input.
+#   2. cadra-nrs-import image built + pushed to the DO registry (nrs-import-image.yml
+#      or a local build) — pass its ref as the `image` input.
 #
 # workflow_dispatch only. Reproduces ~11.4k employees + ~11.9k assets on
-# staging19 (location bridge + asset/employee import via odoo-19 XML-RPC).
+# staging19 (location bridge + asset/employee import via odoo-19 XML-RPC). The
+# import is idempotent (load() updates), so re-running is safe; this workflow
+# also PRE-CHECKS staging19 and skips the ~45m import if it is already loaded.
 
 on:
   workflow_dispatch:
@@ -25,6 +26,10 @@ on:
         description: "Live 15 DB to export the location tree from."
         type: string
         default: "staging"
+      force:
+        description: "Re-run the import even if staging19 already looks loaded."
+        type: boolean
+        default: false
 
 env:
   NAMESPACE: cadra-dev
@@ -36,7 +41,7 @@ concurrency:
 jobs:
   import:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     environment:
       name: dev
     steps:
@@ -46,9 +51,32 @@ jobs:
         with:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
       - name: Save DOKS kubeconfig
-        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 1800 "${{ vars.DO_CLUSTER_NAME }}"
+        # 2h token — the import runs ~45m+; a short token expires mid-run and
+        # kubectl loses auth (the original failure mode).
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 7200 "${{ vars.DO_CLUSTER_NAME }}"
+
+      - name: Pre-check — is staging19 already imported?
+        id: precheck
+        env:
+          PGUSER: ${{ vars.POSTGRES_USER || 'odoo' }}
+          TARGET_DB: ${{ inputs.target_db }}
+        run: |
+          set -e
+          POD=$(kubectl -n "$NAMESPACE" get pod -l app=db -o jsonpath='{.items[0].metadata.name}')
+          EMP=$(kubectl -n "$NAMESPACE" exec "$POD" -- psql -U "$PGUSER" -d "$TARGET_DB" -tAc \
+            "SELECT count(*) FROM hr_employee" 2>/dev/null | tr -d '[:space:]' || echo 0)
+          AST=$(kubectl -n "$NAMESPACE" exec "$POD" -- psql -U "$PGUSER" -d "$TARGET_DB" -tAc \
+            "SELECT count(*) FROM nrs_asset" 2>/dev/null | tr -d '[:space:]' || echo 0)
+          echo "staging19 currently: employees=$EMP assets=$AST"
+          if [ "${EMP:-0}" -ge 11000 ] && [ "${AST:-0}" -ge 11000 ] && [ "${{ inputs.force }}" != "true" ]; then
+            echo "done=true" >> "$GITHUB_OUTPUT"
+            echo "Already loaded — skipping the import Job (pass force=true to redo)."
+          else
+            echo "done=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Run cadra-nrs-import Job
+        if: steps.precheck.outputs.done != 'true'
         env:
           IMAGE: ${{ inputs.image }}
           TARGET_DB: ${{ inputs.target_db }}
@@ -60,12 +88,29 @@ jobs:
               -e "s|value: \"staging19\"|value: \"${TARGET_DB}\"|" \
               -e "s|value: \"staging\"       # live 15 DB to export locations from|value: \"${SOURCE_DB}\"|" \
               k8s/dev/71-nrs-import-job.yaml | kubectl apply -f -
-          # ~11.4k emp + ~11.9k assets over XML-RPC → allow up to 45m.
-          kubectl -n "${NAMESPACE}" wait --for=condition=complete job/cadra-nrs-import --timeout=45m &
-          WAIT_PID=$!
-          # Stream logs while it runs.
           sleep 8
+          # Stream logs (best-effort); then poll the Job status until it finishes.
           kubectl -n "${NAMESPACE}" logs -f job/cadra-nrs-import --all-containers || true
-          wait $WAIT_PID
-          echo "─── final log tail ───"
-          kubectl -n "${NAMESPACE}" logs job/cadra-nrs-import --all-containers --tail=40
+          for i in $(seq 1 100); do
+            SUCC=$(kubectl -n "${NAMESPACE}" get job cadra-nrs-import -o jsonpath='{.status.succeeded}' 2>/dev/null || echo)
+            FAIL=$(kubectl -n "${NAMESPACE}" get job cadra-nrs-import -o jsonpath='{.status.failed}' 2>/dev/null || echo)
+            if [ "${SUCC:-0}" = "1" ]; then echo "Job succeeded."; break; fi
+            if [ -n "${FAIL}" ] && [ "${FAIL}" -ge 1 ] 2>/dev/null; then
+              echo "Job failed."; kubectl -n "${NAMESPACE}" logs job/cadra-nrs-import --all-containers --tail=60; exit 1
+            fi
+            sleep 60
+          done
+
+      - name: Verify staging19 counts + 19 signature
+        env:
+          PGUSER: ${{ vars.POSTGRES_USER || 'odoo' }}
+          TARGET_DB: ${{ inputs.target_db }}
+        run: |
+          set -e
+          POD=$(kubectl -n "$NAMESPACE" get pod -l app=db -o jsonpath='{.items[0].metadata.name}')
+          echo "── staging19 counts ──"
+          kubectl -n "$NAMESPACE" exec "$POD" -- psql -U "$PGUSER" -d "$TARGET_DB" -tAc \
+            "SELECT 'employees',count(*) FROM hr_employee UNION ALL SELECT 'assets',count(*) FROM nrs_asset UNION ALL SELECT 'locations',count(*) FROM generic_location UNION ALL SELECT 'assets_on_real_loc',count(*) FROM nrs_asset a WHERE a.location_id IN (SELECT res_id FROM ir_model_data WHERE name LIKE 'nrs_loc_%' AND model='generic.location');"
+          echo "── 19 signature ──"
+          kubectl -n "$NAMESPACE" exec "$POD" -- psql -U "$PGUSER" -d "$TARGET_DB" -tAc \
+            "SELECT name,state FROM ir_module_module WHERE name='myservice_request_core';"
