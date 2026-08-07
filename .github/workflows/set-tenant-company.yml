@@ -1,0 +1,82 @@
+name: set-tenant-company
+
+# Set res.company.name (and its partner name) for a tenant DB, in-cluster.
+# cadra_brand_* modules deliberately leave the company name to be set per-DB;
+# tenants seeded by their own profile (gtb/jaiz/lasg) get it from their seed
+# script, but a tenant bootstrapped with the generic `core` profile (NRS/
+# staging) ends up with Odoo's default "My Company". This fixes that.
+#
+# /api/v1/brand reads res.company.name fresh per request, so no odoo-19 restart
+# is needed. workflow_dispatch only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tenant_db:
+        description: "Tenant DB (e.g. staging)."
+        type: string
+        required: true
+      company_name:
+        description: "Company name (e.g. Nigeria Revenue Service)."
+        type: string
+        required: true
+      tenant_host:
+        description: "Host for the brand verify (e.g. staging.app.cadra.ng)."
+        type: string
+        required: true
+
+env:
+  NAMESPACE: cadra-dev
+
+concurrency:
+  group: set-tenant-company
+  cancel-in-progress: false
+
+jobs:
+  set:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: dev
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      - name: Save DOKS kubeconfig
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 1200 "${{ vars.DO_CLUSTER_NAME }}"
+
+      - name: Set res.company.name + partner name
+        env:
+          PGUSER: ${{ vars.POSTGRES_USER || 'odoo' }}
+          DB: ${{ inputs.tenant_db }}
+          CNAME: ${{ inputs.company_name }}
+        run: |
+          set -e
+          POD=$(kubectl -n "$NAMESPACE" get pod -l app=db -o jsonpath='{.items[0].metadata.name}')
+          # Dollar-quote the value ($tag$…$tag$) so spaces/punctuation are safe.
+          # Target the main company (lowest id) and its linked partner.
+          kubectl -n "$NAMESPACE" exec -i "$POD" -- psql -U "$PGUSER" -d "$DB" -v ON_ERROR_STOP=1 <<SQL
+          UPDATE res_company
+             SET name = \$cn\$${CNAME}\$cn\$
+           WHERE id = (SELECT min(id) FROM res_company);
+          UPDATE res_partner p
+             SET name = \$cn\$${CNAME}\$cn\$
+            FROM res_company c
+           WHERE c.partner_id = p.id
+             AND c.id = (SELECT min(id) FROM res_company);
+          SQL
+          echo "── res_company now ──"
+          kubectl -n "$NAMESPACE" exec "$POD" -- psql -U "$PGUSER" -d "$DB" -tAc \
+            "SELECT id, name FROM res_company ORDER BY id;"
+
+      - name: Verify /api/v1/brand reflects it
+        env:
+          TENANT_HOST: ${{ inputs.tenant_host }}
+        run: |
+          set -e
+          kubectl -n "$NAMESPACE" exec deploy/odoo-19 -- python3 -c "
+          import urllib.request
+          req = urllib.request.Request('http://localhost:8069/api/v1/brand', headers={'Host': '$TENANT_HOST'})
+          print(urllib.request.urlopen(req, timeout=15).read().decode()[:300])"
