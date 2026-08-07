@@ -43,9 +43,9 @@ spec:
     # To onboard a client: (1) add its host here with `http: *odoo-paths`,
     # (2) add the host to the tls list above, (3) create + bootstrap the DB
     # named after the subdomain label, (4) point DNS at the ingress LB.
-    # 15-stack path set — anchor for tenants still on Odoo 15 (jaiz, lasg).
-    - host: jaizbankplc.cadra.ng   # -> DB "jaizbankplc" (Jaiz Bank Plc, still on 15)
-      http: &odoo-paths
+    # Last tenant still on Odoo 15 (lasg) — flip it the same way when ready.
+    - host: lasg.cadra.ng          # -> DB "lasg" (Lagos State Ministry of Health, still on 15)
+      http:
         paths:
           # Modern React SPA — served by the `frontend` Service. Must precede
           # the `/` catch-all so /app/* doesn't fall through to Odoo.
@@ -77,8 +77,6 @@ spec:
                 name: odoo
                 port:
                   number: 8069
-    - host: lasg.cadra.ng          # -> DB "lasg" (Lagos State Ministry of Health, still on 15)
-      http: *odoo-paths
     # CUTOVER: gtb is flipped to the Odoo 19 stack. Its backend points at the
     # odoo-19 Service (the DB "gtb" was renamed from the seeded "gtb19"; the old
     # 15 DB is preserved as "gtb_15bak"). /app still uses the shared frontend.
@@ -118,6 +116,10 @@ spec:
     # "staging" was renamed to "staging_15bak" (preserved for rollback) and the
     # fully-provisioned "staging19" -> "staging". Rollback = swap names back +
     # point this host back at *odoo-paths.
-    # (jaiz + lasg are still on 15 above — flip them the same way when ready.)
+    # (lasg is still on 15 above — flip it the same way when ready.)
     - host: staging.app.cadra.ng   # -> DB "staging" on odoo-19 (Nigeria Revenue Service)
+      http: *odoo19-paths
+    # CUTOVER: jaiz flipped to Odoo 19 (jaizbankplc -> jaizbankplc_15bak, seeded
+    # jaizbankplc19 -> jaizbankplc). Rollback = swap names + point back at odoo.
+    - host: jaizbankplc.cadra.ng   # -> DB "jaizbankplc" on odoo-19 (Jaiz Bank Plc)
       http: *odoo19-paths
