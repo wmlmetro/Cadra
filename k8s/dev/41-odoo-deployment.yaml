@@ -6,7 +6,11 @@ metadata:
   labels:
     app: odoo
 spec:
-  replicas: 1
+  # RETIRED: all tenants migrated to the Odoo 19 stack (odoo-19). The 15 stack is
+  # scaled to 0 to free node memory (its ~2Gi is what starved the lasg19 install
+  # → OOMKill). Manifests kept for rollback: set replicas back to 1 + rename the
+  # relevant *_15bak/_preflip DB back to flip a tenant to 15 again.
+  replicas: 0
   strategy:
     # Odoo can't run two writers against the same DB row state — Recreate
     # avoids the brief overlap window that RollingUpdate would create.
