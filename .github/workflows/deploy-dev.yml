@@ -1,35 +1,22 @@
 name: deploy-dev
 
-# Builds the Cadra Odoo image, pushes it to DigitalOcean Container Registry,
-# and rolls the cadra-dev namespace on the DOKS cluster.
+# Deploys the Cadra platform to the DOKS cadra-dev namespace. Since the 15->19
+# migration, this targets the Odoo 19 stack (cadra-odoo-19 image, odoo-19
+# Deployment) — the 15 stack is retired (k8s/dev/41-odoo-deployment.yaml is
+# replicas:0). It also builds+rolls the React SPA and keeps the shared
+# resources (Secrets, ConfigMaps, Postgres, Ingress) current.
 #
-# Required GitHub secrets:
-#   DIGITALOCEAN_ACCESS_TOKEN   PAT with `read/write` on registry + k8s scopes
-#   POSTGRES_PASSWORD           Postgres password (any strong random string)
-#   ODOO_MASTER_PASSWORD        Odoo master password (DB manager UI auth)
-#   CADRA_JWT_SECRET            JWT signing key, ≥48 chars random (openssl rand -hex 32)
-#   CADRA_TEST_CLIENT_SECRET    Smoke-test API client secret
-#   SMTP_PASS                   (optional) Outbound SMTP password / app password
-#   CADRA_EMAIL_RELAY_SECRET    (optional) Shared secret for the HTTPS email relay
-#                                — required if CADRA_EMAIL_RELAY_URL is set
+# On push to dev: build images, sync secrets, apply configmaps/postgres/pvc/
+# service/ingress, and roll the FRONTEND (safe RollingUpdate). It does NOT roll
+# odoo-19 on push — that uses Recreate + an RWO filestore, so a roll briefly
+# interrupts EVERY live tenant. Roll the backend deliberately via
+# workflow_dispatch (roll_odoo=true) or the deploy-19 workflow.
 #
-# Required GitHub repository variables (Settings → Secrets and variables → Actions → Variables):
-#   DO_REGISTRY_NAME            e.g. "cadra"  → registry.digitalocean.com/cadra/cadra-odoo
-#   DO_CLUSTER_NAME             e.g. "cadra-dev"
-#   POSTGRES_DB                 (optional, default "odoo") DB name
-#   POSTGRES_USER               (optional, default "odoo") DB user
-#   SMTP_HOST                   (optional) Outbound SMTP host, e.g. smtp.zoho.com
-#   SMTP_PORT                   (optional, default 587)
-#   SMTP_USER                   (optional) SMTP username (full email for Zoho/Gmail)
-#   SMTP_ENCRYPTION             (optional, default starttls) none|starttls|ssl
-#   EMAIL_FROM                  (optional) default From address, e.g. Hello@cadra.ng
-#   CADRA_EMAIL_RELAY_URL       (optional) HTTPS relay endpoint that bypasses
-#                                the DO SMTP egress block. Example:
-#                                https://staging.akraa.io/api/v1/public/email/send
-#
-# One-time prerequisites (NOT done by this workflow):
-#   - DOKS cluster exists; ingress-nginx + cert-manager installed.
-#   - DNS for the ingress host points at the cluster's LoadBalancer.
+# Required GitHub secrets: DIGITALOCEAN_ACCESS_TOKEN, POSTGRES_PASSWORD,
+#   ODOO_MASTER_PASSWORD, CADRA_JWT_SECRET, CADRA_TEST_CLIENT_SECRET,
+#   SMTP_PASS (opt), CADRA_EMAIL_RELAY_SECRET (opt).
+# Required vars: DO_REGISTRY_NAME, DO_CLUSTER_NAME, POSTGRES_DB/USER (opt),
+#   SMTP_* (opt), EMAIL_FROM (opt), CADRA_EMAIL_RELAY_URL (opt).
 
 on:
   push:
@@ -40,71 +27,36 @@ on:
       - ".gitignore"
   workflow_dispatch:
     inputs:
-      run_bootstrap:
-        description: "Re-run the bootstrap Job (install modules + seed). Required on the first deploy."
+      roll_odoo:
+        description: "Also roll the odoo-19 Deployment with the new image (briefly interrupts ALL live tenants — Recreate + RWO filestore). Off = build image only; backend roll happens via deploy-19."
         type: boolean
         default: false
-      bootstrap_db:
-        description: "Onboard/target a specific tenant DB for the bootstrap Job (e.g. 'gtb'). Blank = the default POSTGRES_DB. A new name is created by Odoo on install."
-        type: string
-        default: ""
-      bootstrap_seed_profile:
-        description: "Seed profile for the bootstrap Job (e.g. 'gtb'). Blank = the configmap default (CADRA_SEED_PROFILE)."
-        type: string
-        default: ""
-      bootstrap_extra_modules:
-        description: "Extra modules to install alongside the shared list for this bootstrap (e.g. a client brand 'cadra_brand_gtb'). Comma-separated; blank = none."
-        type: string
-        default: ""
-      upgrade_modules:
-        description: "Comma-separated modules to upgrade (e.g. 'myservice_nrs_base'). Leave blank to skip. Use after a manifest change (asset list, new data files, version bump)."
-        type: string
-        default: ""
-      install_modules:
-        description: "Comma-separated NEW modules to install (e.g. 'cadra_brand_nrs'). Leave blank to skip. Adds a module to the live DB without re-running the bootstrap seed."
-        type: string
-        default: ""
-      target_db:
-        description: "Tenant DB for the install/upgrade Job (e.g. 'gtb'). Blank = default POSTGRES_DB (staging)."
-        type: string
-        default: ""
-      filestore_from:
-        description: "One-off filestore migration: source dir name under /var/lib/odoo/filestore (e.g. the OLD db name 'odoo'). Use after renaming a DB so attachments/assets resolve. Leave blank to skip."
-        type: string
-        default: ""
-      filestore_to:
-        description: "Filestore migration target dir (the NEW db name, e.g. 'staging'). Required if filestore_from is set."
-        type: string
-        default: ""
 
 concurrency:
   group: deploy-dev
   cancel-in-progress: false   # Don't kill a deploy mid-flight; queue instead.
 
 env:
-  IMAGE_NAME: cadra-odoo
+  IMAGE_NAME: cadra-odoo-19
   FRONTEND_IMAGE_NAME: cadra-frontend
   NAMESPACE: cadra-dev
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     permissions:
       contents: read
     outputs:
       image: ${{ steps.meta.outputs.image }}
     steps:
       - uses: actions/checkout@v4
-
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
         with:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-
       - name: Log into DigitalOcean Container Registry
         run: doctl registry login --expiry-seconds 1200
-
       - name: Compute image reference
         id: meta
         run: |
@@ -112,26 +64,21 @@ jobs:
           IMAGE="registry.digitalocean.com/${{ vars.DO_REGISTRY_NAME }}/${IMAGE_NAME}:dev-${SHA_SHORT}"
           echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
           echo "Image: ${IMAGE}"
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: Build & push
+      - name: Build & push (Odoo 19 k8s image)
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile.odoo.k8s
+          file: Dockerfile.odoo.19.k8s
           push: true
           tags: |
             ${{ steps.meta.outputs.image }}
             registry.digitalocean.com/${{ vars.DO_REGISTRY_NAME }}/${{ env.IMAGE_NAME }}:dev-latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=odoo19
+          cache-to: type=gha,mode=max,scope=odoo19
           platforms: linux/amd64
 
-  # Modern React SPA. Builds in parallel with the Odoo image; deploy step
-  # waits for both. The bundle lands behind nginx and is routed at /app/*
-  # by the shared ingress (see k8s/dev/60-ingress.yaml).
   build-and-push-frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -141,15 +88,12 @@ jobs:
       image: ${{ steps.meta.outputs.image }}
     steps:
       - uses: actions/checkout@v4
-
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
         with:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-
       - name: Log into DigitalOcean Container Registry
         run: doctl registry login --expiry-seconds 1200
-
       - name: Compute image reference
         id: meta
         run: |
@@ -157,10 +101,8 @@ jobs:
           IMAGE="registry.digitalocean.com/${{ vars.DO_REGISTRY_NAME }}/${FRONTEND_IMAGE_NAME}:dev-${SHA_SHORT}"
           echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
           echo "Image: ${IMAGE}"
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
       - name: Build & push
         uses: docker/build-push-action@v6
         with:
@@ -177,30 +119,23 @@ jobs:
   deploy:
     needs: [build-and-push, build-and-push-frontend]
     runs-on: ubuntu-latest
-    timeout-minutes: 70
+    timeout-minutes: 40
     permissions:
       contents: read
     environment:
       name: dev
     steps:
       - uses: actions/checkout@v4
-
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
         with:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-
       - name: Save DOKS kubeconfig
         run: doctl kubernetes cluster kubeconfig save --expiry-seconds 1200 "${{ vars.DO_CLUSTER_NAME }}"
 
       - name: Ensure namespace exists
         run: kubectl apply -f k8s/dev/00-namespace.yaml
 
-      # Upsert the two K8s Secrets from GitHub Actions secrets.
-      # `--dry-run=client -o yaml | kubectl apply -f -` is the idiomatic
-      # idempotent "create or replace" for opaque Secrets — values that
-      # don't change generate a no-op apply; rotated values roll the
-      # Deployment on the next pod restart.
       - name: Sync K8s Secrets from GitHub Secrets
         env:
           POSTGRES_DB: ${{ vars.POSTGRES_DB || 'staging' }}
@@ -230,9 +165,6 @@ jobs:
             --from-literal=POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
-          # SMTP_* are optional — if SMTP_HOST is unset, bootstrap.py treats
-          # the whole mail-server step as a no-op. We still write empty keys
-          # so the Deployment/Job envFrom references don't crash.
           kubectl -n "${NAMESPACE}" create secret generic cadra-odoo \
             --from-literal=ODOO_MASTER_PASSWORD="${ODOO_MASTER_PASSWORD}" \
             --from-literal=CADRA_JWT_SECRET="${CADRA_JWT_SECRET}" \
@@ -247,93 +179,17 @@ jobs:
             --from-literal=CADRA_EMAIL_RELAY_SECRET="${CADRA_EMAIL_RELAY_SECRET}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Apply ConfigMaps + Postgres + filestore (workflow owns these)
+      - name: Apply 19 ConfigMaps + Postgres + filestore PVC + Service
         run: |
-          kubectl apply -f k8s/dev/10-configmap-odoo.yaml
-          kubectl apply -f k8s/dev/11-configmap-bootstrap.yaml
+          kubectl apply -f k8s/dev/10-configmap-odoo-19.yaml
+          kubectl apply -f k8s/dev/11-configmap-bootstrap-19.yaml
           kubectl apply -f k8s/dev/30-postgres-statefulset.yaml
           kubectl apply -f k8s/dev/31-postgres-service.yaml
-          kubectl apply -f k8s/dev/40-odoo-pvc.yaml
-          kubectl apply -f k8s/dev/42-odoo-service.yaml
+          kubectl apply -f k8s/dev/40-odoo-19-pvc.yaml
+          kubectl apply -f k8s/dev/42-odoo-19-service.yaml
 
       - name: Wait for Postgres ready
-        run: |
-          kubectl -n "${NAMESPACE}" rollout status statefulset/db --timeout=5m
-
-      # The Job and the Deployment both want the filestore PVC (RWO), so they
-      # can't co-exist. For routine rolls we skip the Job (modules + seed are
-      # already in the DB). For the first deploy — or any time we want to
-      # re-run install/seed — set `run_bootstrap=true` on workflow_dispatch.
-      - name: (Optional) Run bootstrap Job
-        if: github.event_name == 'workflow_dispatch' && inputs.run_bootstrap == true
-        env:
-          IMAGE: ${{ needs.build-and-push.outputs.image }}
-          BOOTSTRAP_DB: ${{ inputs.bootstrap_db }}
-          BOOTSTRAP_SEED_PROFILE: ${{ inputs.bootstrap_seed_profile }}
-          BOOTSTRAP_EXTRA_MODULES: ${{ inputs.bootstrap_extra_modules }}
-        run: |
-          set -e
-          # Scale Odoo to 0 so the Deployment releases the PVC for the Job.
-          # (kubectl scale has no --ignore-not-found, and on the very first
-          # bootstrap the Deployment doesn't exist yet — guard with a get.)
-          if kubectl -n "${NAMESPACE}" get deployment/odoo >/dev/null 2>&1; then
-            kubectl -n "${NAMESPACE}" scale deployment/odoo --replicas=0
-            # Wait for the pod to actually terminate (releases the volume).
-            kubectl -n "${NAMESPACE}" wait --for=delete pod -l app=odoo,job!=bootstrap --timeout=2m || true
-          fi
-
-          # Jobs are immutable — delete any prior run before re-applying.
-          kubectl -n "${NAMESPACE}" delete job cadra-bootstrap --ignore-not-found
-
-          # Materialize the image tag + per-client onboarding overrides into
-          # the Job manifest. Blank inputs become empty strings, so the Job's
-          # ${TARGET_DB:-$DB} / ${SEED_PROFILE_OVERRIDE:-...} fall back to the
-          # secret DB and configmap profile (unchanged for normal staging runs).
-          sed -e "s|REPLACE_ME/cadra-odoo:dev|${IMAGE}|g" \
-              -e "s|REPLACE_ME_TARGET_DB|${BOOTSTRAP_DB}|g" \
-              -e "s|REPLACE_ME_SEED_PROFILE|${BOOTSTRAP_SEED_PROFILE}|g" \
-              -e "s|REPLACE_ME_EXTRA_MODULES|${BOOTSTRAP_EXTRA_MODULES}|g" \
-              k8s/dev/50-bootstrap-job.yaml | kubectl apply -f -
-
-          kubectl -n "${NAMESPACE}" wait --for=condition=complete job/cadra-bootstrap --timeout=60m
-          echo "─── bootstrap Job logs ───"
-          kubectl -n "${NAMESPACE}" logs job/cadra-bootstrap --all-containers --tail=200
-
-      # Same Deployment-vs-Job PVC contention as bootstrap: scale Odoo to 0,
-      # run the upgrade, then let the next step roll the Deployment back up
-      # with the new image. Triggered only on workflow_dispatch when the
-      # `upgrade_modules` input is non-empty.
-      - name: (Optional) Run module install/upgrade Job
-        if: github.event_name == 'workflow_dispatch' && (inputs.upgrade_modules != '' || inputs.install_modules != '')
-        env:
-          IMAGE: ${{ needs.build-and-push.outputs.image }}
-          UPGRADE_MODULES: ${{ inputs.upgrade_modules }}
-          INSTALL_MODULES: ${{ inputs.install_modules }}
-          TARGET_DB: ${{ inputs.target_db }}
-        run: |
-          set -e
-          if kubectl -n "${NAMESPACE}" get deployment/odoo >/dev/null 2>&1; then
-            kubectl -n "${NAMESPACE}" scale deployment/odoo --replicas=0
-            kubectl -n "${NAMESPACE}" wait --for=delete pod -l app=odoo,job!=upgrade --timeout=2m || true
-          fi
-
-          kubectl -n "${NAMESPACE}" delete job cadra-upgrade --ignore-not-found
-
-          sed -e "s|REPLACE_ME/cadra-odoo:dev|${IMAGE}|g" \
-              -e "s|REPLACE_ME_INSTALL_MODULES|${INSTALL_MODULES}|g" \
-              -e "s|REPLACE_ME_UPGRADE_MODULES|${UPGRADE_MODULES}|g" \
-              -e "s|REPLACE_ME_TARGET_DB|${TARGET_DB}|g" \
-              k8s/dev/51-upgrade-job.yaml | kubectl apply -f -
-
-          kubectl -n "${NAMESPACE}" wait --for=condition=complete job/cadra-upgrade --timeout=20m
-          echo "─── install/upgrade Job logs ───"
-          kubectl -n "${NAMESPACE}" logs job/cadra-upgrade --all-containers --tail=200
-
-      - name: Apply Odoo Deployment with new image
-        env:
-          IMAGE: ${{ needs.build-and-push.outputs.image }}
-        run: |
-          sed "s|REPLACE_ME/cadra-odoo:dev|${IMAGE}|g" k8s/dev/41-odoo-deployment.yaml | kubectl apply -f -
+        run: kubectl -n "${NAMESPACE}" rollout status statefulset/db --timeout=5m
 
       - name: Apply Frontend Service + Deployment with new image
         env:
@@ -345,33 +201,16 @@ jobs:
       - name: Apply Ingress
         run: kubectl apply -f k8s/dev/60-ingress.yaml
 
-      - name: Wait for Odoo rollout
-        run: kubectl -n "${NAMESPACE}" rollout status deployment/odoo --timeout=10m
-
-      # One-off: after a DB rename, Odoo reads filestore/<db-name>/ but the
-      # files still live under the old name → attachments + asset bundles 404
-      # (blank /web). Merge old → new (cp -n: keeps any already-regenerated
-      # files, fills in the rest; leaves the source dir as a backup). Safe to
-      # run with Odoo up — the filestore is read on demand and cp is additive.
-      - name: (Optional) Migrate filestore directory after a DB rename
-        if: github.event_name == 'workflow_dispatch' && inputs.filestore_from != '' && inputs.filestore_to != ''
+      # Deliberate backend roll only — Recreate + RWO filestore briefly
+      # interrupts every live tenant, so we never do it automatically on push.
+      - name: (Optional) Roll odoo-19 Deployment with new image
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.roll_odoo == true }}
         env:
-          FROM: ${{ inputs.filestore_from }}
-          TO: ${{ inputs.filestore_to }}
+          IMAGE: ${{ needs.build-and-push.outputs.image }}
         run: |
           set -e
-          echo "── filestore BEFORE ──"
-          kubectl -n "${NAMESPACE}" exec deployment/odoo -- ls -la /var/lib/odoo/filestore/
-          kubectl -n "${NAMESPACE}" exec deployment/odoo -- sh -c '
-            cd /var/lib/odoo/filestore
-            from="$1"; to="$2"
-            [ -d "$from" ] || { echo "FATAL: source dir $from not found" >&2; exit 1; }
-            mkdir -p "$to"
-            cp -rn "$from/." "$to/"
-            echo "merged $from -> $to"
-          ' _ "$FROM" "$TO"
-          echo "── filestore AFTER ──"
-          kubectl -n "${NAMESPACE}" exec deployment/odoo -- ls -la /var/lib/odoo/filestore/
+          sed "s|REPLACE_ME/cadra-odoo-19:dev|${IMAGE}|g" k8s/dev/41-odoo-19-deployment.yaml | kubectl apply -f -
+          kubectl -n "${NAMESPACE}" rollout status deployment/odoo-19 --timeout=10m
 
       - name: Wait for Frontend rollout
         run: kubectl -n "${NAMESPACE}" rollout status deployment/frontend --timeout=5m
@@ -380,11 +219,11 @@ jobs:
         if: failure()
         run: |
           kubectl -n "${NAMESPACE}" get pods,svc,ingress,pvc -o wide || true
-          kubectl -n "${NAMESPACE}" describe deployment/odoo || true
+          kubectl -n "${NAMESPACE}" describe deployment/odoo-19 || true
           kubectl -n "${NAMESPACE}" describe deployment/frontend || true
           echo "─── recent events ───"
           kubectl -n "${NAMESPACE}" get events --sort-by=.lastTimestamp | tail -30 || true
-          echo "─── odoo pod logs (last 200) ───"
-          kubectl -n "${NAMESPACE}" logs -l app=odoo --tail=200 --all-containers || true
+          echo "─── odoo-19 pod logs (last 200) ───"
+          kubectl -n "${NAMESPACE}" logs -l app=odoo-19 --tail=200 --all-containers || true
           echo "─── frontend pod logs (last 100) ───"
           kubectl -n "${NAMESPACE}" logs -l app=frontend --tail=100 --all-containers || true

@@ -83,7 +83,7 @@ spec:
               port: 8069
               httpHeaders:
                 - name: Host
-                  value: staging19.app.cadra.ng
+                  value: staging.app.cadra.ng
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
@@ -94,7 +94,7 @@ spec:
               port: 8069
               httpHeaders:
                 - name: Host
-                  value: staging19.app.cadra.ng
+                  value: staging.app.cadra.ng
             initialDelaySeconds: 90
             periodSeconds: 30
             timeoutSeconds: 5
