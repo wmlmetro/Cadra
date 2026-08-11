@@ -1,6 +1,7 @@
 import type { AssetDepreciation, DepreciationMethod, DepreciationState } from "@/types";
 import { cn } from "@/lib/utils";
 import { Info, AlertTriangle } from "lucide-react";
+import DepreciationTimeline from "@/components/DepreciationTimeline";
 
 const METHOD_LABEL: Record<DepreciationMethod, string> = {
   none: "Not depreciated",
@@ -47,9 +48,11 @@ function Row({ label, value }: { label: string; value?: React.ReactNode }) {
 }
 
 export default function DepreciationCard({
+  assetId,
   depreciation: d,
   currency,
 }: {
+  assetId: string;
   depreciation: AssetDepreciation;
   currency?: string;
 }) {
@@ -151,6 +154,8 @@ export default function DepreciationCard({
             value={d.usesCategoryPolicy ? "Inherited from category" : "Set on this asset"}
           />
         </dl>
+
+        <DepreciationTimeline assetId={assetId} depreciation={d} currency={currency} />
       </div>
     </section>
   );
