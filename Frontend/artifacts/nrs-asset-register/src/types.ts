@@ -18,12 +18,52 @@ export interface AssetLocation {
   roomId?: number;
 }
 
+export type DepreciationMethod =
+  | "none"
+  | "straight_line"
+  | "declining_balance"
+  | "erp_managed";
+
+export type DepreciationState =
+  | "not_applicable"
+  | "not_started"
+  | "depreciating"
+  | "fully_depreciated"
+  | "disposed"
+  | "erp_managed";
+
+/** Where the depreciation start date came from. "created" means it was
+ *  inferred from the import timestamp, not a real business date. */
+export type DepreciationStartSource =
+  | "acquisition"
+  | "purchase"
+  | "created"
+  | "manual";
+
+export interface AssetDepreciation {
+  method: DepreciationMethod;
+  usefulLifeMonths?: number;
+  decliningRate?: number;
+  salvageValue?: number;
+  depreciableCost?: number;
+  startDate?: string;
+  startDateSource?: DepreciationStartSource;
+  startDateIsEstimated: boolean;
+  accumulatedDepreciation?: number;
+  currentBookValue?: number;
+  state: DepreciationState;
+  endDate?: string;
+  usesCategoryPolicy: boolean;
+}
+
 export interface AssetFinancials {
   currency?: string;
   purchaseValue?: number;
   replacementCost?: number;
   acquisitionCost?: number;
+  /** Legacy hand-entered figure. Superseded by depreciation.currentBookValue. */
   currentValue?: number;
+  depreciation?: AssetDepreciation;
 }
 
 export interface AssetKeyDates {

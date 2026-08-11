@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Policy defaults live next to pm_interval_days: same idea, set the rule
+         once per class of asset. The tree is editable, so this is where a
+         manager actually configures depreciation. -->
+    <record id="view_nrs_asset_category_tree_depreciation" model="ir.ui.view">
+        <field name="name">nrs.asset.category.tree.depreciation</field>
+        <field name="model">nrs.asset.category</field>
+        <field name="inherit_id" ref="myservice_asset_register.view_nrs_asset_category_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='pm_interval_days']" position="after">
+                <field name="depreciation_method"/>
+                <field name="useful_life_months"
+                       readonly="depreciation_method in ('none', 'erp_managed')"/>
+                <field name="declining_rate"
+                       readonly="depreciation_method != 'declining_balance'"/>
+                <field name="salvage_rate"
+                       readonly="depreciation_method in ('none', 'erp_managed')"/>
+                <field name="asset_depreciating_count" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

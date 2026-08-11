@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Straight-line policy defaults for the 20 categories shipped by
+  myservice_asset_register. Useful lives are conventional Nigerian
+  public-sector/commercial estimates, not a statutory schedule — a tenant whose
+  accounting policy differs edits the category, and every asset following that
+  category picks the change up.
+
+  NOTE: this is `noupdate="1"`, matching data/asset_categories.xml. That means
+  these values apply to FRESH INSTALLS ONLY — an existing tenant database will
+  not pick them up on upgrade, because Odoo skips noupdate records. For tenants
+  that already exist, run:
+
+      scripts/backfill_depreciation.py
+
+  which applies the same defaults directly to the records. Do not "fix" this by
+  removing noupdate: that would silently overwrite any policy a tenant has
+  tuned by hand, every time the module is upgraded.
+-->
+<odoo>
+    <data noupdate="1">
+
+        <!-- ── Plant & machinery: long-lived, some residual value ── -->
+        <record id="myservice_asset_register.cat_generator" model="nrs.asset.category">
+            <field name="depreciation_method">straight_line</field>
+            <field name="useful_life_months">120</field>
+            <field name="salvage_rate">10.0</field>
+        </record>
+        <record id="myservice_asset_register.cat_lift" model="nrs.asset.category">
+            <field name="depreciation_method">straight_line</field>
+            <field name="useful_life_months">180</field>
+            <field name="salvage_rate">5.0</field>
+        </record>
+        <record id="myservice_asset_register.cat_hvac_plant" model="nrs.asset.category">
+            <field name="depreciation_method">straight_line</field>
+            <field name="useful_life_months">120</field>
+            <field name="salvage_rate">5.0</field>
+        </record>
+        <record id="myservice_asset_register.cat_compressor" model="nrs.asset.category">
+            <field name="depreciation_method">straight_line</field>
+            <field name="useful_life_months">120</field>
+            <field name="salvage_rate">5.0</field>
+        </record>
+        <record id="myservice_asset_register.cat_ahu" model="nrs.asset.category">
+            <field name="depreciation_method">straight_line</field>
+            <field name="useful_life_months">120</field>
+            <field name="salvage_rate">5.0</field>
+        </record>
+        <record id="myservice_asset_register.cat_water_treatment" model="nrs.asset.category">
+            <field name="depreciation_method">straight_line</field>
+            <field name="useful_life_months">180</field>
+            <field name="salvage_rate">5.0</field>
+        </record>
+
+        <!-- ── Building services ── -->
+        <record id="myservice_asset_register.cat_ups" model="nrs.asset.category">
+            <field name="depreciation_method">straight_line</field>
+            <field name="useful_life_months">60</field>
+            <field name="salvage_rate">0.0</field>
+        </record>
+        <record id="myservice_asset_register.cat_ac" model="nrs.asset.category">
+            <field name="depreciation_method">straight_line</field>
+            <field name="useful_life_months">84</field>
+            <field name="salvage_rate">0.0</field>
+        </record>
+        <record id="myservice_asset_register.cat_electrical" model="nrs.asset.category">
+            <field name="depreciation_method">straight_line</field>
+            <field name="useful_life_months">180</field>
+            <field name="salvage_rate">0.0</field>
+        </record>
+        <record id="myservice_asset_register.cat_fire_system" model="nrs.asset.category">
+            <field name="depreciation_method">straight_line</field>
+            <field name="useful_life_months">120</field>
+            <field name="salvage_rate">0.0</field>
+        </record>
+        <record id="myservice_asset_register.cat_pump" model="nrs.asset.category">
+            <field name="depreciation_method">straight_line</field>
+            <field name="useful_life_months">96</field>
+            <field name="salvage_rate">0.0</field>
+        </record>
+        <record id="myservice_asset_register.cat_overhead_tank" model="nrs.asset.category">
+            <field name="depreciation_method">straight_line</field>
+            <field name="useful_life_months">180</field>
+            <field name="salvage_rate">0.0</field>
+        </record>
+        <record id="myservice_asset_register.cat_fire_extinguisher" model="nrs.asset.category">
+            <field name="depreciation_method">straight_line</field>
+            <field name="useful_life_months">60</field>
+            <field name="salvage_rate">0.0</field>
+        </record>
+
+        <!-- ── Security ── -->
+        <record id="myservice_asset_register.cat_cctv" model="nrs.asset.category">
+            <field name="depreciation_method">straight_line</field>
+            <field name="useful_life_months">60</field>
+            <field name="salvage_rate">0.0</field>
+        </record>
+        <record id="myservice_asset_register.cat_access_control" model="nrs.asset.category">
+            <field name="depreciation_method">straight_line</field>
+            <field name="useful_life_months">60</field>
+            <field name="salvage_rate">0.0</field>
+        </record>
+
+        <!-- ── IT: short lives, declining balance reflects how fast kit loses
+             value in the first year or two ── -->
+        <record id="myservice_asset_register.cat_server" model="nrs.asset.category">
+            <field name="depreciation_method">declining_balance</field>
+            <field name="useful_life_months">60</field>
+            <field name="declining_rate">30.0</field>
+            <field name="salvage_rate">0.0</field>
+        </record>
+        <record id="myservice_asset_register.cat_computer" model="nrs.asset.category">
+            <field name="depreciation_method">declining_balance</field>
+            <field name="useful_life_months">48</field>
+            <field name="declining_rate">33.3</field>
+            <field name="salvage_rate">0.0</field>
+        </record>
+        <record id="myservice_asset_register.cat_printer" model="nrs.asset.category">
+            <field name="depreciation_method">straight_line</field>
+            <field name="useful_life_months">60</field>
+            <field name="salvage_rate">0.0</field>
+        </record>
+
+        <!-- ── Furniture & fleet ── -->
+        <record id="myservice_asset_register.cat_furniture" model="nrs.asset.category">
+            <field name="depreciation_method">straight_line</field>
+            <field name="useful_life_months">120</field>
+            <field name="salvage_rate">0.0</field>
+        </record>
+        <record id="myservice_asset_register.cat_vehicle" model="nrs.asset.category">
+            <field name="depreciation_method">declining_balance</field>
+            <field name="useful_life_months">96</field>
+            <field name="declining_rate">20.0</field>
+            <field name="salvage_rate">10.0</field>
+        </record>
+
+    </data>
+</odoo>

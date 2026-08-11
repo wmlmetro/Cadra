@@ -10,6 +10,7 @@ import type {
   Employee, EmployeeStatus, EmploymentType,
   Asset, AssetLocation, Location as FrontLocation, ApprovalStatus,
   ServiceRequest, RequestPriority, RequestKanbanState, RequestStageRoute, RequestMessage,
+  AssetDepreciation, DepreciationMethod, DepreciationState, DepreciationStartSource,
 } from "../types";
 
 // ─── API shape (from myservice_api/controllers/v1_identity.py:serialize_employee)
@@ -219,6 +220,24 @@ function buildAssetLocation(a: ApiAsset): AssetLocation {
   };
 }
 
+/** The `financial.depreciation` block (PRD §8.6). Mirrors
+ *  `_serialize_depreciation` in myservice_api/controllers/v1_assets.py. */
+export interface ApiAssetDepreciation {
+  method: DepreciationMethod;
+  useful_life_months: number | null;
+  declining_rate: number | null;
+  salvage_value: number | null;
+  depreciable_cost: number | null;
+  start_date: string | null;
+  start_date_source: DepreciationStartSource | null;
+  start_date_is_estimated: boolean;
+  accumulated_depreciation: number | null;
+  current_book_value: number | null;
+  state: DepreciationState;
+  end_date: string | null;
+  uses_category_policy: boolean;
+}
+
 // Extra ApiAsset fields the serializer surfaces but my initial adapter dropped.
 // Kept on a separate type so the original list payload (which omits them) still
 // satisfies ApiAsset.
@@ -229,6 +248,7 @@ interface ApiAssetExtras {
     replacement_cost: number | null;
     acquisition_cost: number | null;
     current_value: number | null;
+    depreciation?: ApiAssetDepreciation;
   };
   dates?: {
     purchase_date: string | null;
@@ -242,6 +262,28 @@ interface ApiAssetExtras {
   notes?: string | null;
   pm_count?: number;
   request_count?: number;
+}
+
+export function apiDepreciationToDepreciation(
+  d: ApiAssetDepreciation | undefined,
+): AssetDepreciation | undefined {
+  if (!d) return undefined;
+  const n = (v: number | null) => (typeof v === "number" ? v : undefined);
+  return {
+    method: d.method,
+    usefulLifeMonths: n(d.useful_life_months),
+    decliningRate: n(d.declining_rate),
+    salvageValue: n(d.salvage_value),
+    depreciableCost: n(d.depreciable_cost),
+    startDate: d.start_date ?? undefined,
+    startDateSource: d.start_date_source ?? undefined,
+    startDateIsEstimated: !!d.start_date_is_estimated,
+    accumulatedDepreciation: n(d.accumulated_depreciation),
+    currentBookValue: n(d.current_book_value),
+    state: d.state,
+    endDate: d.end_date ?? undefined,
+    usesCategoryPolicy: !!d.uses_category_policy,
+  };
 }
 
 export function apiAssetToAsset(a: ApiAsset & ApiAssetExtras): Asset {
@@ -275,12 +317,13 @@ export function apiAssetToAsset(a: ApiAsset & ApiAssetExtras): Asset {
     parentAssetId:   a.parent_asset?.id ?? undefined,
     parentAssetName: a.parent_asset?.name,
     childCount: a.child_count || undefined,
-    financials: (f && (f.currency || f.purchase_value || f.replacement_cost || f.acquisition_cost || f.current_value)) ? {
+    financials: (f && (f.currency || f.purchase_value || f.replacement_cost || f.acquisition_cost || f.current_value || f.depreciation)) ? {
       currency: f.currency?.name,
       purchaseValue:    num(f.purchase_value),
       replacementCost:  num(f.replacement_cost),
       acquisitionCost:  num(f.acquisition_cost),
       currentValue:     num(f.current_value),
+      depreciation:     apiDepreciationToDepreciation(f.depreciation),
     } : undefined,
     keyDates: d ? {
       purchaseDate:     str(d.purchase_date),
