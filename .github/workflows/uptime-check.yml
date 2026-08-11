@@ -1,0 +1,58 @@
+name: uptime-check
+
+# Lightweight external uptime monitor for all 4 live tenants. Hits, per tenant,
+# the three public surfaces — Odoo base (/), the React SPA (/app) and the public
+# API health route (/api/v1/brand, which exercises DB routing without auth).
+#
+# Runs on a schedule; a failing scheduled run emails the repo watchers (GitHub's
+# built-in "scheduled workflow failed" notification), so no extra alerting infra.
+# Each check retries a few times so a single odoo-19 pod recycle (the known
+# self-healing ~503 blip) doesn't page anyone — we only fail if it stays down.
+#
+# No cluster access: this is plain curl from the runner, so it also catches
+# ingress/DNS/cert problems that an in-cluster probe would miss.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"   # every 15 minutes
+  workflow_dispatch: {}
+
+concurrency:
+  group: uptime-check
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Probe all tenants
+        run: |
+          HOSTS="gtb.cadra.ng staging.app.cadra.ng jaizbankplc.cadra.ng lasg.cadra.ng"
+          PATHS="/ /app /api/v1/brand"
+          FAILED=""
+          check() {
+            # $1 url — returns 0 if any of 4 attempts returns a healthy code
+            for attempt in 1 2 3 4; do
+              code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 -L "$1" 2>/dev/null || echo 000)
+              case "$code" in
+                200|301|302|303) echo "  OK   $code  $1"; return 0;;
+              esac
+              echo "  ...  $code  $1 (attempt $attempt)"
+              sleep 10
+            done
+            echo "  DOWN $code  $1"
+            return 1
+          }
+          for h in $HOSTS; do
+            echo "── $h ──"
+            for p in $PATHS; do
+              check "https://${h}${p}" || FAILED="$FAILED ${h}${p}"
+            done
+          done
+          echo
+          if [ -n "$FAILED" ]; then
+            echo "UNHEALTHY endpoints (failed all retries):$FAILED" >&2
+            exit 1
+          fi
+          echo "All tenants healthy."
