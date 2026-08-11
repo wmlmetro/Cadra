@@ -84,7 +84,7 @@ spec:
               fi
               echo "running $(basename "$SCRIPT") against '$DB'"
               echo "  BACKFILL_APPLY=${BACKFILL_APPLY:-0} BACKFILL_ERP_MANAGED=${BACKFILL_ERP_MANAGED:-0} BACKFILL_NO_NAME_MATCH=${BACKFILL_NO_NAME_MATCH:-0}"
-              echo "  SEED_APPLY=${SEED_APPLY:-0} SEED_FORCE_PROTECTED=${SEED_FORCE_PROTECTED:-0}"
+              echo "  SEED_APPLY=${SEED_APPLY:-0} SEED_FORCE_PROTECTED=${SEED_FORCE_PROTECTED:-0} SEED_RESEED=${SEED_RESEED:-0}"
               # --http-port avoids colliding with odoo-19 on 8069 even though
               # the shell does not serve; Odoo still binds without it.
               exec odoo shell -c /tmp/odoo.conf -d "$DB" --no-http --http-port=8099 \
@@ -119,6 +119,8 @@ spec:
               value: "REPLACE_ME_APPLY"
             - name: SEED_FORCE_PROTECTED
               value: "REPLACE_ME_FORCE_PROTECTED"
+            - name: SEED_RESEED
+              value: "REPLACE_ME_RESEED"
             - name: ODOO_MASTER_PASSWORD
               valueFrom:
                 secretKeyRef:
