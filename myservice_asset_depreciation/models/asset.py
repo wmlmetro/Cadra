@@ -329,8 +329,13 @@ class NRSAsset(models.Model):
             'by_method': by_method,
             # The backfill queue: assets whose start date was inferred from the
             # date the record was created rather than a real business date.
+            # Scoped to computed methods — a start date is meaningless for an
+            # erp_managed asset (Cadra never derives anything from it), and
+            # counting those would drown the real queue. On the NRS tenant that
+            # is the difference between 0 and 11,878.
             'needs_start_date': self.search_count(
-                domain + [('depreciation_start_is_estimated', '=', True)]),
+                domain + [('depreciation_method', 'in', list(COMPUTED_METHODS)),
+                          ('depreciation_start_is_estimated', '=', True)]),
             # Assets with a computed method but nothing to compute from.
             'missing_cost': self.search_count(
                 domain + [('depreciation_method', 'in', list(COMPUTED_METHODS)),
