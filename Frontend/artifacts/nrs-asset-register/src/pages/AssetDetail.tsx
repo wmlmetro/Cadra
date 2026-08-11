@@ -324,14 +324,6 @@ export default function AssetDetail() {
                 </section>
               )}
 
-              {asset.financials?.depreciation && (
-                <DepreciationCard
-                  assetId={asset.id}
-                  depreciation={asset.financials.depreciation}
-                  currency={asset.financials.currency}
-                />
-              )}
-
               {asset.keyDates && Object.values(asset.keyDates).some(Boolean) && (
                 <section>
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Key Dates</h3>
@@ -368,6 +360,18 @@ export default function AssetDetail() {
             </div>
           ),
         },
+        ...(asset.financials?.depreciation ? [{
+          label: "Depreciation",
+          content: (
+            <div className="space-y-5">
+              <DepreciationCard
+                assetId={asset.id}
+                depreciation={asset.financials.depreciation}
+                currency={asset.financials.currency}
+              />
+            </div>
+          ),
+        }] : []),
         {
           label: "Custodian & Assignment",
           content: (
