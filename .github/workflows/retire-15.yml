@@ -40,14 +40,14 @@ jobs:
       - name: Save DOKS kubeconfig
         run: doctl kubernetes cluster kubeconfig save --expiry-seconds 1200 "${{ vars.DO_CLUSTER_NAME }}"
 
-      - name: Scale down the 15 odoo Deployment
+      - name: Delete the retired 15 odoo resources
+        # Fully remove the obsolete 15 Deployment/Service/ConfigMaps. KEEP the
+        # odoo-filestore PVC (holds the 15 attachments) + the *_15bak/_preflip
+        # backup DBs as rollback safety — drop those separately after a soak.
         run: |
-          if kubectl -n "$NAMESPACE" get deployment/odoo >/dev/null 2>&1; then
-            kubectl -n "$NAMESPACE" scale deployment/odoo --replicas=0
-            echo "scaled deployment/odoo -> 0"
-          else
-            echo "deployment/odoo not found (already gone)"
-          fi
+          kubectl -n "$NAMESPACE" delete deployment odoo --ignore-not-found
+          kubectl -n "$NAMESPACE" delete service odoo --ignore-not-found
+          kubectl -n "$NAMESPACE" delete configmap odoo-config odoo-bootstrap --ignore-not-found
 
       - name: Delete redundant cadra-19 Ingress
         run: kubectl -n "$NAMESPACE" delete ingress cadra-19 --ignore-not-found
