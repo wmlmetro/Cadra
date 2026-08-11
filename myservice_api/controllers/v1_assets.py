@@ -22,6 +22,7 @@ from .utils import (
     ERR_NOT_FOUND,
     SCOPE_ASSETS_READ,
     SCOPE_ASSETS_WRITE,
+    SCOPE_DASHBOARDS_READ,
     err,
     get_params,
     ok,
@@ -41,6 +42,30 @@ def _ref(rec, name_field="name"):
 
 def _date(v):
     return v.isoformat() if v else None
+
+
+def _serialize_depreciation(a):
+    """The depreciation block of an asset's `financial` object (PRD §8.6).
+
+    Method names match the published enum: straight_line | declining_balance |
+    none | erp_managed. For erp_managed the figures are supplied by the
+    tenant's ERP and Cadra does not compute them (NRS spec §6.2).
+    """
+    return {
+        "method": a.depreciation_method,
+        "useful_life_months": a.useful_life_months or None,
+        "declining_rate": a.declining_rate or None,
+        "salvage_value": a.salvage_value or None,
+        "depreciable_cost": a.depreciable_cost or None,
+        "start_date": _date(a.depreciation_start_date),
+        "start_date_source": a.depreciation_start_source or None,
+        "start_date_is_estimated": a.depreciation_start_is_estimated,
+        "accumulated_depreciation": a.accumulated_depreciation or None,
+        "current_book_value": a.current_book_value or None,
+        "state": a.depreciation_state,
+        "end_date": _date(a.depreciation_end_date),
+        "uses_category_policy": a.use_category_policy,
+    }
 
 
 # ─── serializer ──────────────────────────────────────────────────────
@@ -92,7 +117,10 @@ def serialize_asset(a, *, include=()):
             "purchase_value": a.purchase_value or None,
             "replacement_cost": a.replacement_cost or None,
             "acquisition_cost": a.acquisition_cost or None,
+            # Legacy hand-entered figure. Superseded by
+            # financial.depreciation.current_book_value, which is derived.
             "current_value": a.current_value or None,
+            "depreciation": _serialize_depreciation(a),
         },
         "dates": {
             "purchase_date": _date(a.purchase_date),
@@ -183,6 +211,12 @@ _WRITABLE_FIELDS = {
     "purchase_value", "replacement_cost",
     "acquisition_date", "acquisition_cost", "current_value",
     "disposal_date", "disposal_reason",
+    # Depreciation policy (PRD §8.6)
+    "use_category_policy", "depreciation_method", "useful_life_months",
+    "declining_rate", "salvage_rate", "depreciation_start_date",
+    # Writable so an external ERP can feed figures for erp_managed assets.
+    # Cadra overwrites these for any computed method.
+    "accumulated_depreciation", "current_book_value",
     "maintenance_vendor_id",
     "last_verified_date", "verification_notes",
     "notes",
@@ -527,4 +561,78 @@ class CadraAssetsV1(http.Controller):
                 "reason": reason or None,
                 "message_id": msg.id if msg else None,
             },
+        }
+
+    # ── Register report: GET /api/v1/reports/depreciation ──────────
+
+    @cadra_route("/api/v1/reports/depreciation", method="GET",
+                 summary="Register-wide depreciation totals and breakdowns",
+                 scopes=[SCOPE_DASHBOARDS_READ],
+                 query_params=[
+                     {"name": "category_id", "schema": {"type": "integer"},
+                      "description": "Restrict the report to one asset category"},
+                 ])
+    def depreciation_report(self, **kwargs):
+        """Totals, per-category breakdown, and the two data-quality counts that
+        matter in practice: assets whose start date was inferred, and assets
+        with a depreciation method but no cost to depreciate."""
+        domain = []
+        raw_cat = kwargs.get("category_id")
+        if raw_cat:
+            try:
+                domain.append(("category_id", "=", int(raw_cat)))
+            except (TypeError, ValueError):
+                return err(ERR_INVALID_REQUEST, "`category_id` must be an integer",
+                           details={"category_id": raw_cat})
+        return request.env["nrs.asset"].sudo().get_depreciation_report(domain)
+
+    # ── Depreciation schedule: GET /api/v1/assets/<id>/depreciation ─
+
+    @cadra_route("/api/v1/assets/<int:id>/depreciation", method="GET",
+                 summary="Depreciation schedule and summary for one asset",
+                 scopes=[SCOPE_ASSETS_READ],
+                 query_params=[
+                     {"name": "as_of", "schema": {"type": "string", "format": "date"},
+                      "description": "Truncate the schedule at this date for a "
+                                     "point-in-time view (YYYY-MM-DD)"},
+                 ])
+    def get_asset_depreciation(self, id, **kwargs):
+        """The period-by-period board (PRD §8.6).
+
+        Generated on demand rather than stored: the schedule is a pure function
+        of cost, salvage, start date, life and method, so persisting ~12k x ~60
+        rows would be derivation with a staleness risk attached. It also makes
+        `as_of` a genuine point-in-time view (PRD §13.4) for free.
+
+        Returns an empty `periods` list for methods Cadra does not compute
+        (`none`, `erp_managed`) — that is a valid state, not an error.
+        """
+        rec, error = _browse_or_404(id)
+        if error:
+            return error
+
+        as_of = None
+        raw = (kwargs.get("as_of") or "").strip()
+        if raw:
+            try:
+                as_of = odoo_fields.Date.from_string(raw)
+            except (ValueError, TypeError):
+                return err(ERR_INVALID_REQUEST,
+                           "`as_of` must be a date in YYYY-MM-DD format",
+                           details={"as_of": raw})
+
+        periods = rec.get_depreciation_schedule(as_of=as_of)
+        return {
+            "asset": {"id": rec.id, "asset_code": rec.asset_code, "name": rec.name},
+            "summary": _serialize_depreciation(rec),
+            "as_of": _date(as_of),
+            "currency": _ref(rec.currency_id),
+            "period_count": len(periods),
+            "periods": [{
+                "sequence": p["sequence"],
+                "period_end": _date(p["period_end"]),
+                "charge": p["charge"],
+                "accumulated_depreciation": p["accumulated"],
+                "book_value": p["book_value"],
+            } for p in periods],
         }

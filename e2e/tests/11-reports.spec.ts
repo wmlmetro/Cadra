@@ -2,7 +2,7 @@ import { test, expect } from "../fixtures/test";
 import { gotoApp, expectShell } from "../fixtures/helpers";
 
 /**
- * The five reports: each renders and its Refresh control works. Location
+ * The six reports: each renders and its Refresh control works. Location
  * Coverage has client-side pagination; Tag Adoption + Fleet Roster have search.
  */
 
@@ -12,6 +12,7 @@ const REPORTS: { path: string; title: RegExp }[] = [
   { path: "/reports/maintenance-readiness", title: /maintenance readiness/i },
   { path: "/reports/location-coverage", title: /location coverage/i },
   { path: "/reports/tag-adoption", title: /tag adoption/i },
+  { path: "/reports/depreciation", title: /depreciation/i },
 ];
 
 for (const r of REPORTS) {

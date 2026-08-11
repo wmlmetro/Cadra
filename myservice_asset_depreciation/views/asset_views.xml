@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Depreciation block on the asset form, next to the Financial group. -->
+    <record id="view_nrs_asset_form_depreciation" model="ir.ui.view">
+        <field name="name">nrs.asset.form.depreciation</field>
+        <field name="model">nrs.asset</field>
+        <field name="inherit_id" ref="myservice_asset_register.view_nrs_asset_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Anchored on a field rather than the group's string: Odoo 19
+                 rejects 'string' as an inheritance selector. disposal_date is
+                 the last field of the Financial group, so /.. is that group. -->
+            <xpath expr="//field[@name='disposal_date']/.." position="after">
+                <group string="Depreciation">
+                    <field name="use_category_policy"
+                           groups="myservice_asset_register.group_asset_manager"/>
+                    <field name="depreciation_method"
+                           readonly="use_category_policy"
+                           groups="myservice_asset_register.group_asset_manager"/>
+                    <field name="useful_life_months"
+                           readonly="use_category_policy"
+                           invisible="depreciation_method in ('none', 'erp_managed')"
+                           groups="myservice_asset_register.group_asset_manager"/>
+                    <field name="declining_rate"
+                           readonly="use_category_policy"
+                           invisible="depreciation_method != 'declining_balance'"
+                           groups="myservice_asset_register.group_asset_manager"/>
+                    <field name="salvage_rate"
+                           readonly="use_category_policy"
+                           invisible="depreciation_method in ('none', 'erp_managed')"
+                           groups="myservice_asset_register.group_asset_manager"/>
+
+                    <field name="depreciation_start_date"
+                           invisible="depreciation_method in ('none', 'erp_managed')"/>
+                    <field name="depreciation_start_source" readonly="1"
+                           invisible="depreciation_method in ('none', 'erp_managed')"/>
+                    <div colspan="2" class="alert alert-warning" role="alert"
+                         invisible="not depreciation_start_is_estimated or depreciation_method in ('none', 'erp_managed')">
+                        This asset has no acquisition or purchase date, so the start
+                        of depreciation was inferred from when the record was created.
+                        The figures below are an estimate until a real date is recorded.
+                    </div>
+                    <div colspan="2" class="alert alert-info" role="alert"
+                         invisible="depreciation_method != 'erp_managed'">
+                        Book value for this asset is supplied by an external ERP.
+                        Cadra stores it for reporting and does not calculate it.
+                    </div>
+
+                    <field name="depreciable_cost" readonly="1"
+                           invisible="depreciation_method == 'none'"/>
+                    <field name="salvage_value" readonly="1"
+                           invisible="depreciation_method in ('none', 'erp_managed')"/>
+                    <field name="accumulated_depreciation"
+                           readonly="depreciation_method != 'erp_managed'"
+                           invisible="depreciation_method == 'none'"/>
+                    <field name="current_book_value"
+                           readonly="depreciation_method != 'erp_managed'"
+                           invisible="depreciation_method == 'none'"/>
+                    <field name="depreciation_state" readonly="1"/>
+                    <field name="depreciation_end_date" readonly="1"
+                           invisible="depreciation_method in ('none', 'erp_managed')"/>
+                    <field name="depreciation_start_is_estimated" invisible="1"/>
+
+                    <button name="action_recompute_depreciation" type="object"
+                            string="Recompute" icon="fa-refresh" colspan="2"
+                            invisible="depreciation_method in ('none', 'erp_managed')"
+                            groups="myservice_asset_register.group_asset_manager"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Book value alongside the existing cost total. -->
+    <record id="view_nrs_asset_tree_depreciation" model="ir.ui.view">
+        <field name="name">nrs.asset.tree.depreciation</field>
+        <field name="model">nrs.asset</field>
+        <field name="inherit_id" ref="myservice_asset_register.view_nrs_asset_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='acquisition_cost']" position="after">
+                <field name="accumulated_depreciation" sum="Total Depreciation"
+                       optional="hide"/>
+                <field name="current_book_value" sum="Total Book Value"/>
+                <field name="depreciation_state" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Filters for the two questions this feature gets asked most:
+         what is still depreciating, and what needs a real start date. -->
+    <record id="view_nrs_asset_search_depreciation" model="ir.ui.view">
+        <field name="name">nrs.asset.search.depreciation</field>
+        <field name="model">nrs.asset</field>
+        <field name="inherit_id" ref="myservice_asset_register.view_nrs_asset_search"/>
+        <field name="arch" type="xml">
+            <!-- Filters go before the existing group-by block; a search view's
+                 elements have a required order and Odoo 19 rejects a second
+                 'Group By' group (and 'expand' on group). -->
+            <xpath expr="//filter[@name='it']" position="after">
+                <separator/>
+                <filter name="filter_depreciating" string="Depreciating"
+                        domain="[('depreciation_state', '=', 'depreciating')]"/>
+                <filter name="filter_fully_depreciated" string="Fully Depreciated"
+                        domain="[('depreciation_state', '=', 'fully_depreciated')]"/>
+                <filter name="filter_estimated_start" string="Estimated Start Date"
+                        domain="[('depreciation_start_is_estimated', '=', True)]"/>
+            </xpath>
+
+            <!-- Reuse the register's existing group-by block. -->
+            <xpath expr="//filter[@name='grp_custodian']" position="after">
+                <filter name="grp_depreciation_state" string="Depreciation Status"
+                        context="{'group_by': 'depreciation_state'}"/>
+                <filter name="grp_depreciation_method" string="Depreciation Method"
+                        context="{'group_by': 'depreciation_method'}"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

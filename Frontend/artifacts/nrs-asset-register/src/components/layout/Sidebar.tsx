@@ -5,7 +5,7 @@ import {
   LayoutDashboard, MapPin, Bus, Car, BookOpen,
   Fingerprint, Users, Activity, ShieldAlert,
   Inbox, Briefcase, ScanBarcode, Upload, RefreshCw,
-  Wrench, Tag, ChevronDown, Monitor,
+  Wrench, Tag, ChevronDown, Monitor, TrendingDown,
   LogOut,
 } from "lucide-react";
 import { logout, getScope, getExpiry } from "@/lib/auth";
@@ -48,6 +48,7 @@ const navGroups = [
     { name: "Maintenance Readiness",   path: "/reports/maintenance-readiness", icon: Wrench   },
     { name: "Location Coverage",       path: "/reports/location-coverage",     icon: MapPin   },
     { name: "Tag Adoption",            path: "/reports/tag-adoption",          icon: Tag      },
+    { name: "Depreciation",            path: "/reports/depreciation",          icon: TrendingDown },
   ]},
   { label: "Tools", items: [
     { name: "Barcode Station",         path: "/tools/barcode",        icon: ScanBarcode    },

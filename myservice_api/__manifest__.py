@@ -16,6 +16,7 @@
         'myservice_fleet_maintenance',
         'myservice_fm_dashboard',
         'myservice_asset_register',
+        'myservice_asset_depreciation',
         'myservice_website_theme',
         'myservice_identity',
         'myservice_workflow',

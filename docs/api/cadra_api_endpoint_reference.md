@@ -245,6 +245,30 @@ Same as above — pure static HTML, no failure modes worth documenting.
 `nrs.asset` — 1,272 records seeded. Lifecycle states:
 `active | in_repair | disposed | transferred | missing`.
 
+Every asset payload carries a `financial.depreciation` object (PRD §8.6):
+
+```json
+{
+  "method": "straight_line",
+  "useful_life_months": 60,
+  "declining_rate": null,
+  "salvage_value": 240000.0,
+  "depreciable_cost": 2400000.0,
+  "start_date": "2022-06-15",
+  "start_date_source": "acquisition",
+  "start_date_is_estimated": false,
+  "accumulated_depreciation": 1764000.0,
+  "current_book_value": 636000.0,
+  "state": "depreciating",
+  "end_date": "2027-06-30",
+  "uses_category_policy": false
+}
+```
+
+`method` is one of `none | straight_line | declining_balance | erp_managed`.
+For `erp_managed` the figures are supplied by the tenant's ERP and Cadra
+does not compute them (NRS spec §6.2).
+
 ## 3.1 GET `/api/v1/assets` — list assets
 
 Scope: `assets:read`. Success: **200**.
@@ -626,6 +650,131 @@ curl -s $API/api/v1/assets/export.csv
 
 ```json
 { "error": { "code": "unauthorized", "message": "Missing bearer token", "request_id": "7671de38…", "details": { "http_status": 401 } } }
+```
+
+---
+
+## 3.10 GET `/api/v1/assets/<id>/depreciation` — depreciation schedule
+
+Scope: `assets:read`. Success: **200**.
+Optional: `?as_of=YYYY-MM-DD` for a point-in-time view (PRD §13.4).
+
+The board is **generated on demand**, not stored — it is a pure function of
+cost, salvage, start date, useful life and method, so there is no persisted
+schedule to fall out of date. Methods Cadra does not compute (`none`,
+`erp_managed`) return an empty `periods` array; that is a valid state, not an
+error.
+
+### Request
+
+```bash
+acurl $API/api/v1/assets/1296/depreciation
+```
+
+### Success — `200 OK`
+
+```json
+{
+  "asset": {
+    "id": 1296,
+    "asset_code": "NRS-AST-000024",
+    "name": "pytest-depreciation-1786445763"
+  },
+  "summary": {
+    "method": "straight_line",
+    "useful_life_months": 60,
+    "declining_rate": null,
+    "salvage_value": 240000.0,
+    "depreciable_cost": 2400000.0,
+    "start_date": "2022-06-15",
+    "start_date_source": "acquisition",
+    "start_date_is_estimated": false,
+    "accumulated_depreciation": 1764000.0,
+    "current_book_value": 636000.0,
+    "state": "depreciating",
+    "end_date": "2027-06-30",
+    "uses_category_policy": false
+  },
+  "as_of": null,
+  "currency": {
+    "id": 121,
+    "name": "NGN"
+  },
+  "period_count": 60,
+  "periods": [
+    {
+      "sequence": 1,
+      "period_end": "2022-07-31",
+      "charge": 36000.0,
+      "accumulated_depreciation": 36000.0,
+      "book_value": 2364000.0
+    },
+    {
+      "sequence": 2,
+      "period_end": "2022-08-31",
+      "charge": 36000.0,
+      "accumulated_depreciation": 72000.0,
+      "book_value": 2328000.0
+    },
+    "\u2026",
+    {
+      "sequence": 60,
+      "period_end": "2027-06-30",
+      "charge": 36000.0,
+      "accumulated_depreciation": 2160000.0,
+      "book_value": 240000.0
+    }
+  ]
+}
+```
+
+### Point in time — `?as_of=2023-12-31`
+
+```bash
+acurl "$API/api/v1/assets/1296/depreciation?as_of=2023-12-31"
+```
+
+Truncates the board at that date — `period_count` becomes 18 and the
+last row is:
+
+```json
+{
+  "sequence": 18,
+  "period_end": "2023-12-31",
+  "charge": 36000.0,
+  "accumulated_depreciation": 648000.0,
+  "book_value": 1752000.0
+}
+```
+
+### Error — `400 invalid_request`
+
+```bash
+acurl "$API/api/v1/assets/1296/depreciation?as_of=notadate"
+```
+
+```json
+{
+  "error": {
+    "code": "invalid_request",
+    "message": "`as_of` must be a date in YYYY-MM-DD format",
+    "request_id": "a07fe6a5f8954817af73fb8e0c26d485",
+    "details": {
+      "as_of": "notadate",
+      "http_status": 400
+    }
+  }
+}
+```
+
+### Error — `404 not_found`
+
+```bash
+acurl $API/api/v1/assets/99999999/depreciation
+```
+
+```json
+{ "error": { "code": "not_found", "message": "Asset 99999999 not found", "request_id": "…", "details": { "http_status": 404 } } }
 ```
 
 ---
@@ -2126,6 +2275,93 @@ acurl $API/api/v1/openapi.json                            | jq '.paths | keys | 
 
 ---
 
+# §10 — Reports
+
+Register-wide aggregations. Scope `dashboards:read`.
+
+## 10.1 GET `/api/v1/reports/depreciation` — depreciation & book value
+
+Scope: `dashboards:read`. Success: **200**.
+Optional: `?category_id=<int>` to scope the report to one category.
+
+Aggregates the stored per-asset figures, so this is a cheap `read_group` rather
+than a walk over schedules. The two data-quality counts matter in practice:
+`needs_start_date` is assets whose start date was inferred from the record's
+creation date rather than a real acquisition or purchase date, and
+`missing_cost` is assets carrying a depreciation method with no cost to
+depreciate. Both should be treated as backfill queues.
+
+Depreciation here is **operational reference data, not the financial book of
+record** — PRD §3.3 lists financial accounting and the general ledger as
+explicit non-goals, and §8.6 confirms Cadra "does not produce the official
+financial books".
+
+### Request
+
+```bash
+acurl $API/api/v1/reports/depreciation
+```
+
+### Success — `200 OK`
+
+```json
+{
+  "totals": {
+    "asset_count": 1287,
+    "depreciable_cost": 13600000.0,
+    "accumulated_depreciation": 8452000.0,
+    "current_book_value": 5148000.0
+  },
+  "by_category": [
+    {
+      "id": 50,
+      "name": "Furniture & Fittings",
+      "asset_count": 7,
+      "depreciable_cost": 9600000.0,
+      "accumulated_depreciation": 7452000.0,
+      "current_book_value": 2148000.0
+    }
+  ],
+  "by_state": {
+    "depreciating": 3,
+    "erp_managed": 4,
+    "fully_depreciated": 1,
+    "not_applicable": 1276,
+    "not_started": 3
+  },
+  "by_method": {
+    "declining_balance": 3,
+    "erp_managed": 4,
+    "none": 1276,
+    "straight_line": 4
+  },
+  "needs_start_date": 1280,
+  "missing_cost": 3
+}
+```
+
+### Error — `400 invalid_request`
+
+```bash
+acurl "$API/api/v1/reports/depreciation?category_id=abc"
+```
+
+```json
+{
+  "error": {
+    "code": "invalid_request",
+    "message": "`category_id` must be an integer",
+    "request_id": "aabff05435694208a02dec3add8ac74b",
+    "details": {
+      "category_id": "abc",
+      "http_status": 400
+    }
+  }
+}
+```
+
+---
+
 # Endpoint index (alphabetical inside groups)
 
 | # | Method | Path | Scope |
@@ -2142,36 +2378,38 @@ acurl $API/api/v1/openapi.json                            | jq '.paths | keys | 
 | 10 | POST   | `/api/v1/assets/<id>/transfer-custody` | `assets:write` |
 | 11 | GET    | `/api/v1/assets/export` | `assets:read` |
 | 12 | GET    | `/api/v1/assets/export.csv` | `assets:read` |
-| 13 | GET    | `/api/v1/locations` | `locations:read` |
-| 14 | GET    | `/api/v1/locations/<id>` | `locations:read` |
-| 15 | POST   | `/api/v1/locations` | `locations:write` |
-| 16 | PATCH  | `/api/v1/locations/<id>` | `locations:write` |
-| 17 | GET    | `/api/v1/locations/<id>/children` | `locations:read` |
-| 18 | GET    | `/api/v1/locations/<id>/ancestors` | `locations:read` |
-| 19 | GET    | `/api/v1/locations/<id>/descendants` | `locations:read` |
-| 20 | GET    | `/api/v1/requests` | `requests:read` |
-| 21 | GET    | `/api/v1/requests/<id>` | `requests:read` |
-| 22 | GET    | `/api/v1/requests/by-reference/<ref>` | `requests:read` |
-| 23 | POST   | `/api/v1/requests` | `requests:write` |
-| 24 | PATCH  | `/api/v1/requests/<id>` | `requests:write` |
-| 25 | POST   | `/api/v1/requests/<id>/assign` | `requests:write` |
-| 26 | POST   | `/api/v1/requests/<id>/transition` | `requests:write` |
-| 27 | POST   | `/api/v1/requests/<id>/comment` | `requests:write` |
-| 28 | GET    | `/api/v1/dashboard/kpis` | `dashboards:read` |
-| 29 | GET    | `/api/v1/dashboard/map` | `dashboards:read` |
-| 30 | GET    | `/api/v1/dashboard/fleet-command` | `dashboards:read` |
-| 31 | GET    | `/api/v1/security/kpis` | `dashboards:read` |
-| 32 | GET    | `/api/v1/security/map-data` | `dashboards:read` |
-| 33 | GET    | `/api/v1/security/trend` | `dashboards:read` |
-| 34 | GET    | `/api/v1/security/recent` | `dashboards:read` |
-| 35 | GET    | `/api/v1/fleet/dashboard` | `dashboards:read` |
-| 36 | GET    | `/api/v1/fm/dashboard` | `dashboards:read` |
-| 37 | GET    | `/api/v1/barcode/lookup` | `assets:read` |
-| 38 | GET    | `/api/v1/barcode/kpis` | `assets:read` |
-| 39 | GET    | `/api/v1/barcode/recent-tags` | `assets:read` |
-| 40 | GET    | `/api/v1/barcode/print-url` | `assets:read` |
-| 41 | GET    | `/api/v1/tags/lookup` | `assets:read` |
-| 42 | GET    | `/api/v1/home/form-data` | `requests:read` |
-| 43 | POST   | `/api/v1/home/quick-submit` | `requests:write` |
-| 44 | POST   | `/api/v1/integrations/sap/employee-sync` | `integrations:write` |
-| 45 | POST   | `/api/v1/integrations/workflow/callback` | `integrations:write` |
+| 13 | GET    | `/api/v1/assets/<id>/depreciation` | `assets:read` |
+| 14 | GET    | `/api/v1/locations` | `locations:read` |
+| 15 | GET    | `/api/v1/locations/<id>` | `locations:read` |
+| 16 | POST   | `/api/v1/locations` | `locations:write` |
+| 17 | PATCH  | `/api/v1/locations/<id>` | `locations:write` |
+| 18 | GET    | `/api/v1/locations/<id>/children` | `locations:read` |
+| 19 | GET    | `/api/v1/locations/<id>/ancestors` | `locations:read` |
+| 20 | GET    | `/api/v1/locations/<id>/descendants` | `locations:read` |
+| 21 | GET    | `/api/v1/requests` | `requests:read` |
+| 22 | GET    | `/api/v1/requests/<id>` | `requests:read` |
+| 23 | GET    | `/api/v1/requests/by-reference/<ref>` | `requests:read` |
+| 24 | POST   | `/api/v1/requests` | `requests:write` |
+| 25 | PATCH  | `/api/v1/requests/<id>` | `requests:write` |
+| 26 | POST   | `/api/v1/requests/<id>/assign` | `requests:write` |
+| 27 | POST   | `/api/v1/requests/<id>/transition` | `requests:write` |
+| 28 | POST   | `/api/v1/requests/<id>/comment` | `requests:write` |
+| 29 | GET    | `/api/v1/dashboard/kpis` | `dashboards:read` |
+| 30 | GET    | `/api/v1/dashboard/map` | `dashboards:read` |
+| 31 | GET    | `/api/v1/dashboard/fleet-command` | `dashboards:read` |
+| 32 | GET    | `/api/v1/security/kpis` | `dashboards:read` |
+| 33 | GET    | `/api/v1/security/map-data` | `dashboards:read` |
+| 34 | GET    | `/api/v1/security/trend` | `dashboards:read` |
+| 35 | GET    | `/api/v1/security/recent` | `dashboards:read` |
+| 36 | GET    | `/api/v1/fleet/dashboard` | `dashboards:read` |
+| 37 | GET    | `/api/v1/fm/dashboard` | `dashboards:read` |
+| 38 | GET    | `/api/v1/barcode/lookup` | `assets:read` |
+| 39 | GET    | `/api/v1/barcode/kpis` | `assets:read` |
+| 40 | GET    | `/api/v1/barcode/recent-tags` | `assets:read` |
+| 41 | GET    | `/api/v1/barcode/print-url` | `assets:read` |
+| 42 | GET    | `/api/v1/tags/lookup` | `assets:read` |
+| 43 | GET    | `/api/v1/home/form-data` | `requests:read` |
+| 44 | POST   | `/api/v1/home/quick-submit` | `requests:write` |
+| 45 | POST   | `/api/v1/integrations/sap/employee-sync` | `integrations:write` |
+| 46 | POST   | `/api/v1/integrations/workflow/callback` | `integrations:write` |
+| 47 | GET    | `/api/v1/reports/depreciation` | `dashboards:read` |

@@ -9,6 +9,7 @@ import RecordLink from "@/components/RecordLink";
 import type { Asset } from "@/types";
 import StatusPill from "@/components/StatusPill";
 import ConditionBadge from "@/components/ConditionBadge";
+import DepreciationCard from "@/components/DepreciationCard";
 import {
   ArrowLeft, Monitor, Car, Sofa, User, MapPin, Clock,
   AlertCircle, ChevronRight, Edit3, ShieldCheck, AlertTriangle, Trash2, ArrowRightLeft, Loader2,
@@ -318,9 +319,16 @@ export default function AssetDetail() {
                     <DetailRow label="Purchase Value" value={asset.financials.purchaseValue != null ? asset.financials.purchaseValue.toLocaleString() : undefined} />
                     <DetailRow label="Replacement Cost" value={asset.financials.replacementCost != null ? asset.financials.replacementCost.toLocaleString() : undefined} />
                     <DetailRow label="Acquisition Cost" value={asset.financials.acquisitionCost != null ? asset.financials.acquisitionCost.toLocaleString() : undefined} />
-                    <DetailRow label="Current Value" value={asset.financials.currentValue != null ? asset.financials.currentValue.toLocaleString() : undefined} />
+                    <DetailRow label="Current Value (manual)" value={asset.financials.currentValue != null ? asset.financials.currentValue.toLocaleString() : undefined} />
                   </dl>
                 </section>
+              )}
+
+              {asset.financials?.depreciation && (
+                <DepreciationCard
+                  depreciation={asset.financials.depreciation}
+                  currency={asset.financials.currency}
+                />
               )}
 
               {asset.keyDates && Object.values(asset.keyDates).some(Boolean) && (

@@ -31,6 +31,7 @@ import {
   apiAssetToAsset, type ApiAsset,
   apiLocationToLocation, type ApiLocation,
   apiRequestToRequest, type ApiRequest,
+  type ApiAssetDepreciation,
 } from "./adapters";
 import type { ServiceRequest } from "../types";
 
@@ -640,6 +641,64 @@ export interface DashboardMap {
     priority: string; create_date: string;
   }>;
 }
+
+// ── Depreciation (PRD §8.6) ───────────────────────────────────────────────
+
+export interface DepreciationPeriod {
+  sequence: number;
+  period_end: string;
+  charge: number;
+  accumulated_depreciation: number;
+  book_value: number;
+}
+
+export interface AssetDepreciationSchedule {
+  asset: { id: number; asset_code: string; name: string };
+  summary: ApiAssetDepreciation;
+  as_of: string | null;
+  currency: { id: number; name: string } | null;
+  period_count: number;
+  periods: DepreciationPeriod[];
+}
+
+export interface DepreciationCategoryRow {
+  id: number;
+  name: string;
+  asset_count: number;
+  depreciable_cost: number;
+  accumulated_depreciation: number;
+  current_book_value: number;
+}
+
+export interface DepreciationReport {
+  totals: {
+    asset_count: number;
+    depreciable_cost: number;
+    accumulated_depreciation: number;
+    current_book_value: number;
+  };
+  by_category: DepreciationCategoryRow[];
+  by_state: Record<string, number>;
+  by_method: Record<string, number>;
+  /** Assets whose start date was inferred rather than recorded. */
+  needs_start_date: number;
+  /** Assets with a depreciation method but no cost to depreciate. */
+  missing_cost: number;
+}
+
+/** The period-by-period board for one asset. `asOf` truncates it for a
+ *  point-in-time view (PRD §13.4). */
+export const fetchAssetDepreciation = async (id: string | number, asOf?: string) =>
+  (await apiGet<AssetDepreciationSchedule>(
+    `/api/v1/assets/${id}/depreciation`,
+    asOf ? { as_of: asOf } : undefined,
+  )).data;
+
+export const fetchDepreciationReport = async (categoryId?: number) =>
+  (await apiGet<DepreciationReport>(
+    "/api/v1/reports/depreciation",
+    categoryId ? { category_id: categoryId } : undefined,
+  )).data;
 
 export const fetchDashboardKpis = async () =>
   (await apiGet<DashboardKpis>("/api/v1/dashboard/kpis")).data;
