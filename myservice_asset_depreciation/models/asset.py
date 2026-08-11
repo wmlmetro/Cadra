@@ -1,5 +1,6 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
+from odoo.tools import config
 
 from . import depreciation_engine as engine
 from .depreciation_engine import (
@@ -134,10 +135,16 @@ class NRSAsset(models.Model):
             cat = r.category_id
             if not r.use_category_policy or not cat:
                 continue
-            r.depreciation_method = cat.depreciation_method or METHOD_NONE
-            r.useful_life_months = cat.useful_life_months or 0
-            r.declining_rate = cat.declining_rate or 0.0
-            r.salvage_rate = cat.salvage_rate or 0.0
+            # One write, not four assignments. Field-at-a-time would validate
+            # after each one, so setting the method to declining_balance before
+            # the rate lands trips _check_asset_depreciation_policy on a policy
+            # that is actually valid.
+            r.write({
+                'depreciation_method': cat.depreciation_method or METHOD_NONE,
+                'useful_life_months': cat.useful_life_months or 0,
+                'declining_rate': cat.declining_rate or 0.0,
+                'salvage_rate': cat.salvage_rate or 0.0,
+            })
 
     @api.onchange('category_id', 'use_category_policy')
     def _onchange_depreciation_policy_source(self):
@@ -349,10 +356,17 @@ class NRSAsset(models.Model):
         """Monthly refresh. These figures move with the calendar, so nothing in
         the database changes to trigger a recompute on its own."""
         assets = self.search([('depreciation_method', 'in', list(COMPUTED_METHODS))])
+        # Registry.in_test_mode() was removed in Odoo 19; the config flag is
+        # what's left to distinguish a test run.
+        in_test = bool(config.get('test_enable') or config.get('test_file'))
         for i in range(0, len(assets), batch_size):
             batch = assets[i:i + batch_size]
             batch._apply_depreciation()
-            self.env.cr.commit()
+            # Commit per batch so a long run over a large register doesn't hold
+            # one transaction open — but never inside a test, where committing
+            # breaks the surrounding rollback.
+            if not in_test:
+                self.env.cr.commit()
         return len(assets)
 
     # ── Validation ────────────────────────────────────────────
