@@ -1,0 +1,75 @@
+name: backfill-ir-number
+
+# One-off data fix: the NRS employee pack loaded IR numbers into a custom
+# `x_ir_number` field, but the identity module (dashboard + API) reads
+# `ir_number`. Copy x_ir_number -> ir_number where ir_number is still blank.
+#
+# Idempotent (only fills blanks) and non-destructive (never overwrites an
+# existing ir_number). Prints before/after counts and a duplicate check.
+# workflow_dispatch only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      db:
+        description: "Tenant DB to backfill (NRS = staging)."
+        type: string
+        required: true
+        default: staging
+
+env:
+  NAMESPACE: cadra-dev
+
+concurrency:
+  group: backfill-ir-number
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: dev
+    steps:
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      - name: Save DOKS kubeconfig
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 1200 "${{ vars.DO_CLUSTER_NAME }}"
+      - name: Backfill ir_number from x_ir_number
+        env:
+          PGUSER: ${{ vars.POSTGRES_USER || 'odoo' }}
+          DB: ${{ inputs.db }}
+        run: |
+          set -e
+          POD=$(kubectl -n "$NAMESPACE" get pod -l app=db -o jsonpath='{.items[0].metadata.name}')
+          kubectl -n "$NAMESPACE" exec -i "$POD" -- psql -U "$PGUSER" -d "$DB" -v ON_ERROR_STOP=1 <<'SQL'
+          \echo === BEFORE ===
+          SELECT count(*) AS total,
+                 count(ir_number) FILTER (WHERE ir_number <> '') AS has_ir,
+                 count(x_ir_number) FILTER (WHERE x_ir_number <> '') AS has_x
+          FROM hr_employee;
+
+          \echo === duplicate x_ir_number values (would violate the app uniqueness rule) ===
+          SELECT x_ir_number, count(*) FROM hr_employee
+          WHERE x_ir_number IS NOT NULL AND x_ir_number <> ''
+          GROUP BY x_ir_number HAVING count(*) > 1 ORDER BY 2 DESC LIMIT 20;
+
+          \echo === UPDATE (fills blanks only) ===
+          UPDATE hr_employee
+          SET ir_number = x_ir_number
+          WHERE x_ir_number IS NOT NULL AND x_ir_number <> ''
+            AND (ir_number IS NULL OR ir_number = '');
+
+          \echo === AFTER ===
+          SELECT count(*) AS total,
+                 count(ir_number) FILTER (WHERE ir_number <> '') AS has_ir
+          FROM hr_employee;
+
+          \echo === spot check ===
+          SELECT id, name, ir_number FROM hr_employee
+          WHERE name ILIKE '%anthony%okonkwo%' OR name ILIKE '%kabir%abba%'
+             OR name ILIKE '%shettima%tamadi%' OR name ILIKE '%zacch%adedeji%'
+          ORDER BY name LIMIT 6;
+          SQL
