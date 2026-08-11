@@ -4,6 +4,9 @@ import { gotoApp, expectShell } from "../fixtures/helpers";
 /**
  * Depreciation on the asset detail page (PRD §8.6).
  *
+ * Depreciation lives in its own tab on the asset detail page, so every test
+ * opens that tab first.
+ *
  * The card renders whenever the API returns a `financial.depreciation` block.
  * The value-over-time chart only renders for methods Cadra actually computes —
  * `none` has nothing to plot and `erp_managed` is owned by the tenant's ERP,
@@ -43,14 +46,22 @@ async function findAsset(
   return null;
 }
 
-test("asset detail shows the depreciation card", async ({ page, api }) => {
+/** Open an asset and switch to its Depreciation tab. */
+async function openDepreciationTab(page: any, id: number | string) {
+  await gotoApp(page, `/assets/${id}`);
+  await expectShell(page);
+  const tab = page.getByTestId("tab-depreciation");
+  await expect(tab).toBeVisible();
+  await tab.click();
+}
+
+test("asset detail has a Depreciation tab", async ({ page, api }) => {
   const asset = await findAsset(api, () => true);
   test.skip(!asset, "no asset exposes a depreciation block");
 
-  await gotoApp(page, `/assets/${asset.id}`);
-  await expectShell(page);
+  await openDepreciationTab(page, asset.id);
 
-  await expect(page.getByText("Depreciation", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Net Book Value")).toBeVisible();
   await expect(page.getByText(/^404$/).first()).toHaveCount(0);
 });
 
@@ -60,8 +71,7 @@ test("a computed asset charts its value over time", async ({ page, api }) => {
   );
   test.skip(!asset, "no asset uses a computed depreciation method");
 
-  await gotoApp(page, `/assets/${asset.id}`);
-  await expectShell(page);
+  await openDepreciationTab(page, asset.id);
 
   await expect(page.getByText("Value over time")).toBeVisible();
   // The chart itself, not just the heading.
@@ -78,8 +88,7 @@ test("an ERP-managed asset shows no schedule, and says why", async ({ page, api 
   const asset = await findAsset(api, d => d.method === "erp_managed");
   test.skip(!asset, "no asset is ERP-managed on this tenant");
 
-  await gotoApp(page, `/assets/${asset.id}`);
-  await expectShell(page);
+  await openDepreciationTab(page, asset.id);
 
   // NRS spec §6.2 — Cadra reads but does not compute.
   await expect(page.getByText(/supplied by an external ERP/i)).toBeVisible();
@@ -90,7 +99,6 @@ test("a non-depreciating asset charts nothing", async ({ page, api }) => {
   const asset = await findAsset(api, d => d.method === "none");
   test.skip(!asset, "every asset on this tenant has a depreciation policy");
 
-  await gotoApp(page, `/assets/${asset.id}`);
-  await expectShell(page);
+  await openDepreciationTab(page, asset.id);
   await expect(page.getByText("Value over time")).toHaveCount(0);
 });
