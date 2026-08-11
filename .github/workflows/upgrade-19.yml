@@ -1,0 +1,112 @@
+name: upgrade-19
+
+# Run a module install/upgrade against a live 19 tenant DB (odoo -u/-i), in
+# cluster. Use after a module manifest change (asset bundle, data files, version
+# bump) that a plain rollout won't pick up, or to add a NEW module to a tenant.
+#
+# workflow_dispatch only. The image should match the code you want live — pass a
+# specific cadra-odoo-19:dev-<sha> from the latest deploy-dev build, or leave the
+# default (dev-latest = whatever deploy-dev last pushed).
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_db:
+        description: "Tenant DB to upgrade (e.g. staging, gtb, jaizbankplc, lasg)."
+        type: string
+        required: true
+      upgrade_modules:
+        description: "Comma-separated modules to UPGRADE (-u), e.g. myservice_nrs_base. Blank to skip."
+        type: string
+        default: ""
+      install_modules:
+        description: "Comma-separated NEW modules to INSTALL (-i). Blank to skip."
+        type: string
+        default: ""
+      image:
+        description: "cadra-odoo-19 image ref. Blank = registry .../cadra-odoo-19:dev-latest."
+        type: string
+        default: ""
+      scale_down:
+        description: "Scale odoo-19 to 0 during the upgrade (SAFE for schema changes; briefly interrupts ALL tenants). Off = zero-downtime, only safe for asset/data-only upgrades."
+        type: boolean
+        default: true
+
+env:
+  NAMESPACE: cadra-dev
+
+concurrency:
+  group: upgrade-19
+  cancel-in-progress: false
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment:
+      name: dev
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      - name: Save DOKS kubeconfig
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 3600 "${{ vars.DO_CLUSTER_NAME }}"
+
+      - name: Resolve image
+        id: img
+        run: |
+          IMAGE="${{ inputs.image }}"
+          [ -z "$IMAGE" ] && IMAGE="registry.digitalocean.com/${{ vars.DO_REGISTRY_NAME }}/cadra-odoo-19:dev-latest"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+          echo "using image: $IMAGE"
+
+      - name: (Optional) Scale odoo-19 down for exclusive DB access
+        if: ${{ inputs.scale_down == true }}
+        run: |
+          if kubectl -n "$NAMESPACE" get deployment/odoo-19 >/dev/null 2>&1; then
+            kubectl -n "$NAMESPACE" scale deployment/odoo-19 --replicas=0
+            kubectl -n "$NAMESPACE" wait --for=delete pod -l app=odoo-19,job!=upgrade --timeout=3m || true
+            echo "odoo-19 scaled to 0"
+          fi
+
+      - name: Run cadra-upgrade-19 Job
+        env:
+          IMAGE: ${{ steps.img.outputs.image }}
+          TARGET_DB: ${{ inputs.target_db }}
+          UPGRADE_MODULES: ${{ inputs.upgrade_modules }}
+          INSTALL_MODULES: ${{ inputs.install_modules }}
+        run: |
+          set -e
+          kubectl -n "$NAMESPACE" delete job cadra-upgrade-19 --ignore-not-found
+          sed -e "s|REPLACE_ME_IMAGE|${IMAGE}|g" \
+              -e "s|REPLACE_ME_TARGET_DB|${TARGET_DB}|g" \
+              -e "s|REPLACE_ME_INSTALL_MODULES|${INSTALL_MODULES}|g" \
+              -e "s|REPLACE_ME_UPGRADE_MODULES|${UPGRADE_MODULES}|g" \
+              k8s/dev/51-upgrade-19-job.yaml | kubectl apply -f -
+          sleep 8
+          kubectl -n "$NAMESPACE" logs -f job/cadra-upgrade-19 --all-containers || true
+          for i in $(seq 1 40); do
+            SUCC=$(kubectl -n "$NAMESPACE" get job cadra-upgrade-19 -o jsonpath='{.status.succeeded}' 2>/dev/null || echo)
+            FAIL=$(kubectl -n "$NAMESPACE" get job cadra-upgrade-19 -o jsonpath='{.status.failed}' 2>/dev/null || echo)
+            [ "${SUCC:-0}" = "1" ] && { echo "upgrade succeeded"; break; }
+            if [ -n "$FAIL" ] && [ "$FAIL" -ge 1 ] 2>/dev/null; then
+              echo "upgrade FAILED"; kubectl -n "$NAMESPACE" logs job/cadra-upgrade-19 --all-containers --tail=80; FAILED=1; break
+            fi
+            sleep 30
+          done
+          echo "FAILED=${FAILED:-0}" >> "$GITHUB_ENV"
+
+      - name: Roll odoo-19 back up
+        if: ${{ always() && inputs.scale_down == true }}
+        env:
+          IMAGE: ${{ steps.img.outputs.image }}
+        run: |
+          sed "s|REPLACE_ME/cadra-odoo-19:dev|${IMAGE}|g" k8s/dev/41-odoo-19-deployment.yaml | kubectl apply -f -
+          kubectl -n "$NAMESPACE" scale deployment/odoo-19 --replicas=1
+          kubectl -n "$NAMESPACE" rollout status deployment/odoo-19 --timeout=5m
+
+      - name: Fail if the upgrade Job failed
+        if: ${{ env.FAILED == '1' }}
+        run: exit 1

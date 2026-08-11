@@ -1,0 +1,130 @@
+# One-shot module install/upgrade Job for the Odoo 19 stack — runs
+# `odoo [-i <install>] [-u <upgrade>] -d <tenant> --stop-after-init --no-http`.
+# Use `-u` when a module's __manifest__.py changes in a way that must be re-read
+# (asset bundle, new data files, version bump) — a Deployment rollout does NOT
+# re-read manifests of already-installed modules. Use `-i` to add a NEW module.
+#
+# Run via .github/workflows/upgrade-19.yml (workflow_dispatch). Two safety notes
+# baked in:
+#   * Pod label is app: cadra-upgrade (NOT app: odoo-19) — a Job pod carrying the
+#     odoo-19 Service selector becomes a dead Service endpoint and breaks serving.
+#   * emptyDir filestore (the DB is durable in shared Postgres) → no RWO PVC
+#     contention with odoo-19, so it can run without scaling the Deployment down.
+#     For SCHEMA-changing upgrades the workflow can still scale odoo-19 to 0 first
+#     (scale_down input) so the migration has exclusive access to the tenant DB.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cadra-upgrade-19
+  namespace: cadra-dev
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: cadra-upgrade
+        job: upgrade
+    spec:
+      restartPolicy: Never
+      securityContext:
+        fsGroup: 101
+      initContainers:
+        - name: wait-for-db
+          image: postgres:13
+          command:
+            - sh
+            - -c
+            - |
+              echo "waiting for postgres at db:5432..."
+              for i in $(seq 1 120); do
+                if pg_isready -h db -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1; then
+                  echo "postgres ready after ${i}s"; exit 0
+                fi
+                sleep 1
+              done
+              echo "FATAL: postgres did not become ready in 120s" >&2; exit 1
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_USER
+          resources:
+            requests: { cpu: 50m, memory: 32Mi }
+            limits: { cpu: 200m, memory: 64Mi }
+
+      containers:
+        - name: upgrade
+          # ─── REPLACE before applying ─────────────────────────────────
+          image: REPLACE_ME_IMAGE
+          imagePullPolicy: Always   # upgrades want the freshest code (e.g. dev-latest)
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+              cp /etc/odoo/odoo.conf.template /tmp/odoo.conf
+              {
+                printf '\nadmin_passwd = %s\n' "$ODOO_MASTER_PASSWORD"
+                printf 'db_user = %s\n' "$USER"
+                printf 'db_password = %s\n' "$PASSWORD"
+              } >> /tmp/odoo.conf
+
+              DB="${TARGET_DB:-$DB}"
+              install="REPLACE_ME_INSTALL_MODULES"
+              upgrade="REPLACE_ME_UPGRADE_MODULES"
+              args=""
+              [ -n "$install" ] && args="$args -i $install"
+              [ -n "$upgrade" ] && args="$args -u $upgrade"
+              if [ -z "$args" ]; then
+                echo "FATAL: neither install nor upgrade modules provided" >&2; exit 1
+              fi
+              echo "running: odoo -d $DB$args --stop-after-init"
+              exec odoo -c /tmp/odoo.conf -d "$DB" $args --stop-after-init --no-http
+          env:
+            - name: HOST
+              value: db
+            - name: USER
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_USER
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_PASSWORD
+            - name: DB
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-db
+                  key: POSTGRES_DB
+            - name: TARGET_DB
+              value: "REPLACE_ME_TARGET_DB"
+            - name: ODOO_MASTER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: ODOO_MASTER_PASSWORD
+          volumeMounts:
+            - name: odoo-config
+              mountPath: /etc/odoo/odoo.conf.template
+              subPath: odoo.conf
+              readOnly: true
+            - name: odoo-filestore
+              mountPath: /var/lib/odoo
+          resources:
+            requests: { cpu: 200m, memory: 1Gi }
+            limits: { cpu: 1500m, memory: 4Gi }
+      volumes:
+        - name: odoo-config
+          configMap:
+            name: odoo-config-19
+        - name: odoo-filestore
+          emptyDir: {}
