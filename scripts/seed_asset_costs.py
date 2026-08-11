@@ -55,6 +55,9 @@ env = env  # noqa: F821 — injected by `odoo shell`
 
 APPLY = os.environ.get("SEED_APPLY") == "1"
 FORCE_PROTECTED = os.environ.get("SEED_FORCE_PROTECTED") == "1"
+#: Overwrite costs this script wrote before. Off by default so a re-run never
+#: restates a register — but needed when re-seeding to differentiate tenants.
+RESEED = os.environ.get("SEED_RESEED") == "1"
 BATCH = 500
 
 #: Databases holding a real register that must never receive invented figures.
@@ -66,6 +69,13 @@ RANDOM_SEED = 20260811
 # (min_cost, max_cost) in NGN, by keyword in the category name. First match wins,
 # so the more specific keywords come first.
 COST_RANGES = [
+    # Health sector first, for the same reasons as the policy keywords:
+    # "cold chain" must not fall through to "cooling".
+    (("cold chain", "vaccine", "freezer"),         (   400_000,  4_000_000)),
+    (("laborator", "pathology", "diagnostic"),     (   300_000,  8_000_000)),
+    (("medical", "imaging", "x-ray", "ultrasound",
+      "theatre", "clinical"),                      (   500_000, 15_000_000)),
+    (("ward", "hospital bed", "trolley", "stretcher"), (  80_000,    800_000)),
     (("lift", "elevator", "escalator"),            (15_000_000, 40_000_000)),
     (("vehicle", "fleet", "transport"),            (12_000_000, 35_000_000)),
     (("atm",),                                     ( 8_000_000, 15_000_000)),
@@ -130,9 +140,13 @@ def money(v):
     return f"{v:,.2f}"
 
 
-targets = Asset.search([
-    "|", ("acquisition_cost", "=", False), ("acquisition_cost", "<=", 0),
-])
+if RESEED:
+    print("\n  SEED_RESEED=1 — existing costs will be OVERWRITTEN.")
+    targets = Asset.search([])
+else:
+    targets = Asset.search([
+        "|", ("acquisition_cost", "=", False), ("acquisition_cost", "<=", 0),
+    ])
 total = Asset.search_count([])
 print(f"\n  assets in register        : {total:,}")
 print(f"  assets with no cost       : {len(targets):,}")
@@ -150,9 +164,11 @@ written = 0
 
 for i in range(0, len(targets), BATCH):
     for asset in targets[i:i + BATCH]:
-        # Seeded per record id: a re-run reproduces the same figure rather than
-        # quietly restating the register.
-        rng = random.Random(RANDOM_SEED + asset.id)
+        # Seeded per (database, record id). Including the database name matters:
+        # tenants seeded from the same script share asset ids and category
+        # names, so an id-only seed gives two different customers byte-identical
+        # book values — which reads as a copy-paste bug in a demo.
+        rng = random.Random(f"{RANDOM_SEED}:{db_name}:{asset.id}")
         cat_name = asset.category_id.name or ""
         low, high = cost_range_for(cat_name)
         # Round to the nearest 1,000 — real invoices are not to the kobo.

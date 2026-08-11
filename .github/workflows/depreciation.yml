@@ -58,6 +58,10 @@ on:
         description: "seed-costs only — override the refusal to write invented costs into a real register (staging/NRS). Do not tick without a very good reason."
         type: boolean
         default: false
+      reseed:
+        description: "seed-costs only — OVERWRITE costs already seeded (use to re-differentiate tenants). Off = only fill assets with no cost."
+        type: boolean
+        default: false
       image:
         description: "cadra-odoo-19 image ref. Blank = registry .../cadra-odoo-19:dev-latest."
         type: string
@@ -114,6 +118,7 @@ jobs:
           ERP_MANAGED: ${{ inputs.erp_managed && '1' || '0' }}
           NO_NAME_MATCH: ${{ inputs.no_name_match && '1' || '0' }}
           FORCE_PROTECTED: ${{ inputs.force_protected && '1' || '0' }}
+          RESEED: ${{ inputs.reseed && '1' || '0' }}
           SCRIPT_FILE: ${{ steps.script.outputs.file }}
         run: |
           set -e
@@ -124,6 +129,7 @@ jobs:
               -e "s|REPLACE_ME_ERP_MANAGED|${ERP_MANAGED}|g" \
               -e "s|REPLACE_ME_NO_NAME_MATCH|${NO_NAME_MATCH}|g" \
               -e "s|REPLACE_ME_FORCE_PROTECTED|${FORCE_PROTECTED}|g" \
+              -e "s|REPLACE_ME_RESEED|${RESEED}|g" \
               -e "s|REPLACE_ME_SCRIPT|${SCRIPT_FILE}|g" \
               k8s/dev/52-depreciation-job.yaml | kubectl apply -f -
           sleep 8

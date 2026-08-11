@@ -73,6 +73,12 @@ Category = env["nrs.asset.category"]
 #
 # First match wins, so order matters — the more specific keywords come first.
 NAME_KEYWORDS = [
+    # Health sector first — "cold chain" must not fall through to "cooling",
+    # and "laboratory" must not be read as generic equipment.
+    (("cold chain", "vaccine", "freezer"), "COLD"),
+    (("laborator", "diagnostic", "pathology"), "LAB"),
+    (("medical", "imaging", "x-ray", "ultrasound", "theatre", "clinical"), "MED"),
+    (("ward", "hospital bed", "trolley", "stretcher"), "WARD"),
     (("server", "network", "switch", "router"), "SRV"),
     (("laptop", "desktop", "computer", "it equipment", "ict"), "PC"),
     (("printer", "photocopier", "scanner"), "PRT"),
@@ -97,9 +103,14 @@ NAME_KEYWORDS = [
 ]
 
 POLICY_BY_CODE = {
-    # Not a shipped category, but tenant registers commonly have one and it
-    # needs a life to be mapped onto. ATMs conventionally run ~7 years.
+    # Not shipped categories, but tenant registers commonly have these and they
+    # need a life to be mapped onto. ATMs conventionally run ~7 years; the
+    # health-sector classes come from the LASG (Ministry of Health) register.
     "ATM":    ("straight_line", 84, 0.0, 0.0),
+    "MED":    ("straight_line", 96, 0.0, 5.0),
+    "WARD":   ("straight_line", 120, 0.0, 0.0),
+    "LAB":    ("straight_line", 84, 0.0, 5.0),
+    "COLD":   ("straight_line", 84, 0.0, 5.0),
     "GEN":    ("straight_line", 120, 0.0, 10.0),
     "LIFT":   ("straight_line", 180, 0.0, 5.0),
     "HVAC-P": ("straight_line", 120, 0.0, 5.0),
