@@ -1,8 +1,9 @@
-# One-shot Job that runs scripts/backfill_depreciation.py against a tenant DB
-# via `odoo shell`. The script ships in the image (Dockerfile.odoo.19.k8s copies
-# scripts/ to /opt/cadra/scripts/), so nothing is mounted in.
+# One-shot Job that runs one of the depreciation scripts against a tenant DB
+# via `odoo shell` — backfill_depreciation.py or seed_asset_costs.py. Both ship
+# in the image (Dockerfile.odoo.19.k8s copies scripts/ to /opt/cadra/scripts/),
+# so nothing is mounted in.
 #
-# Run via .github/workflows/depreciation-backfill.yml (workflow_dispatch).
+# Run via .github/workflows/depreciation.yml (workflow_dispatch).
 #
 # Unlike 51-upgrade-19-job.yaml this needs NO scale-down: it writes data only —
 # no schema change, no manifest re-read — so odoo-19 keeps serving every tenant
@@ -10,11 +11,11 @@
 # the pod label is deliberately NOT app: odoo-19 (that would register the Job as
 # a Service endpoint and break serving).
 #
-# The script defaults to a DRY RUN. BACKFILL_APPLY=1 is what commits.
+# Both scripts default to a DRY RUN; the `apply` input is what commits.
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: cadra-depreciation-backfill
+  name: cadra-depreciation-job
   namespace: cadra-dev
 spec:
   backoffLimit: 0          # A partial re-run is confusing; fix and re-dispatch.
@@ -22,8 +23,8 @@ spec:
   template:
     metadata:
       labels:
-        app: cadra-depreciation-backfill
-        job: depreciation-backfill
+        app: cadra-depreciation-job
+        job: depreciation
     spec:
       restartPolicy: Never
       securityContext:
@@ -76,12 +77,14 @@ spec:
               } >> /tmp/odoo.conf
 
               DB="${TARGET_DB:-$DB}"
-              SCRIPT=/opt/cadra/scripts/backfill_depreciation.py
+              SCRIPT=/opt/cadra/scripts/REPLACE_ME_SCRIPT
               if [ ! -f "$SCRIPT" ]; then
                 echo "FATAL: $SCRIPT not in image — is scripts/ copied in Dockerfile.odoo.19.k8s?" >&2
                 exit 1
               fi
-              echo "running backfill against '$DB' (APPLY=${BACKFILL_APPLY:-0} ERP_MANAGED=${BACKFILL_ERP_MANAGED:-0} NO_NAME_MATCH=${BACKFILL_NO_NAME_MATCH:-0})"
+              echo "running $(basename "$SCRIPT") against '$DB'"
+              echo "  BACKFILL_APPLY=${BACKFILL_APPLY:-0} BACKFILL_ERP_MANAGED=${BACKFILL_ERP_MANAGED:-0} BACKFILL_NO_NAME_MATCH=${BACKFILL_NO_NAME_MATCH:-0}"
+              echo "  SEED_APPLY=${SEED_APPLY:-0} SEED_FORCE_PROTECTED=${SEED_FORCE_PROTECTED:-0}"
               # --http-port avoids colliding with odoo-19 on 8069 even though
               # the shell does not serve; Odoo still binds without it.
               exec odoo shell -c /tmp/odoo.conf -d "$DB" --no-http --http-port=8099 \
@@ -112,6 +115,10 @@ spec:
               value: "REPLACE_ME_ERP_MANAGED"
             - name: BACKFILL_NO_NAME_MATCH
               value: "REPLACE_ME_NO_NAME_MATCH"
+            - name: SEED_APPLY
+              value: "REPLACE_ME_APPLY"
+            - name: SEED_FORCE_PROTECTED
+              value: "REPLACE_ME_FORCE_PROTECTED"
             - name: ODOO_MASTER_PASSWORD
               valueFrom:
                 secretKeyRef:

@@ -1,12 +1,22 @@
-name: depreciation-backfill
+name: depreciation
 
-# Runs scripts/backfill_depreciation.py against one tenant DB, in cluster.
+# Runs one of the depreciation scripts against a tenant DB, in cluster.
 #
-# What it does (see the script's docstring for detail):
+# task=backfill  — scripts/backfill_depreciation.py
+# task=seed-costs — scripts/seed_asset_costs.py
+#
+# BACKFILL (see the script's docstring for detail):
 #   1. applies depreciation policy defaults to categories that have none
 #   2. pushes category policy down to assets that follow their category
 #   3. resolves each asset's depreciation start date and records its provenance
 #   4. recomputes accumulated depreciation and net book value
+#
+# SEED-COSTS writes INVENTED demo acquisition costs and dates onto assets that
+# have none, so the feature has something to compute from. The register was
+# imported without financial data, so book values read zero everywhere until
+# real costs arrive. It REFUSES to touch the `staging` (NRS) database — that
+# register is real and NRS runs erp_managed, where Cadra must not compute.
+# Assets that already have a cost are never overwritten.
 #
 # DRY RUN by default — nothing is written unless `apply` is ticked. Run it dry
 # first and read the output: it reports which categories were matched on NAME
@@ -23,8 +33,13 @@ name: depreciation-backfill
 on:
   workflow_dispatch:
     inputs:
+      task:
+        description: "Which script to run."
+        type: choice
+        options: [backfill, seed-costs]
+        default: backfill
       target_db:
-        description: "Tenant DB to backfill (e.g. staging, gtb, jaizbankplc, lasg)."
+        description: "Tenant DB (e.g. staging, gtb, jaizbankplc, lasg)."
         type: string
         required: true
       apply:
@@ -36,7 +51,11 @@ on:
         type: boolean
         default: false
       no_name_match:
-        description: "Only apply policy to categories matching a shipped CODE; skip the name-based guessing."
+        description: "backfill only — apply policy only to categories matching a shipped CODE; skip name-based guessing."
+        type: boolean
+        default: false
+      force_protected:
+        description: "seed-costs only — override the refusal to write invented costs into a real register (staging/NRS). Do not tick without a very good reason."
         type: boolean
         default: false
       image:
@@ -55,7 +74,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  backfill:
+  run-script:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment:
@@ -77,37 +96,51 @@ jobs:
           echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
           echo "using image: $IMAGE"
 
-      - name: Run cadra-depreciation-backfill Job
+      - name: Resolve script
+        id: script
+        run: |
+          case "${{ inputs.task }}" in
+            seed-costs) F=seed_asset_costs.py ;;
+            *)          F=backfill_depreciation.py ;;
+          esac
+          echo "file=$F" >> "$GITHUB_OUTPUT"
+          echo "task=${{ inputs.task }} -> $F"
+
+      - name: Run cadra-depreciation-job Job
         env:
           IMAGE: ${{ steps.img.outputs.image }}
           TARGET_DB: ${{ inputs.target_db }}
           APPLY: ${{ inputs.apply && '1' || '0' }}
           ERP_MANAGED: ${{ inputs.erp_managed && '1' || '0' }}
           NO_NAME_MATCH: ${{ inputs.no_name_match && '1' || '0' }}
+          FORCE_PROTECTED: ${{ inputs.force_protected && '1' || '0' }}
+          SCRIPT_FILE: ${{ steps.script.outputs.file }}
         run: |
           set -e
-          kubectl -n "$NAMESPACE" delete job cadra-depreciation-backfill --ignore-not-found
+          kubectl -n "$NAMESPACE" delete job cadra-depreciation-job --ignore-not-found
           sed -e "s|REPLACE_ME_IMAGE|${IMAGE}|g" \
               -e "s|REPLACE_ME_TARGET_DB|${TARGET_DB}|g" \
               -e "s|REPLACE_ME_APPLY|${APPLY}|g" \
               -e "s|REPLACE_ME_ERP_MANAGED|${ERP_MANAGED}|g" \
               -e "s|REPLACE_ME_NO_NAME_MATCH|${NO_NAME_MATCH}|g" \
-              k8s/dev/52-depreciation-backfill-job.yaml | kubectl apply -f -
+              -e "s|REPLACE_ME_FORCE_PROTECTED|${FORCE_PROTECTED}|g" \
+              -e "s|REPLACE_ME_SCRIPT|${SCRIPT_FILE}|g" \
+              k8s/dev/52-depreciation-job.yaml | kubectl apply -f -
           sleep 8
-          kubectl -n "$NAMESPACE" logs -f job/cadra-depreciation-backfill --all-containers || true
+          kubectl -n "$NAMESPACE" logs -f job/cadra-depreciation-job --all-containers || true
           for i in $(seq 1 40); do
-            SUCC=$(kubectl -n "$NAMESPACE" get job cadra-depreciation-backfill -o jsonpath='{.status.succeeded}' 2>/dev/null || echo)
-            FAIL=$(kubectl -n "$NAMESPACE" get job cadra-depreciation-backfill -o jsonpath='{.status.failed}' 2>/dev/null || echo)
-            [ "${SUCC:-0}" = "1" ] && { echo "backfill succeeded"; break; }
+            SUCC=$(kubectl -n "$NAMESPACE" get job cadra-depreciation-job -o jsonpath='{.status.succeeded}' 2>/dev/null || echo)
+            FAIL=$(kubectl -n "$NAMESPACE" get job cadra-depreciation-job -o jsonpath='{.status.failed}' 2>/dev/null || echo)
+            [ "${SUCC:-0}" = "1" ] && { echo "job succeeded"; break; }
             if [ -n "$FAIL" ] && [ "$FAIL" -ge 1 ] 2>/dev/null; then
-              echo "backfill FAILED"
-              kubectl -n "$NAMESPACE" logs job/cadra-depreciation-backfill --all-containers --tail=120
+              echo "job FAILED"
+              kubectl -n "$NAMESPACE" logs job/cadra-depreciation-job --all-containers --tail=120
               FAILED=1; break
             fi
             sleep 15
           done
           echo "FAILED=${FAILED:-0}" >> "$GITHUB_ENV"
 
-      - name: Fail if the backfill Job failed
+      - name: Fail if the Job failed
         if: ${{ env.FAILED == '1' }}
         run: exit 1
