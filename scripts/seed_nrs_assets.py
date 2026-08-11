@@ -52,11 +52,10 @@ LOAD_PLAN = [
 ]
 
 # Custom fields the package relies on (created when --ensure-fields is passed).
-# type: char unless noted. These hold the IR key, drill-downs, and review/audit data.
+# type: char unless noted. These hold the drill-downs and review/audit data.
+# NB: the employee IR key is NOT a custom field — it maps to the identity
+# module's real `ir_number` field via HEADER_RENAMES below.
 CUSTOM_FIELDS = {
-    "hr.employee": [
-        ("x_ir_number", "IR Number (NRS/contractor)", "char"),
-    ],
     "nrs.asset": [
         ("x_asset_type",            "Asset Type",            "char"),
         ("x_model",                 "Model",                 "char"),
@@ -74,6 +73,16 @@ CUSTOM_FIELDS = {
 }
 
 BATCH = 500
+
+# Per-model header renames applied before load() — map a source CSV column onto
+# the real target field. The NRS employee pack ships the IR key in a column named
+# `x_ir_number`, but the identity module's field — which the dashboard and API
+# read — is `ir_number`. Without this the numbers load into a dead custom field
+# and the dashboard shows a blank/fallback IR. (See backfill-ir-number.yml, which
+# repaired the live data that predates this fix.)
+HEADER_RENAMES = {
+    "hr.employee": {"x_ir_number": "ir_number"},
+}
 
 # Per-model value normalizations applied to specific CSV columns at load time.
 # Use when the source data uses a label that doesn't match our Selection options
@@ -196,6 +205,17 @@ def load_file(models, db, uid, password, model, path, dry_run):
         if all(not (row[i] if i < len(row) else "").strip() for row in data):
             drop_idx.add(i)
 
+    rename = {}
+
+    # Per-model header renames (e.g. hr.employee x_ir_number → ir_number). Applied
+    # only to columns we're keeping; harmless if the source column is absent.
+    for i, h in enumerate(header):
+        if i in drop_idx:
+            continue
+        tgt = HEADER_RENAMES.get(model, {}).get(h)
+        if tgt:
+            rename[i] = tgt
+
     # Group relational variants by base name.
     #   - When `<x>_id/id` (External ID) is present, drop the other two — the
     #     External ID lookup is unambiguous and bare/`/name` would conflict
@@ -211,7 +231,6 @@ def load_file(models, db, uid, password, model, path, dry_run):
         elif h.endswith("_id") and "/" not in h:
                                     bases.setdefault(h, {})["bare"] = i
 
-    rename = {}
     for base, variants in bases.items():
         if "id" in variants:
             for k in ("bare", "name"):
