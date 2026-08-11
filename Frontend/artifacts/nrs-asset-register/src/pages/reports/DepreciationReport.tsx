@@ -4,7 +4,7 @@ import { useLayoutCtx } from "@/components/layout/AppLayout";
 import { fetchDepreciationReport } from "@/lib/dataProvider";
 import { CadraApiError } from "@/lib/api";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, Legend,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from "recharts";
 import {
   AlertCircle, Clock, Wallet, TrendingDown, Landmark, CalendarX, RefreshCw,
@@ -187,9 +187,10 @@ export default function DepreciationReport() {
                 />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
                 <Bar dataKey="accumulated_depreciation" name="Accumulated" stackId="a" fill={ACCUM_COLOUR} />
-                <Bar dataKey="current_book_value" name="Net book value" stackId="a" radius={[6, 6, 0, 0]}>
-                  {categories.map((c, i) => <Cell key={c.id ?? i} fill={NRS_RED} />)}
-                </Bar>
+                {/* fill on the Bar itself, not per-Cell: a Cell fill doesn't
+                    propagate to the legend swatch, which then renders black. */}
+                <Bar dataKey="current_book_value" name="Net book value" stackId="a"
+                     fill={NRS_RED} radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

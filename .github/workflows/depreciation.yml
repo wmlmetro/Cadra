@@ -1,0 +1,146 @@
+name: depreciation
+
+# Runs one of the depreciation scripts against a tenant DB, in cluster.
+#
+# task=backfill  — scripts/backfill_depreciation.py
+# task=seed-costs — scripts/seed_asset_costs.py
+#
+# BACKFILL (see the script's docstring for detail):
+#   1. applies depreciation policy defaults to categories that have none
+#   2. pushes category policy down to assets that follow their category
+#   3. resolves each asset's depreciation start date and records its provenance
+#   4. recomputes accumulated depreciation and net book value
+#
+# SEED-COSTS writes INVENTED demo acquisition costs and dates onto assets that
+# have none, so the feature has something to compute from. The register was
+# imported without financial data, so book values read zero everywhere until
+# real costs arrive. It REFUSES to touch the `staging` (NRS) database — that
+# register is real and NRS runs erp_managed, where Cadra must not compute.
+# Assets that already have a cost are never overwritten.
+#
+# DRY RUN by default — nothing is written unless `apply` is ticked. Run it dry
+# first and read the output: it reports which categories were matched on NAME
+# rather than code (a guess at accounting treatment), and how many assets have a
+# depreciation method but no acquisition cost to depreciate.
+#
+# NO downtime: this writes data only — no schema change, no manifest re-read —
+# so odoo-19 keeps serving every tenant. That is the difference from
+# upgrade-19.yml, which needs scale_down for schema changes.
+#
+# Prerequisite: myservice_asset_depreciation must already be installed on the
+# target DB (upgrade-19.yml with install_modules=myservice_asset_depreciation).
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "Which script to run."
+        type: choice
+        options: [backfill, seed-costs]
+        default: backfill
+      target_db:
+        description: "Tenant DB (e.g. staging, gtb, jaizbankplc, lasg)."
+        type: string
+        required: true
+      apply:
+        description: "WRITE the changes. Off = dry run that reports what would change and rolls back."
+        type: boolean
+        default: false
+      erp_managed:
+        description: "Set every asset to erp_managed — Cadra stores book values but never computes them. Use for tenants whose ERP is authoritative (NRS spec §6.2)."
+        type: boolean
+        default: false
+      no_name_match:
+        description: "backfill only — apply policy only to categories matching a shipped CODE; skip name-based guessing."
+        type: boolean
+        default: false
+      force_protected:
+        description: "seed-costs only — override the refusal to write invented costs into a real register (staging/NRS). Do not tick without a very good reason."
+        type: boolean
+        default: false
+      image:
+        description: "cadra-odoo-19 image ref. Blank = registry .../cadra-odoo-19:dev-latest."
+        type: string
+        default: ""
+
+env:
+  NAMESPACE: cadra-dev
+
+concurrency:
+  # Shared with upgrade-19: both drive tenant DBs, and overlapping runs would
+  # fight. NOTE: GitHub keeps only ONE pending run per group — queueing several
+  # at once silently cancels all but the last. Dispatch them one at a time.
+  group: upgrade-19
+  cancel-in-progress: false
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: dev
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      - name: Save DOKS kubeconfig
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 3600 "${{ vars.DO_CLUSTER_NAME }}"
+
+      - name: Resolve image
+        id: img
+        run: |
+          IMAGE="${{ inputs.image }}"
+          [ -z "$IMAGE" ] && IMAGE="registry.digitalocean.com/${{ vars.DO_REGISTRY_NAME }}/cadra-odoo-19:dev-latest"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+          echo "using image: $IMAGE"
+
+      - name: Resolve script
+        id: script
+        run: |
+          case "${{ inputs.task }}" in
+            seed-costs) F=seed_asset_costs.py ;;
+            *)          F=backfill_depreciation.py ;;
+          esac
+          echo "file=$F" >> "$GITHUB_OUTPUT"
+          echo "task=${{ inputs.task }} -> $F"
+
+      - name: Run cadra-depreciation-job Job
+        env:
+          IMAGE: ${{ steps.img.outputs.image }}
+          TARGET_DB: ${{ inputs.target_db }}
+          APPLY: ${{ inputs.apply && '1' || '0' }}
+          ERP_MANAGED: ${{ inputs.erp_managed && '1' || '0' }}
+          NO_NAME_MATCH: ${{ inputs.no_name_match && '1' || '0' }}
+          FORCE_PROTECTED: ${{ inputs.force_protected && '1' || '0' }}
+          SCRIPT_FILE: ${{ steps.script.outputs.file }}
+        run: |
+          set -e
+          kubectl -n "$NAMESPACE" delete job cadra-depreciation-job --ignore-not-found
+          sed -e "s|REPLACE_ME_IMAGE|${IMAGE}|g" \
+              -e "s|REPLACE_ME_TARGET_DB|${TARGET_DB}|g" \
+              -e "s|REPLACE_ME_APPLY|${APPLY}|g" \
+              -e "s|REPLACE_ME_ERP_MANAGED|${ERP_MANAGED}|g" \
+              -e "s|REPLACE_ME_NO_NAME_MATCH|${NO_NAME_MATCH}|g" \
+              -e "s|REPLACE_ME_FORCE_PROTECTED|${FORCE_PROTECTED}|g" \
+              -e "s|REPLACE_ME_SCRIPT|${SCRIPT_FILE}|g" \
+              k8s/dev/52-depreciation-job.yaml | kubectl apply -f -
+          sleep 8
+          kubectl -n "$NAMESPACE" logs -f job/cadra-depreciation-job --all-containers || true
+          for i in $(seq 1 40); do
+            SUCC=$(kubectl -n "$NAMESPACE" get job cadra-depreciation-job -o jsonpath='{.status.succeeded}' 2>/dev/null || echo)
+            FAIL=$(kubectl -n "$NAMESPACE" get job cadra-depreciation-job -o jsonpath='{.status.failed}' 2>/dev/null || echo)
+            [ "${SUCC:-0}" = "1" ] && { echo "job succeeded"; break; }
+            if [ -n "$FAIL" ] && [ "$FAIL" -ge 1 ] 2>/dev/null; then
+              echo "job FAILED"
+              kubectl -n "$NAMESPACE" logs job/cadra-depreciation-job --all-containers --tail=120
+              FAILED=1; break
+            fi
+            sleep 15
+          done
+          echo "FAILED=${FAILED:-0}" >> "$GITHUB_ENV"
+
+      - name: Fail if the Job failed
+        if: ${{ env.FAILED == '1' }}
+        run: exit 1
