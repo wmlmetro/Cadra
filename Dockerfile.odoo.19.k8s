@@ -24,6 +24,7 @@ RUN pip3 install --no-cache-dir --break-system-packages html2text openpyxl || \
 COPY --chown=odoo:odoo myservice_request_core       /mnt/extra-addons/myservice_request_core/
 COPY --chown=odoo:odoo myservice_api                /mnt/extra-addons/myservice_api/
 COPY --chown=odoo:odoo myservice_asset_register     /mnt/extra-addons/myservice_asset_register/
+COPY --chown=odoo:odoo myservice_asset_depreciation /mnt/extra-addons/myservice_asset_depreciation/
 COPY --chown=odoo:odoo myservice_barcode_station    /mnt/extra-addons/myservice_barcode_station/
 COPY --chown=odoo:odoo myservice_dashboard          /mnt/extra-addons/myservice_dashboard/
 COPY --chown=odoo:odoo myservice_email_relay        /mnt/extra-addons/myservice_email_relay/
