@@ -326,6 +326,7 @@ export default function AssetDetail() {
 
               {asset.financials?.depreciation && (
                 <DepreciationCard
+                  assetId={asset.id}
                   depreciation={asset.financials.depreciation}
                   currency={asset.financials.currency}
                 />
