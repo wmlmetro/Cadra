@@ -1,0 +1,48 @@
+name: db-query
+
+# Read-only ad-hoc SQL against a tenant DB, for diagnostics. The query is wrapped
+# in a READ ONLY transaction (SET TRANSACTION READ ONLY) so any write is rejected
+# by Postgres regardless of the SQL passed. workflow_dispatch only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      db:
+        description: "Tenant DB (e.g. staging, gtb, jaizbankplc, lasg)."
+        type: string
+        required: true
+      sql:
+        description: "A SELECT statement (runs inside a READ ONLY transaction)."
+        type: string
+        required: true
+
+env:
+  NAMESPACE: cadra-dev
+
+concurrency:
+  group: db-query
+  cancel-in-progress: false
+
+jobs:
+  query:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    environment:
+      name: dev
+    steps:
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      - name: Save DOKS kubeconfig
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 1200 "${{ vars.DO_CLUSTER_NAME }}"
+      - name: Run read-only query
+        env:
+          PGUSER: ${{ vars.POSTGRES_USER || 'odoo' }}
+          DB: ${{ inputs.db }}
+          SQL: ${{ inputs.sql }}
+        run: |
+          set -e
+          POD=$(kubectl -n "$NAMESPACE" get pod -l app=db -o jsonpath='{.items[0].metadata.name}')
+          printf 'BEGIN;\nSET TRANSACTION READ ONLY;\n%s\nROLLBACK;\n' "$SQL" \
+            | kubectl -n "$NAMESPACE" exec -i "$POD" -- psql -U "$PGUSER" -d "$DB" -v ON_ERROR_STOP=1 -f -
