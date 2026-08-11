@@ -82,6 +82,34 @@ jobs:
           echo "─── postgres logs (last 50) ───"
           docker compose -f docker-compose.yml -f docker-compose.19.yml logs --tail=50 db || true
 
+  image-addons-complete:
+    # Guard against a module that exists in the repo but never reaches the
+    # deployed image. The dev/CI stacks bind-mount the whole repo, so a missing
+    # COPY in Dockerfile.odoo.19.k8s is invisible until an upgrade fails in
+    # cluster with "invalid module names, ignored: <module>" — which is exactly
+    # how myservice_asset_depreciation broke the first staging rollout.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every in-house addon is baked into the k8s image
+        run: |
+          missing=0
+          for dir in myservice_* cadra_brand_*; do
+            [ -f "$dir/__manifest__.py" ] || continue
+            if ! grep -qE "^COPY .*[[:space:]]$dir[[:space:]]" Dockerfile.odoo.19.k8s; then
+              echo "::error file=Dockerfile.odoo.19.k8s::'$dir' has a __manifest__.py but is never COPYed into the image. Odoo will not see it in cluster."
+              missing=1
+            fi
+          done
+          if [ "$missing" = "1" ]; then
+            echo ""
+            echo "Add a line to Dockerfile.odoo.19.k8s, e.g.:"
+            echo "  COPY --chown=odoo:odoo <module> /mnt/extra-addons/<module>/"
+            exit 1
+          fi
+          echo "All in-house addons are present in Dockerfile.odoo.19.k8s."
+
   prod-compose-lint:
     # Validate that the prod compose file is syntactically correct (cheap).
     # Doesn't actually bring it up — needs a real domain for Caddy.
