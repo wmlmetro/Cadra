@@ -24,6 +24,7 @@ import { Clock } from "lucide-react";
 
 const Login                      = lazy(() => import("@/pages/Login"));
 const Dashboard                  = lazy(() => import("@/pages/Dashboard"));
+const GlobalSearch               = lazy(() => import("@/pages/GlobalSearch"));
 const FMOperationsDashboard      = lazy(() => import("@/pages/FMOperationsDashboard"));
 const FleetCommandCenter         = lazy(() => import("@/pages/FleetCommandCenter"));
 const ITAssetsCommand            = lazy(() => import("@/pages/ITAssetsCommand"));
@@ -99,6 +100,7 @@ function AppRoutes() {
       <Suspense fallback={<RouteFallback />}>
         <Switch>
           <Route path="/"                    component={Dashboard}            />
+          <Route path="/search"              component={GlobalSearch}         />
           <Route path="/dashboards/fm"       component={FMOperationsDashboard} />
           <Route path="/dashboards/fleet"    component={FleetCommandCenter}   />
           <Route path="/dashboards/it"       component={ITAssetsCommand}      />

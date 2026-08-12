@@ -1,6 +1,7 @@
 import { Search, Sun, Moon, Bell } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
+import { useLocation, useSearch } from "wouter";
 
 interface TopbarProps {
   title: string;
@@ -11,14 +12,31 @@ export default function Topbar({ title, onSearch }: TopbarProps) {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [query, setQuery] = useState("");
+  const [location, nav] = useLocation();
+  const searchStr = useSearch();
 
   // next-themes hydrates `resolvedTheme` after mount; guard the toggle render
   // so the icon doesn't flash the wrong state on first paint.
   useEffect(() => setMounted(true), []);
 
+  // Keep the box in sync with the query when viewing the global results page.
+  useEffect(() => {
+    if (location.startsWith("/search")) {
+      setQuery(new URLSearchParams(searchStr).get("q") ?? "");
+    }
+  }, [location, searchStr]);
+
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
-    onSearch?.(e.target.value);
+    onSearch?.(e.target.value); // live-filter pages that opt in via setSearchHandler
+  };
+
+  // Enter always runs a global search, so the box works on every page — even
+  // detail pages and dashboards that don't register a live-filter handler.
+  const submitSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const term = query.trim();
+    if (term) nav(`/search?q=${encodeURIComponent(term)}`);
   };
 
   return (
@@ -33,20 +51,20 @@ export default function Topbar({ title, onSearch }: TopbarProps) {
       <div className="w-px h-4 bg-border shrink-0" />
 
       {/* Search */}
-      <div className="flex-1 max-w-xs relative">
+      <form onSubmit={submitSearch} className="flex-1 max-w-xs relative">
         <Search
           size={12}
           className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 pointer-events-none"
         />
         <input
           type="search"
-          placeholder="Search assets, locations…"
+          placeholder="Search people, assets, locations…"
           className="w-full pl-8 pr-3 py-1.5 text-[12px] rounded-xl border border-border bg-background/60 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
           value={query}
           onChange={handleSearch}
           data-testid="input-global-search"
         />
-      </div>
+      </form>
 
       {/* Right: actions */}
       <div className="ml-auto flex items-center gap-1.5">
