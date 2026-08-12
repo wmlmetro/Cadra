@@ -8,7 +8,11 @@
 
 import { getToken, hasLiveSession, logout, refreshSession } from "./auth";
 
-const API_BASE = (import.meta.env.VITE_API_BASE ?? "").replace(/\/$/, "");
+/** Origin the Cadra API lives on. Empty string = same origin as the SPA, which
+ *  is how it is deployed (the ingress routes /app to the SPA and everything
+ *  else to Odoo). Exported so non-`/api` Odoo routes — e.g. the public
+ *  `/report/barcode` image endpoint used by label printing — can be built too. */
+export const API_BASE = (import.meta.env.VITE_API_BASE ?? "").replace(/\/$/, "");
 
 /**
  * Live-bound flag: true when there's a stored JWT or the dev env fallback.

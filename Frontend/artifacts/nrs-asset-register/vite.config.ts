@@ -69,6 +69,15 @@ export default defineConfig(({ mode }) => {
               changeOrigin: true,
               secure: false,
             },
+            // Odoo's public /report/barcode image route, used by label
+            // printing. Same origin as the API in every deployment (the
+            // ingress sends /app to the SPA and everything else to Odoo), so
+            // dev needs the same passthrough.
+            "/report": {
+              target: apiProxy,
+              changeOrigin: true,
+              secure: false,
+            },
           }
         : undefined,
     },

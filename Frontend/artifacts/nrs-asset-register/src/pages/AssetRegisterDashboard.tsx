@@ -292,11 +292,9 @@ function BarcodeStation() {
   const lookup = useMutation({
     mutationFn: (q: string) => lookupBarcode(q),
     onSuccess: (result) => {
-      if (!result) return;
-      const assetId =
-        "tag_id" in result ? result.asset_id :
-        (result.asset?.id ?? result.tag?.asset_id ?? null);
-      if (assetId) nav(`/assets/${assetId}`);
+      // A miss is a 200 with {found: false}, not a rejected request.
+      if (!result?.found || !result.asset_id) return;
+      nav(`/assets/${result.asset_id}`);
       setQuery("");
     },
   });
@@ -334,6 +332,9 @@ function BarcodeStation() {
         <p className="text-[11px] text-red-600 dark:text-red-400">
           <span className="font-semibold">{err.code}:</span> {err.message}
         </p>
+      )}
+      {!err && lookup.data && !lookup.data.found && (
+        <p className="text-[11px] text-muted-foreground">No active tag or asset matches that code.</p>
       )}
       <button
         type="button"
