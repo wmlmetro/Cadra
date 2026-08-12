@@ -12,6 +12,7 @@ export default function Topbar({ title, onSearch }: TopbarProps) {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [query, setQuery] = useState("");
+  const [focused, setFocused] = useState(false);
   const [location, nav] = useLocation();
   const searchStr = useSearch();
 
@@ -19,20 +20,37 @@ export default function Topbar({ title, onSearch }: TopbarProps) {
   // so the icon doesn't flash the wrong state on first paint.
   useEffect(() => setMounted(true), []);
 
-  // Keep the box in sync with the query when viewing the global results page.
+  // Reflect the URL query in the box when it changes from OUTSIDE typing
+  // (landing on /search via a link, back/forward). Skipped while the user is
+  // typing so debounced navigation below doesn't fight the input.
   useEffect(() => {
+    if (focused) return;
     if (location.startsWith("/search")) {
       setQuery(new URLSearchParams(searchStr).get("q") ?? "");
     }
-  }, [location, searchStr]);
+  }, [location, searchStr, focused]);
+
+  // Search as you type: debounce-navigate to the global results page — UNLESS
+  // the page registered its own live-filter handler (list pages), which we let
+  // handle the keystrokes in place. Works on every other page (details,
+  // dashboards) where the box was previously dead.
+  useEffect(() => {
+    if (onSearch || !focused) return;
+    const term = query.trim();
+    const t = setTimeout(() => {
+      if (term) nav(`/search?q=${encodeURIComponent(term)}`);
+      else if (location.startsWith("/search")) nav("/search");
+    }, 220);
+    return () => clearTimeout(t);
+  }, [query, onSearch, focused, location, nav]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
     onSearch?.(e.target.value); // live-filter pages that opt in via setSearchHandler
   };
 
-  // Enter always runs a global search, so the box works on every page — even
-  // detail pages and dashboards that don't register a live-filter handler.
+  // Enter still runs the global search immediately (useful on list pages, whose
+  // keystrokes go to their own filter).
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const term = query.trim();
@@ -62,6 +80,8 @@ export default function Topbar({ title, onSearch }: TopbarProps) {
           className="w-full pl-8 pr-3 py-1.5 text-[12px] rounded-xl border border-border bg-background/60 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
           value={query}
           onChange={handleSearch}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           data-testid="input-global-search"
         />
       </form>
