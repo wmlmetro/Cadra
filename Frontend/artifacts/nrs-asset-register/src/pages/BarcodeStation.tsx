@@ -9,7 +9,7 @@ import {
   type BarcodeTag, type BarcodeLookupHit,
 } from "@/lib/dataProvider";
 import { CadraApiError } from "@/lib/api";
-import { printLabels, LABEL_SIZES, type LabelData, type LabelSize } from "@/lib/labels";
+import { printLabels, floorRoomFromTag, LABEL_SIZES, type LabelData, type LabelSize } from "@/lib/labels";
 import {
   ScanBarcode, AlertCircle, Tag, Package, AlertTriangle, XCircle,
   ArrowRight, Search, Printer, Keyboard, Camera, SearchX,
@@ -122,6 +122,7 @@ export default function BarcodeStation() {
       location: hit.location,
       category: hit.category,
       custodian: hit.custodian,
+      floor_room: floorRoomFromTag(hit.tag_number),
     }]);
 
   const printSelected = () =>
@@ -129,6 +130,7 @@ export default function BarcodeStation() {
       tag_number: t.tag_number,
       asset_name: t.asset_name,
       location: t.location,
+      floor_room: floorRoomFromTag(t.tag_number),
     })));
 
   return (
