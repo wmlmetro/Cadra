@@ -148,8 +148,17 @@ class NRSAsset(models.Model):
                 })
         return records
 
-    def _generate_tag(self, source='auto'):
-        """Generate a new unique tag number for this asset."""
+    def _tag_prefix(self):
+        """Location-derived prefix for this asset's tag number.
+
+        BUILDING-FLOOR-ROOM-CATEGORY, from the zone codes on the asset's
+        building/floor/room (generic.location.zone_code — "HQ", "GF", "MR").
+        Segments whose location is unset are skipped rather than emitted
+        empty, so a building-only asset reads "HQ-FF-" instead of "HQ---FF-".
+        With no location at all the tenant's brand short code stands in, which
+        keeps tags unique and readable for assets logged before they are sited.
+        """
+        self.ensure_one()
         domain_codes = {
             'plant':    'PLT',
             'building': 'BLD',
@@ -160,26 +169,44 @@ class NRSAsset(models.Model):
             'furniture':'FRN',
             'other':    'OTH',
         }
-        # Brand-aware prefix: each tenant's short code (NRS, GTB, ...) from the
-        # per-DB config param, so barcode tags match the tenant's branding.
-        brand = self.env['ir.config_parameter'].sudo().get_param('cadra.brand_short_name', 'NRS')
-        prefix = '%s-%s-' % (brand, domain_codes.get(self.domain, 'AST'))
-        # Find highest existing sequence for this prefix
-        existing = self.env['nrs.asset.tag.label'].search(
-            [('name', 'like', prefix)], order='name desc', limit=1)
+
+        def clean(value):
+            # Tag codes are printed as Code 128 and read back by scanners —
+            # keep them to characters that survive a hyphen-delimited split.
+            return re.sub(r'[^A-Z0-9]', '', (value or '').upper())
+
+        segments = [clean(loc.zone_code) for loc in
+                    (self.building_id, self.floor_id, self.room_id) if loc]
+        segments = [s for s in segments if s]
+        if not segments:
+            brand = self.env['ir.config_parameter'].sudo().get_param(
+                'cadra.brand_short_name', 'NRS')
+            segments = [clean(brand) or 'AST']
+
+        category = clean(self.category_id.code) if self.category_id else ''
+        segments.append(category or domain_codes.get(self.domain, 'AST'))
+        return '-'.join(segments) + '-'
+
+    def _generate_tag(self, source='auto'):
+        """Generate a new unique tag number, e.g. HQ-GF-MR-FF-001."""
+        Tag = self.env['nrs.asset.tag.label']
+        prefix = self._tag_prefix()
+        # `=like` anchors the match: a bare `like` is wrapped as %prefix% and
+        # would match the prefix appearing anywhere in the number.
+        existing = Tag.search(
+            [('name', '=like', prefix + '%')], order='name desc', limit=1)
+        seq = 1
         if existing:
-            try:
-                seq = int(existing.name.split('-')[-1]) + 1
-            except Exception:
-                seq = 1
-        else:
-            seq = 1
-        tag_number = '%s%05d' % (prefix, seq)
-        # Ensure uniqueness
-        while self.env['nrs.asset.tag.label'].search_count(
-                [('name', '=', tag_number), ('state', '=', 'active')]):
+            tail = existing.name[len(prefix):]
+            if tail.isdigit():
+                seq = int(tail) + 1
+        tag_number = '%s%03d' % (prefix, seq)
+        # Check every tag, not just the active ones. Reissuing a scrapped
+        # tag's number would make the replacement history ambiguous — two
+        # different physical labels sharing one code.
+        while Tag.search_count([('name', '=', tag_number)]):
             seq += 1
-            tag_number = '%s%05d' % (prefix, seq)
+            tag_number = '%s%03d' % (prefix, seq)
         tag = self.env['nrs.asset.tag.label'].create({
             'name':     tag_number,
             'asset_id': self.id,
