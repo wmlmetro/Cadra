@@ -57,7 +57,10 @@ class BarcodeStationController(http.Controller):
             'active_tags': Tag.search_count([('state', '=', 'active')]),
             'pending_replacement': Tag.search_count([('state', '=', 'pending')]),
             'scrapped_tags': Tag.search_count([('state', '=', 'scrapped')]),
-            'untagged': Asset.search_count([]) - Tag.search_count([('state', '=', 'active')]),
+            # Count assets with no active tag directly. Subtracting the active
+            # tag count from the asset count goes negative as soon as one asset
+            # carries more than one active tag.
+            'untagged': Asset.search_count([('active_tag_id', '=', False)]),
         }
 
     @http.route('/barcode/recent_tags', type='json', auth='user')
@@ -85,17 +88,30 @@ class BarcodeStationController(http.Controller):
 
     @http.route('/barcode/print_url', type='json', auth='user')
     def get_print_url(self, tag_id, size='medium'):
-        """Return the PDF print URL for a tag."""
+        """Return the PDF print URL for a tag.
+
+        The label reports are all registered on ``nrs.asset`` (see
+        myservice_asset_register/data/asset_tag_report.xml), so the id in the
+        URL must be the ASSET id — passing the tag id straight through renders
+        whichever unrelated asset happens to share that id.
+        """
         report_map = {
-            'small':  'myservice_asset_register.action_report_asset_tag',
+            'small':  'myservice_asset_register.action_report_asset_tag_small',
             'medium': 'myservice_asset_register.action_report_asset_tag',
-            'large':  'myservice_asset_register.action_report_asset_tag',
+            'large':  'myservice_asset_register.action_report_asset_tag_large',
             'sheet':  'myservice_asset_register.action_report_asset_tag_sheet',
         }
         report_name = report_map.get(size, report_map['medium'])
+        try:
+            tag_id = int(tag_id)
+        except (TypeError, ValueError):
+            return {'error': 'Invalid tag_id: %s' % tag_id}
+        tag = request.env['nrs.asset.tag.label'].browse(tag_id).exists()
+        if not tag or not tag.asset_id:
+            return {'error': 'Tag not found: %s' % tag_id}
         return {
             'url': '/report/pdf/%s/%s' % (
-                report_name.replace('.', '/'), tag_id)
+                report_name.replace('.', '/'), tag.asset_id.id)
         }
 
     # ── Portal routes ────────────────────────────────────────

@@ -217,10 +217,22 @@ odoo.define('myservice_barcode_station.BarcodeStation', ['web.AbstractAction', '
                 alert('No tags found for selection.');
                 return;
             }
-            var ids = tags.map(function(t) { return t.tag_id; }).join(',');
-            var reportName = size === 'sheet'
-                ? 'myservice_asset_register/action_report_asset_tag_sheet'
-                : 'myservice_asset_register/action_report_asset_tag';
+            // The label reports are registered on nrs.asset, so the report URL
+            // takes ASSET ids — passing tag ids renders unrelated assets.
+            var ids = tags.map(function(t) { return t.asset_id; })
+                          .filter(function(id) { return !!id; })
+                          .join(',');
+            if (!ids) {
+                alert('No assets found for selection.');
+                return;
+            }
+            var reportMap = {
+                small:  'myservice_asset_register/action_report_asset_tag_small',
+                medium: 'myservice_asset_register/action_report_asset_tag',
+                large:  'myservice_asset_register/action_report_asset_tag_large',
+                sheet:  'myservice_asset_register/action_report_asset_tag_sheet',
+            };
+            var reportName = reportMap[size] || reportMap.medium;
             window.open('/report/pdf/' + reportName + '/' + ids, '_blank');
         },
 
