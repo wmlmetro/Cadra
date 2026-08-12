@@ -1769,7 +1769,7 @@ acurl $API/api/v1/fm/dashboard
 
 ---
 
-# §7 — Barcode & tag lookup (5 endpoints)
+# §7 — Barcode & tag lookup (7 endpoints)
 
 For the handheld scan-station workflow and the public-style tag portal.
 
@@ -1915,7 +1915,98 @@ acurl "$API/api/v1/barcode/print-url?size=medium"
 { "error": { "code": "invalid_request", "message": "`tag_id` parameter is required", "request_id": "…", "details": { "http_status": 400 } } }
 ```
 
-## 7.5 GET `/api/v1/tags/lookup?query=<q>` — portal-style lookup
+## 7.5 GET `/api/v1/barcode/untagged?q=&limit=` — assets with no barcode
+
+Scope: `assets:read`. Success: **200**.
+
+An asset always has an `asset_code` (an `ir.sequence` value assigned when the
+asset is created). The **barcode** is a separate, location-derived code living
+on the tag record, and only exists once the asset has been tagged. This lists
+the assets that have the former but not the latter — the candidates for 7.6.
+
+`q` matches asset name, asset code, or serial number. `limit` defaults to 100
+and is clamped to 500.
+
+```bash
+acurl "$API/api/v1/barcode/untagged?q=desk&limit=50"
+```
+
+### Success — `200 OK`
+
+```json
+{
+  "data": [
+    {
+      "asset_id": 412,
+      "asset_name": "Workstation Desk",
+      "asset_code": "NRS-FF-DSK-00001",
+      "category": "Furniture & Fittings",
+      "domain": "furniture",
+      "location": "HQ - GF - Mail Room",
+      "condition": "good"
+    }
+  ],
+  "meta": { "request_id": "…", "timestamp": "…", "version": "v1" }
+}
+```
+
+## 7.6 POST `/api/v1/barcode/generate` — mint barcodes for assets
+
+Scope: `assets:write`. Success: **200**. Idempotent (accepts
+`X-Idempotency-Key`).
+
+Generates a tag for each asset id that does not already have one. The tag
+number is built from the asset's building/floor/room zone codes plus its
+category code — `HQ-GF-MR-FF-001` — see `_tag_prefix` in
+`myservice_asset_register/models/asset_tag.py`.
+
+Assets that already carry an active tag are **skipped, not re-tagged**: a
+second live barcode on one asset means two physical labels in the field
+resolving to the same thing with no way to tell which is current. That also
+makes the call safe to retry after a dropped response. Replacing a damaged
+tag is a different operation (`action_request_replacement` on the tag), which
+preserves the replaces/replaced_by chain.
+
+Max 500 asset ids per call.
+
+```bash
+acurl -X POST "$API/api/v1/barcode/generate" \
+  -H "Content-Type: application/json" \
+  -d '{"asset_ids": [412, 413, 99999]}'
+```
+
+### Success — `200 OK`
+
+```json
+{
+  "data": {
+    "generated": [
+      {
+        "asset_id": 412,
+        "asset_name": "Workstation Desk",
+        "asset_code": "NRS-FF-DSK-00001",
+        "tag_id": 908,
+        "tag_number": "HQ-GF-MR-FF-001",
+        "location": "HQ - GF - Mail Room"
+      }
+    ],
+    "skipped": [
+      { "asset_id": 413, "reason": "already_tagged", "tag_number": "HQ-3F-FIN-IT-001" },
+      { "asset_id": 99999, "reason": "not_found" }
+    ]
+  },
+  "meta": { "request_id": "…", "timestamp": "…", "version": "v1" }
+}
+```
+
+### Error — `400 invalid_request` (empty or oversized list)
+
+```json
+{ "data": { "error": "`asset_ids` must be a non-empty list of asset ids" },
+  "meta": { "request_id": "…", "timestamp": "…", "version": "v1" } }
+```
+
+## 7.7 GET `/api/v1/tags/lookup?query=<q>` — portal-style lookup
 
 Scope: `assets:read`. Success: **200**.
 Less data than `/barcode/lookup` — designed for the public tag portal.
@@ -2407,9 +2498,11 @@ acurl "$API/api/v1/reports/depreciation?category_id=abc"
 | 39 | GET    | `/api/v1/barcode/kpis` | `assets:read` |
 | 40 | GET    | `/api/v1/barcode/recent-tags` | `assets:read` |
 | 41 | GET    | `/api/v1/barcode/print-url` | `assets:read` |
-| 42 | GET    | `/api/v1/tags/lookup` | `assets:read` |
-| 43 | GET    | `/api/v1/home/form-data` | `requests:read` |
-| 44 | POST   | `/api/v1/home/quick-submit` | `requests:write` |
-| 45 | POST   | `/api/v1/integrations/sap/employee-sync` | `integrations:write` |
-| 46 | POST   | `/api/v1/integrations/workflow/callback` | `integrations:write` |
-| 47 | GET    | `/api/v1/reports/depreciation` | `dashboards:read` |
+| 42 | GET    | `/api/v1/barcode/untagged` | `assets:read` |
+| 43 | POST   | `/api/v1/barcode/generate` | `assets:write` |
+| 44 | GET    | `/api/v1/tags/lookup` | `assets:read` |
+| 45 | GET    | `/api/v1/home/form-data` | `requests:read` |
+| 46 | POST   | `/api/v1/home/quick-submit` | `requests:write` |
+| 47 | POST   | `/api/v1/integrations/sap/employee-sync` | `integrations:write` |
+| 48 | POST   | `/api/v1/integrations/workflow/callback` | `integrations:write` |
+| 49 | GET    | `/api/v1/reports/depreciation` | `dashboards:read` |

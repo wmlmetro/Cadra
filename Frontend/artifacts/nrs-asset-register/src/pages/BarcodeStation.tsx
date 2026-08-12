@@ -1,23 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import {
   fetchBarcodeKpis, fetchBarcodeRecentTags, lookupBarcode,
+  fetchUntaggedAssets, generateBarcodes,
   ASSET_DOMAINS, domainLabel,
-  type BarcodeTag, type BarcodeLookupHit,
+  type BarcodeTag, type BarcodeLookupHit, type UntaggedAsset,
 } from "@/lib/dataProvider";
 import { CadraApiError } from "@/lib/api";
-import { printLabels, LABEL_SIZES, type LabelData, type LabelSize } from "@/lib/labels";
+import { printLabels, floorRoomFromTag, LABEL_SIZES, type LabelData, type LabelSize } from "@/lib/labels";
 import {
   ScanBarcode, AlertCircle, Tag, Package, AlertTriangle, XCircle,
-  ArrowRight, Search, Printer, Keyboard, Camera, SearchX,
+  ArrowRight, Search, Printer, Keyboard, Camera, SearchX, Sparkles, Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Mode = "type" | "camera";
-type Notice = { kind: "error" | "warn"; text: string } | null;
+type Notice = { kind: "error" | "warn" | "ok"; text: string } | null;
 
 export default function BarcodeStation() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
@@ -99,8 +100,10 @@ export default function BarcodeStation() {
     });
   }
 
-  async function print(labels: LabelData[]) {
-    setNotice(null);
+  /** `keepNotice` leaves an existing message in place — used when printing
+   *  follows generation, so "Generated 12 barcodes" survives a clean print. */
+  async function print(labels: LabelData[], keepNotice = false) {
+    if (!keepNotice) setNotice(null);
     try {
       const res = await printLabels(labels, size);
       if (res.qrUnavailable) {
@@ -122,6 +125,7 @@ export default function BarcodeStation() {
       location: hit.location,
       category: hit.category,
       custodian: hit.custodian,
+      floor_room: floorRoomFromTag(hit.tag_number),
     }]);
 
   const printSelected = () =>
@@ -129,13 +133,100 @@ export default function BarcodeStation() {
       tag_number: t.tag_number,
       asset_name: t.asset_name,
       location: t.location,
+      floor_room: floorRoomFromTag(t.tag_number),
     })));
+
+  // ── Barcode generation ────────────────────────────────────────────────
+  const qc = useQueryClient();
+  const [assetQuery, setAssetQuery] = useState("");
+  const [assetSearch, setAssetSearch] = useState("");
+  const [pickedAssets, setPickedAssets] = useState<Set<number>>(new Set());
+
+  const untagged = useQuery({
+    queryKey: ["barcode-untagged", assetSearch],
+    queryFn: () => fetchUntaggedAssets({ q: assetSearch || undefined, limit: 200 }),
+    staleTime: 30_000,
+  });
+
+  const generate = useMutation({
+    mutationFn: (ids: number[]) => generateBarcodes(ids),
+    onSuccess: (res) => {
+      setPickedAssets(new Set());
+      // The new tags change the untagged list, the KPI counts and the tag
+      // inventory, so refetch all three rather than patching caches by hand.
+      qc.invalidateQueries({ queryKey: ["barcode-untagged"] });
+      qc.invalidateQueries({ queryKey: ["barcode-kpis"] });
+      qc.invalidateQueries({ queryKey: ["barcode-recent"] });
+
+      const made = res.generated.length;
+      const already = res.skipped.filter((s) => s.reason === "already_tagged").length;
+      const missing = res.skipped.filter((s) => s.reason === "not_found").length;
+      const extra = [
+        already ? `${already} already had one` : "",
+        missing ? `${missing} no longer exist` : "",
+      ].filter(Boolean).join(", ");
+      setNotice({
+        kind: made ? "ok" : "warn",
+        text: `Generated ${made} barcode${made === 1 ? "" : "s"}${extra ? ` — ${extra}.` : "."}`,
+      });
+    },
+    onError: (e) => {
+      const err = e as CadraApiError;
+      setNotice({ kind: "error", text: `${err.code ?? "error"}: ${err.message}` });
+    },
+  });
+
+  const untaggedRows = untagged.data ?? [];
+  const pickedRows = useMemo(
+    () => untaggedRows.filter((a) => pickedAssets.has(a.asset_id)),
+    [untaggedRows, pickedAssets],
+  );
+  const allPicked = untaggedRows.length > 0 && pickedRows.length === untaggedRows.length;
+
+  function togglePicked(id: number) {
+    setPickedAssets((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function togglePickAll() {
+    setPickedAssets((prev) => {
+      const next = new Set(prev);
+      for (const a of untaggedRows) {
+        if (allPicked) next.delete(a.asset_id); else next.add(a.asset_id);
+      }
+      return next;
+    });
+  }
+
+  /** Mint barcodes, then send the ones just created straight to the printer —
+   *  generating and labelling is one job in the field, not two. */
+  async function generateAndPrint() {
+    let res;
+    try {
+      res = await generate.mutateAsync([...pickedAssets]);
+    } catch {
+      return;  // the mutation's onError has already surfaced it
+    }
+    if (!res.generated.length) return;
+    await print(res.generated.map((g) => ({
+      tag_number: g.tag_number,
+      asset_name: g.asset_name,
+      asset_code: g.asset_code,
+      location: g.location,
+      floor_room: floorRoomFromTag(g.tag_number),
+    })), true);
+  }
 
   return (
     <div className="p-6 space-y-5 max-w-[1100px] mx-auto">
       <div>
         <h1 className="text-xl font-bold text-foreground">Barcode Station</h1>
-        <p className="text-xs text-muted-foreground mt-1">Asset tag lookup, batch printing, and tag inventory.</p>
+        <p className="text-xs text-muted-foreground mt-1">
+          Look up a tag, generate barcodes for untagged assets, and print labels.
+        </p>
       </div>
 
       {kpis.error && (
@@ -156,17 +247,7 @@ export default function BarcodeStation() {
         <KpiTile label="Untagged"            value={k.untagged}            icon={Tag}            color="text-muted-foreground" />
       </div>
 
-      {notice && (
-        <div className={cn(
-          "rounded-2xl border p-3 flex items-start gap-2",
-          notice.kind === "error"
-            ? "bg-red-50 dark:bg-red-950/30 border-red-200/70 dark:border-red-800/30"
-            : "bg-amber-50 dark:bg-amber-950/30 border-amber-200/70 dark:border-amber-800/30",
-        )}>
-          <AlertCircle size={14} className={cn("shrink-0 mt-0.5", notice.kind === "error" ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400")} />
-          <p className={cn("text-[12px]", notice.kind === "error" ? "text-red-700 dark:text-red-400" : "text-amber-700 dark:text-amber-400")}>{notice.text}</p>
-        </div>
-      )}
+      {notice && <Notice notice={notice} />}
 
       {/* Scan / lookup */}
       <div className="bg-card border border-border rounded-2xl p-5 space-y-3">
@@ -274,6 +355,120 @@ export default function BarcodeStation() {
               )}
               <SizePicker value={size} onChange={setSize} />
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Generate barcodes for assets that have none */}
+      <div className="bg-card border border-border rounded-2xl p-5">
+        <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+          <div>
+            <h2 className="text-[13px] font-bold inline-flex items-center gap-1.5">
+              <Sparkles size={13} className="text-primary" /> Generate barcodes
+            </h2>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Assets with an asset code but no barcode yet.
+              {untaggedRows.length > 0 && ` ${untaggedRows.length} shown`}
+              {pickedRows.length > 0 && ` · ${pickedRows.length} picked`}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <SizePicker value={size} onChange={setSize} />
+            <button
+              onClick={() => void generate.mutateAsync([...pickedAssets]).catch(() => {})}
+              disabled={pickedRows.length === 0 || generate.isPending}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold border",
+                pickedRows.length && !generate.isPending
+                  ? "border-border hover:bg-muted/40"
+                  : "border-border text-muted-foreground cursor-not-allowed",
+              )}
+            >
+              <Tag size={12} /> Generate only
+            </button>
+            <button
+              onClick={() => void generateAndPrint()}
+              disabled={pickedRows.length === 0 || generate.isPending}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold",
+                pickedRows.length && !generate.isPending
+                  ? "bg-primary text-white hover:opacity-90"
+                  : "bg-muted text-muted-foreground cursor-not-allowed",
+              )}
+            >
+              <Printer size={12} />
+              {generate.isPending
+                ? "Generating…"
+                : pickedRows.length
+                ? `Generate & print ${pickedRows.length}`
+                : "Generate & print"}
+            </button>
+          </div>
+        </div>
+
+        <form
+          onSubmit={(e) => { e.preventDefault(); setAssetSearch(assetQuery.trim()); }}
+          className="flex gap-2 mb-3"
+        >
+          <div className="relative flex-1">
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 pointer-events-none" />
+            <input
+              type="search"
+              value={assetQuery}
+              onChange={(e) => setAssetQuery(e.target.value)}
+              placeholder="Filter by asset name, asset code, or serial…"
+              className="w-full pl-7 pr-3 py-1.5 text-[12px] border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+          <button type="submit" className="px-3 py-1.5 text-[11px] font-semibold rounded-xl border border-border hover:bg-muted/40">
+            Search
+          </button>
+        </form>
+
+        {untagged.error && (
+          <p className="text-[12px] text-red-700 dark:text-red-400 py-2">
+            {(untagged.error as CadraApiError).code}: {(untagged.error as CadraApiError).message}
+          </p>
+        )}
+
+        {untagged.isLoading ? (
+          <p className="text-[12px] text-muted-foreground py-4 text-center">Loading…</p>
+        ) : untaggedRows.length === 0 ? (
+          <p className="text-[12px] text-muted-foreground py-4 text-center inline-flex items-center gap-1.5 w-full justify-center">
+            <Check size={12} className="text-green-600 dark:text-green-400" />
+            {assetSearch ? "No untagged assets match that search." : "Every asset has a barcode."}
+          </p>
+        ) : (
+          <div className="overflow-x-auto max-h-[320px] overflow-y-auto">
+            <table className="w-full min-w-[620px]">
+              <thead className="sticky top-0 bg-card">
+                <tr className="border-b border-border">
+                  <th className="w-8 px-3 py-2">
+                    <input
+                      type="checkbox"
+                      aria-label="Select all untagged assets shown"
+                      checked={allPicked}
+                      onChange={togglePickAll}
+                      className="accent-primary cursor-pointer"
+                    />
+                  </th>
+                  {["Asset code", "Asset", "Category", "Location", "Condition"].map((h) => (
+                    <th key={h} className="text-left px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {untaggedRows.map((a) => (
+                  <UntaggedRow
+                    key={a.asset_id}
+                    asset={a}
+                    checked={pickedAssets.has(a.asset_id)}
+                    onToggle={() => togglePicked(a.asset_id)}
+                    onOpen={() => nav(`/assets/${a.asset_id}`)}
+                  />
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
@@ -390,6 +585,47 @@ function TagRow({ tag, checked, onToggle, onOpen }: {
             : "bg-muted border-border text-muted-foreground",
         )}>{tag.tag_state}</span>
       </td>
+    </tr>
+  );
+}
+
+function Notice({ notice }: { notice: NonNullable<Notice> }) {
+  const tone = {
+    error: { box: "bg-red-50 dark:bg-red-950/30 border-red-200/70 dark:border-red-800/30",
+             fg: "text-red-700 dark:text-red-400", icon: "text-red-600 dark:text-red-400" },
+    warn:  { box: "bg-amber-50 dark:bg-amber-950/30 border-amber-200/70 dark:border-amber-800/30",
+             fg: "text-amber-700 dark:text-amber-400", icon: "text-amber-600 dark:text-amber-400" },
+    ok:    { box: "bg-green-50 dark:bg-green-950/30 border-green-200/70 dark:border-green-800/30",
+             fg: "text-green-700 dark:text-green-400", icon: "text-green-600 dark:text-green-400" },
+  }[notice.kind];
+  const Icon = notice.kind === "ok" ? Check : AlertCircle;
+  return (
+    <div className={cn("rounded-2xl border p-3 flex items-start gap-2", tone.box)}>
+      <Icon size={14} className={cn("shrink-0 mt-0.5", tone.icon)} />
+      <p className={cn("text-[12px]", tone.fg)}>{notice.text}</p>
+    </div>
+  );
+}
+
+function UntaggedRow({ asset, checked, onToggle, onOpen }: {
+  asset: UntaggedAsset; checked: boolean; onToggle: () => void; onOpen: () => void;
+}) {
+  return (
+    <tr className={cn("border-b border-border/40 hover:bg-muted/20", checked && "bg-primary/5")}>
+      <td className="px-3 py-2">
+        <input
+          type="checkbox"
+          aria-label={`Select ${asset.asset_code || asset.asset_name}`}
+          checked={checked}
+          onChange={onToggle}
+          className="accent-primary cursor-pointer"
+        />
+      </td>
+      <td onClick={onOpen} className="px-3 py-2 text-[12px] font-mono cursor-pointer">{asset.asset_code || "—"}</td>
+      <td onClick={onOpen} className="px-3 py-2 text-[12px] truncate max-w-[220px] cursor-pointer">{asset.asset_name}</td>
+      <td onClick={onOpen} className="px-3 py-2 text-[12px] text-muted-foreground truncate max-w-[140px] cursor-pointer">{asset.category || domainLabel(asset.domain)}</td>
+      <td onClick={onOpen} className="px-3 py-2 text-[12px] truncate max-w-[180px] cursor-pointer">{asset.location}</td>
+      <td onClick={onOpen} className="px-3 py-2 text-[12px] cursor-pointer">{asset.condition}</td>
     </tr>
   );
 }

@@ -1,295 +1,249 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- ═══════════════════════════════════════════════════════════
-         SMALL LABEL — 50 x 25 mm — asset code + Code128 only
+         ASSET TAG LABELS
+
+         One artwork ("Option 1"), rendered at four scales:
+
+           ┌──────┬─────────────────────────────────┐
+           │      │ ███ NRS FACILITIES MANAGEMENT   │
+           │      │ Workstation Desk                │
+           │ logo │ HQ-GF-MR-FF-001                 │
+           │      │ NRS-FF-DSK-00001                │
+           │      │ ‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖       ▓▓▓     │
+           │ GF-MR│  HQ-GF-MR-FF-001        ▓▓▓     │
+           └──────┴─────────────────────────────────┘
+
+         Kept in step with the SPA's client-side labels
+         (Frontend/artifacts/nrs-asset-register/src/lib/labels.ts) so a label
+         printed from the Odoo backend matches one printed from the app.
+
+         LAYOUT IS TABLE-BASED ON PURPOSE. These render through wkhtmltopdf
+         0.12.6, i.e. Qt WebKit — `display: flex` and CSS grid do not work
+         there, and silently collapse to a stacked mess. Anything positional
+         has to be a table cell with an explicit width/valign.
+
+         Sizes are the paper format's CONTENT box, not the label's nominal
+         size: the paperformats in data/asset_tag_report.xml carry margins
+         (e.g. 50x30mm less 2mm sides and 1mm top/bottom = 46x28mm usable),
+         and overflowing that silently pushes a second blank page per label.
          ═══════════════════════════════════════════════════════════ -->
+
+    <template id="asset_tag_label_styles">
+        <style>
+            .lbl { border-collapse: collapse; width: 100%; height: 100%;
+                   background: #fff; font-family: Arial, Helvetica, sans-serif;
+                   color: #000; }
+            .lbl td { padding: 0; }
+            .lbl-side { text-align: center; vertical-align: middle; }
+            .lbl-side-inner { border-collapse: collapse; width: 100%; height: 100%; }
+            .lbl-logo { max-width: 100%; }
+            .lbl-brandname { font-weight: 900; }
+            .lbl-room { color: #888; letter-spacing: .3px; white-space: nowrap; }
+            .lbl-hdr { color: #fff; white-space: nowrap; overflow: hidden; }
+            .lbl-hdr-brand { font-weight: 900; letter-spacing: .2px; }
+            .lbl-hdr-sub { font-weight: 600; letter-spacing: .4px; }
+            .lbl-name { font-weight: 700; white-space: nowrap; overflow: hidden; }
+            .lbl-tag { font-family: 'Courier New', monospace; font-weight: 700;
+                       letter-spacing: .5px; white-space: nowrap; }
+            .lbl-acode { font-family: 'Courier New', monospace; color: #777;
+                         white-space: nowrap; overflow: hidden; }
+            .lbl-codes { border-collapse: collapse; width: 100%; }
+            .lbl-bc { display: block; width: 100%; }
+            .lbl-bctext { font-family: 'Courier New', monospace; font-weight: 700;
+                          letter-spacing: 1.5px; text-align: center; }
+            .lbl-qr { display: block; }
+            .lbl-cell { border: 0.3mm dashed #c8c8c8; vertical-align: top; }
+        </style>
+    </template>
+
+    <!-- ── Shared body. Expects `o` (an nrs.asset) and `size`. ── -->
+    <template id="asset_tag_label_body">
+        <!-- Per-scale metrics. Every value is tuned against the content box
+             quoted above; changing a page margin means revisiting these. -->
+        <t t-set="cfg" t-value="{
+            'small':    {'side': '8mm',  'logo': '5mm',  'hdr': '3.4mm', 'hdrfs': '5pt',
+                         'subfs': '4pt',  'namefs': '5pt',  'tagpt': 9.0,
+                         'acodefs': '4.5pt', 'bc': '6mm',  'qr': '7mm',
+                         'roomfs': '3.6pt', 'pad': '0.8mm', 'bctextpt': 5.0,
+                         'tagmax': 17, 'bcw': 400, 'bch': 80, 'qrpx': 100},
+            'standard': {'side': '9mm',  'logo': '5.5mm','hdr': '4mm',   'hdrfs': '5.5pt',
+                         'subfs': '4.5pt','namefs': '5.5pt','tagpt': 10.5,
+                         'acodefs': '5pt',  'bc': '8mm',  'qr': '9mm',
+                         'roomfs': '4pt',   'pad': '1mm',   'bctextpt': 5.5,
+                         'tagmax': 15, 'bcw': 500, 'bch': 80, 'qrpx': 120},
+            'large':    {'side': '16mm', 'logo': '11mm', 'hdr': '7mm',   'hdrfs': '10pt',
+                         'subfs': '8pt',  'namefs': '11pt', 'tagpt': 19.0,
+                         'acodefs': '9pt',  'bc': '18mm', 'qr': '21mm',
+                         'roomfs': '7.5pt', 'pad': '2mm',   'bctextpt': 10.0,
+                         'tagmax': 17, 'bcw': 700, 'bch': 110, 'qrpx': 220}
+            }[size]"/>
+
+        <!-- Tag codes vary in length (HQ-GF-MR-FF-001 vs LASG-3F-WRD-IT-042).
+             `tagmax` is how many monospace characters fit the content column at
+             full size; anything longer is scaled down to fit. Shrinking is the
+             only acceptable answer here — clipping or wrapping a tag code makes
+             the printed label disagree with the barcode above it. -->
+        <t t-set="taglen" t-value="len(o.asset_tag or '') or 1"/>
+        <t t-set="tagscale" t-value="1.0 if taglen &lt;= cfg['tagmax'] else (cfg['tagmax'] * 1.0 / taglen)"/>
+        <t t-set="tag_pt" t-value="round(cfg['tagpt'] * tagscale, 2)"/>
+        <t t-set="bctext_pt" t-value="round(cfg['bctextpt'] * tagscale, 2)"/>
+
+        <t t-set="icp" t-value="env['ir.config_parameter'].sudo()"/>
+        <t t-set="brand_primary" t-value="icp.get_param('cadra.brand_primary') or '#C8102E'"/>
+        <t t-set="brand_short" t-value="icp.get_param('cadra.brand_short_name') or env.company.name or 'Cadra'"/>
+        <!-- cadra.brand_logo is already a data: URI; company.logo is raw base64. -->
+        <t t-set="brand_logo" t-value="icp.get_param('cadra.brand_logo') or ''"/>
+        <t t-set="logo_src" t-value="brand_logo or (('data:image/png;base64,' + env.company.logo.decode('utf-8')) if env.company.logo else '')"/>
+        <t t-set="tag_val" t-value="o.asset_tag or ''"/>
+
+        <table class="lbl">
+            <tr>
+                <!-- Brand column, spanning both rows. -->
+                <td class="lbl-side" rowspan="2" t-attf-style="width: {{ cfg['side'] }};">
+                    <table class="lbl-side-inner">
+                        <tr>
+                            <td style="text-align: center; vertical-align: middle;">
+                                <img t-if="logo_src" t-att-src="logo_src"
+                                     class="lbl-logo" t-attf-style="max-height: {{ cfg['logo'] }};"
+                                     alt=""/>
+                                <span t-if="not logo_src" class="lbl-brandname"
+                                      t-attf-style="color: {{ brand_primary }}; font-size: {{ cfg['hdrfs'] }};"
+                                      t-out="brand_short"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td t-attf-style="text-align: center; vertical-align: bottom; height: {{ cfg['hdr'] }};">
+                                <span class="lbl-room" t-attf-style="font-size: {{ cfg['roomfs'] }};"
+                                      t-out="o.floor_room or ''"/>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+
+                <!-- Colour band, inset from the left so the mark keeps its column. -->
+                <td class="lbl-hdr"
+                    t-attf-style="background: {{ brand_primary }}; height: {{ cfg['hdr'] }};
+                                  padding: 0 {{ cfg['pad'] }};">
+                    <span class="lbl-hdr-brand" t-attf-style="font-size: {{ cfg['hdrfs'] }};"
+                          t-out="brand_short"/>
+                    <span class="lbl-hdr-sub" t-attf-style="font-size: {{ cfg['subfs'] }};"> FACILITIES MANAGEMENT</span>
+                </td>
+            </tr>
+            <tr>
+                <td t-attf-style="vertical-align: top; padding: {{ cfg['pad'] }};">
+                    <div class="lbl-name" t-attf-style="font-size: {{ cfg['namefs'] }};"
+                         t-out="(o.name or '')[:40]"/>
+                    <div class="lbl-tag" t-attf-style="font-size: {{ tag_pt }}pt;"
+                         t-out="tag_val"/>
+                    <div class="lbl-acode" t-attf-style="font-size: {{ cfg['acodefs'] }};"
+                         t-out="o.asset_code or ''"/>
+
+                    <table class="lbl-codes" t-attf-style="margin-top: {{ cfg['pad'] }};">
+                        <tr>
+                            <td style="vertical-align: bottom;">
+                                <img t-if="tag_val"
+                                     t-att-src="'data:image/png;base64,' + o.get_barcode_base64('Code128', tag_val, width=cfg['bcw'], height=cfg['bch'], humanreadable=0)"
+                                     class="lbl-bc" t-attf-style="height: {{ cfg['bc'] }};"
+                                     alt="Code128"/>
+                                <div class="lbl-bctext" t-attf-style="font-size: {{ bctext_pt }}pt;"
+                                     t-out="tag_val"/>
+                            </td>
+                            <td t-attf-style="width: {{ cfg['qr'] }}; padding-left: {{ cfg['pad'] }};
+                                              vertical-align: bottom; text-align: right;">
+                                <img t-if="tag_val"
+                                     t-att-src="'data:image/png;base64,' + o.get_barcode_base64('QR', tag_val, width=cfg['qrpx'], height=cfg['qrpx'])"
+                                     class="lbl-qr"
+                                     t-attf-style="width: {{ cfg['qr'] }}; height: {{ cfg['qr'] }};"
+                                     alt="QR"/>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </template>
+
+    <!-- ═══ SMALL — 50 x 25 mm stock, 46 x 23 mm usable ═══ -->
     <template id="report_asset_tag_label_small">
         <t t-call="web.html_container">
+            <t t-call="myservice_asset_register.asset_tag_label_styles"/>
             <t t-foreach="docs" t-as="o">
-                <t t-set="tag_val" t-value="o.asset_tag or ''"/>
-                <div t-attf-style="
-                    width: 100%; height: 100%;
-                    font-family: 'DM Mono', 'Courier New', monospace;
-                    border: 1px solid #D0D0D0;
-                    padding: 2mm;
-                    box-sizing: border-box;
-                    text-align: center;
-                    background: #fff;
-                    {{ 'page-break-after: always;' if not o_last else '' }}
-                ">
-                    <img t-if="tag_val"
-                         t-att-src="'data:image/png;base64,' + o.get_barcode_base64('Code128', tag_val, width=400, height=80, humanreadable=1)"
-                         style="width: 100%; height: 12mm;" alt="barcode"/>
-                    <div style="font-size: 8px; font-weight: bold; letter-spacing: 1px; margin-top: 1px;">
-                        <t t-out="tag_val"/>
-                    </div>
+                <div t-attf-style="width: 100%; height: 23mm; overflow: hidden;
+                                   {{ 'page-break-after: always;' if not o_last else '' }}">
+                    <t t-call="myservice_asset_register.asset_tag_label_body">
+                        <t t-set="size" t-value="'small'"/>
+                    </t>
                 </div>
             </t>
         </t>
     </template>
 
-    <!-- ═══════════════════════════════════════════════════════════
-         PRINT TAG — 50 x 30 mm  (Option C)
-         Red left bar | NRS | name | labeled tag + asset codes |
-         Code128 + QR barcodes | decoded legend
-         ═══════════════════════════════════════════════════════════ -->
+    <!-- ═══ STANDARD ("Print Tag") — 50 x 30 mm stock, 46 x 28 mm usable ═══ -->
     <template id="report_asset_tag_label">
         <t t-call="web.html_container">
+            <t t-call="myservice_asset_register.asset_tag_label_styles"/>
             <style>
                 body.container { padding: 0 !important; margin: 0 !important; width: 100% !important; }
                 #wrapwrap, #wrapwrap > main { padding: 0; margin: 0; }
             </style>
-            <t t-set="company" t-value="env.company"/>
             <t t-foreach="docs" t-as="o">
-                <t t-set="tag_val" t-value="o.asset_tag or ''"/>
-                <div t-attf-style="
-                    width: 100%; height: 28mm;
-                    font-family: Arial, Helvetica, sans-serif;
-                    box-sizing: border-box;
-                    background: #fff;
-                    overflow: hidden;
-                    {{ 'page-break-after: always;' if not o_last else '' }}
-                ">
-                    <table style="width: 100%; height: 100%; border-collapse: collapse;" cellpadding="0" cellspacing="0">
-                        <tr>
-                            <!-- Red vertical bar -->
-                            <td style="width: 5px; background: #C8102E;"/>
-                            <!-- Content area -->
-                            <td style="vertical-align: top; padding: 0.3mm 1mm 0 1.2mm;">
-
-                                <!-- Company logo / NRS fallback -->
-                                <div style="line-height: 1; margin: 0; padding: 0;">
-                                    <img t-if="company.logo"
-                                         t-att-src="'data:image/png;base64,' + (company.logo.decode('utf-8') if company.logo else '')"
-                                         style="height: 14px; width: auto; object-fit: contain;"/>
-                                    <span t-if="not company.logo"
-                                          style="font-size: 8pt; font-weight: 900; color: #C8102E;">NRS</span>
-                                </div>
-
-                                <!-- TAG CODE label + value -->
-                                <div style="font-size: 6pt; color: #999; text-transform: uppercase;
-                                            letter-spacing: 0.5px; line-height: 1; margin: 0; padding: 0;">TAG CODE</div>
-                                <div style="font-family: 'Courier New', monospace;
-                                            font-size: 11pt; font-weight: 700;
-                                            letter-spacing: 1px; color: #000;
-                                            line-height: 1; margin: 0; padding: 0;">
-                                    <t t-out="tag_val"/>
-                                </div>
-
-                                <!-- ASSET CODE label + value -->
-                                <div style="font-size: 6pt; color: #999; text-transform: uppercase;
-                                            letter-spacing: 0.5px; line-height: 1; margin: 0; padding: 0;">ASSET CODE</div>
-                                <div style="font-family: 'Courier New', monospace;
-                                            font-size: 8pt; color: #666;
-                                            line-height: 1; margin: 0; padding: 0;">
-                                    <t t-out="o.asset_code or ''"/>
-                                </div>
-
-                                <!-- Barcodes: Code128 left, QR right -->
-                                <table style="width: 100%; margin-top: 0.2mm;" cellpadding="0" cellspacing="0">
-                                    <tr>
-                                        <td style="vertical-align: top; width: 70%;">
-                                            <img t-if="tag_val"
-                                                 t-att-src="'data:image/png;base64,' + o.get_barcode_base64('Code128', tag_val, width=400, height=80, humanreadable=0)"
-                                                 style="width: 100%; height: 10mm; display: block;" alt="Code128"/>
-                                            <div style="font-size: 6pt; color: #999; line-height: 1; margin: 0; padding: 0;">Code128</div>
-                                        </td>
-                                        <td style="vertical-align: top; text-align: right; width: 30%; padding-left: 1mm;">
-                                            <img t-if="tag_val"
-                                                 t-att-src="'data:image/png;base64,' + o.get_barcode_base64('QR', tag_val, width=80, height=80)"
-                                                 style="width: 10mm; height: 10mm; display: block; margin-left: auto;" alt="QR"/>
-                                            <div style="font-size: 6pt; color: #999; text-align: right; line-height: 1; margin: 0; padding: 0;">QR</div>
-                                        </td>
-                                    </tr>
-                                </table>
-
-                            </td>
-                        </tr>
-                    </table>
+                <div t-attf-style="width: 100%; height: 28mm; overflow: hidden;
+                                   {{ 'page-break-after: always;' if not o_last else '' }}">
+                    <t t-call="myservice_asset_register.asset_tag_label_body">
+                        <t t-set="size" t-value="'standard'"/>
+                    </t>
                 </div>
             </t>
         </t>
     </template>
 
-    <!-- ═══════════════════════════════════════════════════════════
-         LARGE LABEL — 100 x 60 mm
-         Full: NRS red header + logo, name, category, location,
-         serial, Code128 + QR code
-         ═══════════════════════════════════════════════════════════ -->
+    <!-- ═══ LARGE — 100 x 60 mm stock, 92 x 54 mm usable ═══ -->
     <template id="report_asset_tag_label_large">
         <t t-call="web.html_container">
+            <t t-call="myservice_asset_register.asset_tag_label_styles"/>
             <t t-foreach="docs" t-as="o">
-                <t t-set="tag_val" t-value="o.asset_tag or ''"/>
-                <t t-set="company" t-value="o.env['res.company'].sudo().search([], limit=1)"/>
-                <t t-set="qr_data" t-value="'%s|%s|%s' % (o.asset_code or '', o.serial_number or '', o.location_id.name if o.location_id else '')"/>
-                <div t-attf-style="
-                    width: 100%; height: 100%;
-                    font-family: 'DM Sans', Arial, sans-serif;
-                    border: 1px solid #D0D0D0;
-                    box-sizing: border-box;
-                    background: #fff;
-                    {{ 'page-break-after: always;' if not o_last else '' }}
-                ">
-                    <!-- NRS Red header with logo -->
-                    <div style="
-                        background: #C8102E; color: #fff;
-                        font-size: 8px; font-weight: 700;
-                        padding: 4px 8px; letter-spacing: 0.5px;
-                        display: flex; align-items: center;
-                    ">
-                        <t t-if="company.logo">
-                            <img t-attf-src="data:image/png;base64,{{company.logo.decode('utf-8')}}"
-                                 style="height: 14px; margin-right: 8px;" alt="logo"/>
-                        </t>
-                        <span style="font-weight: 900; font-size: 10px;">NRS</span>
-                        <span style="margin-left: 6px; font-weight: 400;">NIGERIA REVENUE SERVICE — FACILITIES MANAGEMENT</span>
-                    </div>
-
-                    <div style="padding: 2mm 3mm;">
-                        <!-- Asset name -->
-                        <div style="font-size: 11px; font-weight: 700; color: #1A1A1A; margin-bottom: 3px; line-height: 1.3;">
-                            <t t-out="(o.name or '')[:55]"/>
-                        </div>
-
-                        <!-- Barcodes row: Code128 left, QR right -->
-                        <table style="width: 100%; margin: 3px 0;">
-                            <tr>
-                                <td style="text-align: center; vertical-align: top; width: 65%;">
-                                    <img t-if="tag_val"
-                                         t-att-src="'data:image/png;base64,' + o.get_barcode_base64('Code128', tag_val, width=600, height=100, humanreadable=1)"
-                                         style="width: 100%; height: 16mm;" alt="barcode"/>
-                                    <div style="font-family: 'DM Mono', 'Courier New', monospace; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; margin-top: 1px;">
-                                        <t t-out="tag_val"/>
-                                    </div>
-                                </td>
-                                <td style="text-align: center; vertical-align: top; width: 35%; padding-left: 4px;">
-                                    <img t-if="qr_data"
-                                         t-att-src="'data:image/png;base64,' + o.get_barcode_base64('QR', qr_data, width=150, height=150)"
-                                         style="width: 18mm; height: 18mm;" alt="QR"/>
-                                </td>
-                            </tr>
-                        </table>
-
-                        <!-- Details grid -->
-                        <table style="width: 100%; font-size: 7.5px; border-collapse: collapse; margin-top: 2px;">
-                            <tr>
-                                <td style="color: #888; width: 25%;">Category</td>
-                                <td style="color: #1A1A1A; font-weight: 600; width: 25%;">
-                                    <t t-out="o.category_id.name if o.category_id else ''"/>
-                                </td>
-                                <td style="color: #888; width: 20%;">Serial No.</td>
-                                <td style="font-family: 'DM Mono', monospace; color: #1A1A1A;">
-                                    <t t-out="o.serial_number or ''"/>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="color: #888;">Location</td>
-                                <td style="color: #1A1A1A; font-weight: 600;" colspan="3">
-                                    <t t-out="(o.location_id.name or '')[:45]"/>
-                                    <t t-if="o.floor_room">
-                                        <span style="color: #888;"> / </span>
-                                        <t t-out="o.floor_room"/>
-                                    </t>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="color: #888;">Custodian</td>
-                                <td style="color: #1A1A1A;" colspan="3">
-                                    <t t-out="(o.custodian_id.name or '')[:40]"/>
-                                </td>
-                            </tr>
-                        </table>
-
-                        <!-- Footer -->
-                        <div style="border-top: 0.5px solid #eee; margin-top: 3px; padding-top: 1px; font-size: 6px; color: #aaa;">
-                            <span>myservice.com.ng/a/<t t-out="o.asset_code"/></span>
-                            <span style="float: right;" t-out="o.asset_code"/>
-                        </div>
-                    </div>
+                <div t-attf-style="width: 100%; height: 54mm; overflow: hidden;
+                                   {{ 'page-break-after: always;' if not o_last else '' }}">
+                    <t t-call="myservice_asset_register.asset_tag_label_body">
+                        <t t-set="size" t-value="'large'"/>
+                    </t>
                 </div>
             </t>
         </t>
     </template>
 
-    <!-- ═══════════════════════════════════════════════════════════
-         A4 SHEET — 8 labels per page (2 cols x 4 rows)
-         ═══════════════════════════════════════════════════════════ -->
+    <!-- ═══ A4 SHEET — 8 per page (2 x 4) on plain paper, cut to size ═══
+         A4 less the 8mm paperformat margins leaves 194 x 281mm; with a 2mm
+         gutter each cell is ~95 x 66mm, which the large artwork fits. -->
     <template id="report_asset_tag_label_sheet">
         <t t-call="web.html_container">
-            <t t-set="company" t-value="docs[0].env['res.company'].sudo().search([], limit=1) if docs else False"/>
+            <t t-call="myservice_asset_register.asset_tag_label_styles"/>
             <t t-set="chunks" t-value="[docs[i:i+8] for i in range(0, len(docs), 8)]"/>
             <t t-foreach="chunks" t-as="chunk">
-                <div style="
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 6px;
-                    padding: 8px;
-                    page-break-after: always;
-                ">
-                    <t t-foreach="chunk" t-as="o">
-                        <t t-set="tag_val" t-value="o.asset_tag or ''"/>
-                        <div style="
-                            border: 1px solid #D0D0D0;
-                            font-family: 'DM Sans', Arial, sans-serif;
-                            height: 62mm;
-                            box-sizing: border-box;
-                            overflow: hidden;
-                            background: #fff;
-                        ">
-                            <!-- NRS Red header -->
-                            <div style="
-                                background: #C8102E; color: #fff;
-                                font-size: 6.5px; font-weight: 700;
-                                padding: 2px 5px; letter-spacing: 0.4px;
-                                display: flex; align-items: center;
-                            ">
-                                <t t-if="company and company.logo">
-                                    <img t-attf-src="data:image/png;base64,{{company.logo.decode('utf-8')}}"
-                                         style="height: 10px; margin-right: 4px;" alt="logo"/>
+                <div t-attf-style="{{ 'page-break-after: always;' if not chunk_last else '' }}">
+                    <table style="width: 100%; border-collapse: separate; border-spacing: 2mm;">
+                        <t t-foreach="[chunk[i:i+2] for i in range(0, len(chunk), 2)]" t-as="pair">
+                            <tr>
+                                <t t-foreach="pair" t-as="o">
+                                    <td class="lbl-cell" style="width: 50%;">
+                                        <!-- Explicit height on a div, not the cell: a
+                                             percentage height inside a table cell does
+                                             not resolve in Qt WebKit, and the artwork
+                                             would collapse to its content. -->
+                                        <div style="height: 66mm; overflow: hidden;">
+                                            <t t-call="myservice_asset_register.asset_tag_label_body">
+                                                <t t-set="size" t-value="'large'"/>
+                                            </t>
+                                        </div>
+                                    </td>
                                 </t>
-                                <span style="font-weight: 900;">NRS</span>
-                                <span style="margin-left: 3px; font-weight: 400;">FACILITIES MANAGEMENT</span>
-                            </div>
-
-                            <div style="padding: 2mm 3mm;">
-                                <!-- Name (truncated to 20 chars) -->
-                                <div style="font-size: 8px; font-weight: 700; color: #1A1A1A; margin-bottom: 2px; line-height: 1.2;">
-                                    <t t-out="(o.name or '')[:20]"/>
-                                </div>
-                                <!-- Tag code (large) -->
-                                <div style="font-family: 'Courier New', monospace;
-                                            font-size: 9px; font-weight: 900;
-                                            letter-spacing: 1px; color: #000;">
-                                    <t t-out="tag_val"/>
-                                </div>
-                                <!-- Asset code (small) -->
-                                <div style="font-size: 5.5px; color: #888; margin-bottom: 2px;">
-                                    <t t-out="o.asset_code or ''"/>
-                                </div>
-                                <!-- Barcodes row: Code128 left, QR right -->
-                                <table style="width: 100%; margin: 2px 0;" cellpadding="0" cellspacing="0">
-                                    <tr>
-                                        <td style="vertical-align: middle; width: 70%;">
-                                            <img t-if="tag_val"
-                                                 t-att-src="'data:image/png;base64,' + o.get_barcode_base64('Code128', tag_val, width=500, height=80, humanreadable=1)"
-                                                 style="width: 100%; height: 12mm;" alt="barcode"/>
-                                        </td>
-                                        <td style="vertical-align: middle; text-align: right; width: 30%; padding-left: 2mm;">
-                                            <img t-if="tag_val"
-                                                 t-att-src="'data:image/png;base64,' + o.get_barcode_base64('QR', tag_val, width=100, height=100)"
-                                                 style="width: 10mm; height: 10mm;" alt="QR"/>
-                                        </td>
-                                    </tr>
-                                </table>
-                                <!-- Floor / Room -->
-                                <div t-if="o.floor_room"
-                                     style="font-size: 5px; color: #666; margin-top: 1px;
-                                            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                    <t t-out="o.floor_room"/>
-                                </div>
-                            </div>
-                        </div>
-                    </t>
+                                <!-- Keep the final row's cell at half width when
+                                     the page ends on an odd label. -->
+                                <td t-if="len(pair) == 1" style="width: 50%;"/>
+                            </tr>
+                        </t>
+                    </table>
                 </div>
             </t>
         </t>
