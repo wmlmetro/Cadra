@@ -173,11 +173,23 @@ def _list_domain(qs):
     domain = []
     q = (qs.get("q") or "").strip()
     if q:
-        domain += ["|", "|", "|",
-                   ("name", "ilike", q),
-                   ("asset_code", "ilike", q),
-                   ("asset_tag", "ilike", q),
-                   ("serial_number", "ilike", q)]
+        # Match the asset's own identity fields plus the human-meaningful
+        # relations users actually search by: custodian (name or IR number),
+        # category/sub-category, and location.
+        terms = [
+            ("name", "ilike", q),
+            ("asset_code", "ilike", q),
+            ("asset_tag", "ilike", q),
+            ("legacy_asset_code", "ilike", q),
+            ("serial_number", "ilike", q),
+            ("department", "ilike", q),
+            ("custodian_id.name", "ilike", q),
+            ("custodian_id.ir_number", "ilike", q),
+            ("category_id.name", "ilike", q),
+            ("subcategory_id.name", "ilike", q),
+            ("location_id.name", "ilike", q),
+        ]
+        domain += ["|"] * (len(terms) - 1) + terms
     for fld in ("category_id", "subcategory_id", "location_id", "building_id",
                 "floor_id", "room_id", "custodian_id", "parent_id"):
         val = qs.get(fld)

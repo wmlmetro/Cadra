@@ -4,6 +4,9 @@ import type {
   Employee,
   DashboardStats,
   FleetVehicle,
+  VehicleType,
+  VehicleStatus,
+  FuelType,
   FuelCard,
   FuelTransaction,
   BusRoute,
@@ -772,11 +775,50 @@ export interface BarcodeTag {
   tag_id: number; tag_number: string; tag_state: string;
   asset_id: number; asset_name: string; domain: string; location: string; condition: string;
 }
+
+/** The `domain` values `recent-tags` returns are raw selection keys. */
+export const ASSET_DOMAINS: Array<{ value: string; label: string }> = [
+  { value: "building",  label: "Building Services" },
+  { value: "plant",     label: "Plant & Machinery" },
+  { value: "plumbing",  label: "Plumbing & Drainage" },
+  { value: "fleet",     label: "Fleet" },
+  { value: "security",  label: "Security & Safety" },
+  { value: "it",        label: "IT & Communications" },
+  { value: "furniture", label: "Furniture & Fittings" },
+  { value: "other",     label: "Other" },
+];
+
+const DOMAIN_LABELS: Record<string, string> = Object.fromEntries(
+  ASSET_DOMAINS.map((d) => [d.value, d.label]),
+);
+
+/** Selection key -> label. `lookup` already returns a label, so pass it through. */
+export const domainLabel = (d: string | null | undefined): string => (d ? DOMAIN_LABELS[d] ?? d : "");
+
+/**
+ * `/barcode/lookup` answers 200 with `{found: false}` when nothing matches —
+ * a miss is not an HTTP error — so callers must check `found` rather than
+ * relying on the request rejecting.
+ */
+export interface BarcodeLookupHit extends BarcodeTag {
+  found: true;
+  asset_code: string;
+  category: string;
+  custodian: string;
+  state: string;
+  tag_date: string;
+  last_service_date: string;
+  next_service_date: string;
+  sap_asset_number: string;
+  import_source: string;
+}
+export type BarcodeLookupResult = BarcodeLookupHit | { found: false; error?: string };
+
 export const fetchBarcodeKpis       = async () => (await apiGet<BarcodeKpis>("/api/v1/barcode/kpis")).data;
 export const fetchBarcodeRecentTags = async (params?: { domain_filter?: string; limit?: number }) =>
   (await apiGet<BarcodeTag[]>("/api/v1/barcode/recent-tags", params)).data;
 export const lookupBarcode = async (query: string) =>
-  (await apiGet<BarcodeTag | { tag: BarcodeTag | null; asset: ApiAsset | null }>(`/api/v1/barcode/lookup`, { query })).data;
+  (await apiGet<BarcodeLookupResult>(`/api/v1/barcode/lookup`, { query })).data;
 
 export async function fetchLocation(id: string): Promise<Location | null> {
   if (!apiConfigured) return getLocation(id) ?? null;
@@ -988,6 +1030,126 @@ export function getFleetStats() {
     inMaintenance: v.filter((x) => x.status === "In Maintenance").length,
     grounded: v.filter((x) => x.status === "Grounded").length,
     buses: v.filter((x) => x.isStaffBus).length,
+  };
+}
+
+// ── API-backed fleet (falls back to the mock helpers above when no session) ──
+// The backend (fleet.vehicle) has fewer fields than the FleetVehicle view type,
+// so NRS-specific fields it doesn't track (engine no, insurance/road-worthiness
+// expiry, zone, fuel card) are mapped to empty defaults; vehicleType/status/fuel
+// are derived best-effort from the model name and lifecycle state.
+interface ApiFleetVehicle {
+  id: number;
+  name: string;
+  license_plate: string;
+  vin_sn: string;
+  model: string;
+  brand: string;
+  model_year: string;
+  color: string;
+  fuel_type: string;
+  odometer: number;
+  seats: number;
+  state: string;
+  driver: { id: number; name: string } | null;
+  home_location: { id: number; name: string } | null;
+  is_staff_bus: boolean;
+  maintenance_status: string;
+  last_service_date: string;
+  next_service_date: string;
+  next_service_odometer: number;
+}
+
+function deriveVehicleType(a: ApiFleetVehicle): VehicleType {
+  if (a.is_staff_bus) return "Bus";
+  const s = `${a.brand} ${a.model} ${a.name}`.toLowerCase();
+  if (/hiace|coaster|bus|sprinter/.test(s)) return "Bus";
+  if (/hilux|pickup|pick-up|navara|ranger|amarok|d-max/.test(s)) return "Pickup";
+  if (/truck|canter|tipper|lorry|dyna|actros/.test(s)) return "Truck";
+  if (/land ?cruiser|prado|patrol|pajero|fortuner|rav4|4runner|highlander|suv/.test(s)) return "SUV";
+  if (/van|transit|caravan/.test(s)) return "Van";
+  if (/camry|corolla|accord|civic|passat|sonata|sedan|elantra/.test(s)) return "Sedan";
+  return "Van";
+}
+
+function mapVehicleStatus(a: ApiFleetVehicle): VehicleStatus {
+  const s = `${a.state} ${a.maintenance_status}`.toLowerCase();
+  if (/decommiss|dispos|retire|inactive|sold/.test(s)) return "Decommissioned";
+  if (/ground|down|off ?road|impound/.test(s)) return "Grounded";
+  if (/mainten|repair|service|workshop|overdue|due/.test(s)) return "In Maintenance";
+  return "Active";
+}
+
+function mapFuelType(ft: string): FuelType {
+  const s = (ft || "").toLowerCase();
+  if (/diesel/.test(s)) return "Diesel";
+  if (/cng|lpg|gas$|electric|hybrid/.test(s)) return "CNG";
+  return "Petrol";
+}
+
+function apiFleetToVehicle(a: ApiFleetVehicle): FleetVehicle {
+  return {
+    id: String(a.id),
+    assetId: "",
+    assetTag: a.license_plate || String(a.id),
+    make: a.brand || "",
+    model: a.model || "",
+    year: parseInt(a.model_year, 10) || 0,
+    vehicleType: deriveVehicleType(a),
+    regNo: a.license_plate || "",
+    vin: a.vin_sn || "",
+    engineNo: "",
+    color: a.color || "",
+    fuelType: mapFuelType(a.fuel_type),
+    tankCapacity: 0,
+    currentOdometer: a.odometer || 0,
+    status: mapVehicleStatus(a),
+    assignedDriverId: a.driver ? String(a.driver.id) : undefined,
+    assignedDriverName: a.driver?.name,
+    zone: "",
+    office: a.home_location?.name || "",
+    lastServiceDate: a.last_service_date || "",
+    nextServiceKm: a.next_service_odometer || 0,
+    isStaffBus: a.is_staff_bus,
+    seatingCapacity: a.seats || undefined,
+    insuranceExpiry: "",
+    roadWorthinessExpiry: "",
+    department: "",
+  };
+}
+
+export async function listFleetVehiclesApi(f?: FleetFilters): Promise<FleetVehicle[]> {
+  if (!apiConfigured) return listFleetVehicles(f);
+  const res = await apiGet<ApiFleetVehicle[]>("/api/v1/fleet", {
+    q: f?.search || undefined,
+    is_staff_bus: f?.isStaffBus,
+    limit: 300,
+  });
+  let r = res.data.map(apiFleetToVehicle);
+  // vehicleType / status / zone are derived client-side, so filter here.
+  if (f?.vehicleType) r = r.filter((v) => v.vehicleType === f.vehicleType);
+  if (f?.status) r = r.filter((v) => v.status === f.status);
+  if (f?.zone) r = r.filter((v) => v.zone === f.zone);
+  return r;
+}
+
+export async function getFleetVehicleApi(id: string): Promise<FleetVehicle | null> {
+  if (!apiConfigured) return getFleetVehicle(id) ?? null;
+  const res = await apiGet<ApiFleetVehicle>(`/api/v1/fleet/${encodeURIComponent(id)}`);
+  return res.data ? apiFleetToVehicle(res.data) : null;
+}
+
+export async function getFleetStatsApi(): Promise<{
+  total: number; active: number; inMaintenance: number; grounded: number; buses: number;
+}> {
+  if (!apiConfigured) return getFleetStats();
+  const all = await listFleetVehiclesApi({});
+  return {
+    total: all.length,
+    active: all.filter((x) => x.status === "Active").length,
+    inMaintenance: all.filter((x) => x.status === "In Maintenance").length,
+    grounded: all.filter((x) => x.status === "Grounded").length,
+    buses: all.filter((x) => x.isStaffBus).length,
   };
 }
 

@@ -157,7 +157,17 @@ def _list_domain(qs):
     domain = []
     q = (qs.get("q") or "").strip()
     if q:
-        domain.append(("name", "ilike", q))
+        # Only STORED fields — the address fields (street/city/state/country) are
+        # store=False parent-computed (see docstring), so an OR term on them is
+        # treated as always-true and would blow the filter. `_city` and
+        # `zone_code` are the stored backing fields we can safely match.
+        terms = [
+            ("name", "ilike", q),
+            ("description", "ilike", q),
+            ("zone_code", "ilike", q),
+            ("_city", "ilike", q),
+        ]
+        domain += ["|"] * (len(terms) - 1) + terms
     if qs.get("location_type"):
         domain.append(("location_type", "=", qs["location_type"]))
     for fld in ("type_id", "parent_id"):

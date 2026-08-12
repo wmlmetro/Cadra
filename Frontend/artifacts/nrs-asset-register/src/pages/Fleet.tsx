@@ -1,10 +1,12 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import {
-  listFleetVehicles, getFleetVehicle, getAsset,
-  listFuelTransactions, getFleetStats,
+  listFleetVehiclesApi, getFleetVehicleApi, getFleetStatsApi,
+  getAsset, listFuelTransactions,
 } from "@/lib/dataProvider";
+import { apiConfigured } from "@/lib/api";
 import type { FleetVehicle } from "@/types";
 import {
   Car, Bus, Truck, Search, X, ChevronDown,
@@ -118,19 +120,23 @@ export default function Fleet() {
     return () => setSearchHandler(undefined);
   }, [setTitle, setSearchHandler]);
 
-  const stats = getFleetStats();
-  const vehicles = useMemo(() => listFleetVehicles({
-    vehicleType: filterType as FleetVehicle["vehicleType"] || undefined,
-    status: filterStatus as FleetVehicle["status"] || undefined,
-    search: search || undefined,
-  }), [search, filterType, filterStatus]);
+  const { data: stats = { total: 0, active: 0, inMaintenance: 0, grounded: 0, buses: 0 } } =
+    useQuery({ queryKey: ["fleet-stats"], queryFn: getFleetStatsApi });
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ["fleet", { search, filterType, filterStatus }],
+    queryFn: () => listFleetVehiclesApi({
+      vehicleType: filterType || undefined,
+      status: filterStatus || undefined,
+      search: search || undefined,
+    }),
+  });
 
   const hasFilter = !!(search || filterType || filterStatus);
   const serviceAlerts = vehicles.filter(v => serviceHealth(v) !== "good");
 
   return (
     <div className="flex flex-col h-full">
-      <MockDataBanner reason="no /api/v1/fleet endpoint yet — use Fleet Command Center for the API-backed view." />
+      {!apiConfigured && <MockDataBanner reason="No live session — showing sample fleet data." />}
       {/* KPI */}
       <div className="px-5 py-3 border-b border-border bg-card grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
@@ -192,8 +198,11 @@ export function FleetDetail({ params }: { params: { id: string } }) {
   const [, nav] = useLocation();
   const [tab, setTab] = useState<"details" | "fuel" | "docs">("details");
 
-  const v = getFleetVehicle(params.id);
-  const asset = v ? getAsset(v.assetId) : undefined;
+  const { data: v } = useQuery({
+    queryKey: ["fleet-vehicle", params.id],
+    queryFn: () => getFleetVehicleApi(params.id),
+  });
+  const asset = v && v.assetId ? getAsset(v.assetId) : undefined;
   const fuelTxns = v ? listFuelTransactions(v.id) : [];
   const health = v ? serviceHealth(v) : "good";
 

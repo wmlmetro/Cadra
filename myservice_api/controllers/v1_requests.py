@@ -149,7 +149,17 @@ def _list_domain(qs):
     domain = []
     q = (qs.get("q") or "").strip()
     if q:
-        domain.append(("name", "ilike", q))
+        # Reference plus the request body (request_text_sample is the stored
+        # plain-text subject; request_text catches the full description) and the
+        # people on the request (author / contact).
+        terms = [
+            ("name", "ilike", q),
+            ("request_text_sample", "ilike", q),
+            ("request_text", "ilike", q),
+            ("author_id.name", "ilike", q),
+            ("partner_id.name", "ilike", q),
+        ]
+        domain += ["|"] * (len(terms) - 1) + terms
     for fld in ("type_id", "category_id", "stage_id", "user_id",
                 "author_id", "partner_id", "service_id", "parent_id"):
         val = qs.get(fld)
