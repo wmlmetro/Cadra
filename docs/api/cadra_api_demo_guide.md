@@ -272,7 +272,7 @@ function — no separate "API layer" to drift out of sync.**
 
 ---
 
-## §6 — Barcode + tag lookup (5 endpoints)
+## §6 — Barcode + tag lookup (7 endpoints)
 
 For the handheld barcode-station workflow. Same data the on-device JS
 queries, surfaced as proper JSON.
@@ -283,6 +283,8 @@ queries, surfaced as proper JSON.
 | GET | `/api/v1/barcode/kpis` | `assets:read` | Scan-station KPIs |
 | GET | `/api/v1/barcode/recent-tags?domain_filter=&limit=` | `assets:read` | Recently scanned/printed tags |
 | GET | `/api/v1/barcode/print-url?tag_id=&size=` | `assets:read` | Generate a Zebra print URL |
+| GET | `/api/v1/barcode/untagged?q=&limit=` | `assets:read` | Assets with an asset code but no barcode |
+| POST | `/api/v1/barcode/generate` | `assets:write` | Mint barcodes for the given assets |
 | GET | `/api/v1/tags/lookup?query=…` | `assets:read` | Portal-style lookup (JWT, not anonymous) |
 
 ```bash
@@ -291,6 +293,10 @@ curl -sH "Authorization: Bearer $TOKEN" \
 
 curl -sH "Authorization: Bearer $TOKEN" \
   "https://staging.app.cadra.ng/api/v1/barcode/print-url?tag_id=1234&size=large"
+
+curl -sX POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"asset_ids": [412, 413]}' \
+  "https://staging.app.cadra.ng/api/v1/barcode/generate"
 ```
 
 ---
@@ -518,6 +524,8 @@ GET    /api/v1/barcode/lookup
 GET    /api/v1/barcode/kpis
 GET    /api/v1/barcode/recent-tags
 GET    /api/v1/barcode/print-url
+GET    /api/v1/barcode/untagged
+POST   /api/v1/barcode/generate
 GET    /api/v1/tags/lookup
 
 GET    /api/v1/home/form-data

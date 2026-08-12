@@ -52,6 +52,7 @@ from .utils import (
     ERR_UNAUTHORIZED,
     EXTERNAL_TOTAL_CAP,
     SCOPE_ASSETS_READ,
+    SCOPE_ASSETS_WRITE,
     SCOPE_DASHBOARDS_READ,
     SCOPE_INTEGRATIONS_WRITE,
     SCOPE_REQUESTS_READ,
@@ -819,6 +820,50 @@ class MyserviceApiV1(http.Controller):
         return BarcodeStationController().get_print_url(
             tag_id=kwargs.get("tag_id"),
             size=kwargs.get("size", "medium"),
+        )
+
+    @cadra_route("/api/v1/barcode/untagged", method="GET",
+                 summary="Assets with no active barcode tag",
+                 scopes=[SCOPE_ASSETS_READ],
+                 query_params=[
+                     {"name": "q", "schema": {"type": "string"},
+                      "description": "Filter by asset name, asset code, or serial number"},
+                     {"name": "limit", "schema": {"type": "integer", "default": 100,
+                                                  "minimum": 1, "maximum": 500},
+                      "description": "Max rows to return (default 100, max 500)"},
+                 ])
+    def barcode_untagged(self, **kwargs):
+        from odoo.addons.myservice_barcode_station.controllers.main import BarcodeStationController
+        return BarcodeStationController().get_untagged(
+            q=kwargs.get("q", ""),
+            limit=kwargs.get("limit", 100),
+        )
+
+    @cadra_route("/api/v1/barcode/generate", method="POST",
+                 summary="Generate barcode tags for the given assets",
+                 scopes=[SCOPE_ASSETS_WRITE],
+                 idempotent=True,
+                 success_status=200,  # action endpoint, not a resource create
+                 request_schema={
+                     "type": "object",
+                     "required": ["asset_ids"],
+                     "properties": {
+                         "asset_ids": {
+                             "type": "array",
+                             "items": {"type": "integer"},
+                             "maxItems": 500,
+                             "description": "nrs.asset ids to mint a barcode for. Assets "
+                                            "that already have an active tag are skipped, "
+                                            "so the call is safe to retry.",
+                         },
+                     },
+                 },
+                 request_example={"asset_ids": [124, 125, 126]})
+    def barcode_generate(self, **kwargs):
+        from odoo.addons.myservice_barcode_station.controllers.main import BarcodeStationController
+        body = get_params()
+        return BarcodeStationController().generate_tags(
+            asset_ids=body.get("asset_ids") or [],
         )
 
     @cadra_route("/api/v1/tags/lookup", method="GET",

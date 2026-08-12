@@ -86,6 +86,85 @@ class BarcodeStationController(http.Controller):
             })
         return result
 
+    @http.route('/barcode/untagged', type='json', auth='user')
+    def get_untagged(self, q='', limit=100):
+        """Assets carrying no active tag — the candidates for tagging.
+
+        These are the assets the station generates barcodes for: an asset
+        keeps its own `asset_code` (an ir.sequence value, assigned at
+        creation) whether or not it has ever been physically labelled. The
+        barcode is the separate, location-derived code on the tag record.
+        """
+        try:
+            limit = max(1, min(int(limit), 500))
+        except (TypeError, ValueError):
+            limit = 100
+        domain = [('active_tag_id', '=', False)]
+        if q:
+            q = q.strip()
+            domain += ['|', '|',
+                       ('name', 'ilike', q),
+                       ('asset_code', 'ilike', q),
+                       ('serial_number', 'ilike', q)]
+        assets = request.env['nrs.asset'].sudo().search(
+            domain, order='asset_code', limit=limit)
+        return [{
+            'asset_id': a.id,
+            'asset_name': a.name,
+            'asset_code': a.asset_code or '',
+            'category': a.category_id.name if a.category_id else '',
+            'domain': a.domain or '',
+            'location': a.location_id.name if a.location_id else '',
+            'condition': a.condition or '',
+        } for a in assets]
+
+    @http.route('/barcode/generate', type='json', auth='user')
+    def generate_tags(self, asset_ids=None):
+        """Mint a barcode for each of `asset_ids` that does not have one.
+
+        Assets that already carry an active tag are skipped, not re-tagged:
+        a second live barcode for one asset means two physical labels in the
+        field resolving to the same thing, and no way to tell which is
+        current. That also makes this endpoint safe to retry. Replacing a
+        damaged tag is a different operation — action_request_replacement on
+        the tag itself, which keeps the replaces/replaced_by chain intact.
+        """
+        ids = []
+        for raw in (asset_ids or []):
+            try:
+                ids.append(int(raw))
+            except (TypeError, ValueError):
+                continue
+        if not ids:
+            return {'error': '`asset_ids` must be a non-empty list of asset ids'}
+        if len(ids) > 500:
+            return {'error': 'Too many assets in one request (max 500)'}
+
+        Asset = request.env['nrs.asset'].sudo()
+        generated, skipped = [], []
+        for asset_id in ids:
+            asset = Asset.browse(asset_id).exists()
+            if not asset:
+                skipped.append({'asset_id': asset_id, 'reason': 'not_found'})
+                continue
+            if asset.active_tag_id:
+                skipped.append({
+                    'asset_id': asset_id,
+                    'reason': 'already_tagged',
+                    'tag_number': asset.active_tag_id.name,
+                })
+                continue
+            tag = asset._generate_tag(source='manual')
+            generated.append({
+                'asset_id': asset.id,
+                'asset_name': asset.name,
+                'asset_code': asset.asset_code or '',
+                'tag_id': tag.id,
+                'tag_number': tag.name,
+                'location': asset.location_id.name if asset.location_id else '',
+            })
+        return {'generated': generated, 'skipped': skipped}
+
     @http.route('/barcode/print_url', type='json', auth='user')
     def get_print_url(self, tag_id, size='medium'):
         """Return the PDF print URL for a tag.

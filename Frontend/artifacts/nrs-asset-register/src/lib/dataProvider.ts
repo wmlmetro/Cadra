@@ -814,6 +814,35 @@ export interface BarcodeLookupHit extends BarcodeTag {
 }
 export type BarcodeLookupResult = BarcodeLookupHit | { found: false; error?: string };
 
+/**
+ * An asset with no barcode yet. Note that it still has an `asset_code` — that
+ * is an ir.sequence value assigned when the asset is created, independent of
+ * whether anyone has ever physically labelled it. The barcode is the separate
+ * location-derived code that lives on the tag record.
+ */
+export interface UntaggedAsset {
+  asset_id: number; asset_name: string; asset_code: string;
+  category: string; domain: string; location: string; condition: string;
+}
+
+export interface GeneratedTag {
+  asset_id: number; asset_name: string; asset_code: string;
+  tag_id: number; tag_number: string; location: string;
+}
+export interface GenerateTagsResult {
+  generated: GeneratedTag[];
+  skipped: Array<{ asset_id: number; reason: string; tag_number?: string }>;
+}
+
+export const fetchUntaggedAssets = async (params?: { q?: string; limit?: number }) =>
+  (await apiGet<UntaggedAsset[]>("/api/v1/barcode/untagged", params)).data;
+
+/** Mint barcodes for assets that have none. Already-tagged assets come back
+ *  under `skipped`, so a retry after a dropped response is harmless. */
+export const generateBarcodes = async (assetIds: number[]) =>
+  (await apiPost<GenerateTagsResult>("/api/v1/barcode/generate", { asset_ids: assetIds },
+    { idempotencyKey: newIdempotencyKey() })).data;
+
 export const fetchBarcodeKpis       = async () => (await apiGet<BarcodeKpis>("/api/v1/barcode/kpis")).data;
 export const fetchBarcodeRecentTags = async (params?: { domain_filter?: string; limit?: number }) =>
   (await apiGet<BarcodeTag[]>("/api/v1/barcode/recent-tags", params)).data;
