@@ -170,9 +170,11 @@ class NRSAsset(models.Model):
     # ── The derived figures ───────────────────────────────────
 
     def _depreciation_policy(self):
-        """Engine kwargs for this asset."""
+        """Engine kwargs for this asset, including the tenant's conventions."""
         self.ensure_one()
+        options = self.env['cadra.depreciation.settings'].engine_options()
         return dict(
+            **options,
             cost=self.depreciable_cost,
             start_date=self.depreciation_start_date,
             life_months=self.useful_life_months,
@@ -367,6 +369,12 @@ class NRSAsset(models.Model):
             # breaks the surrounding rollback.
             if not in_test:
                 self.env.cr.commit()
+        # Stamped last so it reflects a run that actually completed — the
+        # settings screen shows it, and "last recomputed" claiming a run that
+        # died halfway would be worse than showing nothing.
+        self.env['ir.config_parameter'].sudo().set_param(
+            'cadra.depreciation.last_recompute',
+            fields.Datetime.to_string(fields.Datetime.now()))
         return len(assets)
 
     # ── Validation ────────────────────────────────────────────

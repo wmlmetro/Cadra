@@ -99,13 +99,24 @@ def test_accumulated_is_monotonic_and_book_value_never_goes_negative():
 
 # ── Declining balance ────────────────────────────────────────────────────────
 
-def test_declining_balance_charge_shrinks_each_period():
+def test_pure_declining_balance_charge_shrinks_each_period():
+    """Pure declining balance, i.e. the switch to straight line turned off."""
     s = eng.build_schedule(cost=100000.0, start_date=date(2024, 1, 31),
-                           life_months=60, method=DB, annual_rate_pct=15.0)
+                           life_months=60, method=DB, annual_rate_pct=15.0,
+                           switch_to_straight_line=False)
     charges = [p.charge for p in s]
     # Strictly decreasing until the final write-down period.
     assert all(a >= b for a, b in zip(charges, charges[1:-1]))
     assert charges[0] == pytest.approx(100000.0 * 0.15 / 12, abs=0.01)
+
+
+def test_default_declining_balance_never_jumps_between_periods():
+    """With the default switch on, no period may exceed its predecessor by more
+    than a rounding kobo — that is the whole point of the option."""
+    charges = [p.charge for p in eng.build_schedule(
+        cost=100000.0, start_date=date(2024, 1, 31), life_months=60,
+        method=DB, annual_rate_pct=15.0)]
+    assert all(b <= a + 0.01 for a, b in zip(charges, charges[1:]))
 
 
 def test_declining_balance_floors_at_salvage_and_sums_exactly():
@@ -253,3 +264,109 @@ def test_schedule_end_date_is_the_final_period():
     assert end == date(2025, 1, 31)
     assert eng.schedule_end_date(cost=0.0, start_date=date(2024, 1, 31),
                                  life_months=12, method=SL) is None
+
+
+# ── Conventions: declining balance switching to straight line ────────────────
+
+def test_switch_to_straight_line_removes_the_final_period_cliff():
+    """The regression this option exists for. Pure declining balance leaves a
+    huge final write-down when the rate is too low for the life; switching to
+    straight line glides instead."""
+    policy = dict(cost=66_000.0, start_date=date(2020, 1, 31), life_months=36,
+                  method=DB, annual_rate_pct=20.0, salvage=3_300.0)
+
+    pure = eng.build_schedule(**policy, switch_to_straight_line=False)
+    smooth = eng.build_schedule(**policy, switch_to_straight_line=True)
+
+    # Pure DB: the last charge dwarfs the one before it.
+    assert pure[-1].charge > pure[-2].charge * 2
+    # Switched: no period is wildly out of line with its neighbour.
+    assert smooth[-1].charge <= smooth[-2].charge * 1.5
+
+    # Both still reconcile exactly.
+    for sched in (pure, smooth):
+        assert round(sum(p.charge for p in sched), 2) == 62_700.0
+        assert sched[-1].book_value == pytest.approx(3_300.0)
+
+
+def test_switch_keeps_a_genuine_curve_when_the_rate_suits_the_life():
+    """Switching must not flatten a well-specified declining-balance policy —
+    the early periods should still decline before straight line takes over."""
+    s = eng.build_schedule(cost=849_000.0, start_date=date(2022, 9, 30),
+                           life_months=48, method=DB, annual_rate_pct=33.3,
+                           switch_to_straight_line=True)
+    charges = [p.charge for p in s]
+    assert charges[0] > charges[6] > charges[12], "early periods should decline"
+    # And it still lands exactly on zero salvage.
+    assert round(sum(charges), 2) == 849_000.0
+    assert s[-1].book_value == 0.0
+
+
+def test_a_rate_too_low_for_the_life_becomes_straight_line():
+    """Not a bug: if the rate cannot write the asset down in time, straight line
+    wins from period one. That surfaces an inconsistent policy rather than
+    hiding it behind a final-period cliff."""
+    s = eng.build_schedule(cost=36_000.0, start_date=date(2020, 1, 31),
+                           life_months=36, method=DB, annual_rate_pct=5.0,
+                           switch_to_straight_line=True)
+    charges = [p.charge for p in s]
+    assert len(set(charges[:-1])) == 1, "should be a flat straight-line charge"
+    assert round(sum(charges), 2) == 36_000.0
+
+
+@pytest.mark.parametrize("cost,life,rate,salvage", [
+    (66_000.0, 36, 20.0, 3_300.0),
+    (849_000.0, 48, 33.3, 0.0),
+    (1_250_000.0, 96, 20.0, 125_000.0),
+    (12_345.67, 60, 25.0, 1_000.0),
+])
+def test_switched_schedules_still_sum_exactly(cost, life, rate, salvage):
+    s = eng.build_schedule(cost=cost, start_date=date(2021, 6, 30),
+                           life_months=life, method=DB, annual_rate_pct=rate,
+                           salvage=salvage, switch_to_straight_line=True)
+    assert round(sum(p.charge for p in s), 2) == round(cost - salvage, 2)
+    assert s[-1].book_value == pytest.approx(salvage)
+
+
+# ── Conventions: proration ───────────────────────────────────────────────────
+
+def test_daily_proration_charges_a_part_first_period():
+    """Acquired mid-month, the first charge covers only the days held."""
+    whole = eng.build_schedule(cost=1200.0, start_date=date(2024, 1, 15),
+                               life_months=12, method=SL)
+    daily = eng.build_schedule(cost=1200.0, start_date=date(2024, 1, 15),
+                               life_months=12, method=SL,
+                               proration=eng.PRORATION_DAILY)
+    assert daily[0].charge < whole[0].charge
+    # The deferred slice runs onto the end rather than vanishing.
+    assert len(daily) == len(whole) + 1
+
+
+def test_daily_proration_still_sums_exactly():
+    for cost, start in [(1200.0, date(2024, 1, 15)), (99_999.99, date(2023, 3, 7)),
+                        (54_321.0, date(2022, 11, 22))]:
+        s = eng.build_schedule(cost=cost, start_date=start, life_months=24,
+                               method=SL, proration=eng.PRORATION_DAILY)
+        assert round(sum(p.charge for p in s), 2) == round(cost, 2)
+        assert s[-1].book_value == 0.0
+
+
+def test_month_end_acquisition_is_unaffected_by_proration():
+    """Acquired on the last day of a month, there is nothing to prorate."""
+    whole = eng.build_schedule(cost=1200.0, start_date=date(2024, 1, 31),
+                               life_months=12, method=SL)
+    daily = eng.build_schedule(cost=1200.0, start_date=date(2024, 1, 31),
+                               life_months=12, method=SL,
+                               proration=eng.PRORATION_DAILY)
+    assert [p.charge for p in daily] == [p.charge for p in whole]
+
+
+def test_value_at_honours_the_conventions():
+    """The summary must agree with whatever board the conventions produce."""
+    policy = dict(cost=66_000.0, start_date=date(2020, 1, 31), life_months=36,
+                  method=DB, annual_rate_pct=20.0, salvage=3_300.0,
+                  switch_to_straight_line=True)
+    for period in eng.build_schedule(**policy):
+        acc, book, _ = eng.value_at(period.period_end, **policy)
+        assert acc == pytest.approx(period.accumulated)
+        assert book == pytest.approx(period.book_value)

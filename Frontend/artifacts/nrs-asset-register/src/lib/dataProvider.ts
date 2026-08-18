@@ -1396,3 +1396,56 @@ export async function commentOnRequest(id: string, body: string, internal = true
     idempotencyKey: newIdempotencyKey(),
   });
 }
+
+// ── Settings: depreciation (PRD §8.6) ─────────────────────────────────────
+
+export interface CategoryPolicy {
+  method: "none" | "straight_line" | "declining_balance" | "erp_managed";
+  useful_life_months: number | null;
+  declining_rate: number | null;
+  salvage_rate: number | null;
+}
+
+export interface AssetCategoryConfig {
+  id: number;
+  name: string;
+  code: string | null;
+  domain: string | null;
+  asset_count: number;
+  depreciating_count: number;
+  pm_interval_days: number | null;
+  depreciation: CategoryPolicy;
+  /** Only present on the response to a PATCH. */
+  assets_recomputed?: number;
+}
+
+export interface DepreciationSettings {
+  mode: "computed" | "erp_managed";
+  proration: "whole_month" | "daily";
+  declining_switches_to_straight_line: boolean;
+  last_recompute: string | null;
+  data_quality: {
+    needs_start_date: number;
+    missing_cost: number;
+    not_configured: number;
+  };
+}
+
+export const fetchAssetCategories = async () =>
+  (await apiGet<AssetCategoryConfig[]>("/api/v1/asset-categories")).data;
+
+/** Policy edits restate book value across the whole category, so the response
+ *  carries how many assets were recomputed. */
+export const updateAssetCategory = async (
+  id: number, body: Partial<CategoryPolicy & { pm_interval_days: number }>,
+) => (await apiPatch<AssetCategoryConfig>(`/api/v1/asset-categories/${id}`, body)).data;
+
+export const fetchDepreciationSettings = async () =>
+  (await apiGet<DepreciationSettings>("/api/v1/settings/depreciation")).data;
+
+export const updateDepreciationSettings = async (body: Partial<DepreciationSettings>) =>
+  (await apiPatch<DepreciationSettings>("/api/v1/settings/depreciation", body)).data;
+
+export const recomputeDepreciation = async () =>
+  (await apiPost<DepreciationSettings & { recomputed: number }>(
+    "/api/v1/settings/depreciation/recompute", {})).data;
