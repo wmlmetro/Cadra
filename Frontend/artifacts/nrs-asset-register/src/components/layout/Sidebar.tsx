@@ -226,7 +226,7 @@ function SessionChip() {
     <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl">
       <div
         className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold text-white"
-        style={{ background: "#E01F26" }}
+        style={{ background: getBrand().primary }}
       >
         A
       </div>

@@ -17,7 +17,7 @@ type LocType = Location["locationType"];
 
 function typeConfig(t: LocType) {
   switch (t) {
-    case "Zone":   return { Icon: Globe,     tile: "bg-[var(--nrs-red-subtle)] border-red-200/60 dark:bg-red-950/30 dark:border-red-800/30",     icon: "text-[#E01F26] dark:text-red-400"   };
+    case "Zone":   return { Icon: Globe,     tile: "bg-[var(--nrs-red-subtle)] border-red-200/60 dark:bg-red-950/30 dark:border-red-800/30",     icon: "text-[color:var(--nrs-red)] dark:text-red-400"   };
     case "State":  return { Icon: Building2, tile: "bg-blue-50 border-blue-100 dark:bg-blue-950/30 dark:border-blue-800/30",                      icon: "text-blue-500 dark:text-blue-400"   };
     case "Office": return { Icon: MapPin,    tile: "bg-amber-50 border-amber-100 dark:bg-amber-950/30 dark:border-amber-800/30",                  icon: "text-amber-500 dark:text-amber-400" };
     case "Floor":  return { Icon: Layers,    tile: "bg-purple-50 border-purple-100 dark:bg-purple-950/30 dark:border-purple-800/30",              icon: "text-purple-500 dark:text-purple-400"};
@@ -401,7 +401,7 @@ export default function Locations() {
       <div className="px-5 py-3 border-b border-border bg-card grid grid-cols-4 gap-3">
         {[
           { label: "Total Locations", value: kpi.total.toLocaleString(),   icon: Package,   color: "text-foreground"                       },
-          { label: "Zones",           value: kpi.zones,                     icon: Globe,     color: "text-[#E01F26]"                        },
+          { label: "Zones",           value: kpi.zones,                     icon: Globe,     color: "text-[color:var(--nrs-red)]"                        },
           { label: "States",          value: kpi.states,                    icon: Building2, color: "text-blue-600 dark:text-blue-400"      },
           { label: "Offices",         value: kpi.offices,                   icon: MapPin,    color: "text-amber-600 dark:text-amber-400"    },
         ].map(s => (
@@ -497,7 +497,7 @@ export default function Locations() {
             {groupBy === "zone" && cardsByZone && cardsByZone.map(({ zone, items }) => (
               <div key={zone.id}>
                 <div className="flex items-center gap-2.5 mb-3">
-                  <Globe size={13} className="text-[#E01F26]" />
+                  <Globe size={13} className="text-[color:var(--nrs-red)]" />
                   <h3 className="text-[12px] font-extrabold text-foreground uppercase tracking-wide">{zone.name}</h3>
                   <span className="text-[11px] font-semibold text-muted-foreground">{zone.zoneCode}</span>
                   <div className="flex-1 h-px bg-border" />

@@ -7,6 +7,7 @@ import {
   AlertCircle, Clock, Car, Bus, Users, RefreshCw, Search, ArrowUpDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import BrandPill from "@/components/BrandPill";
 
 // Sortable columns over the fleet vehicle roster. The "fuel" column maps to
 // fuel_type because the backend doesn't expose per-vehicle fuel level — this
@@ -94,8 +95,7 @@ export default function FleetRosterReport() {
       {/* Brand strip */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-start gap-3">
-          <span className="inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-extrabold tracking-wider"
-                style={{ background: "#E01F26", color: "white" }}>NRS</span>
+          <BrandPill />
           <div>
             <h1 className="text-xl font-bold text-foreground">Fleet Roster Report</h1>
             <p className="text-xs text-muted-foreground mt-1">

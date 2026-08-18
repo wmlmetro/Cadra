@@ -11,13 +11,13 @@ import {
   AlertCircle, Clock, Package, BookOpen, TrendingUp, TrendingDown, RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-// NRS brand red — used for the bar chart so the report matches the rest of the
-// dashboard surface.
-const NRS_RED = "#E01F26";
+import BrandPill from "@/components/BrandPill";
+import { getBrand } from "@/lib/brand";
 
 export default function AssetInventoryReport() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
+  // Chart colour follows the tenant, like the pill does.
+  const brandColour = getBrand().primary;
 
   useEffect(() => {
     setTitle("Asset Inventory by Category");
@@ -91,8 +91,7 @@ export default function AssetInventoryReport() {
       {/* Brand strip */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-start gap-3">
-          <span className="inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-extrabold tracking-wider"
-                style={{ background: NRS_RED, color: "white" }}>NRS</span>
+          <BrandPill />
           <div>
             <h1 className="text-xl font-bold text-foreground">Asset Inventory by Category</h1>
             <p className="text-xs text-muted-foreground mt-1">
@@ -162,7 +161,7 @@ export default function AssetInventoryReport() {
                 />
                 <Bar dataKey="count" radius={[6, 6, 0, 0]}>
                   {categories.map((c, i) => (
-                    <Cell key={c.id ?? c.name ?? i} fill={NRS_RED} />
+                    <Cell key={c.id ?? c.name ?? i} fill={brandColour} />
                   ))}
                 </Bar>
               </BarChart>

@@ -9,8 +9,10 @@ import { fetchAssetDepreciation, type DepreciationPeriod } from "@/lib/dataProvi
 import { CadraApiError } from "@/lib/api";
 import type { AssetDepreciation } from "@/types";
 import { cn } from "@/lib/utils";
+import { getBrand } from "@/lib/brand";
 
-const BOOK_COLOUR = "#E01F26";   // NRS red — the value you still hold
+// The value you still hold, in the tenant's own colour.
+const BOOK_COLOUR_FALLBACK = "#E01F26";
 const ACCUM_COLOUR = "#94a3b8";  // slate — the value written off
 
 /** Compact axis money: 12.4m / 850k / 320. */
@@ -66,6 +68,7 @@ export default function DepreciationTimeline({
   currency?: string;
 }) {
   const [showTable, setShowTable] = useState(false);
+  const BOOK_COLOUR = getBrand().primary || BOOK_COLOUR_FALLBACK;
 
   // Only computed methods have a board. 'none' has nothing to plot and
   // 'erp_managed' is owned by the tenant's ERP, which supplies a figure but no
@@ -149,9 +152,9 @@ export default function DepreciationTimeline({
         </span>
       </div>
       <p className="text-[11px] text-muted-foreground mb-3">
-        The red line is what the asset is still worth, falling as it ages. The
-        dashed grey line is how much has been written off. They always add up to
-        the original cost.
+        The solid line is what the asset is still worth, falling as it ages.
+        The dashed grey line is how much has been written off. They always add
+        up to the original cost.
       </p>
 
       <div style={{ width: "100%", height: 240 }}>

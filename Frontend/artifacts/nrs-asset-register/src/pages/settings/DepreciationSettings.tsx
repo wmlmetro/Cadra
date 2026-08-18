@@ -11,7 +11,7 @@ import {
   AlertCircle, Clock, RefreshCw, Info, Check, Loader2, CalendarX, Wallet, CircleSlash,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getBrand } from "@/lib/brand";
+import BrandPill from "@/components/BrandPill";
 
 
 const METHODS: { value: CategoryPolicy["method"]; label: string }[] = [
@@ -112,7 +112,6 @@ export default function DepreciationSettingsPage() {
   const qc = useQueryClient();
   const [savingId, setSavingId] = useState<number | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  const brand = getBrand();
 
   useEffect(() => {
     setTitle("Settings — Depreciation");
@@ -205,13 +204,7 @@ export default function DepreciationSettingsPage() {
     <div className="p-6 space-y-5 max-w-[1100px] mx-auto">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-start gap-3">
-          {/* One static bundle serves every tenant, so the badge has to come
-              from the resolved brand — hardcoding "NRS" puts the wrong mark on
-              a Jaiz or GTB page. */}
-          <span className="inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-extrabold tracking-wider"
-                style={{ background: brand.primary, color: "white" }}>
-            {brand.short_name || brand.name}
-          </span>
+          <BrandPill />
           <div>
             <h1 className="text-xl font-bold text-foreground">Depreciation settings</h1>
             <p className="text-xs text-muted-foreground mt-1">
