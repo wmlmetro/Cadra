@@ -10,10 +10,14 @@ import {
   AlertCircle, Clock, Wrench, ShieldCheck, AlertTriangle, HelpCircle, RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import BrandPill from "@/components/BrandPill";
 
 // Donut palette — mirrors the badge colors used in FleetCommandCenter so
 // "overdue" stays red, "due_soon" amber, "ok" green, "no_schedule" grey.
 const STATE_COLORS: Record<string, string> = {
+  // Status semantics, NOT brand: green/amber/red/grey read as good/warning/bad.
+  // Deliberately fixed rather than following the tenant colour — on GTB orange,
+  // "overdue" would be indistinguishable from "due soon".
   ok: "#22c55e",
   due_soon: "#f59e0b",
   overdue: "#E01F26",
@@ -99,8 +103,7 @@ export default function MaintenanceReadinessReport() {
       {/* Brand strip */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-start gap-3">
-          <span className="inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-extrabold tracking-wider"
-                style={{ background: "#E01F26", color: "white" }}>NRS</span>
+          <BrandPill />
           <div>
             <h1 className="text-xl font-bold text-foreground">Maintenance Readiness Report</h1>
             <p className="text-xs text-muted-foreground mt-1">

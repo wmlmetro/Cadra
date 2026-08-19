@@ -13,6 +13,7 @@ import {
   Package, RefreshCw, Search, ArrowUpRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import BrandPill from "@/components/BrandPill";
 
 export default function TagAdoptionReport() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
@@ -90,8 +91,7 @@ export default function TagAdoptionReport() {
       {/* Brand strip */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-start gap-3">
-          <span className="inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-extrabold tracking-wider"
-                style={{ background: "#E01F26", color: "white" }}>NRS</span>
+          <BrandPill />
           <div>
             <h1 className="text-xl font-bold text-foreground">Asset Tag Adoption Report</h1>
             <p className="text-xs text-muted-foreground mt-1">

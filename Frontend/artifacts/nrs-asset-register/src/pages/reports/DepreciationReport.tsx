@@ -10,9 +10,9 @@ import {
   AlertCircle, Clock, Wallet, TrendingDown, Landmark, CalendarX, RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import BrandPill from "@/components/BrandPill";
+import { getBrand } from "@/lib/brand";
 
-// NRS brand red — matches the other reports.
-const NRS_RED = "#E01F26";
 const ACCUM_COLOUR = "#94a3b8";
 
 const STATE_LABEL: Record<string, string> = {
@@ -45,6 +45,8 @@ function fullMoney(v: number) {
 
 export default function DepreciationReport() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
+  // Chart colour follows the tenant, like the pill does.
+  const brandColour = getBrand().primary;
 
   useEffect(() => {
     setTitle("Depreciation & Book Value");
@@ -99,8 +101,7 @@ export default function DepreciationReport() {
       {/* Brand strip */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-start gap-3">
-          <span className="inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-extrabold tracking-wider"
-                style={{ background: NRS_RED, color: "white" }}>NRS</span>
+          <BrandPill />
           <div>
             <h1 className="text-xl font-bold text-foreground">Depreciation &amp; Book Value</h1>
             <p className="text-xs text-muted-foreground mt-1">
@@ -190,7 +191,7 @@ export default function DepreciationReport() {
                 {/* fill on the Bar itself, not per-Cell: a Cell fill doesn't
                     propagate to the legend swatch, which then renders black. */}
                 <Bar dataKey="current_book_value" name="Net book value" stackId="a"
-                     fill={NRS_RED} radius={[6, 6, 0, 0]} />
+                     fill={brandColour} radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

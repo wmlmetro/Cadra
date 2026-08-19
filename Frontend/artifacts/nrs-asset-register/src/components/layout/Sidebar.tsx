@@ -5,7 +5,7 @@ import {
   LayoutDashboard, MapPin, Bus, Car, BookOpen,
   Fingerprint, Users, Activity, ShieldAlert,
   Inbox, Briefcase, ScanBarcode, Upload, RefreshCw,
-  Wrench, Tag, ChevronDown, Monitor, TrendingDown,
+  Wrench, Tag, ChevronDown, Monitor, TrendingDown, SlidersHorizontal,
   LogOut,
 } from "lucide-react";
 import { logout, getScope, getExpiry } from "@/lib/auth";
@@ -49,6 +49,9 @@ const navGroups = [
     { name: "Location Coverage",       path: "/reports/location-coverage",     icon: MapPin   },
     { name: "Tag Adoption",            path: "/reports/tag-adoption",          icon: Tag      },
     { name: "Depreciation",            path: "/reports/depreciation",          icon: TrendingDown },
+  ]},
+  { label: "Settings", items: [
+    { name: "Depreciation",            path: "/settings/depreciation", icon: SlidersHorizontal },
   ]},
   { label: "Tools", items: [
     { name: "Barcode Station",         path: "/tools/barcode",        icon: ScanBarcode    },
@@ -223,7 +226,7 @@ function SessionChip() {
     <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl">
       <div
         className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold text-white"
-        style={{ background: "#E01F26" }}
+        style={{ background: getBrand().primary }}
       >
         A
       </div>

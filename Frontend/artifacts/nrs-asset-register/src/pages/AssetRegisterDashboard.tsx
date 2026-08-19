@@ -18,6 +18,7 @@ import {
   Wrench, ListChecks, Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import BrandPill from "@/components/BrandPill";
 
 const ASSET_FILTER_TABS = [
   { key: "all",        label: "All" },
@@ -102,8 +103,7 @@ export default function AssetRegisterDashboard() {
       {/* ─── Brand strip ────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-start gap-3">
-          <span className="inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-extrabold tracking-wider"
-                style={{ background: "#E01F26", color: "white" }}>NRS</span>
+          <BrandPill />
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-[20px] font-extrabold text-foreground">Asset Register</h1>
@@ -221,7 +221,7 @@ export default function AssetRegisterDashboard() {
                   <div className="flex-1 h-2 bg-muted/40 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full"
-                      style={{ width: `${Math.max(2, pct)}%`, background: "#E01F26" }}
+                      style={{ width: `${Math.max(2, pct)}%`, background: "var(--nrs-red)" }}
                       title={`${cat.count.toLocaleString()} assets`}
                     />
                   </div>
