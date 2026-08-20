@@ -28,7 +28,7 @@ import {
   mockBusBookings,
 } from "../mock/staffBus";
 import { mockIdentityRecords } from "../mock/identity";
-import { apiConfigured, apiGet, apiPost, apiPatch, apiUpload, newIdempotencyKey } from "./api";
+import { apiConfigured, apiGet, apiPost, apiPatch, apiDelete, apiUpload, newIdempotencyKey } from "./api";
 import {
   apiEmployeeToEmployee, type ApiEmployee,
   apiAssetToAsset, type ApiAsset,
@@ -1406,11 +1406,25 @@ export interface CategoryPolicy {
   salvage_rate: number | null;
 }
 
+/** FM domains — mirrors the Selection on nrs.asset.category. */
+export const FM_DOMAINS = [
+  { value: "building",  label: "Building Services" },
+  { value: "plant",     label: "Plant & Machinery" },
+  { value: "plumbing",  label: "Plumbing & Drainage" },
+  { value: "fleet",     label: "Fleet" },
+  { value: "security",  label: "Security & Safety" },
+  { value: "it",        label: "IT & Communications" },
+  { value: "furniture", label: "Furniture & Fittings" },
+  { value: "other",     label: "Other" },
+] as const;
+
 export interface AssetCategoryConfig {
   id: number;
   name: string;
   code: string | null;
   domain: string | null;
+  description: string | null;
+  sequence: number;
   asset_count: number;
   depreciating_count: number;
   pm_interval_days: number | null;
@@ -1436,9 +1450,30 @@ export const fetchAssetCategories = async () =>
 
 /** Policy edits restate book value across the whole category, so the response
  *  carries how many assets were recomputed. */
+/** Identity/classification fields, as opposed to the depreciation policy. */
+export interface CategoryIdentity {
+  name: string;
+  code: string | null;
+  domain: string | null;
+  description: string | null;
+  sequence: number;
+  pm_interval_days: number | null;
+}
+
 export const updateAssetCategory = async (
-  id: number, body: Partial<CategoryPolicy & { pm_interval_days: number }>,
+  id: number,
+  body: Partial<CategoryPolicy & CategoryIdentity>,
 ) => (await apiPatch<AssetCategoryConfig>(`/api/v1/asset-categories/${id}`, body)).data;
+
+export const createAssetCategory = async (body: Partial<CategoryIdentity>) =>
+  (await apiPost<AssetCategoryConfig>("/api/v1/asset-categories", body, {
+    idempotencyKey: newIdempotencyKey(),
+  })).data;
+
+/** Refused with 409 while the category still holds assets. */
+export const deleteAssetCategory = async (id: number) =>
+  (await apiDelete<{ deleted: boolean; id: number; name: string }>(
+    `/api/v1/asset-categories/${id}`)).data;
 
 export const fetchDepreciationSettings = async () =>
   (await apiGet<DepreciationSettings>("/api/v1/settings/depreciation")).data;

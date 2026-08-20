@@ -12,6 +12,7 @@ from odoo.http import request
 
 from .utils import (
     ERR_INVALID_REQUEST,
+    ERR_CONFLICT,
     ERR_NOT_FOUND,
     SCOPE_ADMIN,
     SCOPE_ASSETS_READ,
@@ -21,12 +22,29 @@ from .utils import (
 )
 from .v1 import cadra_route
 
-#: Category fields a client may set. `name`/`code` are deliberately absent —
-#: renaming a category is a taxonomy change, not a depreciation setting.
-_CATEGORY_WRITABLE = {
+#: Depreciation policy — what the Depreciation settings screen edits.
+_CATEGORY_POLICY_FIELDS = {
     "depreciation_method", "useful_life_months", "declining_rate", "salvage_rate",
-    "pm_interval_days",
 }
+
+#: Identity and classification — what the Asset Categories screen edits.
+#
+# `name` and `code` were deliberately excluded when this controller only served
+# the depreciation screen: renaming a category is a taxonomy change, not a
+# depreciation setting. Now that there is a categories admin screen that is
+# precisely its job, so they are writable here. The split above keeps the two
+# screens from editing the same field in two places.
+_CATEGORY_IDENTITY_FIELDS = {
+    "name", "code", "domain", "description", "sequence", "pm_interval_days",
+}
+
+_CATEGORY_WRITABLE = _CATEGORY_POLICY_FIELDS | _CATEGORY_IDENTITY_FIELDS
+
+#: Mirrors the Selection on nrs.asset.category.
+_FM_DOMAINS = [
+    "building", "plant", "plumbing", "fleet",
+    "security", "it", "furniture", "other",
+]
 
 _SETTINGS_WRITABLE = {"mode", "proration", "declining_switches_to_straight_line"}
 
@@ -37,6 +55,8 @@ def _serialize_category(c):
         "name": c.name,
         "code": c.code or None,
         "domain": c.domain or None,
+        "description": c.description or None,
+        "sequence": c.sequence,
         "asset_count": c.asset_count,
         "depreciating_count": c.asset_depreciating_count,
         "pm_interval_days": c.pm_interval_days or None,
@@ -101,6 +121,11 @@ class CadraConfigV1(http.Controller):
                        details={"rejected_fields": rejected,
                                 "writable": sorted(_CATEGORY_WRITABLE)})
 
+        if vals.get("domain") and vals["domain"] not in _FM_DOMAINS:
+            return err(ERR_INVALID_REQUEST,
+                       f"Unknown FM domain '{vals['domain']}'",
+                       details={"allowed": _FM_DOMAINS})
+
         cat.write(vals)
 
         # Policy is inherited, so the assets need re-deriving — otherwise the
@@ -116,6 +141,68 @@ class CadraConfigV1(http.Controller):
         if rejected:
             data["_warnings"] = {"rejected_fields": rejected}
         return data
+
+    @cadra_route("/api/v1/asset-categories", method="POST",
+                 summary="Create an asset category",
+                 scopes=[SCOPE_ADMIN],
+                 idempotent=True,
+                 request_schema={
+                     "type": "object",
+                     "required": ["name"],
+                     "properties": {
+                         "name": {"type": "string"},
+                         "code": {"type": "string", "nullable": True},
+                         "domain": {"type": "string", "enum": _FM_DOMAINS,
+                                    "nullable": True},
+                         "description": {"type": "string", "nullable": True},
+                         "sequence": {"type": "integer"},
+                         "pm_interval_days": {"type": "integer"},
+                     },
+                 },
+                 request_example={"name": "Medical Equipment", "code": "MED",
+                                  "domain": "other", "pm_interval_days": 180})
+    def create_category(self, **kwargs):
+        body = get_params()
+        name = (body.get("name") or "").strip()
+        if not name:
+            return err(ERR_INVALID_REQUEST, "`name` is required")
+
+        vals = {k: v for k, v in body.items() if k in _CATEGORY_WRITABLE}
+        vals["name"] = name
+        if vals.get("domain") and vals["domain"] not in _FM_DOMAINS:
+            return err(ERR_INVALID_REQUEST,
+                       f"Unknown FM domain '{vals['domain']}'",
+                       details={"allowed": _FM_DOMAINS})
+
+        cat = request.env["nrs.asset.category"].sudo().create(vals)
+        return _serialize_category(cat)
+
+    @cadra_route("/api/v1/asset-categories/<int:id>", method="DELETE",
+                 summary="Delete an asset category (only when it holds no assets)",
+                 scopes=[SCOPE_ADMIN])
+    def delete_category(self, id, **kwargs):
+        """Refuses while assets still reference the category.
+
+        category_id is required on nrs.asset, so deleting one that is in use
+        would either orphan those rows or fail at the database. Better to say
+        so plainly, with the count, than surface a foreign-key error.
+        """
+        cat = request.env["nrs.asset.category"].sudo().browse(int(id))
+        if not cat.exists():
+            return err(ERR_NOT_FOUND, f"Category {id} not found", status=404)
+
+        count = request.env["nrs.asset"].sudo().search_count(
+            [("category_id", "=", cat.id)])
+        if count:
+            return err(ERR_CONFLICT,
+                       f"'{cat.name}' still holds {count} asset(s)",
+                       status=409,
+                       details={"asset_count": count,
+                                "hint": "Reassign those assets first."})
+
+        name = cat.name
+        cat.unlink()
+        return {"deleted": True, "id": int(id), "name": name}
 
     # ── Depreciation settings ──────────────────────────────────────
 
