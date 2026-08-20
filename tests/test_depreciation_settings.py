@@ -13,26 +13,6 @@ from .conftest import assert_envelope_ok
 
 
 @pytest.fixture(scope="module")
-def admin_scope(client):
-    """Skip the write tests when the token has no `admin` scope.
-
-    Category policy and tenant settings are admin-scoped on purpose: changing a
-    useful life restates book value across a whole class of assets. A token
-    without it should produce a clear skip, not a wall of 403s that looks like
-    the feature is broken.
-    """
-    r = client.get("/api/v1/auth/whoami")
-    if r.status_code != 200:
-        pytest.skip("cannot determine token scopes")
-    scopes = (r.json().get("data") or {}).get("scopes") or []
-    if isinstance(scopes, str):
-        scopes = scopes.split()
-    if "admin" not in scopes and "*" not in scopes:
-        pytest.skip(f"token lacks the `admin` scope (has: {sorted(scopes)})")
-    return True
-
-
-@pytest.fixture(scope="module")
 def a_category(client):
     """A category that actually has assets, so policy changes are observable."""
     r = client.get("/api/v1/asset-categories")
