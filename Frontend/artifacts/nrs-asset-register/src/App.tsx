@@ -56,6 +56,7 @@ const FleetRosterReport          = lazy(() => import("@/pages/reports/FleetRoste
 const AssetInventoryReport       = lazy(() => import("@/pages/reports/AssetInventoryReport"));
 const DepreciationReport         = lazy(() => import("@/pages/reports/DepreciationReport"));
 const DepreciationSettings       = lazy(() => import("@/pages/settings/DepreciationSettings"));
+const AssetCategoriesSettings    = lazy(() => import("@/pages/settings/AssetCategories"));
 const MaintenanceReadinessReport = lazy(() => import("@/pages/reports/MaintenanceReadinessReport"));
 const LocationCoverageReport     = lazy(() => import("@/pages/reports/LocationCoverageReport"));
 const TagAdoptionReport          = lazy(() => import("@/pages/reports/TagAdoptionReport"));
@@ -127,6 +128,7 @@ function AppRoutes() {
           <Route path="/reports/asset-inventory"        component={AssetInventoryReport}        />
           <Route path="/reports/depreciation"           component={DepreciationReport}          />
           <Route path="/settings/depreciation"          component={DepreciationSettings}         />
+          <Route path="/settings/categories"            component={AssetCategoriesSettings}      />
           <Route path="/reports/maintenance-readiness"  component={MaintenanceReadinessReport}  />
           <Route path="/reports/location-coverage"      component={LocationCoverageReport}      />
           <Route path="/reports/tag-adoption"           component={TagAdoptionReport}           />

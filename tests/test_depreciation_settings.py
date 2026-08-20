@@ -63,17 +63,80 @@ def test_patch_category_policy_propagates_to_its_assets(client, a_category, capt
                      json={"useful_life_months": original})
 
 
-def test_patch_category_rejects_non_policy_fields(client, a_category):
-    """`name` is a taxonomy change, not a depreciation setting."""
+def test_patch_category_accepts_identity_fields(client, a_category):
+    """`name` was rejected while this controller only served the depreciation
+    screen. The categories admin screen makes renaming its job, so it is
+    writable now — this test records that reversal deliberately."""
+    original = a_category["name"]
+    try:
+        r = client.patch(f"/api/v1/asset-categories/{a_category['id']}",
+                         json={"name": f"{original} (renamed by test)"})
+        d = assert_envelope_ok(r)["data"]
+        assert d["name"] == f"{original} (renamed by test)"
+    finally:
+        client.patch(f"/api/v1/asset-categories/{a_category['id']}",
+                     json={"name": original})
+
+
+def test_patch_category_rejects_unknown_fields(client, a_category):
     r = client.patch(f"/api/v1/asset-categories/{a_category['id']}",
-                     json={"name": "renamed-by-test"})
+                     json={"not_a_real_field": 1})
     assert r.status_code == 400
     assert r.json()["error"]["code"] == "invalid_request"
 
-    # And the name is untouched.
-    check = client.get("/api/v1/asset-categories")
-    names = {c["id"]: c["name"] for c in assert_envelope_ok(check)["data"]}
-    assert names[a_category["id"]] == a_category["name"]
+
+def test_patch_category_rejects_an_unknown_fm_domain(client, a_category):
+    r = client.patch(f"/api/v1/asset-categories/{a_category['id']}",
+                     json={"domain": "nonsense"})
+    assert r.status_code == 400
+    assert "allowed" in r.json()["error"]["details"]
+
+
+# ── Create / delete ──────────────────────────────────────────────────────────
+
+def test_create_then_delete_a_category(client, capture):
+    ts = int(time.time())
+    r = client.post("/api/v1/asset-categories", json={
+        "name": f"pytest-category-{ts}",
+        "code": f"PT{ts % 10000}",
+        "domain": "other",
+        "pm_interval_days": 90,
+    })
+    capture("settings/category_create", r)
+    d = assert_envelope_ok(r, expected_status=201)["data"]
+    assert d["name"] == f"pytest-category-{ts}"
+    assert d["domain"] == "other"
+    assert d["pm_interval_days"] == 90
+    assert d["asset_count"] == 0
+
+    gone = client.delete(f"/api/v1/asset-categories/{d['id']}")
+    capture("settings/category_delete", gone)
+    assert assert_envelope_ok(gone)["data"]["deleted"] is True
+
+    remaining = {c["id"] for c in assert_envelope_ok(
+        client.get("/api/v1/asset-categories"))["data"]}
+    assert d["id"] not in remaining
+
+
+def test_create_category_requires_a_name(client):
+    r = client.post("/api/v1/asset-categories", json={"code": "NONAME"})
+    assert r.status_code == 400
+
+
+def test_cannot_delete_a_category_that_holds_assets(client, a_category, capture):
+    """category_id is required on nrs.asset, so deleting one in use would orphan
+    rows or fail at the database. Say so plainly instead."""
+    r = client.delete(f"/api/v1/asset-categories/{a_category['id']}")
+    capture("settings/category_delete_conflict", r)
+    assert r.status_code == 409
+    body = r.json()["error"]
+    assert body["code"] == "conflict"
+    assert body["details"]["asset_count"] == a_category["asset_count"]
+
+    # Still there.
+    ids = {c["id"] for c in assert_envelope_ok(
+        client.get("/api/v1/asset-categories"))["data"]}
+    assert a_category["id"] in ids
 
 
 def test_patch_unknown_category_404(client, capture):

@@ -5,7 +5,7 @@ import {
   LayoutDashboard, MapPin, Bus, Car, BookOpen,
   Fingerprint, Users, Activity, ShieldAlert,
   Inbox, Briefcase, ScanBarcode, Upload, RefreshCw,
-  Wrench, Tag, ChevronDown, Monitor, TrendingDown, SlidersHorizontal,
+  Wrench, Tag, ChevronDown, Monitor, TrendingDown, SlidersHorizontal, Layers,
   LogOut,
 } from "lucide-react";
 import { logout, getScope, getExpiry } from "@/lib/auth";
@@ -51,6 +51,7 @@ const navGroups = [
     { name: "Depreciation",            path: "/reports/depreciation",          icon: TrendingDown },
   ]},
   { label: "Settings", items: [
+    { name: "Asset Categories",        path: "/settings/categories",   icon: Layers },
     { name: "Depreciation",            path: "/settings/depreciation", icon: SlidersHorizontal },
   ]},
   { label: "Tools", items: [
