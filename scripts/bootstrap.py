@@ -132,14 +132,25 @@ def ensure_admin_groups():
 
 # ─── step 3: API smoke-test client ──────────────────────────────────
 
-ALL_SCOPES = (
-    "dashboards:read "
-    "assets:read assets:write "
-    "locations:read locations:write "
-    "requests:read requests:write "
-    "integrations:write "
-    "identity:read"
-)
+def _all_scopes():
+    """The canonical scope set, read from the API module rather than copied.
+
+    This used to be a hand-maintained string here, and it drifted: `admin`,
+    `approvals:write`, `ingestion:write` and `webhooks:admin` were all added to
+    the API and never mirrored, so the CI smoke client silently lacked them and
+    every admin-scoped endpoint 403'd in CI while passing locally against a
+    wildcard client. Deriving it removes that whole class of bug.
+    """
+    try:
+        from odoo.addons.myservice_api.controllers.utils import ALL_SCOPES as canonical
+        return " ".join(sorted(canonical))
+    except Exception as exc:  # myservice_api not installed yet on a cold DB
+        _say(f"could not import canonical scopes ({exc}); falling back", level="WARN")
+        return (
+            "admin approvals:write assets:read assets:write dashboards:read "
+            "identity:read ingestion:write integrations:write locations:read "
+            "locations:write requests:read requests:write webhooks:admin"
+        )
 
 
 def ensure_test_client():
@@ -151,6 +162,8 @@ def ensure_test_client():
     client_id = os.environ.get("CADRA_TEST_CLIENT_ID", "").strip() or "test_client"
     requested_secret = os.environ.get("CADRA_TEST_CLIENT_SECRET", "").strip()
 
+    all_scopes = _all_scopes()
+
     rec = Client.search([("client_id", "=", client_id)], limit=1)
     if not rec:
         admin = env.ref("base.user_admin")
@@ -158,14 +171,14 @@ def ensure_test_client():
             "name": "Smoke Test",
             "client_id": client_id,
             "user_id": admin.id,
-            "scopes": ALL_SCOPES,
+            "scopes": all_scopes,
             "token_ttl_seconds": 3600,
         })
         _say(f"created API client {client_id!r}")
     else:
         # Always re-sync scopes so we never drift behind the canonical set.
-        if rec.scopes != ALL_SCOPES:
-            rec.scopes = ALL_SCOPES
+        if rec.scopes != all_scopes:
+            rec.scopes = all_scopes
             _say(f"updated scopes on existing client {client_id!r}")
 
     # Rotate the secret if:

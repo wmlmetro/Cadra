@@ -13,6 +13,26 @@ from .conftest import assert_envelope_ok
 
 
 @pytest.fixture(scope="module")
+def admin_scope(client):
+    """Skip the write tests when the token has no `admin` scope.
+
+    Category policy and tenant settings are admin-scoped on purpose: changing a
+    useful life restates book value across a whole class of assets. A token
+    without it should produce a clear skip, not a wall of 403s that looks like
+    the feature is broken.
+    """
+    r = client.get("/api/v1/auth/whoami")
+    if r.status_code != 200:
+        pytest.skip("cannot determine token scopes")
+    scopes = (r.json().get("data") or {}).get("scopes") or []
+    if isinstance(scopes, str):
+        scopes = scopes.split()
+    if "admin" not in scopes and "*" not in scopes:
+        pytest.skip(f"token lacks the `admin` scope (has: {sorted(scopes)})")
+    return True
+
+
+@pytest.fixture(scope="module")
 def a_category(client):
     """A category that actually has assets, so policy changes are observable."""
     r = client.get("/api/v1/asset-categories")
@@ -39,7 +59,7 @@ def test_list_categories(client, capture):
         assert key in c["depreciation"]
 
 
-def test_patch_category_policy_propagates_to_its_assets(client, a_category, capture):
+def test_patch_category_policy_propagates_to_its_assets(client, admin_scope, a_category, capture):
     """The point of the screen: correcting a useful life must restate the assets
     that inherit it, not wait for the monthly cron."""
     original = a_category["depreciation"]["useful_life_months"] or 60
@@ -63,7 +83,7 @@ def test_patch_category_policy_propagates_to_its_assets(client, a_category, capt
                      json={"useful_life_months": original})
 
 
-def test_patch_category_accepts_identity_fields(client, a_category):
+def test_patch_category_accepts_identity_fields(client, admin_scope, a_category):
     """`name` was rejected while this controller only served the depreciation
     screen. The categories admin screen makes renaming its job, so it is
     writable now — this test records that reversal deliberately."""
@@ -78,14 +98,14 @@ def test_patch_category_accepts_identity_fields(client, a_category):
                      json={"name": original})
 
 
-def test_patch_category_rejects_unknown_fields(client, a_category):
+def test_patch_category_rejects_unknown_fields(client, admin_scope, a_category):
     r = client.patch(f"/api/v1/asset-categories/{a_category['id']}",
                      json={"not_a_real_field": 1})
     assert r.status_code == 400
     assert r.json()["error"]["code"] == "invalid_request"
 
 
-def test_patch_category_rejects_an_unknown_fm_domain(client, a_category):
+def test_patch_category_rejects_an_unknown_fm_domain(client, admin_scope, a_category):
     r = client.patch(f"/api/v1/asset-categories/{a_category['id']}",
                      json={"domain": "nonsense"})
     assert r.status_code == 400
@@ -94,7 +114,7 @@ def test_patch_category_rejects_an_unknown_fm_domain(client, a_category):
 
 # ── Create / delete ──────────────────────────────────────────────────────────
 
-def test_create_then_delete_a_category(client, capture):
+def test_create_then_delete_a_category(client, admin_scope, capture):
     ts = int(time.time())
     r = client.post("/api/v1/asset-categories", json={
         "name": f"pytest-category-{ts}",
@@ -118,12 +138,12 @@ def test_create_then_delete_a_category(client, capture):
     assert d["id"] not in remaining
 
 
-def test_create_category_requires_a_name(client):
+def test_create_category_requires_a_name(client, admin_scope):
     r = client.post("/api/v1/asset-categories", json={"code": "NONAME"})
     assert r.status_code == 400
 
 
-def test_cannot_delete_a_category_that_holds_assets(client, a_category, capture):
+def test_cannot_delete_a_category_that_holds_assets(client, admin_scope, a_category, capture):
     """category_id is required on nrs.asset, so deleting one in use would orphan
     rows or fail at the database. Say so plainly instead."""
     r = client.delete(f"/api/v1/asset-categories/{a_category['id']}")
@@ -139,7 +159,7 @@ def test_cannot_delete_a_category_that_holds_assets(client, a_category, capture)
     assert a_category["id"] in ids
 
 
-def test_patch_unknown_category_404(client, capture):
+def test_patch_unknown_category_404(client, admin_scope, capture):
     r = client.patch("/api/v1/asset-categories/99999999",
                      json={"useful_life_months": 12})
     capture("settings/category_not_found", r)
@@ -162,7 +182,7 @@ def test_get_settings_shape(client, capture):
 
 
 def test_the_straight_line_switch_removes_the_final_period_cliff(
-        client, test_location, a_category, capture):
+        client, test_location, a_category, admin_scope, capture):
     """The setting exists to fix a real defect: with pure declining balance the
     final charge can be ~50x its predecessor. Toggling it must actually change
     the schedules, not just flip a stored flag.
@@ -211,13 +231,13 @@ def test_the_straight_line_switch_removes_the_final_period_cliff(
                      json={"declining_switches_to_straight_line": True})
 
 
-def test_settings_reject_unknown_values(client):
+def test_settings_reject_unknown_values(client, admin_scope):
     for body in ({"mode": "nonsense"}, {"proration": "fortnightly"}):
         r = client.patch("/api/v1/settings/depreciation", json=body)
         assert r.status_code == 400, f"{body} should be rejected"
 
 
-def test_settings_reject_a_body_with_nothing_writable(client):
+def test_settings_reject_a_body_with_nothing_writable(client, admin_scope):
     r = client.patch("/api/v1/settings/depreciation", json={"not_a_setting": 1})
     assert r.status_code == 400
     assert "writable" in r.json()["error"]["details"]
@@ -225,7 +245,7 @@ def test_settings_reject_a_body_with_nothing_writable(client):
 
 # ── Recompute ────────────────────────────────────────────────────────────────
 
-def test_recompute_stamps_the_run(client, capture):
+def test_recompute_stamps_the_run(client, admin_scope, capture):
     r = client.post("/api/v1/settings/depreciation/recompute", json={})
     capture("settings/recompute", r)
     d = assert_envelope_ok(r)["data"]
