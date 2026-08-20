@@ -1484,3 +1484,20 @@ export const updateDepreciationSettings = async (body: Partial<DepreciationSetti
 export const recomputeDepreciation = async () =>
   (await apiPost<DepreciationSettings & { recomputed: number }>(
     "/api/v1/settings/depreciation/recompute", {})).data;
+
+// ── Settings: branding ────────────────────────────────────────────────────
+
+export interface TenantBranding {
+  name: string;
+  short_name: string;
+  primary: string;
+  primary_dark: string;
+  /** data: URI, or "" to fall back to the bundled mark. */
+  logo: string;
+}
+
+export const fetchBranding = async () =>
+  (await apiGet<TenantBranding>("/api/v1/settings/branding")).data;
+
+export const updateBranding = async (body: Partial<TenantBranding>) =>
+  (await apiPatch<TenantBranding>("/api/v1/settings/branding", body)).data;

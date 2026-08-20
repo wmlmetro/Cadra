@@ -420,6 +420,26 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
 
 # ─── helpers used by tests (importable) ──────────────────────────────
 
+@pytest.fixture(scope="session")
+def admin_scope(client):
+    """Skip a test when the token has no `admin` scope.
+
+    Configuration endpoints are admin-scoped on purpose — changing a category's
+    useful life restates book value across a whole class of assets, and
+    branding changes what every user sees. A token without it should produce a
+    clear skip, not a wall of 403s that reads as a broken feature.
+    """
+    r = client.get("/api/v1/auth/whoami")
+    if r.status_code != 200:
+        pytest.skip("cannot determine token scopes")
+    scopes = (r.json().get("data") or {}).get("scopes") or []
+    if isinstance(scopes, str):
+        scopes = scopes.split()
+    if "admin" not in scopes and "*" not in scopes:
+        pytest.skip(f"token lacks the `admin` scope (has: {sorted(scopes)})")
+    return True
+
+
 def assert_envelope_ok(response, expected_status=200):
     """Assert response is the PRD success envelope at the given status."""
     assert response.status_code == expected_status, (

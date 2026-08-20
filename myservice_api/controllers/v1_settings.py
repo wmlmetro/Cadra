@@ -7,6 +7,8 @@ book value on every asset in that class, and the calculation conventions restate
 the entire register. That is not the same risk as editing one asset, so it does
 not share the `assets:write` scope.
 """
+import re
+
 from odoo import http
 from odoo.http import request
 
@@ -203,6 +205,126 @@ class CadraConfigV1(http.Controller):
         name = cat.name
         cat.unlink()
         return {"deleted": True, "id": int(id), "name": name}
+
+    # ── Branding ───────────────────────────────────────────────────
+
+    #: ir.config_parameter keys the brand endpoint reads. The per-tenant
+    #: cadra_brand_* modules seed these with noupdate="1", so writing them here
+    #: via set_param is the supported way to change a live tenant — editing the
+    #: data file would not touch an existing database.
+    _BRAND_PARAMS = {
+        "short_name": "cadra.brand_short_name",
+        "primary": "cadra.brand_primary",
+        "primary_dark": "cadra.brand_primary_dark",
+        "logo": "cadra.brand_logo",
+    }
+
+    #: A logo rides in every page load as a data URI, so keep it small. Jaiz's
+    #: official SVG is ~10KB; this leaves generous headroom without allowing
+    #: someone to paste a multi-megabyte PNG into every request.
+    _LOGO_MAX_CHARS = 262_144
+
+    _ALLOWED_LOGO_PREFIXES = ("data:image/svg+xml", "data:image/png",
+                              "data:image/jpeg", "data:image/webp")
+
+    def _branding_payload(self):
+        """Plain dict — NOT the route handler.
+
+        `get_branding` is wrapped by cadra_route/cadra_endpoint, so calling it
+        from another handler returns the wrapped response rather than the data.
+        Both handlers go through this instead.
+        """
+        env = request.env
+        icp = env["ir.config_parameter"].sudo()
+        company = env["res.company"].sudo().search([], limit=1)
+        return {
+            "name": company.name if company else "Cadra",
+            "short_name": icp.get_param(self._BRAND_PARAMS["short_name"], ""),
+            "primary": icp.get_param(self._BRAND_PARAMS["primary"], ""),
+            "primary_dark": icp.get_param(self._BRAND_PARAMS["primary_dark"], ""),
+            "logo": icp.get_param(self._BRAND_PARAMS["logo"], ""),
+        }
+
+    @cadra_route("/api/v1/settings/branding", method="GET",
+                 summary="Tenant branding (name, colours, logo)",
+                 scopes=[SCOPE_ASSETS_READ])
+    def get_branding(self, **kwargs):
+        return self._branding_payload()
+
+    @cadra_route("/api/v1/settings/branding", method="PATCH",
+                 summary="Update tenant branding",
+                 scopes=[SCOPE_ADMIN],
+                 request_schema={
+                     "type": "object",
+                     "properties": {
+                         "name": {"type": "string"},
+                         "short_name": {"type": "string"},
+                         "primary": {"type": "string",
+                                     "description": "Hex colour, e.g. #004080"},
+                         "primary_dark": {"type": "string"},
+                         "logo": {"type": "string",
+                                  "description": "data: URI, or empty to clear"},
+                     },
+                 },
+                 request_example={"short_name": "Jaiz", "primary": "#004080",
+                                  "primary_dark": "#00305F"})
+    def patch_branding(self, **kwargs):
+        """Writes the brand a tenant is served at runtime.
+
+        One static SPA bundle serves every tenant and fetches GET /api/v1/brand
+        at startup, so this takes effect without a rebuild or a deploy — which
+        is the whole point of not shipping a module per customer.
+        """
+        body = get_params()
+        allowed = {"name"} | set(self._BRAND_PARAMS)
+        vals = {k: v for k, v in body.items() if k in allowed}
+        rejected = [k for k in body if k not in allowed]
+        if not vals:
+            return err(ERR_INVALID_REQUEST, "No writable branding fields supplied",
+                       details={"rejected_fields": rejected,
+                                "writable": sorted(allowed)})
+
+        for key in ("primary", "primary_dark"):
+            colour = (vals.get(key) or "").strip()
+            if colour and not re.fullmatch(r"#[0-9A-Fa-f]{6}", colour):
+                return err(ERR_INVALID_REQUEST,
+                           f"`{key}` must be a 6-digit hex colour like #004080",
+                           details={key: colour})
+            if colour:
+                vals[key] = colour.upper()
+
+        logo = vals.get("logo")
+        if logo:
+            if len(logo) > self._LOGO_MAX_CHARS:
+                return err(ERR_INVALID_REQUEST,
+                           "Logo is too large — it is sent with every page load",
+                           details={"chars": len(logo),
+                                    "max_chars": self._LOGO_MAX_CHARS})
+            if not logo.startswith(self._ALLOWED_LOGO_PREFIXES):
+                return err(ERR_INVALID_REQUEST,
+                           "Logo must be an image data: URI",
+                           details={"allowed": list(self._ALLOWED_LOGO_PREFIXES)})
+
+        env = request.env
+        icp = env["ir.config_parameter"].sudo()
+        for field, key in self._BRAND_PARAMS.items():
+            if field in vals:
+                icp.set_param(key, vals[field] or "")
+
+        if "name" in vals:
+            name = (vals["name"] or "").strip()
+            if not name:
+                return err(ERR_INVALID_REQUEST, "`name` cannot be blank")
+            # This renames the company record, which is what /api/v1/brand
+            # reports as the tenant name.
+            company = env["res.company"].sudo().search([], limit=1)
+            if company:
+                company.name = name
+
+        data = self._branding_payload()
+        if rejected:
+            data["_warnings"] = {"rejected_fields": rejected}
+        return data
 
     # ── Depreciation settings ──────────────────────────────────────
 

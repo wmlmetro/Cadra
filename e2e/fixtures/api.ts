@@ -60,6 +60,16 @@ export class ApiClient {
     return (body?.data ?? body) as T;
   }
 
+  async patch<T = any>(path: string, data: unknown): Promise<T> {
+    const headers: Record<string, string> = { ...this.headers(), "Content-Type": "application/json" };
+    const res = await this.ctx.patch(path, { headers, data });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok()) {
+      throw new Error(`PATCH ${path} → HTTP ${res.status()}: ${JSON.stringify(body).slice(0, 200)}`);
+    }
+    return (body?.data ?? body) as T;
+  }
+
   // ── Discovery helpers ──────────────────────────────────────────────────────
 
   async brand(): Promise<any> {
