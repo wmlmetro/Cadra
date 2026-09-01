@@ -83,18 +83,28 @@ jobs:
             # Piped over stdin, never argv, so the secret can't surface in the
             # pod's process list. The readback prints only whether a value is
             # present and how long it is — never the value itself.
-            printf '%s\n' \
+            # -c /tmp/odoo.conf is required: the pod's entrypoint writes the
+            # DB credentials into that file at startup, and a bare `odoo shell`
+            # falls back to config discovery and cannot reach Postgres.
+            out="$(printf '%s\n' \
               "p = env['ir.config_parameter'].sudo()" \
               "p.set_param('myservice_api.turnstile_secret', ${VALUE})" \
               "env.cr.commit()" \
               "v = p.get_param('myservice_api.turnstile_secret', '') or ''" \
               "print('RESULT ${db}: set=%s len=%d' % (bool(v), len(v)))" \
             | kubectl -n "${NAMESPACE}" exec -i deployment/odoo-19 -- \
-                odoo shell -d "$db" --no-http --log-level=warn 2>/dev/null \
-            | grep '^RESULT' || {
-                echo "::error::no RESULT line for '${db}' — the odoo shell call failed"
-                exit 1
-              }
+                odoo shell -c /tmp/odoo.conf -d "$db" --no-http --log-level=warn 2>&1)" || true
+
+            # Keep the output on failure rather than discarding it — the first
+            # version sent stderr to /dev/null and the failure said only that
+            # something went wrong. Actions masks registered secrets in logs.
+            if ! printf '%s' "$out" | grep -q '^RESULT'; then
+              echo "::error::no RESULT line for '${db}' — the odoo shell call failed"
+              printf '%s\n' "$out" | tail -40
+              exit 1
+            fi
+            printf '%s\n' "$out" | grep '^RESULT'
+
           done
 
       - name: Next step
