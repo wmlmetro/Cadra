@@ -180,12 +180,12 @@ interface TokenResponse {
  * POST /api/v1/auth/token with client_id/secret; we never call that from
  * the React frontend.
  */
-export async function login(loginName: string, password: string): Promise<StoredToken> {
+export async function login(loginName: string, password: string, turnstileToken?: string): Promise<StoredToken> {
   const base = (import.meta.env.VITE_API_BASE ?? "").replace(/\/$/, "");
   const res = await fetch(`${base}/api/v1/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ login: loginName, password }),
+    body: JSON.stringify({ login: loginName, password, turnstile_token: turnstileToken }),
   });
   let body: unknown = null;
   try { body = await res.json(); } catch { /* below check handles */ }

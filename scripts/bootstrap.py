@@ -97,6 +97,27 @@ def ensure_jwt_secret():
     return new_secret
 
 
+def ensure_turnstile_secret():
+    """Mirror CADRA_TURNSTILE_SECRET into `myservice_api.turnstile_secret`.
+
+    Deliberately one-way: an empty env var leaves whatever is stored alone
+    rather than clearing it, so a Job that loses the variable can't silently
+    strip bot protection off a live tenant. To actually turn Turnstile off,
+    clear the parameter by hand (odoo shell → set_param(..., False)).
+    """
+    param = env["ir.config_parameter"].sudo()
+    current = param.get_param("myservice_api.turnstile_secret", "")
+    from_env = os.environ.get("CADRA_TURNSTILE_SECRET", "").strip()
+
+    if not from_env:
+        _say("CADRA_TURNSTILE_SECRET is empty — leaving Turnstile config as-is")
+    elif current == from_env:
+        _say("Turnstile secret already matches CADRA_TURNSTILE_SECRET (no change)")
+    else:
+        param.set_param("myservice_api.turnstile_secret", from_env)
+        _say("Turnstile secret set from CADRA_TURNSTILE_SECRET")
+
+
 # ─── step 2: admin groups ───────────────────────────────────────────
 
 REQUIRED_ADMIN_GROUPS = [
@@ -447,6 +468,7 @@ def main():
     _say("Cadra bootstrap starting")
     try:
         jwt_secret = ensure_jwt_secret()
+        ensure_turnstile_secret()
         ensure_admin_groups()
         client_id, raw_secret = ensure_test_client()
         ensure_mail_server()

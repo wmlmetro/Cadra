@@ -102,11 +102,41 @@ cert-manager's HTTP-01 challenge will not validate until this resolves.
 - `ODOO_MASTER_PASSWORD`
 - `CADRA_JWT_SECRET` — ≥48 chars (`openssl rand -hex 32`)
 - `CADRA_TEST_CLIENT_SECRET`
+- `CADRA_TURNSTILE_SECRET` — optional; Cloudflare Turnstile secret key
 
 **Variables** (same screen → Variables):
 - `DO_REGISTRY_NAME` (e.g. `vendra-registry`)
 - `DO_CLUSTER_NAME`
 - `POSTGRES_DB`, `POSTGRES_USER` — optional, default `odoo`/`odoo`
+- `VITE_TURNSTILE_SITEKEY` — optional; Cloudflare Turnstile sitekey
+
+### Turnstile (optional, both halves or neither)
+
+Login-form bot protection is off until both settings are present, and they
+must come from the **same** Cloudflare Turnstile widget:
+
+- `VITE_TURNSTILE_SITEKEY` is a *variable*, not a secret — it ships to every
+  browser inside the frontend bundle. It is a **build arg**, so changing it
+  needs a frontend rebuild (any push to `dev`), not just a pod restart.
+- `CADRA_TURNSTILE_SECRET` reaches Odoo through the `cadra-odoo` K8s secret and
+  is written to the `myservice_api.turnstile_secret` config parameter by
+  bootstrap — so it only takes effect **after a bootstrap run**
+  (`gh workflow run deploy-dev.yml --ref dev -f run_bootstrap=true`), and it
+  applies to whichever tenant DB that run targets.
+
+Setting the secret without the sitekey locks every user out of the login form:
+the backend then demands a `turnstile_token` the frontend has no widget to
+produce. Set the variable first, deploy, then add the secret and bootstrap.
+
+Bootstrap only ever *writes* the parameter — clearing the GitHub secret will
+not turn Turnstile back off, so that a Job which loses the variable can't
+silently strip protection off a live tenant. To disable it, clear the
+parameter on that tenant:
+
+```bash
+kubectl -n cadra-dev exec deploy/odoo-19 -- \
+  sh -c 'echo "env[\"ir.config_parameter\"].sudo().set_param(\"myservice_api.turnstile_secret\", False); env.cr.commit()" | odoo shell -d <db> --no-http'
+```
 
 ---
 

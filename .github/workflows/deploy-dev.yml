@@ -14,9 +14,15 @@ name: deploy-dev
 #
 # Required GitHub secrets: DIGITALOCEAN_ACCESS_TOKEN, POSTGRES_PASSWORD,
 #   ODOO_MASTER_PASSWORD, CADRA_JWT_SECRET, CADRA_TEST_CLIENT_SECRET,
-#   SMTP_PASS (opt), CADRA_EMAIL_RELAY_SECRET (opt).
+#   SMTP_PASS (opt), CADRA_EMAIL_RELAY_SECRET (opt),
+#   CADRA_TURNSTILE_SECRET (opt).
 # Required vars: DO_REGISTRY_NAME, DO_CLUSTER_NAME, POSTGRES_DB/USER (opt),
-#   SMTP_* (opt), EMAIL_FROM (opt), CADRA_EMAIL_RELAY_URL (opt).
+#   SMTP_* (opt), EMAIL_FROM (opt), CADRA_EMAIL_RELAY_URL (opt),
+#   VITE_TURNSTILE_SITEKEY (opt).
+#
+# Turnstile is opt-in and the two halves must be set together: the sitekey is
+# a build arg (baked into the frontend bundle) and the secret reaches Odoo via
+# bootstrap. A secret with no sitekey locks everyone out of the login form.
 
 on:
   push:
@@ -109,6 +115,8 @@ jobs:
           context: Frontend/artifacts/nrs-asset-register
           file: Frontend/artifacts/nrs-asset-register/Dockerfile
           push: true
+          build-args: |
+            VITE_TURNSTILE_SITEKEY=${{ vars.VITE_TURNSTILE_SITEKEY }}
           tags: |
             ${{ steps.meta.outputs.image }}
             registry.digitalocean.com/${{ vars.DO_REGISTRY_NAME }}/${{ env.FRONTEND_IMAGE_NAME }}:dev-latest
@@ -152,6 +160,7 @@ jobs:
           EMAIL_FROM: ${{ vars.EMAIL_FROM }}
           CADRA_EMAIL_RELAY_URL: ${{ vars.CADRA_EMAIL_RELAY_URL }}
           CADRA_EMAIL_RELAY_SECRET: ${{ secrets.CADRA_EMAIL_RELAY_SECRET }}
+          CADRA_TURNSTILE_SECRET: ${{ secrets.CADRA_TURNSTILE_SECRET }}
         run: |
           set -e
           : "${POSTGRES_PASSWORD:?GitHub secret POSTGRES_PASSWORD is required}"
@@ -177,6 +186,7 @@ jobs:
             --from-literal=EMAIL_FROM="${EMAIL_FROM}" \
             --from-literal=CADRA_EMAIL_RELAY_URL="${CADRA_EMAIL_RELAY_URL}" \
             --from-literal=CADRA_EMAIL_RELAY_SECRET="${CADRA_EMAIL_RELAY_SECRET}" \
+            --from-literal=CADRA_TURNSTILE_SECRET="${CADRA_TURNSTILE_SECRET}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Apply 19 ConfigMaps + Postgres + filestore PVC + Service

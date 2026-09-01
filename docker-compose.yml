@@ -50,6 +50,7 @@ services:
       # blocked). Both blank → ir.mail_server uses native SMTP.
       CADRA_EMAIL_RELAY_URL: ${CADRA_EMAIL_RELAY_URL:-}
       CADRA_EMAIL_RELAY_SECRET: ${CADRA_EMAIL_RELAY_SECRET:-}
+      CADRA_TURNSTILE_SECRET: ${CADRA_TURNSTILE_SECRET:-}
     volumes:
       - ./:/mnt/extra-addons:ro
       - cadra_odoo_data:/var/lib/odoo

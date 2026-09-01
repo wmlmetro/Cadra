@@ -204,6 +204,14 @@ spec:
                 secretKeyRef:
                   name: cadra-odoo
                   key: CADRA_TEST_CLIENT_SECRET
+            # Optional: unset/empty leaves Turnstile off for every tenant,
+            # which is the pre-Turnstile behaviour.
+            - name: CADRA_TURNSTILE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: CADRA_TURNSTILE_SECRET
+                  optional: true
             - name: SMTP_HOST
               valueFrom:
                 secretKeyRef:
