@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Public per-tenant branding endpoint.
+"""Public per-tenant branding + login-challenge config endpoint.
 
 GET /api/v1/brand — returns the branding for the tenant resolved from the
 request host (Odoo's dbfilter binds request.env to the matching database
@@ -7,13 +7,17 @@ BEFORE this controller runs, so on gtb.cadra.ng this returns DB `gtb`'s brand
 and on staging.app.cadra.ng it returns DB `staging`'s).
 
 Consumed by the React frontend at startup so ONE static build is branded per
-host at runtime (name, colour, logo) — no per-client build. Public + cached;
+host at runtime (name, colour, logo) — no per-client build. It also reports
+whether this tenant enforces Turnstile, so the same bundle shows the login
+challenge on the tenants that check it and nowhere else. Public + cached;
 contains no sensitive data.
 """
 import json
 
 from odoo import http
 from odoo.http import request
+
+from .utils import turnstile_secret
 
 
 class CadraBrandController(http.Controller):
@@ -32,6 +36,12 @@ class CadraBrandController(http.Controller):
             "primary_dark": icp.get_param("cadra.brand_primary_dark", ""),
             # data: URI (e.g. SVG); empty → frontend uses its bundled fallback.
             "logo": icp.get_param("cadra.brand_logo", ""),
+            # Whether THIS tenant enforces Cloudflare Turnstile on login, so
+            # the shared bundle renders the challenge only where the API will
+            # actually check it. Never exposes the secret itself — just
+            # whether one is set. Note the Cache-Control below: flipping a
+            # tenant on can take up to 5 minutes to reach a browser.
+            "turnstile": bool(turnstile_secret(env)),
         }
 
         return request.make_response(
