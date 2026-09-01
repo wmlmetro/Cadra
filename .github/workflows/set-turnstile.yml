@@ -1,0 +1,106 @@
+name: set-turnstile
+
+# Turn Cloudflare Turnstile login protection on or off for one or more tenant
+# DBs, by writing the `myservice_api.turnstile_secret` ir.config_parameter.
+#
+# Why this exists rather than a bootstrap run: bootstrap also installs modules,
+# touches admin groups, the API test client and the mail server, and can take
+# well over an hour against a live tenant — far more machinery than setting one
+# string. db-query.yml can't do it either; that one is deliberately read-only.
+#
+# The secret is never an input. It comes from the CADRA_TURNSTILE_SECRET GitHub
+# secret, the same value deploy-dev syncs into the cadra-odoo K8s secret, so the
+# two can't drift apart.
+#
+# IMPORTANT — this does not take effect on its own. Running HTTP workers cache
+# ir.config_parameter, and a write from another process is not reliably picked
+# up. Roll odoo-19 afterwards (deploy-19 with run_bootstrap=false) for the
+# change to reach /auth/login and /api/v1/brand. That roll uses Recreate on an
+# RWO filestore and briefly interrupts every tenant, so set every DB you intend
+# to change in ONE run of this workflow, then roll once.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dbs:
+        description: "Comma-separated tenant DBs (e.g. staging,gtb,jaizbankplc,lasg)."
+        type: string
+        required: true
+      action:
+        description: "enable = write CADRA_TURNSTILE_SECRET; disable = clear the parameter."
+        type: choice
+        options: [enable, disable]
+        default: enable
+
+env:
+  NAMESPACE: cadra-dev
+
+concurrency:
+  group: set-turnstile
+  cancel-in-progress: false
+
+jobs:
+  set:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: dev
+    steps:
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Save DOKS kubeconfig
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 1200 "${{ vars.DO_CLUSTER_NAME }}"
+
+      - name: Set the Turnstile parameter
+        env:
+          DBS: ${{ inputs.dbs }}
+          ACTION: ${{ inputs.action }}
+          SECRET: ${{ secrets.CADRA_TURNSTILE_SECRET }}
+        run: |
+          set -euo pipefail
+
+          if [ "$ACTION" = "enable" ]; then
+            : "${SECRET:?GitHub secret CADRA_TURNSTILE_SECRET is required to enable}"
+            # The value is interpolated into a Python literal below. Anything
+            # outside this character class could break out of the quoting, so
+            # refuse it rather than generating code we didn't intend.
+            if ! printf '%s' "$SECRET" | grep -qE '^[A-Za-z0-9_.:-]+$'; then
+              echo "::error::CADRA_TURNSTILE_SECRET contains characters outside [A-Za-z0-9_.:-]; refusing to interpolate it."
+              exit 1
+            fi
+            VALUE="'${SECRET}'"
+          else
+            VALUE="False"
+          fi
+
+          for db in ${DBS//,/ }; do
+            db="$(echo "$db" | tr -d '[:space:]')"
+            [ -n "$db" ] || continue
+            echo "─── ${ACTION} turnstile on '${db}' ───"
+            # Piped over stdin, never argv, so the secret can't surface in the
+            # pod's process list. The readback prints only whether a value is
+            # present and how long it is — never the value itself.
+            printf '%s\n' \
+              "p = env['ir.config_parameter'].sudo()" \
+              "p.set_param('myservice_api.turnstile_secret', ${VALUE})" \
+              "env.cr.commit()" \
+              "v = p.get_param('myservice_api.turnstile_secret', '') or ''" \
+              "print('RESULT ${db}: set=%s len=%d' % (bool(v), len(v)))" \
+            | kubectl -n "${NAMESPACE}" exec -i deployment/odoo-19 -- \
+                odoo shell -d "$db" --no-http --log-level=warn 2>/dev/null \
+            | grep '^RESULT' || {
+                echo "::error::no RESULT line for '${db}' — the odoo shell call failed"
+                exit 1
+              }
+          done
+
+      - name: Next step
+        run: |
+          echo "Parameter written. It is NOT live yet — running workers cache it."
+          echo "Roll odoo-19 to apply:"
+          echo "  gh workflow run deploy-19.yml --ref dev -f run_bootstrap=false"
+          echo "Then confirm per host:"
+          echo "  curl -s https://<host>/api/v1/brand | jq .data.turnstile"
