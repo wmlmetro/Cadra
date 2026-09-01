@@ -127,7 +127,14 @@ export default function Login() {
     }
   }
 
-  const isSubmitDisabled = !username.trim() || !password || pending || (!!siteKey && !turnstileToken);
+  // Gate on the challenge only while the widget is healthy and still working
+  // — the normal "solving in progress" case. A widget that failed outright
+  // must not become a lockout: the API is the real gate, so let the request
+  // through and let it answer. On a tenant with no secret configured that
+  // login simply succeeds; on one with a secret it is refused with a reason,
+  // which beats a disabled button that never explains itself.
+  const awaitingChallenge = !!siteKey && !turnstileToken && !turnstileBroken;
+  const isSubmitDisabled = !username.trim() || !password || pending || awaitingChallenge;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-6">
@@ -181,7 +188,8 @@ export default function Login() {
               <div ref={turnstileContainerRef} />
               {turnstileBroken && (
                 <p className="text-xs text-muted-foreground text-center">
-                  The security check could not load. Reload the page to try again.
+                  The security check could not load. You can still try to sign in,
+                  or reload the page to run it again.
                 </p>
               )}
             </div>
