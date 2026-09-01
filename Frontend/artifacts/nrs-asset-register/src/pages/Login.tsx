@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
+import { useTheme } from "next-themes";
 import { login } from "@/lib/auth";
 import { Loader2, ShieldCheck, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -12,6 +13,7 @@ declare global {
         container: string | HTMLElement,
         options: {
           sitekey: string;
+          theme?: "light" | "dark" | "auto";
           callback: (token: string) => void;
           "expired-callback"?: () => void;
           "error-callback"?: () => void;
@@ -27,6 +29,11 @@ const siteKey = import.meta.env.VITE_TURNSTILE_SITEKEY || "";
 
 export default function Login() {
   const [, nav] = useLocation();
+  // Turnstile's own default is theme:"auto", which follows the OS. This app
+  // themes by class with a persisted override (next-themes, storageKey
+  // "nrs-theme"), so the two disagree the moment a user picks a theme that
+  // isn't their OS setting — a white widget on a dark login card.
+  const { resolvedTheme } = useTheme();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -57,7 +64,7 @@ export default function Login() {
   const widgetIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!siteKey || !challengeRequired) return;
+    if (!siteKey || !challengeRequired || !resolvedTheme) return;
 
     let script = document.getElementById("cloudflare-turnstile-script") as HTMLScriptElement | null;
     if (!script) {
@@ -77,6 +84,7 @@ export default function Login() {
         try {
           widgetIdRef.current = window.turnstile.render(turnstileContainerRef.current, {
             sitekey: siteKey,
+            theme: resolvedTheme === "dark" ? "dark" : "light",
             callback: (token: string) => {
               setTurnstileToken(token);
             },
@@ -118,7 +126,10 @@ export default function Login() {
     };
     // challengeRequired starts false on a cold load and flips once
     // /api/v1/brand answers, so this has to re-run to mount the widget.
-  }, [challengeRequired]);
+    // resolvedTheme is undefined until next-themes hydrates, and the widget
+    // takes its theme at render time with no API to change it afterwards —
+    // so a theme change has to rebuild it.
+  }, [challengeRequired, resolvedTheme]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
