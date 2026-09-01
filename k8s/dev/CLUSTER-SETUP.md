@@ -130,31 +130,40 @@ and the frontend renders the challenge only where it does. So the sitekey can
 be rolled out to every tenant safely — the widget appears only on tenants you
 have deliberately switched on.
 
-#### Enabling a tenant
+#### Enabling tenants
 
 1. Set both GitHub settings and push to `dev`. Nothing enforces yet.
-2. Write the parameter for that tenant — `staging` first:
+2. Write the parameter for every tenant you intend to protect, in **one** run:
 
 ```bash
-gh workflow run deploy-19.yml --ref dev \
-  -f run_bootstrap=true -f bootstrap_db=staging -f bootstrap_seed_profile=""
+gh workflow run set-turnstile.yml --ref dev \
+  -f dbs=staging,gtb,jaizbankplc,lasg -f action=enable
 ```
 
-   On a tenant holding real data, prefer writing the parameter directly over a
-   bootstrap run — bootstrap also touches admin groups, the API test client and
-   the mail server, which is more than you want for a one-value change:
-
-```bash
-kubectl -n cadra-dev exec deploy/odoo-19 -- \
-  sh -c 'echo "env[\"ir.config_parameter\"].sudo().set_param(\"myservice_api.turnstile_secret\", \"<secret>\"); env.cr.commit()" | odoo shell -d <db> --no-http'
-```
+   The secret is not an input — the workflow reads `CADRA_TURNSTILE_SECRET`, the
+   same value `deploy-dev` syncs into the `cadra-odoo` K8s secret, so the two
+   can't drift. Prefer this over a bootstrap run: bootstrap also installs
+   modules, touches admin groups, the API test client and the mail server, and
+   can take well over an hour against a live tenant.
 
 3. **Roll odoo-19.** Running HTTP workers cache `ir.config_parameter`, and a
-   write from another process (the bootstrap Job, or `odoo shell`) is *not*
-   reliably picked up — observed propagating in one run and not the next on an
-   identical setup. Until the roll, `/api/v1/brand` and `/auth/login` both keep
-   reporting the old state. Note odoo-19 uses Recreate on an RWO filestore, so
-   the roll briefly interrupts **every** tenant — batch these changes.
+   write from another process is *not* reliably picked up — observed
+   propagating in one run and not the next on an identical setup. Until the
+   roll, `/api/v1/brand` and `/auth/login` both keep reporting the old state.
+
+```bash
+gh workflow run deploy-19.yml --ref dev -f run_bootstrap=false
+```
+
+   odoo-19 uses Recreate on an RWO filestore, so the roll briefly interrupts
+   **every** tenant. That is why step 2 does all the DBs at once — batch the
+   changes and roll once.
+
+4. Confirm per host:
+
+```bash
+curl -s https://staging.app.cadra.ng/api/v1/brand | jq .data.turnstile
+```
 
 #### Disabling a tenant
 
@@ -163,8 +172,8 @@ not turn Turnstile back off, so that a Job which loses the variable can't
 silently strip protection off a live tenant. Clear it explicitly, then roll:
 
 ```bash
-kubectl -n cadra-dev exec deploy/odoo-19 -- \
-  sh -c 'echo "env[\"ir.config_parameter\"].sudo().set_param(\"myservice_api.turnstile_secret\", False); env.cr.commit()" | odoo shell -d <db> --no-http'
+gh workflow run set-turnstile.yml --ref dev -f dbs=<db> -f action=disable
+gh workflow run deploy-19.yml --ref dev -f run_bootstrap=false
 ```
 
 A tenant that is switched on but whose hostname is missing from the Cloudflare
