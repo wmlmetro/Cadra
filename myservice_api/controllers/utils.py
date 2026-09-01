@@ -16,6 +16,7 @@ import time
 import uuid
 
 import psycopg2
+import requests
 
 from odoo import fields
 from odoo.exceptions import (
@@ -184,6 +185,72 @@ def jwt_secret(env):
             "32+ character random string before using the API."
         )
     return value
+
+
+# ─── Cloudflare Turnstile ────────────────────────────────────────────
+
+TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+TURNSTILE_TIMEOUT = 5
+
+
+def turnstile_secret(env):
+    """Return the Turnstile secret key, or "" when protection is off.
+
+    Read from the `myservice_api.turnstile_secret` ir.config_parameter,
+    which bootstrap seeds from the CADRA_TURNSTILE_SECRET env var. Empty
+    is a valid, deliberate state: it means this tenant has no Turnstile
+    site configured and the challenge is skipped entirely. That is the
+    default, and it is how every tenant provisioned before this feature
+    keeps logging in.
+    """
+    return (env["ir.config_parameter"].sudo().get_param(
+        "myservice_api.turnstile_secret", "") or "").strip()
+
+
+def turnstile_error(env, token):
+    """Verify a Turnstile response token; return an error envelope or None.
+
+    Returns None when the challenge passes *or* when Turnstile is not
+    configured — so callers can gate an endpoint with two lines and the
+    unprotected path stays the no-op it was before.
+    """
+    secret = turnstile_secret(env)
+    if not secret:
+        return None
+
+    if not token:
+        return err(ERR_INVALID_REQUEST, "`turnstile_token` is required")
+
+    try:
+        # `remoteip` is deliberately omitted. It is optional, and behind the
+        # cluster ingress (Cloudflare → load balancer → ingress → Odoo)
+        # proxy_mode's ProxyFix only unwinds one hop, so the address we see
+        # is a proxy's rather than the visitor's. Sending a mismatched IP
+        # makes Cloudflare reject an otherwise valid token; the token is
+        # already bound to the sitekey and single-use without it.
+        response = requests.post(
+            TURNSTILE_VERIFY_URL,
+            data={"secret": secret, "response": token},
+            timeout=TURNSTILE_TIMEOUT,
+        )
+        body = response.json()
+    except Exception as e:
+        # Cloudflare unreachable or answering with something that isn't
+        # JSON. Fail closed — an open failure mode would let anyone turn
+        # the challenge off by making siteverify time out.
+        _logger.warning("Turnstile siteverify call failed: %s", e)
+        return err(ERR_INTERNAL, "Could not verify the Turnstile challenge",
+                   status=502)
+
+    if not body.get("success"):
+        # Cloudflare's error-codes distinguish a stale token from a bad
+        # secret key — useful in the log, not something to hand a caller
+        # who may be probing for a misconfiguration.
+        _logger.info("Turnstile rejected a challenge: %s",
+                     body.get("error-codes") or "no error-codes returned")
+        return err(ERR_INVALID_REQUEST, "Turnstile verification failed")
+
+    return None
 
 
 def _b64url_encode(raw):

@@ -25,6 +25,8 @@ RUN npm ci --no-audit --no-fund
 COPY . .
 
 # Tell vite to emit the bundle assuming it lives at /app/* on the origin.
+ARG VITE_TURNSTILE_SITEKEY
+ENV VITE_TURNSTILE_SITEKEY=$VITE_TURNSTILE_SITEKEY
 ENV BASE_PATH=/app/
 ENV NODE_ENV=production
 RUN npm run build

@@ -1,9 +1,29 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { login } from "@/lib/auth";
 import { Loader2, ShieldCheck, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { brandLogoSrc, getBrand } from "@/lib/brand";
+
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        container: string | HTMLElement,
+        options: {
+          sitekey: string;
+          callback: (token: string) => void;
+          "expired-callback"?: () => void;
+          "error-callback"?: () => void;
+        }
+      ) => string;
+      reset: (widgetId: string) => void;
+      remove: (widgetId: string) => void;
+    };
+  }
+}
+
+const siteKey = import.meta.env.VITE_TURNSTILE_SITEKEY || "";
 
 export default function Login() {
   const [, nav] = useLocation();
@@ -13,21 +33,101 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  // The widget is a hard gate: when the tenant has a sitekey, the API will
+  // refuse a login without a token. If Cloudflare can't be reached the form
+  // is unusable, so say so rather than leaving a dead submit button.
+  const [turnstileBroken, setTurnstileBroken] = useState(false);
+  const turnstileContainerRef = useRef<HTMLDivElement | null>(null);
+  const widgetIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!siteKey) return;
+
+    let script = document.getElementById("cloudflare-turnstile-script") as HTMLScriptElement | null;
+    if (!script) {
+      script = document.createElement("script");
+      script.id = "cloudflare-turnstile-script";
+      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      script.async = true;
+      script.defer = true;
+      document.body.appendChild(script);
+    }
+
+    const onScriptError = () => setTurnstileBroken(true);
+    script.addEventListener("error", onScriptError);
+
+    const renderWidget = () => {
+      if (window.turnstile && turnstileContainerRef.current && !widgetIdRef.current) {
+        try {
+          widgetIdRef.current = window.turnstile.render(turnstileContainerRef.current, {
+            sitekey: siteKey,
+            callback: (token: string) => {
+              setTurnstileToken(token);
+            },
+            "expired-callback": () => {
+              setTurnstileToken(null);
+            },
+            "error-callback": () => {
+              setTurnstileToken(null);
+              setTurnstileBroken(true);
+            },
+          });
+        } catch (err) {
+          console.error("Failed to render Turnstile widget:", err);
+          setTurnstileBroken(true);
+        }
+      }
+    };
+
+    if (window.turnstile) {
+      renderWidget();
+    } else {
+      script.addEventListener("load", renderWidget);
+    }
+
+    return () => {
+      if (script) {
+        script.removeEventListener("load", renderWidget);
+        script.removeEventListener("error", onScriptError);
+      }
+      if (widgetIdRef.current && window.turnstile) {
+        try {
+          window.turnstile.remove(widgetIdRef.current);
+          widgetIdRef.current = null;
+        } catch (err) {
+          console.error("Failed to remove Turnstile widget:", err);
+        }
+      }
+    };
+  }, []);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setPending(true);
     try {
-      await login(username.trim(), password);
+      await login(username.trim(), password, turnstileToken || undefined);
       // App.tsx auth-gate listens for the auth-changed event and re-renders
       // into the authenticated shell. Redirect to / for a clean entry point.
       nav("/");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Login failed");
+      if (window.turnstile && widgetIdRef.current) {
+        try {
+          window.turnstile.reset(widgetIdRef.current);
+          setTurnstileToken(null);
+          setTurnstileBroken(false);
+        } catch (err) {
+          console.error("Failed to reset Turnstile widget:", err);
+        }
+      }
     } finally {
       setPending(false);
     }
   }
+
+  const isSubmitDisabled = !username.trim() || !password || pending || (!!siteKey && !turnstileToken);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-6">
@@ -76,6 +176,17 @@ export default function Login() {
             </div>
           </div>
 
+          {siteKey && (
+            <div className="flex flex-col items-center gap-2 py-2">
+              <div ref={turnstileContainerRef} />
+              {turnstileBroken && (
+                <p className="text-xs text-muted-foreground text-center">
+                  The security check could not load. Reload the page to try again.
+                </p>
+              )}
+            </div>
+          )}
+
           {error && (
             <div className="bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-xl p-3 flex items-start gap-2">
               <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
@@ -85,10 +196,10 @@ export default function Login() {
 
           <button
             type="submit"
-            disabled={!username.trim() || !password || pending}
+            disabled={isSubmitDisabled}
             className={cn(
               "w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl",
-              username.trim() && password && !pending
+              !isSubmitDisabled
                 ? "bg-primary text-white hover:opacity-90"
                 : "bg-muted text-muted-foreground cursor-not-allowed",
             )}

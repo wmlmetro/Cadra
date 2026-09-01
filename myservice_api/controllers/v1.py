@@ -66,6 +66,7 @@ from .utils import (
     jwt_secret,
     ok,
     require_jwt,
+    turnstile_error,
 )
 
 
@@ -257,11 +258,19 @@ class MyserviceApiV1(http.Controller):
         data = get_params()
         login = (data.get("login") or data.get("username") or "").strip()
         password = data.get("password") or ""
+
         if not login or not password:
             return _http_response(err(
                 ERR_INVALID_REQUEST,
                 "`login` and `password` are required",
             ))
+
+        # Cloudflare Turnstile. A no-op unless this tenant has a secret key
+        # configured; checked after the field validation above so a
+        # malformed request never costs a round-trip to Cloudflare.
+        challenge_error = turnstile_error(request.env, data.get("turnstile_token"))
+        if challenge_error:
+            return _http_response(challenge_error)
 
         # Odoo 19's `authenticate(credential, user_agent_env)` takes a
         # credential dict (no db arg) and returns an `auth_info` dict
@@ -532,7 +541,10 @@ class MyserviceApiV1(http.Controller):
                     "credentials as the Odoo web UI) and returns a 1-hour "
                     "JWT. Intended for first-party clients like the Cadra "
                     "web frontend. Third-party integrations should use "
-                    "`/auth/token` with client credentials instead."
+                    "`/auth/token` with client credentials instead.\n\n"
+                    "Tenants with Cloudflare Turnstile configured also "
+                    "require `turnstile_token`; a missing or rejected "
+                    "challenge returns 400 `invalid_request`."
                 ),
                 "requestBody": {
                     "required": True,
@@ -542,6 +554,14 @@ class MyserviceApiV1(http.Controller):
                         "properties": {
                             "login": {"type": "string", "description": "Odoo username (typically an email address)"},
                             "password": {"type": "string", "format": "password"},
+                            "turnstile_token": {
+                                "type": "string",
+                                "description": (
+                                    "Cloudflare Turnstile response token. Required only on "
+                                    "tenants with a Turnstile secret key configured; ignored "
+                                    "everywhere else."
+                                ),
+                            },
                         },
                     }, "example": {"login": "admin", "password": "..."}}},
                 },
