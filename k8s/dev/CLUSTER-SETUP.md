@@ -110,33 +110,67 @@ cert-manager's HTTP-01 challenge will not validate until this resolves.
 - `POSTGRES_DB`, `POSTGRES_USER` — optional, default `odoo`/`odoo`
 - `VITE_TURNSTILE_SITEKEY` — optional; Cloudflare Turnstile sitekey
 
-### Turnstile (optional, both halves or neither)
+### Turnstile (optional, per tenant)
 
-Login-form bot protection is off until both settings are present, and they
-must come from the **same** Cloudflare Turnstile widget:
+Login-form bot protection has two halves, and they must come from the **same**
+Cloudflare Turnstile widget:
 
 - `VITE_TURNSTILE_SITEKEY` is a *variable*, not a secret — it ships to every
   browser inside the frontend bundle. It is a **build arg**, so changing it
-  needs a frontend rebuild (any push to `dev`), not just a pod restart.
+  needs a frontend rebuild (any push to `dev`), not just a pod restart. One
+  bundle serves every tenant, so the widget must list **every** tenant
+  hostname in its Cloudflare domain list.
 - `CADRA_TURNSTILE_SECRET` reaches Odoo through the `cadra-odoo` K8s secret and
   is written to the `myservice_api.turnstile_secret` config parameter by
-  bootstrap — so it only takes effect **after a bootstrap run**
-  (`gh workflow run deploy-dev.yml --ref dev -f run_bootstrap=true`), and it
-  applies to whichever tenant DB that run targets.
+  bootstrap.
 
-Setting the secret without the sitekey locks every user out of the login form:
-the backend then demands a `turnstile_token` the frontend has no widget to
-produce. Set the variable first, deploy, then add the secret and bootstrap.
+**Which tenants enforce it is decided by that parameter, not by the build.**
+`GET /api/v1/brand` reports whether the tenant on that host has a secret set,
+and the frontend renders the challenge only where it does. So the sitekey can
+be rolled out to every tenant safely — the widget appears only on tenants you
+have deliberately switched on.
+
+#### Enabling a tenant
+
+1. Set both GitHub settings and push to `dev`. Nothing enforces yet.
+2. Write the parameter for that tenant — `staging` first:
+
+```bash
+gh workflow run deploy-19.yml --ref dev \
+  -f run_bootstrap=true -f bootstrap_db=staging -f bootstrap_seed_profile=""
+```
+
+   On a tenant holding real data, prefer writing the parameter directly over a
+   bootstrap run — bootstrap also touches admin groups, the API test client and
+   the mail server, which is more than you want for a one-value change:
+
+```bash
+kubectl -n cadra-dev exec deploy/odoo-19 -- \
+  sh -c 'echo "env[\"ir.config_parameter\"].sudo().set_param(\"myservice_api.turnstile_secret\", \"<secret>\"); env.cr.commit()" | odoo shell -d <db> --no-http'
+```
+
+3. **Roll odoo-19.** Running HTTP workers cache `ir.config_parameter`, and a
+   write from another process (the bootstrap Job, or `odoo shell`) is *not*
+   reliably picked up — observed propagating in one run and not the next on an
+   identical setup. Until the roll, `/api/v1/brand` and `/auth/login` both keep
+   reporting the old state. Note odoo-19 uses Recreate on an RWO filestore, so
+   the roll briefly interrupts **every** tenant — batch these changes.
+
+#### Disabling a tenant
 
 Bootstrap only ever *writes* the parameter — clearing the GitHub secret will
 not turn Turnstile back off, so that a Job which loses the variable can't
-silently strip protection off a live tenant. To disable it, clear the
-parameter on that tenant:
+silently strip protection off a live tenant. Clear it explicitly, then roll:
 
 ```bash
 kubectl -n cadra-dev exec deploy/odoo-19 -- \
   sh -c 'echo "env[\"ir.config_parameter\"].sudo().set_param(\"myservice_api.turnstile_secret\", False); env.cr.commit()" | odoo shell -d <db> --no-http'
 ```
+
+A tenant that is switched on but whose hostname is missing from the Cloudflare
+widget shows a "security check could not load" note and falls back to letting
+the API decide — users are not locked out, but that tenant gets no protection
+until the hostname is added.
 
 ---
 

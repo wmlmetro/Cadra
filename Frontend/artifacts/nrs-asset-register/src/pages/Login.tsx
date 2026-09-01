@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { login } from "@/lib/auth";
 import { Loader2, ShieldCheck, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { brandLogoSrc, getBrand } from "@/lib/brand";
+import { applyBrand, brandLogoSrc, fetchBrand, getBrand } from "@/lib/brand";
 
 declare global {
   interface Window {
@@ -34,15 +34,30 @@ export default function Login() {
   const [pending, setPending] = useState(false);
 
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  // The widget is a hard gate: when the tenant has a sitekey, the API will
-  // refuse a login without a token. If Cloudflare can't be reached the form
-  // is unusable, so say so rather than leaving a dead submit button.
   const [turnstileBroken, setTurnstileBroken] = useState(false);
+  // Whether THIS tenant enforces the challenge. One bundle serves every
+  // tenant, so the sitekey alone can't decide: it would put a widget on
+  // clients whose API never checks it. GET /api/v1/brand answers per host.
+  const [challengeRequired, setChallengeRequired] = useState(getBrand().turnstile);
+
+  // Re-read it on mount rather than trusting the boot-time value, which may
+  // have come from the sessionStorage cache and predate an operator enabling
+  // the challenge. Worst case this is served from the endpoint's 5-minute
+  // Cache-Control, so a freshly-enabled tenant converges within that.
+  useEffect(() => {
+    let live = true;
+    void fetchBrand().then((brand) => {
+      if (!live) return;
+      applyBrand(brand);
+      setChallengeRequired(brand.turnstile);
+    });
+    return () => { live = false; };
+  }, []);
   const turnstileContainerRef = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!siteKey) return;
+    if (!siteKey || !challengeRequired) return;
 
     let script = document.getElementById("cloudflare-turnstile-script") as HTMLScriptElement | null;
     if (!script) {
@@ -95,12 +110,15 @@ export default function Login() {
         try {
           window.turnstile.remove(widgetIdRef.current);
           widgetIdRef.current = null;
+          setTurnstileToken(null);
         } catch (err) {
           console.error("Failed to remove Turnstile widget:", err);
         }
       }
     };
-  }, []);
+    // challengeRequired starts false on a cold load and flips once
+    // /api/v1/brand answers, so this has to re-run to mount the widget.
+  }, [challengeRequired]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -127,7 +145,15 @@ export default function Login() {
     }
   }
 
-  const isSubmitDisabled = !username.trim() || !password || pending || (!!siteKey && !turnstileToken);
+  // Gate on the challenge only while the widget is healthy and still working
+  // — the normal "solving in progress" case. A widget that failed outright
+  // must not become a lockout: the API is the real gate, so let the request
+  // through and let it answer. On a tenant with no secret configured that
+  // login simply succeeds; on one with a secret it is refused with a reason,
+  // which beats a disabled button that never explains itself.
+  const showChallenge = !!siteKey && challengeRequired;
+  const awaitingChallenge = showChallenge && !turnstileToken && !turnstileBroken;
+  const isSubmitDisabled = !username.trim() || !password || pending || awaitingChallenge;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-6">
@@ -176,12 +202,13 @@ export default function Login() {
             </div>
           </div>
 
-          {siteKey && (
+          {showChallenge && (
             <div className="flex flex-col items-center gap-2 py-2">
               <div ref={turnstileContainerRef} />
               {turnstileBroken && (
                 <p className="text-xs text-muted-foreground text-center">
-                  The security check could not load. Reload the page to try again.
+                  The security check could not load. You can still try to sign in,
+                  or reload the page to run it again.
                 </p>
               )}
             </div>

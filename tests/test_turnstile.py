@@ -51,6 +51,27 @@ def turnstile_enforced(api_base):
     )
 
 
+# ─── the tenant advertises its own state ─────────────────────────────
+
+def test_brand_reports_turnstile_state(api_base, turnstile_enforced, capture):
+    """GET /api/v1/brand agrees with what /auth/login actually enforces.
+
+    One bundle serves every tenant, so the frontend can't decide from the
+    build-time sitekey whether to show a challenge — it asks this endpoint.
+    If the two ever disagree, a tenant either gets a widget its API ignores
+    or a login it can't complete.
+    """
+    r = requests.get(f"{api_base}/api/v1/brand", timeout=30)
+    capture("turnstile/brand_flag", r)
+    assert r.status_code == 200, r.text[:300]
+    data = r.json()["data"]
+    assert data["turnstile"] is turnstile_enforced, (
+        f"/api/v1/brand says turnstile={data['turnstile']} but /auth/login "
+        f"{'enforces' if turnstile_enforced else 'does not enforce'} it"
+    )
+    assert "secret" not in r.text.lower(), "brand response mentions a secret"
+
+
 # ─── field validation runs first, in both states ─────────────────────
 
 def test_missing_credentials_fail_before_turnstile(api_base, capture):
@@ -126,6 +147,12 @@ def test_invalid_token_rejected_when_configured(api_base, turnstile_enforced, ca
     capture("turnstile/invalid_token", r)
     if r.status_code == 502:
         pytest.skip("could not reach Cloudflare siteverify from the API host")
+    if r.status_code == 401:
+        # The challenge passed and the request fell through to credentials,
+        # which means this deployment's secret accepts any token — i.e. it is
+        # Cloudflare's always-passes test key. Nothing to assert about
+        # rejection here; that needs a real key or the always-fails test key.
+        pytest.skip("configured secret accepts any token (always-passes test key)")
     body = assert_envelope_err(r, expected_status=400, expected_code="invalid_request")
     assert "error-codes" not in r.text and "invalid-input" not in r.text, (
         f"siteverify diagnostics leaked to the client: {body['error']}"

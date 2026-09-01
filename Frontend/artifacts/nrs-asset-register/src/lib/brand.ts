@@ -13,6 +13,7 @@ export type Brand = {
   primary: string;       // hex, e.g. "#E04403"
   primary_dark: string;  // hex
   logo: string;          // data: URI (or "" → use bundled fallback)
+  turnstile: boolean;    // this tenant enforces Turnstile on login
 };
 
 // Bundled fallback (the original NRS branding) — used if the API call fails.
@@ -23,6 +24,9 @@ const DEFAULT_BRAND: Brand = {
   primary: "#E01F26",
   primary_dark: "#C2181E",
   logo: "",
+  // Assume unprotected. The API is the real gate — guessing `true` here would
+  // block the login form on tenants that never asked for a challenge.
+  turnstile: false,
 };
 
 let current: Brand = DEFAULT_BRAND;
@@ -62,7 +66,7 @@ function hexToHslParts(hex: string): string | null {
   return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
-const CACHE_KEY = "cadra.brand.v1";
+const CACHE_KEY = "cadra.brand.v2";
 
 /** Last successfully-fetched brand for this host, if any. Lets the app render
  *  the correct brand instantly on every page load and avoids flashing the NRS
@@ -94,6 +98,7 @@ export async function fetchBrand(): Promise<Brand> {
       primary: d.primary || DEFAULT_BRAND.primary,
       primary_dark: d.primary_dark || DEFAULT_BRAND.primary_dark,
       logo: d.logo || "",
+      turnstile: d.turnstile === true,
     };
     try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(brand)); } catch { /* ignore */ }
     return brand;

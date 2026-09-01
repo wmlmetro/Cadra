@@ -73,6 +73,9 @@ export default function BrandingPage() {
         primary: d.primary || getBrand().primary,
         primary_dark: d.primary_dark || getBrand().primary_dark,
         logo: d.logo,
+        // Saving branding says nothing about the login challenge — carry the
+        // tenant's current setting through rather than resetting it.
+        turnstile: getBrand().turnstile,
       });
     },
   });
