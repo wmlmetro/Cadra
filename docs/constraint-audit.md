@@ -74,12 +74,17 @@ multiple declarations in one file are counted separately.
 
 | Tree | Files | Sites | Constraints | Reachable by Odoo 19 | Action |
 |---|---:|---:|---:|---|---|
-| first-party (repo root) | 3 | 3 | 3 | **yes** | **fixed** (1 in handoff 01, 2 here) |
+| first-party (repo root) | 3 | 3 | 3 | **2 of 3** ¹ | **fixed** (1 in handoff 01, 2 here) |
 | `crnd-19/` | 6 | 6 | 6 | **yes** | **fixed** here |
 | `oca-19/` | 0 | 0 | 0 | yes | none present |
 | `dist/` | 43 | 44 | 61 | **no** | **none — correct for Odoo 15** |
 | `_upgrade/` | 13 | 17 | 20 | **no** | none — gitignored scratch |
 | **Total** | **65** | **70** | **90** | **8 reachable** | |
+
+¹ The third first-party site is `api_idempotency.py`'s `else:` branch, which
+Odoo 19 never executes — it is present in the source but not reachable at
+runtime. Hence 3 + 6 sites but **8 reachable**, which is the number that
+matters everywhere else in this document.
 
 Odoo core contributes nothing: only `lunch` and `test_orm` mention the
 attribute, and neither is installed in any database.
@@ -140,17 +145,20 @@ generic_resource_simple_unique_resource_id on generic_resource_simple -> UNIQUE 
 
 ## Per-database state
 
-Nine databases exist. Two are out of scope:
+Nine databases exist. One is out of scope:
 
 - **`odoo`** — the `db_name` in `odoo.conf`, not a tenant. Its `ir_module_module`
   rows are stale Odoo 15 state referencing `generic_request` and
   `generic_system_event`, which live only in `dist/` and no longer resolve, so
   its registry load skips every affected module and it emits **zero** warnings.
   It does not serve the API.
-- **`test19`** — module set identical to the tenants and carried all 8 holes, but
-  has no `jwt_secret`, so `/auth/login` 500s. In scope for the fix, not usable
-  for API tests. (`nrs19` has the same missing secret — pre-existing, unrelated
-  to this work, flagged in report 02.)
+- **`test19`** — module set identical to the tenants, carried all 8 holes, and
+  **does serve HTTP** (`/web/login` → 200); it simply has no `jwt_secret`, so
+  `/auth/login` 500s and it cannot be used for API tests. That makes it in
+  scope for the fix, and it has been fixed — an earlier draft of this document
+  claimed it was in scope while the fan-out had in fact skipped it. (`nrs19`
+  has the same missing secret — pre-existing, unrelated to this work, flagged
+  in report 02.)
 
 ### Before — constraints present / violating rows
 
@@ -177,15 +185,22 @@ decision.** `nrs19` holds 11,878 assets and is clean.
 
 ### After — all eight enforced everywhere
 
-| Database | constraints present (of 8) | assets |
+| Database | constraints present (of 8) | reflected in `ir_model_constraint` |
 |---|---:|---:|
-| jaizbankplc | 8 | 371 |
-| lasg | 8 | 150 |
-| nrs | 8 | 1,272 |
-| gtb | 8 | 150 |
-| cadra19 | 8 | 1,322 |
-| nrs19 | 8 | 11,878 |
-| gtb19 | 8 | 156 |
+| jaizbankplc | 8 | 8 |
+| lasg | 8 | 8 |
+| nrs | 8 | 8 |
+| gtb | 8 | 8 |
+| cadra19 | 8 | 8 |
+| nrs19 | 8 | 8 |
+| gtb19 | 8 | 8 |
+| test19 | 8 | 8 |
+
+Reflection in `ir_model_constraint` matters as much as presence in
+`pg_constraint`: a constraint Odoo does not know about is one a later module
+upgrade can drop. Asset row counts are deliberately not tabulated here — the
+pytest suite creates assets in `jaizbankplc` on every run, so any figure would
+be stale by the time it was read.
 
 Proven to bite, not merely to exist:
 
@@ -200,6 +215,44 @@ And reflected in Odoo's own registry, so a later upgrade will not drop them:
 nrs_asset_asset_code_unique | u | UNIQUE (asset_code)
 bus_route_code_unique       | u | UNIQUE (code)
 ```
+
+---
+
+## What these constraints still do not guarantee
+
+A restored constraint is not the same as a closed gap. Two residual holes,
+both consequences of SQL's NULL semantics rather than of this work:
+
+**`UNIQUE (asset_code)` permits unlimited NULLs.** `nrs_asset.asset_code` is
+`is_nullable = YES` — the field is `fields.Char(readonly=True)` with no
+`required=True` — and Postgres does not compare NULLs for uniqueness. So the
+constraint reads as "one asset per code" but is really "one asset per
+*non-null* code". Today no tenant has a NULL, empty or `'/'` code, and the
+path is not reachable through the API (`asset_code` is absent from
+`_WRITABLE_FIELDS`, and `create()` always fills it), but it is reachable via
+XML-RPC or a direct ORM `write`. **If INT-06/07 is going to lean on this
+guarantee, the column should be `NOT NULL`.** That is a change to a published
+field's contract, so it is flagged here rather than made.
+
+**`CHECK (name != description)` passes whenever `description` is NULL**, since
+`NULL != NULL` is NULL, not FALSE — and a NULL check constraint is satisfied.
+On most tenants that is nearly every row:
+
+| Database | locations | description IS NULL |
+|---|---:|---:|
+| jaizbankplc | 149 | 59 |
+| lasg | 111 | **111** |
+| nrs | 847 | 593 |
+| gtb | 143 | **143** |
+| cadra19 | 754 | 479 |
+| nrs19 | 1,154 | **1,154** |
+| gtb19 | 149 | 143 |
+
+So on `lasg`, `gtb` and `nrs19` this constraint currently guards nothing at
+all. "Cosmetic" in the risk table understates it; it is restored for
+consistency with upstream, not because it buys anything. The same NULL caveat
+applies to `UNIQUE (parent_id, name)` on root categories, where `parent_id`
+is NULL.
 
 ---
 
