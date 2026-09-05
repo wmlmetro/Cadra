@@ -122,6 +122,12 @@ On staging/prod the `cadra-upgrade` Job must likewise fan out per tenant databas
 | Dead `_sql_constraints` (handoff 02) | **closed** — all 8 reachable sites ported and enforced in every tenant; `docs/constraint-audit.md` |
 | Odoo 19 migration | in flight, separate track |
 
+- 2026-09-05 · **`.env` untracked from git and the dev client secret rotated.** Vendra's `site_config` holds that secret — rotating it without updating Vendra breaks INT-03. · It was tracked *and* gitignored, so a real secret briefly sat one `git add .` from a commit.
+- 2026-09-05 · **`asset_tag` removed from `_WRITABLE_FIELDS`.** Breaking, announced; Vendra (the only live consumer) does not write it. · A client could PATCH `tag` until it no longer matched the physical label, defeating the affix control.
+- 2026-09-05 · **Empty scopes means no permissions, not wildcard.** · A client created without scopes receiving everything is privilege escalation waiting for a typo — the opposite of the Tag-Issuing Unit separation.
+- 2026-09-05 · **`data.tag` deprecated by annotation, not removed.** · Breaking a published field to fix a naming problem is not a trade worth making with a live consumer.
+- 2026-09-05 · **The affix endpoint verifies `serial_number` when supplied.** · The spec asks for the serial-to-tag match; checking one side is half a control.
+
 ## Backlog — agreed, not yet scheduled
 
 - **The nine pre-envelope routes adopt `@cadra_route`** (`/auth/*`, `/openapi.json`, `/docs`, `/assets/export.csv`, `/integrations/employees/import`, `/brand`). They validate nothing and sit outside the standard envelope — and `/auth/token` is the first endpoint every integration touches. Refactor of the auth surface; after INT-03 is live.
