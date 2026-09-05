@@ -638,8 +638,15 @@ def get_params():
     # raw body. Odoo's HttpRequest sometimes consumes the body stream before
     # the controller runs, so we can't always rely on get_json() at the
     # werkzeug layer — use raw data as a safety net.
+    #
+    # `cache=True` is what makes that safety net exist. With cache=False,
+    # get_json consumes the stream without keeping it, so the get_data() call
+    # below returns b'' and the fallback can never fire — the request comes
+    # back as {} and the endpoint reports its required fields missing. That is
+    # an intermittent 400 on whichever call lost the body, `/auth/token`
+    # included, which is the first endpoint any integration makes.
     try:
-        body = request.httprequest.get_json(silent=True, force=True, cache=False)
+        body = request.httprequest.get_json(silent=True, force=True, cache=True)
     except Exception:
         body = None
     if not isinstance(body, dict):
