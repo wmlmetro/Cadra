@@ -1,6 +1,6 @@
 # Handoff 04 — report
 
-**Branch:** `fix/demo-readiness` → PR into `dev`.
+**Branch:** `fix/demo-readiness` → **PR #47** (https://github.com/wmlmetro/Cadra/pull/47), owner-blocked at merge.
 **Tenant for integration/demo work:** `nrs19`, as ruled.
 
 ---
@@ -685,6 +685,20 @@ schema; `Asset.tag.deprecated == true`.
 ---
 
 ## Acceptance
+
+### Commits
+
+```
+f6153ed docs: the demo contract Vendra drives, and the handoff 04 report
+6711b6c fix(api): keep the envelope when a delegated controller fails
+55fa707 feat(api): verify the serial at the point of tagging, and stop the tag drifting
+90649ab feat(api): empty scopes grant nothing, and provision the integration clients
+e806402 fix: make API credentials per-tenant and stop the scripts clobbering them
+5b36a56 ci: upgrade every tenant before the image rolls forward
+```
+
+The branch also carries `b3f89f7` and `7ef825a` — your own docs commits, which
+were on local `dev` but had never been pushed. Merging #47 lands them too.
 
 | Criterion | Status |
 |---|---|
