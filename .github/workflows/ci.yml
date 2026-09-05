@@ -73,12 +73,18 @@ jobs:
 
       - name: Show captured credentials (redacted) — sanity that bootstrap wrote them
         run: |
-          if [ ! -f docs/api/.creds ]; then
-            echo "FAIL: docs/api/.creds was not written by bootstrap"
+          # Per-tenant since handoff 04: secrets belong to a database, so
+          # bootstrap writes docs/api/.creds.<db> rather than one shared file.
+          # CI bootstraps the single DB named in .env.example.
+          DB=$(grep -E '^POSTGRES_DB=' .env.example | cut -d= -f2-)
+          CREDS="docs/api/.creds.${DB}"
+          if [ ! -f "$CREDS" ]; then
+            echo "FAIL: $CREDS was not written by bootstrap"
+            ls -la docs/api/ || true
             exit 1
           fi
           # Print the file with secret values masked.
-          sed -E 's/(SECRET=.{8}).+/\1...REDACTED.../' docs/api/.creds
+          sed -E 's/(SECRET=.{8}).+/\1...REDACTED.../' "$CREDS"
 
       - name: Run the pytest API suite
         run: pytest tests/ -v
