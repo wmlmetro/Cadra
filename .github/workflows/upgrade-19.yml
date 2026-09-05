@@ -1,20 +1,37 @@
 name: upgrade-19
 
-# Run a module install/upgrade against a live 19 tenant DB (odoo -u/-i), in
+# Run a module install/upgrade against the live 19 tenant DBs (odoo -u/-i), in
 # cluster. Use after a module manifest change (asset bundle, data files, version
 # bump) that a plain rollout won't pick up, or to add a NEW module to a tenant.
 #
 # workflow_dispatch only. The image should match the code you want live — pass a
 # specific cadra-odoo-19:dev-<sha> from the latest deploy-dev build, or leave the
 # default (dev-latest = whatever deploy-dev last pushed).
+#
+# ── Two traps this workflow used to walk into ────────────────────────────────
+#
+# 1. ONE ODOO REGISTRY SERVES EVERY TENANT. Rolling the Deployment forward onto
+#    the new image after upgrading a single tenant puts *every* tenant on new
+#    code while the rest still hold the old schema — a stored field added in
+#    that release then raises UndefinedColumn on every read, and any serialiser
+#    touching it 500s the endpoint. So: upgrade EVERY tenant first, and only
+#    then roll the image forward. If any tenant fails, the image is restored to
+#    what was running before, not advanced.
+#
+# 2. `target_db` as a single string meant one dispatch per tenant. The
+#    concurrency group below holds at most one queued run, so GitHub silently
+#    cancels every pending dispatch but the last — four dispatches upgrade one
+#    or two tenants and report success. So: `target_dbs` takes the whole list
+#    and one run does all of them, in order, in a single concurrency slot.
 
 on:
   workflow_dispatch:
     inputs:
-      target_db:
-        description: "Tenant DB to upgrade (e.g. staging, gtb, jaizbankplc, lasg)."
+      target_dbs:
+        description: "Tenant DBs to upgrade, comma- or space-separated. LIST EVERY TENANT ON THIS CLUSTER — they share one Odoo registry, so tenants left un-upgraded break the moment the image rolls forward. e.g. staging,nrs,gtb,jaizbankplc,lasg"
         type: string
         required: true
+        default: "staging,nrs,gtb,jaizbankplc,lasg"
       upgrade_modules:
         description: "Comma-separated modules to UPGRADE (-u), e.g. myservice_nrs_base. Blank to skip."
         type: string
@@ -42,9 +59,19 @@ concurrency:
 jobs:
   upgrade:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     environment:
       name: dev
+    env:
+      # Fail-safe default. ONLY the fan-out step is allowed to clear this, and
+      # only after every tenant has upgraded. The roll-forward step below runs
+      # with `always()`, so anything that aborts the job earlier — a bad tenant
+      # name, an expired kubeconfig, a registry timeout — must leave FAILED=1
+      # and restore the image that was already running rather than advance onto
+      # code no tenant's schema is ready for. A value written to $GITHUB_ENV
+      # takes precedence over this for later steps, which is exactly what the
+      # fan-out step relies on.
+      FAILED: "1"
     steps:
       - uses: actions/checkout@v4
       - name: Install doctl
@@ -62,6 +89,39 @@ jobs:
           echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
           echo "using image: $IMAGE"
 
+      - name: Resolve tenant list
+        id: dbs
+        env:
+          TARGET_DBS: ${{ inputs.target_dbs }}
+        run: |
+          set -e
+          DBS=$(printf '%s' "$TARGET_DBS" | tr ',' ' ' | tr -s '[:space:]' ' ' | sed -e 's/^ //' -e 's/ $//')
+          if [ -z "$DBS" ]; then
+            echo "FATAL: target_dbs is empty" >&2; exit 1
+          fi
+          for db in $DBS; do
+            case "$db" in
+              *[!a-zA-Z0-9_-]*) echo "FATAL: refusing suspicious db name '$db'" >&2; exit 1 ;;
+            esac
+          done
+          echo "list=$DBS" >> "$GITHUB_OUTPUT"
+          echo "will upgrade, in order:$(printf ' %s' $DBS)"
+
+      # The image the cluster is serving RIGHT NOW. If any tenant's upgrade
+      # fails we put this back rather than advancing onto code the schema is
+      # not ready for.
+      - name: Record the currently-deployed image
+        id: prev
+        run: |
+          PREV=$(kubectl -n "$NAMESPACE" get deployment/odoo-19 \
+                   -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || echo)
+          REPLICAS=$(kubectl -n "$NAMESPACE" get deployment/odoo-19 \
+                   -o jsonpath='{.spec.replicas}' 2>/dev/null || echo)
+          [ -z "$REPLICAS" ] && REPLICAS=1
+          echo "image=$PREV" >> "$GITHUB_OUTPUT"
+          echo "replicas=$REPLICAS" >> "$GITHUB_OUTPUT"
+          echo "currently deployed: ${PREV:-<none>} at ${REPLICAS} replica(s)"
+
       - name: (Optional) Scale odoo-19 down for exclusive DB access
         if: ${{ inputs.scale_down == true }}
         run: |
@@ -71,42 +131,110 @@ jobs:
             echo "odoo-19 scaled to 0"
           fi
 
-      - name: Run cadra-upgrade-19 Job
+      # Every tenant, one at a time, BEFORE the image moves. First failure stops
+      # the fan-out: a half-upgraded estate must not be papered over by carrying
+      # on to the next tenant.
+      - name: Run cadra-upgrade-19 Job for every tenant
         env:
           IMAGE: ${{ steps.img.outputs.image }}
-          TARGET_DB: ${{ inputs.target_db }}
+          TARGET_DBS: ${{ steps.dbs.outputs.list }}
           UPGRADE_MODULES: ${{ inputs.upgrade_modules }}
           INSTALL_MODULES: ${{ inputs.install_modules }}
         run: |
-          set -e
-          kubectl -n "$NAMESPACE" delete job cadra-upgrade-19 --ignore-not-found
-          sed -e "s|REPLACE_ME_IMAGE|${IMAGE}|g" \
-              -e "s|REPLACE_ME_TARGET_DB|${TARGET_DB}|g" \
-              -e "s|REPLACE_ME_INSTALL_MODULES|${INSTALL_MODULES}|g" \
-              -e "s|REPLACE_ME_UPGRADE_MODULES|${UPGRADE_MODULES}|g" \
-              k8s/dev/51-upgrade-19-job.yaml | kubectl apply -f -
-          sleep 8
-          kubectl -n "$NAMESPACE" logs -f job/cadra-upgrade-19 --all-containers || true
-          for i in $(seq 1 40); do
-            SUCC=$(kubectl -n "$NAMESPACE" get job cadra-upgrade-19 -o jsonpath='{.status.succeeded}' 2>/dev/null || echo)
-            FAIL=$(kubectl -n "$NAMESPACE" get job cadra-upgrade-19 -o jsonpath='{.status.failed}' 2>/dev/null || echo)
-            [ "${SUCC:-0}" = "1" ] && { echo "upgrade succeeded"; break; }
-            if [ -n "$FAIL" ] && [ "$FAIL" -ge 1 ] 2>/dev/null; then
-              echo "upgrade FAILED"; kubectl -n "$NAMESPACE" logs job/cadra-upgrade-19 --all-containers --tail=80; FAILED=1; break
+          set -u
+          FAILED=0        # local; the job-level default is cleared at the end
+          DONE=""
+          for TARGET_DB in $TARGET_DBS; do
+            echo "::group::upgrade ${TARGET_DB}"
+            kubectl -n "$NAMESPACE" delete job cadra-upgrade-19 --ignore-not-found
+            sed -e "s|REPLACE_ME_IMAGE|${IMAGE}|g" \
+                -e "s|REPLACE_ME_TARGET_DB|${TARGET_DB}|g" \
+                -e "s|REPLACE_ME_INSTALL_MODULES|${INSTALL_MODULES}|g" \
+                -e "s|REPLACE_ME_UPGRADE_MODULES|${UPGRADE_MODULES}|g" \
+                k8s/dev/51-upgrade-19-job.yaml | kubectl apply -f -
+            sleep 8
+            kubectl -n "$NAMESPACE" logs -f job/cadra-upgrade-19 --all-containers || true
+            OK=0
+            for i in $(seq 1 40); do
+              SUCC=$(kubectl -n "$NAMESPACE" get job cadra-upgrade-19 -o jsonpath='{.status.succeeded}' 2>/dev/null || echo)
+              # The Job's Failed CONDITION, not `.status.failed`. The latter
+              # counts failed pods, and 51-upgrade-19-job.yaml sets
+              # backoffLimit: 1 — so one evicted or OOM-killed pod sets it to 1
+              # while the Job is still retrying and may yet succeed. Treating
+              # that as terminal aborted the whole estate and reverted the
+              # image over a transient pod failure.
+              COND=$(kubectl -n "$NAMESPACE" get job cadra-upgrade-19 \
+                       -o jsonpath='{.status.conditions[?(@.type=="Failed")].status}' 2>/dev/null || echo)
+              [ "${SUCC:-0}" = "1" ] && { OK=1; break; }
+              if [ "${COND:-}" = "True" ]; then
+                kubectl -n "$NAMESPACE" logs job/cadra-upgrade-19 --all-containers --tail=120
+                break
+              fi
+              sleep 30
+            done
+            echo "::endgroup::"
+            if [ "$OK" = "1" ]; then
+              echo "upgrade succeeded: ${TARGET_DB}"
+              DONE="${DONE} ${TARGET_DB}"
+            else
+              echo "upgrade FAILED: ${TARGET_DB} — stopping before the image rolls forward"
+              FAILED=1
+              break
             fi
-            sleep 30
           done
-          echo "FAILED=${FAILED:-0}" >> "$GITHUB_ENV"
+          echo "FAILED=${FAILED}" >> "$GITHUB_ENV"   # clears the fail-safe default
+          {
+            echo "### upgrade-19"
+            echo ""
+            echo "image: \`${IMAGE}\`"
+            echo ""
+            echo "upgraded:${DONE:- (none)}"
+            [ "$FAILED" = "1" ] && echo "" && echo "**FAILED — image NOT rolled forward.**"
+            true   # the test above is the group's exit status otherwise
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
 
-      - name: Roll odoo-19 back up
-        if: ${{ always() && inputs.scale_down == true }}
+      # SERVING FIRST. Between the scale-down above and this point every tenant
+      # is at 0 replicas — Cadra is down. If the run is cancelled, or hits
+      # `timeout-minutes`, the runner's grace window can kill whatever step is
+      # mid-flight, so the cheapest and most urgent action gets its own step
+      # ahead of any decision about images: put the pods back. The image the
+      # deployment carries is still the one that was serving before, which is
+      # the safe one to come back on.
+      - name: Restore replicas (always, and before anything else)
+        if: ${{ always() }}
         env:
-          IMAGE: ${{ steps.img.outputs.image }}
+          REPLICAS: ${{ steps.prev.outputs.replicas }}
         run: |
+          kubectl -n "$NAMESPACE" scale deployment/odoo-19 \
+            --replicas="${REPLICAS:-1}" || true
+
+      # Only now does the estate move onto the new code — every tenant's schema
+      # is already there. On failure we re-apply the image that was running
+      # before, so the pods that come back up match the schema they'll read.
+      - name: Roll odoo-19 forward (or back, on failure)
+        if: ${{ always() }}
+        env:
+          NEW_IMAGE: ${{ steps.img.outputs.image }}
+          PREV_IMAGE: ${{ steps.prev.outputs.image }}
+          REPLICAS: ${{ steps.prev.outputs.replicas }}
+        run: |
+          set -e
+          if [ "${FAILED:-0}" = "1" ]; then
+            IMAGE="${PREV_IMAGE}"
+            if [ -z "$IMAGE" ]; then
+              echo "a tenant failed and no previous image was recorded — leaving the deployment on what it already carries"
+              exit 0
+            fi
+            echo "a tenant failed — restoring the previously-deployed image: $IMAGE"
+          else
+            IMAGE="${NEW_IMAGE}"
+            echo "every tenant upgraded — rolling forward to: $IMAGE"
+          fi
           sed "s|REPLACE_ME/cadra-odoo-19:dev|${IMAGE}|g" k8s/dev/41-odoo-19-deployment.yaml | kubectl apply -f -
-          kubectl -n "$NAMESPACE" scale deployment/odoo-19 --replicas=1
+          kubectl -n "$NAMESPACE" scale deployment/odoo-19 --replicas="${REPLICAS:-1}"
           kubectl -n "$NAMESPACE" rollout status deployment/odoo-19 --timeout=5m
 
-      - name: Fail if the upgrade Job failed
+      - name: Fail if any tenant upgrade failed
         if: ${{ env.FAILED == '1' }}
         run: exit 1
