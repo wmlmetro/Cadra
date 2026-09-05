@@ -90,7 +90,7 @@ PAGINATION_QUERY_PARAMS = (
 
 def cadra_route(path, *, method="GET", summary="", scopes=(), idempotent=False,
                 success_status=None, request_schema=None, request_example=None,
-                query_params=None):
+                query_params=None, response_schema=None):
     """REST route registrar + auth/envelope wrapper.
 
     method:          "GET" | "POST" | "PATCH" | "PUT" | "DELETE"
@@ -111,6 +111,14 @@ def cadra_route(path, *, method="GET", summary="", scopes=(), idempotent=False,
                          "description": "Free-text search"}]
                      PAGINATION_QUERY_PARAMS provides limit+cursor for
                      list endpoints.
+    response_schema: OpenAPI JSON-schema dict describing the `data`
+                     member of the success envelope, e.g.
+                       {"$ref": "#/components/schemas/Asset"}
+                     or {"type": "array", "items": {"$ref": ...}}.
+                     Omit and the generic Envelope stub is published.
+                     This is where a field is marked `deprecated` — a
+                     published response field cannot be removed without
+                     breaking a consumer, so it is annotated instead.
     """
     method = method.upper()
 
@@ -133,6 +141,7 @@ def cadra_route(path, *, method="GET", summary="", scopes=(), idempotent=False,
             "request_schema": request_schema,
             "request_example": request_example,
             "query_params": list(query_params or ()),
+            "response_schema": response_schema,
         })
         wrapped = cadra_endpoint(
             scopes=scopes,
@@ -224,7 +233,15 @@ class MyserviceApiV1(http.Controller):
         except Exception as e:
             return _http_response(err("server_misconfigured", str(e), status=500))
 
-        scopes = (client.scopes or "").split() or ["*"]
+        # An empty scopes field means NO permissions, not every permission.
+        # It used to fall through to `["*"]`, so a client created without
+        # scopes — a typo, a half-finished record, an integration provisioned
+        # by someone in a hurry — received the whole API including `admin`.
+        # That is privilege escalation waiting for a slip, and the exact
+        # opposite of what the Tag-Issuing Unit's own scoped client is for.
+        # The token still mints: the client is refused per-route, with a
+        # 403 that names the scope it is missing.
+        scopes = (client.scopes or "").split()
         payload = self._session_payload(
             secret, sub=client.client_id, user=client.user_id, scopes=scopes,
             access_ttl=int(client.token_ttl_seconds or 3600), client=client,
@@ -477,7 +494,13 @@ class MyserviceApiV1(http.Controller):
                     "Envelope": {
                         "type": "object",
                         "properties": {
-                            "data": {"type": "object", "nullable": True},
+                            # Deliberately untyped. Routes narrow `data` with
+                            # `response_schema`, composed onto this with
+                            # `allOf` — and `type: object` here would make a
+                            # list endpoint's `type: array` unsatisfiable, so
+                            # a validator or a codegen run against this
+                            # document would reject every list response.
+                            "data": {"nullable": True},
                             "meta": {
                                 "type": "object",
                                 "properties": {
@@ -510,6 +533,92 @@ class MyserviceApiV1(http.Controller):
                                     "details": {"type": "object"},
                                 },
                             }
+                        },
+                    },
+                    "Asset": {
+                        "type": "object",
+                        "description": (
+                            "An asset as Cadra serialises it. PARTIAL: only "
+                            "the fields carrying a contract note are spelled "
+                            "out here — the complete field list is in "
+                            "docs/api/cadra_api_endpoint_reference.md. "
+                            "Additional properties are returned."),
+                        "additionalProperties": True,
+                        "properties": {
+                            "id": {"type": "integer"},
+                            "asset_code": {"type": "string",
+                                           "description": "Cadra's own asset "
+                                                          "identity. Unique "
+                                                          "and never null."},
+                            "tag": {
+                                "type": "string",
+                                "nullable": True,
+                                "deprecated": True,
+                                "description": (
+                                    "DEPRECATED — misleading name, kept "
+                                    "because removing a published field "
+                                    "breaks live consumers. It is the tag "
+                                    "NUMBER Cadra minted at creation, and it "
+                                    "is populated from the moment the asset "
+                                    "exists, so it answers 'has a tag number "
+                                    "been allocated', NOT 'is there a label "
+                                    "on this asset'. Use "
+                                    "`tagging.is_tagged` for the physical "
+                                    "question and `tagging.tag_number` for "
+                                    "the number. Read-only: it is absent "
+                                    "from the writable-field allow-list."),
+                            },
+                            "provenance": {"$ref": "#/components/schemas/AssetProvenance"},
+                            "tagging": {"$ref": "#/components/schemas/AssetTagging"},
+                        },
+                    },
+                    "AssetProvenance": {
+                        "type": "object",
+                        "description": "Where this record came from (INT-03).",
+                        "properties": {
+                            "grn_reference": {"type": "string", "nullable": True},
+                            "purchase_order_reference": {"type": "string", "nullable": True},
+                            "purchase_vendor": {"type": "string", "nullable": True},
+                            "import_source": {"type": "string", "nullable": True,
+                                              "enum": ["myservice", "sap", "redhubb",
+                                                       "vendra", "excel", "other"]},
+                            "import_date": {"type": "string", "format": "date", "nullable": True},
+                            "import_ref": {"type": "string", "nullable": True},
+                        },
+                    },
+                    "AssetTagging": {
+                        "type": "object",
+                        "description": (
+                            "The physical label's lifecycle (INT-04/05). "
+                            "Read-only over the API; `label_state` moves only "
+                            "through printing and through "
+                            "POST /api/v1/assets/{id}/tag-affixed."),
+                        "properties": {
+                            "tag_number": {"type": "string", "nullable": True},
+                            "label_state": {"type": "string", "nullable": True,
+                                            "enum": ["issued", "printed",
+                                                     "affixed", "scrapped"]},
+                            "is_tagged": {
+                                "type": "boolean",
+                                "description": (
+                                    "The single boolean to branch on. True "
+                                    "only after an affix confirmation whose "
+                                    "scanned tag number matched the one "
+                                    "Cadra issued."),
+                            },
+                            # No `format: date-time`: these are Odoo naive
+                            # datetimes rendered with .isoformat(), e.g.
+                            # "2026-09-05T21:49:59" — no offset, so not the
+                            # RFC 3339 that `date-time` promises. Claiming the
+                            # format would make a strict parser reject a value
+                            # that is otherwise perfectly readable.
+                            "printed_at": {"type": "string", "nullable": True,
+                                           "description": "ISO 8601, naive (server time), no offset"},
+                            "printed_by": {"type": "object", "nullable": True},
+                            "affixed_at": {"type": "string", "nullable": True,
+                                           "description": "ISO 8601, naive (server time), no offset"},
+                            "affixed_by": {"type": "object", "nullable": True},
+                            "affixed_by_name": {"type": "string", "nullable": True},
                         },
                     },
                     "SapEmployee": {
@@ -656,7 +765,10 @@ class MyserviceApiV1(http.Controller):
                 "tags": [_tag_from_path(entry["path"])],
                 "security": [{"bearerAuth": []}] if entry["scopes"] else [],
                 "x-cadra-scopes": entry["scopes"],
-                "responses": _standard_responses(success_status=entry["success_status"]),
+                "responses": _standard_responses(
+                    success_status=entry["success_status"],
+                    data_schema=entry.get("response_schema"),
+                ),
             }
             if params:
                 op["parameters"] = list(params)
@@ -820,7 +932,10 @@ class MyserviceApiV1(http.Controller):
                  ])
     def barcode_lookup(self, **kwargs):
         from odoo.addons.myservice_barcode_station.controllers.main import BarcodeStationController
-        return BarcodeStationController().lookup_tag(query=kwargs.get("query", ""))
+        query = kwargs.get("query", "")
+        result = BarcodeStationController().lookup_tag(query=query)
+        return _delegate_failure(result, code=ERR_NOT_FOUND, status=404,
+                                 details={"query": query}) or result
 
     @cadra_route("/api/v1/barcode/kpis", method="GET",
                  summary="Barcode station KPIs", scopes=[SCOPE_ASSETS_READ])
@@ -858,11 +973,31 @@ class MyserviceApiV1(http.Controller):
                       "enum": ["small", "medium", "large"], "default": "medium"}},
                  ])
     def barcode_print_url(self, **kwargs):
+        """Resolve the PDF URL for a tag label.
+
+        The barcode station's own controller answers a browser with an ad-hoc
+        `{"error": "..."}` dict, and `error` is the envelope's reserved key —
+        so an unknown tag id used to come back as a bare werkzeug 500 HTML
+        page with no code and no request_id. Translate its two failure shapes
+        into the envelope instead of forwarding them.
+        """
         from odoo.addons.myservice_barcode_station.controllers.main import BarcodeStationController
-        return BarcodeStationController().get_print_url(
-            tag_id=kwargs.get("tag_id"),
+        raw_tag_id = kwargs.get("tag_id")
+        # Malformed vs absent is decided here rather than by matching the
+        # delegate's error prose: reword its message and a 400 would silently
+        # start reporting as a 404.
+        try:
+            int(raw_tag_id)
+        except (TypeError, ValueError):
+            return err(ERR_INVALID_REQUEST,
+                       "`tag_id` must be an integer tag-label id",
+                       details={"tag_id": raw_tag_id})
+        result = BarcodeStationController().get_print_url(
+            tag_id=raw_tag_id,
             size=kwargs.get("size", "medium"),
         )
+        return _delegate_failure(result, code=ERR_NOT_FOUND, status=404,
+                                 details={"tag_id": raw_tag_id}) or result
 
     @cadra_route("/api/v1/barcode/untagged", method="GET",
                  summary="Assets with no active barcode tag",
@@ -904,9 +1039,11 @@ class MyserviceApiV1(http.Controller):
     def barcode_generate(self, **kwargs):
         from odoo.addons.myservice_barcode_station.controllers.main import BarcodeStationController
         body = get_params()
-        return BarcodeStationController().generate_tags(
+        result = BarcodeStationController().generate_tags(
             asset_ids=body.get("asset_ids") or [],
         )
+        return _delegate_failure(result, code=ERR_INVALID_REQUEST,
+                                 status=400) or result
 
     @cadra_route("/api/v1/tags/lookup", method="GET",
                  summary="Public-style tag lookup (JWT-protected)",
@@ -917,7 +1054,10 @@ class MyserviceApiV1(http.Controller):
                  ])
     def tags_lookup(self, **kwargs):
         from odoo.addons.myservice_barcode_station.controllers.main import BarcodeStationController
-        return BarcodeStationController().portal_lookup(query=kwargs.get("query", ""))
+        query = kwargs.get("query", "")
+        result = BarcodeStationController().portal_lookup(query=query)
+        return _delegate_failure(result, code=ERR_NOT_FOUND, status=404,
+                                 details={"query": query}) or result
 
     # ── Assets bulk export (legacy / CSV) ──────────────────────────
 
@@ -1030,7 +1170,9 @@ class MyserviceApiV1(http.Controller):
                  })
     def home_quick_submit(self, **kwargs):
         from odoo.addons.myservice_website_theme.controllers.api import NRSHomepageAPI
-        return NRSHomepageAPI().quick_submit(**(get_params() or {}))
+        result = NRSHomepageAPI().quick_submit(**(get_params() or {}))
+        return _delegate_failure(result, code=ERR_INVALID_REQUEST,
+                                 status=400) or result
 
     # ── Integrations ───────────────────────────────────────────────
 
@@ -1251,6 +1393,35 @@ def _openapi_path_and_params(odoo_path):
     return spec_path, params
 
 
+def _delegate_failure(result, *, code, status, details=None):
+    """Translate a non-API controller's ad-hoc failure dict into the envelope.
+
+    Several `@cadra_route` handlers delegate to controllers written to answer a
+    browser, and those signal failure in shapes of their own: `{"error": ...}`,
+    `{"found": False, "error": ...}`, `{"success": False, "error": ...}`.
+    `error` is the envelope's reserved key, so forwarding one verbatim escapes
+    the contract — the caller used to get a bare werkzeug HTML 500 with no code
+    and no request_id.
+
+    And the status matters as much as the shape. An unknown barcode is an
+    ordinary negative answer, not a server fault; a 500 tells an integration
+    the fault is ours and the request is worth retrying, so a scanner pointed
+    at a peeled-off label would retry forever.
+
+    Returns an error envelope, or None when the delegate succeeded — so a
+    caller reads `return _delegate_failure(...) or result`.
+    """
+    if not isinstance(result, dict):
+        return None
+    failed = (bool(result.get("error"))
+              or result.get("found") is False
+              or result.get("success") is False)
+    if not failed:
+        return None
+    message = result.get("error") or "The request could not be completed"
+    return err(code, str(message), details=details, status=status)
+
+
 def _tag_from_path(path):
     """Pick an OpenAPI tag from the URL: /api/v1/<tag>/... → <Tag>."""
     parts = [p for p in path.split("/") if p]
@@ -1259,13 +1430,24 @@ def _tag_from_path(path):
     return "Other"
 
 
-def _standard_responses(success_status=200):
+def _standard_responses(success_status=200, data_schema=None):
     """Standard set of responses for any endpoint. `success_status` tells
-    Swagger which 2xx code to expect on success (200 vs 201)."""
+    Swagger which 2xx code to expect on success (200 vs 201).
+
+    `data_schema`, when given, narrows the success envelope's `data` member
+    to a specific schema instead of the free-form object. It is composed with
+    allOf so the envelope's `meta`/`pagination` contract stays in one place.
+    """
+    success_schema = {"$ref": "#/components/schemas/Envelope"}
+    if data_schema:
+        success_schema = {"allOf": [
+            {"$ref": "#/components/schemas/Envelope"},
+            {"type": "object", "properties": {"data": data_schema}},
+        ]}
     responses = {
         str(success_status): {
             "description": "OK" if success_status == 200 else "Created",
-            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Envelope"}}},
+            "content": {"application/json": {"schema": success_schema}},
         },
         "400": {
             "description": "Bad Request",
