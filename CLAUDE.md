@@ -81,7 +81,7 @@ Cadra is one of three systems in the NRS integration programme, defined by *"End
 
 ### Odoo 19 gotcha: `_sql_constraints` is dead
 
-Odoo 19 removed it. `odoo/orm/model_classes.py:162` logs *"Model attribute '_sql_constraints' is no longer supported, please define models.Constraint on the model"* and **creates no constraint** — a uniqueness guarantee declared the old way silently stops existing. **10 declaration sites** are affected: 2 first-party (`nrs.asset`, `bus.route`) and 8 in vendored `crnd-19/` (including the installed `generic_location`); see `docs/handoffs/01-REPORT.md`. Use `models.Constraint("UNIQUE (a, b)", "message")` on 19.
+Odoo 19 removed it. `odoo/orm/model_classes.py:162` logs *"Model attribute '_sql_constraints' is no longer supported, please define models.Constraint on the model"* and **creates no constraint** — a uniqueness guarantee declared the old way silently stops existing. **8 declaration sites** were affected — 2 first-party plus 6 in `crnd-19/` — and all are now ported; `docs/constraint-audit.md` is the standing record. Use `models.Constraint("UNIQUE (a, b)", "message")` on 19, keeping the legacy list behind an `_ODOO_MAJOR` guard in our own modules only (the 15 stack still loads them). `dist/` is the Odoo 15 vendor tree and is **not** on the 19 addons path — its `_sql_constraints` are correct as they stand; `crnd-19/`/`oca-19/` are 19-only and need no guard. `tests/test_source_guards.py` fails on any unguarded reintroduction in our modules.
 
 ### Adding a stored field is a multi-tenant migration, not a code change
 
@@ -118,7 +118,7 @@ On staging/prod the `cadra-upgrade` Job must likewise fan out per tenant databas
 |---|---|
 | Vendra integration CR-01 Parts A + B | **built** (handoff 01) — provenance fields, filters, idempotency and enum correctness |
 | Vendra integration CR-01 Part C (tagging signal) | **proposal delivered**, awaiting Architect decision — see `docs/handoffs/01-REPORT.md` |
-| Dead `_sql_constraints` on `nrs.asset` and `bus.route` | **open** — needs its own handoff (see 01-REPORT §Findings) |
+| Dead `_sql_constraints` (handoff 02) | **closed** — all 8 reachable sites ported and enforced in every tenant; `docs/constraint-audit.md` |
 | Odoo 19 migration | in flight, separate track |
 
 ## Decisions
@@ -129,9 +129,7 @@ On staging/prod the `cadra-upgrade` Job must likewise fan out per tenant databas
 - 2026-09-05 · **`q` also matches `grn_reference` and `purchase_order_reference`.** Intended behaviour — an auditor pastes a GRN into search before finding a named filter. Do not "fix" it.
 - 2026-09-05 · **Idempotency header length is validated on all routes; the header is not rejected on non-idempotent ones.** · A caller sending an over-long key deserves an error; a caller harmlessly spraying the header should not start failing. Document which routes honour it.
 - 2026-09-05 · **Tag capture before tag transport.** Cadra records neither printing nor affixing, and `nrs.asset.tag.label.state` is a replacement lifecycle that reads `active` from creation — exposing it would reproduce the false-completeness bug in a new field. Vendra shows `Registered` and claims nothing further until capture exists. · Handoff 01 Part C.
-- 2026-09-05 · **`_sql_constraints` is dead on Odoo 19** — declared constraints silently do not exist. Ours use the dual-spelling pattern in `api_idempotency.py`; a guard must fail loudly on any new use. · 2 live holes in our modules + 44 files in `dist/`; handoff 02.
-- 2026-09-05 · `POST /api/v1/assets` is treated as a **published integration contract**, not an internal endpoint. · Vendra's INT-03 now builds against it.
-- 2026-09-05 · Acquisition provenance is serialised as a nested `data.provenance` block, not six top-level keys. · Matches the existing nesting idiom (`financial`, `dates`, `location_hierarchy`) and adds one key to the envelope instead of six.
-- 2026-09-05 · Provenance fields are writable on `PATCH` as well as `POST`, but documented write-once-in-practice rather than enforced. · A mis-keyed GRN has to be correctable; enforcement would need an immutability mechanism the model does not have, and `mail.thread` already tracks the change.
-- 2026-09-05 · A value outside a Selection field's set now returns **400 `validation_failed`** with the accepted values, not 500. · It is the caller's error; a 500 tells an integration to retry, which it would do forever.
-- 2026-09-05 · An over-long `X-Idempotency-Key` returns **400**, replacing silent downgrade to a non-idempotent write. · Rule 3 — a caller cannot detect the difference between a key honoured and a key ignored.
+- 2026-09-05 · **`dist/` is Odoo 15 only and its `_sql_constraints` are correct** — it is not on the 19 addons path, so the "44 unassessed vendored files" were never a hole. `crnd-19/`/`oca-19/` are 19-only and need no version guard. · Handoff 02 audit.
+- 2026-09-05 · **The six `crnd-19/` holes were our own porting bug**, not vendor debt — `generic_resource`/`generic_location`/`generic_team` are hand-ported by us and are not fetched by `scripts/fetch-crnd-19.sh`, so patching them carries no upstream-clobber cost. · Handoff 02.
+- 2026-09-05 · **`models.Constraint` on an AbstractModel does propagate to concrete inheritors** on Odoo 19 (verified on `generic.resource.mixin` → `generic_resource_simple`). · Handoff 02.
+- 2026-09-05 · **`_sql_constraints` is dead on Odoo 19** — declared constraints silently do not exist. Ours use the dual-spelling pattern in `api_idempotency.py`; a guard must fail loudly on any new use. · 2 live holes in our modules + 44 files in `dist/`; handoff 02. **Corrected by the handoff 02 audit:** the `dist/` files are not reachable by Odoo 19 and were never holes; the real remainder was 6 sites in `crnd-19/`. All 8 are now fixed.

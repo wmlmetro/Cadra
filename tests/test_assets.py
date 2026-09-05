@@ -1,5 +1,18 @@
 """All 8 JSON asset endpoints. CSV export is in test_assets_csv.py."""
 import time
+import uuid
+
+
+def _uniq():
+    """A token unique across concurrent runs, not just within one.
+
+    `int(time.time())` alone collides whenever two runs start in the same
+    second — two suites against one instance, or a re-run during a review.
+    The provenance filters below assert an EXACT set of ids, so a collision
+    makes them fail spuriously and, worse, makes them look flaky rather than
+    wrong. The uuid suffix is what actually guarantees the reference is ours.
+    """
+    return f"{int(time.time())}-{uuid.uuid4().hex[:8]}"
 
 from .conftest import assert_envelope_ok
 
@@ -130,7 +143,7 @@ def test_export(client, capture):
 
 def test_create_with_provenance(client, test_location, capture):
     """POST /api/v1/assets — GRN/PO/vendor and import_* round-trip on create."""
-    ts = int(time.time())
+    ts = _uniq()
     payload = {
         "name": f"pytest-provenance-{ts}",
         "category_id": 1,
@@ -164,7 +177,7 @@ def test_create_with_provenance(client, test_location, capture):
 
 def test_filter_by_grn_reference(client, test_location, capture):
     """GET /api/v1/assets?grn_reference=… returns exactly that receipt's assets."""
-    ts = int(time.time())
+    ts = _uniq()
     grn = f"GRN-PYTEST-FILTER-{ts}"
     wanted = set()
     for n in (1, 2):
@@ -195,7 +208,7 @@ def test_filter_by_grn_reference(client, test_location, capture):
 
 def test_filter_by_purchase_order_reference(client, test_location):
     """GET /api/v1/assets?purchase_order_reference=… — exact match, no bleed."""
-    ts = int(time.time())
+    ts = _uniq()
     po = f"PO-PYTEST-FILTER-{ts}"
     r = client.post("/api/v1/assets", json={
         "name": f"pytest-po-{ts}",
@@ -212,7 +225,7 @@ def test_filter_by_purchase_order_reference(client, test_location):
 
 def test_patch_provenance_correction(client, test_location):
     """PATCH can correct a mis-keyed GRN — write-once in practice, not enforced."""
-    ts = int(time.time())
+    ts = _uniq()
     r = client.post("/api/v1/assets", json={
         "name": f"pytest-prov-patch-{ts}",
         "category_id": 1,
@@ -266,7 +279,7 @@ def test_unknown_condition_is_400_not_500(client, test_location, capture):
 
 def test_filter_by_vendor_and_import_fields(client, test_location):
     """The remaining provenance filters are exact and independent."""
-    ts = int(time.time())
+    ts = _uniq()
     vendor = f"Pytest Vendor {ts}"
     ref = f"VENDRA-FILTER-{ts}"
     r = client.post("/api/v1/assets", json={
@@ -295,7 +308,7 @@ def test_filter_by_vendor_and_import_fields(client, test_location):
 
 def test_q_matches_grn_reference(client, test_location):
     """Free-text search reaches the GRN — an auditor pastes it into the box."""
-    ts = int(time.time())
+    ts = _uniq()
     grn = f"GRN-PYTEST-Q-{ts}"
     r = client.post("/api/v1/assets", json={
         "name": f"pytest-q-grn-{ts}",
@@ -315,7 +328,7 @@ def test_grn_filter_is_exact_not_prefix(client, test_location):
     Under `ilike` an audit lookup for GRN-…-001 would silently also report the
     assets from GRN-…-0011, over-stating what the receipt delivered.
     """
-    ts = int(time.time())
+    ts = _uniq()
     grn = f"GRN-PYTEST-EXACT-{ts}"
     r = client.post("/api/v1/assets", json={
         "name": f"pytest-exact-{ts}", "category_id": 1,
@@ -380,3 +393,38 @@ def test_non_integer_relation_id_is_400_not_500(client, test_location):
     })
     assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:300]}"
     assert r.json()["error"]["code"] == "validation_failed"
+
+
+def test_import_source_accepts_vendra(client, test_location):
+    """`vendra` is a published value of import_source, not a fallback to `other`.
+
+    The enum names the systems Cadra receives from; the goods-receipt system
+    is one of them, and `other` + a ref throws away the signal the field
+    exists to carry.
+    """
+    ts = _uniq()
+    r = client.post("/api/v1/assets", json={
+        "name": f"pytest-vendra-src-{ts}",
+        "category_id": 1,
+        "location_id": test_location["id"],
+        "import_source": "vendra",
+        "import_ref": f"VENDRA-RCPT-{ts}",
+    })
+    body = assert_envelope_ok(r, expected_status=201)
+    assert body["data"]["provenance"]["import_source"] == "vendra"
+    assert "_warnings" not in body["data"]
+
+
+def test_import_source_rejects_an_invented_value(client, test_location):
+    """Adding `vendra` must not have loosened the enum."""
+    ts = int(time.time())
+    r = client.post("/api/v1/assets", json={
+        "name": f"pytest-bad-src-{ts}",
+        "category_id": 1,
+        "location_id": test_location["id"],
+        "import_source": "not-a-system",
+    })
+    assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:300]}"
+    details = r.json()["error"].get("details") or {}
+    assert details.get("field") == "import_source"
+    assert "vendra" in (details.get("allowed_values") or [])

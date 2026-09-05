@@ -2,6 +2,7 @@
 endpoint within 24h must return the cached response (identical request_id,
 identical body)."""
 import time
+import uuid
 
 from .conftest import assert_envelope_ok
 
@@ -163,4 +164,39 @@ def test_concurrent_same_key_creates_exactly_one(client, test_location, capture)
     assert len(matches) == 1, (
         f"expected 1 asset named {name}, found {len(matches)}: "
         f"{[a['id'] for a in matches]}"
+    )
+
+
+def test_overlong_key_rejected_on_a_non_idempotent_route(client):
+    """The length check runs everywhere, not only where the key is honoured.
+
+    A caller with a key-generation bug should find out on whichever endpoint
+    it hits first, rather than only on the subset that caches.
+    """
+    r = client.get("/api/v1/assets", params={"limit": 1},
+                   headers={"X-Idempotency-Key": "k" * 200})
+    assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:300]}"
+    assert r.json()["error"]["code"] == "invalid_request"
+
+
+def test_key_is_accepted_and_ignored_where_it_is_not_honoured(client):
+    """A well-formed key on a read route is accepted AND genuinely ignored.
+
+    Two assertions, because "accepted" alone proves nothing — a GET never
+    reached the key handling before this change either, so asserting a 200
+    would pass just as well against reverted code. What is worth pinning is
+    the second half of the contract: the response is recomputed, not replayed
+    from the cache, so a caller spraying the header cannot accidentally opt
+    into caching on an endpoint the docs list as ignoring it.
+    """
+    key = f"pytest-spray-{int(time.time())}-{uuid.uuid4().hex[:8]}"
+    first = assert_envelope_ok(
+        client.get("/api/v1/assets", params={"limit": 1},
+                   headers={"X-Idempotency-Key": key}))
+    second = assert_envelope_ok(
+        client.get("/api/v1/assets", params={"limit": 1},
+                   headers={"X-Idempotency-Key": key}))
+    assert first["meta"]["request_id"] != second["meta"]["request_id"], (
+        "the key was honoured on a route documented as ignoring it — "
+        "the second response was replayed from the idempotency cache"
     )

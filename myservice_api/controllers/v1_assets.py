@@ -321,7 +321,8 @@ class CadraAssetsV1(http.Controller):
                      {"name": "purchase_vendor", "schema": {"type": "string"},
                       "description": "Exact match on the supplying vendor."},
                      {"name": "import_source", "schema": {"type": "string",
-                      "enum": ["myservice", "sap", "redhubb", "excel", "other"]}},
+                      "enum": ["myservice", "sap", "redhubb", "vendra",
+                               "excel", "other"]}},
                      {"name": "import_ref", "schema": {"type": "string"},
                       "description": "Exact match on the writing system's own batch reference."},
                      *PAGINATION_QUERY_PARAMS,
@@ -436,7 +437,7 @@ class CadraAssetsV1(http.Controller):
                                              "description": "Supplier the asset was bought from."},
                          "import_source": {"type": "string",
                                            "enum": ["myservice", "sap", "redhubb",
-                                                    "excel", "other"],
+                                                    "vendra", "excel", "other"],
                                            "description": "Which system wrote this record. "
                                                           "Defaults to `myservice`."},
                          "import_date": {"type": "string", "format": "date", "nullable": True},

@@ -1,5 +1,14 @@
-from odoo import models, fields, api, _
+from odoo import models, fields, api, release, _
 from odoo.exceptions import ValidationError
+
+# Odoo 19 removed `_sql_constraints`: orm/model_classes.py logs "no longer
+# supported" and creates nothing, so a constraint declared the old way
+# silently ceases to exist. Both spellings are kept until the 15 production
+# stack is retired. `models.Constraint` names the constraint
+# "<table>_<attribute name without its leading underscore>", which is exactly
+# what the legacy list produced, so the two are interchangeable in the
+# database and no 15→19 database ends up with an orphan.
+_ODOO_MAJOR = release.version_info[0]
 
 
 class NRSAsset(models.Model):
@@ -248,9 +257,19 @@ class NRSAsset(models.Model):
             'context': {'default_nrs_asset_id': self.id},
         }
 
-    _sql_constraints = [
-        ('asset_code_unique', 'unique(asset_code)', 'Asset code must be unique.'),
-    ]
+    # One asset per code is an identity guarantee, not a tidiness rule: the
+    # September Integration Flow makes dual-code reconciliation a control
+    # point, and INT-06/07 matches a SAP asset code to exactly one Cadra
+    # asset. Two assets sharing a code would let that match the wrong one.
+    if _ODOO_MAJOR >= 19:
+        _asset_code_unique = models.Constraint(
+            'UNIQUE (asset_code)',
+            'Asset code must be unique.',
+        )
+    else:
+        _sql_constraints = [
+            ('asset_code_unique', 'unique(asset_code)', 'Asset code must be unique.'),
+        ]
 
 
 class NRSAssetCategory(models.Model):

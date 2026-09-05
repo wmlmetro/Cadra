@@ -252,9 +252,14 @@ def pytest_sessionstart(session):
     global _session_started_at
     _session_started_at = datetime.datetime.now(datetime.timezone.utc)
     # Clear the responses dir so stale captures don't accumulate.
+    # `missing_ok` because two sessions started against one instance race
+    # here: both enumerate the same files and the loser crashes the whole
+    # session with FileNotFoundError before a single test runs. The captures
+    # are throwaway artefacts, so losing the race is harmless — crashing on
+    # it is not.
     if RESPONSES_DIR.exists():
         for p in RESPONSES_DIR.rglob("*.json"):
-            p.unlink()
+            p.unlink(missing_ok=True)
 
 
 @pytest.hookimpl(hookwrapper=True)

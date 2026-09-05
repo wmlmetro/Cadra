@@ -475,7 +475,7 @@ A create may carry where the asset came from. All six fields are writable on
 | `grn_reference` | string | Goods Receipt Note that brought the asset onto the register |
 | `purchase_order_reference` | string | Purchase Order it was procured against |
 | `purchase_vendor` | string | Supplier it was bought from — **not** `maintenance_vendor_id`, which is who services it |
-| `import_source` | enum | `myservice \| sap \| redhubb \| excel \| other` — which system wrote the record |
+| `import_source` | enum | `myservice \| sap \| redhubb \| vendra \| excel \| other` — which system wrote the record |
 | `import_date` | date | When that system wrote it |
 | `import_ref` | string | That system's own batch or transaction reference |
 
@@ -488,7 +488,7 @@ acurl -X POST $API/api/v1/assets \
     "grn_reference": "GRN-2026-00001",
     "purchase_order_reference": "PO-2026-00417",
     "purchase_vendor": "Dell Nigeria Ltd",
-    "import_source": "other",
+    "import_source": "vendra",
     "import_date": "2026-05-12",
     "import_ref": "VENDRA-RCPT-00114"
   }'
@@ -502,7 +502,7 @@ acurl -X POST $API/api/v1/assets \
       "grn_reference": "GRN-2026-00001",
       "purchase_order_reference": "PO-2026-00417",
       "purchase_vendor": "Dell Nigeria Ltd",
-      "import_source": "other",
+      "import_source": "vendra",
       "import_date": "2026-05-12",
       "import_ref": "VENDRA-RCPT-00114"
     }
@@ -2370,11 +2370,48 @@ acurl -X POST $API/api/v1/locations \
 - Maximum length is **128 characters**. A longer key returns
   `400 invalid_request` with `details.max_length` — it is never silently
   dropped, because a caller cannot detect the difference between a key that
-  was honoured and one that was ignored.
+  was honoured and one that was ignored. The length is validated on **every
+  endpoint that goes through the standard envelope**, including the ones that
+  do not cache; the header itself is accepted and ignored there rather than
+  rejected. Nine routes predate that envelope and validate nothing — see the
+  table below.
 - Two requests arriving simultaneously under one key produce **one** record.
   The loser's work is rolled back and it receives the winner's response. In
   the rare case where the winner's response cannot be read back, the loser
   gets `409 conflict` — retry with the same key.
+
+**Which endpoints actually honour it.** Sending the header anywhere else is
+harmless but has no effect, so do not rely on it outside this list. The
+generated spec is authoritative: an endpoint honours idempotency exactly when
+its OpenAPI entry declares an `X-Idempotency-Key` header parameter.
+
+| Honoured (16) | Accepted and ignored (9) |
+|---|---|
+| `POST /assets` · `PATCH /assets/<id>` | `PATCH /asset-categories/<id>` |
+| `POST /assets/<id>/move` | `DELETE /asset-categories/<id>` |
+| `POST /assets/<id>/transfer-custody` | `POST /auth/token` |
+| `POST /asset-categories` | `POST /auth/login` |
+| `POST /locations` · `PATCH /locations/<id>` | `POST /auth/refresh` |
+| `POST /requests` · `PATCH /requests/<id>` | `POST /auth/revoke` |
+| `POST /requests/<id>/assign` | `PATCH /settings/branding` |
+| `POST /requests/<id>/comment` | `PATCH /settings/depreciation` |
+| `POST /requests/<id>/transition` | `POST /settings/depreciation/recompute` |
+| `POST /home/quick-submit` | |
+| `POST /barcode/generate` | |
+| `POST /integrations/sap/employee-sync` | |
+| `POST /integrations/workflow/callback` | |
+
+Nine routes are older than the shared envelope and go straight to
+`@http.route`, so they neither honour the key nor validate its length:
+`/auth/token`, `/auth/login`, `/auth/refresh`, `/auth/revoke`,
+`/openapi.json`, `/docs`, `/assets/export.csv`,
+`/integrations/employees/import` and `/brand`. An over-long key is silently
+ignored there rather than answered with a 400 — worth knowing, because
+`/auth/token` is the first endpoint any integration calls.
+
+The auth endpoints are deliberately outside the *honoured* column too:
+minting a token twice is not a duplicate resource, and caching a token
+response under a client-supplied key would be a credential-replay hazard.
 
 ## Pagination (cursor-based)
 
