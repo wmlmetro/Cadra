@@ -606,4 +606,18 @@ sitting in the cluster looking like a tenant.
 
 ## Commits
 
-Filled in at push time; PR into `dev` stacked on #44.
+Branch `fix/restore-sql-constraints`, PR **#45** into `dev`, stacked on #44:
+<https://github.com/wmlmetro/Cadra/pull/45>
+
+| Commit | Scope |
+|---|---|
+| `32a35fc` | `fix`: restore `asset_code` and `bus.route.code` uniqueness |
+| `5e0d4a9` | `fix(crnd-19)`: port the six constraints our 15→19 forward-port left behind |
+| `10a93ee` | `test`: the guard against reintroduction |
+| `5c60c65` | `feat(api)`: `vendra` enum + key-length validation on every route |
+| `1c35206` | `docs`: the constraint audit and the scope numbers it disproves |
+| `da64aa1` | `fix(tests)`: concurrency safety for the provenance filters and session start |
+| `c3fea69` | `fix(tests)`: guard judges the branch, not just the presence of an `if` (V1) |
+| `10200c7` | `fix(api)`: `get_params()` body fallback made real (V5) |
+| `d39bee3` | `fix`: idempotency-coverage claim and a test that proved nothing (V3, V4) |
+| `2eda730` | `docs`: this report and the audit corrections the review forced |
