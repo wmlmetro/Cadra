@@ -174,7 +174,6 @@ def test_the_straight_line_switch_removes_the_final_period_cliff(
     ts = int(time.time())
     created = client.post("/api/v1/assets", json={
         "name": f"pytest-cliff-{ts}",
-        "asset_tag": f"PYTEST-CLIFF-{ts}",
         "category_id": a_category["id"],
         "location_id": test_location["id"],
         "acquisition_cost": 66_000.0,

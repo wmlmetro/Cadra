@@ -129,17 +129,48 @@ class NRSAssetImport(models.Model):
                     'import_ref':       self.name,
                     'tag_source':       'sap' if self.source == 'sap' else 'other',
                 }
-                if line.asset_tag:
-                    vals['asset_tag'] = line.asset_tag
-
                 if line.status == 'new':
+                    # On create the spreadsheet's tag is the number already on
+                    # the physical asset, and nrs.asset.create mints a matching
+                    # label record for it.
+                    if line.asset_tag:
+                        vals['asset_tag'] = line.asset_tag
                     asset = self.env['nrs.asset'].create(vals)
                     line.write({'asset_id': asset.id, 'status': 'imported'})
                 else:
                     existing = self.env['nrs.asset'].search(
                         [('asset_code', '=', line.asset_code)], limit=1)
+                    if not existing:
+                        # `write()` on an empty recordset is a silent no-op, so
+                        # this used to mark the line `imported` having changed
+                        # nothing at all.
+                        line.write({
+                            'status': 'error',
+                            'status_note': 'No asset with code %s to update' % (
+                                line.asset_code or '(blank)'),
+                        })
+                        continue
+                    # `asset_tag` is deliberately NOT written on update. Writing
+                    # it on an existing asset changes the number the register
+                    # shows without touching the tag label — no label record is
+                    # created for it, nothing is reprinted, and nobody goes near
+                    # the asset — so the register drifts away from the sticker
+                    # in the room. That is the same defect the API's
+                    # writable-field allow-list closes. A tag genuinely changes
+                    # only through the replacement flow, which prints a new
+                    # label and takes an affix confirmation.
+                    incoming = (line.asset_tag or '').strip()
+                    line_vals = {'asset_id': existing.id, 'status': 'imported'}
+                    if incoming and incoming != (existing.asset_tag or '').strip():
+                        line_vals['status_note'] = (
+                            'Tag %s in the file was NOT applied: the asset '
+                            'carries %s. Request a tag replacement to change '
+                            'it.' % (incoming, existing.asset_tag or '(none)'))
+                    # No `status_note` key when there is nothing to say, so the
+                    # validation step's own note survives instead of being
+                    # blanked.
                     existing.write(vals)
-                    line.write({'asset_id': existing.id, 'status': 'imported'})
+                    line.write(line_vals)
 
             except Exception as e:
                 line.write({'status': 'error', 'status_note': str(e)[:200]})

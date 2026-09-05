@@ -64,7 +64,6 @@ def test_create(client, test_location, capture):
     ts = int(time.time())
     r = client.post("/api/v1/assets", json={
         "name": f"pytest-asset-create-{ts}",
-        "asset_tag": f"PYTEST-CREATE-{ts}",
         "category_id": 1,
         "condition": "new",
         "state": "active",

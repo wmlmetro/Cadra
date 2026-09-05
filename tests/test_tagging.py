@@ -116,6 +116,106 @@ def test_affix_accepts_a_supplied_timestamp(client):
     assert body["data"]["tagging"]["affixed_at"].startswith("2026-09-01")
 
 
+# ─── the serial-to-tag match ─────────────────────────────────────────
+#
+# The spec asks that "the serial-to-tag match is recorded at the point of
+# physical tagging". Checking the tag alone proves the label is the one Cadra
+# issued for this record; it does not prove the label went onto the right box.
+# Vendra holds the serial, so checking both sides costs nothing.
+
+
+def _asset_with_serial(client, serial):
+    r = client.post("/api/v1/assets", json={
+        "name": f"pytest-serial-{_uniq()}", "category_id": 1,
+        "serial_number": serial})
+    return assert_envelope_ok(r, expected_status=201)["data"]
+
+
+def test_affix_rejects_a_serial_that_does_not_match(client, capture):
+    serial = f"SN-{_uniq()}"
+    data = _asset_with_serial(client, serial)
+    r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+        "tag_number": data["tag"], "serial_number": "SN-SOME-OTHER-BOX"})
+    capture("tagging/affix_serial_mismatch", r)
+    body = assert_envelope_err(r, 400, "validation_failed")
+    details = body["error"]["details"]
+    assert details["scanned_serial"] == "SN-SOME-OTHER-BOX"
+    assert details["expected_serial"] == serial, (
+        "the error must name both serials — an operative holding the wrong "
+        "box needs to know which one they should be holding"
+    )
+    # And nothing is recorded.
+    after = assert_envelope_ok(client.get(f"/api/v1/assets/{data['id']}"))
+    assert after["data"]["tagging"]["is_tagged"] is False
+
+
+def test_affix_accepts_a_matching_serial(client):
+    serial = f"SN-{_uniq()}"
+    data = _asset_with_serial(client, serial)
+    r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+        "tag_number": data["tag"], "serial_number": serial})
+    assert assert_envelope_ok(r)["data"]["tagging"]["is_tagged"] is True
+
+
+def test_affix_serial_match_ignores_case(client):
+    """A serial read off an engraved plate or a barcode: case is not data."""
+    serial = f"sn-lower-{_uniq()}"
+    data = _asset_with_serial(client, serial)
+    r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+        "tag_number": data["tag"], "serial_number": serial.upper()})
+    assert assert_envelope_ok(r)["data"]["tagging"]["is_tagged"] is True
+
+
+def test_affix_serial_is_optional(client):
+    """A fixed asset with no legible serial still has to be taggable."""
+    data = _new_asset(client)
+    r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed",
+                    json={"tag_number": data["tag"]})
+    assert assert_envelope_ok(r)["data"]["tagging"]["is_tagged"] is True
+
+
+def test_affix_refuses_to_verify_a_serial_against_a_record_that_has_none(client):
+    """Saying "cannot check" beats passing quietly.
+
+    An asset with no serial on file cannot corroborate a scanned one. Letting
+    it through would record a serial-to-tag match that was never performed.
+    """
+    data = _new_asset(client)            # created without a serial_number
+    r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+        "tag_number": data["tag"], "serial_number": "SN-ANYTHING"})
+    assert_envelope_err(r, 400, "validation_failed")
+
+
+# ─── the tag number is not writable ──────────────────────────────────
+
+
+def test_asset_tag_is_not_writable_on_create(client):
+    """A client that can set `tag` can walk the record off the physical label.
+
+    It would then fail the affix check it just defeated, with a 400 that looks
+    like the scanner's fault. Breaking change, announced: Vendra is the only
+    live consumer and does not write this field.
+    """
+    r = client.post("/api/v1/assets", json={
+        "name": f"pytest-tagwrite-{_uniq()}", "category_id": 1,
+        "asset_tag": "OPERATOR-CHOSEN-TAG"})
+    body = assert_envelope_ok(r, expected_status=201)
+    assert body["data"]["tag"] != "OPERATOR-CHOSEN-TAG"
+    rejected = (body["data"].get("_warnings") or {}).get("rejected_fields") or []
+    assert "asset_tag" in rejected, (
+        "a dropped field must be reported, not silently ignored"
+    )
+
+
+def test_asset_tag_is_not_writable_on_patch(client, test_asset):
+    r = client.patch(f"/api/v1/assets/{test_asset['id']}",
+                     json={"asset_tag": "OPERATOR-CHOSEN-TAG"})
+    body = assert_envelope_ok(r)
+    assert body["data"]["tag"] != "OPERATOR-CHOSEN-TAG"
+    rejected = (body["data"].get("_warnings") or {}).get("rejected_fields") or []
+    assert "asset_tag" in rejected
+
+
 def test_affix_on_a_missing_asset_is_404(client):
     r = client.post("/api/v1/assets/99999999/tag-affixed",
                     json={"tag_number": "X"})
