@@ -16,6 +16,16 @@ This project is run by **two cooperating Claude sessions**, the same way its sib
 - The Builder never edits the handoff instruction files or the specs; corrections flow through reports.
 - After pushing, notify the Architect: `ListAgents` → `SendMessage` to **`claude-fc [01f312]`**, first line self-contained ("Handoff 01 complete — …"). If it is not listed, skip silently; the Architect polls the repo. The report and commits are the source of truth; the message is only a doorbell.
 
+### Handoff authoring rules (Architect)
+
+**A handoff must be executable end to end with nothing left for the owner to do by hand.** Every one:
+
+1. **Opens with Step 0 — get to the right state.** Merge the previous work (branch or PR), run whatever migration, module upgrade or per-tenant fan-out that merge requires, verify it took, then create the new branch. Never assume the repo or the databases are already where the work needs them.
+2. **Ends with the work landed** — committed, pushed, PR opened, report written, Architect notified. "Done" means in the remote, not in the working tree.
+3. **Names anything that genuinely needs the owner** in a "Needs the owner" block at the top — a credential, a production deploy, an approval, a business decision. Explicit and up front, never discovered halfway through.
+
+If a handoff cannot be completed without a manual step that is not in it, that is a defect in the handoff — say so in the report.
+
 ### Parallel execution (Builder)
 
 Work a handoff with **multiple subagents in parallel** when its steps are independent.

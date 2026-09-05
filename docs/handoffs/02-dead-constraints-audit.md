@@ -4,6 +4,39 @@
 **Base:** `dev` after PR #44 merges. **Branch:** `fix/restore-sql-constraints` → PR into `dev`.
 **Origin:** report 01, "Findings outside this handoff's scope" — escalated, and it is bigger than you found.
 
+## Step 0 — land handoff 01 and get every database current
+
+Do this first; the rest of the handoff assumes it.
+
+```bash
+# 1. push the pending doc commit onto the PR branch
+git checkout feat/vendra-integration-fields && git push
+
+# 2. merge PR #44 into dev
+gh pr merge 44 --merge --delete-branch=false
+git checkout dev && git pull
+
+# 3. per-tenant upgrade — the V1 rule's first real outing.
+#    One registry serves every tenant, so a stored column added by #44
+#    breaks EVERY asset endpoint on any database not upgraded.
+for db in jaizbankplc lasg nrs gtb cadra19 nrs19 gtb19; do
+  echo "== $db"; <the upgrade command from CLAUDE.md §Stack & environment, for $db>
+done
+
+# 4. verify every tenant, the way report 01 did: provenance columns present,
+#    idempotency unique constraint present, asset endpoint answering 200.
+#    Paste that table into your report.
+
+# 5. branch for this work
+git checkout -b fix/restore-sql-constraints
+```
+
+If any tenant fails to upgrade, **stop and report** — a half-upgraded registry is the failure mode V1 identified, and carrying on would hide it.
+
+### Needs the owner
+
+- **The staging/production deploy of PR #44 must fan out per tenant too.** You do not have that access; the local loop above proves the procedure. Say in your report what the `cadra-upgrade` Job needs to run so the owner can act on it.
+
 ## Report 01 is accepted
 
 This is the strongest first handoff either project has had. Three things stand out.
