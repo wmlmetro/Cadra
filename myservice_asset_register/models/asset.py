@@ -19,8 +19,15 @@ class NRSAsset(models.Model):
 
     # ── Identity ─────────────────────────────────────────────
     name = fields.Char('Asset Name', required=True, tracking=True)
+    # `required` is what makes the unique constraint below mean what INT-06/07
+    # assumes. Postgres does not compare NULLs for uniqueness, so without NOT
+    # NULL the guarantee is only "one asset per *non-null* code" — and SAP
+    # dual-code reconciliation matches a SAP code to exactly one Cadra asset.
+    # Filled by `create()` below, never by a caller: it is absent from the
+    # API's `_WRITABLE_FIELDS` and readonly in the form.
     asset_code = fields.Char(
-        string='Asset Code', readonly=True, copy=False, tracking=True, index=True,
+        string='Asset Code', readonly=True, required=True, copy=False,
+        tracking=True, index=True,
         help='Unique system-generated asset identifier')
     asset_tag = fields.Char(string='Tag Code', tracking=True,
                              help='Barcode or QR tag affixed to the physical asset')
@@ -205,7 +212,19 @@ class NRSAsset(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             if not vals.get('asset_code'):
-                vals['asset_code'] = self.env['ir.sequence'].next_by_code('nrs.asset') or '/'
+                code = self.env['ir.sequence'].next_by_code('nrs.asset')
+                if not code:
+                    # This used to fall back to '/'. With asset_code now unique
+                    # and NOT NULL, that placeholder made the FIRST asset look
+                    # fine and every one after it fail on a constraint whose
+                    # message says nothing about the real problem. A missing
+                    # sequence is a provisioning fault; say so once, clearly.
+                    raise ValidationError(_(
+                        'The asset code sequence "nrs.asset" is missing from '
+                        'this database, so no asset code can be generated. '
+                        'This is a provisioning fault — restore the sequence '
+                        'before creating assets.'))
+                vals['asset_code'] = code
         return super().create(vals_list)
 
     @api.depends('last_verified_date')

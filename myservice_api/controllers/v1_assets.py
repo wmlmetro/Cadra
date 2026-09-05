@@ -14,6 +14,8 @@ The move endpoint persists its side-effect by creating an
 because `nrs.asset.transfer._check_locations` forbids same-location
 transfers.
 """
+import datetime
+
 from odoo import fields as odoo_fields, http
 from odoo.http import request
 
@@ -23,6 +25,7 @@ from .utils import (
     SCOPE_ASSETS_READ,
     SCOPE_ASSETS_WRITE,
     SCOPE_DASHBOARDS_READ,
+    SCOPE_TAGGING_WRITE,
     err,
     get_params,
     ok,
@@ -65,6 +68,71 @@ def _serialize_depreciation(a):
         "state": a.depreciation_state,
         "end_date": _date(a.depreciation_end_date),
         "uses_category_policy": a.use_category_policy,
+    }
+
+
+class _BadFilter(Exception):
+    """A query parameter we cannot interpret.
+
+    Raised out of the domain builder and turned into a 400 by the listing
+    endpoint. A bare ValueError would reach the decorator's catch-all and
+    answer 500, which tells an integration to retry a request that can never
+    succeed.
+    """
+
+    def __init__(self, message, details=None):
+        super().__init__(message)
+        self.details = details or {}
+
+
+def _parse_datetime(raw):
+    """Parse an inbound timestamp to the naive UTC Odoo stores, or None.
+
+    Odoo's own `Datetime.to_datetime` accepts only "%Y-%m-%d %H:%M:%S" — it
+    rejects the ISO 8601 `T` separator that this endpoint's schema advertises
+    and that every integration actually sends. So parse ISO first and fall
+    back to Odoo's format, rather than publishing `format: date-time` and
+    refusing date-times.
+
+    An offset is honoured and converted; a naive value is taken as UTC, which
+    is what the rest of the API assumes.
+    """
+    try:
+        parsed = datetime.datetime.fromisoformat(raw)
+    except ValueError:
+        try:
+            return odoo_fields.Datetime.to_datetime(raw)
+        except (ValueError, TypeError):
+            return None
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+    return parsed
+
+
+def _serialize_tagging(a):
+    """The physical-tagging block (INT-04/05).
+
+    Reads the label physically on the asset. An asset with no tag at all, and
+    an asset whose tag was generated but never printed or affixed, both read
+    as not tagged — which is the honest answer and the whole point: the old
+    `tag` field said every asset was tagged from the moment it was created.
+
+    Deliberately NOT `active_tag_id`, which drops a tag as soon as a
+    replacement is requested: the label is still on the asset until someone
+    peels it off, and reporting it as untagged would be the same bug pointed
+    the other way.
+    """
+    label = a.physical_tag_id
+    return {
+        "tag_number": label.name if label else None,
+        "label_state": label.label_state if label else None,
+        # The single boolean an integration should branch on.
+        "is_tagged": bool(label) and label.label_state == "affixed",
+        "printed_at": _date(label.printed_date) if label else None,
+        "printed_by": _ref(label.printed_by) if label else None,
+        "affixed_at": _date(label.affixed_date) if label else None,
+        "affixed_by": _ref(label.affixed_by) if label else None,
+        "affixed_by_name": (label.affixed_by_name or None) if label else None,
     }
 
 
@@ -130,6 +198,11 @@ def serialize_asset(a, *, include=()):
             "last_verified_date": _date(a.last_verified_date),
             "next_service_date": _date(a.next_service_date),
         },
+        # Whether the asset is PHYSICALLY tagged, which `tag` above cannot
+        # answer: a tag record is auto-generated on every create, so `tag` is
+        # populated from the moment the asset exists. `is_tagged` is true only
+        # once an affix confirmation has been received (INT-04/05).
+        "tagging": _serialize_tagging(a),
         "disposal_reason": a.disposal_reason or None,
         # Where the asset came from. Grouped rather than flattened so the
         # commercial hand-off (INT-03) reads as one block: `grn_reference`
@@ -223,8 +296,22 @@ def _list_domain(qs):
     # Provenance lookups are exact, not fuzzy: `?grn_reference=GRN-2026-00001`
     # has to return that receipt's assets and nothing else, or it is not an
     # audit trail.
+    # `?is_tagged=true` is the question Vendra actually asks; it maps onto the
+    # one label state that means a physical label was confirmed on the asset.
+    raw_tagged = qs.get("is_tagged")
+    if raw_tagged not in (None, "", "null"):
+        if raw_tagged in ("true", "True", True):
+            domain.append(("tag_label_state", "=", "affixed"))
+        elif raw_tagged in ("false", "False", False):
+            domain.append(("tag_label_state", "!=", "affixed"))
+        else:
+            # Anything else used to fall through both branches and append no
+            # domain at all, so `?is_tagged=1` quietly returned EVERY asset
+            # and a caller branching on the result treated them all as tagged.
+            raise _BadFilter("`is_tagged` must be `true` or `false`",
+                             details={"is_tagged": raw_tagged})
     for fld in ("grn_reference", "purchase_order_reference", "purchase_vendor",
-                "import_source", "import_ref"):
+                "import_source", "import_ref", "tag_label_state"):
         val = qs.get(fld)
         if val:
             domain.append((fld, "=", val))
@@ -325,12 +412,24 @@ class CadraAssetsV1(http.Controller):
                                "excel", "other"]}},
                      {"name": "import_ref", "schema": {"type": "string"},
                       "description": "Exact match on the writing system's own batch reference."},
+                     {"name": "is_tagged", "schema": {"type": "boolean"},
+                      "description": "True returns only assets with a label "
+                                     "confirmed affixed (INT-04/05). This is "
+                                     "the physical-tagging question; the `tag` "
+                                     "field is populated from creation and "
+                                     "does not answer it."},
+                     {"name": "tag_label_state", "schema": {"type": "string",
+                      "enum": ["issued", "printed", "affixed", "scrapped"]},
+                      "description": "Filter on the label's physical lifecycle."},
                      *PAGINATION_QUERY_PARAMS,
                  ])
     def list_assets(self, **kwargs):
         qs = get_params()
         Asset = request.env["nrs.asset"].sudo()
-        domain = _list_domain(qs)
+        try:
+            domain = _list_domain(qs)
+        except _BadFilter as e:
+            return err(ERR_INVALID_REQUEST, str(e), details=e.details)
         limit = parse_limit(qs)
         page, next_cursor, total = paginate(
             Asset, domain,
@@ -654,6 +753,93 @@ class CadraAssetsV1(http.Controller):
                 "reason": reason or None,
                 "message_id": msg.id if msg else None,
             },
+        }
+
+    # ── Confirm tagging: POST /api/v1/assets/<id>/tag-affixed ──────
+
+    @cadra_route("/api/v1/assets/<int:id>/tag-affixed", method="POST",
+                 summary="Confirm a printed label was physically affixed to the asset",
+                 scopes=[SCOPE_TAGGING_WRITE],
+                 idempotent=True,
+                 request_schema={
+                     "type": "object",
+                     "required": ["tag_number"],
+                     "properties": {
+                         "tag_number": {
+                             "type": "string",
+                             "description": "The tag number READ OFF the label "
+                                            "on the asset. Checked against the "
+                                            "tag Cadra issued; a mismatch is "
+                                            "rejected."},
+                         "affixed_by_name": {
+                             "type": "string", "nullable": True,
+                             "description": "Name of the Tag-Issuing Unit "
+                                            "operative who affixed it."},
+                         "affixed_at": {
+                             "type": "string", "format": "date-time",
+                             "nullable": True,
+                             "description": "When it was affixed. Defaults to "
+                                            "now; supply it when confirming a "
+                                            "batch recorded offline."},
+                     },
+                 },
+                 request_example={
+                     "tag_number": "HQ-GF-MR-IT-042",
+                     "affixed_by_name": "J. Okafor",
+                     "affixed_at": "2026-09-14T11:32:07",
+                 })
+    def confirm_tag_affixed(self, id, **kwargs):
+        """Record the serial-to-tag match at the point of physical tagging.
+
+        This is the only way an asset becomes `is_tagged`, and it sits behind
+        its own `tagging:write` scope because the Integration Flow makes the
+        Tag-Issuing Unit independent of whoever created the asset record. The
+        submitted tag number is verified against the tag Cadra issued rather
+        than trusted: that check is what makes the record evidence the right
+        label is on the right asset, instead of an assertion that someone
+        tagged something.
+        """
+        rec, error = _browse_or_404(id)
+        if error:
+            return error
+
+        body = get_params()
+        tag_number = (body.get("tag_number") or "").strip()
+        if not tag_number:
+            return err(ERR_INVALID_REQUEST, "`tag_number` is required")
+
+        label = rec.active_tag_id
+        if not label:
+            return err(ERR_INVALID_REQUEST,
+                       "This asset has no active tag to confirm",
+                       details={"asset_id": rec.id})
+
+        affixed_at = None
+        raw_when = (body.get("affixed_at") or "").strip()
+        if raw_when:
+            affixed_at = _parse_datetime(raw_when)
+            if affixed_at is None:
+                return err(ERR_INVALID_REQUEST,
+                           "`affixed_at` must be an ISO 8601 date-time",
+                           details={"affixed_at": raw_when})
+            # A label cannot have been affixed in the future. Without this a
+            # clock-skewed or mis-typed client writes a date the register will
+            # carry for the life of the asset.
+            if affixed_at > odoo_fields.Datetime.now():
+                return err(ERR_INVALID_REQUEST,
+                           "`affixed_at` cannot be in the future",
+                           details={"affixed_at": raw_when})
+
+        # A mismatch raises ValidationError, which the endpoint decorator turns
+        # into a 400 `validation_failed` carrying the model's message — which
+        # names both the scanned and the expected tag.
+        label._mark_affixed(tag_number,
+                            affixed_by_name=body.get("affixed_by_name"),
+                            affixed_date=affixed_at)
+
+        return {
+            "asset": serialize_asset(rec),
+            "tagging": _serialize_tagging(rec),
         }
 
     # ── Register report: GET /api/v1/reports/depreciation ──────────

@@ -33,7 +33,7 @@
             <field name="client_id"/>
             <field name="user_id"/>
             <field name="token_ttl_seconds"/>
-            <field name="scopes" placeholder="dashboard security osint ..."/>
+            <field name="scopes" placeholder="assets:read assets:write locations:read"/>
           </group>
           <group string="Usage" col="2">
             <field name="last_used_at" readonly="1"/>

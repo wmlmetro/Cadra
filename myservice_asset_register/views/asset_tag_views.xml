@@ -12,6 +12,7 @@
                 <field name="asset_id"/>
                 <field name="source"/>
                 <field name="tag_date"/>
+                <field name="label_state"/>
                 <field name="state"/>
                 <field name="approved_by"/>
                 <field name="scrapped_date"/>
@@ -45,6 +46,8 @@
                     <button name="action_print_tag" string="Print Tag"
                             type="object" class="btn-secondary"
                             invisible="state != 'active'"/>
+                    <field name="label_state" widget="statusbar"
+                           statusbar_visible="issued,printed,affixed"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="active,pending,scrapped"/>
                 </header>
@@ -70,6 +73,13 @@
                         <group>
                             <field name="requested_by" readonly="1"/>
                             <field name="requested_date" readonly="1"/>
+                        </group>
+                        <group string="Physical Tagging (INT-04/05)">
+                            <field name="printed_date" readonly="1"/>
+                            <field name="printed_by" readonly="1"/>
+                            <field name="affixed_date" readonly="1"/>
+                            <field name="affixed_by" readonly="1"/>
+                            <field name="affixed_by_name" readonly="1"/>
                         </group>
                         <group>
                             <field name="approved_by" readonly="1"/>
@@ -120,6 +130,7 @@
                             <field name="name"/>
                             <field name="source"/>
                             <field name="tag_date"/>
+                            <field name="label_state"/>
                             <field name="state"/>
                             <field name="scrapped_date"/>
                             <field name="approved_by"/>

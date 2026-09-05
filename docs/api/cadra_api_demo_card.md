@@ -153,7 +153,7 @@ acurl -X POST $API/api/v1/integrations/workflow/callback \
 
 - **45** endpoints across **3 core resources** (Assets · Locations · Requests) + dashboards + integrations
 - **One envelope** shape, every response
-- **13 scopes**, granular per-integration
+- **14 scopes**, granular per-integration
 - **JWT, HS256, 1h TTL** — issued by `/auth/token` from client credentials
 - **Cursor pagination** + `X-Idempotency-Key` on every create endpoint
 - **OpenAPI 3.0** spec auto-generated, Swagger UI at `/api/v1/docs`

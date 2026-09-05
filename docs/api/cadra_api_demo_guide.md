@@ -77,11 +77,11 @@ TOKEN=$(curl -sX POST https://staging.app.cadra.ng/api/v1/auth/token \
   -d '{"client_id":"test_client","client_secret":"…"}' | jq -r .data.access_token)
 ```
 
-**Scopes (13 total):**
+**Scopes (14 total):**
 `assets:read`, `assets:write`, `locations:read`, `locations:write`,
 `requests:read`, `requests:write`, `approvals:write`, `dashboards:read`,
 `integrations:write`, `ingestion:write`, `webhooks:admin`, `identity:read`,
-`admin`.
+`tagging:write`, `admin`.
 
 ---
 
