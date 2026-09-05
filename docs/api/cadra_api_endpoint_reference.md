@@ -423,6 +423,27 @@ Scope: `assets:write`. Success: **201**.
 Idempotent via `X-Idempotency-Key` header — same key → same record.
 `asset_code` auto-generated from category if omitted.
 
+> **Breaking change (2026-09-05): `asset_tag` is no longer writable.** It was
+> accepted on `POST` and `PATCH`; it now lands in
+> `data._warnings.rejected_fields` and is ignored. The tag number is the number
+> printed on the physical label, and a client that can edit it can walk the
+> record away from the sticker on the asset — defeating the affix check in
+> §3.8, which then returns a `400` that looks like the scanner's fault. Tags
+> are minted by Cadra and change only through the tag-replacement flow, which
+> prints a new label and takes a fresh affix confirmation.
+>
+> Announced rather than versioned: Vendra is the only live consumer and does
+> not write this field. The same drift path is closed in the bulk import
+> wizard, which no longer rewrites `asset_tag` on an existing asset.
+
+> **`data.tag` is deprecated** (marked `deprecated: true` on
+> `components.schemas.Asset` in `/api/v1/openapi.json`). It is still returned
+> and will stay returned — breaking a published field to fix a naming problem
+> is not a trade worth making with a live consumer. It holds the tag *number*,
+> allocated at creation, so it has never answered "is there a label on this
+> asset". Use `data.tagging.is_tagged` for that and `data.tagging.tag_number`
+> for the number.
+
 ### Request
 
 ```bash
@@ -672,16 +693,29 @@ acurl -X POST $API/api/v1/assets/124/tag-affixed \
   -H 'Content-Type: application/json' \
   -d '{
     "tag_number": "HQ-GF-MR-IT-042",
+    "serial_number": "5XJZ8T3",
     "affixed_by_name": "J. Okafor",
     "affixed_at": "2026-09-14T11:32:07Z"
   }'
 ```
 
-`tag_number` is the number **read off the label on the asset**, and it is
-checked against the tag Cadra issued rather than trusted — that check is the
-serial-to-tag match the spec requires "at the point of physical tagging".
-`affixed_at` is optional (defaults to now) and accepts ISO 8601 with or
-without an offset; supply it when confirming work recorded offline.
+| Field | Required | Meaning |
+|---|---|---|
+| `tag_number` | yes | The number **read off the label on the asset**. Checked against the tag Cadra issued rather than trusted. |
+| `serial_number` | no | The manufacturer serial **read off the asset**. When supplied it is checked against the serial on the record. |
+| `affixed_by_name` | no | The Tag-Issuing Unit operative who fitted it. Free text — they are not Cadra users. |
+| `affixed_at` | no | ISO 8601, with or without an offset. Defaults to now; supply it when confirming work recorded offline. A future timestamp is refused. |
+
+**Send `serial_number`.** The tag check proves the label is the one Cadra
+issued for this record; the serial check proves it went onto the right box.
+The spec asks for the serial-to-tag match at the point of physical tagging,
+and checking one side is half a control. It is optional only because a fixed
+asset with no legible serial still has to be taggable — and if the record
+itself has no serial on file, the endpoint says it cannot verify rather than
+passing quietly.
+
+Comparison strips whitespace and ignores case: a serial read off an engraved
+plate is not case-sensitive information.
 
 ### Success — `200 OK`
 
@@ -712,6 +746,24 @@ rather than recorded:
     "message": "Scanned tag HQ-GF-MR-IT-099 does not match the tag issued for this asset (HQ-GF-MR-IT-042). The label on the asset is not the one Cadra issued for it.",
     "details": { "http_status": 400 } } }
 ```
+
+### Error — `400 validation_failed` (the serial does not match)
+
+The other half. The label is the right label; the asset under it is not:
+
+```json
+{ "error": { "code": "validation_failed",
+    "message": "Scanned serial WRONG-SERIAL does not match the serial on this asset (5XJZ8T3) — the label may be going onto the wrong asset",
+    "details": { "asset_id": 124,
+                 "scanned_serial": "WRONG-SERIAL",
+                 "expected_serial": "5XJZ8T3",
+                 "http_status": 400 } } }
+```
+
+Both serials are named, because an operative holding the wrong box needs to
+know which one they should be holding. A `serial_number` sent against a record
+that has none on file is refused the same way, with `expected_serial` absent
+from the message and the reason given plainly.
 
 ### Finding what still needs tagging
 
@@ -2553,7 +2605,7 @@ everything. Set the scopes you mean.
 ```bash
 # 0. Choose environment
 API=https://staging.app.cadra.ng
-export CLIENT_SECRET='<paste from docs/api/.creds>'
+export CLIENT_SECRET='<paste from docs/api/.creds.<tenant>>'
 
 # 1. Get a token
 TOKEN=$(curl -sX POST $API/api/v1/auth/token \

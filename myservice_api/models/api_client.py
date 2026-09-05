@@ -28,8 +28,9 @@ class MyserviceApiClient(models.Model):
 
     scopes = fields.Char(
         help="Space-separated scopes, e.g. 'assets:read assets:write'. "
-             "LEAVE EMPTY TO ALLOW EVERYTHING — an empty value is a wildcard, "
-             "not a denial.")
+             "LEAVING THIS EMPTY GRANTS NOTHING — the client will authenticate "
+             "and then be refused by every scoped endpoint. Grant everything "
+             "only by writing it out: 'admin' (or the literal '*').")
 
     @api.constrains('scopes')
     def _check_scopes_are_known(self):

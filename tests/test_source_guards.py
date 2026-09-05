@@ -324,3 +324,48 @@ def test_guard_covers_the_modules_we_think_it_does():
     for expected in ("myservice_api", "myservice_asset_register",
                      "myservice_staff_bus"):
         assert expected in modules, f"{expected} not covered by the guard"
+
+
+# ─── empty scopes must never mean "every scope" ──────────────────────
+#
+# `(client.scopes or "").split() or ["*"]` reads as a harmless default and is
+# a privilege escalation: a client saved with an empty scopes field — a typo,
+# a half-filled form, an integration provisioned in a hurry — received the
+# entire API including `admin`. It is also the exact opposite of what the
+# Tag-Issuing Unit's narrowly-scoped client exists to establish.
+#
+# There is no HTTP test for this, because minting a scopeless client needs ORM
+# access the suite does not have. A source guard is what fits: the failure is
+# a two-character `or` reappearing in a diff.
+
+_SCOPE_DERIVATION_SITES = (
+    "myservice_api/controllers/v1.py",
+    "myservice_api/models/api_refresh_token.py",
+)
+
+
+@pytest.mark.parametrize("relpath", _SCOPE_DERIVATION_SITES)
+def test_empty_scopes_does_not_fall_back_to_wildcard(relpath):
+    source = (REPO_ROOT / relpath).read_text()
+    for lineno, line in enumerate(source.splitlines(), 1):
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            continue
+        if ".scopes or" in stripped and '["*"]' in stripped:
+            pytest.fail(
+                f"{relpath}:{lineno} restores the empty-scopes wildcard:\n"
+                f"    {stripped}\n"
+                "An empty scopes field means NO permissions. Grant everything "
+                "by writing `admin` on the client, never by leaving it blank."
+            )
+
+
+def test_the_scope_derivation_sites_still_exist():
+    """A rename would make the guard above scan the wrong file and pass."""
+    for relpath in _SCOPE_DERIVATION_SITES:
+        path = REPO_ROOT / relpath
+        assert path.exists(), f"{relpath} moved — update _SCOPE_DERIVATION_SITES"
+        assert ".scopes or" in path.read_text(), (
+            f"{relpath} no longer derives scopes from a client record — "
+            "update _SCOPE_DERIVATION_SITES to wherever it moved"
+        )

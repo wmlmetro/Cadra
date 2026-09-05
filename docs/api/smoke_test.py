@@ -12,6 +12,7 @@ Responses are the PRD envelope directly — no `.result` JSON-RPC wrapper:
   success: {"data": ..., "meta": {...}, "pagination": {...}?}
   error:   {"error": {...}}
 """
+import glob
 import json
 import os
 import sys
@@ -33,11 +34,44 @@ class HTTPError(Exception):
         super().__init__(f"HTTP {status}: {body}")
 
 
+def creds_path():
+    """Which credentials file belongs to the tenant API_BASE points at.
+
+    Secrets are per-database. `.creds.<tenant>` is written by
+    scripts/bootstrap.sh; the shared `.creds` is the legacy single-tenant
+    fallback.
+    """
+    host = urllib.parse.urlsplit(API_BASE).hostname or ""
+    label = host.split(".")[0].strip()
+    tenant = None if (not label or label == host or label in
+                      ("localhost", "127", "0")) else label
+    if tenant:
+        # A named tenant takes ITS file or nothing — falling back to the shared
+        # file would authenticate against a different database and 401.
+        candidates = [f"docs/api/.creds.{tenant}"]
+    else:
+        candidates = ["docs/api/.creds"]
+        # Single-tenant checkout: one per-tenant file and nothing to guess
+        # between. Two or more and we refuse rather than pick.
+        only = sorted(glob.glob("docs/api/.creds.*"))
+        if len(only) == 1:
+            candidates.append(only[0])
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    raise SystemExit(
+        f"no credentials file for {API_BASE}"
+        + (f" (tenant {tenant!r})" if tenant else "")
+        + ".\nLooked for: " + ", ".join(candidates)
+        + "\nRun scripts/bootstrap.sh against that database first."
+    )
+
+
 def load_creds():
     creds = {}
-    with open("docs/api/.creds") as f:
+    with open(creds_path()) as f:
         for line in f:
-            if "=" in line:
+            if "=" in line and not line.strip().startswith("#"):
                 k, v = line.strip().split("=", 1)
                 creds[k] = v
     return creds
@@ -219,10 +253,13 @@ def main():
     render(status, r)
 
     step("POST /api/v1/assets  (create — expect 201)")
-    asset_tag = f"SMOKE-LP-{int(__import__('time').time()) % 1000000:06d}"
+    # No `asset_tag`: it is not writable (the tag number is Cadra's to mint, so
+    # the register cannot be walked away from the physical label). Sending it
+    # would be dropped into `_warnings.rejected_fields`, and the by-tag lookup
+    # below would then 404 on a tag that was never applied — a permanent false
+    # failure in the one script that is meant to be a clean liveness check.
     status, r = POST("/api/v1/assets", body={
         "name": "Dell Latitude Smoke Laptop",
-        "asset_tag": asset_tag,
         "make": "Dell", "model_name": "Latitude 5520",
         "serial_number": f"SN-{int(__import__('time').time()) % 1000000}",
         "category_id": 1,
@@ -233,7 +270,8 @@ def main():
     if not render(status, r):
         return 1
     asset_id = r["data"]["id"]
-    print(f"  asset_id={asset_id}, tag={r['data']['tag']!r}")
+    asset_tag = r["data"]["tag"]          # the tag Cadra minted
+    print(f"  asset_id={asset_id}, tag={asset_tag!r}")
 
     step(f"GET /api/v1/assets/{asset_id}?include=transfers")
     status, r = GET(f"/api/v1/assets/{asset_id}", query={"include": "transfers"}, token=token)

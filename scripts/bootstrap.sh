@@ -19,7 +19,7 @@
 #        - N modules → existing → skip install, run -u to pick up code changes
 #   5. Runs scripts/bootstrap.py inside an odoo shell:
 #        - sets JWT secret + admin groups + API client + seeds
-#   6. Captures the printed credentials, writes them to docs/api/.creds
+#   6. Captures the printed credentials, writes them to docs/api/.creds.<db>
 #   7. Restarts the live odoo container so it picks up the new state
 #   8. Prints a usage summary
 
@@ -153,7 +153,52 @@ mkdir -p docs/api
 
 # Extract the sentinel-wrapped credentials block
 CREDS=$(echo "$BOOT_OUTPUT" | sed -n '/CADRA_BOOTSTRAP_BEGIN/,/CADRA_BOOTSTRAP_END/p' \
-    | grep -E '^(JWT_SECRET|CLIENT_ID|CLIENT_SECRET)=')
+    | grep -E '^(JWT_SECRET|CLIENT_ID|CLIENT_SECRET|TAGGING_CLIENT_ID|TAGGING_CLIENT_SECRET|VENDRA_CLIENT_ID|VENDRA_CLIENT_SECRET)=')
+
+# Per-tenant. Secrets belong to a database, not to a checkout: one Odoo process
+# serves every tenant, but each holds its own API clients and its own
+# jwt_secret. A single shared docs/api/.creds meant bootstrapping ANY tenant
+# silently invalidated the file for whichever tenant the test suite was aimed
+# at — which is exactly how handoff 03 lost an afternoon.
+# ODOO_DB is POSTGRES_DB from .env — this script takes no database argument,
+# so bootstrapping another tenant means changing .env first.
+CREDS_FILE="docs/api/.creds.${ODOO_DB}"
+
+# bootstrap.py cannot re-read a hashed secret, so when it preserves one it
+# prints "<UNCHANGED — ...>" in its place. That placeholder used to be written
+# straight to disk, destroying a working creds file and producing a 401 that
+# looks like a code fault. Merge instead: a placeholder keeps whatever the
+# file already held for that key, and only real values overwrite.
+merge_creds() {
+    local target="$1" tmp line key val old
+    tmp="$(mktemp)"
+    while IFS= read -r line; do
+        [ -z "$line" ] && continue
+        key="${line%%=*}"
+        val="${line#*=}"
+        case "$val" in
+            "<"*)
+                old=""
+                # `|| true`: no previous line for this key is the normal
+                # first-run case, and grep's exit 1 would abort under `set -e`.
+                [ -f "$target" ] && old="$(grep -E "^${key}=" "$target" | head -1 || true)"
+                if [ -n "$old" ]; then
+                    printf '%s\n' "$old" >> "$tmp"
+                    echo "  ${key}: preserved (existing value kept)"
+                else
+                    printf '# %s not captured — existing secret preserved and unreadable.\n' "$key" >> "$tmp"
+                    printf '# Rotate it from Settings → API Clients, or re-run with the matching CADRA_*_SECRET set.\n' >> "$tmp"
+                    echo "  ${key}: NOT captured — no previous value on file" >&2
+                fi
+                ;;
+            *)
+                printf '%s\n' "$line" >> "$tmp"
+                ;;
+        esac
+    done
+    mv "$tmp" "$target"
+    chmod 600 "$target"
+}
 
 if [ -z "$CREDS" ]; then
     echo ""
@@ -161,9 +206,11 @@ if [ -z "$CREDS" ]; then
     echo "Full output for debugging:" >&2
     echo "$BOOT_OUTPUT" | tail -30 >&2
 else
-    echo "$CREDS" > docs/api/.creds
     echo ""
-    echo "▶ Credentials saved to docs/api/.creds (gitignored)"
+    echo "▶ Credentials → ${CREDS_FILE} (gitignored)"
+    printf '%s\n' "$CREDS" | merge_creds "$CREDS_FILE"
+    echo "  The test suite resolves this file from CADRA_API_BASE's hostname:"
+    echo "    CADRA_API_BASE=http://${ODOO_DB}.localhost:8069 tests/.venv/bin/python -m pytest tests/ -q"
 fi
 
 # ─── step 7: wait for odoo to be healthy again ───────────────────────
@@ -191,9 +238,12 @@ cat <<EOF
   OpenAPI:     $([ "$CADRA_PROFILE" = "prod" ] && echo "https://${CADRA_DOMAIN:-<set CADRA_DOMAIN>}/api/v1/openapi.json" || echo "http://localhost:8069/api/v1/openapi.json")
 
   Admin login: admin / ${ODOO_MASTER_PASSWORD:-admin}
-  API client:  see docs/api/.creds
+  API client:  see ${CREDS_FILE:-docs/api/.creds.${ODOO_DB}}
 
-  Run the test suite:  source tests/.venv/bin/activate && pytest tests/ -v
+  Run the test suite (the hostname picks the tenant, and the tenant picks
+  the credentials file):
+    CADRA_API_BASE=http://${ODOO_DB}.localhost:8069 \
+      tests/.venv/bin/python -m pytest tests/ -q
 
 ═══════════════════════════════════════════════════════════════════
 EOF

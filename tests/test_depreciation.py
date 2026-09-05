@@ -44,7 +44,6 @@ def depreciating_asset(client, test_location, any_category_id):
     ts = int(time.time())
     r = client.post("/api/v1/assets", json={
         "name": f"pytest-depreciation-{ts}",
-        "asset_tag": f"PYTEST-DEPR-{ts}",
         "category_id": any_category_id,
         "condition": "new",
         "state": "active",
@@ -93,7 +92,6 @@ def test_writable_policy_fields_are_not_rejected(client, test_location, any_cate
     ts = int(time.time())
     created = client.post("/api/v1/assets", json={
         "name": f"pytest-depr-writable-{ts}",
-        "asset_tag": f"PYTEST-WRIT-{ts}",
         "category_id": any_category_id,
         "location_id": test_location["id"],
     })
@@ -203,7 +201,6 @@ def test_non_depreciating_asset_returns_an_empty_board(client, test_location,
     ts = int(time.time())
     created = client.post("/api/v1/assets", json={
         "name": f"pytest-depr-none-{ts}",
-        "asset_tag": f"PYTEST-NONE-{ts}",
         "category_id": any_category_id,
         "location_id": test_location["id"],
         "use_category_policy": False,
@@ -228,7 +225,6 @@ def test_erp_managed_figures_are_stored_not_computed(client, test_location,
     ts = int(time.time())
     created = client.post("/api/v1/assets", json={
         "name": f"pytest-depr-erp-{ts}",
-        "asset_tag": f"PYTEST-ERP-{ts}",
         "category_id": any_category_id,
         "location_id": test_location["id"],
         "acquisition_cost": 1_000_000.0,

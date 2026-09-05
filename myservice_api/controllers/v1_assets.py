@@ -22,6 +22,7 @@ from odoo.http import request
 from .utils import (
     ERR_INVALID_REQUEST,
     ERR_NOT_FOUND,
+    ERR_VALIDATION_FAILED,
     SCOPE_ASSETS_READ,
     SCOPE_ASSETS_WRITE,
     SCOPE_DASHBOARDS_READ,
@@ -150,6 +151,11 @@ def serialize_asset(a, *, include=()):
     data = {
         "id": a.id,
         "asset_code": a.asset_code,
+        # DEPRECATED (annotation only — see components.schemas.Asset). It is
+        # the tag NUMBER, allocated at creation, so it has never answered "is
+        # there a label on this asset"; `tagging.is_tagged` does. Kept because
+        # breaking a published field to fix a naming problem is not a trade
+        # worth making with a live consumer.
         "tag": a.asset_tag or None,
         "legacy_asset_code": a.legacy_asset_code or None,
         "name": a.name,
@@ -324,8 +330,15 @@ def _list_domain(qs):
 
 # ─── writable-fields allow-list ──────────────────────────────────────
 
+# `asset_tag` is deliberately ABSENT. It is the number printed on the physical
+# label, and a client able to PATCH it can walk the record away from the sticker
+# on the asset — which defeats the affix control that verifies a scanned tag
+# against the one Cadra issued, and then returns a confusing 400 from that
+# control. Tags are minted by Cadra (`_generate_tag`) and moved only through the
+# tag-label lifecycle. Breaking change, announced: Vendra is the only live
+# consumer and does not write it.
 _WRITABLE_FIELDS = {
-    "name", "asset_tag", "legacy_asset_code", "serial_number",
+    "name", "legacy_asset_code", "serial_number",
     "make", "model_name", "manufacturer",
     "category_id", "subcategory_id", "asset_type_id", "asset_level", "domain",
     "parent_id",
@@ -381,6 +394,8 @@ class CadraAssetsV1(http.Controller):
     @cadra_route("/api/v1/assets", method="GET",
                  summary="List assets with filters and cursor pagination",
                  scopes=[SCOPE_ASSETS_READ],
+                 response_schema={"type": "array",
+                                  "items": {"$ref": "#/components/schemas/Asset"}},
                  query_params=[
                      {"name": "q", "schema": {"type": "string"},
                       "description": "Free-text search across name, asset_code, asset_tag, "
@@ -449,6 +464,7 @@ class CadraAssetsV1(http.Controller):
     @cadra_route("/api/v1/assets/<int:id>", method="GET",
                  summary="Get a single asset by id",
                  scopes=[SCOPE_ASSETS_READ],
+                 response_schema={"$ref": "#/components/schemas/Asset"},
                  query_params=[
                      {"name": "include", "schema": {"type": "string"},
                       "description": "Comma-separated optional sections: transfers, pm, children"},
@@ -465,6 +481,7 @@ class CadraAssetsV1(http.Controller):
     @cadra_route("/api/v1/assets/by-tag/<string:tag>", method="GET",
                  summary="Get a single asset by asset_tag (or asset_code as fallback)",
                  scopes=[SCOPE_ASSETS_READ],
+                 response_schema={"$ref": "#/components/schemas/Asset"},
                  query_params=[
                      {"name": "include", "schema": {"type": "string"},
                       "description": "Comma-separated optional sections: transfers, pm, children"},
@@ -484,13 +501,12 @@ class CadraAssetsV1(http.Controller):
                  summary="Create a new asset (asset_code auto-generated if omitted)",
                  scopes=[SCOPE_ASSETS_WRITE],
                  idempotent=True,
+                 response_schema={"$ref": "#/components/schemas/Asset"},
                  request_schema={
                      "type": "object",
                      "required": ["name"],
                      "properties": {
                          "name": {"type": "string"},
-                         "asset_tag": {"type": "string", "nullable": True,
-                                       "description": "Physical tag/barcode"},
                          "legacy_asset_code": {"type": "string", "nullable": True},
                          "serial_number": {"type": "string", "nullable": True},
                          "make": {"type": "string", "nullable": True},
@@ -548,7 +564,6 @@ class CadraAssetsV1(http.Controller):
                  },
                  request_example={
                      "name": "Dell Latitude 7430",
-                     "asset_tag": "NRS-LT-00421",
                      "serial_number": "5XJZ8T3",
                      "make": "Dell",
                      "model_name": "Latitude 7430",
@@ -585,6 +600,7 @@ class CadraAssetsV1(http.Controller):
                  summary="Partial update of an asset",
                  scopes=[SCOPE_ASSETS_WRITE],
                  idempotent=True,
+                 response_schema={"$ref": "#/components/schemas/Asset"},
                  request_schema={
                      "type": "object",
                      "description": ("Any subset of the writable fields from POST "
@@ -761,6 +777,13 @@ class CadraAssetsV1(http.Controller):
                  summary="Confirm a printed label was physically affixed to the asset",
                  scopes=[SCOPE_TAGGING_WRITE],
                  idempotent=True,
+                 response_schema={
+                     "type": "object",
+                     "properties": {
+                         "asset": {"$ref": "#/components/schemas/Asset"},
+                         "tagging": {"$ref": "#/components/schemas/AssetTagging"},
+                     },
+                 },
                  request_schema={
                      "type": "object",
                      "required": ["tag_number"],
@@ -771,6 +794,19 @@ class CadraAssetsV1(http.Controller):
                                             "on the asset. Checked against the "
                                             "tag Cadra issued; a mismatch is "
                                             "rejected."},
+                         "serial_number": {
+                             "type": "string", "nullable": True,
+                             "description": "The manufacturer serial READ OFF "
+                                            "the asset. Optional, but when "
+                                            "supplied it is checked against "
+                                            "the serial on the record and a "
+                                            "mismatch is rejected: this is the "
+                                            "serial-to-tag match the "
+                                            "Integration Flow asks for. Send "
+                                            "it — Vendra holds the serial, so "
+                                            "checking both sides costs "
+                                            "nothing and checking one is half "
+                                            "a control."},
                          "affixed_by_name": {
                              "type": "string", "nullable": True,
                              "description": "Name of the Tag-Issuing Unit "
@@ -785,6 +821,7 @@ class CadraAssetsV1(http.Controller):
                  },
                  request_example={
                      "tag_number": "HQ-GF-MR-IT-042",
+                     "serial_number": "5XJZ8T3",
                      "affixed_by_name": "J. Okafor",
                      "affixed_at": "2026-09-14T11:32:07",
                  })
@@ -813,6 +850,33 @@ class CadraAssetsV1(http.Controller):
             return err(ERR_INVALID_REQUEST,
                        "This asset has no active tag to confirm",
                        details={"asset_id": rec.id})
+
+        # The serial-to-tag match. Optional because a fixed asset with no
+        # legible serial still has to be taggable, but verified whenever the
+        # caller can supply it — the tag check alone proves the label is the
+        # one Cadra issued, not that it went onto the right box.
+        #
+        # Compared case-insensitively on stripped values: serials are read off
+        # an engraved plate or a barcode and case is not information here. A
+        # record with no serial on file cannot be checked, and says so rather
+        # than passing quietly.
+        scanned_serial = (body.get("serial_number") or "").strip()
+        if scanned_serial:
+            expected_serial = (rec.serial_number or "").strip()
+            if not expected_serial:
+                return err(ERR_VALIDATION_FAILED,
+                           "This asset has no serial number on file, so the "
+                           "scanned serial cannot be verified",
+                           details={"asset_id": rec.id,
+                                    "scanned_serial": scanned_serial})
+            if scanned_serial.casefold() != expected_serial.casefold():
+                return err(ERR_VALIDATION_FAILED,
+                           "Scanned serial %s does not match the serial on "
+                           "this asset (%s) — the label may be going onto the "
+                           "wrong asset" % (scanned_serial, expected_serial),
+                           details={"asset_id": rec.id,
+                                    "scanned_serial": scanned_serial,
+                                    "expected_serial": expected_serial})
 
         affixed_at = None
         raw_when = (body.get("affixed_at") or "").strip()

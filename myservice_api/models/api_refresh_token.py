@@ -126,7 +126,11 @@ class MyserviceApiRefreshToken(models.Model):
             self._revoke_family(rec.family_id, "client_disabled")
             return None, "client_disabled"
 
-        scopes = (rec.scopes or "").split() or ["*"]
+        # Empty means no permissions — see the note in
+        # controllers/v1.py::token. Without this the wildcard came back on
+        # every refresh, so a client fixed at mint time regained everything
+        # an hour later.
+        scopes = (rec.scopes or "").split()
 
         # Rotate: issue a successor in the same family, then revoke this one.
         new_rec, new_raw = self._issue(

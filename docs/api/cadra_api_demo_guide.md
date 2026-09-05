@@ -54,7 +54,7 @@ hour.
 ```bash
 curl -sX POST https://staging.app.cadra.ng/api/v1/auth/token \
   -H 'Content-Type: application/json' \
-  -d '{"client_id":"test_client","client_secret":"<from docs/api/.creds>"}'
+  -d '{"client_id":"test_client","client_secret":"<from docs/api/.creds.<tenant>>"}'
 ```
 
 ```json

@@ -7,7 +7,7 @@ under 10 minutes. Every block is copy-paste runnable against staging.
 
 ```bash
 API=https://staging.app.cadra.ng
-export CLIENT_SECRET='<from docs/api/.creds>'
+export CLIENT_SECRET='<from docs/api/.creds.<tenant>>'
 
 TOKEN=$(curl -sX POST $API/api/v1/auth/token \
   -H 'Content-Type: application/json' \

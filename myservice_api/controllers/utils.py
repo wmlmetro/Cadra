@@ -678,10 +678,21 @@ def _http_response(body, success_status=200):
     does NOT accept a `status=` kwarg. We set the status on the returned
     werkzeug Response after construction.
     """
+    status = success_status
     if isinstance(body, dict) and "error" in body:
-        status = body.get("error", {}).get("details", {}).get("http_status", 400)
-    else:
-        status = success_status
+        # A handler that returned a bare {"error": "some string"} is not an
+        # envelope — it used to crash here on `.get`, and the caller got a
+        # 500 HTML page from werkzeug with no request_id and no code. Treat a
+        # non-conforming error as a server fault and SAY so, in the envelope.
+        detail = body.get("error")
+        if isinstance(detail, dict):
+            status = (detail.get("details") or {}).get("http_status", 400)
+        else:
+            _logger.error("handler returned a non-envelope error: %r", detail)
+            body = err(ERR_INTERNAL,
+                       "The endpoint returned a malformed error",
+                       details={"returned": detail}, status=500)
+            status = 500
     response = request.make_response(
         json.dumps(body, default=str),
         headers=[("Content-Type", "application/json; charset=utf-8")],

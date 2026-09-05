@@ -22,6 +22,7 @@ import json
 import os
 import pathlib
 import time
+import urllib.parse
 from collections import defaultdict
 
 import pytest
@@ -30,8 +31,17 @@ import requests
 
 # ─── locations on disk ───────────────────────────────────────────────
 
+# The published set (myservice_api/controllers/utils.py). An endpoint that
+# answers with anything else has invented a code no integration can branch on.
+CANONICAL_ERROR_CODES = frozenset({
+    "unauthorized", "forbidden", "invalid_request", "validation_failed",
+    "not_found", "conflict", "rate_limited", "internal_error",
+    "not_implemented", "idempotency_mismatch", "server_misconfigured",
+})
+
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
-CREDS_FILE = REPO_ROOT / "docs" / "api" / ".creds"
+CREDS_DIR = REPO_ROOT / "docs" / "api"
+CREDS_FILE = CREDS_DIR / ".creds"          # legacy single-tenant fallback
 RESPONSES_DIR = REPO_ROOT / "docs" / "api" / "test-responses"
 REPORT_FILE = REPO_ROOT / "docs" / "api" / "test-report.md"
 
@@ -47,20 +57,100 @@ def api_base():
     return os.environ.get("CADRA_API_BASE", "http://localhost:8069").rstrip("/")
 
 
-@pytest.fixture(scope="session")
-def creds():
-    if not CREDS_FILE.exists():
-        pytest.fail(
-            f"credentials file not found at {CREDS_FILE}.\n"
-            "Run docs/api/setup_api_smoke.py first to create a test client."
-        )
+def tenant_from_base(base):
+    """The database name Cadra will route this base URL to.
+
+    Tenancy is host-based: http://<db>.localhost:8069 and https://<db>.cadra.ng
+    both resolve to database <db>. A bare host with no leading label (plain
+    `localhost`, an IP) names no tenant, and the caller falls back to the
+    legacy single-tenant creds file.
+    """
+    host = urllib.parse.urlsplit(base).hostname or ""
+    label = host.split(".")[0].strip()
+    if not label or label == host or label in ("localhost", "127", "0"):
+        return None
+    return label
+
+
+def _parse_creds(path):
     out = {}
-    for line in CREDS_FILE.read_text().splitlines():
+    for line in path.read_text().splitlines():
         if "=" in line and not line.strip().startswith("#"):
             k, v = line.strip().split("=", 1)
             out[k] = v
+    return out
+
+
+@pytest.fixture(scope="session")
+def creds(api_base):
+    """Credentials for the tenant `CADRA_API_BASE` points at.
+
+    Secrets are per-database — one Odoo process serves them all, but each
+    holds its own `myservice.api.client` rows and its own `jwt_secret`. A
+    single global creds file therefore points at whichever tenant was
+    bootstrapped last, and aiming the suite anywhere else fails at the first
+    call with a bare 401 that looks like a code fault. So: prefer
+    `.creds.<tenant>`, and only fall back to the shared `.creds`.
+    """
+    tenant = tenant_from_base(api_base)
+    if tenant:
+        # A named tenant takes ITS file or nothing. Falling back to the shared
+        # `.creds` here would hand the suite another database's secret and
+        # produce exactly the bare 401 this whole change exists to stop —
+        # the failure would just have moved, not gone.
+        candidates = [CREDS_DIR / f".creds.{tenant}"]
+    else:
+        # No tenant in the host (bare `localhost`, an IP). Legacy shared file
+        # first; failing that, a single-tenant checkout — CI, a fresh clone —
+        # where bootstrap wrote exactly one per-tenant file and there is
+        # nothing to be ambiguous about. Two or more and we do NOT guess.
+        candidates = [CREDS_FILE]
+        only = sorted(CREDS_DIR.glob(".creds.*"))
+        if len(only) == 1:
+            candidates.append(only[0])
+
+    path = next((c for c in candidates if c.exists()), None)
+    if path is None:
+        looked = "\n  ".join(str(c) for c in candidates)
+        pytest.fail(
+            f"no credentials file for {api_base}"
+            + (f" (tenant {tenant!r})" if tenant else "")
+            + ".\nLooked for:\n  " + looked
+            + "\n\nCreate a client on that database with\n"
+              "  docker compose -f docker-compose.yml -f docker-compose.19.yml "
+              "run --rm -T odoo bash -c \\\n"
+              "    \"odoo shell -c /etc/odoo/odoo.conf -d <db> --no-http <<< \\\n"
+              "      \\\"exec(open('/mnt/extra-addons/docs/api/setup_api_smoke.py')"
+              ".read())\\\"\"\n"
+              "and save the printed credentials as that file. "
+              "(scripts/bootstrap.sh takes its database from POSTGRES_DB in "
+              ".env, not an argument.)"
+        )
+
+    out = _parse_creds(path)
     if "CLIENT_ID" not in out or "CLIENT_SECRET" not in out:
-        pytest.fail(f"{CREDS_FILE} is missing CLIENT_ID or CLIENT_SECRET")
+        pytest.fail(
+            f"{path} is missing CLIENT_ID or CLIENT_SECRET.\n\n"
+            "If the file holds only comments, bootstrap preserved a secret it "
+            "cannot read back and had no previous value to keep. Re-running "
+            "bootstrap will do the same thing again. Either:\n"
+            "  - set CADRA_TEST_CLIENT_SECRET to a known value and re-run "
+            "bootstrap, or\n"
+            "  - rotate the client's secret (Settings -> API Clients, or "
+            "CADRA_SMOKE_ROTATE=1 with docs/api/setup_api_smoke.py against "
+            "this database) and paste the new value in."
+        )
+    if out["CLIENT_SECRET"].startswith("<"):
+        # bootstrap.py prints a placeholder rather than the secret when it
+        # preserves an existing one; a shell that captured stdout blindly
+        # used to write that placeholder into the file.
+        pytest.fail(
+            f"{path} holds a placeholder, not a secret: "
+            f"{out['CLIENT_SECRET']!r}. Re-run bootstrap with "
+            "CADRA_TEST_CLIENT_SECRET set to a known value, or rotate the "
+            "client's secret from Settings → API Clients."
+        )
+    out["_source"] = str(path)
     return out
 
 
@@ -164,14 +254,14 @@ def capture(request):
             "request": {
                 "method": req.method,
                 "url": req.url,
-                "headers": {k: ("<redacted>" if k.lower() == "authorization" else v) for k, v in req.headers.items()},
-                "body": req_body,
+                "headers": _redact_headers(req.headers),
+                "body": _redact(req_body),
             },
             "response": {
                 "status": response.status_code,
-                "headers": dict(response.headers),
+                "headers": _redact_headers(response.headers),
                 "elapsed_seconds": response.elapsed.total_seconds(),
-                "body": resp_body,
+                "body": _redact(resp_body),
             },
         }
         path.write_text(json.dumps(payload, indent=2, default=str))
@@ -190,6 +280,39 @@ def capture(request):
         )
 
     return _capture
+
+
+# Anything in a request or response body whose name says "secret". The
+# Authorization header was already redacted; the BODY was not, so every
+# captured /auth/token call wrote the live client secret to disk — and CI
+# uploads docs/api/test-responses/ as a 14-day artifact. Captures are
+# evidence, not a credential store.
+_SECRET_KEYS = frozenset({
+    "client_secret", "access_token", "refresh_token", "password",
+    "jwt_secret", "secret",
+})
+
+# Headers carrying a credential. `Set-Cookie` on an /auth/* response holds an
+# Odoo session id, which is as much a credential as the bearer token — and the
+# response headers were being written verbatim.
+_SECRET_HEADERS = frozenset({"authorization", "cookie", "set-cookie",
+                             "x-api-key", "proxy-authorization"})
+
+
+def _redact_headers(headers):
+    return {k: ("<redacted>" if k.lower() in _SECRET_HEADERS else v)
+            for k, v in headers.items()}
+
+
+def _redact(value):
+    """Recursively replace secret-named values. Structure is preserved so the
+    capture still documents the request's shape."""
+    if isinstance(value, dict):
+        return {k: ("<redacted>" if k.lower() in _SECRET_KEYS else _redact(v))
+                for k, v in value.items()}
+    if isinstance(value, list):
+        return [_redact(v) for v in value]
+    return value
 
 
 def _extract_path(url):
@@ -219,7 +342,6 @@ def test_asset(client, test_location):
     ts = int(time.time())
     r = client.post("/api/v1/assets", json={
         "name": f"pytest-asset-{ts}",
-        "asset_tag": f"PYTEST-{ts}",
         "category_id": 1,  # first asset category (seed has many)
         "condition": "new",
         "state": "active",
