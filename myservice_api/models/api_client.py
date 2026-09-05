@@ -1,6 +1,7 @@
 import secrets
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
+from odoo.exceptions import ValidationError
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
@@ -26,7 +27,32 @@ class MyserviceApiClient(models.Model):
     )
 
     scopes = fields.Char(
-        help="Space-separated scopes, e.g. 'dashboard security osint assets'. Leave empty to allow all.")
+        help="Space-separated scopes, e.g. 'assets:read assets:write'. "
+             "LEAVE EMPTY TO ALLOW EVERYTHING — an empty value is a wildcard, "
+             "not a denial.")
+
+    @api.constrains('scopes')
+    def _check_scopes_are_known(self):
+        """Reject a scope name we do not recognise.
+
+        Nothing validated this before, so `taging:write` was accepted, minted
+        into a token, and produced a 403 on every call with no hint that the
+        name was wrong — the caller could not tell a typo from a permission
+        decision. That is the silent-degradation rule, and it bites hardest
+        exactly where scopes are handed to a third party such as the
+        Tag-Issuing Unit.
+        """
+        from ..controllers.utils import ALL_SCOPES
+        for record in self:
+            unknown = sorted(
+                {s for s in (record.scopes or "").split()} - ALL_SCOPES - {"*"}
+            )
+            if unknown:
+                raise ValidationError(_(
+                    "Unknown API scope(s): %(unknown)s\n\nValid scopes are: "
+                    "%(valid)s"
+                ) % {"unknown": " ".join(unknown),
+                     "valid": " ".join(sorted(ALL_SCOPES))})
 
     token_ttl_seconds = fields.Integer(default=3600)
 

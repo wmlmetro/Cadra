@@ -130,6 +130,10 @@ SCOPE_INTEGRATIONS_WRITE = "integrations:write"
 SCOPE_WEBHOOKS_ADMIN     = "webhooks:admin"
 SCOPE_DASHBOARDS_READ    = "dashboards:read"
 SCOPE_IDENTITY_READ      = "identity:read"
+# Held by the Tag-Issuing Unit, which is deliberately NOT the team that
+# creates asset records (INT-04/05). Its own scope is what keeps "affixed"
+# evidence of an independent act rather than a field someone can set.
+SCOPE_TAGGING_WRITE      = "tagging:write"
 SCOPE_ADMIN              = "admin"
 
 ALL_SCOPES = frozenset({
@@ -142,6 +146,7 @@ ALL_SCOPES = frozenset({
     SCOPE_WEBHOOKS_ADMIN,
     SCOPE_DASHBOARDS_READ,
     SCOPE_IDENTITY_READ,
+    SCOPE_TAGGING_WRITE,
     SCOPE_ADMIN,
 })
 

@@ -170,7 +170,8 @@ def _all_scopes():
         return (
             "admin approvals:write assets:read assets:write dashboards:read "
             "identity:read ingestion:write integrations:write locations:read "
-            "locations:write requests:read requests:write webhooks:admin"
+            "locations:write requests:read requests:write tagging:write "
+            "webhooks:admin"
         )
 
 
