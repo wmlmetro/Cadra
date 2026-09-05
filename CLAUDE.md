@@ -114,6 +114,12 @@ On staging/prod the `cadra-upgrade` Job must likewise fan out per tenant databas
 ## Decisions
 
 - 2026-09-05 · Architect/Builder split adopted for this repo, mirroring `vendra_network`. · One person owns two codebases in one programme; the handoff trail is how the integration stays coherent across both.
+- 2026-09-05 · **Serialised provenance is a nested `data.provenance` block**, not six top-level keys. · Matches the existing grouping; one new envelope key instead of six for a contract Vendra is building against.
+- 2026-09-05 · **`vendra` added to the `import_source` enum.** · The enum already names integration partners; `other` + a ref throws away the signal the field exists to carry.
+- 2026-09-05 · **`q` also matches `grn_reference` and `purchase_order_reference`.** Intended behaviour — an auditor pastes a GRN into search before finding a named filter. Do not "fix" it.
+- 2026-09-05 · **Idempotency header length is validated on all routes; the header is not rejected on non-idempotent ones.** · A caller sending an over-long key deserves an error; a caller harmlessly spraying the header should not start failing. Document which routes honour it.
+- 2026-09-05 · **Tag capture before tag transport.** Cadra records neither printing nor affixing, and `nrs.asset.tag.label.state` is a replacement lifecycle that reads `active` from creation — exposing it would reproduce the false-completeness bug in a new field. Vendra shows `Registered` and claims nothing further until capture exists. · Handoff 01 Part C.
+- 2026-09-05 · **`_sql_constraints` is dead on Odoo 19** — declared constraints silently do not exist. Ours use the dual-spelling pattern in `api_idempotency.py`; a guard must fail loudly on any new use. · 2 live holes in our modules + 44 files in `dist/`; handoff 02.
 - 2026-09-05 · `POST /api/v1/assets` is treated as a **published integration contract**, not an internal endpoint. · Vendra's INT-03 now builds against it.
 - 2026-09-05 · Acquisition provenance is serialised as a nested `data.provenance` block, not six top-level keys. · Matches the existing nesting idiom (`financial`, `dates`, `location_hierarchy`) and adds one key to the envelope instead of six.
 - 2026-09-05 · Provenance fields are writable on `PATCH` as well as `POST`, but documented write-once-in-practice rather than enforced. · A mis-keyed GRN has to be correctable; enforcement would need an immutability mechanism the model does not have, and `mail.thread` already tracks the change.
