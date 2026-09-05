@@ -1,7 +1,10 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 import base64
+import logging
 import re
+
+_logger = logging.getLogger(__name__)
 
 
 class NRSAssetTag(models.Model):
@@ -48,8 +51,47 @@ class NRSAssetTag(models.Model):
     approved_date = fields.Datetime('Approved On')
 
     # ── Tag date ──────────────────────────────────────────────
+    # NOT the date the tag was printed or affixed: it defaults to the day the
+    # record was created, which for an auto-generated tag is the day the asset
+    # was. Kept for compatibility; read `printed_date` / `affixed_date` below
+    # for what actually happened.
     tag_date = fields.Date('Tag Date', default=fields.Date.today)
     scrapped_date = fields.Date('Scrapped Date')
+
+    # ── Physical lifecycle (INT-04/05) ────────────────────────
+    #
+    # Deliberately separate from `state`, which is the *replacement* lifecycle
+    # (active / replacement pending / scrapped) and reads `active` from the
+    # moment a tag record exists. That is why `state` could never answer "is
+    # this asset physically tagged?" — every asset would have said yes from
+    # creation, writing a false completeness claim into the audit trail.
+    #
+    # The Integration Flow separates the three steps on purpose: Cadra
+    # generates the identity, an INDEPENDENT Tag-Issuing Unit prints and
+    # affixes, and the serial-to-tag match is recorded at the point of
+    # tagging. So this field is readonly and moves only through the methods
+    # below — `_mark_printed` from the print action, `_mark_affixed` from a
+    # confirmation carrying the tag number that was actually scanned. A value
+    # someone can type at a desk would be evidence of nothing.
+    label_state = fields.Selection([
+        ('issued',   'Issued — identity generated, nothing printed'),
+        ('printed',  'Printed — print instruction issued'),
+        ('affixed',  'Affixed — confirmed on the physical asset'),
+        ('scrapped', 'Scrapped'),
+    ], string='Label Status', default='issued', required=True,
+       readonly=True, copy=False, tracking=True, index=True)
+
+    printed_date = fields.Datetime('Printed On', readonly=True, copy=False)
+    printed_by = fields.Many2one(
+        'res.users', string='Printed By', readonly=True, copy=False)
+    affixed_date = fields.Datetime('Affixed On', readonly=True, copy=False)
+    affixed_by = fields.Many2one(
+        'res.users', string='Affixed — Recorded By', readonly=True, copy=False,
+        help='The API client or user that submitted the affix confirmation')
+    affixed_by_name = fields.Char(
+        'Affixed — Fitted By', readonly=True, copy=False,
+        help='Name of the Tag-Issuing Unit operative who physically affixed '
+             'the label. Free text: they are not Cadra users.')
 
     @api.constrains('name')
     def _check_unique_active(self):
@@ -77,6 +119,7 @@ class NRSAssetTag(models.Model):
             # Scrap this tag
             r.write({
                 'state': 'scrapped',
+                'label_state': 'scrapped',
                 'scrapped_date': fields.Date.today(),
                 'approved_by': self.env.uid,
                 'approved_date': fields.Datetime.now(),
@@ -91,7 +134,62 @@ class NRSAssetTag(models.Model):
     def action_reject_replacement(self):
         self.write({'state': 'active'})
 
+    def _mark_printed(self):
+        """Record that a print instruction was issued for these labels.
+
+        `printed` means Cadra emitted the instruction — Integration Flow step
+        3.3 — not that paper physically emerged from a printer, which Cadra
+        cannot observe. A label already `affixed` is not walked backwards: a
+        reprint of a label someone has already stuck on an asset does not make
+        the asset less tagged.
+        """
+        to_mark = self.filtered(lambda t: t.label_state in ('issued', 'printed'))
+        if to_mark:
+            to_mark.write({
+                'label_state': 'printed',
+                'printed_date': fields.Datetime.now(),
+                'printed_by': self.env.uid,
+            })
+        return to_mark
+
+    def _mark_affixed(self, scanned_tag_number, affixed_by_name=None,
+                      affixed_date=None):
+        """Record the serial-to-tag match at the point of physical tagging.
+
+        The scanned number is checked against this label's own number rather
+        than trusted, because that check IS the control: it is what makes the
+        record evidence that the label on the asset is the label Cadra issued
+        for it, rather than an assertion that someone tagged something.
+        """
+        self.ensure_one()
+        if self.state == 'scrapped' or self.label_state == 'scrapped':
+            raise ValidationError(_(
+                'Tag %s has been scrapped and cannot be confirmed as affixed.'
+            ) % self.name)
+        if (scanned_tag_number or '').strip() != self.name:
+            raise ValidationError(_(
+                'Scanned tag %(scanned)s does not match the tag issued for '
+                'this asset (%(expected)s). The label on the asset is not the '
+                'one Cadra issued for it.'
+            ) % {'scanned': scanned_tag_number or '(none)', 'expected': self.name})
+
+        self.write({
+            'label_state': 'affixed',
+            'affixed_date': affixed_date or fields.Datetime.now(),
+            'affixed_by': self.env.uid,
+            'affixed_by_name': (affixed_by_name or '').strip() or False,
+        })
+        self.message_post(body=_(
+            'Tag %(tag)s confirmed affixed to %(asset)s%(who)s.'
+        ) % {
+            'tag': self.name,
+            'asset': self.asset_id.display_name,
+            'who': _(' by %s') % affixed_by_name if affixed_by_name else '',
+        })
+        return self
+
     def action_print_tag(self):
+        self._mark_printed()
         return self.env.ref(
             'myservice_asset_register.action_report_asset_tag'
         ).report_action(self)
@@ -106,6 +204,12 @@ class NRSAsset(models.Model):
         compute='_compute_active_tag', store=True)
     active_tag_number = fields.Char(
         'Active Tag Number', related='active_tag_id.name', store=True)
+    # Stored so `GET /api/v1/assets?tag_label_state=affixed` is a real query
+    # rather than a post-filter. False for an asset with no active tag, which
+    # is the honest answer: never tagged.
+    tag_label_state = fields.Selection(
+        related='active_tag_id.label_state', string='Tag Status',
+        store=True, readonly=True, index=True)
     tag_source = fields.Selection([
         ('auto',   'Auto-generated'),
         ('manual', 'Manually assigned'),
@@ -260,6 +364,10 @@ class NRSAsset(models.Model):
     def action_print_asset_tag(self):
         if not self.asset_tag:
             raise ValidationError(_('No tag code assigned to this asset.'))
+        # Stamp the label, not just render the report: these three actions are
+        # the single funnel through which a tag is printed, so they are the
+        # only honest place to record that it was.
+        self.active_tag_id._mark_printed()
         return self.env.ref(
             'myservice_asset_register.action_report_asset_tag'
         ).report_action(self)
@@ -268,6 +376,65 @@ class NRSAsset(models.Model):
         assets = self.filtered(lambda a: a.asset_tag)
         if not assets:
             raise ValidationError(_('No assets with tag codes found in selection.'))
+        assets.mapped('active_tag_id')._mark_printed()
         return self.env.ref(
             'myservice_asset_register.action_report_asset_tag_sheet'
         ).report_action(assets)
+
+
+class IrActionsReport(models.Model):
+    """Catch the tag prints that never touch a Python action method.
+
+    The obvious hooks — `action_print_tag`, `action_print_asset_tag`,
+    `action_batch_print_tags` — look like the single funnel for printing a tag
+    and are not. Three paths bypass all three:
+
+      * the label wizard (`wizard/asset_label_wizard.py`) calls
+        `report.report_action(tags)` directly;
+      * the barcode station hands the browser a raw
+        `/report/pdf/<report>/<asset_id>` URL (`myservice_barcode_station/
+        controllers/main.py`), so no Python of ours runs at all;
+      * the four tag reports carry `binding_model_id` on `nrs.asset`, so they
+        appear in Odoo's own Print menu and fire from there.
+
+    Stamping only the action methods would under-record printing badly, and a
+    print record that is silently incomplete is the same class of defect as the
+    tag state this work exists to fix. `_render_qweb_pdf` is the one place every
+    PDF path converges.
+    """
+    _inherit = 'ir.actions.report'
+
+    # The four tag labels. Matched on report_name (the QWeb template) rather
+    # than xmlid because `action_report_asset_tag_sheet` is declared twice with
+    # different models — a pre-existing collision this must not depend on.
+    _TAG_LABEL_REPORTS = (
+        'myservice_asset_register.report_asset_tag_label',
+        'myservice_asset_register.report_asset_tag_label_small',
+        'myservice_asset_register.report_asset_tag_label_large',
+        'myservice_asset_register.report_asset_tag_label_sheet',
+    )
+
+    def _render_qweb_pdf(self, report_ref, res_ids=None, data=None):
+        result = super()._render_qweb_pdf(report_ref, res_ids=res_ids, data=data)
+        try:
+            self._stamp_printed_tags(report_ref, res_ids)
+        except Exception:          # noqa: BLE001 — never fail a print over bookkeeping
+            _logger.exception("could not stamp tag print for %s / %s",
+                              report_ref, res_ids)
+        return result
+
+    @api.model
+    def _stamp_printed_tags(self, report_ref, res_ids):
+        """Mark the active tags of the printed assets as printed."""
+        if not res_ids:
+            return
+        report = self._get_report(report_ref)
+        if not report or report.report_name not in self._TAG_LABEL_REPORTS:
+            return
+        # These reports declare `model = nrs.asset`, so Odoo resolves res_ids as
+        # asset ids and that is what was actually rendered — resolve them the
+        # same way rather than guessing, so we stamp what the reader is holding.
+        assets = self.env['nrs.asset'].sudo().browse(res_ids).exists()
+        tags = assets.mapped('active_tag_id')
+        if tags:
+            tags._mark_printed()

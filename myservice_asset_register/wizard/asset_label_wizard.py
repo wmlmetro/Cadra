@@ -56,4 +56,10 @@ class AssetLabelWizard(models.TransientModel):
 
         action_ref, _template = size_map[self.label_size]
         report = self.env.ref(action_ref)
+        # Stamp here as well as in the render hook: this wizard passes a
+        # nrs.asset.tag.label recordset into a report whose model is nrs.asset,
+        # so the render hook cannot resolve these ids correctly. Here we hold
+        # the real tags, so this is the only place that can record them
+        # accurately. `_mark_printed` is safe to call twice.
+        tags._mark_printed()
         return report.report_action(tags)
