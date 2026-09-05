@@ -13,9 +13,15 @@ Responses are the PRD envelope directly — no `.result` JSON-RPC wrapper:
   error:   {"error": {...}}
 """
 import json
+import os
 import sys
 import urllib.parse
 import urllib.request
+
+# The dev stack is multi-tenant on the hostname (`http://<db>.localhost:8069`);
+# bare localhost answers "No database is selected". Same env var the pytest
+# suite uses, so one export points both at the same instance.
+API_BASE = os.environ.get("CADRA_API_BASE", "http://localhost:8069").rstrip("/")
 
 
 # ─── HTTP helpers ────────────────────────────────────────────────────
@@ -39,7 +45,7 @@ def load_creds():
 
 def call(method, path, *, query=None, body=None, token=None, idempotency_key=None):
     """Generic HTTP call. Returns (status, parsed_body_dict)."""
-    url = f"http://localhost:8069{path}"
+    url = f"{API_BASE}{path}"
     if query:
         url += "?" + urllib.parse.urlencode({k: v for k, v in query.items() if v is not None})
 

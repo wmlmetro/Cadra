@@ -77,3 +77,90 @@ def test_idempotent_request_create(client, test_location, test_asset, capture):
 
     assert body1["data"]["id"] == body2["data"]["id"]
     assert body1["meta"]["request_id"] == body2["meta"]["request_id"]
+
+
+# ─── key validation and concurrency ──────────────────────────────────
+
+
+def test_overlong_key_is_rejected(client, test_location, capture):
+    """A key over 128 chars must 400, not silently degrade to a plain create.
+
+    Dropping it and processing the request as new leaves the caller believing
+    it is protected against a retry storm when it is not, and gives it no way
+    to find out.
+    """
+    r = client.post("/api/v1/assets",
+                    json={"name": f"idem-longkey-{int(time.time())}",
+                          "category_id": 1,
+                          "location_id": test_location["id"]},
+                    headers={"X-Idempotency-Key": "k" * 200})
+    capture("idempotency/overlong_key", r)
+    assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:300]}"
+    error = r.json()["error"]
+    assert error["code"] == "invalid_request"
+    details = error.get("details") or {}
+    assert details.get("header") == "X-Idempotency-Key"
+    assert details.get("max_length") == 128
+    assert details.get("received_length") == 200
+
+
+def test_key_at_max_length_is_accepted(client, test_location):
+    """128 characters is the limit, not one past it."""
+    key = "b" * 128
+    r = client.post("/api/v1/assets",
+                    json={"name": f"idem-maxkey-{int(time.time())}",
+                          "category_id": 1,
+                          "location_id": test_location["id"]},
+                    headers={"X-Idempotency-Key": key})
+    assert_envelope_ok(r, expected_status=201)
+
+
+def test_concurrent_same_key_creates_exactly_one(client, test_location, capture):
+    """Four simultaneous creates under one key must yield one asset.
+
+    This is the case the key exists for: a client retrying a request whose
+    response it never saw. The requests genuinely race — the losers do create
+    an asset before failing to claim the key, and the handler has to discard
+    that work rather than keep it and answer with the winner's body.
+
+    Whether the race is actually hit depends on worker scheduling, so the
+    assertions are on the invariant (one asset, one id, always an envelope)
+    rather than on the race occurring.
+    """
+    import concurrent.futures
+
+    key = f"pytest-idem-race-{int(time.time() * 1000)}"
+    name = f"idem-race-{key}"
+    payload = {"name": name, "category_id": 1, "location_id": test_location["id"]}
+
+    def fire(_):
+        return client.post("/api/v1/assets", json=payload,
+                           headers={"X-Idempotency-Key": key})
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+        responses = list(pool.map(fire, range(4)))
+    capture("idempotency/concurrent_same_key", responses[0])
+
+    created_ids = set()
+    for r in responses:
+        # A raw 500 with an HTML or empty body is the failure mode this
+        # guards: every outcome has to be the PRD envelope.
+        body = r.json()
+        assert "data" in body or "error" in body, f"non-enveloped response: {r.text[:300]}"
+        assert r.status_code in (200, 201, 409), (
+            f"unexpected status {r.status_code}: {r.text[:300]}"
+        )
+        if r.status_code in (200, 201):
+            created_ids.add(body["data"]["id"])
+
+    assert len(created_ids) == 1, (
+        f"idempotency broken: same key produced ids {sorted(created_ids)}"
+    )
+
+    # And the losers' assets must not have survived the rollback.
+    listing = client.get("/api/v1/assets", params={"q": name, "limit": 50})
+    matches = [a for a in assert_envelope_ok(listing)["data"] if a["name"] == name]
+    assert len(matches) == 1, (
+        f"expected 1 asset named {name}, found {len(matches)}: "
+        f"{[a['id'] for a in matches]}"
+    )

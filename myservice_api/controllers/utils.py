@@ -12,6 +12,7 @@ import hashlib
 import hmac
 import json
 import logging
+import re
 import time
 import uuid
 
@@ -499,17 +500,43 @@ def paginate(model, domain, *, limit, cursor=None, order="id"):
 
 IDEMPOTENCY_HEADER = "X-Idempotency-Key"
 IDEMPOTENCY_TTL_SECONDS = 24 * 3600
+IDEMPOTENCY_KEY_MAX_LENGTH = 128
+
+
+class IdempotencyKeyError(Exception):
+    """The caller sent an X-Idempotency-Key we cannot honour.
+
+    Raised rather than returning None so the endpoint decorator can answer
+    400. Silently downgrading to a non-idempotent create would leave the
+    caller believing it was protected against a retry storm when it was
+    not, and there is no way for it to detect the difference.
+    """
+
+    def __init__(self, message, details=None):
+        super().__init__(message)
+        self.details = details or {}
 
 
 def idempotency_key():
-    """Return the inbound Idempotency-Key, or None if absent.
+    """Return the inbound X-Idempotency-Key, or None if absent.
 
-    Empty strings and over-long keys are treated as absent. Keys are
-    case-sensitive opaque tokens — typically UUIDs from the client.
+    Empty strings are absent. Keys are case-sensitive opaque tokens —
+    typically UUIDs from the client. An over-long key raises
+    IdempotencyKeyError; see that class for why it is not just dropped.
     """
     raw = (request.httprequest.headers.get(IDEMPOTENCY_HEADER) or "").strip()
-    if not raw or len(raw) > 128:
+    if not raw:
         return None
+    if len(raw) > IDEMPOTENCY_KEY_MAX_LENGTH:
+        raise IdempotencyKeyError(
+            f"`{IDEMPOTENCY_HEADER}` must be at most "
+            f"{IDEMPOTENCY_KEY_MAX_LENGTH} characters",
+            details={
+                "header": IDEMPOTENCY_HEADER,
+                "max_length": IDEMPOTENCY_KEY_MAX_LENGTH,
+                "received_length": len(raw),
+            },
+        )
     return raw
 
 
@@ -531,11 +558,22 @@ def idempotency_check(key, endpoint_path):
     try:
         return json.loads(rec.response_body)
     except Exception:
+        # An unreadable row is worse than no row: it can never be replayed,
+        # and it holds the (key, endpoint) slot for the full TTL, so every
+        # retry under that key hits the unique constraint and gets a 409
+        # telling it to retry. Drop it and let this request re-create it.
+        _logger.warning("discarding unparseable idempotency row %s for %s",
+                        rec.id, endpoint_path)
+        rec.unlink()
         return None
 
 
 def idempotency_store(key, endpoint_path, body):
-    """Persist the response body under (key, endpoint) for IDEMPOTENCY_TTL_SECONDS."""
+    """Persist the response body under (key, endpoint) for IDEMPOTENCY_TTL_SECONDS.
+
+    Raises psycopg2.errors.UniqueViolation if a concurrent request under the
+    same key got there first — see `_idempotency_replay_after_race`.
+    """
     if not key:
         return
     now = fields.Datetime.now()
@@ -545,6 +583,40 @@ def idempotency_store(key, endpoint_path, body):
         "response_body": json.dumps(body, default=str),
         "expires_at": fields.Datetime.add(now, seconds=IDEMPOTENCY_TTL_SECONDS),
     })
+
+
+def _idempotency_replay_after_race(key, endpoint_path):
+    """Resolve a lost race on (key, endpoint) into the winner's response.
+
+    We roll back the whole request, not just the failed cache insert. The
+    losing request has by this point performed its own write — a second
+    asset, a second location — and keeping that while returning the winner's
+    body would be the duplicate-create the key exists to prevent. Discarding
+    it and replaying the winner is what the caller asked for when it sent the
+    header: exactly one effect, one response, however many times it retries.
+    """
+    request.env.cr.rollback()
+    cached = idempotency_check(key, endpoint_path)
+    if cached is not None:
+        # Logged because a race is otherwise invisible: the caller sees a
+        # normal success and nothing records that a duplicate write was
+        # discarded. An operator needs to know if this is happening often.
+        _logger.info("idempotency race on %s — rolled back the duplicate and "
+                     "replayed the stored response", endpoint_path)
+        return cached
+    _logger.warning("idempotency race on %s — key claimed but no readable "
+                    "response to replay; answering 409", endpoint_path)
+    # The winner's row is gone or unreadable (expired between the violation
+    # and this read, or its transaction rolled back after ours saw the
+    # conflict). We have nothing truthful to return and our own work is
+    # already discarded, so say so rather than invent a response.
+    return err(
+        ERR_CONFLICT,
+        "A concurrent request with this idempotency key is still in flight. "
+        "Retry with the same key.",
+        status=409,
+        details={"header": IDEMPOTENCY_HEADER, "endpoint": endpoint_path},
+    )
 
 
 # ─── request param accessor ──────────────────────────────────────────
@@ -606,6 +678,102 @@ def _http_response(body, success_status=200):
     return response
 
 
+# ─── client value errors ─────────────────────────────────────────────
+#
+# The ORM signals a value it cannot coerce by raising a bare ValueError, which
+# used to reach the decorator's catch-all and answer 500. A 500 tells an
+# integration the fault is ours and the request is worth retrying, so a
+# malformed field became an infinite retry loop instead of a fixable error.
+# Each pattern below is matched narrowly on the message the ORM (or CPython)
+# actually produces: a ValueError we cannot place is our bug, not the
+# caller's, and still returns 500.
+
+# odoo/orm/fields_selection.py — "Wrong value for %s: %r", %s being model.field
+_SELECTION_VALUE_RE = re.compile(
+    r"^Wrong value for (?P<model>[\w.]+)\.(?P<field>\w+): (?P<value>.*)$"
+)
+# CPython's own coercion messages, raised out of Date/Datetime/Float/Integer
+# conversion. These do NOT name the field — the ORM has lost that context by
+# the time they surface — so the envelope echoes the offending value instead.
+_COERCION_RES = (
+    (re.compile(r"^time data (?P<value>.*) does not match format (?P<fmt>.*)$"),
+     "date", "is not a valid date"),
+    (re.compile(r"^Invalid (?:date|datetime|isoformat) string: (?P<value>.*)$"),
+     "date", "is not a valid date"),
+    (re.compile(r"^could not convert string to float: (?P<value>.*)$"),
+     "number", "is not a valid number"),
+    (re.compile(r"^invalid literal for int\(\) with base 10: (?P<value>.*)$"),
+     "integer", "is not a valid integer"),
+)
+
+
+def _selection_allowed_values(model_name, field_name):
+    """The accepted values for a Selection field, or None if we cannot read them.
+
+    Enrichment only: a 400 naming the offending field already beats the 500
+    this replaced. Any failure rolls back first — this runs after the
+    decorator has rolled back once, and leaving a second aborted transaction
+    behind would surface as the bare non-enveloped 500 we are removing.
+    """
+    try:
+        field = request.env[model_name]._fields[field_name]
+        if field.type != "selection":
+            return None
+        return list(field.get_values(request.env))
+    except Exception:
+        _logger.warning("could not resolve selection values for %s.%s",
+                        model_name, field_name, exc_info=True)
+        request.env.cr.rollback()
+        return None
+
+
+def _client_value_error(exc):
+    """Turn an ORM value-coercion ValueError into a 400 envelope.
+
+    Returns None if `exc` is not one of the known client-error shapes, so the
+    caller falls through to 500.
+    """
+    message = str(exc) or ""
+
+    match = _SELECTION_VALUE_RE.match(message)
+    if match:
+        model_name, field_name = match.group("model"), match.group("field")
+        return err(
+            ERR_VALIDATION_FAILED,
+            f"`{field_name}` is not one of the accepted values",
+            status=400,
+            details={
+                "field": field_name,
+                "model": model_name,
+                "received": match.group("value").strip("'\""),
+                # So an integration that sent a value we reject never has to
+                # read our source to find the set we accept.
+                "allowed_values": _selection_allowed_values(model_name, field_name),
+            },
+        )
+
+    for pattern, expected, phrasing in _COERCION_RES:
+        match = pattern.match(message)
+        if not match:
+            continue
+        value = match.group("value").strip("'\"")
+        # Logged because this shape is also reachable from a genuine bug in
+        # our own code passing a bad string to the ORM; a 400 would otherwise
+        # bury it.
+        _logger.warning("client value error (%s): %s", expected, message)
+        return err(
+            ERR_VALIDATION_FAILED,
+            f"`{value}` {phrasing}",
+            status=400,
+            # The ORM does not name the field for these, and inferring it from
+            # the traceback would be guesswork. The value is echoed so the
+            # caller can find which of its fields carried it.
+            details={"received": value, "expected_type": expected, "field": None},
+        )
+
+    return None
+
+
 # ─── endpoint decorator ──────────────────────────────────────────────
 
 def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
@@ -635,8 +803,13 @@ def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
             # idempotent and don't need caching)
             method = request.httprequest.method.upper()
             is_write = method in ("POST", "PUT", "PATCH", "DELETE")
-            ikey = idempotency_key() if (idempotent and is_write) else None
             endpoint_path = request.httprequest.path
+            try:
+                ikey = idempotency_key() if (idempotent and is_write) else None
+            except IdempotencyKeyError as e:
+                return _http_response(err(
+                    ERR_INVALID_REQUEST, str(e), status=400, details=e.details,
+                ))
 
             if ikey:
                 cached = idempotency_check(ikey, endpoint_path)
@@ -696,6 +869,34 @@ def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
                     details={"db_detail": (e.diag.message_detail or "").strip() or None,
                              "constraint": e.diag.constraint_name},
                 ))
+            except ValueError as e:
+                # The ORM signals an uncoercible value with a bare ValueError —
+                # a bad enum, an unparseable date, a non-numeric cost. Those
+                # are client errors, but they were reaching the catch-all
+                # below and answering 500, which tells an integrator to retry
+                # a request that can never succeed. Only the recognised shapes
+                # are reinterpreted; anything else is our bug and still 500s.
+                request.env.cr.rollback()
+                envelope = _client_value_error(e)
+                if envelope is None:
+                    _logger.exception("Unhandled error in %s", endpoint_path)
+                    return _http_response(
+                        err(ERR_INTERNAL, "Unhandled server error", status=500))
+                return _http_response(envelope)
+            except psycopg2.DataError as e:
+                # Postgres rejecting a literal for a column's type — most often
+                # a non-integer sent for a many2one id, which the ORM passes
+                # straight through. DataError is not an IntegrityError, so it
+                # was falling to the catch-all and answering 500 as well.
+                request.env.cr.rollback()
+                return _http_response(err(
+                    ERR_VALIDATION_FAILED,
+                    "A field value is not valid for its type",
+                    status=400,
+                    details={"db_detail": (str(e.diag.message_primary or e) or "").strip()
+                                          or None,
+                             "column": e.diag.column_name},
+                ))
             except Exception:
                 _logger.exception("Unhandled error in %s", endpoint_path)
                 request.env.cr.rollback()
@@ -709,7 +910,18 @@ def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
                 body = ok(result)
 
             if ikey and "error" not in body:
-                idempotency_store(ikey, endpoint_path, body)
+                # Inside its own guard, not outside the handler's, because a
+                # concurrent request carrying the same key loses the race on
+                # the (key, endpoint) unique constraint here — after this one
+                # has already done its write. Letting that escape produced a
+                # bare, non-enveloped 500 for what is a normal retry.
+                try:
+                    idempotency_store(ikey, endpoint_path, body)
+                except psycopg2.errors.UniqueViolation:
+                    return _http_response(
+                        _idempotency_replay_after_race(ikey, endpoint_path),
+                        success_status=success_status,
+                    )
 
             return _http_response(body, success_status=success_status)
         return wrapper

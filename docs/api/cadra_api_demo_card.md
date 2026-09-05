@@ -38,7 +38,7 @@ each integration can do.
 ```bash
 acurl -X POST $API/api/v1/requests \
   -H 'Content-Type: application/json' \
-  -H 'Idempotency-Key: demo-card-001' \
+  -H 'X-Idempotency-Key: demo-card-001' \
   -d '{
     "type_id": 1,
     "category_id": 5,
@@ -155,6 +155,6 @@ acurl -X POST $API/api/v1/integrations/workflow/callback \
 - **One envelope** shape, every response
 - **13 scopes**, granular per-integration
 - **JWT, HS256, 1h TTL** — issued by `/auth/token` from client credentials
-- **Cursor pagination** + `Idempotency-Key` on every create endpoint
+- **Cursor pagination** + `X-Idempotency-Key` on every create endpoint
 - **OpenAPI 3.0** spec auto-generated, Swagger UI at `/api/v1/docs`
 - **Same compute path** as the Odoo webclient — no UI/API drift possible
