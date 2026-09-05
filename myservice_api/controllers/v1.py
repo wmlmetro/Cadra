@@ -51,6 +51,7 @@ from .utils import (
     ERR_NOT_FOUND,
     ERR_UNAUTHORIZED,
     EXTERNAL_TOTAL_CAP,
+    SCOPE_ADMIN,
     SCOPE_ASSETS_READ,
     SCOPE_ASSETS_WRITE,
     SCOPE_DASHBOARDS_READ,
@@ -425,6 +426,27 @@ class MyserviceApiV1(http.Controller):
             "token_type": "Bearer",
             "expires_at": claims.get("exp"),
         }
+
+    # ── Diagnostics: GET /api/v1/meta/diagnostics ───────────────────
+
+    @cadra_route("/api/v1/meta/diagnostics", method="GET",
+                 summary="Server-state checks a deployment should be green on",
+                 scopes=[SCOPE_ADMIN])
+    def meta_diagnostics(self, **kwargs):
+        """Assertable server state, for things a log line alone cannot guard.
+
+        `dead_sql_constraints` is the one that exists today. Odoo 19 removed
+        the `_sql_constraints` attribute and creates nothing for it, so a
+        constraint declared that way silently stops existing — which is how
+        `unique(asset_code)` was lost. `tests/test_source_guards.py` covers
+        our own modules by parsing source; it cannot cover the vendored trees,
+        where an upstream refresh could reintroduce the pattern. This reports
+        the built registry's answer, so a test can assert zero against a real
+        environment rather than a checkout.
+
+        Admin-scoped: it names internal models.
+        """
+        return request.env["myservice.api.registry.diagnostics"].sudo().collect()
 
     # ── OpenAPI + Swagger UI ────────────────────────────────────────
 

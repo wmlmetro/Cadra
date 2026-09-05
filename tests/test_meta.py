@@ -1,4 +1,5 @@
 """OpenAPI spec + Swagger UI endpoints. These don't use the PRD envelope."""
+from .conftest import assert_envelope_ok
 
 
 def test_openapi_spec_shape(client, capture):
@@ -53,3 +54,26 @@ def test_openapi_lists_every_cadra_route(client, capture):
         assert path in body["paths"], f"OpenAPI spec missing path {path}"
         assert method in body["paths"][path], \
             f"OpenAPI spec missing {method.upper()} on {path}"
+
+
+def test_no_dead_sql_constraints_in_the_registry(client, admin_scope, capture):
+    """Odoo 19 creates nothing for `_sql_constraints`; assert none survives.
+
+    `tests/test_source_guards.py` parses OUR modules' source. It cannot cover
+    the vendored trees (`crnd-19/`, `oca-19/`), where an upstream refresh
+    could reintroduce the pattern in code no source test watches. This asks
+    the built registry instead, so it covers everything actually loaded — and
+    it runs against whatever environment the suite is pointed at, not a
+    checkout.
+
+    Admin-scoped, so it skips against a token without `admin` (the local
+    smoke client) and runs in CI, where bootstrap mints a full-scope client.
+    """
+    r = client.get("/api/v1/meta/diagnostics")
+    capture("meta/diagnostics", r)
+    body = assert_envelope_ok(r)
+    dead = body["data"]["dead_sql_constraints"]
+    assert dead["count"] == 0, (
+        "these models declare constraints Odoo 19 silently does not create: "
+        f"{dead['models']} — see docs/constraint-audit.md"
+    )

@@ -51,6 +51,26 @@ jobs:
           export CADRA_SEED_PROFILE=core
           ./scripts/bootstrap.sh
 
+      - name: No dead _sql_constraints reached the registry
+        run: |
+          # Odoo 19 removed `_sql_constraints` and creates nothing for it, so a
+          # constraint declared that way silently ceases to exist — that is how
+          # unique(asset_code) was lost, and it was found by someone reading a
+          # log rather than by anything failing. tests/test_source_guards.py
+          # parses our own modules; this covers the vendored trees it cannot,
+          # because CI is the one place that boots a registry from a container
+          # created in this same job — so its log is exactly one load and the
+          # count is meaningful (on a long-lived container it is not).
+          n=$(docker compose -f docker-compose.yml -f docker-compose.19.yml logs odoo \
+              | grep -c "_sql_constraints' is no longer supported" || true)
+          if [ "$n" != "0" ]; then
+            echo "::error::$n dead _sql_constraints declaration(s) reached the Odoo 19 registry — they create NO constraint. See docs/constraint-audit.md."
+            docker compose -f docker-compose.yml -f docker-compose.19.yml logs odoo \
+              | grep "_sql_constraints' is no longer supported" | head -20
+            exit 1
+          fi
+          echo "no dead _sql_constraints in the registry"
+
       - name: Show captured credentials (redacted) — sanity that bootstrap wrote them
         run: |
           if [ ! -f docs/api/.creds ]; then
