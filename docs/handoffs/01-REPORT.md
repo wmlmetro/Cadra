@@ -662,4 +662,12 @@ before they ship INT-03.
 
 ## Commits
 
-Listed at push time; see the PR into `dev`.
+Branch `feat/vendra-integration-fields`, PR **#44** into `dev`:
+<https://github.com/wmlmetro/Cadra/pull/44>
+
+| Commit | Scope |
+|---|---|
+| `672f2b9` | `feat(api)`: provenance fields, serialiser block, filters, 9 tests |
+| `d094e6e` | `fix(api)`: idempotency constraint + race handling, key validation, client value errors, 6 tests |
+| `10ab777` | `docs(api)`: header name, `condition` enum, examples, smoke test |
+| `004924b` | `docs`: this report and the CLAUDE.md corrections |
