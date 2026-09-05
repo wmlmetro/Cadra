@@ -636,7 +636,93 @@ acurl -X POST $API/api/v1/assets/124/transfer-custody \
 { "error": { "code": "invalid_request", "message": "`to_custodian_id` is required", "request_id": "…", "details": { "http_status": 400 } } }
 ```
 
-## 3.8 GET `/api/v1/assets/export` — bulk JSON export
+## 3.8 POST `/api/v1/assets/<id>/tag-affixed` — confirm physical tagging
+
+Scope: **`tagging:write`** (not `assets:write`). Success: **200**. Idempotent.
+
+### Why this exists, and why `tag` is not the answer
+
+`nrs.asset` auto-generates a tag record when the asset is created, so
+`data.tag` is populated from the moment the asset exists. It says a tag
+*number* was allocated. It says nothing about whether a label was ever
+printed, let alone stuck on anything. Reading it as "tagged" reports every
+asset as tagged the instant it is keyed in.
+
+`data.tagging` answers the physical question:
+
+| Field | Meaning |
+|---|---|
+| `is_tagged` | **The boolean to branch on.** True only after an affix confirmation |
+| `label_state` | `issued` → `printed` → `affixed`, or `scrapped` |
+| `tag_number` | The active label's number |
+| `printed_at` / `printed_by` | When Cadra issued the print instruction, and who asked |
+| `affixed_at` / `affixed_by` | When the confirmation was recorded, and which client sent it |
+| `affixed_by_name` | The Tag-Issuing Unit operative who physically fitted it |
+
+`label_state` is **not writable** through `POST`/`PATCH /assets`. The
+Integration Flow makes the Tag-Issuing Unit independent of whoever created
+the asset record, and a status an operator can set from a desk would be
+evidence of nothing. This endpoint, under its own scope, is the only way an
+asset becomes `is_tagged`.
+
+### Request
+
+```bash
+acurl -X POST $API/api/v1/assets/124/tag-affixed \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "tag_number": "HQ-GF-MR-IT-042",
+    "affixed_by_name": "J. Okafor",
+    "affixed_at": "2026-09-14T11:32:07Z"
+  }'
+```
+
+`tag_number` is the number **read off the label on the asset**, and it is
+checked against the tag Cadra issued rather than trusted — that check is the
+serial-to-tag match the spec requires "at the point of physical tagging".
+`affixed_at` is optional (defaults to now) and accepts ISO 8601 with or
+without an offset; supply it when confirming work recorded offline.
+
+### Success — `200 OK`
+
+```json
+{
+  "data": {
+    "asset": { "id": 124, "...": "full asset record" },
+    "tagging": {
+      "tag_number": "HQ-GF-MR-IT-042",
+      "label_state": "affixed",
+      "is_tagged": true,
+      "printed_at": "2026-09-13",
+      "affixed_at": "2026-09-14T11:32:07",
+      "affixed_by": { "id": 7, "name": "Tag Issuing Unit" },
+      "affixed_by_name": "J. Okafor"
+    }
+  }
+}
+```
+
+### Error — `400 validation_failed` (the tag does not match)
+
+The control. A label from another asset, or a mis-keyed number, is refused
+rather than recorded:
+
+```json
+{ "error": { "code": "validation_failed",
+    "message": "Scanned tag HQ-GF-MR-IT-099 does not match the tag issued for this asset (HQ-GF-MR-IT-042). The label on the asset is not the one Cadra issued for it.",
+    "details": { "http_status": 400 } } }
+```
+
+### Finding what still needs tagging
+
+```bash
+acurl "$API/api/v1/assets?is_tagged=false&limit=50"      # not yet confirmed
+acurl "$API/api/v1/assets?tag_label_state=printed"       # printed, not affixed
+```
+
+---
+
+## 3.9 GET `/api/v1/assets/export` — bulk JSON export
 
 Scope: `assets:read`. Success: **200**. Returns every asset; no pagination.
 Cheaper than fanning out individual GETs for ETL into a data warehouse.
@@ -2438,12 +2524,19 @@ A token without `dashboards:read` calling `/api/v1/dashboard/kpis` gets:
 This is the difference between **401 unauthorized** (token absent or
 invalid) and **403 forbidden** (token valid but missing a required scope).
 
-## All 13 scopes
+## All 14 scopes
 
 `assets:read`, `assets:write`, `locations:read`, `locations:write`,
 `requests:read`, `requests:write`, `approvals:write`, `dashboards:read`,
 `integrations:write`, `ingestion:write`, `webhooks:admin`, `identity:read`,
-`admin`.
+`tagging:write`, `admin`.
+
+An unrecognised scope on a client record is now rejected when the record is
+saved. It used to be accepted silently, minted into a token, and produce a
+403 the caller could not tell apart from a real permission decision.
+
+**An empty `scopes` field is a wildcard, not a denial** — it grants
+everything. Set the scopes you mean.
 
 ## CORS / auth header
 
