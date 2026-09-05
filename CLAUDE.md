@@ -117,7 +117,8 @@ On staging/prod the `cadra-upgrade` Job must likewise fan out per tenant databas
 | Work | Status |
 |---|---|
 | Vendra integration CR-01 Parts A + B | **built** (handoff 01) — provenance fields, filters, idempotency and enum correctness |
-| Vendra integration CR-01 Part C (tagging signal) | **proposal delivered**, awaiting Architect decision — see `docs/handoffs/01-REPORT.md` |
+| Vendra integration CR-01 Part C — tag capture | **built** (handoff 03) — `label_state`, print stamping, `POST /assets/<id>/tag-affixed` under `tagging:write`, `is_tagged` on the serialiser |
+| Tag transport (outbound callback to Vendra) | **not started** — needs `ir.cron` retry, backoff, `event_id` idempotency, dead-letter; own handoff |
 | Dead `_sql_constraints` (handoff 02) | **closed** — all 8 reachable sites ported and enforced in every tenant; `docs/constraint-audit.md` |
 | Odoo 19 migration | in flight, separate track |
 
@@ -126,6 +127,7 @@ On staging/prod the `cadra-upgrade` Job must likewise fan out per tenant databas
 - **The nine pre-envelope routes adopt `@cadra_route`** (`/auth/*`, `/openapi.json`, `/docs`, `/assets/export.csv`, `/integrations/employees/import`, `/brand`). They validate nothing and sit outside the standard envelope — and `/auth/token` is the first endpoint every integration touches. Refactor of the auth surface; after INT-03 is live.
 - **Query-parameter enum validation (report 01 V4).** `?condition=damaged` returns `200 []` rather than an error — silent degradation, and asymmetric with POST's 400. API-wide contract change; its own handoff.
 - **Per-session test artefact paths.** Two concurrent pytest sessions clobber each other's report and captures. Cosmetic.
+- **`docs/api/.creds` is one file for eight tenants.** Secrets are per-database, but the creds file is a single global pointer, and both `scripts/bootstrap.py` and `docs/api/setup_api_smoke.py` rotate the secret unconditionally — so bootstrapping any tenant silently invalidates the file for whichever tenant the suite is aimed at. Bit us in handoff 03.
 
 ## Decisions
 
@@ -142,4 +144,11 @@ On staging/prod the `cadra-upgrade` Job must likewise fan out per tenant databas
 - 2026-09-05 · **`asset_code` becomes `NOT NULL`** alongside its unique constraint. · INT-06/07 dual-code reconciliation is a named control point; "one asset per *non-null* code" is weaker than it assumes.
 - 2026-09-05 · **Vendored trees are guarded by a startup assertion on the warning count, not by the source test.** · A source test cannot cover code an upstream refresh may reintroduce.
 - 2026-09-05 · **Tag capture is built before tag transport.** Cadra records neither printing nor affixing; the Tag-Issuing Unit's independence must survive into whatever records it. · Handoff 01 Part C, handoff 03.
+- 2026-09-05 · **`label_state` lives on `nrs.asset.tag.label`, is readonly, and moves only through `_mark_printed` / `_mark_affixed`.** `is_tagged` is true only after an affix confirmation whose scanned tag number matched the issued one. · A status an operator can set from a desk is evidence of nothing; the serial-to-tag match IS the control.
+- 2026-09-05 · **The print funnel is `ir.actions.report._render_qweb_pdf`, not the action methods.** The label wizard, the barcode station's raw `/report/pdf/` URL and Odoo's own Print-menu binding all bypass `action_print_tag`. · Handoff 03; stamping only the action methods would have under-recorded printing badly.
+- 2026-09-05 · **Tag ids collide with asset ids, and the four tag reports all declare `model = nrs.asset`** — so anything resolving a report's `res_ids` must not assume which. Two callers pass tag ids in. · Handoff 03 V1: a hook that guessed wrong fabricated print records on unrelated assets. Under-record rather than fabricate.
+- 2026-09-05 · **`readonly=True` is a web-client hint, not an ORM guard.** Fields that record an observed event are protected by a `write()` override keyed on a context flag the recording method sets. · Handoff 03 V1; `group_asset_manager` can write over XML-RPC.
+- 2026-09-05 · **`active_tag_id` excludes a tag pending replacement; `physical_tag_id` does not.** The physical question must use the latter — requesting a replacement does not peel the label off the asset. · Handoff 03 V3.
+- 2026-09-05 · **Unknown API scopes are rejected on save** (`myservice.api.client`), and an empty scopes field remains a wildcard. · A typo used to mint a token and produce a 403 indistinguishable from a real permission decision.
+- 2026-09-05 · **Installing modules is not provisioning a tenant.** `-i`/`-u` never run `scripts/bootstrap.py`, so a tenant created the documented way gets no `jwt_secret` and no API client. · How `nrs19`/`test19` ended up unable to authenticate; `k8s/dev/MULTI-TENANT.md` now says so.
 - 2026-09-05 · **`_sql_constraints` is dead on Odoo 19** — declared constraints silently do not exist. Ours use the dual-spelling pattern in `api_idempotency.py`; a guard must fail loudly on any new use. · 2 live holes in our modules + 44 files in `dist/`; handoff 02. **Corrected by the handoff 02 audit:** the `dist/` files are not reachable by Odoo 19 and were never holes; the real remainder was 6 sites in `crnd-19/`. All 8 are now fixed.
