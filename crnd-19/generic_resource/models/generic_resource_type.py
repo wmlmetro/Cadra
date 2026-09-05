@@ -66,11 +66,16 @@ class GenericResourceType(models.Model):
         default='internal', required=True)
     sequence = fields.Integer(default=5, index=True)
 
-    _sql_constraints = [
-        ('model_id_uniq',
-         'UNIQUE (model_id)',
-         'For each Odoo model only one Resource Type can be created!'),
-    ]
+    # Ported forward from the 15.0 copy in dist/, where `_sql_constraints`
+    # was still honoured. Odoo 19 removed it (orm/model_classes.py logs
+    # "no longer supported" and creates nothing), so this constraint had
+    # silently ceased to exist. crnd-19/ is loaded only by the Odoo 19
+    # config, so no version guard is needed here — unlike our own modules,
+    # which the 15 stack still loads.
+    _model_id_uniq = models.Constraint(
+        'UNIQUE (model_id)',
+        'For each Odoo model only one Resource Type can be created!',
+    )
 
     @api.depends('resource_ids')
     def _compute_resource_count(self):

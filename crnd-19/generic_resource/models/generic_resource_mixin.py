@@ -20,10 +20,16 @@ class GenericResourceMixin(models.AbstractModel):
         required=True, delegate=True, ondelete='restrict',
         string="Generic Resource")
 
-    _sql_constraints = [
-        ('unique_resource_id', 'UNIQUE(resource_id)',
-         'Resource must be unique')
-    ]
+    # Ported forward from the 15.0 copy in dist/, where `_sql_constraints`
+    # was still honoured. Odoo 19 removed it (orm/model_classes.py logs
+    # "no longer supported" and creates nothing), so this constraint had
+    # silently ceased to exist. crnd-19/ is loaded only by the Odoo 19
+    # config, so no version guard is needed here — unlike our own modules,
+    # which the 15 stack still loads.
+    _unique_resource_id = models.Constraint(
+        'UNIQUE(resource_id)',
+        'Resource must be unique',
+    )
 
     @api.model
     def _get_generic_tracking_fields(self):

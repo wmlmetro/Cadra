@@ -158,11 +158,16 @@ class GenericLocation(models.Model):
     longitude = fields.Float(digits=(16, 5))
     latitude = fields.Float(digits=(16, 5))
 
-    _sql_constraints = [
-        ('name_description_check',
-         'CHECK(name != description)',
-         ("The title of the Location should not be the description")),
-    ]
+    # Ported forward from the 15.0 copy in dist/, where `_sql_constraints`
+    # was still honoured. Odoo 19 removed it (orm/model_classes.py logs
+    # "no longer supported" and creates nothing), so this constraint had
+    # silently ceased to exist. crnd-19/ is loaded only by the Odoo 19
+    # config, so no version guard is needed here — unlike our own modules,
+    # which the 15 stack still loads.
+    _name_description_check = models.Constraint(
+        'CHECK(name != description)',
+        "The title of the Location should not be the description",
+    )
 
     @api.depends('location_type', 'parent_id', 'parent_id.building_id',
                  'parent_id.location_type')
