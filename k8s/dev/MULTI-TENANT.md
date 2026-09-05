@@ -82,13 +82,31 @@ kubectl -n $NS scale deploy/odoo --replicas=1
    ("invalid module names, ignored: …") so the brand never loads. Do NOT add
    brand modules to the shared `CADRA_BOOTSTRAP_MODULES` (that would brand every
    tenant) — install per-client via `bootstrap_extra_modules` / `install_modules`.
-4. **Database** — create + bootstrap a DB named exactly `jizzy`, installing the
-   brand module alongside the shared list:
+4. **Database** — create the DB named exactly `jizzy` and install the brand
+   module alongside the shared list. **Run the bootstrap Job** — it installs
+   the modules *and* provisions the tenant:
    ```sh
-   kubectl -n cadra-dev exec deploy/odoo -- \
-     odoo -d jizzy -i <CADRA_BOOTSTRAP_MODULES> --stop-after-init --no-http
+   # deploy-19 workflow, run_bootstrap=true, bootstrap_db=jizzy
+   # (or the Job directly with POSTGRES_DB=jizzy)
    ```
-   (or run the bootstrap Job with `POSTGRES_DB=jizzy`).
+   > **Installing modules is not provisioning a tenant.** The bare
+   > `odoo -d jizzy -i <CADRA_BOOTSTRAP_MODULES> --stop-after-init` spelling
+   > creates the database and installs the code, and stops there — it never
+   > runs `scripts/bootstrap.py`, so the tenant ends up with **no
+   > `myservice_api.jwt_secret`** and no API client. Nothing complains: the
+   > login page renders, `/auth/token` returns a clean 401 for bad
+   > credentials, and only a caller who supplies the *right* password gets a
+   > `server_misconfigured` 500. Upgrading the tenant later does not fix it —
+   > `-u` never runs bootstrap either. This is how `nrs19` and `test19` ended
+   > up unable to authenticate; see `docs/handoffs/03-REPORT.md`.
+   >
+   > To repair a database already in that state, without re-seeding:
+   > ```sh
+   > odoo shell -c /etc/odoo/odoo.conf -d jizzy --no-http \
+   >   <<< "exec(open('/mnt/extra-addons/scripts/bootstrap.py').read())"
+   > ```
+   > with `CADRA_SEED_PROFILE=` empty. `bootstrap.py` is idempotent — it
+   > preserves an existing meaningful secret rather than rotating it.
 5. **Seed** — run that client's seed script against DB `jizzy`.
 
 `https://jizzy.cadra.ng` now serves the Jizzy tenant. No new pods.
