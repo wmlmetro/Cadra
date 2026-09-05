@@ -39,9 +39,18 @@ FIRST_PARTY_GLOBS = ("myservice_*", "cadra_brand_*")
 #     else:
 #         _sql_constraints = [...]
 #
-# A `_sql_constraints` inside such a branch is fine. One in a bare class body
-# is the defect.
-_VERSION_GUARD_NAMES = {"_ODOO_MAJOR", "version_info", "release"}
+# A `_sql_constraints` reachable ONLY when the major version is below 19 is
+# fine. Anything else is the defect — including the same shape written the
+# wrong way round, which is a keystroke away and reinstates exactly the bug
+# this guard exists to catch:
+#
+#     if _ODOO_MAJOR >= 19:
+#         _sql_constraints = [...]        # dead on 19 — must NOT pass
+#
+# So it is not enough to notice that some enclosing `if` mentions the version:
+# the branch has to be the one that runs on the old major.
+_VERSION_NAMES = {"_ODOO_MAJOR", "version_info"}
+_ODOO_19 = 19
 
 
 def _first_party_python_files():
@@ -53,48 +62,119 @@ def _first_party_python_files():
                 yield path
 
 
-def _is_version_guarded(node, ancestors):
-    """True if `node` sits inside an `if` that tests the Odoo version."""
-    for parent in ancestors:
-        if not isinstance(parent, ast.If):
-            continue
-        names = {
-            n.id for n in ast.walk(parent.test) if isinstance(n, ast.Name)
-        } | {
-            n.attr for n in ast.walk(parent.test) if isinstance(n, ast.Attribute)
-        }
-        if names & _VERSION_GUARD_NAMES:
-            return True
+def _mentions_odoo_major(expr):
+    """True if `expr` reads the running Odoo major version."""
+    names = {n.id for n in ast.walk(expr) if isinstance(n, ast.Name)}
+    attrs = {n.attr for n in ast.walk(expr) if isinstance(n, ast.Attribute)}
+    return bool((names | attrs) & _VERSION_NAMES)
+
+
+def _branch_runs_below_19(if_node, in_body):
+    """Does the taken branch of `if_node` run only on Odoo majors below 19?
+
+    Handles the two spellings that mean the same thing —
+    `if _ODOO_MAJOR >= 19: ... else: <here>` and
+    `if _ODOO_MAJOR < 19: <here>` — and rejects everything else, including a
+    test that merely mentions a variable called `release`.
+    """
+    test = if_node.test
+    if not isinstance(test, ast.Compare) or len(test.ops) != 1:
+        return False
+    if not _mentions_odoo_major(test.left):
+        return False
+    comparator = test.comparators[0]
+    if not (isinstance(comparator, ast.Constant)
+            and isinstance(comparator.value, int)):
+        return False
+    op, bound = test.ops[0], comparator.value
+
+    # Which side of the comparison is "old Odoo"?
+    if isinstance(op, (ast.GtE, ast.Gt)):          # major >= 19 / > 18
+        old_branch_is_body = False
+    elif isinstance(op, (ast.Lt, ast.LtE)):        # major < 19 / <= 18
+        old_branch_is_body = True
+    else:
+        return False
+
+    # The bound has to actually separate 18 from 19, or the guard is about
+    # some other version boundary and says nothing about this one.
+    if isinstance(op, (ast.GtE, ast.Lt)) and bound != _ODOO_19:
+        return False
+    if isinstance(op, (ast.Gt, ast.LtE)) and bound != _ODOO_19 - 1:
+        return False
+
+    return in_body is old_branch_is_body
+
+
+def _is_version_guarded(node, ancestors_with_branch):
+    """True if `node` is reachable only on Odoo majors below 19."""
+    return any(
+        isinstance(parent, ast.If) and _branch_runs_below_19(parent, in_body)
+        for parent, in_body in ancestors_with_branch
+    )
+
+
+def _assigns_sql_constraints(node):
+    """True if `node` binds the name `_sql_constraints`.
+
+    Covers the spellings the ORM would still honour on Odoo 15:
+    plain assignment, annotated assignment (`_sql_constraints: list = [...]`),
+    augmented assignment, and tuple unpacking. `setattr` is out of scope —
+    a guard cannot chase arbitrary indirection, and nobody declares model
+    constraints that way by accident.
+    """
+    if isinstance(node, ast.Assign):
+        targets = node.targets
+    elif isinstance(node, (ast.AnnAssign, ast.AugAssign)):
+        targets = [node.target]
+    else:
+        return False
+
+    for target in targets:
+        for name in ast.walk(target):
+            if isinstance(name, ast.Name) and name.id == "_sql_constraints":
+                return True
     return False
 
 
 def _unguarded_sql_constraints(path):
-    """Every unguarded `_sql_constraints = ...` in one file, as (line, source)."""
+    """Line numbers of every unguarded `_sql_constraints` binding in one file."""
     try:
         tree = ast.parse(path.read_text(encoding="utf-8"))
     except (SyntaxError, UnicodeDecodeError) as exc:
         pytest.fail(f"could not parse {path.relative_to(REPO_ROOT)}: {exc}")
 
-    # ast gives no parent links; build them once so we can walk upwards.
+    # ast gives no parent links, so record each node's parent and — for an
+    # `if` — which of its two branches the child sits in. The branch is what
+    # tells a real guard apart from one written the wrong way round.
     parents = {}
     for parent in ast.walk(tree):
-        for child in ast.iter_child_nodes(parent):
-            parents[child] = parent
+        for field, value in ast.iter_fields(parent):
+            for child in (value if isinstance(value, list) else [value]):
+                if isinstance(child, ast.AST):
+                    parents[child] = (parent, field != "orelse")
 
     def ancestry(node):
         while node in parents:
-            node = parents[node]
-            yield node
+            node, in_body = parents[node]
+            yield node, in_body
 
     found = []
     for node in ast.walk(tree):
-        if not isinstance(node, ast.Assign):
+        if not _assigns_sql_constraints(node):
             continue
-        for target in node.targets:
-            if isinstance(target, ast.Name) and target.id == "_sql_constraints":
-                if not _is_version_guarded(node, ancestry(node)):
-                    found.append(node.lineno)
-    return found
+        chain = list(ancestry(node))
+        # Only a class-body binding declares constraints to the ORM. A local
+        # of the same name inside a method is someone's variable, not a model
+        # attribute, and flagging it would block legitimate code.
+        scope = next((p for p, _ in chain
+                      if isinstance(p, (ast.ClassDef, ast.FunctionDef,
+                                        ast.AsyncFunctionDef, ast.Module))), None)
+        if not isinstance(scope, ast.ClassDef):
+            continue
+        if not _is_version_guarded(node, chain):
+            found.append(node.lineno)
+    return sorted(found)
 
 
 def test_no_unguarded_sql_constraints():
@@ -149,6 +229,91 @@ def test_guard_detects_a_reintroduced_declaration(tmp_path):
         "        _sql_constraints = [('code_uniq', 'unique(code)', 'msg')]\n"
     )
     assert _unguarded_sql_constraints(guarded) == []
+
+
+# Each case is (label, source, should_be_flagged). Every "True" here was a
+# false negative in the guard's first version: it accepted any enclosing `if`
+# that merely mentioned the version, and only looked at plain `Assign` with a
+# bare `Name` target. The first case is the dangerous one — a keystroke from
+# the sanctioned pattern, and it reinstates the exact bug being guarded.
+_EVASIONS = [
+    ("wrong way round — dead on 19", """
+class T(models.Model):
+    _name = 't'
+    if _ODOO_MAJOR >= 19:
+        _sql_constraints = [('c', 'unique(code)', 'm')]
+    else:
+        _c = models.Constraint('UNIQUE (code)', 'm')
+""", True),
+    ("an `if` that only mentions a variable named release", """
+class T(models.Model):
+    _name = 't'
+    if release:
+        _sql_constraints = [('c', 'unique(code)', 'm')]
+""", True),
+    ("annotated assignment", """
+class T(models.Model):
+    _name = 't'
+    _sql_constraints: list = [('c', 'unique(code)', 'm')]
+""", True),
+    ("augmented assignment", """
+class T(models.Model):
+    _name = 't'
+    _sql_constraints = []
+    _sql_constraints += [('c', 'unique(code)', 'm')]
+""", True),
+    ("tuple unpacking", """
+class T(models.Model):
+    _name = 't'
+    _sql_constraints, _other = [('c', 'unique(code)', 'm')], None
+""", True),
+    ("guarded on an unrelated version boundary", """
+class T(models.Model):
+    _name = 't'
+    if _ODOO_MAJOR < 16:
+        _sql_constraints = [('c', 'unique(code)', 'm')]
+""", True),
+    ("sanctioned: >= 19 with the list in the else", """
+class T(models.Model):
+    _name = 't'
+    if _ODOO_MAJOR >= 19:
+        _c = models.Constraint('UNIQUE (code)', 'm')
+    else:
+        _sql_constraints = [('c', 'unique(code)', 'm')]
+""", False),
+    ("sanctioned: the < 19 spelling of the same thing", """
+class T(models.Model):
+    _name = 't'
+    if _ODOO_MAJOR < 19:
+        _sql_constraints = [('c', 'unique(code)', 'm')]
+""", False),
+    ("a method-local variable that merely shares the name", """
+class T(models.Model):
+    _name = 't'
+    def build(self):
+        _sql_constraints = [('c', 'unique(code)', 'm')]
+        return _sql_constraints
+""", False),
+]
+
+
+@pytest.mark.parametrize("label,source,should_flag",
+                         _EVASIONS, ids=[c[0] for c in _EVASIONS])
+def test_guard_is_not_fooled(tmp_path, label, source, should_flag):
+    """The guard must judge the branch, not just spot a version-shaped `if`.
+
+    A guard that accepts `if _ODOO_MAJOR >= 19: _sql_constraints = [...]`
+    passes green while the constraint it names does not exist — which is the
+    original failure wearing the costume of a test.
+    """
+    path = tmp_path / "case.py"
+    path.write_text("from odoo import models, release\n"
+                    "_ODOO_MAJOR = release.version_info[0]\n" + source)
+    flagged = _unguarded_sql_constraints(path)
+    if should_flag:
+        assert flagged, f"guard MISSED: {label}"
+    else:
+        assert not flagged, f"guard wrongly flagged: {label} (lines {flagged})"
 
 
 def test_guard_covers_the_modules_we_think_it_does():
