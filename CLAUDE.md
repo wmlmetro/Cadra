@@ -22,7 +22,7 @@ This project is run by **two cooperating Claude sessions**, the same way its sib
 
 1. **Opens with Step 0 — get to the right state.** Merge the previous work (branch or PR), run whatever migration, module upgrade or per-tenant fan-out that merge requires, verify it took, then create the new branch. Never assume the repo or the databases are already where the work needs them.
 2. **Ends with the work landed** — committed, pushed, PR opened, report written, Architect notified. "Done" means in the remote, not in the working tree.
-3. **Names anything that genuinely needs the owner** in a "Needs the owner" block at the top — a credential, a production deploy, an approval, a business decision. Explicit and up front, never discovered halfway through.
+3. **Names anything that genuinely needs the owner** in a "Needs the owner" block at the top — **including the final PR merge: the Builder's permission layer refuses `gh pr merge`, so every handoff ending in a PR is owner-blocked at that step** — — a credential, a production deploy, an approval, a business decision. Explicit and up front, never discovered halfway through.
 
 If a handoff cannot be completed without a manual step that is not in it, that is a defect in the handoff — say so in the report.
 
@@ -121,6 +121,12 @@ On staging/prod the `cadra-upgrade` Job must likewise fan out per tenant databas
 | Dead `_sql_constraints` (handoff 02) | **closed** — all 8 reachable sites ported and enforced in every tenant; `docs/constraint-audit.md` |
 | Odoo 19 migration | in flight, separate track |
 
+## Backlog — agreed, not yet scheduled
+
+- **The nine pre-envelope routes adopt `@cadra_route`** (`/auth/*`, `/openapi.json`, `/docs`, `/assets/export.csv`, `/integrations/employees/import`, `/brand`). They validate nothing and sit outside the standard envelope — and `/auth/token` is the first endpoint every integration touches. Refactor of the auth surface; after INT-03 is live.
+- **Query-parameter enum validation (report 01 V4).** `?condition=damaged` returns `200 []` rather than an error — silent degradation, and asymmetric with POST's 400. API-wide contract change; its own handoff.
+- **Per-session test artefact paths.** Two concurrent pytest sessions clobber each other's report and captures. Cosmetic.
+
 ## Decisions
 
 - 2026-09-05 · Architect/Builder split adopted for this repo, mirroring `vendra_network`. · One person owns two codebases in one programme; the handoff trail is how the integration stays coherent across both.
@@ -132,4 +138,8 @@ On staging/prod the `cadra-upgrade` Job must likewise fan out per tenant databas
 - 2026-09-05 · **`dist/` is Odoo 15 only and its `_sql_constraints` are correct** — it is not on the 19 addons path, so the "44 unassessed vendored files" were never a hole. `crnd-19/`/`oca-19/` are 19-only and need no version guard. · Handoff 02 audit.
 - 2026-09-05 · **The six `crnd-19/` holes were our own porting bug**, not vendor debt — `generic_resource`/`generic_location`/`generic_team` are hand-ported by us and are not fetched by `scripts/fetch-crnd-19.sh`, so patching them carries no upstream-clobber cost. · Handoff 02.
 - 2026-09-05 · **`models.Constraint` on an AbstractModel does propagate to concrete inheritors** on Odoo 19 (verified on `generic.resource.mixin` → `generic_resource_simple`). · Handoff 02.
+- 2026-09-05 · **`dist/` is not on the Odoo 19 addons path and is out of scope permanently.** Its constraints are correct for the 15 stack and die with it. · Three independent proofs in `docs/constraint-audit.md`; the trees are mutually exclusive by Odoo version.
+- 2026-09-05 · **`asset_code` becomes `NOT NULL`** alongside its unique constraint. · INT-06/07 dual-code reconciliation is a named control point; "one asset per *non-null* code" is weaker than it assumes.
+- 2026-09-05 · **Vendored trees are guarded by a startup assertion on the warning count, not by the source test.** · A source test cannot cover code an upstream refresh may reintroduce.
+- 2026-09-05 · **Tag capture is built before tag transport.** Cadra records neither printing nor affixing; the Tag-Issuing Unit's independence must survive into whatever records it. · Handoff 01 Part C, handoff 03.
 - 2026-09-05 · **`_sql_constraints` is dead on Odoo 19** — declared constraints silently do not exist. Ours use the dual-spelling pattern in `api_idempotency.py`; a guard must fail loudly on any new use. · 2 live holes in our modules + 44 files in `dist/`; handoff 02. **Corrected by the handoff 02 audit:** the `dist/` files are not reachable by Odoo 19 and were never holes; the real remainder was 6 sites in `crnd-19/`. All 8 are now fixed.
