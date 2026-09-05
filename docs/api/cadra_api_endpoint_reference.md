@@ -2370,9 +2370,11 @@ acurl -X POST $API/api/v1/locations \
 - Maximum length is **128 characters**. A longer key returns
   `400 invalid_request` with `details.max_length` — it is never silently
   dropped, because a caller cannot detect the difference between a key that
-  was honoured and one that was ignored. The **length is validated on every
-  endpoint**, including ones that do not cache; the header itself is accepted
-  and ignored there rather than rejected.
+  was honoured and one that was ignored. The length is validated on **every
+  endpoint that goes through the standard envelope**, including the ones that
+  do not cache; the header itself is accepted and ignored there rather than
+  rejected. Nine routes predate that envelope and validate nothing — see the
+  table below.
 - Two requests arriving simultaneously under one key produce **one** record.
   The loser's work is rolled back and it receives the winner's response. In
   the rare case where the winner's response cannot be read back, the loser
@@ -2399,9 +2401,17 @@ its OpenAPI entry declares an `X-Idempotency-Key` header parameter.
 | `POST /integrations/sap/employee-sync` | |
 | `POST /integrations/workflow/callback` | |
 
-The auth endpoints are deliberately outside it: minting a token twice is not
-a duplicate resource, and caching a token response under a client-supplied
-key would be a credential-replay hazard.
+Nine routes are older than the shared envelope and go straight to
+`@http.route`, so they neither honour the key nor validate its length:
+`/auth/token`, `/auth/login`, `/auth/refresh`, `/auth/revoke`,
+`/openapi.json`, `/docs`, `/assets/export.csv`,
+`/integrations/employees/import` and `/brand`. An over-long key is silently
+ignored there rather than answered with a 400 — worth knowing, because
+`/auth/token` is the first endpoint any integration calls.
+
+The auth endpoints are deliberately outside the *honoured* column too:
+minting a token twice is not a duplicate resource, and caching a token
+response under a client-supplied key would be a credential-replay hazard.
 
 ## Pagination (cursor-based)
 

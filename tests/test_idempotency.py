@@ -2,6 +2,7 @@
 endpoint within 24h must return the cached response (identical request_id,
 identical body)."""
 import time
+import uuid
 
 from .conftest import assert_envelope_ok
 
@@ -178,12 +179,24 @@ def test_overlong_key_rejected_on_a_non_idempotent_route(client):
     assert r.json()["error"]["code"] == "invalid_request"
 
 
-def test_normal_key_is_harmless_on_a_non_idempotent_route(client):
-    """A caller spraying a well-formed key must not start failing.
+def test_key_is_accepted_and_ignored_where_it_is_not_honoured(client):
+    """A well-formed key on a read route is accepted AND genuinely ignored.
 
-    The header is accepted and ignored where idempotency is not honoured; only
-    an unusable key is an error.
+    Two assertions, because "accepted" alone proves nothing — a GET never
+    reached the key handling before this change either, so asserting a 200
+    would pass just as well against reverted code. What is worth pinning is
+    the second half of the contract: the response is recomputed, not replayed
+    from the cache, so a caller spraying the header cannot accidentally opt
+    into caching on an endpoint the docs list as ignoring it.
     """
-    r = client.get("/api/v1/assets", params={"limit": 1},
-                   headers={"X-Idempotency-Key": f"pytest-spray-{int(time.time())}"})
-    assert_envelope_ok(r)
+    key = f"pytest-spray-{int(time.time())}-{uuid.uuid4().hex[:8]}"
+    first = assert_envelope_ok(
+        client.get("/api/v1/assets", params={"limit": 1},
+                   headers={"X-Idempotency-Key": key}))
+    second = assert_envelope_ok(
+        client.get("/api/v1/assets", params={"limit": 1},
+                   headers={"X-Idempotency-Key": key}))
+    assert first["meta"]["request_id"] != second["meta"]["request_id"], (
+        "the key was honoured on a route documented as ignoring it — "
+        "the second response was replayed from the idempotency cache"
+    )
