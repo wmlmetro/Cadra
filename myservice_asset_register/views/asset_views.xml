@@ -96,6 +96,11 @@
                             <field name="disposal_date"
                                    invisible="state != 'disposed'"/>
                         </group>
+                        <group string="Acquisition Provenance">
+                            <field name="grn_reference"/>
+                            <field name="purchase_order_reference"/>
+                            <field name="purchase_vendor"/>
+                        </group>
                     </group>
                     <group string="Maintenance">
                         <group>

@@ -131,6 +131,20 @@ def serialize_asset(a, *, include=()):
             "next_service_date": _date(a.next_service_date),
         },
         "disposal_reason": a.disposal_reason or None,
+        # Where the asset came from. Grouped rather than flattened so the
+        # commercial hand-off (INT-03) reads as one block: `grn_reference`
+        # and `purchase_order_reference` are Vendra's and SAP's identifiers
+        # for the receipt and the order, `purchase_vendor` is who supplied
+        # it (NOT `maintenance_vendor`, which is who services it), and the
+        # `import_*` trio is the stamp of whichever system wrote the record.
+        "provenance": {
+            "grn_reference": a.grn_reference or None,
+            "purchase_order_reference": a.purchase_order_reference or None,
+            "purchase_vendor": a.purchase_vendor or None,
+            "import_source": a.import_source or None,
+            "import_date": _date(a.import_date),
+            "import_ref": a.import_ref or None,
+        },
         "maintenance_vendor": _ref(a.maintenance_vendor_id),
         "is_verified": a.is_verified,
         "pm_count": a.pm_count,
@@ -188,6 +202,10 @@ def _list_domain(qs):
             ("category_id.name", "ilike", q),
             ("subcategory_id.name", "ilike", q),
             ("location_id.name", "ilike", q),
+            # An auditor holding a GRN or a PO pastes it into the search box
+            # before they think to reach for a named filter.
+            ("grn_reference", "ilike", q),
+            ("purchase_order_reference", "ilike", q),
         ]
         domain += ["|"] * (len(terms) - 1) + terms
     for fld in ("category_id", "subcategory_id", "location_id", "building_id",
@@ -199,6 +217,14 @@ def _list_domain(qs):
             except (TypeError, ValueError):
                 pass
     for fld in ("state", "condition", "domain", "asset_level"):
+        val = qs.get(fld)
+        if val:
+            domain.append((fld, "=", val))
+    # Provenance lookups are exact, not fuzzy: `?grn_reference=GRN-2026-00001`
+    # has to return that receipt's assets and nothing else, or it is not an
+    # audit trail.
+    for fld in ("grn_reference", "purchase_order_reference", "purchase_vendor",
+                "import_source", "import_ref"):
         val = qs.get(fld)
         if val:
             domain.append((fld, "=", val))
@@ -230,6 +256,15 @@ _WRITABLE_FIELDS = {
     # Cadra overwrites these for any computed method.
     "accumulated_depreciation", "current_book_value",
     "maintenance_vendor_id",
+    # Acquisition provenance (INT-03). Writable on PATCH as well as POST so a
+    # mis-keyed GRN can be corrected, but they are write-once in practice:
+    # they describe an event that already happened, and Vendra sends them on
+    # create. Any later change is tracked on the asset's mail.thread.
+    "grn_reference", "purchase_order_reference", "purchase_vendor",
+    # Already written by the bulk importer; writable here so an integration
+    # can stamp its own provenance rather than be indistinguishable from a
+    # hand-keyed record.
+    "import_source", "import_date", "import_ref",
     "last_verified_date", "verification_notes",
     "notes",
 }
@@ -261,7 +296,8 @@ class CadraAssetsV1(http.Controller):
                  scopes=[SCOPE_ASSETS_READ],
                  query_params=[
                      {"name": "q", "schema": {"type": "string"},
-                      "description": "Free-text search across name, asset_code, asset_tag, serial_number"},
+                      "description": "Free-text search across name, asset_code, asset_tag, "
+                                     "serial_number, grn_reference, purchase_order_reference"},
                      {"name": "category_id", "schema": {"type": "integer"}},
                      {"name": "subcategory_id", "schema": {"type": "integer"}},
                      {"name": "location_id", "schema": {"type": "integer"}},
@@ -273,10 +309,21 @@ class CadraAssetsV1(http.Controller):
                      {"name": "state", "schema": {"type": "string",
                       "enum": ["active", "in_repair", "disposed", "transferred", "missing"]}},
                      {"name": "condition", "schema": {"type": "string",
-                      "enum": ["new", "good", "fair", "poor", "damaged"]}},
+                      "enum": ["new", "good", "fair", "poor", "decommissioned"]}},
                      {"name": "domain", "schema": {"type": "string"}},
                      {"name": "asset_level", "schema": {"type": "string"}},
                      {"name": "is_verified", "schema": {"type": "boolean"}},
+                     {"name": "grn_reference", "schema": {"type": "string"},
+                      "description": "Exact match. Returns every asset created "
+                                     "from that goods receipt (INT-03)."},
+                     {"name": "purchase_order_reference", "schema": {"type": "string"},
+                      "description": "Exact match on the purchase order reference."},
+                     {"name": "purchase_vendor", "schema": {"type": "string"},
+                      "description": "Exact match on the supplying vendor."},
+                     {"name": "import_source", "schema": {"type": "string",
+                      "enum": ["myservice", "sap", "redhubb", "excel", "other"]}},
+                     {"name": "import_ref", "schema": {"type": "string"},
+                      "description": "Exact match on the writing system's own batch reference."},
                      *PAGINATION_QUERY_PARAMS,
                  ])
     def list_assets(self, **kwargs):
@@ -363,7 +410,8 @@ class CadraAssetsV1(http.Controller):
                                           "description": "hr.employee id"},
                          "department": {"type": "string", "nullable": True},
                          "condition": {"type": "string",
-                                       "enum": ["new", "good", "fair", "poor", "damaged"]},
+                                       "enum": ["new", "good", "fair", "poor",
+                                                "decommissioned"]},
                          "state": {"type": "string",
                                    "enum": ["active", "in_repair", "disposed",
                                             "transferred", "missing"]},
@@ -375,7 +423,26 @@ class CadraAssetsV1(http.Controller):
                          "acquisition_date": {"type": "string", "format": "date", "nullable": True},
                          "acquisition_cost": {"type": "number", "nullable": True},
                          "current_value": {"type": "number", "nullable": True},
-                         "maintenance_vendor_id": {"type": "integer", "nullable": True},
+                         "maintenance_vendor_id": {"type": "integer", "nullable": True,
+                                                   "description": "Who services the asset. "
+                                                                  "NOT the supplier — use "
+                                                                  "`purchase_vendor` for that."},
+                         "grn_reference": {"type": "string", "nullable": True,
+                                           "description": "Goods Receipt Note reference "
+                                                          "from the receiving system (INT-03)."},
+                         "purchase_order_reference": {"type": "string", "nullable": True,
+                                                      "description": "Purchase Order reference."},
+                         "purchase_vendor": {"type": "string", "nullable": True,
+                                             "description": "Supplier the asset was bought from."},
+                         "import_source": {"type": "string",
+                                           "enum": ["myservice", "sap", "redhubb",
+                                                    "excel", "other"],
+                                           "description": "Which system wrote this record. "
+                                                          "Defaults to `myservice`."},
+                         "import_date": {"type": "string", "format": "date", "nullable": True},
+                         "import_ref": {"type": "string", "nullable": True,
+                                        "description": "The writing system's own batch "
+                                                       "or transaction reference."},
                          "notes": {"type": "string", "nullable": True},
                      },
                  },
@@ -393,6 +460,12 @@ class CadraAssetsV1(http.Controller):
                      "state": "active",
                      "purchase_date": "2026-05-10",
                      "purchase_value": 1850.00,
+                     "grn_reference": "GRN-2026-00001",
+                     "purchase_order_reference": "PO-2026-00417",
+                     "purchase_vendor": "Dell Nigeria Ltd",
+                     "import_source": "other",
+                     "import_date": "2026-05-12",
+                     "import_ref": "VENDRA-RCPT-00114",
                  })
     def create_asset(self, **kwargs):
         body = get_params()
@@ -420,13 +493,20 @@ class CadraAssetsV1(http.Controller):
                      "properties": {
                          "name": {"type": "string"},
                          "condition": {"type": "string",
-                                       "enum": ["new", "good", "fair", "poor", "damaged"]},
+                                       "enum": ["new", "good", "fair", "poor",
+                                                "decommissioned"]},
                          "state": {"type": "string",
                                    "enum": ["active", "in_repair", "disposed",
                                             "transferred", "missing"]},
                          "notes": {"type": "string"},
                          "custodian_id": {"type": "integer"},
                          "location_id": {"type": "integer"},
+                         "grn_reference": {"type": "string",
+                                           "description": "Correctable, but write-once in "
+                                                          "practice — it records an event "
+                                                          "that already happened."},
+                         "purchase_order_reference": {"type": "string"},
+                         "purchase_vendor": {"type": "string"},
                      },
                  },
                  request_example={

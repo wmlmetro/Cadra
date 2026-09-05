@@ -96,6 +96,23 @@ class NRSAsset(models.Model):
     disposal_date = fields.Date('Disposal Date')
     disposal_reason = fields.Text('Disposal Reason')
 
+    # ── Acquisition provenance (INT-03) ───────────────────────
+    # Where this asset came from, carried in from the goods-receipt system.
+    # Char rather than relational on purpose: Vendra owns the authoritative
+    # GRN/PO records and SAP owns the purchase order, so modelling them here
+    # would mean maintaining a shadow copy of another system's master data.
+    # Indexed because `?grn_reference=` is the audit lookup these exist for.
+    grn_reference = fields.Char(
+        string='GRN Reference', index=True,
+        help='Goods Receipt Note that brought this asset onto the register')
+    purchase_order_reference = fields.Char(
+        string='PO Reference', index=True,
+        help='Purchase Order this asset was procured against')
+    purchase_vendor = fields.Char(
+        string='Purchase Vendor', index=True,
+        help='Supplier the asset was bought from. Distinct from the '
+             'Primary Maintenance Vendor, which is who services it.')
+
     # ── Vendor ────────────────────────────────────────────────
     maintenance_vendor_id = fields.Many2one(
         'res.partner', string='Primary Maintenance Vendor')
