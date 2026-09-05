@@ -130,6 +130,11 @@ On staging/prod the `cadra-upgrade` Job must likewise fan out per tenant databas
 
 - 2026-09-05 · **`nrs19` is the working tenant for integration and demo work**, replacing `cadra19`. · The 19-era database with the real dataset (~11,878 assets) and the migration target; its `jwt_secret` and API client were provisioned in handoff 03. Vendra's `Host` header, category ids and client credentials are all per-tenant — none of them carry over from `cadra19`.
 
+- 2026-09-05 · `[ruled]` **`/auth/login` granting `["*"]` must be fixed** — today any Odoo user who can log in holds `tagging:write`, so the Tag-Issuing Unit separation holds for API clients and not for session users. Needs a group→scope mapping. · Handoff 04 Q1; next Cadra handoff.
+- 2026-09-05 · `[landed]` **`ensure_vendra_client()` stays.** The demo's asset-creating half needs a credential that is *not* `test_client` — an admin wildcard that passes `tagging:write` without holding it would make the demo prove nothing. · The separation is the control; same argument as ruling 6 applied to the other side.
+- 2026-09-05 · `[ruled]` **Delete the shared `docs/api/.creds` once every tenant has a `.creds.<db>`.** Keep it as fallback until then.
+- 2026-09-05 · `[landed]` **`nrs19` client split**: `vendra` (assets:read/write, deliberately no `tagging:write`) and `tag_issuing_unit` (`tagging:write` only). Proven live in both directions with 403s. · An asset-creating credential that can also confirm its own tag defeats the control.
+
 ## Backlog — agreed, not yet scheduled
 
 - **The nine pre-envelope routes adopt `@cadra_route`** (`/auth/*`, `/openapi.json`, `/docs`, `/assets/export.csv`, `/integrations/employees/import`, `/brand`). They validate nothing and sit outside the standard envelope — and `/auth/token` is the first endpoint every integration touches. Refactor of the auth surface; after INT-03 is live.
@@ -138,6 +143,11 @@ On staging/prod the `cadra-upgrade` Job must likewise fan out per tenant databas
 - **`docs/api/.creds` is one file for eight tenants.** Secrets are per-database, but the creds file is a single global pointer, and both `scripts/bootstrap.py` and `docs/api/setup_api_smoke.py` rotate the secret unconditionally — so bootstrapping any tenant silently invalidates the file for whichever tenant the suite is aimed at. Bit us in handoff 03.
 
 ## Decisions
+
+> **Ruled ≠ landed.** A line here records what was *decided*, not what exists in the code. Tag each one **`[ruled]`** when the Architect makes it, and change it to **`[landed <commit>]`** only when a Builder report confirms it shipped. The Architect may write `[ruled]`; only a report moves a line to `[landed]`. The Status table above lists **landed** work only.
+>
+> This convention exists because handoff 04 found four decisions recorded here as done that had never been implemented — including one the list contradicted itself on. A decision written down and not built is worse than one not yet made, because the next handoff builds on it.
+
 
 - 2026-09-05 · Architect/Builder split adopted for this repo, mirroring `vendra_network`. · One person owns two codebases in one programme; the handoff trail is how the integration stays coherent across both.
 - 2026-09-05 · **Serialised provenance is a nested `data.provenance` block**, not six top-level keys. · Matches the existing grouping; one new envelope key instead of six for a contract Vendra is building against.
