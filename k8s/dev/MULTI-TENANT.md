@@ -107,6 +107,35 @@ kubectl -n $NS scale deploy/odoo --replicas=1
    > ```
    > with `CADRA_SEED_PROFILE=` empty. `bootstrap.py` is idempotent — it
    > preserves an existing meaningful secret rather than rotating it.
+   >
+   > **What bootstrap provisions, per tenant.** All of it is per-database —
+   > one Odoo process serves every tenant, but clients, scopes, secrets and
+   > category ids belong to the database:
+   >
+   > | Client | Scopes | For |
+   > |---|---|---|
+   > | `test_client` | the full canonical set **including `admin`** when `scripts/bootstrap.py` created it; `docs/api/setup_api_smoke.py` creates it without `admin` | the pytest suite and smoke checks |
+   > | `vendra` | `assets:read assets:write` | INT-03, the goods-receipt hand-off |
+   > | `tag_issuing_unit` | `tagging:write` | INT-04/05, confirming a label is physically on the asset |
+   >
+   > Neither script re-scopes a `test_client` it finds, so whichever created it
+   > decides — check the record rather than assuming. A tenant whose
+   > `test_client` lacks `admin` skips ~25 admin-scoped tests, which is
+   > expected, not a failure.
+   >
+   > The last two are deliberately not one credential and deliberately not
+   > `admin`. An affix confirmation submitted by the credential that created
+   > the asset proves only that one system said so twice. Override the ids or
+   > supply known secrets with `CADRA_VENDRA_CLIENT_ID`/`_SECRET` and
+   > `CADRA_TAGGING_CLIENT_ID`/`_SECRET`; re-running bootstrap re-narrows the
+   > scopes if someone widened one by hand.
+   >
+   > **An empty scopes field grants nothing.** It used to be a wildcard, so a
+   > client saved with the field blank received the whole API including
+   > `admin`. Grant everything by writing `admin`, never by leaving it empty.
+   >
+   > Credentials land in `docs/api/.creds.<db>`, not a shared file — see
+   > `tests/README.md`.
 5. **Seed** — run that client's seed script against DB `jizzy`.
 
 `https://jizzy.cadra.ng` now serves the Jizzy tenant. No new pods.

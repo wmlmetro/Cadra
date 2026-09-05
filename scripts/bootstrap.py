@@ -222,6 +222,100 @@ def ensure_test_client():
     return client_id, raw
 
 
+# ─── step 3.1: the integration clients ──────────────────────────────
+#
+# The September Integration Flow gives Cadra two counterparties that are not
+# each other and are not us: Vendra, which creates asset records from a goods
+# receipt (INT-03), and the Tag-Issuing Unit, which prints the labels, sticks
+# them on and confirms the serial-to-tag match (INT-04/05).
+#
+# That confirmation is the only thing that makes an asset read as genuinely
+# tagged — so it is evidence only if the credential confirming the tag is not
+# the credential that wrote the asset. The separation therefore has to exist
+# as a credential, not as a convention, and it has to be provisioned by the
+# same script that provisions everything else. A shell command an operator is
+# expected to remember is how a demo ends up authenticating as admin and
+# quietly proving nothing.
+
+TAGGING_CLIENT_ID_DEFAULT = "tag_issuing_unit"
+VENDRA_CLIENT_ID_DEFAULT = "vendra"
+
+
+def _ensure_scoped_client(*, name, default_client_id, scopes,
+                          id_env, secret_env):
+    """Create (or re-narrow) a named API client with an exact scope string.
+
+    Returns (client_id, raw_secret). `raw_secret` is a placeholder string when
+    an existing secret was preserved — a hash cannot be read back.
+    """
+    Client = env["myservice.api.client"].sudo()
+    client_id = os.environ.get(id_env, "").strip() or default_client_id
+    requested_secret = os.environ.get(secret_env, "").strip()
+
+    rec = Client.search([("client_id", "=", client_id)], limit=1)
+    if not rec:
+        rec = Client.create({
+            "name": name,
+            "client_id": client_id,
+            "user_id": env.ref("base.user_admin").id,
+            "scopes": scopes,
+            "token_ttl_seconds": 3600,
+        })
+        _say(f"created API client {client_id!r} (scopes: {scopes})")
+    elif rec.scopes != scopes:
+        # Re-narrowed on every run. Widening a scope by hand to get past a 403
+        # is a permission decision, and it belongs in a commit rather than in
+        # a form somebody filled in during an incident.
+        _say(f"re-narrowing scopes on {client_id!r}: "
+             f"{rec.scopes!r} -> {scopes!r}", level="WARN")
+        rec.scopes = scopes
+
+    if requested_secret:
+        if not rec.check_client_secret(requested_secret):
+            rec.set_client_secret(requested_secret)
+            _say(f"client_secret for {client_id!r} set from {secret_env}")
+        raw = requested_secret
+    elif not rec.client_secret_hash:
+        raw = rec.rotate_secret()
+        _say(f"client_secret generated for {client_id!r}")
+    else:
+        raw = "<UNCHANGED — existing secret preserved>"
+
+    return client_id, raw
+
+
+def ensure_tagging_client():
+    """The Tag-Issuing Unit's client — `tagging:write` and nothing else.
+
+    Not `assets:write`: it does not create assets. Not `assets:read`: the tag
+    numbers reach it over INT-04, not by browsing the register. Emphatically
+    not `admin`, which is a wildcard over the whole API.
+    """
+    return _ensure_scoped_client(
+        name="Tag-Issuing Unit",
+        default_client_id=TAGGING_CLIENT_ID_DEFAULT,
+        scopes="tagging:write",
+        id_env="CADRA_TAGGING_CLIENT_ID",
+        secret_env="CADRA_TAGGING_CLIENT_SECRET",
+    )
+
+
+def ensure_vendra_client():
+    """Vendra's client for INT-03 — it creates and reads assets, and that is all.
+
+    Deliberately WITHOUT `tagging:write`: Vendra hands over a classified
+    receipt, it does not put labels on things. If Vendra could confirm a tag
+    affixed, the affix record would prove only that Vendra said so.
+    """
+    return _ensure_scoped_client(
+        name="Vendra (INT-03)",
+        default_client_id=VENDRA_CLIENT_ID_DEFAULT,
+        scopes="assets:read assets:write",
+        id_env="CADRA_VENDRA_CLIENT_ID",
+        secret_env="CADRA_VENDRA_CLIENT_SECRET",
+    )
+
+
 # ─── step 3.5: outgoing mail server ────────────────────────────────
 
 SMTP_ENCRYPTION_CHOICES = {"none", "starttls", "ssl"}
@@ -472,6 +566,8 @@ def main():
         ensure_turnstile_secret()
         ensure_admin_groups()
         client_id, raw_secret = ensure_test_client()
+        tag_client_id, tag_raw_secret = ensure_tagging_client()
+        vendra_client_id, vendra_raw_secret = ensure_vendra_client()
         ensure_mail_server()
         ensure_email_relay()
         env.cr.commit()
@@ -489,6 +585,10 @@ def main():
     print(f"JWT_SECRET={jwt_secret}", flush=True)
     print(f"CLIENT_ID={client_id}", flush=True)
     print(f"CLIENT_SECRET={raw_secret}", flush=True)
+    print(f"TAGGING_CLIENT_ID={tag_client_id}", flush=True)
+    print(f"TAGGING_CLIENT_SECRET={tag_raw_secret}", flush=True)
+    print(f"VENDRA_CLIENT_ID={vendra_client_id}", flush=True)
+    print(f"VENDRA_CLIENT_SECRET={vendra_raw_secret}", flush=True)
     print("CADRA_BOOTSTRAP_END", flush=True)
 
 
