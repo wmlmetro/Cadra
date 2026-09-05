@@ -274,8 +274,24 @@ does not compute them (NRS spec §6.2).
 Scope: `assets:read`. Success: **200**.
 
 Filters: `q`, `category_id`, `location_id`, `building_id`, `custodian_id`,
-`state`, `condition`, `domain`, `is_verified`, `limit` (default 50,
-max 200), `cursor`.
+`state`, `condition`, `domain`, `is_verified`, `grn_reference`,
+`purchase_order_reference`, `purchase_vendor`, `import_source`,
+`import_ref`, `limit` (default 50, max 200), `cursor`.
+
+`condition` is one of `new | good | fair | poor | decommissioned`.
+`state` is one of `active | in_repair | disposed | transferred | missing`.
+
+The five provenance filters match **exactly**, not fuzzily —
+`?grn_reference=GRN-2026-00001` returns the assets that goods receipt
+produced and nothing else, which is what makes it usable as an audit
+trail. `q` also searches `grn_reference` and `purchase_order_reference`
+so a pasted reference finds its assets from the search box.
+
+**Exact means byte-exact** — case-sensitive, whitespace-significant, no
+prefix matching. `?grn_reference=GRN-2026-0001` does not match
+`GRN-2026-00011` or `grn-2026-0001`. A writing system must send the GRN in
+the same form it will later query by, or the lookup returns zero rows with
+no other signal. Use `q` for a forgiving search.
 
 ### Request
 
@@ -404,7 +420,7 @@ acurl "$API/api/v1/assets/by-tag/NO-SUCH-TAG-12345"
 ## 3.4 POST `/api/v1/assets` — create asset
 
 Scope: `assets:write`. Success: **201**.
-Idempotent via `Idempotency-Key` header — same key → same record.
+Idempotent via `X-Idempotency-Key` header — same key → same record.
 `asset_code` auto-generated from category if omitted.
 
 ### Request
@@ -412,7 +428,7 @@ Idempotent via `Idempotency-Key` header — same key → same record.
 ```bash
 acurl -X POST $API/api/v1/assets \
   -H 'Content-Type: application/json' \
-  -H 'Idempotency-Key: demo-create-asset-001' \
+  -H 'X-Idempotency-Key: demo-create-asset-001' \
   -d '{
     "name": "Generator 100kVA — Bldg A",
     "category_id": 3,
@@ -446,8 +462,57 @@ acurl -X POST $API/api/v1/assets \
 }
 ```
 
-Re-running the same `Idempotency-Key` with **different** body returns the
+Re-running the same `X-Idempotency-Key` with **different** body returns the
 **original** record (the second body is ignored).
+
+### Acquisition provenance (INT-03)
+
+A create may carry where the asset came from. All six fields are writable on
+`POST` and `PATCH`, and come back under `data.provenance`:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `grn_reference` | string | Goods Receipt Note that brought the asset onto the register |
+| `purchase_order_reference` | string | Purchase Order it was procured against |
+| `purchase_vendor` | string | Supplier it was bought from — **not** `maintenance_vendor_id`, which is who services it |
+| `import_source` | enum | `myservice \| sap \| redhubb \| excel \| other` — which system wrote the record |
+| `import_date` | date | When that system wrote it |
+| `import_ref` | string | That system's own batch or transaction reference |
+
+```bash
+acurl -X POST $API/api/v1/assets \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "Dell Latitude 7430",
+    "category_id": 7,
+    "grn_reference": "GRN-2026-00001",
+    "purchase_order_reference": "PO-2026-00417",
+    "purchase_vendor": "Dell Nigeria Ltd",
+    "import_source": "other",
+    "import_date": "2026-05-12",
+    "import_ref": "VENDRA-RCPT-00114"
+  }'
+```
+
+```json
+{
+  "data": {
+    "id": 1274,
+    "provenance": {
+      "grn_reference": "GRN-2026-00001",
+      "purchase_order_reference": "PO-2026-00417",
+      "purchase_vendor": "Dell Nigeria Ltd",
+      "import_source": "other",
+      "import_date": "2026-05-12",
+      "import_ref": "VENDRA-RCPT-00114"
+    }
+  }
+}
+```
+
+They are correctable via `PATCH` but write-once in practice: they record an
+event that already happened. Read them back with
+`GET /api/v1/assets?grn_reference=GRN-2026-00001`.
 
 ### Error — `400 invalid_request` (missing required field)
 
@@ -470,7 +535,7 @@ Scope: `assets:write`. Success: **200**.
 acurl -X PATCH $API/api/v1/assets/124 \
   -H 'Content-Type: application/json' \
   -d '{
-    "condition": "in_repair",
+    "condition": "poor",
     "notes": "UPS battery flagged during May inspection"
   }'
 ```
@@ -901,14 +966,14 @@ acurl "$API/api/v1/locations/99999999"
 ## 4.3 POST `/api/v1/locations` — create location
 
 Scope: `locations:write`. Success: **201**.
-Idempotent via `Idempotency-Key`.
+Idempotent via `X-Idempotency-Key`.
 
 ### Request
 
 ```bash
 acurl -X POST $API/api/v1/locations \
   -H 'Content-Type: application/json' \
-  -H 'Idempotency-Key: demo-create-loc-001' \
+  -H 'X-Idempotency-Key: demo-create-loc-001' \
   -d '{
     "name": "HQ - 2F - Boardroom",
     "parent_id": 890,
@@ -1252,7 +1317,7 @@ acurl "$API/api/v1/requests/by-reference/NO-SUCH-REF"
 ## 5.4 POST `/api/v1/requests` — create request
 
 Scope: `requests:write`. Success: **201**. Idempotent via
-`Idempotency-Key`. Auto-generates `reference`, picks the initial stage
+`X-Idempotency-Key`. Auto-generates `reference`, picks the initial stage
 from the request type.
 
 ### Request
@@ -1260,7 +1325,7 @@ from the request type.
 ```bash
 acurl -X POST $API/api/v1/requests \
   -H 'Content-Type: application/json' \
-  -H 'Idempotency-Key: demo-create-req-001' \
+  -H 'X-Idempotency-Key: demo-create-req-001' \
   -d '{
     "type_id": 1,
     "category_id": 5,
@@ -2103,14 +2168,14 @@ acurl $API/api/v1/home/form-data
 ## 8.2 POST `/api/v1/home/quick-submit` — submit a request from the homepage
 
 Scope: `requests:write`. Success: **201**. Idempotent via
-`Idempotency-Key`.
+`X-Idempotency-Key`.
 
 ### Request
 
 ```bash
 acurl -X POST $API/api/v1/home/quick-submit \
   -H 'Content-Type: application/json' \
-  -H 'Idempotency-Key: demo-quicksubmit-001' \
+  -H 'X-Idempotency-Key: demo-quicksubmit-001' \
   -d '{
     "name": "Adamu Bello",
     "email": "adamu.bello@firs.gov.ng",
@@ -2278,7 +2343,7 @@ acurl -X POST $API/api/v1/integrations/workflow/callback \
 
 Any POST that creates a resource (`/assets`, `/locations`, `/requests`,
 `/home/quick-submit`, `/assets/<id>/move`, etc.) accepts an
-`Idempotency-Key` header. The first call creates; the second call with
+`X-Idempotency-Key` header. The first call creates; the second call with
 the **same key** returns the **original** response even if the body
 differs.
 
@@ -2286,16 +2351,30 @@ differs.
 # First call — creates record id=481
 acurl -X POST $API/api/v1/locations \
   -H 'Content-Type: application/json' \
-  -H 'Idempotency-Key: demo-idem-001' \
+  -H 'X-Idempotency-Key: demo-idem-001' \
   -d '{"name":"Idem demo loc","description":"first call"}'
 
 # Second call with SAME key but DIFFERENT body — returns id=481 with the
 # ORIGINAL "first call" description; the second body is silently ignored
 acurl -X POST $API/api/v1/locations \
   -H 'Content-Type: application/json' \
-  -H 'Idempotency-Key: demo-idem-001' \
+  -H 'X-Idempotency-Key: demo-idem-001' \
   -d '{"name":"SHOULD-BE-IGNORED","description":"second call"}'
 ```
+
+**Rules an integration should know:**
+
+- The header is `X-Idempotency-Key`. A key sent under any other name is not
+  seen, and the request is processed as new.
+- Keys are scoped to `(key, path)` and live for **24 hours**.
+- Maximum length is **128 characters**. A longer key returns
+  `400 invalid_request` with `details.max_length` — it is never silently
+  dropped, because a caller cannot detect the difference between a key that
+  was honoured and one that was ignored.
+- Two requests arriving simultaneously under one key produce **one** record.
+  The loser's work is rolled back and it receives the winner's response. In
+  the rare case where the winner's response cannot be read back, the loser
+  gets `409 conflict` — retry with the same key.
 
 ## Pagination (cursor-based)
 
@@ -2332,7 +2411,7 @@ invalid) and **403 forbidden** (token valid but missing a required scope).
 ## CORS / auth header
 
 - Every authenticated endpoint expects `Authorization: Bearer <jwt>`
-- `Idempotency-Key` is optional but recommended on every POST that creates
+- `X-Idempotency-Key` is optional but recommended on every POST that creates
   state
 - `Content-Type: application/json` on bodies; the API doesn't accept
   form-encoded payloads on JSON endpoints

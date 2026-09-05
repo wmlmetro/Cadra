@@ -330,7 +330,7 @@ Drives the public-facing service-request form on the marketing site.
 | Method | Path | Scope | Purpose |
 |---|---|---|---|
 | GET  | `/api/v1/home/form-data` | `requests:read` | Dropdowns (types, categories, locations) |
-| POST | `/api/v1/home/quick-submit` | `requests:write` | One-shot request submission from a public form (idempotent on `Idempotency-Key`) |
+| POST | `/api/v1/home/quick-submit` | `requests:write` | One-shot request submission from a public form (idempotent on `X-Idempotency-Key`) |
 
 ```bash
 # Fetch the form's dropdowns
@@ -339,7 +339,7 @@ curl -sH "Authorization: Bearer $TOKEN" \
 
 # Submit with idempotency — same key → same response, no duplicate request
 curl -sX POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-  -H 'Idempotency-Key: demo-abc-123' \
+  -H 'X-Idempotency-Key: demo-abc-123' \
   -d '{"name":"Adamu","email":"a@firs.gov.ng","message":"AC not working","location_name":"HQ Floor 4"}' \
   https://staging.app.cadra.ng/api/v1/home/quick-submit
 ```
