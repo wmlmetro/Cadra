@@ -520,7 +520,9 @@ read as tagged.
 
 ## Commits
 
-Branch `feat/tag-capture`, PR into `dev`:
+Branch `feat/tag-capture`, PR **#46** into `dev`:
+<https://github.com/wmlmetro/Cadra/pull/46>
+
 
 | Commit | Scope |
 |---|---|
@@ -531,3 +533,4 @@ Branch `feat/tag-capture`, PR into `dev`:
 | `87667fb` | `feat`: `label_state`, print capture at the render layer, the affix control |
 | `122cfbb` | `feat(api)`: `data.tagging`, filters, `POST /assets/<id>/tag-affixed` |
 | `d88de9e` | `fix`: the three capture-integrity defects the verification pass found |
+| `59d91e4` | `docs`: this report and the tag-capture rules worth keeping |
