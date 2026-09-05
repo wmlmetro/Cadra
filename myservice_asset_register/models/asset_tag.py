@@ -119,6 +119,11 @@ class NRSAsset(models.Model):
         ('myservice', 'myservice'),
         ('sap',       'SAP'),
         ('redhubb',   'Redhubb'),
+        # The goods-receipt system (INT-03). The enum already names the
+        # integration partners it receives from, and the field's whole purpose
+        # is naming the source — falling back to `other` plus a reference
+        # throws away the signal it exists to carry.
+        ('vendra',    'Vendra'),
         ('excel',     'Excel Import'),
         ('other',     'Other'),
     ], string='Data Source', default='myservice')

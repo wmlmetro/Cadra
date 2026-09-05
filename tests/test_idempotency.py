@@ -164,3 +164,26 @@ def test_concurrent_same_key_creates_exactly_one(client, test_location, capture)
         f"expected 1 asset named {name}, found {len(matches)}: "
         f"{[a['id'] for a in matches]}"
     )
+
+
+def test_overlong_key_rejected_on_a_non_idempotent_route(client):
+    """The length check runs everywhere, not only where the key is honoured.
+
+    A caller with a key-generation bug should find out on whichever endpoint
+    it hits first, rather than only on the subset that caches.
+    """
+    r = client.get("/api/v1/assets", params={"limit": 1},
+                   headers={"X-Idempotency-Key": "k" * 200})
+    assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:300]}"
+    assert r.json()["error"]["code"] == "invalid_request"
+
+
+def test_normal_key_is_harmless_on_a_non_idempotent_route(client):
+    """A caller spraying a well-formed key must not start failing.
+
+    The header is accepted and ignored where idempotency is not honoured; only
+    an unusable key is an error.
+    """
+    r = client.get("/api/v1/assets", params={"limit": 1},
+                   headers={"X-Idempotency-Key": f"pytest-spray-{int(time.time())}"})
+    assert_envelope_ok(r)

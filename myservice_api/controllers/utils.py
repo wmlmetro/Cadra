@@ -804,12 +804,19 @@ def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
             method = request.httprequest.method.upper()
             is_write = method in ("POST", "PUT", "PATCH", "DELETE")
             endpoint_path = request.httprequest.path
+            # Validate the header's length on EVERY route, not only the ones
+            # that honour it. A caller sending a 200-character key has a bug
+            # worth knowing about wherever it sends it, and finding out only
+            # on the subset of endpoints that cache is how you ship the bug.
+            # The header itself is not rejected on routes that ignore it —
+            # a caller harmlessly spraying it should not start failing.
             try:
-                ikey = idempotency_key() if (idempotent and is_write) else None
+                supplied_key = idempotency_key()
             except IdempotencyKeyError as e:
                 return _http_response(err(
                     ERR_INVALID_REQUEST, str(e), status=400, details=e.details,
                 ))
+            ikey = supplied_key if (idempotent and is_write) else None
 
             if ikey:
                 cached = idempotency_check(ikey, endpoint_path)

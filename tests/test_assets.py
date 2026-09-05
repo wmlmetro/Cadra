@@ -380,3 +380,38 @@ def test_non_integer_relation_id_is_400_not_500(client, test_location):
     })
     assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:300]}"
     assert r.json()["error"]["code"] == "validation_failed"
+
+
+def test_import_source_accepts_vendra(client, test_location):
+    """`vendra` is a published value of import_source, not a fallback to `other`.
+
+    The enum names the systems Cadra receives from; the goods-receipt system
+    is one of them, and `other` + a ref throws away the signal the field
+    exists to carry.
+    """
+    ts = int(time.time())
+    r = client.post("/api/v1/assets", json={
+        "name": f"pytest-vendra-src-{ts}",
+        "category_id": 1,
+        "location_id": test_location["id"],
+        "import_source": "vendra",
+        "import_ref": f"VENDRA-RCPT-{ts}",
+    })
+    body = assert_envelope_ok(r, expected_status=201)
+    assert body["data"]["provenance"]["import_source"] == "vendra"
+    assert "_warnings" not in body["data"]
+
+
+def test_import_source_rejects_an_invented_value(client, test_location):
+    """Adding `vendra` must not have loosened the enum."""
+    ts = int(time.time())
+    r = client.post("/api/v1/assets", json={
+        "name": f"pytest-bad-src-{ts}",
+        "category_id": 1,
+        "location_id": test_location["id"],
+        "import_source": "not-a-system",
+    })
+    assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:300]}"
+    details = r.json()["error"].get("details") or {}
+    assert details.get("field") == "import_source"
+    assert "vendra" in (details.get("allowed_values") or [])
