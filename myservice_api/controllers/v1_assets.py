@@ -71,6 +71,20 @@ def _serialize_depreciation(a):
     }
 
 
+class _BadFilter(Exception):
+    """A query parameter we cannot interpret.
+
+    Raised out of the domain builder and turned into a 400 by the listing
+    endpoint. A bare ValueError would reach the decorator's catch-all and
+    answer 500, which tells an integration to retry a request that can never
+    succeed.
+    """
+
+    def __init__(self, message, details=None):
+        super().__init__(message)
+        self.details = details or {}
+
+
 def _parse_datetime(raw):
     """Parse an inbound timestamp to the naive UTC Odoo stores, or None.
 
@@ -98,12 +112,17 @@ def _parse_datetime(raw):
 def _serialize_tagging(a):
     """The physical-tagging block (INT-04/05).
 
-    Reads from the asset's ACTIVE tag label. An asset with no tag at all, and
+    Reads the label physically on the asset. An asset with no tag at all, and
     an asset whose tag was generated but never printed or affixed, both read
     as not tagged — which is the honest answer and the whole point: the old
     `tag` field said every asset was tagged from the moment it was created.
+
+    Deliberately NOT `active_tag_id`, which drops a tag as soon as a
+    replacement is requested: the label is still on the asset until someone
+    peels it off, and reporting it as untagged would be the same bug pointed
+    the other way.
     """
-    label = a.active_tag_id
+    label = a.physical_tag_id
     return {
         "tag_number": label.name if label else None,
         "label_state": label.label_state if label else None,
@@ -279,10 +298,18 @@ def _list_domain(qs):
     # audit trail.
     # `?is_tagged=true` is the question Vendra actually asks; it maps onto the
     # one label state that means a physical label was confirmed on the asset.
-    if qs.get("is_tagged") in ("true", "True", True):
-        domain.append(("tag_label_state", "=", "affixed"))
-    elif qs.get("is_tagged") in ("false", "False", False):
-        domain.append(("tag_label_state", "!=", "affixed"))
+    raw_tagged = qs.get("is_tagged")
+    if raw_tagged not in (None, "", "null"):
+        if raw_tagged in ("true", "True", True):
+            domain.append(("tag_label_state", "=", "affixed"))
+        elif raw_tagged in ("false", "False", False):
+            domain.append(("tag_label_state", "!=", "affixed"))
+        else:
+            # Anything else used to fall through both branches and append no
+            # domain at all, so `?is_tagged=1` quietly returned EVERY asset
+            # and a caller branching on the result treated them all as tagged.
+            raise _BadFilter("`is_tagged` must be `true` or `false`",
+                             details={"is_tagged": raw_tagged})
     for fld in ("grn_reference", "purchase_order_reference", "purchase_vendor",
                 "import_source", "import_ref", "tag_label_state"):
         val = qs.get(fld)
@@ -399,7 +426,10 @@ class CadraAssetsV1(http.Controller):
     def list_assets(self, **kwargs):
         qs = get_params()
         Asset = request.env["nrs.asset"].sudo()
-        domain = _list_domain(qs)
+        try:
+            domain = _list_domain(qs)
+        except _BadFilter as e:
+            return err(ERR_INVALID_REQUEST, str(e), details=e.details)
         limit = parse_limit(qs)
         page, next_cursor, total = paginate(
             Asset, domain,
@@ -791,6 +821,13 @@ class CadraAssetsV1(http.Controller):
             if affixed_at is None:
                 return err(ERR_INVALID_REQUEST,
                            "`affixed_at` must be an ISO 8601 date-time",
+                           details={"affixed_at": raw_when})
+            # A label cannot have been affixed in the future. Without this a
+            # clock-skewed or mis-typed client writes a date the register will
+            # carry for the life of the asset.
+            if affixed_at > odoo_fields.Datetime.now():
+                return err(ERR_INVALID_REQUEST,
+                           "`affixed_at` cannot be in the future",
                            details={"affixed_at": raw_when})
 
         # A mismatch raises ValidationError, which the endpoint decorator turns

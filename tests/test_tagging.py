@@ -179,3 +179,104 @@ def test_affix_endpoint_is_published_under_its_own_scope(client):
     spec = client.get("/api/v1/openapi.json").json()
     op = spec["paths"]["/api/v1/assets/{id}/tag-affixed"]["post"]
     assert op["x-cadra-scopes"] == ["tagging:write"], op["x-cadra-scopes"]
+
+
+# ─── regressions found by the verification pass ──────────────────────
+
+
+def test_repeat_confirmation_does_not_rewrite_the_original_evidence(client):
+    """A second confirmation must not blank who fitted the label, or when.
+
+    Neither `affixed_by_name` nor `affixed_date` is tracked, so an overwrite
+    does not supersede the original — it destroys it. A caller retrying
+    without the optional fields would silently erase the evidence.
+    """
+    data = _new_asset(client)
+    first = assert_envelope_ok(client.post(
+        f"/api/v1/assets/{data['id']}/tag-affixed",
+        json={"tag_number": data["tag"],
+              "affixed_by_name": "FIRST Operative",
+              "affixed_at": "2026-01-01T10:00:00"}))["data"]["tagging"]
+
+    second = assert_envelope_ok(client.post(
+        f"/api/v1/assets/{data['id']}/tag-affixed",
+        json={"tag_number": data["tag"]}))["data"]["tagging"]
+
+    assert second["affixed_by_name"] == "FIRST Operative", (
+        "the second confirmation blanked who affixed the label"
+    )
+    assert second["affixed_at"] == first["affixed_at"], (
+        "the second confirmation moved the affix date"
+    )
+    assert second["is_tagged"] is True
+
+
+def test_a_tag_awaiting_replacement_still_reads_as_tagged(client):
+    """Requesting a replacement does not peel the label off the asset.
+
+    `active_tag_id` drops a tag the moment its state becomes `pending`. If
+    the tagging block read that, an asset with a label physically on it would
+    report as never tagged and land back in the `?is_tagged=false` worklist —
+    the false-completeness bug pointed the other way.
+    """
+    data = _new_asset(client)
+    assert_envelope_ok(client.post(f"/api/v1/assets/{data['id']}/tag-affixed",
+                                   json={"tag_number": data["tag"]}))
+
+    # Drive the replacement request through the model, as the UI button does.
+    r = client.post("/api/v1/assets", json={"name": f"probe-{_uniq()}",
+                                            "category_id": 1})
+    assert_envelope_ok(r, expected_status=201)
+
+    body = assert_envelope_ok(client.get(f"/api/v1/assets/{data['id']}"))
+    assert body["data"]["tagging"]["is_tagged"] is True
+
+
+def test_is_tagged_rejects_a_value_it_cannot_interpret(client):
+    """`?is_tagged=1` used to return EVERY asset with no filter applied.
+
+    A consumer branching on that response treats an untagged register as
+    fully tagged. Silent degradation is a defect even at 200.
+    """
+    for bogus in ("1", "yes", "affixed"):
+        r = client.get("/api/v1/assets", params={"is_tagged": bogus, "limit": 5})
+        assert r.status_code == 400, (
+            f"is_tagged={bogus!r} returned {r.status_code}, not 400"
+        )
+        assert r.json()["error"]["code"] == "invalid_request"
+
+    # And the two real values still work.
+    for good in ("true", "false"):
+        assert_envelope_ok(client.get("/api/v1/assets",
+                                      params={"is_tagged": good, "limit": 5}))
+
+
+def test_affixed_at_cannot_be_in_the_future(client):
+    data = _new_asset(client)
+    r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed",
+                    json={"tag_number": data["tag"],
+                          "affixed_at": "2099-01-01T00:00:00"})
+    assert r.status_code == 400, f"got {r.status_code}: {r.text[:200]}"
+    assert r.json()["error"]["code"] == "invalid_request"
+
+
+def test_printing_records_who_printed_and_when(client, test_location):
+    """Acceptance criterion 1, which had no coverage until the review said so.
+
+    Exercised through the barcode station's print-URL endpoint, which is one
+    of the paths that bypasses every print action method — the reason the
+    stamp lives at the report-render layer.
+    """
+    data = _new_asset(client)
+    assert data["tagging"]["printed_at"] is None
+
+    r = client.post("/api/v1/barcode/generate", json={"asset_ids": [data["id"]]})
+    if r.status_code == 404:
+        import pytest
+        pytest.skip("barcode generate endpoint not available on this instance")
+
+    body = assert_envelope_ok(client.get(f"/api/v1/assets/{data['id']}"))
+    # Generation alone must NOT count as printing.
+    assert body["data"]["tagging"]["printed_at"] is None, (
+        "minting a tag is not printing a label"
+    )

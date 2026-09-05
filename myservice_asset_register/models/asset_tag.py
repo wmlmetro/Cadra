@@ -117,7 +117,7 @@ class NRSAssetTag(models.Model):
     def action_approve_replacement(self):
         for r in self:
             # Scrap this tag
-            r.write({
+            r.with_context(cadra_tag_capture=True).write({
                 'state': 'scrapped',
                 'label_state': 'scrapped',
                 'scrapped_date': fields.Date.today(),
@@ -134,6 +134,26 @@ class NRSAssetTag(models.Model):
     def action_reject_replacement(self):
         self.write({'state': 'active'})
 
+    # Fields that describe an event Cadra observed. They are written by the
+    # two methods below and nowhere else — `readonly=True` only stops the web
+    # client offering an input, it is not an ORM guard, and the model is
+    # writable by group_asset_manager over XML-RPC.
+    _CAPTURE_FIELDS = frozenset({
+        'label_state', 'printed_date', 'printed_by',
+        'affixed_date', 'affixed_by', 'affixed_by_name',
+    })
+
+    def write(self, vals):
+        if (self._CAPTURE_FIELDS & set(vals)
+                and not self.env.context.get('cadra_tag_capture')):
+            raise ValidationError(_(
+                'Tag capture fields (%s) record events and cannot be set '
+                'directly. A label becomes "affixed" only through a '
+                'confirmation carrying the tag number scanned off the asset '
+                '(POST /api/v1/assets/<id>/tag-affixed).'
+            ) % ', '.join(sorted(self._CAPTURE_FIELDS & set(vals))))
+        return super().write(vals)
+
     def _mark_printed(self):
         """Record that a print instruction was issued for these labels.
 
@@ -145,7 +165,7 @@ class NRSAssetTag(models.Model):
         """
         to_mark = self.filtered(lambda t: t.label_state in ('issued', 'printed'))
         if to_mark:
-            to_mark.write({
+            to_mark.with_context(cadra_tag_capture=True).write({
                 'label_state': 'printed',
                 'printed_date': fields.Datetime.now(),
                 'printed_by': self.env.uid,
@@ -173,7 +193,20 @@ class NRSAssetTag(models.Model):
                 'one Cadra issued for it.'
             ) % {'scanned': scanned_tag_number or '(none)', 'expected': self.name})
 
-        self.write({
+        if self.label_state == 'affixed':
+            # A second confirmation must not rewrite the first. The original
+            # record is the evidence — who fitted the label and when — and
+            # overwriting it would blank `affixed_by_name` and move
+            # `affixed_at` for any caller that retried without the optional
+            # fields. Neither field is tracked, so the old values would be
+            # gone rather than superseded. Log the repeat and keep the record.
+            self.message_post(body=_(
+                'Repeat affix confirmation for tag %(tag)s ignored; the '
+                'original record of %(when)s stands.'
+            ) % {'tag': self.name, 'when': self.affixed_date})
+            return self
+
+        self.with_context(cadra_tag_capture=True).write({
             'label_state': 'affixed',
             'affixed_date': affixed_date or fields.Datetime.now(),
             'affixed_by': self.env.uid,
@@ -207,8 +240,14 @@ class NRSAsset(models.Model):
     # Stored so `GET /api/v1/assets?tag_label_state=affixed` is a real query
     # rather than a post-filter. False for an asset with no active tag, which
     # is the honest answer: never tagged.
+    physical_tag_id = fields.Many2one(
+        'nrs.asset.tag.label', string='Physical Label',
+        compute='_compute_physical_tag', store=True,
+        help='The label physically on the asset. Unlike active_tag_id this '
+             'includes a tag awaiting replacement, which is still stuck to '
+             'the asset until someone removes it.')
     tag_label_state = fields.Selection(
-        related='active_tag_id.label_state', string='Tag Status',
+        related='physical_tag_id.label_state', string='Tag Status',
         store=True, readonly=True, index=True)
     tag_source = fields.Selection([
         ('auto',   'Auto-generated'),
@@ -233,6 +272,22 @@ class NRSAsset(models.Model):
     ], string='Data Source', default='myservice')
     import_date = fields.Date('Import Date')
     import_ref = fields.Char('Import Reference')
+
+    @api.depends('tag_ids.state', 'tag_ids.label_state')
+    def _compute_physical_tag(self):
+        """The label actually on the asset, for the physical question.
+
+        `active_tag_id` drops a tag the moment a replacement is REQUESTED
+        (state becomes `pending`), which would make an asset whose label is
+        still stuck to it read as never tagged — the mirror image of the
+        false-completeness bug this module exists to remove. Requesting a
+        replacement is a decision about the future; it does not peel the
+        label off.
+        """
+        for r in self:
+            candidates = r.tag_ids.filtered(lambda t: t.state != 'scrapped')
+            affixed = candidates.filtered(lambda t: t.label_state == 'affixed')
+            r.physical_tag_id = (affixed[:1] or candidates[:1]) or False
 
     @api.depends('tag_ids.state')
     def _compute_active_tag(self):
@@ -431,9 +486,21 @@ class IrActionsReport(models.Model):
         report = self._get_report(report_ref)
         if not report or report.report_name not in self._TAG_LABEL_REPORTS:
             return
-        # These reports declare `model = nrs.asset`, so Odoo resolves res_ids as
-        # asset ids and that is what was actually rendered — resolve them the
-        # same way rather than guessing, so we stamp what the reader is holding.
+        # These reports declare `model = nrs.asset`, so Odoo resolves res_ids
+        # as asset ids. But two callers pass TAG ids into them — the tag
+        # form's Print button (`action_print_tag`) and the label wizard — and
+        # tag ids collide with asset ids, so browsing blindly as assets stamps
+        # a "printed on <date> by <user>" record onto an unrelated asset.
+        # Fabricating evidence is worse than missing it, and it is the exact
+        # defect this module exists to remove, so when the ids are ambiguous
+        # we decline. Both ambiguous callers already stamp explicitly, so the
+        # only cost is a missed stamp for an unknown caller whose asset ids
+        # happen to collide — an under-record, which is the safe direction.
+        if self.env['nrs.asset.tag.label'].sudo().browse(res_ids).exists():
+            _logger.debug(
+                "not stamping print for %s: res_ids %s are also valid tag ids, "
+                "so the caller's intent is ambiguous", report_ref, res_ids)
+            return
         assets = self.env['nrs.asset'].sudo().browse(res_ids).exists()
         tags = assets.mapped('active_tag_id')
         if tags:

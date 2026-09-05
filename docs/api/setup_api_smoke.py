@@ -11,6 +11,8 @@ so we can read them from the host.
 """
 import secrets
 
+from odoo.addons.myservice_api.controllers.utils import ALL_SCOPES
+
 SECRET = secrets.token_urlsafe(48)
 env['ir.config_parameter'].sudo().set_param('myservice_api.jwt_secret', SECRET)
 
@@ -24,7 +26,10 @@ client = Client.create({
     'name': 'Smoke Test',
     'client_id': 'test_client',
     'user_id': admin.id,
-    'scopes': 'dashboards:read assets:read',
+    # Derived rather than hand-listed: this literal drifted behind ALL_SCOPES
+    # once already, and conftest.py points developers at this script, so a
+    # missing scope here means their suite 403s on endpoints that pass in CI.
+    'scopes': ' '.join(sorted(ALL_SCOPES - {'admin'})),
     'token_ttl_seconds': 3600,
 })
 raw = client.rotate_secret()
