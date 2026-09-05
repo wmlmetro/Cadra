@@ -1,5 +1,9 @@
-from odoo import models, fields, api, _
+from odoo import models, fields, api, release, _
 from odoo.exceptions import ValidationError
+
+# See myservice_asset_register/models/asset.py for why both spellings exist:
+# Odoo 19 removed `_sql_constraints` and creates nothing for it.
+_ODOO_MAJOR = release.version_info[0]
 
 
 class BusRoute(models.Model):
@@ -96,9 +100,15 @@ class BusRoute(models.Model):
             'context': {'default_route_id': self.id},
         }
 
-    _sql_constraints = [
-        ('code_unique', 'unique(code)', 'Route code must be unique.')
-    ]
+    if _ODOO_MAJOR >= 19:
+        _code_unique = models.Constraint(
+            'UNIQUE (code)',
+            'Route code must be unique.',
+        )
+    else:
+        _sql_constraints = [
+            ('code_unique', 'unique(code)', 'Route code must be unique.')
+        ]
 
 
 class BusRouteStop(models.Model):
