@@ -38,6 +38,17 @@ git checkout -b fix/demo-readiness
 
 ---
 
+## The working tenant is now `nrs19`
+
+Owner's decision: **integration and demo work targets `nrs19`**, not `cadra19`. It is the 19-era database with the real dataset (~11,878 assets) and the migration target, and handoff 03 provisioned its `jwt_secret` and API client.
+
+Everything tenant-scoped must be re-established there and **verified, not assumed** — Cadra routes by `Host` header and each database has its own clients, scopes, secrets and category ids:
+
+- The Tag-Issuing Unit client (Part B item 6) is provisioned **on `nrs19`**.
+- `docs/demo-contract.md` states `Host: nrs19` explicitly in every call, and every call in it is verified against that database.
+- **Report `nrs19`'s asset-category ids** — Vendra's `default_cadra_category` is currently `73`, which is a `cadra19` id and almost certainly means something else or nothing here. A wrong-but-valid category id returns 201 into the wrong category, so this is the value most likely to fail silently in the demo.
+- Say in your report whether `nrs19` differs from `cadra19` in any way that affects the contract — scope table, category tree, existing assets that could collide with demo fixtures.
+
 ## Part A — the traps and the hole
 
 1. **`upgrade-19.yml`**: the roll-up step re-applies the deployment with the new image, so the first tenant's run puts *every* tenant on new code while the rest still hold the old schema — the V1 hazard, industrialised. And `target_db` being a single string means four dispatches, which GitHub silently cancels when queued. Fix both: upgrade every tenant before the image rolls forward, and take a list.

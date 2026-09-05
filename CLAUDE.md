@@ -128,6 +128,8 @@ On staging/prod the `cadra-upgrade` Job must likewise fan out per tenant databas
 - 2026-09-05 · **`data.tag` deprecated by annotation, not removed.** · Breaking a published field to fix a naming problem is not a trade worth making with a live consumer.
 - 2026-09-05 · **The affix endpoint verifies `serial_number` when supplied.** · The spec asks for the serial-to-tag match; checking one side is half a control.
 
+- 2026-09-05 · **`nrs19` is the working tenant for integration and demo work**, replacing `cadra19`. · The 19-era database with the real dataset (~11,878 assets) and the migration target; its `jwt_secret` and API client were provisioned in handoff 03. Vendra's `Host` header, category ids and client credentials are all per-tenant — none of them carry over from `cadra19`.
+
 ## Backlog — agreed, not yet scheduled
 
 - **The nine pre-envelope routes adopt `@cadra_route`** (`/auth/*`, `/openapi.json`, `/docs`, `/assets/export.csv`, `/integrations/employees/import`, `/brand`). They validate nothing and sit outside the standard envelope — and `/auth/token` is the first endpoint every integration touches. Refactor of the auth surface; after INT-03 is live.
