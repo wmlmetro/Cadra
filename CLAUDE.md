@@ -48,12 +48,44 @@ Cadra is one of three systems in the NRS integration programme, defined by *"End
 
 ## Stack & environment
 
-*(Builder: correct and extend this section from what is actually true on this machine — the sibling repo's equivalent was wrong until the Builder fixed it, and that fix saved every later session time.)*
+*Corrected against this machine on 2026-09-05 (handoff 01). The local stack is **Odoo 19**, not 15 — this section said 15 and every command in it was wrong.*
 
-- Odoo 15 (Python 3.10) · PostgreSQL · Docker Compose · nginx (dev) / Caddy (prod).
-- Bring-up: `scripts/bootstrap.sh` (dev) — build image, install modules, seed, mint API creds to `docs/api/.creds`.
-- Tests: pytest suite in `tests/` (API-level, runs against a live instance) plus `docs/api/smoke_test.py` for a 30-second liveness check.
-- Module upgrade after view/manifest changes: `docker compose … exec odoo odoo -c /etc/odoo/odoo.conf -d odoo -u <module> --stop-after-init`.
+- **Runtime: Odoo 19.0** (`cadra-odoo:19.0-dev`, built from `Dockerfile.odoo.19.dev`) · PostgreSQL 15 · Docker Compose · nginx (dev) / Caddy (prod). Odoo 15 remains the deployed production runtime; nothing on this machine runs it any more.
+- **Bring-up needs BOTH compose files** — the base alone gives the wrong `odoo.conf` and no proxy:
+  ```
+  docker compose -f docker-compose.yml -f docker-compose.19.yml up -d
+  ```
+- **Tenancy is host-based.** `http://localhost:8069` answers *"No database is selected"*; reach a database as `http://<db>.localhost:8069`. Local databases: `cadra19`, `nrs19`, `gtb19`, `test19` (19-era) and `nrs`, `gtb`, `lasg`, `jaizbankplc` (15-era replicas now served by the 19 container).
+- **Tests need a database whose credentials match `docs/api/.creds`.** Today that is only `jaizbankplc`:
+  ```
+  CADRA_API_BASE=http://jaizbankplc.localhost:8069 tests/.venv/bin/python -m pytest tests/ -q
+  ```
+  The venv is `tests/.venv` (Python 3.13) — the repo's own Python, not the container's. `docs/api/smoke_test.py` is the 30-second liveness check. Note the suite's token has no `admin` scope, so ~24 admin-scoped tests skip; that is expected, not a failure.
+- **Module upgrade** after model/view/manifest changes — the running container already binds port 8069, so an in-container upgrade must be given free ports:
+  ```
+  docker compose -f docker-compose.yml -f docker-compose.19.yml exec -T odoo \
+    odoo -c /etc/odoo/odoo.conf -d <db> -u <module> --stop-after-init \
+    --http-port=8099 --gevent-port=8098
+  ```
+  Then `docker compose … restart odoo` — Python changes are bind-mounted but not hot-reloaded.
+
+### Odoo 19 gotcha: `_sql_constraints` is dead
+
+Odoo 19 removed it. `odoo/orm/model_classes.py:162` logs *"Model attribute '_sql_constraints' is no longer supported, please define models.Constraint on the model"* and **creates no constraint** — a uniqueness guarantee declared the old way silently stops existing. **10 declaration sites** are affected: 2 first-party (`nrs.asset`, `bus.route`) and 8 in vendored `crnd-19/` (including the installed `generic_location`); see `docs/handoffs/01-REPORT.md`. Use `models.Constraint("UNIQUE (a, b)", "message")` on 19.
+
+### Adding a stored field is a multi-tenant migration, not a code change
+
+One Odoo process serves every database from one registry, so the moment a stored field lands in the Python, **every tenant that has not been upgraded is broken** — reads of that column raise `UndefinedColumn`, and any serializer touching it 500s the endpoint. Upgrade **all** databases before the code ships, not just the one you tested on:
+
+```
+for db in cadra19 nrs19 gtb19 nrs lasg gtb jaizbankplc; do
+  docker compose -f docker-compose.yml -f docker-compose.19.yml exec -T odoo \
+    odoo -c /etc/odoo/odoo.conf -d $db -u <module> --stop-after-init \
+    --http-port=8099 --gevent-port=8098
+done
+```
+
+On staging/prod the `cadra-upgrade` Job must likewise fan out per tenant database.
 
 ## Architecture rules
 
@@ -74,10 +106,16 @@ Cadra is one of three systems in the NRS integration programme, defined by *"End
 
 | Work | Status |
 |---|---|
-| Vendra integration change request (CR-01) | **in progress** (handoff 01) |
+| Vendra integration CR-01 Parts A + B | **built** (handoff 01) — provenance fields, filters, idempotency and enum correctness |
+| Vendra integration CR-01 Part C (tagging signal) | **proposal delivered**, awaiting Architect decision — see `docs/handoffs/01-REPORT.md` |
+| Dead `_sql_constraints` on `nrs.asset` and `bus.route` | **open** — needs its own handoff (see 01-REPORT §Findings) |
 | Odoo 19 migration | in flight, separate track |
 
 ## Decisions
 
 - 2026-09-05 · Architect/Builder split adopted for this repo, mirroring `vendra_network`. · One person owns two codebases in one programme; the handoff trail is how the integration stays coherent across both.
 - 2026-09-05 · `POST /api/v1/assets` is treated as a **published integration contract**, not an internal endpoint. · Vendra's INT-03 now builds against it.
+- 2026-09-05 · Acquisition provenance is serialised as a nested `data.provenance` block, not six top-level keys. · Matches the existing nesting idiom (`financial`, `dates`, `location_hierarchy`) and adds one key to the envelope instead of six.
+- 2026-09-05 · Provenance fields are writable on `PATCH` as well as `POST`, but documented write-once-in-practice rather than enforced. · A mis-keyed GRN has to be correctable; enforcement would need an immutability mechanism the model does not have, and `mail.thread` already tracks the change.
+- 2026-09-05 · A value outside a Selection field's set now returns **400 `validation_failed`** with the accepted values, not 500. · It is the caller's error; a 500 tells an integration to retry, which it would do forever.
+- 2026-09-05 · An over-long `X-Idempotency-Key` returns **400**, replacing silent downgrade to a non-idempotent write. · Rule 3 — a caller cannot detect the difference between a key honoured and a key ignored.
