@@ -16,10 +16,12 @@
                     </div>
                     <group>
                         <group string="Adapter">
+                            <field name="purpose"/>
                             <field name="adapter_type"/>
                             <field name="active" widget="boolean_toggle"/>
                         </group>
-                        <group string="Callback / Webhook">
+                        <group string="Callback / Webhook"
+                            invisible="purpose != 'workspace'">
                             <field name="callback_enabled" widget="boolean_toggle"/>
                             <field name="callback_token"
                                 invisible="callback_enabled == False"/>
@@ -34,7 +36,12 @@
                             <group>
                                 <group>
                                     <field name="rest_base_url" placeholder="https://workflow.nrs.gov.ng/api/v1"/>
-                                    <field name="rest_endpoint_submit"/>
+                                    <field name="rest_endpoint_submit"
+                                        invisible="purpose != 'workspace'"
+                                        required="purpose == 'workspace'"/>
+                                    <field name="rest_endpoint_event"
+                                        invisible="purpose != 'asset_events'"
+                                        placeholder="/api/method/vendra_network.api.tag_event"/>
                                     <field name="rest_timeout"/>
                                 </group>
                                 <group string="Authentication">
@@ -59,7 +66,29 @@
                                 <field name="email_subject_prefix"/>
                             </group>
                         </page>
-                        <page string="Stage Mapping">
+                        <page string="Event Delivery"
+                            invisible="purpose != 'asset_events'">
+                            <div class="alert alert-info" role="alert">
+                                Asset lifecycle events are queued, not sent
+                                inline: an affix confirmation is recorded in
+                                Cadra whether or not the receiver is up, and
+                                the queue keeps trying. Delivery state lives
+                                in the Dispatch Log; abandoned events appear
+                                under Failed Deliveries.
+                            </div>
+                            <group>
+                                <group string="Delivery">
+                                    <field name="event_enabled" widget="boolean_toggle"/>
+                                </group>
+                                <group string="Retry Policy">
+                                    <field name="retry_max_attempts"/>
+                                    <field name="retry_base_seconds"/>
+                                    <field name="retry_cap_seconds"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Stage Mapping"
+                            invisible="purpose != 'workspace'">
                             <group>
                                 <field name="trigger_stage_ids" widget="many2many_tags"
                                     options="{'no_create': True}"/>
@@ -67,7 +96,8 @@
                                 <field name="rejected_stage_id" options="{'no_create': True}"/>
                             </group>
                         </page>
-                        <page string="Payload Options">
+                        <page string="Payload Options"
+                            invisible="purpose != 'workspace'">
                             <group>
                                 <field name="include_attachments" widget="boolean_toggle"/>
                                 <field name="payload_template" widget="code"/>
@@ -89,6 +119,7 @@
         <field name="arch" type="xml">
             <list string="Workflow Configurations">
                 <field name="name"/>
+                <field name="purpose"/>
                 <field name="adapter_type"/>
                 <field name="callback_enabled"/>
                 <field name="active" widget="boolean_toggle"/>

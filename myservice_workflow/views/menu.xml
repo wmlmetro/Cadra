@@ -6,6 +6,9 @@
     <menuitem id="menu_workflow_log" name="Dispatch Log"
         parent="menu_workflow_root" sequence="10"
         action="action_workflow_dispatch_log"/>
+    <menuitem id="menu_workflow_dead_letters" name="Failed Deliveries"
+        parent="menu_workflow_root" sequence="15"
+        action="action_workflow_dead_letters"/>
     <menuitem id="menu_workflow_config" name="Integration Settings"
         parent="menu_workflow_root" sequence="20"
         action="action_workflow_config"
