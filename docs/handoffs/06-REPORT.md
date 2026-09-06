@@ -519,7 +519,13 @@ produce two events.
 
 ## Commits
 
-_(filled in below)_
+Branch `feat/tag-callback`, PR **#49** → `dev`
+&lt;https://github.com/wmlmetro/Cadra/pull/49&gt;
+
+| Commit | |
+|---|---|
+| `c2b124a` | `feat: deliver asset.tag.affixed to Vendra with retry (INT-05)` |
+| `2b95b4c` | `docs: record handoff 06 and publish the INT-05 contract` |
 
 ---
 
