@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- The safety net, not the schedule.
+
+             Backoff is booked precisely: a failed attempt calls
+             `ir.cron._trigger(at=next_attempt_at)`, so a 60-second retry
+             happens 60 seconds later rather than whenever this interval next
+             comes round. This periodic pass exists for the cases a trigger
+             cannot cover — a trigger row lost to a crash between the write
+             and the commit, an event queued while the cron was inactive, a
+             row put back by hand in the database.
+
+             Five minutes mirrors Vendra's own outbox sweep, so the two ends
+             of the same wire behave the same way when someone is watching
+             both. noupdate so an operator's interval or on/off change
+             survives a module upgrade. -->
+        <record id="cron_workflow_outbound_events" model="ir.cron">
+            <field name="name">Cadra: deliver outbound asset events (INT-05)</field>
+            <field name="model_id" ref="model_workflow_dispatch_log"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_drain_outbound_events()</field>
+            <field name="interval_number">5</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+            <field name="user_id" ref="base.user_root"/>
+        </record>
+    </data>
+</odoo>
