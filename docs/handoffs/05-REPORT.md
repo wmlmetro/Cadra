@@ -680,4 +680,14 @@ branch intact.
 
 ## Commits
 
-COMMITS_PLACEHOLDER
+| commit | what |
+|---|---|
+| `b8b6f64` | `fix:` derive `/auth/login` scopes from Odoo groups instead of granting `["*"]` |
+| `82da6ab` | `fix:` correct the demo contract and the defects Vendra found building on it |
+| `f7bf682` | `chore:` retire the shared `docs/api/.creds`, and report handoff 05 |
+
+PR: **https://github.com/wmlmetro/Cadra/pull/48** → `dev`. Owner-blocked at the
+merge, as every handoff ending in a PR is.
+
+Also pushed to `dev` at the start: `43d6309` and `8f5a342`, the Architect's own
+docs commits, which were sitting unpushed on the local branch.
