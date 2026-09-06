@@ -35,7 +35,7 @@ scripts/bootstrap.sh
 ```
 
 When it finishes you'll see a summary banner with URLs and a path to the
-captured credentials at `docs/api/.creds`.
+captured credentials at `docs/api/.creds.<db>`.
 
 **Sanity check the install**:
 
@@ -109,7 +109,7 @@ When the banner says `serving HTTPS on <CADRA_DOMAIN>`, you're live.
    - Runs the seed scripts per `CADRA_SEED_PROFILE` (`core` by default:
      ITSM structure, location skeleton, 415 FIRS offices).
 6. Captures the bootstrap output (sentinel-wrapped) and writes
-   credentials to `docs/api/.creds`.
+   credentials to `docs/api/.creds.<db>`.
 7. Waits for Odoo's healthcheck to go green post-restart.
 
 Re-running the script after a code change is the supported way to refresh
@@ -181,7 +181,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm -T odoo 
 env['myservice.api.client'].sudo().search([('client_id','=','test_client')]).unlink()
 env.cr.commit()\""
 
-scripts/bootstrap.sh    # creates a fresh client, new secret in docs/api/.creds
+scripts/bootstrap.sh    # creates a fresh client, new secret in docs/api/.creds.<db>
 ```
 
 ### Stop the stack
@@ -250,7 +250,7 @@ code in prod.
 └── docs/
     ├── DEPLOYMENT.md          # This file
     └── api/
-        ├── .creds             # API credentials written by bootstrap (gitignored)
+        ├── .creds.<db>        # per-tenant API credentials from bootstrap (gitignored)
         ├── smoke_test.py      # Quick alive-check (stdlib only)
         └── test-responses/    # pytest captured responses (gitignored)
 ```

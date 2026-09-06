@@ -66,7 +66,7 @@ Cadra is one of three systems in the NRS integration programme, defined by *"End
   docker compose -f docker-compose.yml -f docker-compose.19.yml up -d
   ```
 - **Tenancy is host-based.** `http://localhost:8069` answers *"No database is selected"*; reach a database as `http://<db>.localhost:8069`. Local databases: `cadra19`, `nrs19`, `gtb19`, `test19` (19-era) and `nrs`, `gtb`, `lasg`, `jaizbankplc` (15-era replicas now served by the 19 container).
-- **Tests need a database whose credentials match `docs/api/.creds`.** Today that is only `jaizbankplc`:
+- **Tests need a database with a `docs/api/.creds.<db>` file.** Today that is only `jaizbankplc` (`nrs19` has one, but it holds the demo's two scoped clients, not a `CLIENT_ID`/`CLIENT_SECRET` pair). The shared `docs/api/.creds` was deleted in handoff 05:
   ```
   CADRA_API_BASE=http://jaizbankplc.localhost:8069 tests/.venv/bin/python -m pytest tests/ -q
   ```

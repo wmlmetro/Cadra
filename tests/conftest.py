@@ -3,7 +3,7 @@ Cadra API test fixtures + reporting hooks.
 
 Session-scoped fixtures (mint once, reuse across tests):
   - api_base       : http://localhost:8069 (env-overridable via CADRA_API_BASE)
-  - creds          : reads docs/api/.creds
+  - creds          : reads docs/api/.creds.<tenant> for the tenant CADRA_API_BASE names
   - token          : mints a JWT via POST /auth/token, returns the access_token
   - client         : ApiClient wrapper around requests.Session with auth pre-set
   - test_location  : creates one location via POST, reused as FK by asset/request tests
@@ -41,7 +41,6 @@ CANONICAL_ERROR_CODES = frozenset({
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 CREDS_DIR = REPO_ROOT / "docs" / "api"
-CREDS_FILE = CREDS_DIR / ".creds"          # legacy single-tenant fallback
 RESPONSES_DIR = REPO_ROOT / "docs" / "api" / "test-responses"
 REPORT_FILE = REPO_ROOT / "docs" / "api" / "test-report.md"
 
@@ -63,7 +62,7 @@ def tenant_from_base(base):
     Tenancy is host-based: http://<db>.localhost:8069 and https://<db>.cadra.ng
     both resolve to database <db>. A bare host with no leading label (plain
     `localhost`, an IP) names no tenant, and the caller falls back to the
-    legacy single-tenant creds file.
+    lone per-tenant file if a single-tenant checkout has exactly one.
     """
     host = urllib.parse.urlsplit(base).hostname or ""
     label = host.split(".")[0].strip()
@@ -89,22 +88,30 @@ def creds(api_base):
     holds its own `myservice.api.client` rows and its own `jwt_secret`. A
     single global creds file therefore points at whichever tenant was
     bootstrapped last, and aiming the suite anywhere else fails at the first
-    call with a bare 401 that looks like a code fault. So: prefer
-    `.creds.<tenant>`, and only fall back to the shared `.creds`.
+    call with a bare 401 that looks like a code fault. So: `.creds.<tenant>`,
+    and nothing else.
+
+    The shared `docs/api/.creds` is gone as of handoff 05. Nothing wrote it
+    any more (`bootstrap.sh` has written per-tenant files since handoff 04),
+    and the only branch that could still reach it was the no-tenant one
+    below — which cannot authenticate against this stack anyway, because a
+    bare `localhost` host answers "No database is selected". Keeping a
+    world-readable file holding a live secret as a fallback nobody could
+    reach was the worse half of both trades.
     """
     tenant = tenant_from_base(api_base)
     if tenant:
-        # A named tenant takes ITS file or nothing. Falling back to the shared
-        # `.creds` here would hand the suite another database's secret and
+        # A named tenant takes ITS file or nothing. Falling back to a shared
+        # file here would hand the suite another database's secret and
         # produce exactly the bare 401 this whole change exists to stop —
         # the failure would just have moved, not gone.
         candidates = [CREDS_DIR / f".creds.{tenant}"]
     else:
-        # No tenant in the host (bare `localhost`, an IP). Legacy shared file
-        # first; failing that, a single-tenant checkout — CI, a fresh clone —
-        # where bootstrap wrote exactly one per-tenant file and there is
-        # nothing to be ambiguous about. Two or more and we do NOT guess.
-        candidates = [CREDS_FILE]
+        # No tenant in the host (bare `localhost`, an IP). A single-tenant
+        # checkout — CI, a fresh clone — where bootstrap wrote exactly one
+        # per-tenant file and there is nothing to be ambiguous about. Two or
+        # more and we do NOT guess.
+        candidates = []
         only = sorted(CREDS_DIR.glob(".creds.*"))
         if len(only) == 1:
             candidates.append(only[0])
