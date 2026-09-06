@@ -3,6 +3,30 @@ from odoo.http import request
 import json
 
 
+def _selection_label(record, field_name):
+    """The human label of a Selection value, for any Selection field.
+
+    `dict(record._fields[f].selection)` only works when the field declares a
+    literal list. On a *related* Selection — `nrs.asset.domain` is
+    `related='category_id.domain'` — Odoo fills `.selection` with a callable,
+    and `dict(<function>)` raises `TypeError: 'function' object is not
+    iterable`. That is what made `/barcode/lookup` answer 500 for every asset
+    whose category carries an FM domain, i.e. every asset it actually found.
+
+    `fields_get` is the public, translation-aware accessor and is indifferent
+    to how the field was declared, so it holds if a field that is a literal
+    list today becomes related tomorrow.
+    """
+    value = record[field_name]
+    if not value:
+        return ''
+    try:
+        selection = record.fields_get([field_name])[field_name]['selection']
+    except Exception:
+        return value
+    return dict(selection).get(value, value)
+
+
 class BarcodeStationController(http.Controller):
 
     # ── Backend JSON API ─────────────────────────────────────
@@ -35,11 +59,11 @@ class BarcodeStationController(http.Controller):
             'asset_name': asset.name,
             'asset_code': asset.asset_code or '',
             'category': asset.category_id.name if asset.category_id else '',
-            'domain': dict(asset._fields['domain'].selection).get(asset.domain, '') if asset.domain else '',
+            'domain': _selection_label(asset, 'domain'),
             'location': asset.location_id.name if asset.location_id else '',
             'custodian': asset.custodian_id.name if asset.custodian_id else '',
-            'condition': dict(asset._fields['condition'].selection).get(asset.condition, '') if asset.condition else '',
-            'state': dict(asset._fields['state'].selection).get(asset.state, '') if asset.state else '',
+            'condition': _selection_label(asset, 'condition'),
+            'state': _selection_label(asset, 'state'),
             'last_service_date': str(asset.last_service_date) if asset.last_service_date else '',
             'next_service_date': str(asset.next_service_date) if asset.next_service_date else '',
             'sap_asset_number': asset.sap_asset_number or '',
@@ -173,14 +197,27 @@ class BarcodeStationController(http.Controller):
         myservice_asset_register/data/asset_tag_report.xml), so the id in the
         URL must be the ASSET id — passing the tag id straight through renders
         whichever unrelated asset happens to share that id.
+
+        The path segment is the report ACTION's ``report_name``, not its
+        xmlid. Odoo's ``/report/<converter>/<reportname>/<ids>`` resolves its
+        second segment against ``ir.actions.report.report_name``; this used to
+        emit ``action_report_asset_tag`` with the dot turned into a slash,
+        which matches no report and answered the website's 404 page. Nothing
+        caught it because the SPA composes labels client-side rather than
+        fetching this URL (Frontend/.../src/lib/labels.ts) — so the one
+        published route from an asset to a printable label had never
+        rendered anything.
+
+        Read off the action rather than hard-coded so a rename of the QWeb
+        template cannot silently reintroduce the same 404.
         """
-        report_map = {
+        action_map = {
             'small':  'myservice_asset_register.action_report_asset_tag_small',
             'medium': 'myservice_asset_register.action_report_asset_tag',
             'large':  'myservice_asset_register.action_report_asset_tag_large',
             'sheet':  'myservice_asset_register.action_report_asset_tag_sheet',
         }
-        report_name = report_map.get(size, report_map['medium'])
+        action_xmlid = action_map.get(size, action_map['medium'])
         try:
             tag_id = int(tag_id)
         except (TypeError, ValueError):
@@ -188,9 +225,11 @@ class BarcodeStationController(http.Controller):
         tag = request.env['nrs.asset.tag.label'].browse(tag_id).exists()
         if not tag or not tag.asset_id:
             return {'error': 'Tag not found: %s' % tag_id}
+        action = request.env.ref(action_xmlid, raise_if_not_found=False)
+        if not action or not action.report_name:
+            return {'error': 'Report action not installed: %s' % action_xmlid}
         return {
-            'url': '/report/pdf/%s/%s' % (
-                report_name.replace('.', '/'), tag.asset_id.id)
+            'url': '/report/pdf/%s/%s' % (action.report_name, tag.asset_id.id)
         }
 
     # ── Portal routes ────────────────────────────────────────

@@ -15,6 +15,7 @@ because `nrs.asset.transfer._check_locations` forbids same-location
 transfers.
 """
 import datetime
+import logging
 
 from odoo import fields as odoo_fields, http
 from odoo.http import request
@@ -34,6 +35,40 @@ from .utils import (
     parse_limit,
 )
 from .v1 import PAGINATION_QUERY_PARAMS, cadra_route
+
+_logger = logging.getLogger(__name__)
+
+# The published `tag_label_state` values, mirroring the model's Selection
+# (`nrs.asset.tag.label.label_state`) and the OpenAPI enum below. Used only
+# as the floor under `_tag_label_states()` — the model is still the source of
+# truth when it can be read.
+_TAG_LABEL_STATES = ("issued", "printed", "affixed", "scrapped")
+
+
+def _tag_label_states():
+    """Accepted values for the `tag_label_state` filter. Never empty.
+
+    Reads the model's own Selection so a value the model gains is accepted
+    the same day, and falls back to the published tuple if it cannot — never
+    to "skip the check". A validator that disables itself on failure puts
+    `?tag_label_state=bogus` back to answering `200 []`, which is the silent
+    degradation the validation exists to remove.
+
+    Deliberately NOT `utils._selection_allowed_values`, which calls
+    `cr.rollback()` on failure: that helper is written for the post-rollback
+    error path, and this runs on the happy path of every list request.
+    """
+    try:
+        field = request.env["nrs.asset"]._fields["tag_label_state"]
+        if field.type == "selection":
+            values = list(field.get_values(request.env))
+            if values:
+                return values
+    except Exception:
+        _logger.warning(
+            "could not read nrs.asset.tag_label_state selection; "
+            "falling back to the published values", exc_info=True)
+    return list(_TAG_LABEL_STATES)
 
 
 # ─── small helpers ───────────────────────────────────────────────────
@@ -125,6 +160,13 @@ def _serialize_tagging(a):
     """
     label = a.physical_tag_id
     return {
+        # `nrs.asset.tag.label` id — NOT an asset id, and the two collide
+        # numerically. This is what GET /barcode/print-url wants as its
+        # `tag_id`. Exposed here because an integration that has an asset
+        # payload had no documented route to it: `recent-tags` was the only
+        # endpoint that put the two ids together, and rebuilding a print URL
+        # from the wrong one renders a real label for a different machine.
+        "label_id": label.id if label else None,
         "tag_number": label.name if label else None,
         "label_state": label.label_state if label else None,
         # The single boolean an integration should branch on.
@@ -317,10 +359,30 @@ def _list_domain(qs):
             raise _BadFilter("`is_tagged` must be `true` or `false`",
                              details={"is_tagged": raw_tagged})
     for fld in ("grn_reference", "purchase_order_reference", "purchase_vendor",
-                "import_source", "import_ref", "tag_label_state"):
+                "import_source", "import_ref"):
         val = qs.get(fld)
         if val:
             domain.append((fld, "=", val))
+    # `tag_label_state` is an enum, and an unrecognised value used to answer
+    # `200 []` — so a typo in a poller read as "nothing is tagged yet" rather
+    # than as an error, which is the silent degradation POST already refuses.
+    # The accepted values come from the model's own Selection so this check
+    # cannot drift from it; a value the model gains is accepted the same day.
+    # Only absent and empty mean "no filter". `"null"` is NOT treated as
+    # absent here, unlike the sentinels above: a JS caller that stringifies an
+    # unset value sends the literal `"null"`, and letting that through as
+    # "unfiltered" would hand back the ENTIRE register to a poller that meant
+    # to narrow it. An empty list looks like "no matches"; a full list looks
+    # like an answer. So it validates like any other unrecognised value: 400.
+    raw_label_state = qs.get("tag_label_state")
+    if raw_label_state not in (None, ""):
+        allowed = _tag_label_states()
+        if raw_label_state not in allowed:
+            raise _BadFilter(
+                "`tag_label_state` must be one of: %s" % ", ".join(allowed),
+                details={"tag_label_state": raw_label_state,
+                         "allowed_values": list(allowed)})
+        domain.append(("tag_label_state", "=", raw_label_state))
     if qs.get("is_verified") in ("true", "True", True):
         domain.append(("is_verified", "=", True))
     elif qs.get("is_verified") in ("false", "False", False):
@@ -435,7 +497,11 @@ class CadraAssetsV1(http.Controller):
                                      "does not answer it."},
                      {"name": "tag_label_state", "schema": {"type": "string",
                       "enum": ["issued", "printed", "affixed", "scrapped"]},
-                      "description": "Filter on the label's physical lifecycle."},
+                      "description": (
+                          "Filter on the label's physical lifecycle. A value "
+                          "outside the enum is a 400 `invalid_request` "
+                          "carrying `details.allowed_values`, not an empty "
+                          "list.")},
                      *PAGINATION_QUERY_PARAMS,
                  ])
     def list_assets(self, **kwargs):
