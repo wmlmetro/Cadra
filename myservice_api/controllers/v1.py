@@ -578,6 +578,7 @@ class MyserviceApiV1(http.Controller):
                             },
                             "provenance": {"$ref": "#/components/schemas/AssetProvenance"},
                             "tagging": {"$ref": "#/components/schemas/AssetTagging"},
+                            "sap": {"$ref": "#/components/schemas/AssetSap"},
                         },
                     },
                     "AssetProvenance": {
@@ -638,6 +639,148 @@ class MyserviceApiV1(http.Controller):
                                            "description": "ISO 8601, naive (server time), no offset"},
                             "affixed_by": {"type": "object", "nullable": True},
                             "affixed_by_name": {"type": "string", "nullable": True},
+                        },
+                    },
+                    "AssetSap": {
+                        "type": "object",
+                        # Read-only in its entirety, and marked so rather
+                        # than left to the prose: none of these fields is in
+                        # the writable-field allow-list, and a client able to
+                        # PATCH `asset_number` could move an asset to
+                        # `reconciled` without SAP having booked anything —
+                        # the precise audit control this block publishes.
+                        "readOnly": True,
+                        "description": (
+                            "What finance knows about this asset (INT-06/07) "
+                            "and whether the two codes agree. Every figure "
+                            "here is what SAP REPORTED, never what Cadra "
+                            "computed: `financial.depreciation` is Cadra's "
+                            "arithmetic and this is SAP's, the two are "
+                            "allowed to disagree, and anything reconciling "
+                            "them has to be able to see both. Read-only over "
+                            "the API — written by the SAP integration and by "
+                            "the legacy extract loader, never by a client."),
+                        "properties": {
+                            "asset_number": {
+                                "type": "string", "nullable": True,
+                                "description": (
+                                    "The SAP half of the dual-code pair; "
+                                    "`asset_code` at the top level is "
+                                    "Cadra's half. NOT unique on its own — "
+                                    "the same number can exist under two "
+                                    "company codes — so anything matching on "
+                                    "it needs `company_code` alongside."),
+                            },
+                            "asset_subnumber": {
+                                "type": "string", "nullable": True,
+                                "description": (
+                                    "SAP fixed assets are identified by a "
+                                    "main number and a sub-number; where "
+                                    "sub-numbers are in use the main number "
+                                    "alone does not identify the asset."),
+                            },
+                            "company_code": {"type": "string", "nullable": True},
+                            "asset_class": {
+                                "type": "string", "nullable": True,
+                                "description": (
+                                    "The class SAP actually posted under, "
+                                    "which is not necessarily the one Cadra "
+                                    "derived from the category. Where the "
+                                    "two differ the mapping is wrong, and "
+                                    "this is the field that shows it."),
+                            },
+                            "capitalisation_date": {
+                                "type": "string", "format": "date", "nullable": True,
+                                "description": (
+                                    "The date SAP posted, which may differ "
+                                    "from the tagging date Cadra proposed — "
+                                    "period-close rules are SAP's to apply."),
+                            },
+                            "capitalised_amount": {
+                                "type": "number", "nullable": True,
+                                "description": (
+                                    "The value SAP actually capitalised. "
+                                    "Where it differs from the cost Cadra "
+                                    "sent, SAP is the figure to show."),
+                            },
+                            "net_book_value": {
+                                "type": "number", "nullable": True,
+                                "description": (
+                                    "As reported by SAP; never Cadra's own "
+                                    "depreciation. `0` is an ANSWER — a "
+                                    "fully written-down asset — and `null` "
+                                    "is the absence of one; `synced_at` is "
+                                    "what separates them."),
+                            },
+                            "accumulated_depreciation": {
+                                "type": "number", "nullable": True,
+                                "description": "As reported by SAP. Display only.",
+                            },
+                            "code_source": {
+                                "type": "string", "nullable": True,
+                                "enum": ["integration", "import", "manual"],
+                                "description": (
+                                    "How the SAP asset number got onto this "
+                                    "record. `integration` means SAP "
+                                    "returned it on INT-07 and is EVIDENCE "
+                                    "that finance booked the asset; "
+                                    "`import` (a legacy extract) and "
+                                    "`manual` (typed in) are a CLAIM that "
+                                    "they did. The dual-code control is an "
+                                    "audit control, so the two must not look "
+                                    "alike — only the integration itself may "
+                                    "record `integration`."),
+                            },
+                            "posting_state": {
+                                "type": "string",
+                                "enum": ["none", "queued", "posted", "failed"],
+                                "description": (
+                                    "How far the INT-06 asset master posting "
+                                    "has got, maintained by the outbound "
+                                    "event queue. Always present, never "
+                                    "null: the field carries a default."),
+                            },
+                            "reconciliation_state": {
+                                "type": "string",
+                                "enum": ["not_tagged", "pending", "reconciled",
+                                         "exception"],
+                                "description": (
+                                    "The September Integration Flow "
+                                    "completeness control: an asset is "
+                                    "complete only when BOTH the Cadra Asset "
+                                    "Code and the SAP asset code are linked "
+                                    "on the register, and `reconciled` is "
+                                    "that state. `exception` is the AUDIT "
+                                    "FINDING — the asset is tagged, so it "
+                                    "demonstrably exists, and finance has "
+                                    "not booked it — and is the one value a "
+                                    "reader should act on. `not_tagged` is "
+                                    "not a finding: INT-06 fires on tagging "
+                                    "confirmed, so an untagged asset is not "
+                                    "yet due a SAP code. `pending` is posted "
+                                    "and awaiting the code back. Always "
+                                    "present, never null: it is a stored "
+                                    "compute. Filterable with "
+                                    "`?sap_reconciliation_state=`."),
+                            },
+                            # No `format: date-time`, for the reason spelled
+                            # out on AssetTagging above: this is an Odoo
+                            # naive datetime rendered with .isoformat(), e.g.
+                            # "2026-09-05T21:49:59" — no offset, so not the
+                            # RFC 3339 that `date-time` promises, and
+                            # claiming the format would make a strict parser
+                            # reject a perfectly readable value.
+                            "synced_at": {
+                                "type": "string", "nullable": True,
+                                "description": (
+                                    "When Cadra last received asset master "
+                                    "figures from SAP. ISO 8601, naive "
+                                    "(server time), no offset. On its own "
+                                    "the answer to \"are these figures "
+                                    "stale?\", and the discriminator "
+                                    "between a reported 0.00 and no figure "
+                                    "at all."),
+                            },
                         },
                     },
                     "SapEmployee": {

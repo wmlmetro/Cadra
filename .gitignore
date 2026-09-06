@@ -46,3 +46,6 @@ docs/temp firs.xlsx
 # Seed-data pack (PII: ~11k staff, ~12k asset records). Operator-side only.
 docs/seed/
 _to_delete/
+
+# Mock SAP receiver high-water mark (docs/api/mock_sap.py) — local test state.
+docs/api/mock_sap_sequence

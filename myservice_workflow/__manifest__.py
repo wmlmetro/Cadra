@@ -1,6 +1,6 @@
 {
     'name': 'myservice WorkSpace Integration',
-    'version': '19.0.2.0.0',
+    'version': '19.0.3.0.0',
     'summary': 'Bidirectional integration between myservice and NRS WorkSpace approval system',
     'author': 'WestMetro Limited',
     'website': 'https://westmetrong.com',

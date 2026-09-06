@@ -12,6 +12,16 @@ _logger = logging.getLogger(__name__)
 # to want the same adapter machinery.
 PURPOSE_WORKSPACE = 'workspace'
 PURPOSE_ASSET_EVENTS = 'asset_events'
+# INT-06/07/09. A SEPARATE record from `asset_events` and not a second URL on
+# it, for the reason above and one more: Vendra and SAP fail differently. SAP
+# is an ERP behind a corporate gateway with change windows; Vendra is a
+# service we operate. Sharing one retry policy between them would mean tuning
+# for whichever is worse and being wrong for the other.
+PURPOSE_SAP_ASSETS = 'sap_assets'
+
+# Purposes whose rows are drained by the outbound event queue rather than sent
+# synchronously. Anything added here must satisfy `_check_asset_event_config`.
+EVENT_PURPOSES = (PURPOSE_ASSET_EVENTS, PURPOSE_SAP_ASSETS)
 
 
 class WorkflowConfig(models.Model):
@@ -41,6 +51,7 @@ class WorkflowConfig(models.Model):
     purpose = fields.Selection([
         (PURPOSE_WORKSPACE, 'NRS WorkSpace — request approvals'),
         (PURPOSE_ASSET_EVENTS, 'Asset lifecycle events (INT-05 → Vendra)'),
+        (PURPOSE_SAP_ASSETS, 'SAP asset master & lifecycle (INT-06/07/09)'),
     ], string='Purpose', required=True, default=PURPOSE_WORKSPACE,
        help='Which integration this configuration describes. Asset lifecycle '
             'events are delivered by the retry queue, not synchronously.')
@@ -89,6 +100,24 @@ class WorkflowConfig(models.Model):
              'on — turning it off must not silently lose the affixes that '
              'happen meanwhile.')
 
+    # ── SAP asset settings (INT-06/07/09) ─────────────────────────────
+    #
+    # INT-06 and INT-09 are different endpoints on the same host: one creates
+    # an asset master, the other posts a change to one that already exists.
+    # `rest_endpoint_event` alone could not express that — every event would
+    # have gone to one path, and a transfer would have arrived at the
+    # create-asset endpoint. See `_endpoint_for_event`.
+    rest_endpoint_asset_master = fields.Char(
+        string='Asset Master Endpoint',
+        help='Appended to the base URL for INT-06 asset master creation. '
+             'Lifecycle events (INT-09) go to the Event Endpoint instead.')
+    sap_company_code = fields.Char(
+        string='SAP Company Code',
+        help='Sent on every INT-06 and INT-09 message. A SAP asset number is '
+             'only unique within a company code, so an asset master posted '
+             'without one is not addressable afterwards. Blank until NRS '
+             'confirms the value — see the INT-06/07/09 requirements, §5.3.')
+
     # ── Retry policy (INT-05) ─────────────────────────────────────────
     #
     # Per tenant, because "how long do we keep trying" is a question about
@@ -121,7 +150,7 @@ class WorkflowConfig(models.Model):
         at.
         """
         for rec in self:
-            if rec.purpose != PURPOSE_ASSET_EVENTS:
+            if rec.purpose not in EVENT_PURPOSES:
                 continue
             if rec.adapter_type not in ('rest', 'stub'):
                 raise ValidationError(_(
@@ -139,6 +168,15 @@ class WorkflowConfig(models.Model):
                     raise ValidationError(_(
                         'An asset-event configuration using the REST adapter '
                         'needs an event endpoint.'))
+                if (rec.purpose == PURPOSE_SAP_ASSETS
+                        and not (rec.rest_endpoint_asset_master or '').strip()):
+                    raise ValidationError(_(
+                        'A SAP configuration needs an asset master endpoint '
+                        '(INT-06) as well as an event endpoint (INT-09). '
+                        'They are different operations on different URLs, '
+                        'and posting a transfer to the create-asset endpoint '
+                        'would be a new asset master rather than a change to '
+                        'the existing one.'))
             if rec.retry_max_attempts < 1:
                 raise ValidationError(_(
                     'Max delivery attempts must be at least 1; 0 would '
@@ -237,6 +275,20 @@ class WorkflowConfig(models.Model):
             }
         }
 
+    def _endpoint_for_event(self, event_type):
+        """Which path this event goes to.
+
+        Routing on the event type rather than on the config's purpose keeps
+        the adapter free of interface-specific knowledge: it asks the target
+        where this event goes and POSTs there. Anything not named here falls
+        back to the general event endpoint, which is what INT-05's
+        `asset.tag.affixed` has always used and must keep using.
+        """
+        self.ensure_one()
+        if event_type == 'asset.master.create' and self.rest_endpoint_asset_master:
+            return self.rest_endpoint_asset_master
+        return self.rest_endpoint_event
+
     @api.model
     def get_active_config(self, purpose=PURPOSE_WORKSPACE):
         """The active config for a purpose. Raises when there is none.
@@ -259,8 +311,9 @@ class WorkflowConfig(models.Model):
         return cfg
 
     @api.model
-    def get_event_config(self, include_disabled=False):
-        """The asset-event target, or an empty recordset.
+    def get_event_config(self, include_disabled=False,
+                         purpose=PURPOSE_ASSET_EVENTS):
+        """The event target for a purpose, or an empty recordset.
 
         Empty is the ordinary answer on seven of our eight tenants: only the
         one wired to a Vendra has anywhere to send `asset.tag.affixed`. So
@@ -273,10 +326,13 @@ class WorkflowConfig(models.Model):
         event in between with no way to notice or backfill. The drain
         excludes disabled targets in its own domain, so the events queue and
         wait instead.
+
+        `purpose` defaults to the Vendra leg so handoff 06's call sites keep
+        their meaning unchanged; the SAP legs pass `PURPOSE_SAP_ASSETS`.
         """
         domain = [
             ('active', '=', True),
-            ('purpose', '=', PURPOSE_ASSET_EVENTS),
+            ('purpose', '=', purpose),
         ]
         if not include_disabled:
             domain.append(('event_enabled', '=', True))
@@ -434,7 +490,12 @@ class WorkflowRestAdapter:
         """
         import requests as req
         base = (self.config.rest_base_url or '').rstrip('/')
-        endpoint = (self.config.rest_endpoint_event or '').lstrip('/')
+        # The event says where it goes. INT-06 (asset master creation) and
+        # INT-09 (lifecycle changes) are separate operations on separate SAP
+        # endpoints, so the adapter asks the config to resolve the path for
+        # THIS event rather than assuming one endpoint per target.
+        endpoint = (self.config._endpoint_for_event(payload.get('event'))
+                    or '').lstrip('/')
         if not base or not endpoint:
             # Config validation should have caught this at save time; if a row
             # got in another way, say so permanently rather than retrying a
@@ -522,7 +583,12 @@ class WorkflowRestAdapter:
         inner = data.get('message') or data.get('data') or data
         if not isinstance(inner, dict):
             return None
-        for key in ('event_id', 'name', 'reference', 'ref', 'id'):
+        # `sap_asset_number` first: on INT-06 it is the receiver's identity
+        # for the thing it just created, which is exactly what this field is
+        # for, and it is more useful in the log than an echoed event id.
+        # Harmless on the Vendra leg, which never sends it.
+        for key in ('sap_asset_number', 'event_id', 'name', 'reference',
+                    'ref', 'id'):
             value = inner.get(key)
             if value:
                 return str(value)

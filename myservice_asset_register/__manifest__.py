@@ -1,6 +1,6 @@
 {
     'name': 'NRS Asset Register & PM Schedules',
-    'version': '19.0.1.8.3',
+    'version': '19.0.1.9.0',
     'summary': 'Fixed asset register, condition tracking, tagging, transfers, PM auto-scheduling',
     'category': 'Facilities',
     'author': 'WestMetro Limited',
@@ -22,6 +22,7 @@
         'views/asset_transfer_views.xml',
         'views/asset_pm_views.xml',
         'views/asset_tag_views.xml',
+        'views/asset_sap_views.xml',
         'views/asset_tag_report.xml',
         'views/asset_menu.xml',
         'data/asset_cron.xml',

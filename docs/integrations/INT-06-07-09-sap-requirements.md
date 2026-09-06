@@ -27,6 +27,23 @@ Three interfaces, two of them outbound from Cadra and one inbound:
 
 ---
 
+## Live API reference — Cadra's OpenAPI document
+
+**This document is the story; Cadra's OpenAPI document is the exact schemas.** Read this one first — it explains why the interfaces are shaped as they are, which no schema can. When you are writing code and need the precise field list, types and status codes for anything Cadra *receives* (INT-07's callback, and the asset resources behind these payloads), fetch:
+
+```
+GET https://<cadra-host>/openapi.json      # the machine-readable document
+GET https://<cadra-host>/docs              # the same thing, rendered
+```
+
+It is generated from the running source, from annotations that sit on the route definitions themselves, so a field cannot be renamed in the code without changing there too.
+
+That matters for a specific reason. Elsewhere in this programme a hand-written API document named an idempotency header one way while the code required another, and requests sent under the documented name were **silently ignored** — which is why `X-Idempotency-Key` is spelled with its prefix everywhere in §6 rather than left to memory. **Where this document and the live reference disagree, the live reference is right** — tell us, because the disagreement is a defect on our side.
+
+It carries no credentials. It describes the authentication scheme and never a value.
+
+---
+
 ## 2. Route 1 — INT-06, asset master creation and capitalisation
 
 ### 2.1 The endpoint we need from you
@@ -293,7 +310,9 @@ Every event body:
 }
 ```
 
-**Both codes on every event.** `sap_asset_number` is what you will key on; `cadra_asset_code` is what makes the message diagnosable when the two disagree. If Cadra does not yet hold your asset number, **the event is held, not sent** — an untraceable lifecycle change is worse than a late one.
+**Both codes on every event.** `sap_asset_number` is what you will key on; `cadra_asset_code` is what makes the message diagnosable when the two disagree.
+
+**If Cadra does not yet hold your asset number, no lifecycle event is sent at all.** Not queued, not held — not sent, and logged as such. An asset with no SAP asset number was never capitalised, so there is no asset master for the change to apply to, and a message you cannot key would be noise you have to discard. Nothing is lost by it either: the INT-06 create carries the asset's **current** location and custodian, so a move that happened before capitalisation is already in the create payload when it eventually fires.
 
 ### 4.2 The events, and what each carries
 
