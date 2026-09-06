@@ -16,8 +16,8 @@ from .utils import (
     ERR_INVALID_REQUEST,
     ERR_CONFLICT,
     ERR_NOT_FOUND,
-    SCOPE_ADMIN,
     SCOPE_ASSETS_READ,
+    SCOPE_SETTINGS_WRITE,
     err,
     get_params,
     ok,
@@ -89,7 +89,7 @@ class CadraConfigV1(http.Controller):
 
     @cadra_route("/api/v1/asset-categories/<int:id>", method="PATCH",
                  summary="Update a category's depreciation policy",
-                 scopes=[SCOPE_ADMIN],
+                 scopes=[SCOPE_SETTINGS_WRITE],
                  request_schema={
                      "type": "object",
                      "properties": {
@@ -146,7 +146,7 @@ class CadraConfigV1(http.Controller):
 
     @cadra_route("/api/v1/asset-categories", method="POST",
                  summary="Create an asset category",
-                 scopes=[SCOPE_ADMIN],
+                 scopes=[SCOPE_SETTINGS_WRITE],
                  idempotent=True,
                  request_schema={
                      "type": "object",
@@ -181,7 +181,7 @@ class CadraConfigV1(http.Controller):
 
     @cadra_route("/api/v1/asset-categories/<int:id>", method="DELETE",
                  summary="Delete an asset category (only when it holds no assets)",
-                 scopes=[SCOPE_ADMIN])
+                 scopes=[SCOPE_SETTINGS_WRITE])
     def delete_category(self, id, **kwargs):
         """Refuses while assets still reference the category.
 
@@ -253,7 +253,7 @@ class CadraConfigV1(http.Controller):
 
     @cadra_route("/api/v1/settings/branding", method="PATCH",
                  summary="Update tenant branding",
-                 scopes=[SCOPE_ADMIN],
+                 scopes=[SCOPE_SETTINGS_WRITE],
                  request_schema={
                      "type": "object",
                      "properties": {
@@ -336,7 +336,7 @@ class CadraConfigV1(http.Controller):
 
     @cadra_route("/api/v1/settings/depreciation", method="PATCH",
                  summary="Update tenant depreciation settings",
-                 scopes=[SCOPE_ADMIN],
+                 scopes=[SCOPE_SETTINGS_WRITE],
                  request_schema={
                      "type": "object",
                      "properties": {
@@ -366,7 +366,7 @@ class CadraConfigV1(http.Controller):
 
     @cadra_route("/api/v1/settings/depreciation/recompute", method="POST",
                  summary="Recompute book values across the register",
-                 scopes=[SCOPE_ADMIN],
+                 scopes=[SCOPE_SETTINGS_WRITE],
                  # An action, not a creation — the house default of 201 for
                  # POST-on-a-collection would be wrong here.
                  success_status=200,
