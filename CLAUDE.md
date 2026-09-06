@@ -146,6 +146,11 @@ On staging/prod the `cadra-upgrade` Job must likewise fan out per tenant databas
 - 2026-09-06 · `[landed 82da6ab]` **A query-enum validator must never disable itself on failure**, and `"null"` is not a "no filter" sentinel where the filter is an enum — treating it as one returned the whole register. · Handoff 05 verification pass; `utils._selection_allowed_values` returns `None` on error and rolls the cursor back, so it must not be used on a read path.
 - 2026-09-06 · **Odoo caches group membership** (`res.users._get_group_ids` is `@ormcache`d). A group change made from a separate `odoo shell` process does not reliably invalidate a running HTTP worker; changes made through the running server (UI or XML-RPC) do. Stock Odoo behaviour — but it will make anyone testing the scope mapping from a shell think it is broken. · Handoff 05.
 
+- 2026-09-06 · `[landed b8b6f64]` **`/auth/login` derives scopes from Odoo groups**, and a new **`settings:write`** scope carries the six tenant-config routes. · `admin` is itself a wildcard in `require_jwt`, so mapping Asset Manager to `admin` would have moved the hole rather than closed it. Additive, non-breaking; ships a data migration because refresh tokens replay stored scopes for 30 days.
+- 2026-09-06 · `[ruled]` **`tagging:write` stays inside the `admin` wildcard.** "Absolute below system-administrator" is the accepted posture; document it where the scope is defined so it reads as a decision, not an oversight.
+- 2026-09-06 · `[landed 82da6ab]` **`print-url` built its path from the report action's xmlid, not its `report_name`** — it resolved to nothing and returned the website's 404 page as a 26KB HTML body. The one published route from an asset to a printable label had never rendered anything. · Read `report_name` off the action record so a rename cannot reintroduce it.
+- 2026-09-06 · `[ruled]` **Fix the `phase1_*` seed users' roles** — empty scopes by accident must not look like empty scopes by design.
+
 ## Backlog — agreed, not yet scheduled
 
 - **The nine pre-envelope routes adopt `@cadra_route`** (`/auth/*`, `/openapi.json`, `/docs`, `/assets/export.csv`, `/integrations/employees/import`, `/brand`). They validate nothing and sit outside the standard envelope — and `/auth/token` is the first endpoint every integration touches. Refactor of the auth surface; after INT-03 is live.
