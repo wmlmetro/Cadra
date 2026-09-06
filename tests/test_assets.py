@@ -300,9 +300,33 @@ def test_filter_by_vendor_and_import_fields(client, test_location):
 
     # import_source alone is low-cardinality — assert it narrows rather than
     # returning an exact set, since other tests write `other` too.
+    #
+    # Deliberately NOT "the asset we just made is in the results". The suite
+    # authenticates with a client token, which carries no `aud: frontend` and
+    # is therefore clamped to EXTERNAL_MAX_PAGE_LIMIT (100) records however
+    # large a `limit` it asks for. Every run of this file adds another
+    # `import_source: other` asset, so once the corpus passed 100 the newest
+    # id stopped fitting in the visible window and this assertion began
+    # failing on a filter that was working perfectly. It was a clock, not a
+    # test. What the filter actually promises is that everything it returns
+    # matches — so assert that, and prove it discriminates by checking a
+    # value nothing writes comes back empty.
     body = assert_envelope_ok(
         client.get("/api/v1/assets", params={"import_source": "other", "limit": 200}))
-    assert asset_id in {a["id"] for a in body["data"]}
+    rows = body["data"]
+    assert rows, "no assets at all carry import_source=other — this one should"
+    mismatched = [a["id"] for a in rows
+                  if a["provenance"]["import_source"] != "other"]
+    assert not mismatched, (
+        f"?import_source=other returned assets with a different source: {mismatched}"
+    )
+
+    body = assert_envelope_ok(
+        client.get("/api/v1/assets", params={"import_source": "redhubb", "limit": 5}))
+    assert body["data"] == [], (
+        "a source nothing in the fixtures writes returned rows — the filter "
+        "is not being applied at all"
+    )
 
 
 def test_q_matches_grn_reference(client, test_location):

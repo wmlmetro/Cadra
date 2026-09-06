@@ -16,5 +16,22 @@
             <field name="implied_ids" eval="[(4, ref('group_asset_user'))]"/>
             <field name="comment">Full access — create, edit, transfer, dispose, manage PM schedules.</field>
         </record>
+
+        <!--
+            The Tag-Issuing Unit (INT-04/05). This group is the ONLY grant of
+            the `tagging:write` API scope, and it is deliberately implied by
+            nothing: Asset Manager must not pick it up, because the team that
+            creates asset records must not also be the team that confirms a
+            label went onto the metal. An affix confirmation submitted by the
+            credential that created the asset proves only that one system
+            said so twice.
+
+            Kept out of `implied_ids` in BOTH directions on purpose — do not
+            "tidy" this by hanging it under Asset Manager.
+        -->
+        <record id="group_tag_issuing_unit" model="res.groups">
+            <field name="name">Tag-Issuing Unit</field>
+            <field name="comment">Confirms a printed label is physically affixed to the asset it names (INT-04/05). Grants the `tagging:write` API scope and nothing else. Independent of Asset Manager by design.</field>
+        </record>
     </data>
 </odoo>

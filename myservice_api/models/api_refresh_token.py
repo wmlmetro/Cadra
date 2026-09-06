@@ -132,6 +132,27 @@ class MyserviceApiRefreshToken(models.Model):
         # an hour later.
         scopes = (rec.scopes or "").split()
 
+        if not client:
+            # A SESSION family (`/auth/login`), whose scopes come from the
+            # user's Odoo groups rather than from a client record. Re-derive
+            # them on every rotation instead of replaying what was stored at
+            # login.
+            #
+            # Replaying is wrong in both directions, and the dangerous
+            # direction is revocation: removing someone from the Tag-Issuing
+            # Unit would not have taken their `tagging:write` away, because
+            # their browser goes on rotating a stored scope string on a
+            # 30-day sliding window. They could keep confirming tags for a
+            # month after the authorisation was withdrawn — the same defect
+            # the 19.0.3.1.0 migration exists to clean up historically, left
+            # live going forward. Granting has the mirror-image bug: a user
+            # added to a group would have had to log out and back in.
+            #
+            # Client families are untouched: their scopes are the client
+            # record's, and `myservice.api.client` is where they are changed.
+            from odoo.addons.myservice_api.controllers.utils import scopes_for_user
+            scopes = scopes_for_user(user)
+
         # Rotate: issue a successor in the same family, then revoke this one.
         new_rec, new_raw = self._issue(
             user=user, scopes=scopes, aud=rec.aud or None, client=client,

@@ -369,3 +369,74 @@ def test_the_scope_derivation_sites_still_exist():
             f"{relpath} no longer derives scopes from a client record — "
             "update _SCOPE_DERIVATION_SITES to wherever it moved"
         )
+
+
+# ─── the Settings screens must not need `admin` ──────────────────────
+#
+# Six `/api/v1/settings/*` and `/api/v1/asset-categories` routes were gated on
+# `admin`, which is a wildcard in `require_jwt`. So the only way to let an
+# Asset Manager change a category's useful life or the tenant's branding was
+# to hand them every scope on the API, `tagging:write` included — the exact
+# thing the Tag-Issuing Unit separation exists to prevent. They now take
+# `settings:write`, which `GROUP_SCOPES` grants to Asset Manager alone.
+#
+# Reverting one decorator is a one-word edit that produces no failure: the
+# suite's own token holds `admin`, so every one of those routes keeps
+# answering 200. A source guard is the only thing that would notice.
+
+_SETTINGS_CONTROLLER = "myservice_api/controllers/v1_settings.py"
+
+
+def _route_scopes(relpath):
+    """[(route path, [scope constant name, ...]), ...] for one controller."""
+    tree = ast.parse((REPO_ROOT / relpath).read_text(encoding="utf-8"))
+    routes = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        name = func.id if isinstance(func, ast.Name) else getattr(func, "attr", None)
+        if name != "cadra_route":
+            continue
+        path = (node.args[0].value
+                if node.args and isinstance(node.args[0], ast.Constant)
+                else f"<line {node.lineno}>")
+        scopes = []
+        for kw in node.keywords:
+            if kw.arg != "scopes" or not isinstance(kw.value, (ast.List, ast.Tuple)):
+                continue
+            scopes = [e.id for e in kw.value.elts if isinstance(e, ast.Name)]
+        routes.append((path, scopes))
+    return routes
+
+
+def test_settings_routes_use_settings_write_and_not_admin():
+    """`admin` on a Settings route means an Asset Manager needs a wildcard.
+
+    And a wildcard passes `tagging:write`, so the person who maintains the
+    category taxonomy could also confirm labels affixed — the separation
+    defeated sideways, by a scope nobody thought of as a tagging permission.
+    """
+    routes = _route_scopes(_SETTINGS_CONTROLLER)
+    assert routes, (
+        f"no `cadra_route` calls found in {_SETTINGS_CONTROLLER} — if the "
+        "settings endpoints moved, retarget this guard; as written it is now "
+        "checking nothing."
+    )
+
+    admin_gated = [path for path, scopes in routes if "SCOPE_ADMIN" in scopes]
+    assert not admin_gated, (
+        f"{_SETTINGS_CONTROLLER} gates these on `admin`, which is a wildcard "
+        "in require_jwt:\n  " + "\n  ".join(admin_gated) + "\n\n"
+        "Use SCOPE_SETTINGS_WRITE. Granting `admin` to get at the Settings "
+        "screens hands out `tagging:write` with it."
+    )
+
+    settings_gated = [path for path, scopes in routes
+                      if "SCOPE_SETTINGS_WRITE" in scopes]
+    assert settings_gated, (
+        f"no route in {_SETTINGS_CONTROLLER} uses SCOPE_SETTINGS_WRITE. The "
+        "scope exists to carve tenant configuration out of `admin`; a file "
+        "with none of it either lost the change or gates configuration on "
+        "something looser."
+    )

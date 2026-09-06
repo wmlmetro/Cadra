@@ -1,6 +1,6 @@
 {
     'name': 'NRS Asset Register & PM Schedules',
-    'version': '19.0.1.8.2',
+    'version': '19.0.1.8.3',
     'summary': 'Fixed asset register, condition tracking, tagging, transfers, PM auto-scheduling',
     'category': 'Facilities',
     'author': 'WestMetro Limited',

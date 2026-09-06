@@ -380,3 +380,125 @@ def test_printing_records_who_printed_and_when(client, test_location):
     assert body["data"]["tagging"]["printed_at"] is None, (
         "minting a tag is not printing a label"
     )
+
+
+# ─── the label id an integration needs to print anything ─────────────
+
+
+def test_tagging_block_carries_the_label_id_that_print_url_wants(client):
+    """`data.tagging.label_id` closes a gap that had no safe workaround.
+
+    `GET /barcode/print-url` takes an `nrs.asset.tag.label` id, and until this
+    key existed the only endpoint that put an asset next to its label id was
+    `/barcode/recent-tags`. A caller holding an asset payload had to guess —
+    and the two id spaces collide numerically, so guessing the asset id does
+    not fail, it renders a real label for a different machine.
+    """
+    data = _new_asset(client)
+    label_id = data["tagging"]["label_id"]
+
+    assert label_id is not None, (
+        "a freshly created asset already has a tag record, so label_id must "
+        "be populated — `null` here means an integration has no way to print"
+    )
+    assert isinstance(label_id, int) and not isinstance(label_id, bool), (
+        f"label_id must be an integer id, got {label_id!r}"
+    )
+
+    r = client.get("/api/v1/barcode/print-url", params={"tag_id": label_id})
+    body = assert_envelope_ok(r)
+    url = body["data"]["url"]
+
+    if label_id == data["id"]:
+        # The two sequences run independently and do cross. When they happen
+        # to agree there is nothing left to prove — both ids would produce the
+        # same URL — so this asserts nothing rather than asserting it wrongly.
+        import pytest
+        pytest.skip(
+            f"label_id and asset id coincide at {label_id} on this record, so "
+            "the returned URL cannot distinguish the two id spaces"
+        )
+    assert url.rstrip("/").endswith(f"/{data['id']}"), (
+        f"print-url for label {label_id} returned {url!r}; the label reports "
+        f"are registered on nrs.asset, so the id in the URL must be the asset "
+        f"id {data['id']} — an URL ending in the label id renders someone "
+        "else's label"
+    )
+
+
+# ─── the label-state filter is an enum, not a free-text field ────────
+
+
+def test_tag_label_state_rejects_a_value_outside_the_enum(client, capture):
+    """`?tag_label_state=bogus` used to answer `200 []`.
+
+    Which a poller reads as "nothing is tagged yet" — the same silent
+    degradation `?is_tagged=1` produced, and the same one POST already
+    refuses. A typo in an integration's query string must not look like a
+    fact about the register.
+    """
+    r = client.get("/api/v1/assets",
+                   params={"tag_label_state": "bogus", "limit": 5})
+    capture("tagging/label_state_bogus", r)
+    body = assert_envelope_err(r, 400, "invalid_request")
+    assert body["error"]["details"]["allowed_values"] == [
+        "issued", "printed", "affixed", "scrapped"], (
+        "the error must name the values the caller may use — the allowed set "
+        f"came back as {body['error']['details'].get('allowed_values')!r}"
+    )
+
+
+def test_tag_label_state_still_accepts_a_real_value(client):
+    """The validation must not have closed the filter it is guarding."""
+    assert_envelope_ok(client.get("/api/v1/assets",
+                                  params={"tag_label_state": "affixed",
+                                          "limit": 5}))
+
+
+def test_an_empty_tag_label_state_is_no_filter_at_all(client):
+    """`?tag_label_state=` is a form that submitted its empty default.
+
+    Treating the empty string as an enum value would 400 every caller whose
+    UI serialises unset filters, so it has to keep meaning "no filter" — and
+    "no filter" has to mean the same rows as omitting the parameter, not
+    zero rows.
+    """
+    def ids(**params):
+        body = assert_envelope_ok(client.get(
+            "/api/v1/assets", params={"limit": 5, **params}))
+        return [a["id"] for a in body["data"]]
+
+    unfiltered = ids()
+    assert unfiltered, (
+        "the register is empty, so this test cannot tell a working filter "
+        "from one that drops everything"
+    )
+    assert ids(tag_label_state="") == unfiltered, (
+        "an empty `tag_label_state` changed the result set; it must behave "
+        "exactly as if the parameter had been omitted"
+    )
+
+
+def test_the_literal_string_null_is_rejected_not_treated_as_no_filter(client, capture):
+    """`?tag_label_state=null` must 400, not hand back the whole register.
+
+    `"null"` is the house sentinel for "not supplied" on the id and boolean
+    filters, and reusing it here looked consistent — but the two failures are
+    not symmetric. A caller who sends `null` for `is_tagged` wanted no
+    tagging filter and gets none. A caller who sends it here is a JS poller
+    that stringified an unset value, and answering "no filter" hands them
+    every asset in the register while they believe they are looking at one
+    label state.
+
+    An empty list reads as "no matches"; a full list reads as an answer. So
+    this is the more dangerous direction of the same silent-degradation bug
+    the enum check exists to close, and it validates like any other
+    unrecognised value.
+    """
+    r = client.get("/api/v1/assets", params={"tag_label_state": "null"})
+    capture("assets/tag_label_state_null", r)
+    body = assert_envelope_err(r, expected_status=400,
+                               expected_code="invalid_request")
+    assert body["error"]["details"]["allowed_values"] == [
+        "issued", "printed", "affixed", "scrapped"
+    ]

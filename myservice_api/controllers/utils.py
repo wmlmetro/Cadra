@@ -134,6 +134,10 @@ SCOPE_IDENTITY_READ      = "identity:read"
 # creates asset records (INT-04/05). Its own scope is what keeps "affixed"
 # evidence of an independent act rather than a field someone can set.
 SCOPE_TAGGING_WRITE      = "tagging:write"
+# Tenant configuration: the category taxonomy, branding, depreciation policy.
+# Carved out of `admin` so an Asset Manager can keep the Settings screens
+# without being handed a wildcard — see GROUP_SCOPES below.
+SCOPE_SETTINGS_WRITE     = "settings:write"
 SCOPE_ADMIN              = "admin"
 
 ALL_SCOPES = frozenset({
@@ -147,8 +151,121 @@ ALL_SCOPES = frozenset({
     SCOPE_DASHBOARDS_READ,
     SCOPE_IDENTITY_READ,
     SCOPE_TAGGING_WRITE,
+    SCOPE_SETTINGS_WRITE,
     SCOPE_ADMIN,
 })
+
+
+# ─── Odoo group → API scope (session tokens only) ────────────────────
+#
+# `POST /auth/login` used to mint `["*"]` for anybody who could authenticate,
+# so the INT-04/05 separation the Tag-Issuing Unit's client exists to enforce
+# held for API clients and not for session users: a storekeeper with an Odoo
+# password could confirm the tag on an asset they had just created. A control
+# that is walked around by logging in is not a control.
+#
+# Each entry maps an Odoo group to the scopes that group's job actually needs.
+# A user's token carries the UNION over the groups they hold. `has_group`
+# follows `implied_ids`, so Asset Manager automatically picks up Asset User's
+# reads and only the delta is listed here.
+#
+# Two rules this table is built on:
+#
+#   1. `tagging:write` is granted by ONE group and is implied by no other.
+#      In particular Asset Manager does not get it — that is the whole point.
+#   2. An internal user holding none of these groups gets NO scopes. Every
+#      list endpoint runs `sudo()`, so a scope is the only gate between a
+#      logged-in user and the register; defaulting to read access would hand
+#      the whole asset base to anyone with an Odoo login.
+GROUP_SCOPES = (
+    # Odoo system administrators. `admin` is a wildcard in `require_jwt`, so
+    # this line does grant `tagging:write` — accepted deliberately: a member
+    # of `base.group_system` can execute arbitrary server actions and is
+    # omnipotent by construction, so withholding one scope from them would be
+    # theatre. Every non-administrator now needs the group below.
+    ("base.group_system", (SCOPE_ADMIN,)),
+
+    ("myservice_asset_register.group_asset_user", (
+        SCOPE_ASSETS_READ,
+        SCOPE_LOCATIONS_READ,
+        SCOPE_IDENTITY_READ,
+        SCOPE_DASHBOARDS_READ,
+        SCOPE_REQUESTS_READ,
+        # The group's own description is "view assets, log verifications,
+        # RAISE REQUESTS", and raising one is a write.
+        SCOPE_REQUESTS_WRITE,
+    )),
+    ("myservice_asset_register.group_asset_manager", (
+        SCOPE_ASSETS_WRITE,
+        SCOPE_LOCATIONS_WRITE,
+        SCOPE_APPROVALS_WRITE,
+        SCOPE_INGESTION_WRITE,
+        SCOPE_SETTINGS_WRITE,
+        # The SPA's Bulk Import page (nominal-roll xlsx -> employees) is in
+        # the top-level nav and is the only thing that page does. Without
+        # this an Asset Manager who imported a roll yesterday gets a 403
+        # toast and an inert screen — a silent break, which is exactly what
+        # narrowing the login wildcard must not cause.
+        SCOPE_INTEGRATIONS_WRITE,
+    )),
+    # The Tag-Issuing Unit. Deliberately NOT implied by Asset Manager: the
+    # team that creates asset records must not be the team that confirms the
+    # label went onto the metal, or an affix record proves only that one
+    # system said so twice.
+    ("myservice_asset_register.group_tag_issuing_unit", (SCOPE_TAGGING_WRITE,)),
+
+    # The employee roster and the SAP/spreadsheet imports that feed it.
+    ("myservice_identity.group_identity_manager", (
+        SCOPE_IDENTITY_READ,
+        SCOPE_INTEGRATIONS_WRITE,
+        # `/identity/employees/<id>/assets` — what this person has custody
+        # of — is the one route in the API requiring TWO scopes
+        # (`identity:read` + `assets:read`). Without the second, an Identity
+        # Manager holding no asset group 403s on the custody tab of the
+        # employee record they are already looking at.
+        SCOPE_ASSETS_READ,
+    )),
+
+    # Read-only dashboard consumers. `dashboards:read` is coarse — it covers
+    # the security, fleet and FM dashboards as one — which is why these two
+    # groups look identical here.
+    ("myservice_security.group_security_officer", (SCOPE_DASHBOARDS_READ,)),
+    ("myservice_staff_bus.group_bus_user", (SCOPE_DASHBOARDS_READ,)),
+)
+
+
+def scopes_for_user(user):
+    """The API scopes a session token for `user` should carry.
+
+    Union over GROUP_SCOPES for every group the user holds. Returns a sorted
+    list; an empty list is a legitimate answer and means the user has no
+    Cadra role — they get a token that authenticates and authorises nothing,
+    and every route answers 403 naming the scope it wanted.
+
+    A group whose module is not installed on this tenant simply does not
+    match — Odoo 19's `has_group` answers False for an xmlid it cannot
+    resolve rather than raising (verified against `res.users._has_group`,
+    which looks the id up through `_get_group_definitions().get_id`). The
+    try/except is belt-and-braces for the same case on other versions:
+    `myservice_identity` and `myservice_staff_bus` are optional per
+    deployment, and a missing addon must not fail login closed for everyone.
+    """
+    granted = set()
+    for xmlid, scopes in GROUP_SCOPES:
+        try:
+            if user.has_group(xmlid):
+                granted.update(scopes)
+        except Exception:
+            # Logged, not swallowed silently: the expected case (an addon
+            # that is not installed on this tenant) is uninteresting, but a
+            # transient ACL or cursor failure here hands a legitimate user an
+            # under-scoped token, and a 403 with no trace of why is the
+            # hardest kind of bug to answer a support call about.
+            _logger.warning(
+                "could not evaluate group %s for uid %s while deriving API "
+                "scopes; continuing without it", xmlid, user.id, exc_info=True)
+            continue
+    return sorted(granted)
 
 
 # ─── JWT ─────────────────────────────────────────────────────────────

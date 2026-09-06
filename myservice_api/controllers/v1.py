@@ -67,6 +67,7 @@ from .utils import (
     jwt_secret,
     ok,
     require_jwt,
+    scopes_for_user,
     turnstile_error,
 )
 
@@ -269,9 +270,10 @@ class MyserviceApiV1(http.Controller):
         backend). Third-party integrations should keep using
         POST /api/v1/auth/token with client_id/secret.
 
-        Scopes: currently every authenticated user gets ["*"]. Mapping
-        Odoo groups to API scopes is a deliberate follow-up — needs a
-        product decision on which groups gate which resources.
+        Scopes: derived from the user's Odoo groups via
+        `utils.GROUP_SCOPES` / `scopes_for_user`. A user holding none of the
+        mapped groups gets an empty scope list — a token that authenticates
+        and authorises nothing.
         """
         data = get_params()
         login = (data.get("login") or data.get("username") or "").strip()
@@ -320,7 +322,13 @@ class MyserviceApiV1(http.Controller):
         except Exception as e:
             return _http_response(err("server_misconfigured", str(e), status=500))
 
-        scopes = ["*"]  # TODO: derive from user's Odoo groups
+        # Derived from the user's Odoo groups. This used to be `["*"]`, which
+        # meant the Tag-Issuing Unit separation held for API clients and not
+        # for anyone with an Odoo password: a storekeeper could create an
+        # asset and then confirm its own tag affixed. `scopes_for_user`
+        # grants `tagging:write` from exactly one group, and grants nothing
+        # at all to a user who holds no Cadra role.
+        scopes = scopes_for_user(user)
         # `aud: "frontend"` marks this token as belonging to the Cadra web
         # frontend; utils.parse_limit lets it pull up to MAX_PAGE_LIMIT
         # records per page (200). Service tokens issued via /auth/token
@@ -594,6 +602,17 @@ class MyserviceApiV1(http.Controller):
                             "through printing and through "
                             "POST /api/v1/assets/{id}/tag-affixed."),
                         "properties": {
+                            "label_id": {
+                                "type": "integer", "nullable": True,
+                                "description": (
+                                    "The `nrs.asset.tag.label` id of the "
+                                    "label on this asset — pass it as "
+                                    "`tag_id` to GET /api/v1/barcode/"
+                                    "print-url. NOT an asset id: the two id "
+                                    "spaces collide, so using one where the "
+                                    "other is wanted silently renders a real "
+                                    "label for a different asset."),
+                            },
                             "tag_number": {"type": "string", "nullable": True},
                             "label_state": {"type": "string", "nullable": True,
                                             "enum": ["issued", "printed",
@@ -675,7 +694,17 @@ class MyserviceApiV1(http.Controller):
                     "`/auth/token` with client credentials instead.\n\n"
                     "Tenants with Cloudflare Turnstile configured also "
                     "require `turnstile_token`; a missing or rejected "
-                    "challenge returns 400 `invalid_request`."
+                    "challenge returns 400 `invalid_request`.\n\n"
+                    "**Scopes are derived from the user's Odoo groups.** The "
+                    "returned `scope` is the union over the groups the "
+                    "account holds, and can be empty — an account with no "
+                    "Cadra role authenticates successfully and is refused by "
+                    "every route. `tagging:write` comes from the "
+                    "Tag-Issuing Unit group alone: the team that creates "
+                    "asset records must not be able to confirm its own tags "
+                    "(INT-04/05). Read `scope` off this response rather than "
+                    "assuming; it was `*` for every user before "
+                    "myservice_api 19.0.3.1.0."
                 ),
                 "requestBody": {
                     "required": True,
@@ -968,9 +997,24 @@ class MyserviceApiV1(http.Controller):
                  scopes=[SCOPE_ASSETS_READ],
                  query_params=[
                      {"name": "tag_id", "required": True, "schema": {"type": "integer"},
-                      "description": "nrs.asset.tag id to render a label for"},
+                      "description": (
+                          "`nrs.asset.tag.label` id — the label to render, "
+                          "available as `data.tagging.label_id` on the asset "
+                          "or as `tag_id` from /barcode/recent-tags. This is "
+                          "NOT the asset id, and the two id spaces collide: "
+                          "passing an asset id here renders whichever "
+                          "unrelated label shares that number. The id that "
+                          "comes back inside the returned URL is the ASSET "
+                          "id, because the label reports are registered on "
+                          "nrs.asset — do not feed it back in here.")},
                      {"name": "size", "schema": {"type": "string",
-                      "enum": ["small", "medium", "large"], "default": "medium"}},
+                      "enum": ["small", "medium", "large", "sheet"],
+                      "default": "medium"},
+                      "description": (
+                          "Label size. `sheet` is the A4 multi-label sheet; "
+                          "it was always accepted and was missing from this "
+                          "enum. An unrecognised value falls back to "
+                          "`medium` rather than erroring.")},
                  ])
     def barcode_print_url(self, **kwargs):
         """Resolve the PDF URL for a tag label.

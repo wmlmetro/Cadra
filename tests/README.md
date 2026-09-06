@@ -21,7 +21,8 @@ the local docker stack.
    argument, so bootstrapping a *different* tenant means changing `.env` first.
 
    The file is resolved from `CADRA_API_BASE`'s hostname, falling back to the
-   shared `docs/api/.creds`. That fallback is legacy: secrets are per-database
+   lone per-tenant file when a checkout has exactly one. The shared
+   `docs/api/.creds` is gone: secrets are per-database
    (one Odoo process, many databases, each with its own API clients and
    `jwt_secret`), so a single global file points at whichever tenant was
    bootstrapped last and aiming the suite anywhere else fails at the first call

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Dev smoke test for the Cadra REST API. Reads creds from docs/api/.creds.
+"""Dev smoke test for the Cadra REST API. Reads creds from docs/api/.creds.<db>.
 
 The API is now properly RESTful:
   - GET    /resource              → list (query string filters)
@@ -38,19 +38,21 @@ def creds_path():
     """Which credentials file belongs to the tenant API_BASE points at.
 
     Secrets are per-database. `.creds.<tenant>` is written by
-    scripts/bootstrap.sh; the shared `.creds` is the legacy single-tenant
-    fallback.
+    scripts/bootstrap.sh. The shared `.creds` was deleted in handoff 05:
+    nothing had written it since handoff 04, and a world-readable file
+    holding one tenant's live secret is exactly the thing that authenticates
+    the wrong database and 401s in a way that looks like a code fault.
     """
     host = urllib.parse.urlsplit(API_BASE).hostname or ""
     label = host.split(".")[0].strip()
     tenant = None if (not label or label == host or label in
                       ("localhost", "127", "0")) else label
     if tenant:
-        # A named tenant takes ITS file or nothing — falling back to the shared
+        # A named tenant takes ITS file or nothing — falling back to a shared
         # file would authenticate against a different database and 401.
         candidates = [f"docs/api/.creds.{tenant}"]
     else:
-        candidates = ["docs/api/.creds"]
+        candidates = []
         # Single-tenant checkout: one per-tenant file and nothing to guess
         # between. Two or more and we refuse rather than pick.
         only = sorted(glob.glob("docs/api/.creds.*"))

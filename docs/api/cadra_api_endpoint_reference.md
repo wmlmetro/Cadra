@@ -2576,19 +2576,45 @@ A token without `dashboards:read` calling `/api/v1/dashboard/kpis` gets:
 This is the difference between **401 unauthorized** (token absent or
 invalid) and **403 forbidden** (token valid but missing a required scope).
 
-## All 14 scopes
+## All 15 scopes
 
 `assets:read`, `assets:write`, `locations:read`, `locations:write`,
 `requests:read`, `requests:write`, `approvals:write`, `dashboards:read`,
 `integrations:write`, `ingestion:write`, `webhooks:admin`, `identity:read`,
-`tagging:write`, `admin`.
+`tagging:write`, `settings:write`, `admin`.
+
+`settings:write` (added 2026-09-06) covers tenant configuration — the
+category taxonomy and the branding and depreciation settings. It was carved
+out of `admin` so those screens do not require a wildcard.
+
+Two of these are not like the others:
+
+- **`admin` is a wildcard.** `require_jwt` treats it exactly like `*`: a token
+  holding `admin` passes every scope check, `tagging:write` included. Grant it
+  only where you mean "everything".
+- **`tagging:write` is deliberately narrow.** It gates the single endpoint that
+  can make an asset read as physically tagged, and the Tag-Issuing Unit's
+  client holds it *alone* — no `assets:read`, no `assets:write`. A credential
+  that can both create an asset and confirm its own tag defeats the control
+  (INT-04/05).
 
 An unrecognised scope on a client record is now rejected when the record is
 saved. It used to be accepted silently, minted into a token, and produce a
 403 the caller could not tell apart from a real permission decision.
 
-**An empty `scopes` field is a wildcard, not a denial** — it grants
-everything. Set the scopes you mean.
+**An empty `scopes` field grants NOTHING** — it is a denial, not a wildcard.
+Set the scopes you mean; write `admin` if you mean everything. (This document
+said the opposite until 2026-09-06. It was wrong: a client created without
+scopes used to receive the whole API, which is privilege escalation waiting
+for a typo.)
+
+### Session tokens carry the scopes the user's Odoo groups justify
+
+`POST /auth/token` takes its scopes from the client record. `POST /auth/login`
+derives them from the user's groups, and the returned `scope` can be **empty**
+— an account with no Cadra role authenticates and is refused everywhere. Read
+`scope` off the login response rather than assuming; it was `*` for every user
+before `myservice_api` 19.0.3.1.0.
 
 ## CORS / auth header
 
