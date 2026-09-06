@@ -118,6 +118,8 @@ On staging/prod the `cadra-upgrade` Job must likewise fan out per tenant databas
 |---|---|
 | Vendra integration CR-01 Parts A + B | **built** (handoff 01) — provenance fields, filters, idempotency and enum correctness |
 | Vendra integration CR-01 Part C — tag capture | **built** (handoff 03) — `label_state`, print stamping, `POST /assets/<id>/tag-affixed` under `tagging:write`, `is_tagged` on the serialiser |
+| Login scopes (handoff 05) | **landed** (`b8b6f64`) — group→scope mapping, `group_tag_issuing_unit`, `settings:write`, re-derivation on refresh, migration `19.0.3.1.0` |
+| Demo-contract corrections (handoff 05) | **landed** (`82da6ab`) — `data.tagging.label_id`, `print-url` 404 fixed, `barcode/lookup` 500 fixed, `tag_label_state` validated |
 | Tag transport (outbound callback to Vendra) | **not started** — needs `ir.cron` retry, backoff, `event_id` idempotency, dead-letter; own handoff |
 | Dead `_sql_constraints` (handoff 02) | **closed** — all 8 reachable sites ported and enforced in every tenant; `docs/constraint-audit.md` |
 | Odoo 19 migration | in flight, separate track |
@@ -130,17 +132,26 @@ On staging/prod the `cadra-upgrade` Job must likewise fan out per tenant databas
 
 - 2026-09-05 · **`nrs19` is the working tenant for integration and demo work**, replacing `cadra19`. · The 19-era database with the real dataset (~11,878 assets) and the migration target; its `jwt_secret` and API client were provisioned in handoff 03. Vendra's `Host` header, category ids and client credentials are all per-tenant — none of them carry over from `cadra19`.
 
-- 2026-09-05 · `[ruled]` **`/auth/login` granting `["*"]` must be fixed** — today any Odoo user who can log in holds `tagging:write`, so the Tag-Issuing Unit separation holds for API clients and not for session users. Needs a group→scope mapping. · Handoff 04 Q1; next Cadra handoff.
+- 2026-09-05 · `[landed b8b6f64]` **`/auth/login` no longer grants `["*"]`** — scopes derive from the user's Odoo groups (`utils.GROUP_SCOPES` / `scopes_for_user`), `tagging:write` comes from the new `group_tag_issuing_unit` alone, and a user with no Cadra group gets an empty scope list. · Handoff 04 Q1; handoff 05.
 - 2026-09-05 · `[landed]` **`ensure_vendra_client()` stays.** The demo's asset-creating half needs a credential that is *not* `test_client` — an admin wildcard that passes `tagging:write` without holding it would make the demo prove nothing. · The separation is the control; same argument as ruling 6 applied to the other side.
-- 2026-09-05 · `[ruled]` **Delete the shared `docs/api/.creds` once every tenant has a `.creds.<db>`.** Keep it as fallback until then.
+- 2026-09-05 · `[landed f7bf682]` **The shared `docs/api/.creds` is deleted.** Only 2 of 8 tenants had a `.creds.<db>`, so the ruling's literal precondition was never met — deleted on the evidence that no reader can reach it instead (both readers fall back only on the no-tenant branch, which cannot authenticate against a host-routed stack). · Handoff 05 Part C.
 - 2026-09-05 · `[landed]` **`nrs19` client split**: `vendra` (assets:read/write, deliberately no `tagging:write`) and `tag_issuing_unit` (`tagging:write` only). Proven live in both directions with 403s. · An asset-creating credential that can also confirm its own tag defeats the control.
+
+- 2026-09-06 · `[landed b8b6f64]` **`admin` is a wildcard, so `settings:write` exists.** Six tenant-configuration write routes moved off `admin`. Granting an Asset Manager `admin` to keep the SPA's Settings screens would have handed them `tagging:write` — the hole reopened in the name of not breaking the UI. · Handoff 05 Part A.
+- 2026-09-06 · `[landed b8b6f64]` **Session refresh RE-DERIVES scopes from groups; client refresh replays the client record's.** `verify_and_rotate` used to replay the stored string either way, so removing someone from the Tag-Issuing Unit left them holding `tagging:write` for up to the 30-day sliding window. · A group change must bite within the hour, not the month.
+- 2026-09-06 · `[landed b8b6f64]` **An internal user with no Cadra group gets NO scopes.** Every list endpoint runs `sudo()`, so a scope is the only gate between a logged-in account and the register; a "read scopes only" default would hand the asset base to anyone with an Odoo password. · Handoff 05.
+- 2026-09-06 · `[landed 82da6ab]` **A tag label id is not an asset id and the spaces collide** — 22 assets on `nrs19` have an asset id that is a valid label id for a *different* asset. `print-url` takes a label id and returns a URL containing an asset id; feeding the wrong one returns `200` and renders the wrong machine's label. `data.tagging.label_id` exists so an integrator never has to guess. · Handoff 05 Part B.
+- 2026-09-06 · `[landed 82da6ab]` **`/report/pdf/<...>` resolves its second segment against `ir.actions.report.report_name`, not the action xmlid.** `print-url` emitted the xmlid and 404'd; the one published route from an asset to a printable label had never rendered anything. · Handoff 05.
+- 2026-09-06 · `[landed 82da6ab]` **`dict(field.selection)` is wrong for a *related* Selection** — `.selection` is a callable there, so it raises `TypeError`. Use `fields_get`. This 500'd `/barcode/lookup` for every asset it found, and broke the barcode station's own scan box, not just the API. · Handoff 05.
+- 2026-09-06 · `[landed 82da6ab]` **A query-enum validator must never disable itself on failure**, and `"null"` is not a "no filter" sentinel where the filter is an enum — treating it as one returned the whole register. · Handoff 05 verification pass; `utils._selection_allowed_values` returns `None` on error and rolls the cursor back, so it must not be used on a read path.
+- 2026-09-06 · **Odoo caches group membership** (`res.users._get_group_ids` is `@ormcache`d). A group change made from a separate `odoo shell` process does not reliably invalidate a running HTTP worker; changes made through the running server (UI or XML-RPC) do. Stock Odoo behaviour — but it will make anyone testing the scope mapping from a shell think it is broken. · Handoff 05.
 
 ## Backlog — agreed, not yet scheduled
 
 - **The nine pre-envelope routes adopt `@cadra_route`** (`/auth/*`, `/openapi.json`, `/docs`, `/assets/export.csv`, `/integrations/employees/import`, `/brand`). They validate nothing and sit outside the standard envelope — and `/auth/token` is the first endpoint every integration touches. Refactor of the auth surface; after INT-03 is live.
-- **Query-parameter enum validation (report 01 V4).** `?condition=damaged` returns `200 []` rather than an error — silent degradation, and asymmetric with POST's 400. API-wide contract change; its own handoff.
+- **Query-parameter validation, API-wide (report 01 V4).** Scoped in report 05: **~26 sites across 5 files** — 13 enum params (`200 []`), **5 boolean params that silently drop the filter and return the UNFILTERED list**, and 8 int params that `except: pass`. The booleans are the dangerous half and should go first: an empty list reads as "no matches", a full list reads as an answer. `utils.py:830` already holds the primitive. Handoff 05 did the tagging filters only.
 - **Per-session test artefact paths.** Two concurrent pytest sessions clobber each other's report and captures. Cosmetic.
-- **`docs/api/.creds` is one file for eight tenants.** Secrets are per-database, but the creds file is a single global pointer, and both `scripts/bootstrap.py` and `docs/api/setup_api_smoke.py` rotate the secret unconditionally — so bootstrapping any tenant silently invalidates the file for whichever tenant the suite is aimed at. Bit us in handoff 03.
+- ~~**`docs/api/.creds` is one file for eight tenants.**~~ **Closed by handoff 05** (`f7bf682`) — the shared file is deleted and both readers now resolve `.creds.<db>` or nothing.
 
 ## Decisions
 
