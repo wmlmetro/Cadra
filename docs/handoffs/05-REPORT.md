@@ -674,6 +674,14 @@ branch intact.
 - **Merging the PR** — the permission layer refuses `gh pr merge`.
 - **Rotating `test_client`'s secret on `nrs19`** — still outstanding from
   handoff 04, still owner-blocked, still not blocking.
+- **Three test users left on `nrs19`**: `h05_storekeeper`, `h05_tagger`,
+  `h05_nobody`, password `Handoff05!pw`. Deliberately kept so the Part A
+  transcripts are reproducible — `nrs19` is a local dev database, not a
+  deployed tenant. Delete them when you have satisfied yourself the mapping
+  works, and do **not** let the pattern reach staging.
+- **The Architect session was not in `ListAgents`**, so per the protocol I
+  skipped the doorbell silently. This report and the PR are the source of
+  truth.
 - **Deploy note:** this branch carries `myservice_api` migration
   `19.0.3.1.0`. The `cadra-upgrade` Job must fan out per tenant database, or
   un-upgraded tenants keep minting wildcard session tokens.
