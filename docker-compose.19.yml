@@ -33,6 +33,15 @@ services:
       context: .
       dockerfile: Dockerfile.odoo.19.dev
     image: cadra-odoo:19.0-dev
+    # INT-05's receiver runs in the local Vendra (Frappe) stack, and the
+    # tenant's workflow.config points at http://vendra.network:8080 — the
+    # hostname is load-bearing, because Frappe picks the site from the Host
+    # header, so rewriting it to host.docker.internal returns a 404 from the
+    # wrong site. Without this, `vendra.network` resolves to 127.0.0.1 inside
+    # the container, which is the container, and every outbound asset event
+    # dead-ends on "Connection refused" against Cadra itself.
+    extra_hosts:
+      - "vendra.network:host-gateway"
     volumes:
       - ./config/odoo.19.conf:/etc/odoo/odoo.conf:ro
     ports:
@@ -41,4 +50,11 @@ services:
       - odoo
       - --workers=${ODOO_WORKERS:-2}
       - --max-cron-threads=${ODOO_MAX_CRON_THREADS:-1}
-      - --db-filter=${ODOO_DBFILTER:-}
+      # Which DBs are exposed over HTTP — and ONLY that. config/odoo.19.conf no
+      # longer sets db_name, because db_name also pinned the cron worker to a
+      # single database (`cron_database_list()` = `config['db_name'] or
+      # list_dbs(True)`) and that is why no ir.cron had ever run on a tenant.
+      # dbfilter does not narrow list_dbs, so the scheduler now covers every
+      # database whatever this is set to. `^odoo$` (the .env.example default)
+      # reproduces the old single-database exposure; `^%d$` routes by host label.
+      - --db-filter=${ODOO_DBFILTER:-^odoo$$}
