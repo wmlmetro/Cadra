@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ── SAP Dual-Code Reconciliation List ──
+         The September Integration Flow control point: "An asset is complete
+         only when both the Cadra Asset Code and the SAP asset code are linked
+         on the register." This list is what an auditor is shown, so it puts
+         the two codes, the evidence for the SAP one (`sap_code_source`) and
+         the verdict (`sap_reconciliation_state`) side by side in one row.
+         Nothing here is editable — a reconciliation report an auditor can
+         type into is not a report. -->
+    <record id="view_nrs_asset_sap_tree" model="ir.ui.view">
+        <field name="name">nrs.asset.sap.reconciliation.tree</field>
+        <field name="model">nrs.asset</field>
+        <field name="arch" type="xml">
+            <!-- Worst first. The selection keys sort `exception` <
+                 `not_tagged` < `pending` < `reconciled` alphabetically, which
+                 IS the severity order — so a plain ascending sort puts the
+                 findings on the first screen. That is a happy accident of the
+                 key names, not a property of the model: renaming a key
+                 silently reorders this report, so rename one and re-check
+                 here. -->
+            <list string="SAP Dual-Code Reconciliation"
+                  default_order="sap_reconciliation_state, asset_code"
+                  create="false" edit="false"
+                  decoration-danger="sap_reconciliation_state == 'exception'"
+                  decoration-muted="sap_reconciliation_state == 'not_tagged'">
+                <field name="asset_code"/>
+                <field name="name"/>
+                <field name="category_id"/>
+                <field name="location_id"/>
+                <field name="custodian_id"/>
+                <field name="tag_label_state"/>
+                <field name="sap_asset_number"/>
+                <!-- Beside the number, never behind it: a code SAP returned
+                     and a code a person typed are the same string and
+                     different facts. -->
+                <field name="sap_code_source"/>
+                <field name="sap_posting_state"/>
+                <field name="sap_reconciliation_state"/>
+                <field name="sap_capitalisation_date"/>
+                <!-- Monetary needs its currency in the view; it carries no
+                     information of its own here. -->
+                <field name="currency_id" column_invisible="True"/>
+                <field name="sap_capitalised_amount" sum="Capitalised (SAP)"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ── SAP Reconciliation Search ── -->
+    <record id="view_nrs_asset_sap_search" model="ir.ui.view">
+        <field name="name">nrs.asset.sap.reconciliation.search</field>
+        <field name="model">nrs.asset</field>
+        <field name="arch" type="xml">
+            <search string="SAP Dual-Code Reconciliation">
+                <field name="asset_code"/>
+                <field name="name"/>
+                <field name="serial_number"/>
+                <field name="sap_asset_number"/>
+
+                <!-- The finding comes first and stands alone above the
+                     separator. The other three states are context; this one
+                     is the reason the screen exists. -->
+                <filter name="filter_sap_exception"
+                        string="Dual-Code Exceptions"
+                        domain="[('sap_reconciliation_state','=','exception')]"/>
+                <separator/>
+                <filter name="filter_sap_reconciled" string="Reconciled"
+                        domain="[('sap_reconciliation_state','=','reconciled')]"/>
+                <filter name="filter_sap_pending" string="Awaiting SAP Code"
+                        domain="[('sap_reconciliation_state','=','pending')]"/>
+                <filter name="filter_sap_not_tagged" string="Not Tagged (posting not due)"
+                        domain="[('sap_reconciliation_state','=','not_tagged')]"/>
+                <separator/>
+                <filter name="filter_has_sap_code" string="Has SAP Code"
+                        domain="[('sap_asset_number','!=',False)]"/>
+                <filter name="filter_no_sap_code" string="No SAP Code"
+                        domain="[('sap_asset_number','=',False)]"/>
+                <separator/>
+                <!-- A hand-entered SAP number is a CLAIM that finance booked
+                     the asset, not evidence of it. An auditor sampling the
+                     register needs to be able to isolate the claims, so this
+                     filter exists on its own rather than only as a group-by. -->
+                <filter name="filter_sap_source_manual" string="SAP Code Entered by Hand"
+                        domain="[('sap_code_source','=','manual')]"/>
+                <filter name="filter_sap_source_integration" string="SAP Code Returned by SAP"
+                        domain="[('sap_code_source','=','integration')]"/>
+                <separator/>
+                <filter name="filter_sap_posting_failed" string="SAP Posting Abandoned"
+                        domain="[('sap_posting_state','=','failed')]"/>
+
+                <!-- No `string` on a search-view group: Odoo 19's RNG rejects it. -->
+                <group>
+                    <filter name="grp_sap_recon" string="Dual-Code Status"
+                            context="{'group_by':'sap_reconciliation_state'}"/>
+                    <filter name="grp_sap_posting" string="SAP Posting"
+                            context="{'group_by':'sap_posting_state'}"/>
+                    <filter name="grp_sap_source" string="SAP Code Source"
+                            context="{'group_by':'sap_code_source'}"/>
+                    <filter name="grp_sap_category" string="Category"
+                            context="{'group_by':'category_id'}"/>
+                    <filter name="grp_sap_location" string="Location"
+                            context="{'group_by':'location_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ── Action ──
+         Opens ON the exceptions. A reconciliation report that opens on the
+         full register makes the reader find the findings; the whole point of
+         the control is that they are already in front of them. Clearing the
+         facet shows everything. -->
+    <record id="action_nrs_asset_sap_reconciliation" model="ir.actions.act_window">
+        <field name="name">SAP Dual-Code Reconciliation</field>
+        <field name="res_model">nrs.asset</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_nrs_asset_sap_tree"/>
+        <field name="search_view_id" ref="view_nrs_asset_sap_search"/>
+        <field name="context">{'search_default_filter_sap_exception': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiley_face">
+                No dual-code exceptions.
+            </p>
+            <p>
+                An asset is complete only when both the Cadra Asset Code and
+                the SAP asset code are linked on the register. This screen is
+                that control: it shows every asset alongside the SAP asset
+                number finance booked it under, and where that number came
+                from.
+            </p>
+            <p>
+                An <b>exception</b> is an asset that has been tagged and
+                physically confirmed to exist, but which finance has never
+                booked — either nothing was ever posted to SAP, or the posting
+                was abandoned. It is an audit finding, not a queue: clearing
+                it means someone links the SAP asset number or explains why
+                there is not one. Assets that are not yet tagged are not
+                exceptions — their SAP posting is not due.
+            </p>
+        </field>
+    </record>
+
+    <!-- Sits beside Asset Tags (60), which is where the exception is created:
+         tagging is the event that makes a SAP posting due. Deliberately not
+         restricted to `group_asset_manager` — this is a read-only report and
+         the reader it is built for is an auditor, not an administrator. -->
+    <menuitem id="menu_asset_sap_reconciliation"
+              name="SAP Reconciliation"
+              parent="menu_asset_root"
+              action="action_nrs_asset_sap_reconciliation"
+              sequence="65"/>
+
+    <!-- ── Extend Asset Form with the SAP block ──
+         Full width, immediately above the notebook: the SAP figures are what
+         finance holds for this asset, and burying them in a tab makes the
+         dual-code question something you have to go looking for. Everything
+         SAP reported is readonly here — these are SAP's answers, and a field
+         someone can retype on the form stops being an answer from SAP. -->
+    <record id="view_nrs_asset_sap_form_inherit" model="ir.ui.view">
+        <field name="name">nrs.asset.sap.form.inherit</field>
+        <field name="model">nrs.asset</field>
+        <field name="inherit_id" ref="view_nrs_asset_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="before">
+                <group string="SAP Asset Accounting" name="sap_accounting">
+                    <group string="Dual-Code Status">
+                        <!-- sap_asset_number itself already sits in the
+                             Classification group (added by
+                             asset_tag_views.xml) and stays writable there:
+                             linking existing SAP numbers onto the legacy
+                             register is how the opening balance of this
+                             control gets built. `sap_code_source` is what
+                             keeps that honest, so it is shown right next to
+                             the verdict. -->
+                        <field name="sap_reconciliation_state" readonly="1"/>
+                        <field name="sap_code_source"/>
+                        <field name="sap_posting_state" readonly="1"/>
+                        <field name="sap_synced_at" readonly="1"/>
+                    </group>
+                    <group string="SAP Identifiers">
+                        <field name="sap_asset_subnumber"/>
+                        <field name="sap_company_code"/>
+                        <field name="sap_asset_class"/>
+                    </group>
+                    <!-- SAP's reported figures. Display only — none of these
+                         feed Cadra's depreciation engine, which would put two
+                         systems in charge of one number. -->
+                    <group string="As Reported by SAP">
+                        <field name="sap_capitalisation_date" readonly="1"/>
+                        <field name="sap_capitalised_amount" readonly="1"/>
+                        <field name="sap_net_book_value" readonly="1"/>
+                        <field name="sap_accumulated_depreciation" readonly="1"/>
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

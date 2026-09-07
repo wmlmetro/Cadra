@@ -39,9 +39,20 @@
                                     <field name="rest_endpoint_submit"
                                         invisible="purpose != 'workspace'"
                                         required="purpose == 'workspace'"/>
+                                    <!-- Shown for BOTH event purposes: INT-05
+                                         carries asset.tag.affixed to Vendra and
+                                         INT-09 carries lifecycle changes to SAP,
+                                         and both resolve through this field. -->
                                     <field name="rest_endpoint_event"
-                                        invisible="purpose != 'asset_events'"
+                                        invisible="purpose == 'workspace'"
                                         placeholder="/api/method/vendra_network.api.tag_event"/>
+                                    <field name="rest_endpoint_asset_master"
+                                        invisible="purpose != 'sap_assets'"
+                                        required="purpose == 'sap_assets' and adapter_type == 'rest'"
+                                        placeholder="/fixed-assets"/>
+                                    <field name="sap_company_code"
+                                        invisible="purpose != 'sap_assets'"
+                                        placeholder="NRS1"/>
                                     <field name="rest_timeout"/>
                                 </group>
                                 <group string="Authentication">
@@ -67,7 +78,7 @@
                             </group>
                         </page>
                         <page string="Event Delivery"
-                            invisible="purpose != 'asset_events'">
+                            invisible="purpose == 'workspace'">
                             <div class="alert alert-info" role="alert">
                                 Asset lifecycle events are queued, not sent
                                 inline: an affix confirmation is recorded in

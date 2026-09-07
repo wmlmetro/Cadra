@@ -71,6 +71,42 @@ def _tag_label_states():
     return list(_TAG_LABEL_STATES)
 
 
+# The published `sap_reconciliation_state` values, mirroring the model's
+# Selection (`nrs.asset.sap_reconciliation_state`) and the OpenAPI enum below.
+# Same role as `_TAG_LABEL_STATES`: the floor under the reader, never a
+# substitute for it.
+_SAP_RECONCILIATION_STATES = ("not_tagged", "pending", "reconciled",
+                              "exception")
+
+
+def _sap_reconciliation_states():
+    """Accepted values for the `sap_reconciliation_state` filter. Never empty.
+
+    Same reader as `_tag_label_states()`, for the same reason and with more
+    at stake: this filter's entire audience is an auditor asking which assets
+    are incomplete, so `?sap_reconciliation_state=exceptions` — the plural,
+    the natural typo — answering `200 []` tells them there are none. Read the
+    model's own Selection so a state the model gains is accepted the same
+    day, fall back to the published tuple when it cannot be read, and never
+    fall back to skipping the check.
+
+    Deliberately NOT `utils._selection_allowed_values`, which rolls the
+    cursor back on failure; this runs on the happy path of every list
+    request.
+    """
+    try:
+        field = request.env["nrs.asset"]._fields["sap_reconciliation_state"]
+        if field.type == "selection":
+            values = list(field.get_values(request.env))
+            if values:
+                return values
+    except Exception:
+        _logger.warning(
+            "could not read nrs.asset.sap_reconciliation_state selection; "
+            "falling back to the published values", exc_info=True)
+    return list(_SAP_RECONCILIATION_STATES)
+
+
 # ─── small helpers ───────────────────────────────────────────────────
 
 def _ref(rec, name_field="name"):
@@ -179,6 +215,86 @@ def _serialize_tagging(a):
     }
 
 
+def _sap_amount(value, synced):
+    """A figure SAP reported, or None where SAP has reported none.
+
+    Deliberately NOT `value or None`, which is what this serialiser does with
+    Cadra's own money. A fully-depreciated asset has a net book value of
+    exactly 0.00, and that is SAP's ANSWER, not the absence of one — reporting
+    it as null would tell an integration that finance has never touched an
+    asset finance has written all the way down. `_set_sap_master` draws the
+    same line on the way in ("absent and zero are different answers and only
+    one of them is a figure"); losing it on the way out would be a silent
+    degradation of exactly the kind rule 3 forbids.
+
+    `synced` is what separates the two cases: a zero on a record SAP has
+    answered for is a figure, a zero on one it never has is a column default.
+    A non-zero value is always a figure, whoever wrote it — the legacy
+    extract loader populates these without going through INT-07.
+    """
+    if not value and not synced:
+        return None
+    return value
+
+
+def _serialize_sap(a):
+    """The SAP block — INT-06/07 and the dual-code control.
+
+    Nested for exactly the reason `provenance` is nested: twelve SAP keys
+    flattened onto the envelope is twelve new breaking-change surfaces on a
+    contract another system builds against, and between them they answer one
+    question — what does finance know about this asset. One new envelope key
+    instead of twelve.
+
+    Every figure here is what SAP REPORTED, never what Cadra computed.
+    `financial.depreciation` is Cadra's arithmetic; this is SAP's, and the two
+    are allowed to disagree. Anything reconciling them has to be able to see
+    both, so they stay in separate blocks — merging them would hide the
+    disagreement the reconciliation exists to find.
+
+    Read-only over the API. None of these fields is in `_WRITABLE_FIELDS` and
+    none of them belongs there: a client that could PATCH `sap_asset_number`
+    could mark an asset reconciled without SAP ever having booked it, which
+    is the precise audit control this block exists to publish.
+    """
+    synced = bool(a.sap_synced_at)
+    return {
+        # The SAP half of the dual-code pair; `asset_code` at the top level
+        # is Cadra's half. An asset carrying only one of the two is the
+        # finding `reconciliation_state` names.
+        "asset_number": a.sap_asset_number or None,
+        "asset_subnumber": a.sap_asset_subnumber or None,
+        # The asset number is not unique on its own — the same number can
+        # exist under two company codes — so anything matching on it needs
+        # this alongside.
+        "company_code": a.sap_company_code or None,
+        # The class SAP actually posted under, which is not necessarily the
+        # one Cadra derived from the category. Where the two differ the
+        # mapping is wrong, and this is the field that shows it.
+        "asset_class": a.sap_asset_class or None,
+        "capitalisation_date": _date(a.sap_capitalisation_date),
+        "capitalised_amount": _sap_amount(a.sap_capitalised_amount, synced),
+        "net_book_value": _sap_amount(a.sap_net_book_value, synced),
+        "accumulated_depreciation": _sap_amount(
+            a.sap_accumulated_depreciation, synced),
+        # How the SAP number got onto the record. A code returned by SAP is
+        # evidence that finance booked the asset; a code typed in by a person
+        # is a claim that they did. The dual-code control is an audit
+        # control, so the two must not look alike over the API either — the
+        # same instinct as `tagging.label_state` against `state`.
+        "code_source": a.sap_code_source or None,
+        # Emitted raw, like `state` and `condition` above: `posting_state`
+        # carries a column default and `reconciliation_state` is a stored
+        # compute, so there is always a value and `or None` could only invent
+        # an absence that does not exist.
+        "posting_state": a.sap_posting_state,
+        "reconciliation_state": a.sap_reconciliation_state,
+        # When SAP last answered for this asset. The discriminator above, and
+        # on its own the answer to "are these figures stale?".
+        "synced_at": _date(a.sap_synced_at),
+    }
+
+
 # ─── serializer ──────────────────────────────────────────────────────
 
 def serialize_asset(a, *, include=()):
@@ -266,6 +382,12 @@ def serialize_asset(a, *, include=()):
             "import_date": _date(a.import_date),
             "import_ref": a.import_ref or None,
         },
+        # What finance knows (INT-06/07) and whether the two codes agree.
+        # Grouped for the same reason `provenance` is, and kept out of
+        # `financial` on purpose: that block is Cadra's own arithmetic and
+        # this one is SAP's reported figures, and a reconciliation needs to
+        # read them apart.
+        "sap": _serialize_sap(a),
         "maintenance_vendor": _ref(a.maintenance_vendor_id),
         "is_verified": a.is_verified,
         "pm_count": a.pm_count,
@@ -383,6 +505,52 @@ def _list_domain(qs):
                 details={"tag_label_state": raw_label_state,
                          "allowed_values": list(allowed)})
         domain.append(("tag_label_state", "=", raw_label_state))
+    # ── SAP (INT-06/07) ───────────────────────────────────────────────
+    #
+    # Exact, like the provenance references above and for the same reason:
+    # `?sap_asset_number=100000001234` has to return the asset finance booked
+    # under that number and nothing else, or it is not a reconciliation.
+    raw_sap_number = qs.get("sap_asset_number")
+    if raw_sap_number:
+        domain.append(("sap_asset_number", "=", raw_sap_number))
+    # `?has_sap_code=false` is the auditor's question — which assets has
+    # finance not booked — so it is the one filter that must never quietly
+    # answer with the whole register. Anything unparseable is a 400: an empty
+    # list reads as "no matches", but an unfiltered list reads as an ANSWER,
+    # and a caller cannot tell it from one.
+    #
+    # Stricter than `is_tagged` above on a single point: `"null"` is rejected
+    # here rather than read as "no filter". That leniency is `is_tagged`'s
+    # published behaviour and stays, but it is the same hole the
+    # `tag_label_state` check closes — a JS caller stringifying an unset value
+    # sends the literal "null" — and a new parameter should not be born with
+    # it.
+    raw_has_sap_code = qs.get("has_sap_code")
+    if raw_has_sap_code not in (None, ""):
+        if raw_has_sap_code in ("true", "True", True):
+            # `= False` on a Char covers NULL and '' both, so its negation is
+            # "there is a code", not merely "the column is not NULL".
+            domain.append(("sap_asset_number", "!=", False))
+        elif raw_has_sap_code in ("false", "False", False):
+            domain.append(("sap_asset_number", "=", False))
+        else:
+            raise _BadFilter("`has_sap_code` must be `true` or `false`",
+                             details={"has_sap_code": raw_has_sap_code})
+    # The dual-code state. Same rule as `tag_label_state`, and it matters
+    # more here rather than less: an auditor filtering for `exception` is
+    # asking to be shown the findings, and a typo answering `200 []` reads as
+    # "there are none" — the single most reassuring wrong answer this API can
+    # give. `"null"` is not a "no filter" sentinel on an enum.
+    raw_recon_state = qs.get("sap_reconciliation_state")
+    if raw_recon_state not in (None, ""):
+        allowed = _sap_reconciliation_states()
+        if raw_recon_state not in allowed:
+            raise _BadFilter(
+                "`sap_reconciliation_state` must be one of: %s"
+                % ", ".join(allowed),
+                details={"sap_reconciliation_state": raw_recon_state,
+                         "allowed_values": list(allowed)})
+        domain.append(("sap_reconciliation_state", "=", raw_recon_state))
     if qs.get("is_verified") in ("true", "True", True):
         domain.append(("is_verified", "=", True))
     elif qs.get("is_verified") in ("false", "False", False):
@@ -430,6 +598,16 @@ _WRITABLE_FIELDS = {
     "last_verified_date", "verification_notes",
     "notes",
 }
+
+# The `sap_*` fields are deliberately ABSENT for the same reason `asset_tag`
+# is. They are written by the SAP integration (`_set_sap_master`, INT-07) and
+# by the legacy extract loader, and `sap_code_source` records which — a code
+# returned by SAP is evidence finance booked the asset, a code typed in is a
+# claim that they did. A client able to PATCH `sap_asset_number` could move
+# an asset to `reconciled` without SAP having booked anything, which is
+# exactly the audit control the dual-code work exists to create; a client
+# able to PATCH `sap_reconciliation_state` could do it without even the
+# pretence of a code. They are published read-only under `data.sap`.
 
 
 def _filter_writable(body):
@@ -502,6 +680,31 @@ class CadraAssetsV1(http.Controller):
                           "outside the enum is a 400 `invalid_request` "
                           "carrying `details.allowed_values`, not an empty "
                           "list.")},
+                     {"name": "sap_asset_number", "schema": {"type": "string"},
+                      "description": "Exact match on the SAP asset number "
+                                     "(INT-07). The SAP half of the dual-code "
+                                     "pair; `asset_code` is Cadra's half."},
+                     {"name": "has_sap_code", "schema": {"type": "boolean"},
+                      "description": (
+                          "True returns only assets linked to a SAP asset "
+                          "number; false returns only those with none — the "
+                          "completeness question. An unparseable value is a "
+                          "400 `invalid_request`, never the unfiltered list. "
+                          "Unlike `is_tagged`, the literal `null` is "
+                          "rejected rather than read as 'no filter'.")},
+                     {"name": "sap_reconciliation_state",
+                      "schema": {"type": "string",
+                                 "enum": ["not_tagged", "pending",
+                                          "reconciled", "exception"]},
+                      "description": (
+                          "The dual-code control (INT-06/07). `reconciled` "
+                          "means both the Cadra asset code and the SAP asset "
+                          "code are linked; `exception` means the asset is "
+                          "tagged and SAP has not booked it, which is the "
+                          "audit finding. `not_tagged` is not a finding — "
+                          "the SAP posting is not yet due. A value outside "
+                          "the enum is a 400 `invalid_request` carrying "
+                          "`details.allowed_values`, not an empty list.")},
                      *PAGINATION_QUERY_PARAMS,
                  ])
     def list_assets(self, **kwargs):
