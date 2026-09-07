@@ -89,6 +89,36 @@ jobs:
       - name: Run the pytest API suite
         run: pytest tests/ -v
 
+      - name: Run the Odoo-native test suites (in-registry)
+        run: |
+          # 1,464 lines of Odoo TransactionCase tests existed and nothing ever
+          # ran them: `pytest tests/` above is an HTTP client, and until now it
+          # was the only thing CI invoked. `--test-enable` appears nowhere else
+          # in this repository.
+          #
+          # That mattered concretely. myservice_workflow/tests/test_outbound_events.py
+          # holds `test_the_drain_cron_exists_and_trigger_resolves_it` — the one
+          # test in the whole repo that asserts a PRODUCTION TRIGGER exists
+          # rather than calling the mechanism itself. It was written in handoff
+          # 06 and had never been executed. Meanwhile the scheduler was dead on
+          # every tenant and no test could see it, because every other delivery
+          # test calls `_cron_drain_outbound_events()` directly.
+          #
+          # A test that invokes the thing under test cannot see that nothing
+          # else invokes it. Running the tests that check the other half is the
+          # cheap part — 72 tests, about 7 seconds.
+          #
+          # Odoo returns a non-zero exit code when the assertion report is
+          # unsuccessful (service/server.py::preload_registries), so this step
+          # genuinely gates. The container already binds 8069, hence the
+          # alternate ports.
+          DB=$(grep -E '^POSTGRES_DB=' .env.example | cut -d= -f2-)
+          docker compose -f docker-compose.yml -f docker-compose.19.yml exec -T odoo \
+            odoo -c /etc/odoo/odoo.conf -d "$DB" \
+              -u myservice_workflow,myservice_asset_depreciation \
+              --test-enable --stop-after-init \
+              --http-port=8099 --gevent-port=8098
+
       - name: Upload test report + response captures (always — even on failure)
         if: always()
         uses: actions/upload-artifact@v4
