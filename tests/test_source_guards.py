@@ -440,3 +440,129 @@ def test_settings_routes_use_settings_write_and_not_admin():
         "with none of it either lost the change or gates configuration on "
         "something looser."
     )
+
+
+# ─────────────────────────────────────────────────────────────────────
+# Manifest load order: a menu's parent must be defined before it is used
+# ─────────────────────────────────────────────────────────────────────
+#
+# Odoo resolves an external ID against what is already in `ir_model_data`, so
+# a data file may only reference an xmlid its own module defined EARLIER in
+# the manifest's `data` list. Get the order wrong and:
+#
+#   - a cold install fails with "External ID not found in the system"
+#   - an UPGRADE passes, because the row is already there from last time
+#
+# That asymmetry is the whole problem. Handoff 07 put `asset_sap_views.xml`
+# ahead of `asset_menu.xml`, upgraded all eight tenants green, deployed to
+# staging green — and broke CI's cold bootstrap, which is the only place that
+# installs from nothing. The failure mode it hides is worse than a red build:
+# every tenant provisioned from that point on would refuse to install, and
+# CLAUDE.md already records that provisioning a new tenant is a path people
+# get wrong.
+
+import re
+import xml.etree.ElementTree as ET
+
+_MENU_PARENT_RE = re.compile(r'parent\s*=\s*"([^"]+)"')
+
+
+def _manifest_data_files(module_dir):
+    """The `data` list, in load order, from a module manifest."""
+    manifest = module_dir / "__manifest__.py"
+    if not manifest.exists():
+        return []
+    try:
+        tree = ast.parse(manifest.read_text(encoding="utf-8"))
+    except SyntaxError:
+        return []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Dict):
+            continue
+        for key, value in zip(node.keys, node.values):
+            if (isinstance(key, ast.Constant) and key.value == "data"
+                    and isinstance(value, ast.List)):
+                return [e.value for e in value.elts
+                        if isinstance(e, ast.Constant)
+                        and isinstance(e.value, str)]
+    return []
+
+
+def _first_party_modules():
+    for glob in FIRST_PARTY_GLOBS:
+        for path in sorted(REPO_ROOT.glob(glob)):
+            if path.is_dir() and (path / "__manifest__.py").exists():
+                yield path
+
+
+def test_menu_parents_are_defined_before_they_are_used():
+    """A menuitem's parent must load before the menuitem does.
+
+    Only same-module, unqualified references are checked. A `parent` carrying
+    a dot is another module's xmlid, which the dependency graph orders for us
+    and which this cannot see.
+    """
+    problems = []
+    for module_dir in _first_party_modules():
+        defined = set()
+        for relpath in _manifest_data_files(module_dir):
+            path = module_dir / relpath
+            if path.suffix != ".xml" or not path.exists():
+                continue
+            try:
+                root = ET.parse(path).getroot()
+            except ET.ParseError as exc:
+                problems.append(f"{module_dir.name}/{relpath}: unparseable ({exc})")
+                continue
+
+            # ONE pass, in document order. Odoo processes a data file element
+            # by element, so an id defined earlier in the SAME file is already
+            # available to what follows it — which is how nearly every menu
+            # file in this repo is written, root first and children under it.
+            # Checking the whole file against only what previous files defined
+            # would flag all of them.
+            for element in root.iter():
+                if element.tag == "menuitem":
+                    parent = element.get("parent")
+                    if parent and "." not in parent and parent not in defined:
+                        problems.append(
+                            f"{module_dir.name}/{relpath}: menu "
+                            f"{element.get('id') or '<no id>'!r} hangs off "
+                            f"{parent!r}, which this module does not define "
+                            f"until later (or not at all). A cold install "
+                            f"fails here; an upgrade would not."
+                        )
+                if element.get("id"):
+                    defined.add(element.get("id"))
+
+    assert not problems, "menu parent referenced before it is defined:\n  " + \
+        "\n  ".join(problems)
+
+
+def test_the_menu_order_guard_would_have_caught_handoff_07(tmp_path):
+    """The guard is only worth having if it fails on the real mistake."""
+    module = tmp_path / "myservice_probe"
+    (module / "views").mkdir(parents=True)
+    (module / "__manifest__.py").write_text(
+        "{'name': 'probe', 'data': ['views/child.xml', 'views/root.xml']}",
+        encoding="utf-8")
+    (module / "views" / "child.xml").write_text(
+        '<odoo><menuitem id="child" parent="menu_root" name="Child"/></odoo>',
+        encoding="utf-8")
+    (module / "views" / "root.xml").write_text(
+        '<odoo><menuitem id="menu_root" name="Root"/></odoo>',
+        encoding="utf-8")
+
+    global REPO_ROOT, FIRST_PARTY_GLOBS
+    original_root, original_globs = REPO_ROOT, FIRST_PARTY_GLOBS
+    REPO_ROOT, FIRST_PARTY_GLOBS = tmp_path, ("myservice_*",)
+    try:
+        with pytest.raises(AssertionError, match="menu parent referenced"):
+            test_menu_parents_are_defined_before_they_are_used()
+        # Reversed, the same two files are fine.
+        (module / "__manifest__.py").write_text(
+            "{'name': 'probe', 'data': ['views/root.xml', 'views/child.xml']}",
+            encoding="utf-8")
+        test_menu_parents_are_defined_before_they_are_used()
+    finally:
+        REPO_ROOT, FIRST_PARTY_GLOBS = original_root, original_globs

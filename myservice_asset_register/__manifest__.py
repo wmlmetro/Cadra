@@ -22,9 +22,13 @@
         'views/asset_transfer_views.xml',
         'views/asset_pm_views.xml',
         'views/asset_tag_views.xml',
-        'views/asset_sap_views.xml',
         'views/asset_tag_report.xml',
         'views/asset_menu.xml',
+        # AFTER asset_menu.xml, which defines `menu_asset_root` — this file
+        # hangs a menu off it. Loaded before it, a cold install fails with
+        # "External ID not found"; an UPGRADE resolves it from the existing
+        # row and passes, which is exactly how it reached CI unnoticed.
+        'views/asset_sap_views.xml',
         'data/asset_cron.xml',
     ],
     'assets': {
