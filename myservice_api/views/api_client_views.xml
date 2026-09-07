@@ -23,6 +23,13 @@
       <form>
         <header>
           <button name="action_rotate_secret" type="object" string="Rotate Secret" class="oe_highlight"/>
+          <!-- Every client used to run as Administrator, so every row it
+               wrote named Administrator and no audit could tell one client
+               from another. This re-homes an existing client onto its own
+               user and re-syncs that user's groups to its scopes. -->
+          <button name="action_provision_user" type="object"
+                  string="Provision Own User"
+                  help="Give this client its own Odoo user, so the records it writes name the client instead of Administrator."/>
         </header>
         <sheet>
           <group>

@@ -73,8 +73,28 @@ def test_affix_confirmation_makes_the_asset_tagged(client, capture):
     assert tagging["is_tagged"] is True
     assert tagging["label_state"] == "affixed"
     assert tagging["affixed_at"], "affixed_at must be recorded"
-    assert tagging["affixed_by"], "the submitting client must be recorded"
     assert tagging["affixed_by_name"] == "J. Okafor"
+
+    # `affixed_by` must name the CLIENT, not Administrator.
+    #
+    # This used to assert only truthiness, and it passed for a year while
+    # every client in the estate ran as `base.user_admin` — so the field said
+    # `{"id": 2, "name": "Administrator"}` for the Tag-Issuing Unit and for
+    # the client that created the asset alike. The scope separation held; the
+    # record it exists to produce could not tell the two apart, which is the
+    # only thing anyone would ever consult it for. `affixed_by_name` beside
+    # it is free text the caller supplies, so it is not a second source.
+    affixed_by = tagging["affixed_by"]
+    assert affixed_by, "the submitting client must be recorded"
+    assert affixed_by["name"] != "Administrator", (
+        "the affix records Administrator — the API client is not running as "
+        "its own Odoo user, so the audit trail cannot say who confirmed the "
+        "label. See myservice.api.client._provision_client_user.")
+
+    # And it must be THIS token's user, not merely some non-admin one.
+    me = assert_envelope_ok(client.get("/api/v1/auth/whoami"))["data"]
+    assert affixed_by["id"] == me["id"], (
+        f"affixed_by {affixed_by} is not the authenticated user {me}")
 
 
 def test_affix_rejects_a_tag_number_that_does_not_match(client, capture):

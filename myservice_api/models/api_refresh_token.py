@@ -116,15 +116,25 @@ class MyserviceApiRefreshToken(models.Model):
         if rec.expires_at and rec.expires_at < fields.Datetime.now():
             return None, "expired"
 
-        user = rec.user_id
-        if not user.exists() or not user.active:
-            self._revoke_family(rec.family_id, "user_disabled")
-            return None, "user_disabled"
-
         client = rec.client_id if rec.client_id else None
         if client and not client.active:
             self._revoke_family(rec.family_id, "client_disabled")
             return None, "client_disabled"
+
+        user = rec.user_id
+        if client and client.user_id and client.user_id != user:
+            # A CLIENT family takes its identity from the client record, the
+            # same way it takes its scopes from there. Replaying the user
+            # stored at mint time would mean re-homing a client onto its own
+            # Odoo user — so that an affix stops recording "Administrator" —
+            # had no effect on any session already in flight, for up to the
+            # full 30-day sliding window. The record is where the answer
+            # lives; the token is only carrying it.
+            user = client.user_id
+
+        if not user.exists() or not user.active:
+            self._revoke_family(rec.family_id, "user_disabled")
+            return None, "user_disabled"
 
         # Empty means no permissions — see the note in
         # controllers/v1.py::token. Without this the wildcard came back on

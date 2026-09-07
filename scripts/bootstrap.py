@@ -126,6 +126,15 @@ REQUIRED_ADMIN_GROUPS = [
 ]
 
 
+def _groups_field(env):
+    """`res.users`' groups field — renamed `groups_id` → `group_ids` on 19.
+
+    The 15 stack is still production, so this script has to speak both.
+    """
+    return ("group_ids" if "group_ids" in env["res.users"]._fields
+            else "groups_id")
+
+
 def ensure_admin_groups():
     """Add base.user_admin to the operational groups our API needs."""
     admin = env.ref("base.user_admin")
@@ -188,20 +197,38 @@ def ensure_test_client():
 
     rec = Client.search([("client_id", "=", client_id)], limit=1)
     if not rec:
-        admin = env.ref("base.user_admin")
+        # No `user_id`: the model provisions the client its own res.users.
+        # This used to be `base.user_admin`, which is why every tag affix in
+        # the estate records "Administrator" as the person who confirmed it.
         rec = Client.create({
             "name": "Smoke Test",
             "client_id": client_id,
-            "user_id": admin.id,
             "scopes": all_scopes,
             "token_ttl_seconds": 3600,
         })
-        _say(f"created API client {client_id!r}")
+        # This one client holds `admin` — a wildcard in `require_jwt` — and
+        # the suite's dashboard routes are the few that do NOT sudo(), so
+        # they read with this user's real ACLs. group_system grants it
+        # nothing the token did not already carry; what changes is that the
+        # audit column now reads "Smoke Test" instead of "Administrator".
+        rec.user_id.sudo().write({
+            _groups_field(env): [(4, env.ref("base.group_system").id)]})
+        _say(f"created API client {client_id!r} running as {rec.user_id.login!r}")
     else:
         # Always re-sync scopes so we never drift behind the canonical set.
+        # This is deliberately NOT chained to the re-homing below: they are
+        # independent, and making the scope re-sync conditional on the client
+        # still sitting on Administrator would silently stop it happening the
+        # moment the identity fix had landed.
         if rec.scopes != all_scopes:
             rec.scopes = all_scopes
             _say(f"updated scopes on existing client {client_id!r}")
+        if rec.user_id == env.ref("base.user_admin"):
+            rec.action_provision_user()
+            rec.user_id.sudo().write({
+                _groups_field(env): [(4, env.ref("base.group_system").id)]})
+            _say(f"re-homed {client_id!r} off Administrator onto "
+                 f"{rec.user_id.login!r}", level="WARN")
 
     # Rotate the secret if:
     #   - the env var supplied a specific value and it doesn't match
@@ -254,21 +281,32 @@ def _ensure_scoped_client(*, name, default_client_id, scopes,
 
     rec = Client.search([("client_id", "=", client_id)], limit=1)
     if not rec:
+        # No `user_id` — the model provisions this client its own res.users,
+        # named for the client and holding only the groups its scopes justify.
+        # It used to be `base.user_admin` for every client alike, which made
+        # the separation these two clients exist to enforce invisible in the
+        # record it exists to produce: a tag affix said "Administrator"
+        # whether the Tag-Issuing Unit or Vendra had confirmed it.
         rec = Client.create({
             "name": name,
             "client_id": client_id,
-            "user_id": env.ref("base.user_admin").id,
             "scopes": scopes,
             "token_ttl_seconds": 3600,
         })
-        _say(f"created API client {client_id!r} (scopes: {scopes})")
-    elif rec.scopes != scopes:
-        # Re-narrowed on every run. Widening a scope by hand to get past a 403
-        # is a permission decision, and it belongs in a commit rather than in
-        # a form somebody filled in during an incident.
-        _say(f"re-narrowing scopes on {client_id!r}: "
-             f"{rec.scopes!r} -> {scopes!r}", level="WARN")
-        rec.scopes = scopes
+        _say(f"created API client {client_id!r} (scopes: {scopes}) "
+             f"running as {rec.user_id.login!r}")
+    else:
+        if rec.scopes != scopes:
+            # Re-narrowed on every run. Widening a scope by hand to get past a
+            # 403 is a permission decision, and it belongs in a commit rather
+            # than in a form somebody filled in during an incident.
+            _say(f"re-narrowing scopes on {client_id!r}: "
+                 f"{rec.scopes!r} -> {scopes!r}", level="WARN")
+            rec.scopes = scopes          # write() re-syncs the user's groups
+        if rec.user_id == env.ref("base.user_admin"):
+            rec.action_provision_user()
+            _say(f"re-homed {client_id!r} off Administrator onto "
+                 f"{rec.user_id.login!r}", level="WARN")
 
     if requested_secret:
         if not rec.check_client_secret(requested_secret):
