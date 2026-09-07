@@ -234,6 +234,93 @@ GROUP_SCOPES = (
 )
 
 
+# ─── API scope → Odoo group (API CLIENT users only) ──────────────────
+#
+# Every API client used to run as `base.user_admin`, so a tag affix recorded
+# `affixed_by = Administrator` — for the Tag-Issuing Unit's client and for the
+# client that created the asset alike. The scope separation held; the record of
+# WHO confirmed the label, which is the only reason that separation exists,
+# did not. Each client now gets its own `res.users`, and this table says what
+# that user is put in.
+#
+# Deliberately NOT the inverse of GROUP_SCOPES, and not derived from it:
+#
+#   * `assets:read` is granted by three groups there and `dashboards:read` by
+#     two unrelated ones; an automatic inverse has no basis to choose.
+#   * `admin` would invert to `base.group_system`. A scope string typed into a
+#     form must never be able to mint a system administrator.
+#
+# These groups are NOT the access control and must not be mistaken for it.
+# `require_jwt` is the gate, and a scope refusal is a 403 that names the scope
+# it wanted; a record-rule refusal would be a 500 that names nothing, which
+# breaks the envelope contract for Vendra. They exist for two narrower
+# reasons: `base.group_user` is genuinely load-bearing for the handful of
+# controller reads that do not `sudo()` (the `myservice.dashboard` routes and
+# `ir.sequence.next_by_code`), and a user form that reads "Tag-Issuing Unit"
+# is legible provenance where "Administrator" was not.
+SCOPE_GROUPS = {
+    SCOPE_ASSETS_READ:        ("myservice_asset_register.group_asset_user",),
+    SCOPE_ASSETS_WRITE:       ("myservice_asset_register.group_asset_manager",),
+    SCOPE_LOCATIONS_READ:     ("myservice_asset_register.group_asset_user",),
+    SCOPE_LOCATIONS_WRITE:    ("myservice_asset_register.group_asset_manager",),
+    SCOPE_REQUESTS_READ:      ("myservice_asset_register.group_asset_user",),
+    SCOPE_REQUESTS_WRITE:     ("myservice_asset_register.group_asset_user",),
+    SCOPE_APPROVALS_WRITE:    ("myservice_asset_register.group_asset_manager",),
+    SCOPE_INGESTION_WRITE:    ("myservice_asset_register.group_asset_manager",),
+    SCOPE_SETTINGS_WRITE:     ("myservice_asset_register.group_asset_manager",),
+    # The three `myservice.dashboard` routes are the only ones in the API
+    # that do NOT `sudo()`, so `dashboards:read` is the one scope whose
+    # groups are load-bearing rather than documentary: `get_kpis` reads
+    # `fleet.vehicle` and `generic.location` directly, and without these the
+    # route answers 400 "You are not allowed to access 'Vehicle'". It used to
+    # work only because every client ran as base.user_admin, which held the
+    # manager groups. The user groups are DERIVED from the scope here, so the
+    # two cannot drift apart — the scope stays authoritative.
+    # (The routes ought to sudo() like every other one, and return a 403
+    # naming the scope rather than a 400 leaking Odoo group names. That is a
+    # change to published behaviour for session tokens too, so it is proposed
+    # in docs/handoffs/08-REPORT.md rather than taken here.)
+    SCOPE_DASHBOARDS_READ:    ("myservice_security.group_security_officer",
+                               "fleet.fleet_group_user",
+                               "generic_location.group_generic_location_user_implicit"),
+    SCOPE_IDENTITY_READ:      ("myservice_identity.group_identity_manager",),
+    SCOPE_INTEGRATIONS_WRITE: ("myservice_identity.group_identity_manager",),
+    SCOPE_TAGGING_WRITE:      ("myservice_asset_register.group_tag_issuing_unit",),
+    # SCOPE_WEBHOOKS_ADMIN and SCOPE_ADMIN map to nothing on purpose — see the
+    # note above. An `admin` client's user is an ordinary internal user; the
+    # wildcard lives in the token, where `require_jwt` can see it.
+}
+
+
+def groups_for_scopes(env, scopes):
+    """The `res.groups` an API client holding `scopes` should run as.
+
+    Always includes `base.group_user`: the client user has to be internal or
+    it falls outside every `base.group_user` ACL in the stack, including the
+    `ir.sequence` read behind asset transfers, and `share` is computed from
+    exactly that group.
+
+    A group whose module is not installed on this tenant is skipped rather
+    than raised on — `myservice_identity` and `myservice_staff_bus` are
+    optional per deployment, and provisioning must not fail closed on the
+    tenants that do without them. Same reasoning as `scopes_for_user`.
+    """
+    xmlids = {"base.group_user"}
+    for scope in scopes:
+        xmlids.update(SCOPE_GROUPS.get(scope, ()))
+
+    groups = env["res.groups"].browse()
+    for xmlid in sorted(xmlids):
+        group = env.ref(xmlid, raise_if_not_found=False)
+        if group:
+            groups |= group
+        else:
+            _logger.info(
+                "myservice_api: %s is not installed on this database; "
+                "leaving it off the API client user", xmlid)
+    return groups
+
+
 def scopes_for_user(user):
     """The API scopes a session token for `user` should carry.
 

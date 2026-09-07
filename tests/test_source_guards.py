@@ -566,3 +566,389 @@ def test_the_menu_order_guard_would_have_caught_handoff_07(tmp_path):
         test_menu_parents_are_defined_before_they_are_used()
     finally:
         REPO_ROOT, FIRST_PARTY_GLOBS = original_root, original_globs
+
+
+# ─────────────────────────────────────────────────────────────────────
+# The scheduler must be able to reach every tenant
+# ─────────────────────────────────────────────────────────────────────
+#
+# `config/odoo.19.conf` set `db_name = odoo`. That looks like it only chooses
+# which database HTTP exposes, and it was there for exactly that reason — but
+# Odoo's cron worker reads the same option:
+#
+#     def cron_database_list():
+#         return config['db_name'] or list_dbs(True)
+#                                     # odoo/service/server.py
+#
+# So the scheduler served one database. On this stack that one is a leftover
+# 15-era database a 19 worker skips as incompatible, which means NO ir.cron
+# ran on ANY tenant, ever — INT-05 delivery, depreciation, PM, token GC, the
+# mail queue, all of it. Nothing errored and nothing was logged as wrong: an
+# event was queued and simply stayed queued.
+#
+# Exposure is `dbfilter`'s job, and dbfilter does not narrow `list_dbs`. So
+# the rule is: a config file a long-running server loads may set `dbfilter`
+# and must not set `db_name`.
+
+_DB_NAME_RE = re.compile(r"^\s*db_name\s*=", re.MULTILINE)
+
+# The one exception, named rather than pattern-matched so it cannot quietly
+# grow. `odoo.conf` at the repo root is a generated artefact of the Odoo 15
+# bare-metal `install.sh` — one host, one database, no dbfilter and no
+# tenants, so pinning the scheduler to that database is what it means to do.
+# Nothing mounts it: install.sh writes /etc/odoo/odoo.conf from its own
+# heredoc, and every container mounts something under config/ instead. It
+# should probably be deleted; until it is, it is out of scope, not allowed.
+_SINGLE_TENANT_CONF_ALLOWED = {"odoo.conf"}
+
+
+def _server_config_files():
+    """Every Odoo config a long-running server could load.
+
+    The k8s ConfigMaps carry their `odoo.conf` inline as YAML, so they are
+    matched as text rather than parsed — the guard is a line-level rule and
+    an indented `db_name =` inside a block scalar is the same defect.
+    """
+    for path in sorted(REPO_ROOT.glob("*.conf")):
+        yield path
+    for path in sorted((REPO_ROOT / "config").glob("*.conf")):
+        yield path
+    for path in sorted((REPO_ROOT / "k8s").rglob("*configmap*.yaml")):
+        yield path
+
+
+# `db_name` is only one spelling. `-d` / `--database=` on a long-running
+# server's argv sets `config['db_name']` identically and pins the cron worker
+# in exactly the same way — and that is the keystroke-away reintroduction,
+# because the compose files and the k8s Deployment are where the server's
+# command line actually lives. Neither does it today; this keeps it that way.
+#
+# The one-shot invocations are a different thing entirely and must stay: a
+# bootstrap, an upgrade or a migration Job SHOULD name its database, because
+# it is not a server and has no scheduler. So the rule is scoped to a
+# long-running command, which in practice means one without --stop-after-init.
+_ARGV_DB_RE = re.compile(r"(?:^|[\s\"'])(?:-d|--database)(?:[=\s]|$)")
+
+# `-d` is not unique to Odoo — `pg_isready -d`, `psql -d` and `pg_dump -d`
+# all take one and none of them has a scheduler. Match the Odoo command, not
+# the flag.
+_PG_TOOLS_RE = re.compile(r"\b(?:pg_isready|psql|pg_dump|pg_restore|createdb|dropdb)\b")
+_ODOO_CMD_RE = re.compile(r"(?:^|[\s\"'/])odoo(?:[\s\"']|$)")
+
+_SERVER_ARGV_FILES = (
+    "docker-compose.yml",
+    "docker-compose.dev.yml",
+    "docker-compose.19.yml",
+    "docker-compose.prod.yml",
+    "k8s/dev/41-odoo-19-deployment.yaml",
+)
+
+
+def test_no_long_running_server_names_its_database_on_the_command_line():
+    """`-d`/`--database` on a server pins the cron worker just like db_name.
+
+    A one-shot (`--stop-after-init`) may and should name its database — it
+    has no scheduler to starve. A server may not.
+    """
+    offenders = []
+    for relpath in _SERVER_ARGV_FILES:
+        path = REPO_ROOT / relpath
+        if not path.exists():
+            continue
+        for lineno, line in enumerate(
+                path.read_text(encoding="utf-8").splitlines(), 1):
+            stripped = line.strip()
+            if stripped.startswith("#") or "--stop-after-init" in stripped:
+                continue
+            if _PG_TOOLS_RE.search(stripped) or not _ODOO_CMD_RE.search(stripped):
+                continue
+            if _ARGV_DB_RE.search(stripped):
+                offenders.append(f"{relpath}:{lineno}  {stripped}")
+
+    assert not offenders, (
+        "a long-running Odoo server names its database on the command line, "
+        "which sets config['db_name'] and pins the cron worker to it exactly "
+        "as the config option does:\n  " + "\n  ".join(offenders) + "\n\n"
+        "Use --db-filter for exposure. One-shot commands carrying "
+        "--stop-after-init are exempt and are skipped by this guard."
+    )
+
+
+def test_no_server_config_pins_the_cron_worker_to_one_database():
+    """`db_name` in a served config stops every other tenant's cron dead.
+
+    Choose the exposed database with `dbfilter` (`--db-filter`, which
+    docker-compose passes from `ODOO_DBFILTER`). It restricts HTTP without
+    touching `list_dbs`, so the scheduler keeps seeing every database.
+    """
+    offenders = []
+    for path in _server_config_files():
+        rel = path.relative_to(REPO_ROOT)
+        if str(rel) in _SINGLE_TENANT_CONF_ALLOWED:
+            continue
+        text = path.read_text(encoding="utf-8")
+        for match in _DB_NAME_RE.finditer(text):
+            line = text.count("\n", 0, match.start()) + 1
+            offenders.append(f"{rel}:{line}")
+
+    assert not offenders, (
+        "`db_name` pins Odoo's cron worker to the databases it names — "
+        "`cron_database_list()` is `config['db_name'] or list_dbs(True)` — so "
+        "every other tenant's ir.cron silently never runs:\n  "
+        + "\n  ".join(offenders) + "\n\n"
+        "Set the exposed database with `dbfilter` instead (`^%d$` for "
+        "host-routed tenants, `^<db>$` for a single one). dbfilter does not "
+        "narrow `list_dbs`, so cron still covers every database."
+    )
+
+
+def test_the_db_name_guard_would_have_caught_handoff_08(tmp_path):
+    """The guard fails on the exact file that caused this, and passes fixed."""
+    global REPO_ROOT
+    (tmp_path / "config").mkdir()
+    conf = tmp_path / "config" / "odoo.19.conf"
+    conf.write_text("[options]\ndb_user = odoo\ndb_name = odoo\n",
+                    encoding="utf-8")
+    (tmp_path / "k8s").mkdir()
+
+    original_root = REPO_ROOT
+    REPO_ROOT = tmp_path
+    try:
+        with pytest.raises(AssertionError, match="pins Odoo's cron worker"):
+            test_no_server_config_pins_the_cron_worker_to_one_database()
+        conf.write_text("[options]\ndb_user = odoo\ndbfilter = ^%d$\n",
+                        encoding="utf-8")
+        test_no_server_config_pins_the_cron_worker_to_one_database()
+        # An allow-listed single-tenant file stays out of it.
+        (tmp_path / "odoo.conf").write_text("[options]\ndb_name = myservice\n",
+                                            encoding="utf-8")
+        test_no_server_config_pins_the_cron_worker_to_one_database()
+    finally:
+        REPO_ROOT = original_root
+
+
+# ─── a scheduled method must exist ───────────────────────────────────
+#
+# The generalised lesson of the same handoff: a test that invokes the thing
+# under test cannot see that nothing else invokes it. Every delivery test
+# calls `_cron_drain_outbound_events()` directly, which proves the function
+# works and says nothing about whether anything calls it.
+#
+# The mirror-image failure is real in this estate. `nrs19` and `jaizbankplc`
+# carry two ir.cron rows — `cron_asset_pm_refresh_overdue` and
+# `cron_asset_refresh_verification` — scheduling
+# `nrs.asset.pm._cron_refresh_overdue()` and
+# `nrs.asset._cron_refresh_verification()`. Neither method has ever existed.
+# They were dormant only because the scheduler was; the first tick after the
+# fix would have raised AttributeError on both, every day.
+
+_CRON_CODE_CALL_RE = re.compile(r"\bmodel\.(_[A-Za-z0-9_]+)\s*\(")
+
+
+def _scheduled_methods():
+    """(file, xmlid, method) for every `state=code` ir.cron we ship."""
+    for module_dir in _first_party_modules():
+        for path in sorted(module_dir.rglob("*.xml")):
+            try:
+                root = ET.parse(path).getroot()
+            except ET.ParseError:
+                continue
+            for record in root.iter("record"):
+                if record.get("model") != "ir.cron":
+                    continue
+                code = "".join(
+                    (field.text or "")
+                    for field in record.findall("field")
+                    if field.get("name") == "code")
+                for method in _CRON_CODE_CALL_RE.findall(code):
+                    yield path, record.get("id"), method
+
+
+def test_every_scheduled_method_exists():
+    """An ir.cron may not schedule a method nothing defines.
+
+    The cron record is the production trigger. If it names a method that is
+    not there, the guarantee it schedules does not exist — and because the
+    row lives in the database rather than in the code, no upgrade removes it
+    and no import fails. It surfaces as a daily traceback, or as nothing at
+    all while the scheduler happens to be dead.
+    """
+    defined = set()
+    for path in _first_party_python_files():
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                defined.add(node.name)
+
+    offenders = [
+        f"{path.relative_to(REPO_ROOT)}: {xmlid} schedules model.{method}()"
+        for path, xmlid, method in _scheduled_methods()
+        if method not in defined
+    ]
+
+    assert not offenders, (
+        "these ir.cron records schedule a method that does not exist in any "
+        "of our modules:\n  " + "\n  ".join(offenders) + "\n\n"
+        "A cron whose method is missing fails on every tick — or, if the "
+        "scheduler is not running, proves nothing at all."
+    )
+
+
+def test_the_cron_guard_covers_the_crons_we_ship():
+    """The guard must actually be looking at something.
+
+    A parser that silently matches nothing passes forever. These are the
+    scheduled methods we know we ship; if this list shrinks, either a cron
+    was removed deliberately or the parser stopped seeing them.
+    """
+    found = {method for _, _, method in _scheduled_methods()}
+    expected = {
+        "_gc",                              # myservice_api refresh tokens
+        "_cron_recompute_depreciation",     # myservice_asset_depreciation
+        "_cron_create_pm_requests",         # myservice_asset_register
+        "_cron_check_preventive_maintenance",   # myservice_fleet_maintenance
+        "_cron_drain_outbound_events",      # myservice_workflow (INT-05)
+    }
+    missing = sorted(expected - found)
+    assert not missing, (
+        f"the ir.cron parser no longer sees {missing} — either those crons "
+        "were removed, or the guard has stopped reading the data files and "
+        "is now passing vacuously."
+    )
+
+
+# ─── an API client must not run as Administrator ─────────────────────
+#
+# `myservice.api.client.user_id` decides which Odoo user a client's writes are
+# recorded as, and Odoo 19's `sudo()` does not change `env.uid` — so this
+# field, not the sudo, is what the audit trail says. Both provisioning sites
+# in scripts/bootstrap.py set it to `base.user_admin`, and every tag affix in
+# the estate therefore records:
+#
+#     "affixed_by": {"id": 2, "name": "Administrator"}
+#
+# for the Tag-Issuing Unit's client and for the client that created the asset
+# alike. The scope separation held; the answer it exists to produce did not.
+#
+# There is no HTTP test for this half — the suite cannot inspect another
+# client's record — so the guard is on the source, where the regression is one
+# convenient line.
+
+_CLIENT_PROVISIONING_SITES = ("scripts/bootstrap.py",)
+
+
+def _admin_user_refs(node):
+    """True if `node` is a reference to base.user_admin (or uid 2)."""
+    for sub in ast.walk(node):
+        if isinstance(sub, ast.Constant) and sub.value in (
+                "base.user_admin", "base.user_root"):
+            return True
+        if isinstance(sub, ast.Constant) and sub.value == 2:
+            return True
+    return False
+
+
+@pytest.mark.parametrize("relpath", _CLIENT_PROVISIONING_SITES)
+def test_no_api_client_is_provisioned_as_admin(relpath):
+    """No client may be pointed at Administrator, in either spelling.
+
+    A grep for the string `"user_id"` was the first version of this guard and
+    it was wrong twice over: it flagged every ORM domain that happens to
+    filter on a user (`search([("user_id", "=", uid)])`), and it MISSED the
+    attribute form — `rec.user_id = env.ref("base.user_admin")` — which is the
+    spelling this very file already uses elsewhere and therefore the one a
+    regression would most naturally take. Parse instead.
+    """
+    tree = ast.parse((REPO_ROOT / relpath).read_text(encoding="utf-8"))
+    offenders = []
+
+    for node in ast.walk(tree):
+        # 1. `user_id` as a key in a dict literal that also carries a
+        #    `client_id` or `scopes` key — i.e. API-client create vals, not
+        #    any old dict.
+        if isinstance(node, ast.Dict):
+            keys = {k.value for k in node.keys
+                    if isinstance(k, ast.Constant) and isinstance(k.value, str)}
+            if "user_id" in keys and keys & {"client_id", "scopes"}:
+                offenders.append(
+                    f"{relpath}:{node.lineno} API-client create vals set "
+                    "`user_id`")
+
+        # 2. `<something>.user_id = <base.user_admin>` — attribute assignment.
+        if isinstance(node, ast.Assign):
+            targets = [t for t in node.targets
+                       if isinstance(t, ast.Attribute) and t.attr == "user_id"]
+            if targets and _admin_user_refs(node.value):
+                offenders.append(
+                    f"{relpath}:{node.lineno} assigns Administrator to "
+                    "`.user_id`")
+
+    assert not offenders, (
+        "an API client is being pointed at Administrator:\n  "
+        + "\n  ".join(offenders) + "\n\n"
+        "Leave `user_id` out of the create — the model provisions the client "
+        "its own res.users. Pointing every client at base.user_admin is what "
+        "made `affixed_by` say Administrator for every client in the estate, "
+        "so the Tag-Issuing Unit and the client that created the asset were "
+        "indistinguishable in the only record that could tell them apart."
+    )
+
+
+def test_the_client_guard_catches_both_spellings(tmp_path):
+    """Feed the guard each regression and assert it fails on both."""
+    global REPO_ROOT, _CLIENT_PROVISIONING_SITES
+    original_root, original_sites = REPO_ROOT, _CLIENT_PROVISIONING_SITES
+    probe = tmp_path / "probe.py"
+    REPO_ROOT, _CLIENT_PROVISIONING_SITES = tmp_path, ("probe.py",)
+    try:
+        # The create-vals spelling.
+        probe.write_text(
+            'Client.create({"client_id": c, "user_id": admin.id})\n',
+            encoding="utf-8")
+        with pytest.raises(AssertionError, match="pointed at Administrator"):
+            test_no_api_client_is_provisioned_as_admin("probe.py")
+
+        # The attribute spelling — the one the grep version missed.
+        probe.write_text(
+            'rec.user_id = env.ref("base.user_admin")\n', encoding="utf-8")
+        with pytest.raises(AssertionError, match="pointed at Administrator"):
+            test_no_api_client_is_provisioned_as_admin("probe.py")
+
+        # And an ordinary ORM domain must NOT trip it.
+        probe.write_text(
+            'Token.search([("user_id", "=", uid), ("revoked", "=", False)])\n',
+            encoding="utf-8")
+        test_no_api_client_is_provisioned_as_admin("probe.py")
+    finally:
+        REPO_ROOT, _CLIENT_PROVISIONING_SITES = original_root, original_sites
+
+
+def test_the_client_provisioning_sites_still_exist():
+    """A rename would make the guard above scan nothing and pass."""
+    for relpath in _CLIENT_PROVISIONING_SITES:
+        path = REPO_ROOT / relpath
+        assert path.exists(), (
+            f"{relpath} moved — update _CLIENT_PROVISIONING_SITES")
+        assert "myservice.api.client" in path.read_text(encoding="utf-8"), (
+            f"{relpath} no longer provisions API clients — update "
+            "_CLIENT_PROVISIONING_SITES to wherever it moved")
+
+
+def test_no_scope_grants_an_api_client_system_administrator():
+    """`admin` is a token wildcard; it must not mint `base.group_system`.
+
+    `SCOPE_GROUPS` is deliberately not the inverse of `GROUP_SCOPES`, which
+    does map `base.group_system` to `admin`. Inverting it would mean a scope
+    string typed into a form could provision a system administrator — the
+    escalation the empty-scopes guard above exists to stop, arriving by the
+    other door.
+    """
+    source = (REPO_ROOT
+              / "myservice_api/controllers/utils.py").read_text(encoding="utf-8")
+    start = source.index("SCOPE_GROUPS = {")
+    table = source[start:source.index("\n}", start)]
+    assert "group_system" not in table, (
+        "SCOPE_GROUPS maps a scope to base.group_system. An API client's user "
+        "must never be provisioned as a system administrator from its scope "
+        "string; the `admin` wildcard lives in the token, where require_jwt "
+        "can see it."
+    )
