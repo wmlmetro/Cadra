@@ -307,3 +307,42 @@ Four, all found by verification rather than theorised, and all in code written d
 ## Verification pass
 
 A fresh agent that authored none of the code reviewed the diff against the handoff's acceptance criteria. It found items 1, 2 and 3 in *Other defects* above, and the `sap_code_source` writability hole in Part C — all four are fixed in `b1618b8`, and its findings are why the outage test was run in the shape that exposed the missing uniqueness constraint.
+
+---
+
+## Addendum — CI failed after the merge, and why my verification did not catch it
+
+PR #50 was merged with `bootstrap-and-test` red. The cause was mine, in this handoff, and the way it evaded every check in the report above is the part worth recording.
+
+**The fault.** `views/asset_sap_views.xml` declares the reconciliation menu, whose parent `menu_asset_root` is defined in `views/asset_menu.xml`. I placed the new file in the manifest's `data` list **before** that one. Odoo resolves an external ID against what is already in `ir_model_data`, so a cold install fails:
+
+```
+ValueError: External ID not found in the system: myservice_asset_register.menu_asset_root
+while parsing /mnt/extra-addons/myservice_asset_register/views/asset_sap_views.xml:151
+```
+
+**Why everything above was green anyway.** An **upgrade** resolves the parent from the row a previous install left behind; only a **cold install** has nothing to resolve against. So:
+
+- the eight-tenant fan-out passed — every one of those databases was an upgrade;
+- `deploy-dev` on `dev` passed after the merge, because staging's databases already exist and the `cadra-upgrade` Job runs `-u`;
+- the pytest and Odoo suites passed, because both run against databases that already exist;
+- CI is the only thing in the pipeline that installs from nothing, and it was the only thing that went red.
+
+The verification table in Step 0 is real and it could not have caught this. **I never ran a cold install locally, and that is the gap** — the handoff's acceptance criteria did not ask for one, and I did not think to add it. Note also the exact split in the CI history: the Part A docs commit (`029d5db`) passed; the code commit (`b1618b8`) failed. That was visible and I did not look at it before opening the PR.
+
+**Why it mattered more than a red build.** Staging was never broken, so the visible damage was nil. The latent damage was not: **every tenant provisioned from that commit onward would have refused to install**, and CLAUDE.md already records that installing modules is the step people get wrong when standing up a tenant (*"Installing modules is not provisioning a tenant"*, handoff 04). It would have surfaced as a broken new-client deployment, a long way from the change that caused it.
+
+**Fixed** in `b3b9cb8`, PR #51: the manifest loads `asset_sap_views.xml` after `asset_menu.xml`, with a comment saying why so it is not helpfully "tidied" back.
+
+**Guarded**, because the instance is less interesting than the class. `tests/test_source_guards.py` gained `test_menu_parents_are_defined_before_they_are_used`: it walks each first-party manifest's `data` list in load order and fails on a `menuitem` whose same-module parent is not yet defined. Proven against the real regression rather than a synthetic one — with the broken order restored it names the offending file and menu; corrected, it passes.
+
+One note on building it, because it is the kind of thing that makes a guard worthless. The first version compared each file against only what **previous** files had defined, and reported 20 false positives across five modules — Odoo processes a data file element by element, so a root defined at the top of a file is available to children below it, which is how nearly every menu file in this repo is written. It now walks in document order. A guard that cries wolf gets disabled, and then it is worse than not having one.
+
+**Verified locally by doing what CI does**, on a fresh database, before and after:
+
+- before: the `ValueError` above, exit 255 — the same failure CI saw;
+- after: `75 modules loaded`, all 34 SAP external IDs present in `ir_model_data`, 12/12 SAP columns on `nrs_asset`, and CI's dead-`_sql_constraints` gate at 0.
+
+Full API suite after the fix: `238 passed, 26 skipped`. `tests/test_source_guards.py`: 18 passed.
+
+**For the next handoff:** an acceptance criterion of "the suite is green and the tenants are upgraded" does not cover a cold install, and the difference between `-i` and `-u` is exactly where this class of defect lives. A fresh-database install is cheap — two and a half minutes locally — and it is the only check that would have caught this before the merge.
