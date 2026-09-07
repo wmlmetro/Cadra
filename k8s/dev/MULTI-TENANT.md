@@ -144,10 +144,12 @@ kubectl -n $NS scale deploy/odoo --replicas=1
 
 ## Test the routing locally (without disturbing your running dev stack)
 
-Local dev keeps `db_name = odoo` and **no** dbfilter, so `localhost` works as
-usual. To verify host→DB routing, launch a throwaway server with dbfilter on a
-spare port and curl it with `Host:` headers (this is exactly how the mechanism
-was validated):
+Local dev no longer sets `db_name` at all: it pinned Odoo's cron worker to that
+one database, so no `ir.cron` ran on any tenant. Exposure is `ODOO_DBFILTER`'s
+job alone — the committed default `^odoo$` serves that one database on every
+host, so `localhost` works as usual, and `^%d$` routes by host label. To verify
+host→DB routing, launch a throwaway server with dbfilter on a spare port and curl
+it with `Host:` headers (this is exactly how the mechanism was validated):
 
 ```sh
 docker run --rm -d --name dbfilter-test \

@@ -85,13 +85,20 @@ cron_asset_pm_refresh_overdue    -> nrs.asset.pm._cron_refresh_overdue()
 cron_asset_refresh_verification  -> nrs.asset._cron_refresh_verification()
 ```
 
-**Neither method exists anywhere in this repository, and never has.** They were
-created on 2026-08-26 by commit `c673ed1` on `feat/rfp-phase1-authorisation`,
-which is not an ancestor of `dev` — the databases were upgraded from a branch that
-was never merged, and the cron rows outlived their methods. They carry an
-`ir.model.data` xmlid claiming `myservice_asset_register` owns them, which no data
-file backs, so no upgrade would ever have removed them. `nrs19` already shows
-`failure_count = 1`.
+**Neither method exists on `dev`.** *(Corrected after verification — my first
+draft said they had never existed anywhere, and that was wrong.)* Both exist in
+commit `c673ed1` on `feat/rfp-phase1-authorisation`, which is **not** an ancestor
+of `dev`. That commit added the two crons, their data file **and** batched
+implementations whose docstrings name this exact problem — and it was never
+merged. These two databases were upgraded from that branch; the rows survived,
+the code did not.
+
+The distinction matters three ways: the diagnosis is "two tenant DBs carry state
+from an abandoned branch", not "someone scheduled a phantom"; the fix for
+`is_verified`/`is_overdue` **already exists at `c673ed1`** and is where a
+follow-up should start rather than a blank page; and on `dev` the xmlid still
+claims this module owns a cron this module does not define, so the lookup finds
+nothing. `nrs19` already shows `failure_count = 1`.
 
 **They were harmless only because the scheduler was dead.** The first tick after
 the fix would have raised `AttributeError` on both, on two tenants, every day, for
@@ -206,6 +213,15 @@ first tick duration   3 m 38 s       192 jobs, 8 databases, 1 cron thread
 Per tenant: `cadra19` 24, `gtb19` 24, `test19` 24, `nrs19` 20, and 25 each on
 `nrs`, `gtb`, `lasg`, `jaizbankplc`. `odoo` was enumerated and skipped, as designed.
 
+**192 and the 186 in the fan-out table below are two different measures, and the
+table's "24 of 23" is my sloppy labelling, not an arithmetic error.** 192 counts
+*job executions* inside the 20:34:19–20:37:57 window, read off the log. 186 counts
+*distinct crons whose `lastcall` is after the wake*, read off the database later —
+so a cron that ran twice counts once, and the denominator is `active`, which fell
+by one per tenant when I deactivated the telemetry cron after it had already run.
+Neither number is reconstructable now: `lastcall` is overwritten by every
+subsequent pass, and the container log no longer reaches back that far.
+
 **Overdue jobs fire once, not N times.** `ir_cron.py:647` catches `nextcall` up in
 a loop that advances the schedule without re-invoking the job, so a daily cron 20
 days late runs a single time. This is why a three-week gap cost under four minutes.
@@ -242,6 +258,13 @@ the company's name, email and phone.** Across these tenants that is *Nigeria
 Revenue Service*, *Guaranty Trust Bank*, *Jaiz Bank Plc* and *Lagos State Ministry
 of Health*, disclosed to a third party from a developer's laptop, in one batch, the
 moment the scheduler woke.
+
+**It had already fired once, and I first wrote that it never had.** `nrs19`'s
+row shows `lastcall = 2026-09-06 19:15:33` — handoff 06's throwaway worker
+container, a day before this handoff, while `publisher_warranty_url` was still
+the Odoo default. So one real POST carrying the Nigeria Revenue Service company
+name, email and phone was attempted from this machine before any of this was
+done. Worth the owner knowing rather than asserting away.
 
 Neutralised before the tick, in two layers:
 
@@ -436,8 +459,14 @@ truth. The truth was that **both provisioning sites in `scripts/bootstrap.py` se
   window — structurally the same defect as handoff 05's wildcard scopes. This is
   the exact analogue of the existing ruling that session families re-derive
   scopes: *the record is where the answer lives; the token is only carrying it.*
-- **Migration `19.0.3.2.0`**, run on all eight tenants: 11 clients re-homed,
-  **387 live refresh-token families repointed**.
+- **Migration `19.0.3.2.0`**, run on all eight tenants: **10 clients re-homed**
+  and **387 live refresh-token rows repointed**. Two corrections after
+  verification — I first wrote "11 clients" (the per-tenant counts sum to 10:
+  1+3+1+1+1+1+1+1) and called the rows "families", which they are not: a family
+  is many rows across rotations, and the migration writes rows. The eleventh
+  client is in the 15-era `odoo` database, deliberately **not** migrated because
+  a 19 worker cannot load it. It serves no tenant and dies with the 15 stack,
+  but it is the one client in the estate this change did not reach.
 
 ### Proven live on `nrs19`
 
@@ -621,13 +650,40 @@ running instance:
   for `db_name`, with the bare-metal `odoo.conf` named as the single explicit
   exception rather than pattern-matched away. Paired with a test that feeds it the
   offending file and asserts it fails.
+- **`test_no_long_running_server_names_its_database_on_the_command_line`** —
+  because `db_name` is only one spelling. `-d` / `--database=` on a server's argv
+  sets `config['db_name']` identically and pins the worker the same way, and the
+  compose files and the k8s Deployment are exactly where a server's command line
+  lives. One-shot commands carrying `--stop-after-init` are exempt and skipped:
+  a bootstrap or upgrade Job *should* name its database, because it has no
+  scheduler to starve. Nothing violates it today; that is the point.
 - **`test_every_scheduled_method_exists`** — parses every `ir.cron` we ship and
-  asserts the method it names is defined somewhere in our modules. This is the
-  guard that would have caught the two orphan crons, and it comes with
+  asserts the method it names is defined somewhere in our modules, with
   `test_the_cron_guard_covers_the_crons_we_ship` so a parser that silently matches
   nothing cannot pass forever.
-- **`test_no_api_client_is_provisioned_as_admin`** — the Part C regression, on the
-  source, where it is one convenient line.
+
+  **It would NOT have caught the two orphan crons, and I claimed otherwise in an
+  earlier draft.** On `c673ed1` the XML and the methods were consistent, so a
+  source guard reading that branch passes; and the form that actually reached us
+  was a *database row*, which no source guard can see. It is a real guard against
+  a real regression — shipping a cron whose method you forgot to write — but the
+  class of defect found here needs an **in-registry** test that walks `ir.cron`
+  and resolves each `state=code` call against the live model. That belongs with
+  the Odoo-native suites now wired into CI and is the single most valuable
+  follow-up in this report.
+
+  Its other limits, stated rather than discovered later: the call regex only
+  matches `model._x()` receivers, `defined` is a flat set of function names with
+  no model binding (a cron on `nrs.asset` naming `_gc` passes because
+  `myservice_api` defines `_gc` on the token model), and crons created in Python
+  rather than XML are invisible.
+- **`test_no_api_client_is_provisioned_as_admin`** — the Part C regression. Its
+  first version grepped for the string `"user_id"` and was wrong in both
+  directions: it flagged every ORM domain filtering on a user, and it missed the
+  attribute form `rec.user_id = env.ref("base.user_admin")` — which is the
+  spelling `bootstrap.py` already uses elsewhere, so the likeliest regression.
+  It now parses, matches both spellings, and ships
+  `test_the_client_guard_catches_both_spellings` feeding it each one.
 - **`test_no_scope_grants_an_api_client_system_administrator`**.
 
 ---
@@ -678,6 +734,12 @@ $ CADRA_API_BASE=http://jaizbankplc.localhost:8069 tests/.venv/bin/python -m pyt
 Report: /Users/macbookprom1/Desktop/WML/myservicenrs/docs/api/test-report.md
 Captured responses: /Users/macbookprom1/Desktop/WML/myservicenrs/docs/api/test-responses/
 245 passed, 26 skipped in 152.11s (0:02:32)
+```
+
+Re-run after the verification fixes (the two new guards add two cases):
+
+```
+247 passed, 26 skipped in 47.31s
 ```
 
 Odoo-native suites, now wired into CI:
@@ -749,6 +811,53 @@ Also corrected before commit: the migration tested `"*" in (client.scopes or "")
 — a substring check against a space-separated list, which would grant the wildcard
 group to any scope string merely *containing* an asterisk. Now a token match.
 
+### The independent verification pass
+
+A fresh agent that had not written any of this reviewed the diff against the
+handoff's acceptance criteria. It confirmed, against the database rather than
+against my word: the 289 affix records, both Part B timestamp pairs to the
+millisecond, the depreciation "after" figures, zero `state='sent'` mail on all
+eight tenants, the orphan crons gone from both tenants, the eight retired debt
+users with `password IS NULL` and no live token families, and 271 collected tests
+= 245 + 26. It independently reproduced the `$$` escaping result and confirmed the
+new CI step's mechanics (both suites are `@tagged('post_install')` with
+`requests.post` patched — no network; `myservice_asset_depreciation` is a hard
+dependency of `myservice_api` so `-u` is not a no-op; ports 8099/8098 are free).
+
+It found **five things I had wrong**, all now fixed above and in the code:
+
+1. **"Neither method has ever existed" was false** — the worst of them, because it
+   had already reached CLAUDE.md, and because it sends a follow-up handoff to a
+   blank page when a working implementation exists at `c673ed1`.
+2. **`ensure_test_client` silently stripped `base.group_system`.**
+   `_provision_client_user` writes groups with `(6, 0, ...)` — a full replace —
+   and that runs on every scope change, while the `group_system` grant lived only
+   in the create and re-home branches. So the first time a scope was added to
+   `ALL_SCOPES` (handoff 03 and again in 05 — routinely) the next bootstrap would
+   strip it back off with nothing in the log. **That is precisely the shape of the
+   bug this handoff is about**, reintroduced by the fix for it. The grant is now
+   unconditional and last, with the corollary stated: any hand-added group on a
+   client user is destroyed by the next scope edit, so the scope table is the only
+   durable source of those groups.
+3. **The `db_name` guard missed the argv spelling** — `-d`/`--database` on a
+   server's command line does the same thing. New guard above.
+4. **The client guard was both too narrow and too broad.** Rewritten as an AST
+   check with a test that feeds it both regressions.
+5. **Three counting/claim errors** — 11 clients (10), "families" (rows), and
+   "never ran here" for the telemetry cron (it ran once on `nrs19`).
+
+It also flagged that `jaizbankplc`'s throwaway `workflow.config` was disclosed as
+an open question but not contained — and that this handoff is what made it
+dangerous, since before it nothing drained the queue. Correct. **It is now
+`active=false, event_enabled=false` and the receiver process is stopped**, rather
+than left for "before that tenant is used again".
+
+Two documentation contradictions it caught are fixed: `k8s/dev/MULTI-TENANT.md`
+still told readers local dev keeps `db_name = odoo` and no dbfilter, and
+CLAUDE.md's handoff-06 entry still asserted in the present tense that no tenant
+cron can run here and that anything cron-driven must be proven with a throwaway
+worker container.
+
 ## Deviations from the handoff
 
 1. **`NRS — Push asset data to Redhubs` is not a dormant cron.** It is
@@ -779,8 +888,13 @@ group to any scope string merely *containing* an asterisk. Now a token match.
    before it is touched.
 4. **Should the repo-root `odoo.conf` be deleted?** Nothing reads it and it
    describes a stack that no longer exists.
-5. **`jaizbankplc`'s `workflow.config` id 1** is a test artefact I created for the
-   second-tenant proof. Remove or repoint before that tenant is used again.
+5. ~~`jaizbankplc`'s `workflow.config` id 1~~ — **closed.** Disabled
+   (`active=false, event_enabled=false`) and the receiver stopped, during this
+   handoff rather than deferred.
+6. **An in-registry cron test** — walk `ir.cron` and resolve every `state=code`
+   call against the live model. It is the only guard that catches this defect in
+   the form it actually took (a database row), and the Odoo-native CI step now
+   exists to host it.
 
 ## Commits
 

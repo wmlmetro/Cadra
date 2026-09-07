@@ -206,13 +206,6 @@ def ensure_test_client():
             "scopes": all_scopes,
             "token_ttl_seconds": 3600,
         })
-        # This one client holds `admin` — a wildcard in `require_jwt` — and
-        # the suite's dashboard routes are the few that do NOT sudo(), so
-        # they read with this user's real ACLs. group_system grants it
-        # nothing the token did not already carry; what changes is that the
-        # audit column now reads "Smoke Test" instead of "Administrator".
-        rec.user_id.sudo().write({
-            _groups_field(env): [(4, env.ref("base.group_system").id)]})
         _say(f"created API client {client_id!r} running as {rec.user_id.login!r}")
     else:
         # Always re-sync scopes so we never drift behind the canonical set.
@@ -225,10 +218,30 @@ def ensure_test_client():
             _say(f"updated scopes on existing client {client_id!r}")
         if rec.user_id == env.ref("base.user_admin"):
             rec.action_provision_user()
-            rec.user_id.sudo().write({
-                _groups_field(env): [(4, env.ref("base.group_system").id)]})
             _say(f"re-homed {client_id!r} off Administrator onto "
                  f"{rec.user_id.login!r}", level="WARN")
+
+    # group_system, applied UNCONDITIONALLY and last.
+    #
+    # This client holds `admin` — a wildcard in `require_jwt` — and the
+    # dashboard routes are the few that do NOT sudo(), so they read with this
+    # user's real ACLs. The group grants it nothing the token did not already
+    # carry; what changes is that the audit column reads "Smoke Test" instead
+    # of "Administrator".
+    #
+    # It is applied outside both branches because `_provision_client_user`
+    # writes the group set with `(6, 0, ...)` — a full replace — and that runs
+    # on every scope change. Granting it only on create meant that the first
+    # time a scope was added to ALL_SCOPES (which happened in handoff 03 and
+    # again in 05, i.e. routinely) the next bootstrap would silently strip
+    # group_system back off, with nothing in the log. That is the same shape
+    # as the bug this handoff is about: a deliberate grant that quietly stops
+    # existing. Note the corollary — any group added to a client user BY HAND
+    # is destroyed by the next scope edit; the scope table is the only durable
+    # source of a client user's groups.
+    if rec.user_id.login.startswith(rec.CLIENT_USER_LOGIN_PREFIX):
+        rec.user_id.sudo().write({
+            _groups_field(env): [(4, env.ref("base.group_system").id)]})
 
     # Rotate the secret if:
     #   - the env var supplied a specific value and it doesn't match

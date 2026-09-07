@@ -613,8 +613,65 @@ def _server_config_files():
         yield path
     for path in sorted((REPO_ROOT / "config").glob("*.conf")):
         yield path
-    for path in sorted((REPO_ROOT / "k8s").rglob("*configmap*odoo*.yaml")):
+    for path in sorted((REPO_ROOT / "k8s").rglob("*configmap*.yaml")):
         yield path
+
+
+# `db_name` is only one spelling. `-d` / `--database=` on a long-running
+# server's argv sets `config['db_name']` identically and pins the cron worker
+# in exactly the same way — and that is the keystroke-away reintroduction,
+# because the compose files and the k8s Deployment are where the server's
+# command line actually lives. Neither does it today; this keeps it that way.
+#
+# The one-shot invocations are a different thing entirely and must stay: a
+# bootstrap, an upgrade or a migration Job SHOULD name its database, because
+# it is not a server and has no scheduler. So the rule is scoped to a
+# long-running command, which in practice means one without --stop-after-init.
+_ARGV_DB_RE = re.compile(r"(?:^|[\s\"'])(?:-d|--database)(?:[=\s]|$)")
+
+# `-d` is not unique to Odoo — `pg_isready -d`, `psql -d` and `pg_dump -d`
+# all take one and none of them has a scheduler. Match the Odoo command, not
+# the flag.
+_PG_TOOLS_RE = re.compile(r"\b(?:pg_isready|psql|pg_dump|pg_restore|createdb|dropdb)\b")
+_ODOO_CMD_RE = re.compile(r"(?:^|[\s\"'/])odoo(?:[\s\"']|$)")
+
+_SERVER_ARGV_FILES = (
+    "docker-compose.yml",
+    "docker-compose.dev.yml",
+    "docker-compose.19.yml",
+    "docker-compose.prod.yml",
+    "k8s/dev/41-odoo-19-deployment.yaml",
+)
+
+
+def test_no_long_running_server_names_its_database_on_the_command_line():
+    """`-d`/`--database` on a server pins the cron worker just like db_name.
+
+    A one-shot (`--stop-after-init`) may and should name its database — it
+    has no scheduler to starve. A server may not.
+    """
+    offenders = []
+    for relpath in _SERVER_ARGV_FILES:
+        path = REPO_ROOT / relpath
+        if not path.exists():
+            continue
+        for lineno, line in enumerate(
+                path.read_text(encoding="utf-8").splitlines(), 1):
+            stripped = line.strip()
+            if stripped.startswith("#") or "--stop-after-init" in stripped:
+                continue
+            if _PG_TOOLS_RE.search(stripped) or not _ODOO_CMD_RE.search(stripped):
+                continue
+            if _ARGV_DB_RE.search(stripped):
+                offenders.append(f"{relpath}:{lineno}  {stripped}")
+
+    assert not offenders, (
+        "a long-running Odoo server names its database on the command line, "
+        "which sets config['db_name'] and pins the cron worker to it exactly "
+        "as the config option does:\n  " + "\n  ".join(offenders) + "\n\n"
+        "Use --db-filter for exposure. One-shot commands carrying "
+        "--stop-after-init are exempt and are skipped by this guard."
+    )
 
 
 def test_no_server_config_pins_the_cron_worker_to_one_database():
@@ -779,22 +836,90 @@ def test_the_cron_guard_covers_the_crons_we_ship():
 _CLIENT_PROVISIONING_SITES = ("scripts/bootstrap.py",)
 
 
+def _admin_user_refs(node):
+    """True if `node` is a reference to base.user_admin (or uid 2)."""
+    for sub in ast.walk(node):
+        if isinstance(sub, ast.Constant) and sub.value in (
+                "base.user_admin", "base.user_root"):
+            return True
+        if isinstance(sub, ast.Constant) and sub.value == 2:
+            return True
+    return False
+
+
 @pytest.mark.parametrize("relpath", _CLIENT_PROVISIONING_SITES)
 def test_no_api_client_is_provisioned_as_admin(relpath):
-    source = (REPO_ROOT / relpath).read_text(encoding="utf-8")
-    for lineno, line in enumerate(source.splitlines(), 1):
-        stripped = line.strip()
-        if stripped.startswith("#"):
-            continue
-        if '"user_id"' in stripped or "'user_id'" in stripped:
-            pytest.fail(
-                f"{relpath}:{lineno} sets an API client's user explicitly:\n"
-                f"    {stripped}\n"
-                "Leave `user_id` out of the create; the model provisions the "
-                "client its own res.users. Pointing every client at "
-                "base.user_admin is what made `affixed_by` say Administrator "
-                "for every client in the estate."
-            )
+    """No client may be pointed at Administrator, in either spelling.
+
+    A grep for the string `"user_id"` was the first version of this guard and
+    it was wrong twice over: it flagged every ORM domain that happens to
+    filter on a user (`search([("user_id", "=", uid)])`), and it MISSED the
+    attribute form — `rec.user_id = env.ref("base.user_admin")` — which is the
+    spelling this very file already uses elsewhere and therefore the one a
+    regression would most naturally take. Parse instead.
+    """
+    tree = ast.parse((REPO_ROOT / relpath).read_text(encoding="utf-8"))
+    offenders = []
+
+    for node in ast.walk(tree):
+        # 1. `user_id` as a key in a dict literal that also carries a
+        #    `client_id` or `scopes` key — i.e. API-client create vals, not
+        #    any old dict.
+        if isinstance(node, ast.Dict):
+            keys = {k.value for k in node.keys
+                    if isinstance(k, ast.Constant) and isinstance(k.value, str)}
+            if "user_id" in keys and keys & {"client_id", "scopes"}:
+                offenders.append(
+                    f"{relpath}:{node.lineno} API-client create vals set "
+                    "`user_id`")
+
+        # 2. `<something>.user_id = <base.user_admin>` — attribute assignment.
+        if isinstance(node, ast.Assign):
+            targets = [t for t in node.targets
+                       if isinstance(t, ast.Attribute) and t.attr == "user_id"]
+            if targets and _admin_user_refs(node.value):
+                offenders.append(
+                    f"{relpath}:{node.lineno} assigns Administrator to "
+                    "`.user_id`")
+
+    assert not offenders, (
+        "an API client is being pointed at Administrator:\n  "
+        + "\n  ".join(offenders) + "\n\n"
+        "Leave `user_id` out of the create — the model provisions the client "
+        "its own res.users. Pointing every client at base.user_admin is what "
+        "made `affixed_by` say Administrator for every client in the estate, "
+        "so the Tag-Issuing Unit and the client that created the asset were "
+        "indistinguishable in the only record that could tell them apart."
+    )
+
+
+def test_the_client_guard_catches_both_spellings(tmp_path):
+    """Feed the guard each regression and assert it fails on both."""
+    global REPO_ROOT, _CLIENT_PROVISIONING_SITES
+    original_root, original_sites = REPO_ROOT, _CLIENT_PROVISIONING_SITES
+    probe = tmp_path / "probe.py"
+    REPO_ROOT, _CLIENT_PROVISIONING_SITES = tmp_path, ("probe.py",)
+    try:
+        # The create-vals spelling.
+        probe.write_text(
+            'Client.create({"client_id": c, "user_id": admin.id})\n',
+            encoding="utf-8")
+        with pytest.raises(AssertionError, match="pointed at Administrator"):
+            test_no_api_client_is_provisioned_as_admin("probe.py")
+
+        # The attribute spelling — the one the grep version missed.
+        probe.write_text(
+            'rec.user_id = env.ref("base.user_admin")\n', encoding="utf-8")
+        with pytest.raises(AssertionError, match="pointed at Administrator"):
+            test_no_api_client_is_provisioned_as_admin("probe.py")
+
+        # And an ordinary ORM domain must NOT trip it.
+        probe.write_text(
+            'Token.search([("user_id", "=", uid), ("revoked", "=", False)])\n',
+            encoding="utf-8")
+        test_no_api_client_is_provisioned_as_admin("probe.py")
+    finally:
+        REPO_ROOT, _CLIENT_PROVISIONING_SITES = original_root, original_sites
 
 
 def test_the_client_provisioning_sites_still_exist():
