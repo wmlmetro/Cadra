@@ -43,9 +43,11 @@ going `issued → printed` at 09:20:55.
 ## Needs the owner
 
 1. **Merge the PR** (standing — the permission layer refuses `gh pr merge`).
-2. **`upgrade-19` for every tenant carrying `myservice_asset_register`, at or
-   before the image roll** (carried forward from handoff 10's own Step 0 —
-   still true, and this handoff adds nothing that changes it).
+2. ~~**`upgrade-19` for every tenant.**~~ **Done — run `34214199930`, 10:12
+   UTC, see the postscript.** Worth recording that **this handoff added no new
+   stored field**, so the `UndefinedColumn` hazard that makes the ordering
+   urgent did not apply this time; the ordering held anyway, by the workflow's
+   construction.
 3. ~~**The telemetry's cluster half.**~~ **Done — see the postscript.** It was
    cleared by an `upgrade-19` run at 06:54 UTC, before this merged.
 
@@ -713,6 +715,41 @@ half, the cron deactivation is the second layer.
 Worth someone's attention separately, not mine to change: **the cluster's `nrs`
 database has almost none of the platform installed.** Five tenants are named in
 the `upgrade-19` target list and only four of them are running Cadra.
+
+### The handoff-10 fan-out, dispatched and landed
+
+Owner item 2 as well, run `34214199930` at 10:12 UTC, on
+`registry.digitalocean.com/vendra-registry/cadra-odoo-19:dev-e7293b4` pinned
+rather than `dev-latest` — blank means "whatever was pushed last", and the next
+merge changes that under you.
+
+| | |
+|---|---|
+| modules | `myservice_asset_register`, `myservice_request_fields`, `myservice_barcode_station`, `myservice_security` |
+| upgraded | `staging` 10:13:10 · `gtb` 10:15:15 · `jaizbankplc` 10:16:32 · `lasg` 10:17:40 |
+| `nrs` | loaded 14 modules, no-op — none of ours is installed there |
+| genuine `ERROR`/`CRITICAL` | none |
+| `FAILED` at the roll step | `0` — the gate cleared honestly rather than by its fail-safe default |
+| image | `dev-ee0d866` → `dev-e7293b4`, *"deployment odoo-19 successfully rolled out"* |
+
+`PREV_IMAGE` was recorded as `dev-ee0d866`, so a tenant failure would have
+restored that rather than advancing — the ordering the workflow's header
+describes, doing what it says.
+
+**Only `myservice_asset_register` and `myservice_request_fields` strictly
+needed it**: the first carries the `<function>` that resets the A4 sheet
+report's `model` and `binding_model_id` and the view that drops the duplicate
+declaration, the second the two badges. The other two are asset-only, and both
+of their JavaScript files are dead on 19 anyway (open question 1). The image
+roll is what carries the readonly-cursor stamp, the `report_action` guard, the
+wizard fix and the `/barcode/print_url` batch form, all of which are Python.
+
+**One thing in the log that is ours.** The stack traces in that run are
+`DeprecationWarning`s, not errors — `py.warnings` prints a full stack for each.
+One is vendored (`crnd-19/generic_resource` importing `odoo.osv`). The other is
+**`myservice_fm_dashboard/controllers/dashboard.py:25`**, which uses
+`@route(type='json')` — *"a deprecated alias to `@route(type='jsonrpc')`"* on
+19. Latent now, breakage later; named here rather than fixed in a docs commit.
 
 ### Two things this postscript is evidence for
 
