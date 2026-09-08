@@ -1130,3 +1130,236 @@ def test_the_dashboard_routes_sudo():
         "gate behind a declared scope is the defect, not the "
         "protection:\n  " + "\n  ".join(unsudoed)
     )
+
+
+# ─── the cluster-touching workflows queue behind each other ──────────
+#
+# `upgrade-19` scales `odoo-19` to zero for the duration of a schema upgrade,
+# `tenant-cutover-19` does a `rollout restart` on it, and `deploy-dev` /
+# `deploy-19` now END by reading the RUNNING `odoo-19` pod to prove the
+# ConfigMaps they just applied actually took effect (handoff 10 Part B).
+#
+# Those two facts do not compose. A deploy whose guard reads the pod while an
+# upgrade has scaled it to zero fails with a question about whether the pod is
+# up, not an answer about the config — and the answer to a question that shape
+# is always "re-run it", which is how a config that never took effect gets
+# waved through by the very guard written to catch it.
+#
+# One queue for everything that takes `odoo-19` down and up. The guard is on
+# the *set*: a fifth workflow that rolls the Deployment and quietly gets its
+# own group is the failure this exists to catch, so membership is derived from
+# what a workflow does to `odoo-19`, never from a hand-kept list of names.
+
+CLUSTER_DEPLOY_GROUP = "cadra-cluster-deploy"
+
+# Anything that takes the shared odoo-19 Deployment down and up, or waits on
+# it doing so. `scale` (upgrade-19), `rollout restart` (tenant-cutover-19) and
+# `rollout status` (both deploys, which wait for the roll they just applied
+# and then exec into the pod it produced) are the three spellings in use.
+# Deliberately NOT matched: a plain `kubectl exec` into odoo-19. db-query,
+# audit-tenant and set-tenant-company all do that to read a tenant, and
+# queueing a 20-second query behind a 40-minute deploy would be a worse
+# workflow, not a safer one.
+_ROLLS_ODOO_19 = re.compile(
+    r"kubectl[^\n]*\b(?:scale|rollout\s+(?:restart|status))\b"
+    r"[^\n]*\bdeployment/odoo-19\b"
+)
+
+# `concurrency:` at column 0, then its `group:` key. These are our own files
+# and PyYAML is not a test dependency; a two-line regex beats adding one.
+_CONCURRENCY_GROUP = re.compile(
+    r"^concurrency:\s*$\n(?:^\s+#[^\n]*$\n)*^\s+group:\s*(\S+)\s*$",
+    re.MULTILINE,
+)
+
+
+def _workflow_concurrency_group(text):
+    match = _CONCURRENCY_GROUP.search(text)
+    return match.group(1) if match else None
+
+
+def test_every_workflow_that_rolls_odoo_19_shares_one_concurrency_group():
+    workflows = sorted((REPO_ROOT / ".github/workflows").glob("*.yml"))
+    assert workflows, "no workflows found — has the path moved?"
+
+    offenders = []
+    rollers = []
+    for path in workflows:
+        text = path.read_text(encoding="utf-8")
+        if not _ROLLS_ODOO_19.search(text):
+            continue
+        rollers.append(path.name)
+        group = _workflow_concurrency_group(text)
+        if group != CLUSTER_DEPLOY_GROUP:
+            offenders.append("%s  group: %s" % (path.name, group))
+
+    assert len(rollers) >= 3, (
+        "expected at least the three deploy workflows to roll odoo-19; found "
+        "%r. If the kubectl spelling changed, this guard has stopped looking "
+        "at anything." % (rollers,)
+    )
+    assert not offenders, (
+        "a workflow takes the odoo-19 Deployment down and up but does not "
+        "queue behind the others. Two of these at once and the ConfigMap "
+        "guard reads a pod that is being replaced under it:\n  "
+        + "\n  ".join(offenders)
+    )
+
+
+def test_the_concurrency_guard_would_have_caught_the_split_groups(tmp_path):
+    """The pre-R55 state: each workflow with its own group."""
+    before = (
+        "on:\n  workflow_dispatch:\n\n"
+        "concurrency:\n  group: upgrade-19\n  cancel-in-progress: false\n\n"
+        "jobs:\n  upgrade:\n    steps:\n"
+        "      - run: kubectl -n cadra-dev scale deployment/odoo-19 --replicas=0\n"
+    )
+    assert _ROLLS_ODOO_19.search(before), "the detector missed a scale-to-zero"
+    assert _workflow_concurrency_group(before) == "upgrade-19"
+    assert _workflow_concurrency_group(before) != CLUSTER_DEPLOY_GROUP
+
+    after = before.replace("group: upgrade-19", "group: " + CLUSTER_DEPLOY_GROUP)
+    assert _workflow_concurrency_group(after) == CLUSTER_DEPLOY_GROUP
+
+    # A comment block between `concurrency:` and `group:` is what we ship.
+    commented = after.replace(
+        "concurrency:\n", "# why this queues\nconcurrency:\n  # R55\n", 1)
+    assert _workflow_concurrency_group(commented) == CLUSTER_DEPLOY_GROUP
+
+
+# ─── nothing registers a screen that cannot be opened ────────────────
+#
+# Handoff 11 R54: "a menu that opens a broken screen is worse than an absent
+# one". The two halves of a client action live in different files and nothing
+# joined them up:
+#
+#   * `myservice_security` shipped two JS files registering three tags whose
+#     `ir.actions.client` records were deleted in 17aba57 and whose bundle
+#     entries went with them. Dead for four months, silently.
+#   * `myservice_fleet_maintenance` shipped the opposite defect — the JS WAS
+#     bundled and registered `myservice_fleet_dashboard` on every backend page
+#     load, and no action record anywhere carries that tag.
+#
+# So the guard is a two-way join over the pair. A tag registered by a bundled
+# file with no action is a screen nobody can open; an action naming a tag no
+# bundled file registers is a menu entry that opens an "invalid action" error.
+# Both are the same defect seen from opposite ends, and neither is visible in
+# a diff of either file alone.
+#
+# Bundled-ness is the hinge: retiring a screen here means dropping it from the
+# manifest and leaving the source in place, so a guard that grepped the JS
+# tree would fail on exactly the files we deliberately retired.
+
+_ACTION_REGISTRY_ADD = re.compile(
+    r"action_registry\.add\(\s*['\"]([A-Za-z0-9_.]+)['\"]")
+# <field name="tag">some_tag</field> inside an ir.actions.client record.
+_CLIENT_ACTION_RECORD = re.compile(
+    r"<record[^>]*model=[\"']ir\.actions\.client[\"'][^>]*>(.*?)</record>",
+    re.DOTALL)
+_TAG_FIELD = re.compile(r"<field[^>]*name=[\"']tag[\"'][^>]*>([^<]+)</field>")
+
+
+def _bundled_asset_paths():
+    """Every asset path named by one of our own module manifests."""
+    paths = set()
+    for manifest in sorted(REPO_ROOT.glob("myservice_*/__manifest__.py")):
+        try:
+            data = ast.literal_eval(manifest.read_text(encoding="utf-8"))
+        except (ValueError, SyntaxError):  # pragma: no cover - a broken manifest
+            continue
+        for entries in (data.get("assets") or {}).values():
+            for entry in entries:
+                # ('prepend', 'path') / ('append', 'path') as well as 'path'.
+                if isinstance(entry, (tuple, list)):
+                    entry = entry[-1]
+                if isinstance(entry, str):
+                    paths.add(entry)
+    return paths
+
+
+def _registered_client_action_tags():
+    """tag -> the bundled JS file that registers it."""
+    bundled = _bundled_asset_paths()
+    found = {}
+    for js in sorted(REPO_ROOT.glob("myservice_*/static/src/js/*.js")):
+        rel = js.relative_to(REPO_ROOT).as_posix()
+        if rel not in bundled:
+            continue  # retired in place, on purpose — see the manifests.
+        for tag in _ACTION_REGISTRY_ADD.findall(js.read_text(encoding="utf-8")):
+            found[tag] = rel
+    return found
+
+
+def _declared_client_action_tags():
+    """tag -> the XML file whose ir.actions.client record declares it."""
+    found = {}
+    for xml in sorted(REPO_ROOT.glob("myservice_*/**/*.xml")):
+        if "/static/" in xml.as_posix():
+            continue
+        text = xml.read_text(encoding="utf-8", errors="replace")
+        if "ir.actions.client" not in text:
+            continue
+        for body in _CLIENT_ACTION_RECORD.findall(text):
+            tag = _TAG_FIELD.search(body)
+            if tag:
+                found[tag.group(1).strip()] = xml.relative_to(REPO_ROOT).as_posix()
+    return found
+
+
+def test_every_bundled_client_action_has_an_action_record():
+    registered = _registered_client_action_tags()
+    declared = _declared_client_action_tags()
+
+    assert len(registered) >= 5, (
+        "expected at least the five live legacy dashboards to register a "
+        "client action; found %r. If the registration spelling changed, this "
+        "guard has stopped looking at anything." % (sorted(registered),))
+
+    orphans = ["%s  registered by %s" % (tag, path)
+               for tag, path in sorted(registered.items())
+               if tag not in declared]
+    assert not orphans, (
+        "a bundled JS file registers a client action that no "
+        "ir.actions.client record dispatches to. It ships to every browser "
+        "on every backend page load for a screen nobody can open — retire it "
+        "from the manifest (see docs/retired-screens.md) or give it an "
+        "action:\n  " + "\n  ".join(orphans))
+
+
+def test_every_client_action_record_has_a_bundled_registration():
+    registered = _registered_client_action_tags()
+    declared = _declared_client_action_tags()
+
+    assert len(declared) >= 5, (
+        "expected at least five ir.actions.client records; found %r"
+        % (sorted(declared),))
+
+    unbacked = ["%s  declared in %s" % (tag, path)
+                for tag, path in sorted(declared.items())
+                if tag not in registered]
+    assert not unbacked, (
+        "an ir.actions.client record names a tag that no BUNDLED JS file "
+        "registers. Whatever menu points at it opens an 'invalid action' "
+        "error — which is the state R54 exists to prevent:\n  "
+        + "\n  ".join(unbacked))
+
+
+@pytest.mark.parametrize("tag", [
+    "nrs_security_command_center",
+    "nrs_case_management",
+    "myservice_security_dashboard",
+    "myservice_fleet_dashboard",
+])
+def test_the_retired_screens_stay_retired(tag):
+    """Retired in place: the source is kept, the bundle entry is not.
+
+    Re-adding one of these files to a manifest without also giving it an
+    action record puts it straight back to shipping to every browser for a
+    screen nobody can open — so this asserts the retirement itself, not just
+    the consistency the two guards above check.
+    """
+    assert tag not in _registered_client_action_tags(), (
+        "%s is registered by a bundled file again. If it is genuinely being "
+        "revived, it needs an ir.actions.client record and a menu in the same "
+        "change, and this case should be deleted — see docs/retired-screens.md"
+        % tag)

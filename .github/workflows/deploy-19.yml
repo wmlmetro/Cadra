@@ -48,8 +48,14 @@ env:
   IMAGE_NAME: cadra-odoo-19
   NAMESPACE: cadra-dev
 
+# One concurrency group for all three cluster-touching workflows (R55).
+# upgrade-19 scales odoo-19 to zero mid-run, and deploy-dev/deploy-19 end by
+# reading the RUNNING odoo-19 pod to prove the ConfigMaps took effect. Run two
+# of these at once and the guard fails with a question about whether the pod is
+# up rather than an answer about the config. Queue, never cancel: killing a
+# deploy mid-flight can leave the cluster on a half-applied manifest.
 concurrency:
-  group: deploy-19
+  group: cadra-cluster-deploy
   cancel-in-progress: false
 
 jobs:
