@@ -190,8 +190,8 @@ class BarcodeStationController(http.Controller):
         return {'generated': generated, 'skipped': skipped}
 
     @http.route('/barcode/print_url', type='json', auth='user')
-    def get_print_url(self, tag_id, size='medium'):
-        """Return the PDF print URL for a tag.
+    def get_print_url(self, tag_id=None, tag_ids=None, size='medium'):
+        """Return the PDF print URL for one tag or a batch of them.
 
         The label reports are all registered on ``nrs.asset`` (see
         myservice_asset_register/data/asset_tag_report.xml), so the id in the
@@ -210,6 +210,12 @@ class BarcodeStationController(http.Controller):
 
         Read off the action rather than hard-coded so a rename of the QWeb
         template cannot silently reintroduce the same 404.
+
+        `tag_ids` is the batch form. The station's "Print batch" button used to
+        build its own URL client-side and got BOTH halves wrong — the xmlid
+        with its dot turned into a slash (the 404 above, never fixed here) and
+        the tag-to-asset translation left to the browser. Resolving it server
+        side is the only place either can be got right once.
         """
         action_map = {
             'small':  'myservice_asset_register.action_report_asset_tag_small',
@@ -218,18 +224,29 @@ class BarcodeStationController(http.Controller):
             'sheet':  'myservice_asset_register.action_report_asset_tag_sheet',
         }
         action_xmlid = action_map.get(size, action_map['medium'])
+        raw = tag_ids if tag_ids is not None else tag_id
+        if not isinstance(raw, (list, tuple)):
+            raw = [raw]
         try:
-            tag_id = int(tag_id)
+            wanted = [int(i) for i in raw]
         except (TypeError, ValueError):
-            return {'error': 'Invalid tag_id: %s' % tag_id}
-        tag = request.env['nrs.asset.tag.label'].browse(tag_id).exists()
-        if not tag or not tag.asset_id:
-            return {'error': 'Tag not found: %s' % tag_id}
+            return {'error': 'Invalid tag id in: %s' % (raw,)}
+        if not wanted:
+            return {'error': 'No tag ids given'}
+        tags = request.env['nrs.asset.tag.label'].browse(wanted).exists()
+        # Order the assets the way the tags were asked for; a print run that
+        # silently reorders is a print run someone has to re-check by hand.
+        by_id = {t.id: t.asset_id.id for t in tags if t.asset_id}
+        asset_ids = [by_id[i] for i in wanted if by_id.get(i)]
+        if not asset_ids:
+            return {'error': 'Tag not found: %s' % (wanted if tag_ids is not None
+                                                   else wanted[0])}
         action = request.env.ref(action_xmlid, raise_if_not_found=False)
         if not action or not action.report_name:
             return {'error': 'Report action not installed: %s' % action_xmlid}
         return {
-            'url': '/report/pdf/%s/%s' % (action.report_name, tag.asset_id.id)
+            'url': '/report/pdf/%s/%s' % (
+                action.report_name, ','.join(str(i) for i in asset_ids)),
         }
 
     # ── Portal routes ────────────────────────────────────────

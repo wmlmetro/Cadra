@@ -143,12 +143,18 @@
                             </div>
                             <div>
                                 <t t-if="record.sla_breached.raw_value">
-                                    <span class="badge badge-danger"
+                                    <span class="badge text-bg-danger"
                                           style="font-size:10px;">Breached</span>
                                 </t>
-                                <t t-elif="record.priority_display.raw_value == '2' or
-                                           record.priority_display.raw_value == '3'">
-                                    <span class="badge badge-warning"
+                                <!-- Deliberately a second t-if, not a t-elif.
+                                     A deadline and a priority are two
+                                     independent facts: a breached request is
+                                     not less urgent for having breached, and
+                                     chaining these hid "Urgent" on exactly the
+                                     cards that most needed both. -->
+                                <t t-if="record.priority_display.raw_value == '2' or
+                                         record.priority_display.raw_value == '3'">
+                                    <span class="badge text-bg-warning ms-1"
                                           style="font-size:10px;">Urgent</span>
                                 </t>
                             </div>

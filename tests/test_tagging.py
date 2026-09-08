@@ -380,12 +380,24 @@ def test_affixed_at_cannot_be_in_the_future(client):
     assert r.json()["error"]["code"] == "invalid_request"
 
 
-def test_printing_records_who_printed_and_when(client, test_location):
-    """Acceptance criterion 1, which had no coverage until the review said so.
+def test_minting_a_tag_is_not_printing_a_label(client, test_location):
+    """What this file CAN prove about printing, and what it cannot.
 
-    Exercised through the barcode station's print-URL endpoint, which is one
-    of the paths that bypasses every print action method — the reason the
-    stamp lives at the report-render layer.
+    It used to be called `test_printing_records_who_printed_and_when` and was
+    named for acceptance criterion 1 — while asserting `printed_at is None`
+    twice, both assertions negative. It never printed anything, and neither
+    did anything else in this repository: `/report/pdf/` is `auth='user'` and
+    this suite holds a bearer token, not an Odoo session, so it cannot render
+    a report at all. A test that cannot reach the funnel cannot cover it.
+
+    The rename is the honest scope. The guarantee it does hold — that minting
+    an identity is not the same event as issuing a print instruction — is
+    real and is the reason `label_state` exists separately from `state`.
+
+    Acceptance criterion 1 is covered where the render actually happens:
+    `myservice_asset_register/tests/test_print_funnel.py`, which drives every
+    real caller through `_render_qweb_pdf` and asserts the stamp, including
+    once against wkhtmltopdf for a genuine PDF.
     """
     data = _new_asset(client)
     assert data["tagging"]["printed_at"] is None
@@ -396,9 +408,11 @@ def test_printing_records_who_printed_and_when(client, test_location):
         pytest.skip("barcode generate endpoint not available on this instance")
 
     body = assert_envelope_ok(client.get(f"/api/v1/assets/{data['id']}"))
-    # Generation alone must NOT count as printing.
-    assert body["data"]["tagging"]["printed_at"] is None, (
-        "minting a tag is not printing a label"
+    tagging = body["data"]["tagging"]
+    assert tagging["printed_at"] is None, "minting a tag is not printing a label"
+    assert tagging["printed_by"] is None
+    assert tagging["label_state"] == "issued", (
+        "a freshly minted label has been issued and nothing more"
     )
 
 

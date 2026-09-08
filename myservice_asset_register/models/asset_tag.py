@@ -1,5 +1,6 @@
 from odoo import models, fields, api, _
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
+from odoo.modules.registry import Registry
 import base64
 import logging
 import re
@@ -222,10 +223,39 @@ class NRSAssetTag(models.Model):
         return self
 
     def action_print_tag(self):
-        self._mark_printed()
+        """Print the label that is on this tag's asset.
+
+        The four tag reports are declared on `nrs.asset`, so the ids handed to
+        one must be ASSET ids — this used to pass the tag ids and render
+        whichever unrelated asset happened to share the number. The stamp is
+        not made here: `ir.actions.report._render_qweb_pdf` records the print
+        when a PDF is actually produced, which is the only moment Cadra can
+        honestly claim a print instruction was issued.
+        """
+        assets = self.mapped('asset_id')
+        if not assets:
+            raise ValidationError(_('This tag is not linked to an asset.'))
         return self.env.ref(
             'myservice_asset_register.action_report_asset_tag'
-        ).report_action(self)
+        ).report_action(assets)
+
+    def action_print_labels(self):
+        """Print a selection of labels as an A4 sheet, from the tag list.
+
+        This is what the sheet report's `binding_model_id` on
+        `nrs.asset.tag.label` was reaching for, and could never deliver: the
+        binding handed the report label ids while the template reads
+        `o.asset_tag` / `o.asset_code` / `o.get_barcode_base64` off an
+        `nrs.asset`. Translating here is the only place that knows both sides.
+        """
+        assets = self.env['nrs.asset'].browse(
+            [t.asset_id.id for t in self if t.asset_id])
+        if not assets:
+            raise ValidationError(_(
+                'None of the selected tags is linked to an asset.'))
+        return self.env.ref(
+            'myservice_asset_register.action_report_asset_tag_sheet'
+        ).report_action(assets)
 
 
 class NRSAsset(models.Model):
@@ -419,10 +449,10 @@ class NRSAsset(models.Model):
     def action_print_asset_tag(self):
         if not self.asset_tag:
             raise ValidationError(_('No tag code assigned to this asset.'))
-        # Stamp the label, not just render the report: these three actions are
-        # the single funnel through which a tag is printed, so they are the
-        # only honest place to record that it was.
-        self.active_tag_id._mark_printed()
+        # No stamp here. `report_action` only hands the client an action; the
+        # PDF may never be fetched. `_render_qweb_pdf` is the moment a print
+        # instruction actually exists, and it is the one funnel every caller
+        # passes through, so it is the only place that records one.
         return self.env.ref(
             'myservice_asset_register.action_report_asset_tag'
         ).report_action(self)
@@ -431,7 +461,6 @@ class NRSAsset(models.Model):
         assets = self.filtered(lambda a: a.asset_tag)
         if not assets:
             raise ValidationError(_('No assets with tag codes found in selection.'))
-        assets.mapped('active_tag_id')._mark_printed()
         return self.env.ref(
             'myservice_asset_register.action_report_asset_tag_sheet'
         ).report_action(assets)
@@ -445,7 +474,7 @@ class IrActionsReport(models.Model):
     and are not. Three paths bypass all three:
 
       * the label wizard (`wizard/asset_label_wizard.py`) calls
-        `report.report_action(tags)` directly;
+        `report.report_action(...)` directly;
       * the barcode station hands the browser a raw
         `/report/pdf/<report>/<asset_id>` URL (`myservice_barcode_station/
         controllers/main.py`), so no Python of ours runs at all;
@@ -456,12 +485,41 @@ class IrActionsReport(models.Model):
     print record that is silently incomplete is the same class of defect as the
     tag state this work exists to fix. `_render_qweb_pdf` is the one place every
     PDF path converges.
+
+    ── Which id space `res_ids` is in ──────────────────────────────────────
+
+    Asset ids and `nrs.asset.tag.label` ids collide by construction — every
+    asset mints a label on creation, so the two sequences advance together. On
+    `nrs19`, measured 2026-09-08: 11,928 of 11,932 asset ids are also valid
+    label ids, 99.97%. The first version of this hook met that by DECLINING
+    whenever the ids could be label ids — which, at 99.97%, is every normal
+    print. Both real callers were declined and the register held 11,879 labels
+    at `issued` and exactly one at `printed`.
+
+    The ids cannot be told apart by value, so the caller has to say which it
+    means — and there is exactly one channel that survives to this method. A
+    report action's context is NOT it: `web/.../reports/utils.js` turns the
+    action into `/report/pdf/<report_name>/<active_ids>` and posts it to
+    `/report/download` with the *user* context, so everything the action put in
+    its context is dropped at the browser. The id list is the only thing left.
+
+    So the rule is the framework's own: **`res_ids` are ids of the report's
+    declared model**, which for all four tag labels is `nrs.asset`. That is
+    enforced at the boundary by `report_action` below, which refuses a
+    recordset of any other model rather than translating it — the two callers
+    that used to pass tag ids were not merely ambiguous, they rendered the
+    wrong asset. With the boundary closed, this hook has nothing left to guess.
     """
     _inherit = 'ir.actions.report'
 
-    # The four tag labels. Matched on report_name (the QWeb template) rather
-    # than xmlid because `action_report_asset_tag_sheet` is declared twice with
-    # different models — a pre-existing collision this must not depend on.
+    # The four tag labels, matched on report_name (the QWeb template) rather
+    # than xmlid: report_name is the handle that appears in the
+    # `/report/pdf/<report_name>/<ids>` URL and the only one `_get_report`
+    # resolves there, so it is the one an HTTP caller can actually be holding.
+    # `action_report_asset_tag_sheet` also used to be DECLARED twice, on two
+    # different models, which is a second reason not to key on the xmlid; the
+    # duplicate is gone (see data/asset_tag_report.xml) but the first reason
+    # stands on its own.
     _TAG_LABEL_REPORTS = (
         'myservice_asset_register.report_asset_tag_label',
         'myservice_asset_register.report_asset_tag_label_small',
@@ -469,10 +527,50 @@ class IrActionsReport(models.Model):
         'myservice_asset_register.report_asset_tag_label_sheet',
     )
 
+    def report_action(self, docids, data=None, config=True):
+        """Refuse a foreign recordset on a tag label report, loudly.
+
+        `docids` becomes `active_ids`, which becomes the id list in the
+        `/report/pdf/` URL, which becomes `res_ids` at render. Nothing between
+        here and there carries the model, and asset ids and label ids collide,
+        so a recordset of the wrong model is a silent wrong-record render —
+        which is exactly what `action_print_tag` and the label wizard did.
+        Raise instead of translating: a caller that does not know which id
+        space it is in should be corrected, not guessed at.
+
+        `docids` given as a bare int or list carries no model to check. That is
+        the raw form the HTTP route already uses, where the ids are the
+        report's own model by the framework's contract.
+        """
+        if (len(self) == 1
+                and self.report_name in self._TAG_LABEL_REPORTS
+                and isinstance(docids, models.BaseModel)
+                and docids._name != self.model):
+            raise UserError(_(
+                'The report "%(report)s" renders %(model)s records, and was '
+                'handed %(given)s records. Asset ids and tag label ids collide '
+                'numerically — on the NRS register 99.97%% of asset ids are '
+                'also valid label ids — and only the ids reach the renderer, '
+                'so this cannot be resolved further down. Pass the assets '
+                '(for a label recordset: `labels.asset_id`).'
+            ) % {
+                'report': self.name or self.report_name,
+                'model': self.model,
+                'given': docids._name,
+            })
+        return super().report_action(docids, data=data, config=config)
+
     def _render_qweb_pdf(self, report_ref, res_ids=None, data=None):
         result = super()._render_qweb_pdf(report_ref, res_ids=res_ids, data=data)
         try:
-            self._stamp_printed_tags(report_ref, res_ids)
+            # Inside a savepoint, not just a try. Swallowing a DATABASE error
+            # without one leaves the transaction aborted, so the next query
+            # anywhere in the request fails with "current transaction is
+            # aborted" — the print would still break, just further away and
+            # with a message about something else. "Never fail a print over
+            # bookkeeping" is only true if the bookkeeping can be rolled back.
+            with self.env.cr.savepoint():
+                self._stamp_printed_tags(report_ref, res_ids)
         except Exception:          # noqa: BLE001 — never fail a print over bookkeeping
             _logger.exception("could not stamp tag print for %s / %s",
                               report_ref, res_ids)
@@ -480,28 +578,67 @@ class IrActionsReport(models.Model):
 
     @api.model
     def _stamp_printed_tags(self, report_ref, res_ids):
-        """Mark the active tags of the printed assets as printed."""
+        """Mark the active tags of the printed assets as printed.
+
+        ── The cursor serving a print CANNOT write ─────────────────────────
+
+        Odoo 19 declares the report route
+
+            @http.route(['/report/<converter>/<reportname>',
+                         '/report/<converter>/<reportname>/<docids>'],
+                        type='http', auth='user', website=True, readonly=True)
+
+        so every render reached through that URL runs on a **read-only
+        Postgres cursor**, and any write raises *"cannot execute UPDATE in a
+        read-only transaction"*. Fixing the id space is necessary and is not
+        sufficient: with the ids finally unambiguous, the stamp still could
+        not be recorded through the one path the barcode station and
+        `GET /api/v1/barcode/print-url` actually use.
+
+        Odoo's own Print menu is unaffected, because it goes through
+        `/report/download`, which is read/write and calls `report_routes` as a
+        plain Python method — the route's `readonly` flag does not apply to a
+        direct call. So this is not "printing never records"; it is "printing
+        records from the web client and silently does not from the published
+        URL", which is worse, because it looks like it works.
+
+        The record therefore goes on its own read/write cursor and commits
+        independently. That is also the honest transaction boundary: the PDF
+        has already been produced by the time this runs, so the print
+        instruction has been issued whatever happens to the request afterwards.
+        Under a test the registry is in test mode and hands back a `TestCursor`
+        wrapping the running transaction, so this stays inside the test's
+        rollback rather than committing to the tenant.
+        """
         if not res_ids:
             return
         report = self._get_report(report_ref)
         if not report or report.report_name not in self._TAG_LABEL_REPORTS:
             return
-        # These reports declare `model = nrs.asset`, so Odoo resolves res_ids
-        # as asset ids. But two callers pass TAG ids into them — the tag
-        # form's Print button (`action_print_tag`) and the label wizard — and
-        # tag ids collide with asset ids, so browsing blindly as assets stamps
-        # a "printed on <date> by <user>" record onto an unrelated asset.
-        # Fabricating evidence is worse than missing it, and it is the exact
-        # defect this module exists to remove, so when the ids are ambiguous
-        # we decline. Both ambiguous callers already stamp explicitly, so the
-        # only cost is a missed stamp for an unknown caller whose asset ids
-        # happen to collide — an under-record, which is the safe direction.
-        if self.env['nrs.asset.tag.label'].sudo().browse(res_ids).exists():
-            _logger.debug(
-                "not stamping print for %s: res_ids %s are also valid tag ids, "
-                "so the caller's intent is ambiguous", report_ref, res_ids)
+        if getattr(self.env.cr, 'readonly', False):
+            with Registry(self.env.cr.dbname).cursor() as cr:
+                env = api.Environment(cr, self.env.uid, self.env.context)
+                env['ir.actions.report']._mark_printed_for(res_ids, report)
+                cr.commit()
             return
+        self._mark_printed_for(res_ids, report)
+
+    @api.model
+    def _mark_printed_for(self, res_ids, report):
+        """The stamp itself, on whatever cursor the caller decided on."""
+        # `res_ids` are ids of `report.model` — see the class docstring. The
+        # boundary that used to leak label ids in here is closed above, so
+        # there is no ambiguity left to decline over.
         assets = self.env['nrs.asset'].sudo().browse(res_ids).exists()
+        if not assets:
+            _logger.warning(
+                "tag label %s rendered for res_ids %s, none of which is an "
+                "nrs.asset — nothing stamped", report.report_name, res_ids)
+            return
+        # The ACTIVE tag, not the physical one: printing is what produces the
+        # label about to be affixed, and a tag awaiting replacement is not the
+        # one coming off the printer. It is also the tag the template renders
+        # (`o.asset_tag`), so the stamp and the paper agree.
         tags = assets.mapped('active_tag_id')
         if tags:
             tags._mark_printed()

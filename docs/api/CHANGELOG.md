@@ -21,6 +21,60 @@ branch on it, it goes here.
 
 ---
 
+## 2026-09-08 — handoff 10
+
+### BEHAVIOUR CHANGE · `data.tagging.printed_at` / `printed_by` / `label_state` start moving
+
+**Who is affected:** any consumer reading the `tagging` block, and anyone
+filtering on `tag_label_state`.
+
+`label_state` moves `issued → printed` from exactly one place —
+`ir.actions.report._render_qweb_pdf`, the single funnel every print path goes
+through. That hook declined to record anything whenever `res_ids` could be tag
+label ids, and tag label ids and asset ids collide by construction: on the NRS
+register **11,928 of 11,932 asset ids are also valid label ids**, 99.97%. So
+the guard written for a rare edge case fired on the normal one. Every real
+print was declined and the register held 11,879 labels at `issued` and exactly
+one at `printed`.
+
+The ids are now unambiguous — a report's `res_ids` are ids of the report's own
+declared model, enforced where the caller hands them over — so:
+
+| Field | Before | After |
+|---|---|---|
+| `data.tagging.printed_at` | `null` for effectively every asset | the datetime the label was rendered |
+| `data.tagging.printed_by` | `null` | who issued the print instruction |
+| `data.tagging.label_state` | `issued` until an affix skipped straight to `affixed` | `issued → printed → affixed` |
+| `?tag_label_state=printed` | matched one row estate-wide | matches labels that have actually been printed |
+
+**Nothing about the shape changes** — same keys, same types, same enum values.
+What changes is that two of them stop being permanently null and one of them
+starts visiting a state it was already documented to have. A consumer treating
+`printed_at != null` as "a label exists on paper" gets the answer it always
+expected; a consumer that had learned to ignore `printed` as a state that
+never occurs should stop.
+
+`is_tagged` is **unchanged**: it is still true only after an affix
+confirmation whose scanned tag number matched the issued one. Printing is not
+tagging.
+
+### BEHAVIOUR CHANGE · `data.pm[].next_due_date` for a schedule that has never been serviced
+
+**Who is affected:** any consumer reading the `pm` block on
+`GET /api/v1/assets/{id}`.
+
+A `nrs.asset.pm` row with an interval and no `last_done_date` reported
+`next_due_date = today` — every day. That is not a due date, it is the absence
+of one: it moved forward with the clock, so such a schedule could never be
+overdue and the daily refresh rewrote the row on every tick. It now reports
+`create_date + interval_days`, a fixed point, and can fall overdue like any
+other.
+
+Latent when shipped: there are zero `nrs.asset.pm` rows on any tenant, so no
+consumer has ever seen the old value.
+
+---
+
 ## 2026-09-07 — handoff 09
 
 ### BEHAVIOUR CHANGE · `error.code` — `forbidden` and `not_found` are reachable again

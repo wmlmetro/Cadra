@@ -133,11 +133,18 @@ jobs:
           # you cannot see, and it disappears the day either dependency
           # changes. This step exists because 1,464 lines of tests were
           # running nowhere; implicit is how that happens.
+          #
+          # `--workers=0` is load-bearing, not tidiness. `myservice_barcode_station`
+          # carries an HttpCase, and under the prefork server HttpCase.setUpClass
+          # reads `odoo.service.server.server.httpd.server_port` — which
+          # PreforkServer does not have. Every test in such a class ERRORS in
+          # setUpClass, and the run still reports "N tests" and exits 0, so the
+          # suite looks green while proving nothing. odoo.conf sets workers = 2.
           DB=$(grep -E '^POSTGRES_DB=' .env.example | cut -d= -f2-)
           docker compose -f docker-compose.yml -f docker-compose.19.yml exec -T odoo \
             odoo -c /etc/odoo/odoo.conf -d "$DB" \
-              -u myservice_workflow,myservice_asset_depreciation,myservice_nrs_base,myservice_asset_register,myservice_request_fields,myservice_security,myservice_fleet_maintenance \
-              --test-enable --stop-after-init \
+              -u myservice_workflow,myservice_asset_depreciation,myservice_nrs_base,myservice_asset_register,myservice_request_fields,myservice_security,myservice_fleet_maintenance,myservice_barcode_station \
+              --test-enable --stop-after-init --workers=0 \
               --http-port=8099 --gevent-port=8098
 
       - name: Upload test report + response captures (always — even on failure)
