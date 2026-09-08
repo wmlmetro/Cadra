@@ -252,6 +252,14 @@ and in the database immediately afterwards:
 `cadra19` went from 1,335 labels at `issued` and 0 printed, to 1,334 and 1.
 Nothing but that HTTP request touched it.
 
+**What the proof left behind on `cadra19`, deliberately.** The stamp on label 1
+stands — a label really was printed, and deleting the record would be the
+fabrication this whole module exists to prevent, pointing the other way. The
+`h10_print_proof` user is **archived with a rotated password** rather than
+deleted: `printed_by` is a many2one with the default `ondelete='set null'`, so
+deleting the user would erase the evidence the proof exists to leave. Rotating
+the password is what actually closes the credential.
+
 **Why this is proved live and not in the suite.** Inside `HttpCase` the
 registry hands back a genuinely separate connection, which cannot see records
 the test created and never committed — so the stamp lands on nothing and
