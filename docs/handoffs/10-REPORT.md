@@ -1,6 +1,7 @@
 # Handoff 10 — Report
 
-**Branch:** `fix/print-funnel` → PR into `dev`. **Base:** `dev` at `ee0d866`.
+**Branch:** `fix/print-funnel` → **PR #54** into `dev`. **Base:** `dev` at `ee0d866`.
+**Commit:** `3b529d6`. 30 files, +2,776 / −473, 7 new files.
 
 *(Note: `233c419`, the commit carrying this handoff's own instruction file, was
 left on `fix/stale-computes` after PR #53 merged and is not on `dev`. It is
