@@ -40,8 +40,13 @@ on:
 env:
   NAMESPACE: cadra-dev
 
+# Shares the cluster-deploy group (R55): step 3 below does a
+# `rollout restart deployment/odoo-19`, so a cutover running alongside a deploy
+# leaves the ConfigMap guard reading a pod that is being replaced under it.
+# R55 named the three deploy workflows; this is the fourth that takes odoo-19
+# down and up, and the reason applies to it verbatim.
 concurrency:
-  group: tenant-cutover-19
+  group: cadra-cluster-deploy
   cancel-in-progress: false
 
 jobs:
