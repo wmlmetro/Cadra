@@ -231,7 +231,20 @@ jobs:
             IMAGE="${NEW_IMAGE}"
             echo "every tenant upgraded — rolling forward to: $IMAGE"
           fi
-          sed "s|REPLACE_ME/cadra-odoo-19:dev|${IMAGE}|g" k8s/dev/41-odoo-19-deployment.yaml | kubectl apply -f -
+          # A sed that matches nothing applies the manifest with the
+          # placeholder still in it and reports success. This is the third
+          # place in the repository that renders this file — deploy-dev.yml and
+          # deploy-19.yml carry the same check — and it is the one that runs
+          # `if: always()`, including on the rollback path, where getting the
+          # image wrong is least likely to be noticed.
+          RENDERED=$(sed "s|REPLACE_ME/cadra-odoo-19:dev|${IMAGE}|g" k8s/dev/41-odoo-19-deployment.yaml)
+          if printf '%s\n' "$RENDERED" | grep -q 'REPLACE_ME'; then
+            echo "41-odoo-19-deployment.yaml still contains a REPLACE_ME placeholder after substitution:"
+            printf '%s\n' "$RENDERED" | grep -n 'REPLACE_ME'
+            echo "::error title=Deployment placeholder not substituted::sed left a REPLACE_ME in 41-odoo-19-deployment.yaml. Refusing to apply."
+            exit 1
+          fi
+          printf '%s\n' "$RENDERED" | kubectl apply -f -
           kubectl -n "$NAMESPACE" scale deployment/odoo-19 --replicas="${REPLICAS:-1}"
           kubectl -n "$NAMESPACE" rollout status deployment/odoo-19 --timeout=5m
 

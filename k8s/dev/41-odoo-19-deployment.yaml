@@ -68,6 +68,14 @@ spec:
                 --workers="${ODOO_WORKERS:-1}" \
                 --max-cron-threads="${ODOO_MAX_CRON_THREADS:-1}"
           volumeMounts:
+            # subPath mounts are EXCLUDED from Kubernetes' ConfigMap update
+            # propagation: this file never changes inside a running pod, and the
+            # command above copies it to /tmp/odoo.conf at startup anyway. So
+            # `kubectl apply` on odoo-config-19 changes the cluster and changes
+            # nothing that is running — only a roll of this Deployment does.
+            # deploy-dev.yml and deploy-19.yml both end by comparing the running
+            # pod against the ConfigMap and failing the job when they differ, so
+            # an applied-but-inert config change is loud instead of silent.
             - name: odoo-config
               mountPath: /etc/odoo/odoo.conf.template
               subPath: odoo.conf

@@ -8,6 +8,10 @@
             <list decoration-success="state=='active'"
                   decoration-warning="state=='pending'"
                   decoration-muted="state=='scrapped'">
+                <header>
+                    <button name="action_print_labels" string="Print Labels"
+                            type="object"/>
+                </header>
                 <field name="name"/>
                 <field name="asset_id"/>
                 <field name="source"/>
@@ -264,15 +268,14 @@
         <field name="view_mode">list,form</field>
     </record>
 
-    <!-- A4 sheet report action -->
-    <record id="action_report_asset_tag_sheet" model="ir.actions.report">
-        <field name="name">Asset Tags — A4 Sheet</field>
-        <field name="model">nrs.asset.tag.label</field>
-        <field name="report_type">qweb-pdf</field>
-        <field name="report_name">myservice_asset_register.report_asset_tag_label_sheet</field>
-        <field name="report_file">myservice_asset_register.report_asset_tag_label_sheet</field>
-        <field name="binding_model_id" ref="model_nrs_asset_tag_label"/>
-        <field name="binding_type">report</field>
-        <field name="paperformat_id" ref="paperformat_asset_tag_a4sheet"/>
-    </record>
+    <!-- The A4 sheet report action is declared ONCE, in
+         data/asset_tag_report.xml, on `nrs.asset`. It used to be redeclared
+         here on `nrs.asset.tag.label` — and this file loads after that one, so
+         the second declaration won, on all eight tenants. The sheet template
+         renders `asset_tag_label_body`, which reads `o.asset_tag`,
+         `o.asset_code`, `o.floor_room` and `o.get_barcode_base64` — none of
+         which exists on a tag label — so the A4 sheet has never rendered
+         anything anywhere. The header button below is what that declaration's
+         `binding_model_id` was for; it translates the labels to their assets
+         first, which is the whole point. -->
 </odoo>

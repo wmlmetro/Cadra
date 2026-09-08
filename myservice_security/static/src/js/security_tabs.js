@@ -5,8 +5,19 @@ odoo.define('myservice_security.SecurityTabs', ['web.AbstractAction', 'web.core'
     var core = require('web.core');
     var rpc = require('web.rpc');
 
+    // Every `fields:` list below names columns that exist on the model in
+    // the same call. That is not a style rule — a search_read naming one
+    // absent field raises for the WHOLE call, so the tab renders nothing at
+    // all rather than rendering that column blank. The guarantee is enforced
+    // by myservice_security/tests/test_security_tabs_fields.py, which reads
+    // this file and resolves every name against a live registry.
+
     // ─── Shared helpers ──────────────────────────────────────────────
     function fmtDate(d) { return d ? d.substring(0, 10) : '—'; }
+
+    // Access-log rows are events, not days: the time is the point of the
+    // record, so a Datetime column keeps its minutes.
+    function fmtDateTime(d) { return d ? d.substring(0, 16).replace('T', ' ') : '—'; }
 
     function sevBadge(sev) {
         var c = {
@@ -43,6 +54,7 @@ odoo.define('myservice_security.SecurityTabs', ['web.AbstractAction', 'web.core'
             cols.forEach(function (c, i) {
                 var val = r[c.f];
                 if (c.fmt === 'date') val = fmtDate(val);
+                else if (c.fmt === 'datetime') val = fmtDateTime(val);
                 else if (c.fmt === 'sev') val = sevBadge(val);
                 else if (c.fmt === 'state') val = stateBadge(val);
                 else if (c.fmt === 'm2o') val = val ? val[1] : '—';
@@ -85,7 +97,7 @@ odoo.define('myservice_security.SecurityTabs', ['web.AbstractAction', 'web.core'
     };
 
     // ═══════════════════════════════════════════════════════════════════
-    // Security Command Center — 8 tabs
+    // Security Command Center — 5 tabs
     // ═══════════════════════════════════════════════════════════════════
     var SecurityCommandCenter = AbstractAction.extend(TabMixin, {
         template: 'myservice_security.SecurityCommandCenter',
@@ -105,14 +117,20 @@ odoo.define('myservice_security.SecurityTabs', ['web.AbstractAction', 'web.core'
             rpc.query({ route: '/myservice/security/kpis', params: {} })
             .then(function (d) {
                 var $p = self.$('.nrs-tab-body-dashboard');
+                // /myservice/security/kpis answers three NESTED groups —
+                // incidents / guards / access. This strip used to read six
+                // flat top-level keys that the controller has never
+                // returned, so every card fell through `|| 0` and the
+                // dashboard reported a quiet, confident zero for everything.
+                var inc = d.incidents || {}, grd = d.guards || {}, acc = d.access || {};
                 var html = '<div class="nrs-kpi-strip">';
                 var kpis = [
-                    { label: 'Open Incidents',  val: d.open_incidents || 0,  cls: 'red' },
-                    { label: 'Critical',        val: d.critical || 0,        cls: 'red' },
-                    { label: 'Today',           val: d.today_incidents || 0, cls: 'orange' },
-                    { label: 'Guards on Duty',  val: d.guards_on_duty || 0,  cls: 'green' },
-                    { label: 'Access Today',    val: d.access_today || 0,    cls: 'blue' },
-                    { label: 'Watchlist',       val: d.watchlist_count || 0,  cls: 'purple' },
+                    { label: 'Open Incidents', val: inc.open || 0,      cls: 'red' },
+                    { label: 'Critical',       val: inc.critical || 0,  cls: 'red' },
+                    { label: 'Today',          val: inc.today || 0,     cls: 'orange' },
+                    { label: 'Guards on Duty', val: grd.on_duty || 0,   cls: 'green' },
+                    { label: 'Entries Today',  val: acc.today_in || 0,  cls: 'blue' },
+                    { label: 'Flagged Today',  val: acc.flagged || 0,   cls: 'purple' },
                 ];
                 kpis.forEach(function (k) {
                     html += '<div class="nrs-kpi-card nrs-kpi-' + k.cls + '">' +
@@ -173,157 +191,85 @@ odoo.define('myservice_security.SecurityTabs', ['web.AbstractAction', 'web.core'
         },
 
         // ── Guards tab ───────────────────────────────────────────────
+        // A shift belongs to a security.duty.roster row, not to a guard:
+        // there are no shift_start/shift_end fields on security.guard and
+        // there never were. The Duty Roster tab is where a shift is shown;
+        // this tab is the guard register, so it carries what identifies a
+        // guard — badge, base location, specialisation — plus the stored
+        // on_duty flag, which is the one thing here that answers "now".
         _load_guards: function () {
             var self = this;
             rpc.query({
                 model: 'security.guard', method: 'search_read', args: [[]],
                 kwargs: {
-                    fields: ['name', 'phone', 'location_id', 'on_duty',
-                             'shift_start', 'shift_end'],
+                    fields: ['name', 'badge_number', 'phone', 'home_location_id',
+                             'specialisation', 'on_duty'],
                     limit: 50, order: 'name',
                 },
             }).then(function (recs) {
                 renderTable(self.$('.nrs-tab-body-guards'), recs, [
-                    { f: 'name',        l: 'Name',      w: '180px' },
-                    { f: 'phone',       l: 'Phone',     w: '120px' },
-                    { f: 'location_id', l: 'Location',  w: '1fr',   fmt: 'm2o' },
-                    { f: 'on_duty',     l: 'On Duty',   w: '80px',  fmt: 'bool' },
-                    { f: 'shift_start', l: 'Shift Start',w: '100px' },
-                    { f: 'shift_end',   l: 'Shift End',  w: '100px' },
+                    { f: 'name',             l: 'Name',           w: '180px' },
+                    { f: 'badge_number',     l: 'Badge',          w: '110px' },
+                    { f: 'phone',            l: 'Phone',          w: '120px' },
+                    { f: 'home_location_id', l: 'Base Location',  w: '1fr',   fmt: 'm2o' },
+                    { f: 'specialisation',   l: 'Specialisation', w: '130px' },
+                    { f: 'on_duty',          l: 'On Duty',        w: '80px',  fmt: 'bool' },
                 ], 'security.guard');
             });
         },
 
         // ── Access Logs tab ──────────────────────────────────────────
+        // One row is one movement through a gate, stamped with a direction
+        // — not an entry/exit pair — so there is no entry_time/exit_time to
+        // read, and the person is person_name. The model has no `name`
+        // either: the Reference column had nothing behind it.
         _load_access_logs: function () {
             var self = this;
             rpc.query({
                 model: 'security.access.log', method: 'search_read', args: [[]],
                 kwargs: {
-                    fields: ['name', 'visitor_name', 'location_id', 'entry_time',
-                             'exit_time', 'authorized', 'purpose'],
-                    limit: 50, order: 'entry_time desc',
+                    fields: ['person_name', 'location_id', 'direction', 'datetime',
+                             'purpose', 'authorized'],
+                    limit: 50, order: 'datetime desc',
                 },
             }).then(function (recs) {
                 renderTable(self.$('.nrs-tab-body-access_logs'), recs, [
-                    { f: 'name',         l: 'Reference',  w: '120px' },
-                    { f: 'visitor_name', l: 'Visitor',    w: '160px' },
-                    { f: 'location_id',  l: 'Location',   w: '1fr',   fmt: 'm2o' },
-                    { f: 'entry_time',   l: 'Entry',      w: '130px', fmt: 'date' },
-                    { f: 'exit_time',    l: 'Exit',       w: '130px', fmt: 'date' },
-                    { f: 'authorized',   l: 'Auth',       w: '60px',  fmt: 'bool' },
+                    { f: 'person_name', l: 'Person',    w: '160px' },
+                    { f: 'location_id', l: 'Location',  w: '1fr',   fmt: 'm2o' },
+                    { f: 'direction',   l: 'Direction', w: '80px' },
+                    { f: 'datetime',    l: 'Date/Time', w: '140px', fmt: 'datetime' },
+                    { f: 'purpose',     l: 'Purpose',   w: '160px' },
+                    { f: 'authorized',  l: 'Auth',      w: '60px',  fmt: 'bool' },
                 ], 'security.access.log');
             });
         },
 
         // ── Duty Roster tab ──────────────────────────────────────────
+        // The shift field is `shift`, not `shift_type`, and the model has
+        // no `name` — a roster row is identified by guard + date + shift,
+        // which is why its display_name is a bare "model,id".
         _load_duty_roster: function () {
             var self = this;
             rpc.query({
                 model: 'security.duty.roster', method: 'search_read', args: [[]],
                 kwargs: {
-                    fields: ['name', 'guard_id', 'location_id', 'date',
-                             'shift_type', 'status'],
+                    fields: ['guard_id', 'location_id', 'date', 'shift', 'status'],
                     limit: 50, order: 'date desc',
                 },
             }).then(function (recs) {
                 renderTable(self.$('.nrs-tab-body-duty_roster'), recs, [
-                    { f: 'name',        l: 'Reference', w: '120px' },
-                    { f: 'guard_id',    l: 'Guard',     w: '160px', fmt: 'm2o' },
+                    { f: 'guard_id',    l: 'Guard',     w: '180px', fmt: 'm2o' },
                     { f: 'location_id', l: 'Location',  w: '1fr',   fmt: 'm2o' },
                     { f: 'date',        l: 'Date',      w: '100px', fmt: 'date' },
-                    { f: 'shift_type',  l: 'Shift',     w: '90px' },
-                    { f: 'status',      l: 'Status',    w: '90px',  fmt: 'state' },
+                    { f: 'shift',       l: 'Shift',     w: '110px' },
+                    { f: 'status',      l: 'Status',    w: '100px', fmt: 'state' },
                 ], 'security.duty.roster');
-            });
-        },
-
-        // ── Intelligence tab ─────────────────────────────────────────
-        _load_intelligence: function () {
-            var self = this;
-            rpc.query({
-                model: 'osint.feed.entry', method: 'search_read', args: [[]],
-                kwargs: {
-                    fields: ['name', 'source_id', 'threat_level', 'summary',
-                             'published_date', 'state'],
-                    limit: 50, order: 'published_date desc',
-                },
-            }).then(function (recs) {
-                renderTable(self.$('.nrs-tab-body-intelligence'), recs, [
-                    { f: 'name',           l: 'Title',     w: '1fr' },
-                    { f: 'source_id',      l: 'Source',    w: '120px', fmt: 'm2o' },
-                    { f: 'threat_level',   l: 'Threat',    w: '90px',  fmt: 'sev' },
-                    { f: 'published_date', l: 'Published', w: '100px', fmt: 'date' },
-                    { f: 'state',          l: 'Status',    w: '90px',  fmt: 'state' },
-                ], 'osint.feed.entry');
-            });
-        },
-
-        // ── Daily Briefs tab ─────────────────────────────────────────
-        _load_daily_briefs: function () {
-            var self = this;
-            rpc.query({
-                model: 'ai.daily.brief', method: 'search_read', args: [[]],
-                kwargs: {
-                    fields: ['brief_date', 'subject', 'headline', 'critical_alerts', 'high_alerts', 'states_elevated'],
-                    limit: 50, order: 'brief_date desc',
-                },
-            }).then(function (recs) {
-                renderTable(self.$('.nrs-tab-body-daily_briefs'), recs, [
-                    { f: 'brief_date',      l: 'Date',     w: '110px', fmt: 'date' },
-                    { f: 'subject',         l: 'Subject',  w: 'auto' },
-                    { f: 'critical_alerts', l: 'Critical', w: '80px' },
-                    { f: 'high_alerts',     l: 'High',     w: '70px' },
-                    { f: 'states_elevated', l: 'States',   w: '180px' },
-                ], 'ai.daily.brief');
-            });
-        },
-
-        // ── State Threats tab ─────────────────────────────────────────
-        _load_threats: function () {
-            var self = this;
-            rpc.query({
-                model: 'security.state.threat', method: 'search_read', args: [[]],
-                kwargs: {
-                    fields: ['name', 'threat_level', 'state_id',
-                             'last_updated', 'notes'],
-                    limit: 50, order: 'threat_level desc, name',
-                },
-            }).then(function (recs) {
-                renderTable(self.$('.nrs-tab-body-threats'), recs, [
-                    { f: 'name',         l: 'Region',       w: '180px' },
-                    { f: 'state_id',     l: 'State',        w: '140px', fmt: 'm2o' },
-                    { f: 'threat_level', l: 'Threat Level', w: '100px', fmt: 'sev' },
-                    { f: 'last_updated', l: 'Updated',      w: '100px', fmt: 'date' },
-                    { f: 'notes',        l: 'Notes',        w: '1fr' },
-                ], 'security.state.threat');
-            });
-        },
-
-        // ── AI Patterns tab ──────────────────────────────────────────
-        _load_ai_patterns: function () {
-            var self = this;
-            rpc.query({
-                model: 'ai.pattern.alert', method: 'search_read', args: [[]],
-                kwargs: {
-                    fields: ['name', 'pattern_type', 'severity', 'state',
-                             'detection_date', 'description'],
-                    limit: 50, order: 'detection_date desc',
-                },
-            }).then(function (recs) {
-                renderTable(self.$('.nrs-tab-body-ai_patterns'), recs, [
-                    { f: 'name',           l: 'Alert',    w: '1fr' },
-                    { f: 'pattern_type',   l: 'Pattern',  w: '120px' },
-                    { f: 'severity',       l: 'Severity', w: '90px',  fmt: 'sev' },
-                    { f: 'state',          l: 'Status',   w: '90px',  fmt: 'state' },
-                    { f: 'detection_date', l: 'Detected', w: '100px', fmt: 'date' },
-                ], 'ai.pattern.alert');
             });
         },
     });
 
     // ═══════════════════════════════════════════════════════════════════
-    // Case Management — 3 tabs
+    // Case Management
     // ═══════════════════════════════════════════════════════════════════
     var CaseManagement = AbstractAction.extend(TabMixin, {
         template: 'myservice_security.CaseManagement',
@@ -354,177 +300,25 @@ odoo.define('myservice_security.SecurityTabs', ['web.AbstractAction', 'web.core'
                 ], 'security.incident');
             });
         },
-        _load_watchlist: function () {
-            var self = this;
-            rpc.query({
-                model: 'security.watchlist', method: 'search_read', args: [[]],
-                kwargs: {
-                    fields: ['name', 'threat_level', 'reason', 'state',
-                             'last_seen_date'],
-                    limit: 50, order: 'create_date desc',
-                },
-            }).then(function (recs) {
-                renderTable(self.$('.nrs-tab-body-watchlist'), recs, [
-                    { f: 'name',           l: 'Subject',   w: '180px' },
-                    { f: 'threat_level',   l: 'Threat',    w: '90px',  fmt: 'sev' },
-                    { f: 'reason',         l: 'Reason',    w: '1fr' },
-                    { f: 'state',          l: 'Status',    w: '90px',  fmt: 'state' },
-                    { f: 'last_seen_date', l: 'Last Seen', w: '100px', fmt: 'date' },
-                ], 'security.watchlist');
-            });
-        },
-        _load_threats: function () {
-            var self = this;
-            rpc.query({
-                model: 'security.state.threat', method: 'search_read', args: [[]],
-                kwargs: {
-                    fields: ['name', 'threat_level', 'state_id',
-                             'last_updated', 'notes'],
-                    limit: 50, order: 'threat_level desc, name',
-                },
-            }).then(function (recs) {
-                renderTable(self.$('.nrs-tab-body-threats'), recs, [
-                    { f: 'name',         l: 'Region',       w: '180px' },
-                    { f: 'state_id',     l: 'State',        w: '140px', fmt: 'm2o' },
-                    { f: 'threat_level', l: 'Threat Level', w: '100px', fmt: 'sev' },
-                    { f: 'last_updated', l: 'Updated',      w: '100px', fmt: 'date' },
-                    { f: 'notes',        l: 'Notes',        w: '1fr' },
-                ], 'security.state.threat');
-            });
-        },
     });
 
-    // ═══════════════════════════════════════════════════════════════════
-    // OSINT — 3 tabs
-    // ═══════════════════════════════════════════════════════════════════
-    var OsintPage = AbstractAction.extend(TabMixin, {
-        template: 'myservice_security.OsintPage',
-        events: { 'click .nrs-row': '_onRowClick', 'click .nrs-view-all': '_onViewAll' },
-        start: async function () {
-            await this._super.apply(this, arguments);
-            this._initTabs();
-            this._load_feed();
-        },
-        _load_feed: function () {
-            var self = this;
-            rpc.query({
-                model: 'osint.feed.entry', method: 'search_read', args: [[]],
-                kwargs: {
-                    fields: ['name', 'source_id', 'threat_level', 'summary',
-                             'published_date', 'state'],
-                    limit: 50, order: 'published_date desc',
-                },
-            }).then(function (recs) {
-                renderTable(self.$('.nrs-tab-body-feed'), recs, [
-                    { f: 'name',           l: 'Title',     w: '1fr' },
-                    { f: 'source_id',      l: 'Source',    w: '120px', fmt: 'm2o' },
-                    { f: 'threat_level',   l: 'Threat',    w: '90px',  fmt: 'sev' },
-                    { f: 'published_date', l: 'Published', w: '100px', fmt: 'date' },
-                    { f: 'state',          l: 'Status',    w: '90px',  fmt: 'state' },
-                ], 'osint.feed.entry');
-            });
-        },
-        _load_sources: function () {
-            var self = this;
-            rpc.query({
-                model: 'osint.source.config', method: 'search_read', args: [[]],
-                kwargs: {
-                    fields: ['name', 'source_type', 'active',
-                             'last_fetched', 'rss_urls'],
-                    limit: 50, order: 'name',
-                },
-            }).then(function (recs) {
-                renderTable(self.$('.nrs-tab-body-sources'), recs, [
-                    { f: 'name',            l: 'Source',     w: '200px' },
-                    { f: 'source_type',     l: 'Type',       w: '120px' },
-                    { f: 'rss_urls',        l: 'URL',        w: '1fr' },
-                    { f: 'last_fetched',    l: 'Last Fetch', w: '120px', fmt: 'date' },
-                    { f: 'active',          l: 'Active',     w: '70px',  fmt: 'bool' },
-                ], 'osint.source.config');
-            });
-        },
-        _load_osint: function () {
-            // Redirect to unified feed (security.osint.feed removed)
-            this._load_feed();
-        },
-    });
-
-    // ═══════════════════════════════════════════════════════════════════
-    // AI Patterns — 2 tabs
-    // ═══════════════════════════════════════════════════════════════════
-    var AiPatternsPage = AbstractAction.extend(TabMixin, {
-        template: 'myservice_security.AiPatternsPage',
-        events: { 'click .nrs-row': '_onRowClick', 'click .nrs-view-all': '_onViewAll' },
-        start: async function () {
-            await this._super.apply(this, arguments);
-            this._initTabs();
-            this._load_alerts();
-        },
-        _load_alerts: function () {
-            var self = this;
-            rpc.query({
-                model: 'ai.pattern.alert', method: 'search_read', args: [[]],
-                kwargs: {
-                    fields: ['name', 'pattern_type', 'severity', 'state',
-                             'detection_date'],
-                    limit: 50, order: 'detection_date desc',
-                },
-            }).then(function (recs) {
-                renderTable(self.$('.nrs-tab-body-alerts'), recs, [
-                    { f: 'name',           l: 'Alert',    w: '1fr' },
-                    { f: 'pattern_type',   l: 'Pattern',  w: '120px' },
-                    { f: 'severity',       l: 'Severity', w: '90px',  fmt: 'sev' },
-                    { f: 'state',          l: 'Status',   w: '90px',  fmt: 'state' },
-                    { f: 'detection_date', l: 'Detected', w: '100px', fmt: 'date' },
-                ], 'ai.pattern.alert');
-            });
-        },
-        _load_briefs: function () {
-            var self = this;
-            rpc.query({
-                model: 'ai.daily.brief', method: 'search_read', args: [[]],
-                kwargs: {
-                    fields: ['brief_date', 'subject', 'headline', 'critical_alerts', 'high_alerts', 'states_elevated'],
-                    limit: 50, order: 'brief_date desc',
-                },
-            }).then(function (recs) {
-                renderTable(self.$('.nrs-tab-body-briefs'), recs, [
-                    { f: 'brief_date',      l: 'Date',     w: '110px', fmt: 'date' },
-                    { f: 'subject',         l: 'Subject',  w: 'auto' },
-                    { f: 'critical_alerts', l: 'Critical', w: '80px' },
-                    { f: 'high_alerts',     l: 'High',     w: '70px' },
-                    { f: 'states_elevated', l: 'States',   w: '180px' },
-                ], 'ai.daily.brief');
-            });
-        },
-    });
-
-    // ═══════════════════════════════════════════════════════════════════
-    // Daily Brief — standalone
-    // ═══════════════════════════════════════════════════════════════════
-    var DailyBriefPage = AbstractAction.extend(TabMixin, {
-        template: 'myservice_security.DailyBriefPage',
-        events: { 'click .nrs-row': '_onRowClick', 'click .nrs-view-all': '_onViewAll' },
-        start: async function () {
-            await this._super.apply(this, arguments);
-            this._initTabs();
-            this._load_briefs();
-        },
-        _load_briefs: AiPatternsPage.prototype._load_briefs,
-    });
+    // The OSINT, AI Patterns, Daily Brief and Watchlist / State Threat tabs
+    // that used to live here were removed, not repaired. Every one of them
+    // read a model this codebase does not define and no tenant carries —
+    // osint.feed.entry, osint.source.config, ai.pattern.alert,
+    // ai.daily.brief, security.watchlist, security.state.threat. They exist
+    // only as CSV extracts of the retired Odoo 15 estate under
+    // docs/upgrade/archive/. A tab whose RPC can only raise is not a
+    // placeholder for one that will work; keeping it preserves the
+    // appearance of a feature while removing anything that would make its
+    // absence audible. Git history holds the markup if the models come back.
 
     // Register all actions
     core.action_registry.add('nrs_security_command_center', SecurityCommandCenter);
     core.action_registry.add('nrs_case_management', CaseManagement);
-    core.action_registry.add('nrs_osint', OsintPage);
-    core.action_registry.add('nrs_ai_patterns', AiPatternsPage);
-    core.action_registry.add('nrs_daily_brief', DailyBriefPage);
 
     return {
         SecurityCommandCenter: SecurityCommandCenter,
         CaseManagement: CaseManagement,
-        OsintPage: OsintPage,
-        AiPatternsPage: AiPatternsPage,
-        DailyBriefPage: DailyBriefPage,
     };
 });

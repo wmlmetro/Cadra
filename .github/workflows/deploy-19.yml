@@ -9,6 +9,12 @@ name: deploy-19
 # the live 15 Deployment/Service/Ingress. workflow_dispatch only — it does not
 # run on push, so it can never take down live tenants by accident.
 #
+# The ConfigMaps are applied on every run of this workflow, but the odoo-19
+# roll is SKIPPED when a tenant seed lands on an already-running odoo-19 (see
+# that step). A config change taken through that path is therefore applied and
+# inert, exactly as it is on a push to dev. The last step compares the running
+# pod against both ConfigMaps and fails the job on a difference.
+#
 # Typical first roll per tenant (Run workflow inputs):
 #   run_bootstrap = true
 #   bootstrap_db  = gtb19        (DB is created on install)
@@ -148,7 +154,17 @@ jobs:
           if [ "$RUN_BOOTSTRAP" = "true" ] && kubectl -n "${NAMESPACE}" get deployment/odoo-19 >/dev/null 2>&1; then
             echo "odoo-19 already running; tenant seed needs no re-roll — skipping Deployment apply (zero downtime)."
           else
-            sed "s|REPLACE_ME/cadra-odoo-19:dev|${IMAGE}|g" k8s/dev/41-odoo-19-deployment.yaml | kubectl apply -f -
+            # A sed that matches nothing applies the manifest with the
+            # placeholder still in it and reports success — the same class of
+            # defect the config guard at the end of this job exists for.
+            RENDERED=$(sed "s|REPLACE_ME/cadra-odoo-19:dev|${IMAGE}|g" k8s/dev/41-odoo-19-deployment.yaml)
+            if printf '%s\n' "$RENDERED" | grep -q 'REPLACE_ME'; then
+              echo "41-odoo-19-deployment.yaml still contains a REPLACE_ME placeholder after substitution:"
+              printf '%s\n' "$RENDERED" | grep -n 'REPLACE_ME'
+              echo "::error title=Deployment placeholder not substituted::sed left a REPLACE_ME in 41-odoo-19-deployment.yaml. Refusing to apply."
+              exit 1
+            fi
+            printf '%s\n' "$RENDERED" | kubectl apply -f -
             kubectl -n "${NAMESPACE}" rollout status deployment/odoo-19 --timeout=5m
           fi
 
@@ -160,3 +176,100 @@ jobs:
           echo "19 stack rolled. Tenants served on <tenant>19 hostnames via odoo-19."
           kubectl -n "${NAMESPACE}" get deploy,svc,ingress -l app=odoo-19 2>/dev/null || true
           kubectl -n "${NAMESPACE}" get ingress cadra-19 2>/dev/null || true
+
+      # A ConfigMap change that is applied but never picked up is this
+      # programme's signature defect one layer up: the deploy goes green and
+      # the cluster carries on running the old file. We chose LOUD over
+      # automatic - see the reasoning in the step body.
+      - name: Verify odoo-19 is running the ConfigMaps this run applied
+        run: |
+          set -euo pipefail
+
+          # The two ConfigMaps applied above reach odoo-19 by routes Kubernetes does NOT
+          # keep up to date:
+          #   - odoo-config-19 is mounted with subPath (41-odoo-19-deployment.yaml), and
+          #     subPath mounts are excluded from ConfigMap update propagation: the file
+          #     inside a running pod never changes. The container then copies it to
+          #     /tmp/odoo.conf at startup, so even a propagated update would need a
+          #     restart to be read.
+          #   - odoo-bootstrap-19 arrives via envFrom, and a process's environment is
+          #     fixed when the process is created.
+          # So `kubectl apply` on either one changes the cluster and changes nothing that
+          # is running. We deliberately do NOT roll odoo-19 to fix that automatically:
+          # it is strategy Recreate on an RWO filestore, so a roll briefly interrupts
+          # EVERY live tenant, and interrupting the whole estate to pick up a comment
+          # change would be a worse defect than the one this guards against. So the
+          # choice is LOUD: compare, and fail. A deploy that reports success having
+          # changed nothing is the one outcome we refuse to ship.
+          #
+          # This reads the RUNNING POD rather than a checksum annotation we stamp on the
+          # Deployment, because upgrade-19.yml also applies 41-odoo-19-deployment.yaml
+          # and does not stamp anything. A marker only some appliers set would go stale
+          # after a routine tenant fan-out and train everyone to ignore a red build.
+          #
+          # The same guard is in deploy-dev.yml, after the frontend rollout. Keep the two in step.
+
+          ERR=$(mktemp)
+          fail=0
+
+          if ! kubectl -n "${NAMESPACE}" get deployment/odoo-19 >/dev/null 2>&1; then
+            echo "There is no odoo-19 Deployment in namespace ${NAMESPACE}, so nothing this"
+            echo "run applied is serving anything. Run the deploy-19 workflow to create it."
+            echo "::error title=odoo-19 is not deployed::The 19 ConfigMaps were applied but there is no odoo-19 Deployment running them. Run the deploy-19 workflow."
+            exit 1
+          fi
+
+          echo "--- odoo-config-19  ->  /etc/odoo/odoo.conf.template in the running pod"
+          want=$(kubectl -n "${NAMESPACE}" get configmap odoo-config-19 -o json | jq -r '.data["odoo.conf"]')
+          if ! have=$(kubectl -n "${NAMESPACE}" exec deploy/odoo-19 -c odoo -- cat /etc/odoo/odoo.conf.template 2>"$ERR"); then
+            echo "    could not read the config out of the running odoo-19 pod:"
+            sed 's/^/      /' "$ERR"
+            echo "::error title=odoo-19 config could not be read::kubectl exec into odoo-19 failed - is the pod running? See the step log."
+            exit 1
+          fi
+          if [ "$want" = "$have" ]; then
+            echo "    matches."
+          else
+            echo "    MISMATCH - the pod is running an older odoo.conf.  (-) pod   (+) this commit"
+            diff -u <(printf '%s\n' "$have") <(printf '%s\n' "$want") | tail -n +3 | sed 's/^/      /' || true
+            fail=1
+          fi
+
+          echo "--- odoo-bootstrap-19  ->  the running pod's environment (envFrom)"
+          # Values in this ConfigMap are single-line by construction; a multi-line value
+          # would need a different separator here.
+          entries=$(kubectl -n "${NAMESPACE}" get configmap odoo-bootstrap-19 -o json \
+            | jq -r '.data | to_entries[] | "\(.key)\t\(.value)"')
+          while IFS="$(printf '\t')" read -r key want_v; do
+            [ -n "$key" ] || continue
+            have_v=$(kubectl -n "${NAMESPACE}" exec deploy/odoo-19 -c odoo -- printenv "$key" 2>/dev/null || true)
+            if [ "$want_v" = "$have_v" ]; then
+              echo "    ${key} matches."
+            else
+              echo "    ${key} MISMATCH - pod has [${have_v}], odoo-bootstrap-19 says [${want_v}]"
+              fail=1
+            fi
+          done <<EOF
+          ${entries}
+          EOF
+
+          if [ "$fail" = "1" ]; then
+          cat <<'MSG'
+
+          The ConfigMaps in the cluster are this commit's. The running odoo-19 is not.
+          Nothing above picked the change up, and nothing will until odoo-19 is rolled.
+
+          To land it, either:
+            - re-run deploy-dev from the Actions tab with roll_odoo = true, or
+            - run the deploy-19 workflow with run_bootstrap = false.
+
+          Both roll odoo-19, and both briefly interrupt EVERY live tenant - odoo-19 is
+          strategy Recreate on an RWO filestore. That interruption is exactly why this
+          is a deliberate button and not something a push does on its own.
+          MSG
+            echo "::error title=odoo-19 is running a stale config::The ConfigMaps this run applied are not the ones odoo-19 is running. Re-run deploy-dev with roll_odoo=true, or run deploy-19. The step log has the diff."
+            exit 1
+          fi
+
+          echo
+          echo "odoo-19 is running the ConfigMaps this commit applied."

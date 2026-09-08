@@ -112,7 +112,12 @@
         <field name="paperformat_id" ref="paperformat_asset_tag_a4sheet"/>
     </record>
 
-    <!-- Force-update model field on report actions (Odoo skips model during upgrade) -->
+    <!-- Force-update model field on report actions (Odoo skips model during upgrade).
+         The sheet also has its BINDING reset: views/asset_tag_views.xml used to
+         redeclare this action on `nrs.asset.tag.label` and, loading later, won —
+         so every tenant carries a sheet report bound to the tag-label list and
+         pointed at a model whose records the template cannot render. Rewriting
+         `model` alone would leave the wrong binding in place. -->
     <function model="ir.actions.report" name="write"
              eval="[[ref('action_report_asset_tag')], {'model': 'nrs.asset'}]"/>
     <function model="ir.actions.report" name="write"
@@ -120,5 +125,7 @@
     <function model="ir.actions.report" name="write"
              eval="[[ref('action_report_asset_tag_large')], {'model': 'nrs.asset'}]"/>
     <function model="ir.actions.report" name="write"
-             eval="[[ref('action_report_asset_tag_sheet')], {'model': 'nrs.asset'}]"/>
+             eval="[[ref('action_report_asset_tag_sheet')],
+                    {'model': 'nrs.asset',
+                     'binding_model_id': ref('model_nrs_asset')}]"/>
 </odoo>

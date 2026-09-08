@@ -42,14 +42,38 @@ class NRSAssetPM(models.Model):
         'request.request', string='Last Request Created')
     notes = fields.Text('Notes')
 
-    @api.depends('last_done_date', 'interval_days')
+    @api.depends('last_done_date', 'interval_days', 'create_date')
     def _compute_next_due(self):
+        """One interval after the last service — or after the schedule was set up.
+
+        A schedule with an interval and no `last_done_date` used to get
+        `next_due_date = today`. That is not a due date, it is the absence of
+        one: it moves forward every day, so `is_overdue` — computed in the same
+        pass — can never be true, and the daily refresh cron rewrites the row
+        on every tick to say nothing changed. It is the same defect handoff 09
+        was written to fix (a stored value that reads the clock and therefore
+        never means anything), wearing the costume of a fix.
+
+        The anchor is `create_date`: a PM set up today with a 90-day interval
+        falls due in 90 days and is overdue on day 91. The alternative — anchor
+        at creation so it is due immediately — would make every newly entered
+        schedule instantly overdue on the day it was typed in, which asserts
+        something about the asset's service history that nobody told us.
+
+        Latent when changed: zero `nrs.asset.pm` rows exist on any of the eight
+        tenants, which is exactly what makes it safe to correct now (R29's
+        reasoning, applied again).
+        """
         today = date.today()
         for r in self:
-            if r.last_done_date and r.interval_days:
-                r.next_due_date = r.last_done_date + timedelta(days=r.interval_days)
-            elif r.interval_days:
-                r.next_due_date = today
+            if r.interval_days:
+                # `create_date` is written by the INSERT, so it is readable by
+                # the time this stored compute is flushed. The fallback covers
+                # an in-memory record only, and anchors it to the same instant
+                # the row would have been given anyway.
+                anchor = r.last_done_date or (
+                    r.create_date.date() if r.create_date else today)
+                r.next_due_date = anchor + timedelta(days=r.interval_days)
             else:
                 r.next_due_date = False
             r.is_overdue = bool(r.next_due_date and r.next_due_date < today)
@@ -87,12 +111,11 @@ class NRSAssetPM(models.Model):
         # so it is recomputed and written in the same pass regardless — naming
         # it here would add nothing.
         #
-        # Note while you are here: `_compute_next_due` has an
-        # `elif r.interval_days: r.next_due_date = today` fallback, so a
-        # schedule with an interval and no `last_done_date` is due TODAY every
-        # day and is therefore never overdue. This cron cannot fix that; it is
-        # a defect in the compute and is raised as an open question in the
-        # handoff 09 report rather than changed here.
+        # The `next_due_date = today` fallback that made a never-done schedule
+        # permanently not-overdue — and made this cron dirty its row on every
+        # tick — is gone (handoff 10, R45). `_compute_next_due` now anchors on
+        # `create_date`, so a value written here stays put until the calendar
+        # or the record actually moves.
         field = self._fields['is_overdue']
         for i in range(0, len(schedules), batch_size):
             batch = schedules[i:i + batch_size]

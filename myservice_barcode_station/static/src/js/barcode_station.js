@@ -217,23 +217,31 @@ odoo.define('myservice_barcode_station.BarcodeStation', ['web.AbstractAction', '
                 alert('No tags found for selection.');
                 return;
             }
-            // The label reports are registered on nrs.asset, so the report URL
-            // takes ASSET ids — passing tag ids renders unrelated assets.
-            var ids = tags.map(function(t) { return t.asset_id; })
-                          .filter(function(id) { return !!id; })
-                          .join(',');
-            if (!ids) {
+            // Let the server build the URL, the same way the single-tag
+            // print does. This used to compose it here and got both halves
+            // wrong: the path segment was the action's XMLID with its dot
+            // turned into a slash, which matches no report and answered the
+            // website's 404 page, so the batch print had never rendered
+            // anything; and the tag-to-asset translation sat in the browser,
+            // where a stale `_allTags` entry would print a different machine's
+            // label. /barcode/print_url resolves the report_name off the
+            // action record and the assets off the tags.
+            var tagIds = tags.map(function(t) { return t.tag_id; })
+                             .filter(function(id) { return !!id; });
+            if (!tagIds.length) {
                 alert('No assets found for selection.');
                 return;
             }
-            var reportMap = {
-                small:  'myservice_asset_register/action_report_asset_tag_small',
-                medium: 'myservice_asset_register/action_report_asset_tag',
-                large:  'myservice_asset_register/action_report_asset_tag_large',
-                sheet:  'myservice_asset_register/action_report_asset_tag_sheet',
-            };
-            var reportName = reportMap[size] || reportMap.medium;
-            window.open('/report/pdf/' + reportName + '/' + ids, '_blank');
+            rpc.query({
+                route: '/barcode/print_url',
+                params: { tag_ids: tagIds, size: size }
+            }).then(function(res) {
+                if (res.url) {
+                    window.open(res.url, '_blank');
+                } else {
+                    alert(res.error || 'Could not build a print URL for this selection.');
+                }
+            });
         },
 
         _renderTagList: function() {

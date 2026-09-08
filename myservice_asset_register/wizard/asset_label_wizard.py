@@ -56,10 +56,20 @@ class AssetLabelWizard(models.TransientModel):
 
         action_ref, _template = size_map[self.label_size]
         report = self.env.ref(action_ref)
-        # Stamp here as well as in the render hook: this wizard passes a
-        # nrs.asset.tag.label recordset into a report whose model is nrs.asset,
-        # so the render hook cannot resolve these ids correctly. Here we hold
-        # the real tags, so this is the only place that can record them
-        # accurately. `_mark_printed` is safe to call twice.
-        tags._mark_printed()
-        return report.report_action(tags)
+        # Hand the report ASSETS. It is declared on `nrs.asset`, and the ids
+        # are the only thing that survives to the renderer — passing the tag
+        # ids here rendered whichever unrelated asset shared the number, and
+        # made the render hook decline to stamp because it could not tell the
+        # two id spaces apart. `ir.actions.report.report_action` now refuses a
+        # label recordset outright rather than let that recur.
+        #
+        # Built as a plain id list rather than `tags.mapped('asset_id')` so the
+        # `copies` duplication above survives: `mapped` returns a recordset and
+        # would collapse the repeats back to one label each.
+        assets = self.env['nrs.asset'].browse(
+            [t.asset_id.id for t in tags if t.asset_id])
+        if not assets:
+            raise ValidationError(_('The selected tags are not linked to any asset.'))
+        # No stamp here: `_render_qweb_pdf` records the print when a PDF is
+        # actually produced, which is the one funnel every caller shares.
+        return report.report_action(assets)

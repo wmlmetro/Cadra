@@ -30,7 +30,7 @@ Run with:
     odoo -d <db> -u myservice_asset_register --test-enable \\
          --test-tags /myservice_asset_register --stop-after-init
 """
-from datetime import date
+from datetime import date, timedelta
 
 from odoo.tests import TransactionCase, tagged
 from odoo.tests.common import freeze_time
@@ -332,6 +332,82 @@ class TestOverdueRefreshes(TransactionCase):
             self.assertIn(
                 schedule, self.PM.search([("is_overdue", "=", True)]),
                 "Overdue PM Schedules uses exactly this domain.")
+
+    # ── R45: the never-serviced schedule ─────────────────────────────────────
+
+    # `create_date` is written by POSTGRES, not by Python — Odoo puts
+    # `now() at time zone 'UTC'` in the INSERT — so `freeze_time` cannot move
+    # it, and these three tests cannot use the literal-date idiom the rest of
+    # this file is built on. That is worth knowing rather than working around
+    # quietly: this file's whole discipline is "create the record under a
+    # freeze too, so no assertion depends on what today happens to be", and an
+    # anchor on `create_date` silently opts out of it. The first version of
+    # these tests asserted a frozen date against a database-clock one and
+    # failed on the run that was meant to prove them. So they derive their
+    # expectation from the record's OWN `create_date` and freeze relative to
+    # it — the arithmetic is still checkable, just not by eye against a
+    # literal.
+
+    def _never_serviced(self, name, interval=90):
+        schedule = self.PM.create({
+            "name": name,
+            "asset_id": self.asset.id,
+            "interval_days": interval,
+        })
+        schedule.flush_recordset()
+        return schedule
+
+    def test_a_never_serviced_schedule_is_due_one_interval_after_it_was_set_up(self):
+        """`next_due_date = today` is not a due date, it is the absence of one.
+
+        A schedule with an interval and no `last_done_date` used to be re-dated
+        to today on every recompute, so it was permanently `is_overdue = False`
+        and the daily cron rewrote the row every tick to say nothing had
+        changed — the stale-clock defect of handoff 09 dressed as its fix. It
+        now anchors on `create_date`.
+        """
+        schedule = self._never_serviced("H10 Never Serviced")
+        self.assertEqual(
+            schedule.next_due_date,
+            schedule.create_date.date() + timedelta(days=90),
+            "90 days after the day it was set up")
+        schedule.invalidate_recordset()
+        self.assertFalse(
+            schedule.is_overdue,
+            "and not overdue on the day it was created, whatever day that is")
+
+    def test_a_never_serviced_schedules_due_date_does_not_move_with_the_clock(self):
+        """The regression in one assertion: the date it was given on the day it
+        was created is the date it still has months later — and it can finally
+        fall overdue, which was impossible while the due date chased the clock.
+        """
+        schedule = self._never_serviced("H10 Fixed Point")
+        due = schedule.next_due_date
+
+        # A day past the due date, whenever that is. The freeze is relative to
+        # the record's own anchor for the reason given above.
+        with freeze_time(due + timedelta(days=1)):
+            self.PM._cron_refresh_overdue()
+            schedule.invalidate_recordset()
+            self.assertEqual(schedule.next_due_date, due,
+                             "the cron re-evaluates the flag, not the anchor")
+            self.assertTrue(
+                schedule.is_overdue,
+                "and a never-serviced schedule CAN now fall overdue, which "
+                "was impossible while the due date chased the clock")
+
+    def test_the_cron_leaves_a_settled_schedule_alone(self):
+        """`next_due_date = today` also meant a daily UPDATE on every such row.
+        A refresh that rewrites rows it did not change is a refresh nobody can
+        read a write_date off.
+        """
+        schedule = self._never_serviced("H10 Settled")
+        before = schedule.write_date
+
+        self.PM._cron_refresh_overdue()
+        schedule.invalidate_recordset()
+        self.assertEqual(schedule.write_date, before,
+                         "nothing changed, so nothing was written")
 
     def test_marking_a_pm_done_clears_the_overdue_flag(self):
         """The other direction. last_done_date IS an ORM dependency, so this
