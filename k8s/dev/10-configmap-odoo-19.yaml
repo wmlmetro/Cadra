@@ -31,6 +31,32 @@ data:
     list_db = False
     log_level = info
 
+    ; ─── Telemetry: off ─────────────────────────────────────────────────
+    ; Odoo's "Publisher: Update Notification" cron (mail.ir_cron_module_
+    ; update_notification) POSTs weekly, per database, to
+    ; http://services.odoo.com/publisher-warranty/. The payload is assembled
+    ; at mail/models/update.py::_get_message and carries the database name and
+    ; uuid, web.base.url, the installed application list, user counts — and the
+    ; company's name, email and phone. On this cluster that is the Nigeria
+    ; Revenue Service, Guaranty Trust Bank, Jaiz Bank Plc and the Lagos State
+    ; Ministry of Health. Client identity is not ours to disclose to a third
+    ; party as a side effect of a default nobody chose.
+    ;
+    ; Pointing the URL at a closed local port is the durable half: it covers
+    ; every database including tenants not yet created, and it holds whatever
+    ; an ir_cron row in any one of them says. The cron row is deactivated per
+    ; tenant as well (myservice_nrs_base, _cadra_disable_third_party_crons),
+    ; because the server action calls update_notification(None) — cron_mode
+    ; falsy — so it RAISES on a refused connection rather than returning False,
+    ; which would otherwise mean a weekly ERROR and a climbing failure_count on
+    ; every tenant.
+    ;
+    ; NOTE: this ConfigMap is mounted with subPath (41-odoo-19-deployment.yaml),
+    ; and subPath mounts are excluded from Kubernetes' ConfigMap update
+    ; propagation — the file in a running pod never changes. Merging this does
+    ; not apply it. It takes a deliberate roll of the odoo-19 deployment.
+    publisher_warranty_url = http://localhost:1/publisher-warranty/
+
     ; Addons: Odoo 19 core + repo root + CRND 19 foundation + OCA 19 bundle.
     ; (No legacy dist/ tree — the rebuild installs a trimmed, ported set.)
     addons_path = /usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons,/mnt/extra-addons/crnd-19,/mnt/extra-addons/oca-19

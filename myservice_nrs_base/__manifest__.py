@@ -1,6 +1,6 @@
 {
     'name': 'NRS Design System Base',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.1.0',
     'summary': 'Shared CSS design tokens and component styles for all NRS modules',
     'category': 'Theme',
     'author': 'WestMetro Limited',
@@ -33,6 +33,12 @@
             # removed — bus_service is native in 19 and the placeholder was unused.
         ],
     },
+    # Fresh install: turn off Odoo's outbound third-party crons (the
+    # services.odoo.com telemetry POST and the digest mailer). Existing tenants
+    # get the same call from migrations/19.0.1.1.0/post-migrate.py — an install
+    # runs no migration script and an upgrade runs no post_init_hook, so both
+    # entry points are needed. Odoo 19 calls the hook with `env`.
+    'post_init_hook': 'post_init_hook',
     'installable': True,
     'auto_install': False,
     'license': 'LGPL-3',

@@ -268,18 +268,19 @@ SCOPE_GROUPS = {
     SCOPE_APPROVALS_WRITE:    ("myservice_asset_register.group_asset_manager",),
     SCOPE_INGESTION_WRITE:    ("myservice_asset_register.group_asset_manager",),
     SCOPE_SETTINGS_WRITE:     ("myservice_asset_register.group_asset_manager",),
-    # The three `myservice.dashboard` routes are the only ones in the API
-    # that do NOT `sudo()`, so `dashboards:read` is the one scope whose
-    # groups are load-bearing rather than documentary: `get_kpis` reads
-    # `fleet.vehicle` and `generic.location` directly, and without these the
-    # route answers 400 "You are not allowed to access 'Vehicle'". It used to
-    # work only because every client ran as base.user_admin, which held the
-    # manager groups. The user groups are DERIVED from the scope here, so the
-    # two cannot drift apart — the scope stays authoritative.
-    # (The routes ought to sudo() like every other one, and return a 403
-    # naming the scope rather than a 400 leaking Odoo group names. That is a
-    # change to published behaviour for session tokens too, so it is proposed
-    # in docs/handoffs/08-REPORT.md rather than taken here.)
+    # These three were load-bearing rather than documentary until handoff 09,
+    # because the `myservice.dashboard` routes were the only ones in the API
+    # that did not `sudo()`: `get_kpis` reads `fleet.vehicle` and
+    # `generic.location` directly, and without these groups the route answered
+    # `400 validation_failed` — "You are not allowed to access 'Vehicle'" —
+    # naming an Odoo group in the published envelope. It had worked only
+    # because every client ran as base.user_admin, which held them.
+    # The routes sudo() now (`v1.py`), so the scope is the gate and these
+    # groups are back to being documentary. They are kept, derived from the
+    # scope so the two cannot drift, as the belt to that braces: nothing else
+    # would grant a dashboards-only client the group memberships that make it
+    # legible on the user form, and a future dashboard read that forgets to
+    # sudo() degrades to working rather than to a leaked group name.
     SCOPE_DASHBOARDS_READ:    ("myservice_security.group_security_officer",
                                "fleet.fleet_group_user",
                                "generic_location.group_generic_location_user_implicit"),
@@ -1053,6 +1054,28 @@ def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
             # Call the endpoint
             try:
                 result = fn(*args, **kwargs)
+            # ORDER IS LOAD-BEARING. In Odoo 19 `AccessError`, `MissingError`
+            # and `ValidationError` are ALL subclasses of `UserError`:
+            #
+            #     AccessError.__mro__ -> AccessError, UserError, Exception
+            #
+            # so a `except (UserError, ValidationError)` clause placed first
+            # swallows every one of them. It was, and the two clauses below it
+            # were dead code: an access refusal answered `400 validation_failed`
+            # and a missing record answered `400 validation_failed`, meaning two
+            # published error codes — `forbidden` and `not_found` — were
+            # unreachable through this path for the whole life of the envelope.
+            #
+            # Vendra branches on `error.code`. An authorisation failure that
+            # reports itself as a validation failure tells an integrator to fix
+            # their payload when the answer is to fix their credentials.
+            # Specific first, `UserError` last.
+            except AccessError as e:
+                request.env.cr.rollback()
+                return _http_response(err(ERR_FORBIDDEN, str(e), status=403))
+            except MissingError as e:
+                request.env.cr.rollback()
+                return _http_response(err(ERR_NOT_FOUND, str(e), status=404))
             except (UserError, ValidationError) as e:
                 # Odoo-level validation: ondelete, @api.constrains,
                 # explicit raise UserError in business code.
@@ -1061,12 +1084,6 @@ def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
                     ERR_VALIDATION_FAILED, str(e) or e.__class__.__name__,
                     status=400,
                 ))
-            except MissingError as e:
-                request.env.cr.rollback()
-                return _http_response(err(ERR_NOT_FOUND, str(e), status=404))
-            except AccessError as e:
-                request.env.cr.rollback()
-                return _http_response(err(ERR_FORBIDDEN, str(e), status=403))
             except psycopg2.errors.UniqueViolation as e:
                 request.env.cr.rollback()
                 return _http_response(err(

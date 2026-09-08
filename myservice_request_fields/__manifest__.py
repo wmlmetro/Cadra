@@ -1,6 +1,6 @@
 {
     'name': 'myservice Request Fields',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.1.0',
     'summary': 'Adds vehicle and location fields + triage to service requests',
     'author': 'WestMetro Limited',
     'website': 'https://westmetrong.com',
@@ -17,6 +17,7 @@
         'myservice_nrs_base',
     ],
     'data': [
+        'data/request_cron.xml',
         'views/request_request_views.xml',
         'views/triage_views.xml',
         'views/triage_menus.xml',

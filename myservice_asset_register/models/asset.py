@@ -1,5 +1,14 @@
+from datetime import timedelta
+
 from odoo import models, fields, api, release, _
 from odoo.exceptions import ValidationError
+from odoo.tools import config
+
+# How long a physical verification counts as current, when the asset's category
+# does not state its own window. Database-per-tenant means a config parameter
+# IS per-tenant.
+PARAM_VERIFICATION_INTERVAL = 'cadra.assets.verification_interval_days'
+DEFAULT_VERIFICATION_INTERVAL_DAYS = 365
 
 # Odoo 19 removed `_sql_constraints`: orm/model_classes.py logs "no longer
 # supported" and creates nothing, so a constraint declared the old way
@@ -227,12 +236,96 @@ class NRSAsset(models.Model):
                 vals['asset_code'] = code
         return super().create(vals_list)
 
-    @api.depends('last_verified_date')
+    @api.depends('last_verified_date',
+                 'category_id', 'category_id.verification_interval_days')
     def _compute_verified(self):
-        from datetime import date, timedelta
-        cutoff = date.today() - timedelta(days=365)
+        """True while the last physical verification is still inside its window.
+
+        The window is resolved per record because it is a per-category setting:
+        a fire extinguisher and a filing cabinet are not verified on the same
+        cycle. `category_id.verification_interval_days` is in `@api.depends`
+        so that shortening a category's window flags its assets immediately
+        rather than at the next cron tick.
+
+        Note what is NOT a dependency and cannot be: today's date. Nothing in
+        the database changes on the day a verification lapses, which is why
+        `_cron_refresh_verification` exists.
+        """
+        # fields.Date.today(), NOT context_today(). context_today resolves the
+        # READER's timezone, and this field is stored: in the 23:00-00:00 UTC
+        # band a Lagos user (UTC+1) would compute a cutoff one day ahead of the
+        # cron (OdooBot, tz unset, so UTC), and the column would flip and
+        # un-flip depending on who last triggered the compute. `action_verify`
+        # writes `last_verified_date` server-local too, so this matches the
+        # value it is compared against.
+        today = fields.Date.today()
+        default_days = self._verification_interval_days()
         for r in self:
+            days = r.category_id.verification_interval_days or default_days
+            cutoff = today - timedelta(days=days)
             r.is_verified = bool(r.last_verified_date and r.last_verified_date >= cutoff)
+
+    @api.model
+    def _verification_interval_days(self):
+        """The tenant-wide fallback window, in days.
+
+        Used for assets whose category states no window of its own. A tenant
+        that counts its estate quarterly wants a shorter default than the
+        annual one, and auditors ask for the number to be stated rather than
+        buried in code. A missing, non-numeric or non-positive parameter falls
+        back to the documented default rather than producing a nonsense cutoff
+        — a `0` here would mean "verified only if verified today", which is
+        not a setting anybody intends to type.
+        """
+        raw = self.env['ir.config_parameter'].sudo().get_param(
+            PARAM_VERIFICATION_INTERVAL, DEFAULT_VERIFICATION_INTERVAL_DAYS)
+        try:
+            days = int(raw)
+        except (TypeError, ValueError):
+            days = DEFAULT_VERIFICATION_INTERVAL_DAYS
+        return days if days > 0 else DEFAULT_VERIFICATION_INTERVAL_DAYS
+
+    @api.model
+    def _cron_refresh_verification(self, batch_size=2000):
+        """Re-evaluate is_verified against today's date.
+
+        is_verified is stored, and everything it depends on is static: an asset
+        verified 364 days ago stays flagged verified for ever, because nothing
+        in the database changes on the day it lapses. Same shape as the monthly
+        depreciation recompute — the value moves with the calendar, so a cron
+        has to push it.
+
+        The field is marked directly and flushed per batch. Marking the field
+        rather than a dependency matters: this cron exists precisely because no
+        dependency covers the clock, so a refresh routed through the dependency
+        graph would become a no-op the day someone edits `@api.depends`. And
+        without the flush the write waits for the transaction's own commit —
+        which under test never comes, so the method would report a count for
+        work that had not been done.
+        """
+        assets = self.search([('last_verified_date', '!=', False)])
+        field = self._fields['is_verified']
+        in_test = bool(config.get('test_enable') or config.get('test_file'))
+        for i in range(0, len(assets), batch_size):
+            batch = assets[i:i + batch_size]
+            # Read the current value first: a recomputed field is written only
+            # when the new value differs from what is in cache, and "absent
+            # from cache" counts as different. Without this the daily sweep
+            # UPDATEs every row it looks at and bumps every write_date to say
+            # nothing changed.
+            batch.fetch(['is_verified'])
+            # Mark the FIELD, not something it depends on. This cron exists
+            # because no dependency covers the clock, so routing the refresh
+            # through the dependency graph would turn it into a no-op the day
+            # someone edits @api.depends.
+            self.env.add_to_compute(field, batch)
+            self.env.flush_all()
+            # Commit per batch so a long run over a large register does not
+            # hold one transaction open — but never inside a test, where
+            # committing breaks the surrounding rollback.
+            if not in_test:
+                self.env.cr.commit()
+        return len(assets)
 
     @api.depends('pm_schedule_ids')
     def _compute_pm_count(self):
@@ -312,6 +405,12 @@ class NRSAssetCategory(models.Model):
     pm_interval_days = fields.Integer(
         'Default PM Interval (days)',
         help='Default number of days between preventive maintenance for this category')
+    verification_interval_days = fields.Integer(
+        'Verification Interval (days)',
+        help='How long a physical verification of an asset in this category '
+             'stays current, in days. Leave at 0 to use the tenant-wide '
+             'default (the "cadra.assets.verification_interval_days" system '
+             'parameter, 365 days if unset).')
     description = fields.Text('Description')
     asset_count = fields.Integer('Assets', compute='_compute_asset_count')
 

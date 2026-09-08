@@ -118,6 +118,49 @@ def test_create_then_delete_a_category(client, admin_scope, capture):
     assert d["id"] not in remaining
 
 
+def test_a_category_carries_its_own_verification_window(client, admin_scope):
+    """`verification_interval_days` is writable, readable and survives a PATCH.
+
+    `is_verified` used to be measured against a hardcoded 365 days that nothing
+    ever re-evaluated, so it could only move false -> true: an asset verified
+    once was reported verified for ever. It now expires on a per-category
+    window, and this is the route a tenant sets that window from — the same
+    screen, and the same shape, as `pm_interval_days` beside it.
+
+    0 is not "verified only if verified today". It is the sentinel for "use the
+    tenant default", which is why the API reports it as null rather than 0.
+    """
+    ts = int(time.time())
+    r = client.post("/api/v1/asset-categories", json={
+        "name": f"pytest-verify-{ts}",
+        "code": f"PV{ts % 10000}",
+        "domain": "other",
+        "verification_interval_days": 90,
+    })
+    created = assert_envelope_ok(r, expected_status=201)["data"]
+    try:
+        assert created["verification_interval_days"] == 90
+
+        # It reads back on the list route, not just the create response.
+        listed = {c["id"]: c for c in assert_envelope_ok(
+            client.get("/api/v1/asset-categories"))["data"]}
+        assert listed[created["id"]]["verification_interval_days"] == 90
+
+        patched = assert_envelope_ok(client.patch(
+            f"/api/v1/asset-categories/{created['id']}",
+            json={"verification_interval_days": 180}))["data"]
+        assert patched["verification_interval_days"] == 180
+
+        # Unset is reported as null — the "inherit the tenant default"
+        # sentinel, distinguishable from a real 0-day window nobody wants.
+        cleared = assert_envelope_ok(client.patch(
+            f"/api/v1/asset-categories/{created['id']}",
+            json={"verification_interval_days": 0}))["data"]
+        assert cleared["verification_interval_days"] is None
+    finally:
+        client.delete(f"/api/v1/asset-categories/{created['id']}")
+
+
 def test_create_category_requires_a_name(client, admin_scope):
     r = client.post("/api/v1/asset-categories", json={"code": "NONAME"})
     assert r.status_code == 400

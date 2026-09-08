@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- sla_breached is a stored compute whose body reads the clock and
+             whose @api.depends names only sla_deadline. Nothing in the
+             database changes on the minute a request runs out of time, so
+             without this pass the field is false on every request that was
+             created inside its own SLA window — which is all of them. It backs
+             a live "SLA Breached" menu, a search filter, a list decoration and
+             a kanban badge, so a permanently-false field reads as "no breaches"
+             rather than as "not measured".
+
+             Hourly, not daily: the tightest tier is 30 minutes, so a daily
+             sweep would leave a critical breach unflagged for up to 48 times
+             the SLA it is meant to police. Hourly bounds the lag at an hour
+             for a cost that does not depend on the size of the register — the
+             cron's domain excludes rows already flagged, so it only ever
+             visits requests still inside their window. noupdate so an
+             operator's interval or on/off change survives a module upgrade. -->
+        <record id="cron_request_sla_breached" model="ir.cron">
+            <field name="name">Cadra: refresh SLA breach flags</field>
+            <field name="model_id" ref="myservice_request_core.model_request_request"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_refresh_sla_breached()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">hours</field>
+            <field name="active">True</field>
+            <field name="user_id" ref="base.user_root"/>
+        </record>
+    </data>
+</odoo>
