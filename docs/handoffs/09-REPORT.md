@@ -15,10 +15,54 @@ scheduler runs; this is the first work that simply *assumed* it and was right.
 
 ---
 
+## Deployed — 2026-09-08 07:01 UTC
+
+PR #53 merged as `ee0d866`. `deploy-dev` built and applied
+`k8s/dev/10-configmap-odoo-19.yaml` on the push; `upgrade-19` then upgraded
+**every tenant and rolled the image itself**, so the two owner actions below
+collapsed into one run and one interruption rather than two.
+
+Run [34196778181](https://github.com/wmlmetro/Cadra/actions/runs/34196778181) —
+`target_dbs = staging,nrs,gtb,jaizbankplc,lasg`, modules
+`myservice_nrs_base,myservice_asset_register,myservice_request_fields,myservice_security,myservice_fleet_maintenance`,
+image pinned to `dev-ee0d866` rather than `dev-latest`, `scale_down = true`.
+
+- All five tenants reached "Modules loaded", `FAILED=0`, and the deployment
+  rolled forward to `dev-ee0d866` at 07:01:08.
+- **The telemetry cron is deactivated in the cluster**, logged per database by
+  the migration itself: `mail.ir_cron_module_update_notification` and
+  `digest.ir_cron_digest_scheduler_action` on **staging, gtb, jaizbankplc and
+  lasg**. The weekly POST of client identity to services.odoo.com has stopped
+  where it was actually happening.
+- **`nrs` on the cluster is a stub**: it loaded **14 modules** where the others
+  load ~77, so `myservice_nrs_base` is not installed and the migration never
+  ran there. It is also absent from `uptime-check`'s host list. Telemetry is
+  still covered on it by the config layer — `publisher_warranty_url` is a
+  server option, not a per-database row — which is precisely why that layer was
+  built as the durable one. Worth knowing that a sixth name in the upgrade list
+  is not a sixth tenant.
+- **New code and new schema confirmed live from outside**, not merely
+  "pod is up": `verification_interval_days` appears in the published
+  `openapi.json` on both `staging.app.cadra.ng` and `jaizbankplc.cadra.ng`, and
+  the `is_verified` parameter carries its new "this EXPIRES" description.
+- `uptime-check` [34197467870](https://github.com/wmlmetro/Cadra/actions/runs/34197467870):
+  **All tenants healthy** — `/`, `/app` and `/api/v1/brand` 200 on staging, gtb,
+  jaizbankplc and lasg.
+
+**Still open: R25.** Deploying does not answer it. Nobody has yet observed an
+`ir.cron` *firing* in the cluster — the migration running proves the upgrade
+Job ran, not that the scheduler ticks. The one-line check remains
+`select cron_name, lastcall from ir_cron where cron_name ilike '%epreciat%';`
+on a staging tenant.
+
+---
+
 ## Needs the owner
 
-1. **Merge the PR** (standing — the permission layer refuses `gh pr merge`).
-2. **R27's cluster half does not apply on merge, and this is the one item with
+*(Items 1-3 are DONE — see "Deployed" above. Kept for the record.)*
+
+1. ~~**Merge the PR**~~ — merged as `ee0d866`.
+2. ~~**R27's cluster half**~~ — done in run 34196778181. Original note: R27's cluster half does not apply on merge, and this is the one item with
    a third party on the other end.** Two separate actions, both manual:
    - **`publisher_warranty_url`**: the ConfigMap is mounted with `subPath`
      (`k8s/dev/41-odoo-19-deployment.yaml:70-74`), which Kubernetes excludes
@@ -29,8 +73,7 @@ scheduler runs; this is the first work that simply *assumed* it and was right.
    - **The cron rows**: **run the `upgrade-19` workflow** with
      `upgrade_modules = myservice_nrs_base` and `target_dbs` = *every* tenant.
      That is what carries the per-tenant deactivation.
-3. **Run the `upgrade-19` workflow for EVERY tenant with `myservice_asset_register`
-   — at or before the image roll, not after.** `nrs.asset.category.verification_interval_days`
+3. ~~**Run `upgrade-19` for EVERY tenant**~~ — done, all five, before the roll. Original note: `nrs.asset.category.verification_interval_days`
    is a new stored column, and `_compute_verified` reads it on every
    `nrs.asset` create/write. That is **Vendra's write path, `POST /api/v1/assets`
    (INT-03)**. On an un-upgraded tenant it raises `UndefinedColumn` and the
