@@ -46,15 +46,8 @@ going `issued → printed` at 09:20:55.
 2. **`upgrade-19` for every tenant carrying `myservice_asset_register`, at or
    before the image roll** (carried forward from handoff 10's own Step 0 —
    still true, and this handoff adds nothing that changes it).
-3. **The telemetry's cluster half** — `deploy-dev` with `roll_odoo` enabled,
-   then `upgrade-19` with `myservice_nrs_base` across every tenant. Also
-   unchanged — **but from this branch onward, not doing it makes the deploy go
-   RED rather than green.** See Part B.
-4. **The first `deploy-dev` run after this merges will FAIL, correctly.** The
-   new guard compares the running `odoo-19` pod against the ConfigMaps the run
-   just applied. Handoff 09's `publisher_warranty_url` is in the repo's
-   ConfigMap and has never been rolled, so the guard's first firing *is* that
-   finding, surfaced. Clearing it is item 3.
+3. ~~**The telemetry's cluster half.**~~ **Done — see the postscript.** It was
+   cleared by an `upgrade-19` run at 06:54 UTC, before this merged.
 
 ---
 
@@ -479,10 +472,10 @@ run against a stubbed `kubectl` in five scenarios — match, `odoo.conf` drift
 unified diff), env drift plus a key absent entirely, no Deployment, and
 `kubectl exec` failing — each with its own message and exit code.
 
-**Expect the first `deploy-dev` after this merges to be RED, and that is the
-point.** Handoff 09's `publisher_warranty_url` is in the repo's ConfigMap and
-`odoo-19` has never been rolled to pick it up. The guard's first firing *is*
-handoff 10's owner-blocked item 3, surfaced instead of assumed.
+**I expected the first `deploy-dev` after this merged to be RED.** It was
+green, and for the right reason — see the postscript. The guard's first firing
+found the pod already matching, which is the outcome it exists to be able to
+tell apart from a silent no-op.
 
 **Not fixed, flagged:** `upgrade-19` scales `odoo-19` to 0 mid-run, and the
 three workflows sit in three separate concurrency groups, so an overlap would
@@ -671,3 +664,64 @@ tenant upgrades that had been dying then took 18–213s each. That is worth
 knowing for the next handoff: **on this machine, serialise and use one-off
 containers, and do not assume a failed run means a failed change.**
 
+
+---
+
+## Postscript — merged, and the guard's first firing
+
+Merged as `e7293b4` (PR #54) at 09:47 UTC. All three workflows green on `dev`:
+`ci`, `k8s-lint`, `deploy-dev`.
+
+**`deploy-dev` was green, and I had predicted red.** That prediction is the sort
+that has to be checked rather than shrugged off, because a guard passing
+vacuously and a guard passing correctly look identical from the run list. It
+passed correctly — it read the running pod and compared:
+
+```
+--- odoo-config-19  ->  /etc/odoo/odoo.conf.template in the running pod
+    matches.
+--- odoo-bootstrap-19  ->  the running pod's environment (envFrom)
+    CADRA_BOOTSTRAP_MODULES matches.   CADRA_SEED_PROFILE matches.
+    CADRA_TEST_CLIENT_ID matches.      ODOO_MAX_CRON_THREADS matches.
+    ODOO_WORKERS matches.
+
+odoo-19 is running the ConfigMaps this commit applied.
+```
+
+The prediction was overtaken by events: **`upgrade-19` ran at 06:54 UTC** (run
+`34196778181`, `staging,nrs,gtb,jaizbankplc,lasg`), and that workflow rolls the
+image forward at the end of its run — so the pod had already restarted onto the
+current ConfigMap three hours before the merge.
+
+### The telemetry is stopped in the cluster. Both halves.
+
+Handoff 10's owner item 3 is closed, and the evidence is in that run's log:
+
+| half | state |
+|---|---|
+| `publisher_warranty_url` (server-wide config) | live — the pod restarted onto it, and the new guard confirms the running file matches the repo's |
+| per-tenant cron rows | `myservice_nrs_base` `19.0.1.1.0` post-migrate ran on **staging, gtb, jaizbankplc, lasg**, each logging *"2 third-party scheduled action(s) deactivated"* |
+
+**`nrs` did not run the migration and does not need to.** That database loads
+**14 modules against 77** on the others — ours are not installed there — so
+there is no `myservice_nrs_base` to deactivate anything. It is covered by layer
+1, which is a server config and applies to every database the worker serves
+whatever is installed in it. That is exactly the division of labour
+`myservice_nrs_base/models/ir_cron.py` describes: the config is the durable
+half, the cron deactivation is the second layer.
+
+Worth someone's attention separately, not mine to change: **the cluster's `nrs`
+database has almost none of the platform installed.** Five tenants are named in
+the `upgrade-19` target list and only four of them are running Cadra.
+
+### Two things this postscript is evidence for
+
+**The guard is not decorative.** It made a claim about the cluster that could be
+checked, and checking it is what turned "the telemetry is presumably still
+running" into "it stopped at 06:55:28 on staging, 06:57:21 on gtb, 06:58:28 on
+jaizbankplc and 06:59:32 on lasg". Before this branch there was no step anywhere
+that compared the running pod to the repo.
+
+**`upgrade-19` rolls the image, which the ordering in `docs/GO-LIVE.md` now says
+explicitly.** It is why item 3 closed as a side effect of item 2, and it is not
+obvious from the workflow's name.

@@ -63,16 +63,27 @@ Both roll `odoo-19` and both briefly interrupt every live tenant. That
 interruption is why it is a deliberate button and not something a push does on
 its own.
 
-**Known outstanding at the time of writing:** handoff 09 set
-`publisher_warranty_url` in `k8s/dev/10-configmap-odoo-19.yaml` to stop Odoo's
-`Publisher: Update Notification` cron POSTing each tenant's company name, email
-and phone to `services.odoo.com` weekly. The ConfigMap is applied; `odoo-19`
-has never been rolled to pick it up, so **the cluster is still sending them**.
-The guard's first firing is that fact, surfaced. Clearing it needs both halves:
+**Settled 2026-09-08.** Handoff 09 set `publisher_warranty_url` in
+`k8s/dev/10-configmap-odoo-19.yaml` to stop Odoo's `Publisher: Update
+Notification` cron POSTing each tenant's company name, email and phone to
+`services.odoo.com` weekly. Both halves are now live in the cluster, done by an
+`upgrade-19` run at 06:54 UTC (run `34196778181`):
 
-1. `deploy-dev` with `roll_odoo = true` — for `publisher_warranty_url`;
-2. `upgrade-19` with `myservice_nrs_base` across every tenant — for the
-   per-tenant deactivation of the telemetry and digest cron rows.
+1. **`publisher_warranty_url`** — `upgrade-19` rolls the image forward at the
+   end of its run, so the pod restarted onto the current ConfigMap. Confirmed
+   independently by the guard in §2: it read `/etc/odoo/odoo.conf.template` out
+   of the running pod and found it identical to the repo's.
+2. **The per-tenant cron rows** — `myservice_nrs_base`'s `19.0.1.1.0`
+   post-migrate ran on **staging, gtb, jaizbankplc and lasg**, each logging
+   *"2 third-party scheduled action(s) deactivated"*.
+
+**`nrs` did not run that migration, and does not need to.** Only 14 modules
+load on that database against 77 on the others — our modules are not installed
+there — so there is no `myservice_nrs_base` to deactivate anything. It is
+covered by layer 1, which is a server-wide config setting and therefore applies
+to every database the worker serves, installed modules or not. That is the
+division of labour the module's own docstring describes: the config is the
+durable half, the cron deactivation is the second layer.
 
 ---
 
