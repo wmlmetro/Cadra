@@ -60,6 +60,48 @@ class MyserviceApiClient(models.Model):
 
     token_ttl_seconds = fields.Integer(default=3600)
 
+    # ── Pagination limits ─────────────────────────────────────────────
+    #
+    # The external caps in `controllers/utils.py` used to key off the `aud`
+    # claim, which only POST /auth/login stamps — so the rule in force was
+    # "browsers are trusted, programs are not" when the rule intended was
+    # "our own systems are trusted, third parties are not". Vendra holds a
+    # machine credential; so will Audit. The paywall was pointed at our own
+    # customer.
+    #
+    # 0 keeps today's behaviour exactly, so this is invisible until somebody
+    # deliberately raises a limit on one client.
+
+    max_page_limit = fields.Integer(
+        default=0,
+        help="Most records this client may pull in ONE page. "
+             "0 = the external default (100). -1 = uncapped. "
+             "Capped in all cases by the server's own per-request ceiling.")
+
+    total_record_cap = fields.Integer(
+        default=0,
+        help="Most records of any one resource this client may see across "
+             "all cursor pages — the paywall safeguard. "
+             "0 = the external default (100). -1 = uncapped.")
+
+    @api.constrains('max_page_limit', 'total_record_cap')
+    def _check_limits_are_sane(self):
+        """Only 0, -1 and positive integers mean anything.
+
+        A -2 typed into the form would fall through every branch in
+        `record_cap()` and land on the external default — a limit that
+        silently does not do what it says, which is the defect this whole
+        change exists to remove.
+        """
+        for record in self:
+            for field_name in ('max_page_limit', 'total_record_cap'):
+                value = record[field_name]
+                if value < -1:
+                    raise ValidationError(_(
+                        "%(field)s must be 0 (use the external default), "
+                        "-1 (uncapped) or a positive number. Got %(value)s."
+                    ) % {"field": field_name, "value": value})
+
     last_used_at = fields.Datetime(readonly=True)
     last_used_ip = fields.Char(readonly=True)
 

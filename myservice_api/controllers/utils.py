@@ -52,10 +52,18 @@ def ok(data=None, pagination=None):
 
     For list endpoints, pass `pagination`:
         return ok(items, pagination={"next_cursor": "...", "total_estimate": 1200})
+
+    A truncation warning raised by `paginate()` (or by an export route that
+    applied the record cap by hand) is attached here rather than by the
+    caller. `ok()` is the sole envelope builder for every route — rule 1 —
+    so putting it here is the only placement no endpoint can forget.
     """
     body = {"data": data, "meta": _meta()}
     if pagination is not None:
         body["pagination"] = pagination
+    truncation = truncation_warning()
+    if truncation:
+        body["_warnings"] = {"truncated": truncation}
     return body
 
 
@@ -110,6 +118,27 @@ def _new_request_id():
         inbound = (request.httprequest.headers.get("X-Request-Id") or "").strip()
         request.cadra_request_id = inbound or uuid.uuid4().hex
     return request.cadra_request_id
+
+
+def log_safe(value, max_length=128):
+    """Make caller-supplied text safe to put in a single log line.
+
+    A `client_id` arrives from an unauthenticated request body, so it is
+    attacker-controlled: a newline in it would let the caller forge log
+    lines under our own logger name, and a megabyte of it would be a cheap
+    way to fill the disk. Strip anything that is not printable ASCII,
+    truncate, and mark the truncation so a real long id is not mistaken
+    for a short one.
+    """
+    if value is None:
+        return "-"
+    text = str(value)
+    text = "".join(c if 32 <= ord(c) < 127 else "?" for c in text)
+    if not text:
+        return "-"
+    if len(text) > max_length:
+        return text[:max_length] + "...(truncated)"
+    return text
 
 
 # ─── scopes ──────────────────────────────────────────────────────────
@@ -611,6 +640,25 @@ EXTERNAL_MAX_PAGE_LIMIT = 100
 EXTERNAL_TOTAL_CAP      = 100
 FRONTEND_AUDIENCE       = "frontend"
 
+# Per-client overrides of the two external limits. They ride in the access
+# token as claims, stamped at mint time from the `myservice.api.client`
+# record, so the hot list path reads a claim instead of hitting the database
+# on every call.
+#
+# The stored field, the claim and the resolved ceiling share one convention:
+#
+#     0   — not configured; use the external default above
+#     -1  — uncapped (subject only to MAX_PAGE_LIMIT, which is a performance
+#           ceiling on one SELECT, not a commercial one)
+#     n>0 — that many
+#
+# Default 0 everywhere means a client nobody has deliberately provisioned
+# behaves exactly as it did before this existed, and a token minted for one
+# is byte-identical to the token it used to get.
+CLAIM_MAX_PAGE_LIMIT   = "max_page_limit"
+CLAIM_TOTAL_RECORD_CAP = "total_record_cap"
+LIMIT_UNCAPPED         = -1
+
 
 def encode_cursor(payload):
     """Opaque base64url JSON cursor. Don't decode on the client side —
@@ -634,58 +682,154 @@ def _request_is_frontend():
     """True when the validated JWT claims identify the Cadra web frontend
     (i.e. issued via POST /auth/login with `aud=frontend`). False for
     service accounts, external integrations, or when the auth layer
-    didn't run (e.g. open endpoints that don't gate on token claims)."""
+    didn't run (e.g. open endpoints that don't gate on token claims).
+
+    This is kept as a second route to "uncapped" alongside the per-client
+    fields below. It is NOT the primary one any more: `aud` is stamped only
+    by /auth/login, so keying the cap on it alone enforced "browsers are
+    trusted, programs are not" when the rule intended was "our own systems
+    are trusted, third parties are not" — and it pointed a partner paywall
+    at Vendra and at the audit client, both of which hold machine
+    credentials.
+    """
     claims = getattr(request, "jwt_claims", None) or {}
     return claims.get("aud") == FRONTEND_AUDIENCE
 
 
+def _limit_claim(name):
+    """Read one integer limit claim off the validated token. 0 when absent
+    or unparseable — i.e. fall back to the external default, never to
+    'uncapped'. A malformed claim must not widen access."""
+    claims = getattr(request, "jwt_claims", None) or {}
+    try:
+        return int(claims.get(name) or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def client_limit_claims(client):
+    """The limit claims to stamp into a token minted for `client`.
+
+    Only non-zero values are stamped, so an unconfigured client's token
+    carries no new claims at all.
+    """
+    if not client:
+        return {}
+    out = {}
+    if client.max_page_limit:
+        out[CLAIM_MAX_PAGE_LIMIT] = int(client.max_page_limit)
+    if client.total_record_cap:
+        out[CLAIM_TOTAL_RECORD_CAP] = int(client.total_record_cap)
+    return out
+
+
+def page_limit_ceiling():
+    """The most records this caller may pull in ONE page."""
+    if _request_is_frontend():
+        return MAX_PAGE_LIMIT
+    configured = _limit_claim(CLAIM_MAX_PAGE_LIMIT)
+    if configured == LIMIT_UNCAPPED:
+        return MAX_PAGE_LIMIT
+    if configured > 0:
+        # MAX_PAGE_LIMIT still applies: it bounds the cost of a single
+        # SELECT and is not the commercial control.
+        return min(configured, MAX_PAGE_LIMIT)
+    return EXTERNAL_MAX_PAGE_LIMIT
+
+
+def record_cap():
+    """The most records of any one resource this caller may see across all
+    cursor pages — the paywall safeguard — or None when uncapped."""
+    if _request_is_frontend():
+        return None
+    configured = _limit_claim(CLAIM_TOTAL_RECORD_CAP)
+    if configured == LIMIT_UNCAPPED:
+        return None
+    if configured > 0:
+        return configured
+    return EXTERNAL_TOTAL_CAP
+
+
 def parse_limit(kwargs):
     """Read and clamp `limit` from kwargs. Default DEFAULT_PAGE_LIMIT;
-    cap at MAX_PAGE_LIMIT for the Cadra web frontend and at
-    EXTERNAL_MAX_PAGE_LIMIT for everyone else.
+    ceiling from `page_limit_ceiling()` — MAX_PAGE_LIMIT for the Cadra web
+    frontend and for a client provisioned uncapped, the client's own
+    `max_page_limit` when it has one, EXTERNAL_MAX_PAGE_LIMIT otherwise.
 
-    External callers (service accounts, partner integrations, ad-hoc curl)
-    therefore can never pull more than EXTERNAL_MAX_PAGE_LIMIT records per
-    page — they can still paginate via `cursor` if they need the rest.
+    A capped caller can still paginate via `cursor` up to `record_cap()`.
     """
     raw = kwargs.get("limit", DEFAULT_PAGE_LIMIT)
     try:
         limit = int(raw)
     except (TypeError, ValueError):
         limit = DEFAULT_PAGE_LIMIT
-    ceiling = MAX_PAGE_LIMIT if _request_is_frontend() else EXTERNAL_MAX_PAGE_LIMIT
-    return max(1, min(limit, ceiling))
+    return max(1, min(limit, page_limit_ceiling()))
+
+
+TRUNCATION_REASON = (
+    "This credential is limited to the first {cap} records of any query. "
+    "Filter the query, or contact WestMetro to raise the limit."
+)
+
+
+def flag_truncation(cap, total):
+    """Record that the record cap bit on this request.
+
+    Stored on `request` rather than returned, because the response envelope
+    is built by `ok()` and a list endpoint's `data` is an ARRAY — there is
+    no `data._warnings` to hang it off, and a truncation an endpoint has to
+    remember to forward is a truncation that will eventually go unreported.
+    `ok()` picks it up for every route, including ones written later.
+    """
+    if total <= cap:
+        return
+    request.cadra_truncation = {
+        "cap": cap,
+        "total": total,
+        "reason": TRUNCATION_REASON.format(cap=cap),
+    }
+
+
+def truncation_warning():
+    """The truncation block for this request, or None."""
+    return getattr(request, "cadra_truncation", None)
 
 
 def paginate(model, domain, *, limit, cursor=None, order="id"):
     """Cursor-paginate `model.search(domain)`.
 
     Returns (records, next_cursor_or_None, total_estimate).
-    `total_estimate` is a separate search_count — fine at our scale, but
-    expensive on very large tables. Suppress it via `?total=0` from the
-    caller if needed.
 
-    External (non-frontend) tokens are bounded to the first
-    EXTERNAL_TOTAL_CAP records of the domain (sorted by `order`).
-    Pagination still works inside that window; once the cumulative
-    records served exceed the cap, next_cursor goes to null and the
-    total_estimate reflects the cap rather than the true count.
+    `total_estimate` is ALWAYS a `search_count` of the caller's own,
+    unclamped domain. It used to report the size of the capped window
+    instead, so an external token asking `jaizbankplc` for its assets
+    received 100 rows and was told there were 100, of 2,316 — a false
+    statement about the register, made by a government system, that neither
+    the caller nor we would ever find out about. Whatever the cap does to
+    the rows, the count is a fact.
+
+    There is deliberately no branch below in which that line does not run,
+    and `tests/test_source_guards.py` asserts that by construction.
+
+    Capped callers (`record_cap()`) are bounded to the first N records of
+    the domain, sorted by `order`. Pagination still works inside that
+    window; once the cumulative records served exceed the cap, next_cursor
+    goes to null — and `flag_truncation` makes the response say so.
     """
     cursor_data = decode_cursor(cursor) if cursor else {}
     effective_domain = list(domain)
 
-    # Compute the visible window for external tokens once, before any
-    # cursor filtering. We do this even when the cursor is set so the
+    total = model.search_count(domain)
+
+    # Compute the visible window once, before any cursor filtering, so the
     # cap survives across pages.
-    external_cap = None
-    allowed_total = None
-    if not _request_is_frontend():
-        external_cap = EXTERNAL_TOTAL_CAP
-        allowed = model.search(domain, order=order, limit=external_cap)
-        allowed_total = len(allowed)
-        if not allowed_total:
-            return model.browse([]), None, 0
+    cap = record_cap()
+    if cap is not None:
+        allowed = model.search(domain, order=order, limit=cap)
+        if not allowed:
+            return model.browse([]), None, total
         effective_domain.append(("id", "in", allowed.ids))
+        flag_truncation(cap, total)
 
     if "last_id" in cursor_data:
         effective_domain.append(("id", ">", int(cursor_data["last_id"])))
@@ -699,11 +843,7 @@ def paginate(model, domain, *, limit, cursor=None, order="id"):
     if has_more and page:
         next_cursor = encode_cursor({"last_id": page[-1].id})
 
-    if external_cap is not None:
-        total_estimate = allowed_total
-    else:
-        total_estimate = model.search_count(domain)
-    return page, next_cursor, total_estimate
+    return page, next_cursor, total
 
 
 # ─── idempotency ─────────────────────────────────────────────────────

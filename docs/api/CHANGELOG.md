@@ -21,6 +21,91 @@ branch on it, it goes here.
 
 ---
 
+## 2026-09-08 — handoff 12
+
+### BEHAVIOUR CHANGE · `pagination.total_estimate` now reports the TRUE count
+
+**Who is affected:** every consumer of a list endpoint holding a token issued
+by `POST /auth/token`. That is Vendra, and it will be Audit.
+
+`total_estimate` used to report the size of the capped window, not the size of
+the register. A credential limited to the first 100 records asked
+`jaizbankplc` for its assets, received 100 rows, `next_cursor: null`, and
+`total_estimate: 100` — while the tenant held 2,363. Nothing about that
+response looked wrong.
+
+It is now a `search_count` on the caller's own unclamped domain, on every
+path. The rows a capped credential receives have **not** changed; only the
+number describing them has.
+
+**What this means for a consumer that already trusts `total_estimate`:** it
+may now be much larger than the number of rows you can actually page through.
+That is the honest picture. Compare it against what you received and branch on
+the new `_warnings.truncated` block below rather than on `next_cursor: null`,
+which cannot distinguish "that is everything" from "that is all you get".
+
+Affected routes: `GET /assets`, `/locations`, `/locations/<id>/descendants`,
+`/identity/employees`, `/identity/employees/<id>/assets`, `/requests`,
+`/fleet`.
+
+### NEW · `_warnings.truncated` on any response the record cap bit
+
+A top-level envelope key, additive, present only when records were withheld:
+
+```json
+{"data": [...], "meta": {...}, "pagination": {...},
+ "_warnings": {"truncated": {
+   "cap": 100, "total": 2363,
+   "reason": "This credential is limited to the first 100 records of any query. Filter the query, or contact WestMetro to raise the limit."}}}
+```
+
+It is a sibling of `data`, not a key inside it, because a list endpoint's
+`data` is an array — unlike `data._warnings.rejected_fields` on the write
+endpoints, which is unchanged.
+
+**It describes the query, not the page.** Asking for 5 rows of a 2,410-asset
+register warns on page one, because the wall at record 100 is already certain.
+Telling you at the end of a twenty-page walk what you needed before you started
+would be the same defect in a new place.
+
+### NEW · `X-Cadra-Truncated` response header and a trailing comment on `export.csv`
+
+`GET /assets/export.csv` bypasses the envelope, so a truncated file now
+carries `X-Cadra-Truncated: 100/2363` and a final row beginning `# TRUNCATED:`.
+A CSV that is silently a twentieth of the register is the artefact that gets
+saved, emailed and cited.
+
+### NEW · `total` on `GET /assets/export`
+
+The JSON export's `count` was `len()` of a capped search, so a route calling
+itself "export all assets" answered `count: 100` on a 2,363-asset tenant.
+`count` still means "rows in this response"; the new `total` is the register.
+
+### BEHAVIOUR CHANGE · the cap is per-client, not per-audience
+
+It used to be decided by the `aud` claim, which only `POST /auth/login`
+stamps — so the rule in force was "browsers are trusted, programs are not",
+and the partner cap was pointed at Vendra, which holds a machine credential.
+It is now decided by two fields on the client record (`total_record_cap`,
+`max_page_limit`), stamped into the access token at mint time.
+
+**Default is unchanged** (`0` = today's 100 on both), so an existing client
+sees no difference. **The `vendra` client is uncapped by data migration on
+every tenant** — as will be the audit client when INT-10 names one. Raising a
+limit takes effect on the client's next token or refresh, i.e. within its TTL
+(1 hour by default), not at the end of the 30-day refresh window.
+
+### NO CHANGE · `POST /auth/token` still answers one 401 for every cause
+
+Deliberately. Wrong secret, unknown client, archived client and a client id in
+the wrong case (`Vendra` vs `vendra` — Postgres `=` is case-sensitive) are one
+body, because distinguishing them is a client-id enumeration oracle. The cause
+is now written server-side against the `request_id` the response already
+carries; quote that id to WestMetro and the answer is one grep away. See
+`docs/api/reading-an-auth-failure.md`.
+
+---
+
 ## 2026-09-08 — handoff 10
 
 ### BEHAVIOUR CHANGE · `data.tagging.printed_at` / `printed_by` / `label_state` start moving

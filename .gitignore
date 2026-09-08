@@ -49,3 +49,5 @@ _to_delete/
 
 # Mock SAP receiver high-water mark (docs/api/mock_sap.py) — local test state.
 docs/api/mock_sap_sequence
+__pycache__/
+*.pyc

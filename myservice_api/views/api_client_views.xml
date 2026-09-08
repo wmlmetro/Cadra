@@ -10,6 +10,7 @@
         <field name="user_id"/>
         <field name="active"/>
         <field name="token_ttl_seconds"/>
+        <field name="total_record_cap"/>
         <field name="last_used_at"/>
         <field name="last_used_ip"/>
       </list>
@@ -41,6 +42,14 @@
             <field name="user_id"/>
             <field name="token_ttl_seconds"/>
             <field name="scopes" placeholder="assets:read assets:write locations:read"/>
+          </group>
+          <group string="Pagination limits" col="2">
+            <!-- 0 = the external default (100 records). -1 = uncapped.
+                 A positive number is that many. Vendra and the audit
+                 client are provisioned uncapped by data migration; do not
+                 rely on somebody remembering to set them here. -->
+            <field name="total_record_cap"/>
+            <field name="max_page_limit"/>
           </group>
           <group string="Usage" col="2">
             <field name="last_used_at" readonly="1"/>

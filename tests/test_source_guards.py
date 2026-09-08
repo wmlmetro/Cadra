@@ -1363,3 +1363,115 @@ def test_the_retired_screens_stay_retired(tag):
         "revived, it needs an ir.actions.client record and a menu in the same "
         "change, and this case should be deleted — see docs/retired-screens.md"
         % tag)
+
+
+# ─── the total is never derived from a capped search ─────────────────
+#
+# `paginate()` used to report `len(search(domain, limit=EXTERNAL_TOTAL_CAP))`
+# as `total_estimate`, so an external token asking for 2,363 assets received
+# 100 rows, `next_cursor: null`, and `total_estimate: 100`. Nothing about
+# that response looks wrong. An auditor who exports 100 rows and is told
+# there are 100 has been handed a false statement by a government system,
+# and neither they nor we would ever find out.
+#
+# A behavioural test proves the number is right today. This one is here to
+# stop the shape coming back: it reads the STRUCTURE of paginate() and
+# insists there is exactly one count, that it is taken on the caller's own
+# unclamped domain, and that every return path returns that one value —
+# so a future "just cap it here too" cannot pass by adding a branch.
+
+_UTILS = REPO_ROOT / "myservice_api" / "controllers" / "utils.py"
+
+
+def _paginate_ast():
+    tree = ast.parse(_UTILS.read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "paginate":
+            return node
+    raise AssertionError(
+        "myservice_api/controllers/utils.py no longer defines paginate(). "
+        "If it was renamed, this guard has stopped looking at anything — "
+        "point it at the new name.")
+
+
+def test_paginate_counts_exactly_once_and_on_the_uncapped_domain():
+    fn = _paginate_ast()
+    counts = [n for n in ast.walk(fn)
+              if isinstance(n, ast.Call)
+              and isinstance(n.func, ast.Attribute)
+              and n.func.attr == "search_count"]
+
+    assert len(counts) == 1, (
+        "paginate() makes %d search_count calls; expected exactly 1. Two "
+        "counts means two answers, and the caller cannot tell which one the "
+        "response carries." % len(counts))
+
+    arg = counts[0].args[0] if counts[0].args else None
+    assert isinstance(arg, ast.Name) and arg.id == "domain", (
+        "paginate() counts something other than the caller's own `domain` "
+        "(got %r). Counting `effective_domain` — which carries the cap's "
+        "`('id','in',allowed.ids)` leaf — is exactly the bug: it reports the "
+        "size of the window as the size of the register."
+        % (ast.dump(arg) if arg is not None else None))
+
+
+def test_paginate_returns_that_one_count_on_every_path():
+    fn = _paginate_ast()
+
+    # The name search_count's result is bound to.
+    counts = [n for n in ast.walk(fn)
+              if isinstance(n, ast.Assign)
+              and isinstance(n.value, ast.Call)
+              and isinstance(n.value.func, ast.Attribute)
+              and n.value.func.attr == "search_count"]
+    assert len(counts) == 1 and len(counts[0].targets) == 1, (
+        "expected the single search_count in paginate() to be assigned to "
+        "exactly one name")
+    total_name = counts[0].targets[0]
+    assert isinstance(total_name, ast.Name)
+    total_name = total_name.id
+
+    returns = [n for n in ast.walk(fn) if isinstance(n, ast.Return)]
+    assert len(returns) >= 2, (
+        "expected paginate() to keep its early-return path; found %d returns"
+        % len(returns))
+
+    for ret in returns:
+        assert isinstance(ret.value, ast.Tuple) and len(ret.value.elts) == 3, (
+            "every paginate() return must be the 3-tuple "
+            "(records, next_cursor, total_estimate)")
+        third = ret.value.elts[2]
+        assert isinstance(third, ast.Name) and third.id == total_name, (
+            "a paginate() return on line %d reports %r as the total instead "
+            "of %r. Every path returns the same true count — including the "
+            "early return taken when the capped window is empty, which used "
+            "to hard-code 0."
+            % (ret.lineno,
+               ast.unparse(third) if hasattr(ast, "unparse") else "?",
+               total_name))
+
+
+def test_the_record_cap_is_not_read_straight_from_the_aud_claim():
+    """The cap must key off the client record, not off `aud`.
+
+    `aud` is stamped only by POST /auth/login, so keying the paywall on it
+    alone enforced "browsers are trusted, programs are not" when the rule
+    intended was "our own systems are trusted, third parties are not" — and
+    it pointed the partner cap at Vendra and at the audit client, both of
+    which hold machine credentials. `_request_is_frontend()` survives as a
+    second route to uncapped; what must not come back is it being the only
+    one.
+    """
+    source = _UTILS.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    fn = next((n for n in ast.walk(tree)
+               if isinstance(n, ast.FunctionDef) and n.name == "record_cap"),
+              None)
+    assert fn is not None, (
+        "utils.record_cap() is gone. It is the single place the cumulative "
+        "record cap is decided; if it moved, move this guard with it.")
+
+    body = ast.dump(fn)
+    assert "CLAIM_TOTAL_RECORD_CAP" in body, (
+        "record_cap() no longer consults the per-client claim, so the cap is "
+        "back to being decided by whether the caller looks like a browser.")
