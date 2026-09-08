@@ -73,6 +73,14 @@ Cadra is one of three systems in the NRS integration programme, defined by *"End
   CADRA_API_BASE=http://jaizbankplc.localhost:8069 tests/.venv/bin/python -m pytest tests/ -q
   ```
   The venv is `tests/.venv` (Python 3.13) — the repo's own Python, not the container's. `docs/api/smoke_test.py` is the 30-second liveness check. Note the suite's token has no `admin` scope, so ~24 admin-scoped tests skip; that is expected, not a failure.
+  **`.env.example` says `POSTGRES_DB=odoo` and `ODOO_DBFILTER=^odoo$`, and `odoo` is not a database you can test against.** It is a genuine 15-era leftover; a 19 worker refuses it with *"Skipping database odoo as its base version is not 19.0.1.3"*, and any command aimed at it comes back as a `psycopg2` error about a unix socket that names nothing relevant. The defaults are right for CI, which creates its own single database — they are wrong for every command in this file. Export `ODOO_DBFILTER='^%d$'` and name a real tenant (`jaizbankplc` for pytest). Whoever hits this next should lose two minutes, not an afternoon.
+  **In-registry Odoo tests live in `<module>/tests/` and are run by the upgrade command with `--test-enable`, but any `HttpCase` also needs `--workers=0`** — `setUpClass` reads `odoo.service.server.server.httpd.server_port` and `PreforkServer` has no `httpd`, so under the committed `workers = 2` every test in the class errors in setUpClass and the run reports "0 failed":
+  ```
+  docker compose -f docker-compose.yml -f docker-compose.19.yml exec -T odoo \
+    odoo -c /etc/odoo/odoo.conf -d <db> -u <module> --stop-after-init \
+    --test-enable --test-tags /<module> --workers=0 \
+    --http-port=8099 --gevent-port=8098
+  ```
 - **Module upgrade** after model/view/manifest changes — the running container already binds port 8069, so an in-container upgrade must be given free ports:
   ```
   docker compose -f docker-compose.yml -f docker-compose.19.yml exec -T odoo \

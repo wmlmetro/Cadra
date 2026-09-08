@@ -25,27 +25,12 @@
         'views/menu.xml',
         'wizard/incident_escalate_views.xml',
     ],
-    'assets': {
-        'web.assets_backend': [
-            # RETIRED (handoff 11, R54). security.css styles only the
-            # .ms-soc-* classes in the retired security_dashboard.xml, and
-            # security_tabs.css only the .nrs-* classes in security_tabs.xml.
-            # Neither template is in any bundle and neither has a client
-            # action, so 521 lines of CSS were shipping to every backend page
-            # in every app to style markup that is never rendered.
-            # See docs/retired-screens.md before reviving either.
-            #
-            # security_navbar.css is NOT retired and is deliberately still
-            # here: despite its name and its own header comment it scopes to
-            # nothing — it targets core `.o_main_navbar` / `.o_menu_sections`
-            # / `.dropdown-menu` and restyles the top navbar of every backend
-            # screen for every user. Removing it is a visible global change
-            # (nav labels lose the condensed uppercase treatment and the
-            # active-tab underline; menu dropdowns revert from dark to the
-            # theme default), which is a design decision, not a retirement.
-            'myservice_security/static/src/css/security_navbar.css',
-        ],
-    },
+    # No assets. security.css and security_tabs.css are retired (handoff 11,
+    # R54) — see docs/retired-screens.md. security_navbar.css was NOT retired
+    # and is NOT deleted: it never scoped to Security at all, it restyles the
+    # top navigation of every backend screen in the product, so it moved to
+    # myservice_nrs_base as global_navbar.css, byte-identical and with its
+    # bundle position chosen so nothing renders differently (handoff 12, C1).
     'installable': True,
     'auto_install': False,
     'application': True,
