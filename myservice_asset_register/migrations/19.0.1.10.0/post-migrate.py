@@ -37,10 +37,25 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
-ORPHANS = (
-    "cron_asset_pm_refresh_overdue",
-    "cron_asset_refresh_verification",
-)
+# xmlid -> (model, method it schedules). The method is checked at run time
+# rather than assumed absent: from 19.0.1.11.0 both of these are real crons
+# with real implementations, and a database jumping straight from a version
+# below 1.10.0 to 1.11.0 or later loads the 1.11.0 data file BEFORE this
+# script runs. Deleting unconditionally would then remove the crons the same
+# upgrade had just installed, and leave the tenant back where handoff 08 found
+# it — silently, on exactly the databases nobody was watching.
+# As of 19.0.1.11.0 both methods ship, so `hasattr` is true on every version
+# path and THIS SCRIPT CAN NO LONGER DELETE ANYTHING. That is the intended
+# end state, not an oversight: the script's whole remaining job is to be
+# inert while still guarding the one ordering that would otherwise bite —
+# Odoo loads a module's data files BEFORE running its post-migrate scripts,
+# so a tenant jumping from below 1.10.0 straight to 1.11.0 loads the two cron
+# records and then runs this. Unconditional deletion would remove the crons
+# the same upgrade had just installed.
+ORPHANS = {
+    "cron_asset_pm_refresh_overdue": ("nrs.asset.pm", "_cron_refresh_overdue"),
+    "cron_asset_refresh_verification": ("nrs.asset", "_cron_refresh_verification"),
+}
 
 
 def migrate(cr, version):
@@ -52,7 +67,14 @@ def migrate(cr, version):
     env = api.Environment(cr, SUPERUSER_ID, {})
     Data = env["ir.model.data"].sudo()
 
-    for name in ORPHANS:
+    for name, (model_name, method) in ORPHANS.items():
+        if model_name in env and hasattr(env[model_name], method):
+            _logger.info(
+                "myservice_asset_register: keeping cron %s — %s.%s() exists in "
+                "this registry, so it is not an orphan.",
+                name, model_name, method)
+            continue
+
         entries = Data.search([
             ("module", "=", "myservice_asset_register"),
             ("model", "=", "ir.cron"),

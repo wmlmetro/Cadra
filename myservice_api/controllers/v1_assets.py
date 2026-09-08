@@ -654,7 +654,14 @@ class CadraAssetsV1(http.Controller):
                       "enum": ["new", "good", "fair", "poor", "decommissioned"]}},
                      {"name": "domain", "schema": {"type": "string"}},
                      {"name": "asset_level", "schema": {"type": "string"}},
-                     {"name": "is_verified", "schema": {"type": "boolean"}},
+                     {"name": "is_verified", "schema": {"type": "boolean"},
+                      "description": "Whether the last physical verification is "
+                                     "still inside its window. This EXPIRES: the "
+                                     "window is the asset category's "
+                                     "`verification_interval_days`, falling back to "
+                                     "the tenant default (365 days), and a daily job "
+                                     "re-evaluates it. An asset can therefore go from "
+                                     "true to false with no write to the record."},
                      {"name": "grn_reference", "schema": {"type": "string"},
                       "description": "Exact match. Returns every asset created "
                                      "from that goods receipt (INT-03)."},

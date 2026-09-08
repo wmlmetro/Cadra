@@ -38,6 +38,12 @@ _CATEGORY_POLICY_FIELDS = {
 # screens from editing the same field in two places.
 _CATEGORY_IDENTITY_FIELDS = {
     "name", "code", "domain", "description", "sequence", "pm_interval_days",
+    # How long a physical verification of an asset in this category stays
+    # current. Sits beside pm_interval_days because it is the same kind of
+    # setting — a cadence this category is inspected on — and belongs on the
+    # same screen. 0 means "use the tenant-wide default"; see
+    # nrs.asset._verification_interval_days.
+    "verification_interval_days",
 }
 
 _CATEGORY_WRITABLE = _CATEGORY_POLICY_FIELDS | _CATEGORY_IDENTITY_FIELDS
@@ -62,6 +68,7 @@ def _serialize_category(c):
         "asset_count": c.asset_count,
         "depreciating_count": c.asset_depreciating_count,
         "pm_interval_days": c.pm_interval_days or None,
+        "verification_interval_days": c.verification_interval_days or None,
         "depreciation": {
             "method": c.depreciation_method,
             "useful_life_months": c.useful_life_months or None,
@@ -101,6 +108,7 @@ class CadraConfigV1(http.Controller):
                          "declining_rate": {"type": "number"},
                          "salvage_rate": {"type": "number"},
                          "pm_interval_days": {"type": "integer"},
+                         "verification_interval_days": {"type": "integer"},
                      },
                  },
                  request_example={
@@ -159,6 +167,7 @@ class CadraConfigV1(http.Controller):
                          "description": {"type": "string", "nullable": True},
                          "sequence": {"type": "integer"},
                          "pm_interval_days": {"type": "integer"},
+                         "verification_interval_days": {"type": "integer"},
                      },
                  },
                  request_example={"name": "Medical Equipment", "code": "MED",

@@ -1,5 +1,6 @@
 from odoo import models, fields, api
 from odoo.exceptions import UserError
+from odoo.tools import config
 from datetime import date, timedelta
 import logging
 
@@ -128,6 +129,9 @@ class FleetVehicle(models.Model):
     @api.depends('next_service_date', 'next_service_odometer',
                  'alert_before_days', 'alert_before_km')
     def _compute_maintenance_status(self):
+        """Nothing in the @api.depends above moves when the calendar does, so
+        the stored value goes wrong on the day next_service_date passes and
+        stays wrong. _cron_refresh_maintenance_status is what corrects it."""
         today = date.today()
         for rec in self:
             if not rec.next_service_date and not rec.next_service_odometer:
@@ -184,6 +188,50 @@ class FleetVehicle(models.Model):
             'view_mode': 'list,form',
             'domain': [('vehicle_id', '=', self.id)],
         }
+
+    # ── Cron: refresh the stored maintenance status ───────────────────
+    @api.model
+    def _cron_refresh_maintenance_status(self, batch_size=2000):
+        """Daily refresh of maintenance_status.
+
+        The status is a stored compute that reads today's date, while its
+        @api.depends names only the schedule fields — so a vehicle whose
+        service date passes keeps whatever value it was last given, and no
+        write to any vehicle will ever correct it. It is not merely a missing
+        flag: it is a wrong enum value on a published field, serialised as
+        data.maintenance_status by GET /api/v1/fleet/vehicles and counted by
+        the fleet dashboard's OK / Due Soon / Overdue tiles.
+
+        Archived vehicles are refreshed too. The column is wrong the moment
+        one is unarchived, and there is no saving in skipping them.
+        """
+        vehicles = self.with_context(active_test=False).search([])
+        field = self._fields['maintenance_status']
+        # Registry.in_test_mode() was removed in Odoo 19; the config flag is
+        # what's left to distinguish a test run.
+        in_test = bool(config.get('test_enable') or config.get('test_file'))
+        for index in range(0, len(vehicles), batch_size):
+            batch = vehicles[index:index + batch_size]
+            # Read the current value first. A recomputed field is only written
+            # when the new value differs from what is in cache, and "not in
+            # cache" counts as different — without this the daily sweep would
+            # UPDATE every vehicle row and bump every write_date to say
+            # nothing changed.
+            batch.fetch(['maintenance_status'])
+            # Mark the field itself rather than one it depends on. This cron
+            # exists precisely because no dependency covers the clock, so
+            # routing the refresh through the dependency graph would make it a
+            # no-op the day someone edits @api.depends.
+            self.env.add_to_compute(field, batch)
+            # Flush per batch so the batching is real, and so the column moves
+            # under test, where nothing commits and therefore nothing flushes.
+            self.env.flush_all()
+            if not in_test:
+                self.env.cr.commit()
+        _logger.info(
+            "Fleet Maintenance Cron: refreshed maintenance_status on %d "
+            "vehicle(s)", len(vehicles))
+        return len(vehicles)
 
     # ── Cron: check and create maintenance tickets ────────────────────
     @api.model

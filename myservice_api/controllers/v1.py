@@ -1037,24 +1037,43 @@ class MyserviceApiV1(http.Controller):
         return request.make_response(html, headers=[("Content-Type", "text/html; charset=utf-8")])
 
     # ── Dashboards (read-only aggregations) ────────────────────────
+    #
+    # These three used to be the only routes in the whole API that did not
+    # `sudo()`, and it showed. `get_kpis` reads `fleet.vehicle` and
+    # `generic.location` directly, so a caller holding `dashboards:read` but
+    # not the matching Odoo groups got an AccessError — which, because
+    # AccessError subclasses UserError in Odoo 19, surfaced as
+    # `400 validation_failed` carrying an Odoo group name into the published
+    # envelope. An error code that misdescribes the failure, and an internal
+    # detail leaking through a contract.
+    #
+    # They sudo() now, which makes the SCOPE the gate here as it is everywhere
+    # else: no scope is a 403 from `require_jwt` naming the scope it wanted,
+    # and a caller with the scope gets data. That is a deliberate behaviour
+    # change for SESSION tokens too — a Security Officer holding
+    # `dashboards:read` but no fleet group used to get an error and now gets
+    # data. Ruled correct: an Odoo group acting as a second, undeclared gate
+    # behind a declared scope is the defect, not the protection.
+    # (`utils.SCOPE_GROUPS` still grants those groups to client users. It is
+    # the belt to this braces, not the control.)
 
     @cadra_route("/api/v1/dashboard/kpis", method="GET",
                  summary="Operations dashboard KPIs",
                  scopes=[SCOPE_DASHBOARDS_READ])
     def dashboard_kpis(self, **kwargs):
-        return request.env["myservice.dashboard"].get_kpis()
+        return request.env["myservice.dashboard"].sudo().get_kpis()
 
     @cadra_route("/api/v1/dashboard/map", method="GET",
                  summary="Operations dashboard map data",
                  scopes=[SCOPE_DASHBOARDS_READ])
     def dashboard_map(self, **kwargs):
-        return request.env["myservice.dashboard"].get_map_data()
+        return request.env["myservice.dashboard"].sudo().get_map_data()
 
     @cadra_route("/api/v1/dashboard/fleet-command", method="GET",
                  summary="Fleet command payload",
                  scopes=[SCOPE_DASHBOARDS_READ])
     def dashboard_fleet_command(self, **kwargs):
-        return request.env["myservice.dashboard"].get_fleet_command()
+        return request.env["myservice.dashboard"].sudo().get_fleet_command()
 
     @cadra_route("/api/v1/security/kpis", method="GET",
                  summary="Security KPIs", scopes=[SCOPE_DASHBOARDS_READ])

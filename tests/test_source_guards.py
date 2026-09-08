@@ -592,14 +592,22 @@ def test_the_menu_order_guard_would_have_caught_handoff_07(tmp_path):
 
 _DB_NAME_RE = re.compile(r"^\s*db_name\s*=", re.MULTILINE)
 
-# The one exception, named rather than pattern-matched so it cannot quietly
-# grow. `odoo.conf` at the repo root is a generated artefact of the Odoo 15
-# bare-metal `install.sh` — one host, one database, no dbfilter and no
-# tenants, so pinning the scheduler to that database is what it means to do.
-# Nothing mounts it: install.sh writes /etc/odoo/odoo.conf from its own
-# heredoc, and every container mounts something under config/ instead. It
-# should probably be deleted; until it is, it is out of scope, not allowed.
-_SINGLE_TENANT_CONF_ALLOWED = {"odoo.conf"}
+# This guard has NO exceptions, and that is deliberate.
+#
+# It used to carry exactly one: `odoo.conf` at the repo root, a generated
+# artefact of the Odoo 15 bare-metal `install.sh` — one host, one database,
+# no dbfilter and no tenants, so pinning the scheduler to that database was
+# what it meant to do. The file was deleted in handoff 09 and the exception
+# went with it. An exception carved for a dead file is a hole waiting for
+# someone to drop a live file into it: nothing about `str(rel) == "odoo.conf"`
+# checks that the file is still the 15-era artefact, so the day anyone adds a
+# repo-root `odoo.conf` for the 19 stack, the guard would wave it through
+# silently — which is the precise failure mode the guard exists to catch.
+#
+# `install.sh` still writes a `db_name` into /etc/odoo/odoo.conf from its own
+# heredoc. That is correct for what it is (a single-database bare-metal host
+# with no scheduler to starve) and it is not matched here, because the guard
+# scans config files this repo SERVES, not shell that generates one elsewhere.
 
 
 def _server_config_files():
@@ -684,8 +692,6 @@ def test_no_server_config_pins_the_cron_worker_to_one_database():
     offenders = []
     for path in _server_config_files():
         rel = path.relative_to(REPO_ROOT)
-        if str(rel) in _SINGLE_TENANT_CONF_ALLOWED:
-            continue
         text = path.read_text(encoding="utf-8")
         for match in _DB_NAME_RE.finditer(text):
             line = text.count("\n", 0, match.start()) + 1
@@ -719,12 +725,34 @@ def test_the_db_name_guard_would_have_caught_handoff_08(tmp_path):
         conf.write_text("[options]\ndb_user = odoo\ndbfilter = ^%d$\n",
                         encoding="utf-8")
         test_no_server_config_pins_the_cron_worker_to_one_database()
-        # An allow-listed single-tenant file stays out of it.
+        # And there is no longer any file it will wave through. The repo-root
+        # `odoo.conf` used to be allow-listed by name; handoff 09 deleted the
+        # file and the exception, so a NEW repo-root config pinning db_name is
+        # now caught like any other.
         (tmp_path / "odoo.conf").write_text("[options]\ndb_name = myservice\n",
                                             encoding="utf-8")
-        test_no_server_config_pins_the_cron_worker_to_one_database()
+        with pytest.raises(AssertionError, match="pins Odoo's cron worker"):
+            test_no_server_config_pins_the_cron_worker_to_one_database()
     finally:
         REPO_ROOT = original_root
+
+
+def test_the_repo_root_odoo_conf_is_gone():
+    """The Odoo 15 bare-metal artefact, and the guard exception it justified.
+
+    Deleted rather than left alone because it was the single named exception
+    in the db_name guard above, and an exception matched on a filename cannot
+    tell a dead file from a live one that later takes its name.
+    """
+    assert not (REPO_ROOT / "odoo.conf").exists(), (
+        "the repo-root odoo.conf is back. It described an Odoo 15 "
+        "single-database bare-metal host that no longer exists, nothing "
+        "mounts it (install.sh writes /etc/odoo/odoo.conf from its own "
+        "heredoc; every container mounts something under config/), and it "
+        "sets db_name — which the guard above no longer excuses. If a "
+        "repo-root config is genuinely needed again, name it for the stack it "
+        "serves and give it a dbfilter."
+    )
 
 
 # ─── a scheduled method must exist ───────────────────────────────────
@@ -734,13 +762,33 @@ def test_the_db_name_guard_would_have_caught_handoff_08(tmp_path):
 # calls `_cron_drain_outbound_events()` directly, which proves the function
 # works and says nothing about whether anything calls it.
 #
-# The mirror-image failure is real in this estate. `nrs19` and `jaizbankplc`
-# carry two ir.cron rows — `cron_asset_pm_refresh_overdue` and
+# The mirror-image failure was real in this estate. `nrs19` and `jaizbankplc`
+# carried two ir.cron rows — `cron_asset_pm_refresh_overdue` and
 # `cron_asset_refresh_verification` — scheduling
 # `nrs.asset.pm._cron_refresh_overdue()` and
-# `nrs.asset._cron_refresh_verification()`. Neither method has ever existed.
-# They were dormant only because the scheduler was; the first tick after the
-# fix would have raised AttributeError on both, every day.
+# `nrs.asset._cron_refresh_verification()`, neither of which existed in the
+# code those databases were running. They were dormant only because the
+# scheduler was; the first tick after the fix would have raised AttributeError
+# on both, every day. Handoff 08 deleted the rows.
+#
+# Two things about that are worth keeping straight, because both are easy to
+# get wrong from memory:
+#
+#   1. The methods were not fiction. They exist in `c673ed1` on
+#      `feat/rfp-phase1-authorisation`, which was never merged — the branch
+#      added crons, data file and implementations together and these two
+#      databases were upgraded from it. The rows survived the reset; the code
+#      did not. Handoff 09 writes the methods properly, so the same two xmlids
+#      are live again and legitimate.
+#
+#   2. THIS GUARD WOULD NOT HAVE CAUGHT THEM. It reads XML we ship, and those
+#      crons reached the tenants as database rows whose source was consistent
+#      on its own branch. The guard that catches that shape walks `ir.cron` in
+#      a live registry and resolves each `state=code` call against the model —
+#      `myservice_nrs_base/tests/test_scheduled_actions.py`, which needs a
+#      database and so runs in the Odoo-native CI step, not here. This one
+#      catches the cheaper mistake: shipping a cron whose method was never
+#      written at all.
 
 _CRON_CODE_CALL_RE = re.compile(r"\bmodel\.(_[A-Za-z0-9_]+)\s*\(")
 
@@ -807,6 +855,16 @@ def test_the_cron_guard_covers_the_crons_we_ship():
         "_cron_create_pm_requests",         # myservice_asset_register
         "_cron_check_preventive_maintenance",   # myservice_fleet_maintenance
         "_cron_drain_outbound_events",      # myservice_workflow (INT-05)
+        # ── handoff 09: the stale-stored-compute class ──
+        # Each of these pushes a stored compute whose body reads the clock but
+        # whose @api.depends contains nothing the clock changes. Without the
+        # cron the field is not "slightly behind", it is frozen at whatever it
+        # was when something last wrote to the row.
+        "_cron_refresh_sla_breached",       # myservice_request_fields
+        "_cron_refresh_verification",       # myservice_asset_register
+        "_cron_refresh_overdue",            # myservice_asset_register (PM)
+        "_cron_refresh_on_duty",            # myservice_security
+        "_cron_refresh_maintenance_status",  # myservice_fleet_maintenance
     }
     missing = sorted(expected - found)
     assert not missing, (
@@ -951,4 +1009,124 @@ def test_no_scope_grants_an_api_client_system_administrator():
         "must never be provisioned as a system administrator from its scope "
         "string; the `admin` wildcard lives in the token, where require_jwt "
         "can see it."
+    )
+
+
+# ─── the envelope's error codes must be reachable ────────────────────
+#
+# Odoo 19's exception hierarchy is a trap the envelope walked into:
+#
+#     AccessError.__mro__     -> AccessError, UserError, Exception
+#     MissingError.__mro__    -> MissingError, UserError, Exception
+#     ValidationError.__mro__ -> ValidationError, UserError, Exception
+#
+# All three are subclasses of `UserError`. So a handler chain that catches
+# `UserError` before them never reaches them, and `cadra_route` did exactly
+# that — `except (UserError, ValidationError)` sat first and the `AccessError`
+# and `MissingError` clauses below it were dead code. Two published error
+# codes, `forbidden` and `not_found`, were unreachable through that path.
+#
+# Rule 1 says the API is a contract and Vendra branches on `error.code`. An
+# authorisation failure reporting itself as `validation_failed` tells an
+# integrator to fix their payload when the answer is to fix their credentials;
+# a missing record reporting the same tells them to fix a field that is fine.
+#
+# This is a parse, not a grep: the ordering is what matters and only the AST
+# knows the order.
+
+_USER_ERROR_SUBCLASSES = ("AccessError", "MissingError", "ValidationError")
+
+
+def _handler_names(handler):
+    """Every exception name a single `except (...)` clause catches."""
+    node = handler.type
+    if node is None:
+        return ["BaseException"]
+    parts = node.elts if isinstance(node, ast.Tuple) else [node]
+    names = []
+    for part in parts:
+        # `except UserError:` and `except odoo.exceptions.UserError:` are the
+        # same clause. Matching only ast.Name would let the dotted spelling
+        # both escape the check and fail to register as the shadow.
+        if isinstance(part, ast.Name):
+            names.append(part.id)
+        elif isinstance(part, ast.Attribute):
+            names.append(part.attr)
+    return names
+
+
+def test_a_user_error_handler_never_shadows_a_more_specific_one():
+    """`except UserError` before `except AccessError` makes the second dead."""
+    offenders = []
+    for module_dir in _first_party_modules():
+        for path in sorted(module_dir.rglob("*.py")):
+            try:
+                tree = ast.parse(path.read_text(encoding="utf-8"))
+            except SyntaxError:
+                continue
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Try):
+                    continue
+                seen_user_error_at = None
+                for handler in node.handlers:
+                    names = _handler_names(handler)
+                    specific = [n for n in names if n in _USER_ERROR_SUBCLASSES]
+                    if seen_user_error_at is not None and specific:
+                        offenders.append(
+                            "%s:%d  `except %s` is unreachable — `UserError` "
+                            "was already caught on line %d"
+                            % (path.relative_to(REPO_ROOT), handler.lineno,
+                               "/".join(specific), seen_user_error_at))
+                    if "UserError" in names:
+                        seen_user_error_at = handler.lineno
+
+    assert not offenders, (
+        "an exception handler is shadowed by an earlier `except UserError`. "
+        "In Odoo 19 AccessError, MissingError and ValidationError all "
+        "subclass UserError, so the broad clause must come LAST or the "
+        "specific ones never run:\n  " + "\n  ".join(offenders) + "\n\n"
+        "For an API route this silently collapses `forbidden` (403) and "
+        "`not_found` (404) into `validation_failed` (400) — three published "
+        "error codes becoming one, with no test going red."
+    )
+
+
+# ─── every controller read runs as itself or as sudo, on purpose ─────
+#
+# The three `myservice.dashboard` routes were the only ones in the API that
+# did not `sudo()`. `get_kpis` reads `fleet.vehicle` and `generic.location`
+# directly, so a caller holding `dashboards:read` without the matching Odoo
+# groups hit an AccessError — which, per the guard above, surfaced as
+# `400 validation_failed` naming an Odoo group in the published envelope.
+#
+# They sudo() now, which makes the declared scope the gate here as it is
+# everywhere else. `utils.SCOPE_GROUPS` still derives the groups from the
+# scope; that is the belt, this is the braces, and this guard keeps the
+# braces on — removing the sudo() would restore the leak without any test
+# noticing, because the groups make it work for a client token either way.
+
+def test_the_dashboard_routes_sudo():
+    source = (REPO_ROOT
+              / "myservice_api/controllers/v1.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    unsudoed = []
+    for node in ast.walk(tree):
+        # request.env["myservice.dashboard"].<method>()  — the receiver of the
+        # call is an Attribute on a Subscript unless `.sudo()` intervenes.
+        if not isinstance(node, ast.Attribute):
+            continue
+        target = node.value
+        if not (isinstance(target, ast.Subscript)
+                and isinstance(target.slice, ast.Constant)
+                and target.slice.value == "myservice.dashboard"):
+            continue
+        if node.attr != "sudo":
+            unsudoed.append("v1.py:%d  .%s() on an un-sudoed dashboard env"
+                            % (node.lineno, node.attr))
+
+    assert not unsudoed, (
+        "a myservice.dashboard route reads without sudo(). The scope is the "
+        "gate on these routes; an Odoo group acting as a second, undeclared "
+        "gate behind a declared scope is the defect, not the "
+        "protection:\n  " + "\n  ".join(unsudoed)
     )

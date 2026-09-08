@@ -1,6 +1,11 @@
+import logging
+
 from datetime import timedelta
 from odoo import models, fields, api
 from odoo.exceptions import UserError
+from odoo.tools import config
+
+_logger = logging.getLogger(__name__)
 
 
 SLA_HOURS = {
@@ -68,9 +73,74 @@ class RequestRequestTriage(models.Model):
 
     @api.depends('sla_deadline')
     def _compute_sla_breached(self):
+        # The body reads the clock; the dependency list cannot. Nothing in the
+        # database changes on the minute a request breaches, so this compute is
+        # never re-run on its own — _cron_refresh_sla_breached is what makes it
+        # true. Do not remove that cron on the strength of this @api.depends.
         now = fields.Datetime.now()
         for rec in self:
             rec.sla_breached = bool(rec.sla_deadline and rec.sla_deadline < now)
+
+    # ── Cron ──────────────────────────────────────────────────────────
+
+    @api.model
+    def _cron_refresh_sla_breached(self, batch_size=2000):
+        """Flip the requests that have run past their deadline since last time.
+
+        Domain: rows that hold False and have a deadline at all.
+
+        The clock only moves forward and a deadline never moves backwards by
+        itself, so the only transition time can cause is False -> True. Every
+        input-driven transition — the tier changed, the deadline cleared — is
+        already handled by ``@api.depends('sla_deadline')`` at the moment the
+        input is written. So a row already True has nothing to gain from a
+        visit, and excluding it makes each run's set "requests currently inside
+        their SLA window" rather than "every request ever raised": the work
+        stops growing with the register's history instead of tracking it.
+        """
+        # active_test=False for the same reason asset_pm and fleet_vehicle do
+        # it: request.request carries an `active` flag, so a bare search hides
+        # archived rows, and an archived request that is later restored would
+        # carry a flag last computed on the day it was archived — which is the
+        # staleness this method exists to end, in a smaller box.
+        requests = self.with_context(active_test=False).search([
+            ('sla_deadline', '!=', False),
+            ('sla_breached', '=', False),
+        ])
+        field = self._fields['sla_breached']
+        # Registry.in_test_mode() was removed in Odoo 19; the config flag is
+        # what's left to distinguish a test run.
+        in_test = bool(config.get('test_enable') or config.get('test_file'))
+        flipped = 0
+        for i in range(0, len(requests), batch_size):
+            batch = requests[i:i + batch_size]
+            # Prefetch so an unchanged row is not rewritten. `_write_multi`
+            # stamps write_uid/write_date even on the compute-flush path, so a
+            # sweep that touches rows needlessly would relabel requests as last
+            # modified by OdooBot when nothing about them changed.
+            batch.fetch(['sla_breached'])
+            # Mark the FIELD rather than the dependency it is computed from.
+            # This cron exists because no dependency covers the clock; routing
+            # it through the graph would make it a no-op the day someone edits
+            # @api.depends.
+            self.env.add_to_compute(field, batch)
+            # Flush per batch, or the batching is decorative: every id would
+            # sit pending until the transaction's own flush at commit, which is
+            # the one thing the batches exist to avoid. Under test nothing
+            # commits, so without this nothing reaches the database at all and
+            # a test could only ever observe the cache.
+            self.env.flush_all()
+            flipped += len(batch.filtered('sla_breached'))
+            # Commit per batch so a long run over a large register doesn't hold
+            # one transaction open — but never inside a test, where committing
+            # breaks the surrounding rollback.
+            if not in_test:
+                self.env.cr.commit()
+        if flipped:
+            _logger.info(
+                'SLA refresh: %d of %d unbreached requests are now past their '
+                'deadline', flipped, len(requests))
+        return flipped
 
     def action_assign_and_notify(self):
         self.ensure_one()

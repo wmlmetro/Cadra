@@ -1,6 +1,6 @@
 {
     'name': 'myservice Security & Safety',
-    'version': '19.0.2.1.0',
+    'version': '19.0.2.2.0',
     'summary': 'Incident management, guard ops, access control & security dashboard',
     'author': 'WestMetro Limited',
     'website': 'https://westmetrong.com',
@@ -15,6 +15,7 @@
         'data/sequences.xml',
         'data/incident_categories.xml',
         'data/mail_templates.xml',
+        'data/ir_cron.xml',
         'views/security_incident_views.xml',
         'views/security_guard_views.xml',
         'views/security_duty_roster_views.xml',

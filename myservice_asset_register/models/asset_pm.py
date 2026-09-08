@@ -1,6 +1,8 @@
+from datetime import date, timedelta
+
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
-from datetime import date, timedelta
+from odoo.tools import config
 
 
 class NRSAssetPM(models.Model):
@@ -55,6 +57,58 @@ class NRSAssetPM(models.Model):
     def action_mark_done(self):
         self.write({'last_done_date': date.today()})
         self.message_post(body=_('PM marked as completed on %s') % date.today())
+
+    @api.model
+    def _cron_refresh_overdue(self, batch_size=2000):
+        """Re-evaluate is_overdue against today's date.
+
+        is_overdue is stored and depends only on last_done_date and
+        interval_days, so a schedule that lapses overnight is not flagged until
+        something writes to it. Nothing does — which is why the "Overdue PM
+        Schedules" menu, whose whole domain is is_overdue = True, was empty on
+        every tenant. Push the recompute on a schedule instead.
+
+        The fields are marked directly and flushed per batch. Marking them
+        rather than a dependency matters: this cron exists precisely because no
+        dependency covers the clock, so a refresh routed through the dependency
+        graph would become a no-op the day someone edits `@api.depends`.
+        Batches are committed the way the depreciation cron does rather than
+        the way the PM request cron does, which rolls the whole transaction
+        back on one failure.
+        """
+        # active_test=False deliberately: an archived schedule that is
+        # un-archived would otherwise carry a flag last computed on the day it
+        # was archived, which is the same staleness this method exists to end.
+        schedules = self.with_context(active_test=False).search(
+            [('next_due_date', '!=', False)])
+        in_test = bool(config.get('test_enable') or config.get('test_file'))
+        # Mark is_overdue only. next_due_date comes off the SAME compute, and
+        # `Field.compute_value` un-marks every field in `pool.field_computed`,
+        # so it is recomputed and written in the same pass regardless — naming
+        # it here would add nothing.
+        #
+        # Note while you are here: `_compute_next_due` has an
+        # `elif r.interval_days: r.next_due_date = today` fallback, so a
+        # schedule with an interval and no `last_done_date` is due TODAY every
+        # day and is therefore never overdue. This cron cannot fix that; it is
+        # a defect in the compute and is raised as an open question in the
+        # handoff 09 report rather than changed here.
+        field = self._fields['is_overdue']
+        for i in range(0, len(schedules), batch_size):
+            batch = schedules[i:i + batch_size]
+            # Prefetch so an unchanged row is not rewritten: a recompute writes
+            # only when the value differs from cache, and absent-from-cache
+            # counts as different.
+            batch.fetch(['is_overdue', 'next_due_date'])
+            # Mark the FIELDS themselves rather than a dependency. No
+            # dependency covers the clock, which is the whole reason this cron
+            # exists; going through the graph would make it a no-op the day
+            # someone edits @api.depends.
+            self.env.add_to_compute(field, batch)
+            self.env.flush_all()
+            if not in_test:
+                self.env.cr.commit()
+        return len(schedules)
 
     @api.model
     def _cron_create_pm_requests(self):

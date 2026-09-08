@@ -11,5 +11,44 @@
             <field name="active">True</field>
             <field name="user_id" ref="base.user_root"/>
         </record>
+
+        <!-- is_verified and is_overdue are stored computes measured against
+             today's date, so they lapse without anything writing to the row
+             and nothing in @api.depends can ever fire. These two crons push
+             the recompute; see the docstrings on
+             nrs.asset._cron_refresh_verification and
+             nrs.asset.pm._cron_refresh_overdue.
+
+             Note for anyone auditing xmlids: migration 19.0.1.10.0 DELETED
+             rows with these two ids from nrs19 and jaizbankplc, because the
+             rows were there and the methods were not. The methods exist now,
+             so the ids are re-declared here and the upgrade recreates them. -->
+        <record id="cron_asset_refresh_verification" model="ir.cron">
+            <field name="name">NRS Asset — Refresh verification status</field>
+            <field name="model_id" ref="model_nrs_asset"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_refresh_verification()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active">True</field>
+            <field name="user_id" ref="base.user_root"/>
+        </record>
+
+        <record id="cron_asset_pm_refresh_overdue" model="ir.cron">
+            <field name="name">NRS Asset PM — Refresh overdue flags</field>
+            <field name="model_id" ref="model_nrs_asset_pm"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_refresh_overdue()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <!-- Ahead of cron_asset_pm (default priority 5) in the same pass.
+                 ir.cron orders ready jobs by failure_count, priority, id, and
+                 _cron_create_pm_requests decides what to raise a request for
+                 by reading next_due_date — the column this cron corrects.
+                 Same argument as the fleet pair. -->
+            <field name="priority">1</field>
+            <field name="active">True</field>
+            <field name="user_id" ref="base.user_root"/>
+        </record>
     </data>
 </odoo>

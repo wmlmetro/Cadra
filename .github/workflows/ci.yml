@@ -112,10 +112,31 @@ jobs:
           # unsuccessful (service/server.py::preload_registries), so this step
           # genuinely gates. The container already binds 8069, hence the
           # alternate ports.
+          # myservice_nrs_base hosts the one guard that needs a LIVE REGISTRY
+          # rather than source: it walks `ir.cron` and resolves every
+          # `state=code` call against its model. Handoff 08 found two crons on
+          # `nrs19` and `jaizbankplc` scheduling methods that were not in the
+          # code those databases ran — they arrived as database ROWS from an
+          # unmerged branch, so no static guard over our XML could ever have
+          # seen them. Only a test with a registry in front of it can.
+          #
+          # myservice_asset_register, myservice_request_fields,
+          # myservice_security and myservice_fleet_maintenance carry the
+          # stale-stored-compute tests, which move the clock with freezegun
+          # and assert a stored field changes because TIME passed rather than
+          # because its inputs did. Those need an ORM too.
+          #
+          # The last two are named rather than left to arrive on their own.
+          # `-u` goes through button_upgrade(), which pulls in every installed
+          # dependent, so they WOULD run transitively (security depends on
+          # nrs_base, fleet_maintenance on request_fields). That is coverage
+          # you cannot see, and it disappears the day either dependency
+          # changes. This step exists because 1,464 lines of tests were
+          # running nowhere; implicit is how that happens.
           DB=$(grep -E '^POSTGRES_DB=' .env.example | cut -d= -f2-)
           docker compose -f docker-compose.yml -f docker-compose.19.yml exec -T odoo \
             odoo -c /etc/odoo/odoo.conf -d "$DB" \
-              -u myservice_workflow,myservice_asset_depreciation \
+              -u myservice_workflow,myservice_asset_depreciation,myservice_nrs_base,myservice_asset_register,myservice_request_fields,myservice_security,myservice_fleet_maintenance \
               --test-enable --stop-after-init \
               --http-port=8099 --gevent-port=8098
 

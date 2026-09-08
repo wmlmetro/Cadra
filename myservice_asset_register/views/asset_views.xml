@@ -282,6 +282,7 @@
                 <field name="code"/>
                 <field name="domain"/>
                 <field name="pm_interval_days"/>
+                <field name="verification_interval_days"/>
                 <field name="asset_count"/>
             </list>
         </field>
