@@ -399,6 +399,9 @@ class NRSAsset(models.Model):
         # tag's number would make the replacement history ambiguous — two
         # different physical labels sharing one code.
         while Tag.search_count([('name', '=', tag_number)]):
+            # capped-count-ok: a sequence number, not a count of
+            # anything. `existing` is a limit=1 lookup of the highest
+            # tag already issued, which is what it should be.
             seq += 1
             tag_number = '%s%03d' % (prefix, seq)
         tag = self.env['nrs.asset.tag.label'].create({

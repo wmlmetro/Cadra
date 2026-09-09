@@ -71,6 +71,8 @@ from .utils import (
     jwt_encode,
     jwt_secret,
     log_safe as _log_safe,
+    caller_ip as _caller_ip,
+    caller_ip_label as _caller_ip_label,
     ok,
     record_cap,
     require_jwt,
@@ -224,7 +226,7 @@ class MyserviceApiV1(http.Controller):
         )
         rec, raw = request.env["myservice.api.refresh_token"].sudo()._issue(
             user=user, scopes=scopes, aud=aud, client=client,
-            ip=request.httprequest.remote_addr,
+            ip=_caller_ip()[0],
         )
         refresh_ttl = int((rec.expires_at - fields.Datetime.now()).total_seconds())
         return {
@@ -306,7 +308,11 @@ class MyserviceApiV1(http.Controller):
         )
         client.sudo().write({
             "last_used_at": fields.Datetime.now(),
-            "last_used_ip": request.httprequest.remote_addr,
+            # `remote_addr` is the PROXY on any stack where ProxyFix does
+            # not run — see utils.caller_ip. This field is the only record
+            # of where a credential is used from; it recorded 172.20.0.4 on
+            # every client row in every local tenant.
+            "last_used_ip": _caller_ip()[0],
         })
 
         # A log that records only failures cannot answer "did this
@@ -347,13 +353,21 @@ class MyserviceApiV1(http.Controller):
             # into a 500 because we tried to explain it would be a worse bug
             # than the one this exists to fix.
             _auth_logger.exception(
-                "request_id=%s client_id=%s outcome=unclassified",
-                request_id, safe_id)
+                "request_id=%s client_id=%s outcome=unclassified %s",
+                request_id, safe_id, _caller_ip_label())
             return
 
+        # The source IP, on FAILURES only. It is the field that separates
+        # "somebody typed the secret wrong" from "somebody is working
+        # through a list", and this is a national revenue service's asset
+        # register. It is not a new category of data: it arrives on the same
+        # unauthenticated request as the client id already logged here, and
+        # `last_used_ip` records it on success — so until now the caller who
+        # succeeded was identified and the one who failed was anonymous,
+        # which is backwards.
         _auth_logger.warning(
-            "request_id=%s client_id=%s outcome=%s%s",
-            request_id, safe_id, outcome, extra,
+            "request_id=%s client_id=%s outcome=%s%s %s",
+            request_id, safe_id, outcome, extra, _caller_ip_label(),
         )
 
     def _classify_auth_failure(self, Client, client_id, active_exact_match):
@@ -492,7 +506,7 @@ class MyserviceApiV1(http.Controller):
             return _http_response(err("server_misconfigured", str(e), status=500))
 
         result, error = request.env["myservice.api.refresh_token"].sudo().verify_and_rotate(
-            raw, ip=request.httprequest.remote_addr,
+            raw, ip=_caller_ip()[0],
         )
         if error:
             # One generic 401 for every failure mode — don't leak which check
@@ -1431,6 +1445,9 @@ class MyserviceApiV1(http.Controller):
             "retrieval_flag": a.retrieval_flag,
             "serial_number": a.serial_number or None,
         } for a in assets]
+        # capped-count-ok: `count` is the rows in THIS response and
+        # `total` beside it is the size of the register. Both are
+        # published, and the pair is the point.
         return {"count": len(items), "total": total, "assets": items,
                 "exported_at": str(fields.Datetime.now())}
 
