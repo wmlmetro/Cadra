@@ -83,6 +83,31 @@ Dozens of lines, and they are noise. Odoo 19 dispatches on a readonly cursor and
 
 **Not:** a symptom of anything. Do not chase it.
 
+### A read/write route gets a READ-ONLY cursor in test mode, and a controller-level `except Exception` defeats the retry
+
+The entry above is right that the `cannot execute INSERT in a read-only
+transaction` lines are noise — **for a route whose exception reaches Odoo.**
+Odoo dispatches on a read-only cursor and `http.py` catches
+`ReadOnlySqlTransaction` and re-dispatches on a read/write one. That catch is
+ABOVE the controller. A route wrapped in a decorator that ends
+`except Exception: return a 500` never lets the exception out, so the retry
+never happens and the route answers `500` instead of succeeding.
+
+**How it shows:** an `HttpCase` `POST` fails with the envelope's own
+`internal_error` while an unwrapped route — `/auth/token`, which is not
+wrapped by `cadra_route` — hits the same condition in the same run, on the
+same cursor, and retries into a `200`. The unwrapped route is the one that
+works, which is the wrong way round and makes it look like a fault in the
+wrapped route's own logic.
+
+**Not visible from the live server**, because a route that does not declare
+`readonly` is served a read/write cursor there — so the external pytest suite
+passes and only an `HttpCase` sees it. `service/model.retrying` sits in the
+same position for `OperationalError` and `ConcurrencyError`, and that one
+DOES bite in production: it is how two callers writing the same row both
+succeed. Handoff 15 added a clause re-raising all three, guarded by
+`tests/test_source_guards.py::test_the_envelope_lets_odoos_own_retries_through`.
+
 ### The external suite's 27 skips are expected
 
 Admin-scoped tests the suite's own token cannot reach, plus pagination tests that skip loudly when a tenant fits inside the record cap. A run reporting 27 skips is a healthy run.
