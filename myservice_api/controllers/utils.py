@@ -608,6 +608,21 @@ def jwt_decode(token, secret):
 
     try:
         header = json.loads(_b64url_decode(header_b64).decode("utf-8"))
+        # SETTLE THE SHAPE, do not widen the clause. `[]` and `{}` and `"x"`
+        # are all valid JSON, and `.get` on any of them raises AttributeError
+        # — which is not a ValueError, so it escaped this handler, escaped
+        # `require_jwt` (which catches only JwtError), and escaped
+        # `cadra_endpoint` (which calls require_jwt OUTSIDE its own try). An
+        # unauthenticated caller got a raw Odoo HTML 500 on EVERY route, from
+        # `Bearer W10.e30.c2ln`. That is handoff 14's three unauthenticated
+        # HTML 500s reintroduced across the whole authenticated surface, and
+        # it was introduced by narrowing this very handler.
+        #
+        # Catching AttributeError as well would have worked and would have
+        # been the wrong lesson: the real defect is that a JWT header is
+        # required to be an object and nothing said so. Now it does.
+        if not isinstance(header, dict):
+            raise JwtError("Malformed token")
         if header.get("alg") != "HS256":
             raise JwtError("Unsupported alg")
 
@@ -618,6 +633,11 @@ def jwt_decode(token, secret):
             raise JwtError("Bad signature")
 
         payload = json.loads(_b64url_decode(payload_b64).decode("utf-8"))
+        # Same reason, and this one was reachable BEFORE this handoff: `exp`
+        # is read below, outside the try, so a non-object payload raised
+        # AttributeError there whatever this clause caught.
+        if not isinstance(payload, dict):
+            raise JwtError("Malformed token")
     except JwtError:
         raise
     except (ValueError, TypeError):

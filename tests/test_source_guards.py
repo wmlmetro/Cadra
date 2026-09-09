@@ -1862,6 +1862,22 @@ def paginate(model, domain):
 # whoever remembers it exists, and the handler it describes is edited by
 # whoever does not.
 
+# SCOPE, stated because a guard whose reach nobody knows is worse than one
+# that admits its edge. This walks `_first_party_python_files()` — the Odoo
+# modules, the code that serves requests — and NOT `scripts/`, `seeds/`,
+# `tests/` or the loader scripts at the repo root. Measured at the time of
+# writing: **49 broad handlers live outside that boundary**, in first-party
+# code, unclassified. `scripts/bootstrap.py` is classified anyway, by hand,
+# because it provisions the credentials every tenant authenticates with and
+# because this handoff edits it.
+#
+# Widening the guard is a real decision rather than an oversight: it would
+# put ~46 one-shot tenant seeds and loaders in front of CI, and a seed
+# script's `except: pass` around an `env.ref` is the genuinely optional case
+# this convention says to narrow rather than to annotate. It is recorded in
+# report 15 for the Architect to schedule. What must not happen is somebody
+# reading a green guard as "there are none", which is the exact failure the
+# guard exists to prevent, one level up.
 _CATCH_ALL_MARKER = "catch-all:"
 _CATCH_ALL_CLASSES = ("optional", "reported", "unknown")
 _BROAD_EXCEPTIONS = {"Exception", "BaseException"}
@@ -1896,8 +1912,7 @@ def _marker_class(line):
 def _handler_marker(lines, handler):
     """The classification for `handler`, or None if it carries no marker.
 
-    Three placements, all of which read naturally and none of which can
-    drift onto a handler it was not written for:
+    Three placements, all of which read naturally:
 
       - on the `except` line itself;
       - in the contiguous comment block IMMEDIATELY above it;
@@ -1907,13 +1922,39 @@ def _handler_marker(lines, handler):
     between the comment and the `except`, the marker stops applying and the
     guard speaks up — the same rule as the capped-count waiver above, for
     the same reason.
+
+    Contiguity ALONE is not enough, though, and this is the case that got
+    past the first version: the comment block above an `except` is the TAIL
+    OF THE TRY BODY. A comment written about the last statement inside the
+    try would silently classify the handler underneath it —
+
+        try:
+            f()
+            # a note about f(), indented into the try
+        except Exception:
+            pass
+
+    — which is the drift this convention exists to prevent, arriving from
+    the one direction nobody looks. So the block above must also be at the
+    `except` keyword's OWN indentation. A comment inside the try is indented
+    deeper and does not count.
+
+    Known limit, stated rather than chased: a handler written as
+    `E = Exception` then `except E:` is not seen as broad, here or by any
+    other guard in this file. It is not a spelling anybody uses, and a guard
+    that tried to follow assignments would be answering a question about
+    aliasing rather than about exception handling.
     """
     found = _marker_class(lines[handler.lineno - 1])
     if found is not None:
         return found
 
+    handler_indent = len(lines[handler.lineno - 1]) - len(
+        lines[handler.lineno - 1].lstrip())
     index = handler.lineno - 2
     while index >= 0 and lines[index].strip().startswith("#"):
+        if len(lines[index]) - len(lines[index].lstrip()) != handler_indent:
+            break                       # inside the try body, not about this
         found = _marker_class(lines[index])
         if found is not None:
             return found
@@ -1973,7 +2014,9 @@ def test_every_catch_all_says_what_it_is_hiding():
                              % (path.relative_to(REPO_ROOT), lineno, problem))
 
     assert not offenders, (
-        "%d broad exception handler(s) do not say what they are hiding:\n  %s"
+        "%d broad exception handler(s) in the Odoo modules do not say what "
+        "they are hiding (see the SCOPE note above — `scripts/` and `seeds/` "
+        "are not walked):\n  %s"
         "\n\nAdd one of `# catch-all: optional|reported|unknown — <why>` on "
         "the `except` line, in the comment block immediately above it, or in "
         "the comment block that opens the handler body. Better: narrow the "
@@ -2043,6 +2086,28 @@ def test_the_marker_cannot_drift_onto_a_handler_it_was_not_written_for():
     drifted = ("# catch-all: optional — why\nx = 1\ntry:\n    f()\n"
                "except Exception:\n    pass\n")
     assert _broad_handler_findings(drifted)
+
+
+def test_a_comment_inside_the_try_body_does_not_classify_the_handler():
+    """The block above an `except` IS the tail of the try body.
+
+    A note written about the last statement inside the try is contiguous
+    with the `except` below it, so contiguity alone let it classify a
+    handler nobody had thought about. Indentation settles it: a comment
+    inside the try is indented deeper than the `except` keyword.
+    """
+    inside = ("try:\n    f()\n    # catch-all: optional — about f(), not "
+              "about the handler\nexcept Exception:\n    pass\n")
+    assert _broad_handler_findings(inside), (
+        "a comment indented into the try body classified the handler below "
+        "it. That is the drift this convention exists to prevent, arriving "
+        "from the one direction nobody looks.")
+
+
+def test_a_starred_except_group_is_still_broad():
+    """`except* Exception:` catches everything in the group."""
+    assert _broad_handler_findings(
+        "try:\n    f()\nexcept* Exception:\n    pass\n")
 
 
 # ─── the retry layers Odoo owns above cadra_route ────────────────────

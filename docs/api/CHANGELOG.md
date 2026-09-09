@@ -69,6 +69,12 @@ A panel that now fails is named:
 A key listed there means the value in this payload is a placeholder, not an
 answer. `[]` and "I could not build this" were the same response until today.
 
+**This is not the envelope's `_warnings`.** The truncation warning
+(`_warnings.truncated`) is a **top-level** key, because a list endpoint's
+`data` is an array with nowhere to hang it. This one is inside `data`,
+alongside `rejected_fields`. Both can appear in one response, at different
+depths — a client reading warnings should look in both places.
+
 ### BEHAVIOUR CHANGE · `POST /integrations/sap/employee-sync` no longer reports rows it then destroyed
 
 **Who is affected:** anybody sending more than one employee in a batch. The

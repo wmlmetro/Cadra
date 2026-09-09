@@ -172,21 +172,29 @@ class NRSHomepageAPI(http.Controller):
         # carries what `channel_id` meant, and it already defaults to
         # 'portal' — which this form is — so nothing needs setting here.
 
-        # Author from contact info. Resolves the partner directly, the same
-        # way the security portal does, rather than through a model method
-        # this model does not have.
         email = (kwargs.get('reporter_contact') or '').strip()
-        if '@' in email:
-            partner = env['res.partner'].sudo().search(
-                [('email', '=ilike', email)], limit=1)
-            if not partner:
-                partner = env['res.partner'].sudo().create({
-                    'name': kwargs.get('reporter_name') or email,
-                    'email': email,
-                })
-            vals['author_id'] = partner.id
 
         try:
+            # INSIDE the try, and that is the whole point of the note above.
+            # The method this replaces sat outside it, which is why a visitor
+            # typing an address with an "@" in it got a raw 500 instead of
+            # the JSON error this handler exists to return. Moving the call
+            # and leaving its replacement outside would have fixed the name
+            # and kept the defect.
+            #
+            # Author from contact info, resolved directly the same way the
+            # security portal does, rather than through a model method this
+            # model does not have.
+            if '@' in email:
+                partner = env['res.partner'].sudo().search(
+                    [('email', '=ilike', email)], limit=1)
+                if not partner:
+                    partner = env['res.partner'].sudo().create({
+                        'name': kwargs.get('reporter_name') or email,
+                        'email': email,
+                    })
+                vals['author_id'] = partner.id
+
             req = env['request.request'].with_user(SUPERUSER_ID).create(vals)
             return {
                 'success': True,
