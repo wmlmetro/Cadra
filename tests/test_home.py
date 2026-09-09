@@ -19,11 +19,22 @@ def test_quick_submit(client, capture):
     renders it as an `internal_error` envelope carrying the original message,
     so the CONTRACT holds regardless of the upstream defect.
 
-    The upstream defect itself is still open, and this test deliberately does
-    not assert success — pinning the endpoint to 500 would just as deliberately
-    pin a bug. It asserts the only thing that is ours to guarantee: whatever
-    happens, the caller gets a branchable envelope — a canonical code, a
-    request_id, and a status that agrees with the body.
+    **The upstream defect is now closed** (handoff 15). The website-theme
+    controller this delegates to wrote `website_id`, which `request.request`
+    does not have, and called a `crnd_wsd` method that no longer exists on
+    Odoo 19 — both swallowed by a bare `except Exception`, so every homepage
+    submission since the 19 port answered `{"success": false}` and the
+    visitor was shown Cadra's own bug as if it were their mistake.
+
+    So the success branch below runs for the first time, and it turned out to
+    be wrong: it expected 200, and this is a CREATE — `cadra_route` renders
+    201. A branch that has never executed is not tested code, however green
+    the file has been.
+
+    The test still does not pin the endpoint to success. It asserts the only
+    thing that is ours to guarantee either way: the caller gets a branchable
+    envelope — a canonical code, a request_id, and a status that agrees with
+    the body.
     """
     r = client.post("/api/v1/home/quick-submit", json={
         "name": "pytest homepage",
@@ -50,4 +61,6 @@ def test_quick_submit(client, capture):
         assert body["error"]["request_id"]
         assert body["error"]["details"]["http_status"] == r.status_code
     else:
-        assert_envelope_ok(r)
+        # 201: this endpoint creates a request. See the docstring — this
+        # branch had never run until the upstream defect was fixed.
+        assert_envelope_ok(r, expected_status=201)
