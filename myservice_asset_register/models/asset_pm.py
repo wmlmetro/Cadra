@@ -1,8 +1,11 @@
+import logging
 from datetime import date, timedelta
 
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 from odoo.tools import config
+
+_logger = logging.getLogger(__name__)
 
 
 class NRSAssetPM(models.Model):
@@ -96,9 +99,10 @@ class NRSAssetPM(models.Model):
         rather than a dependency matters: this cron exists precisely because no
         dependency covers the clock, so a refresh routed through the dependency
         graph would become a no-op the day someone edits `@api.depends`.
-        Batches are committed the way the depreciation cron does rather than
-        the way the PM request cron does, which rolls the whole transaction
-        back on one failure.
+        Batches are committed the way the depreciation cron does. The PM
+        request cron below used to roll the WHOLE transaction back on one
+        failure; it now takes a savepoint per schedule, so neither of them
+        throws away finished work to report a single failure.
         """
         # active_test=False deliberately: an archived schedule that is
         # un-archived would otherwise carry a flag last computed on the day it
@@ -143,6 +147,7 @@ class NRSAssetPM(models.Model):
             ('next_due_date', '!=', False),
         ])
         created = 0
+        failed = 0
         for sched in schedules:
             trigger_date = sched.next_due_date - timedelta(days=sched.advance_days or 0)
             if today < trigger_date:
@@ -158,23 +163,51 @@ class NRSAssetPM(models.Model):
             asset = sched.asset_id
             name = 'PM — %s — %s' % (asset.name, sched.name)
             try:
-                req = self.env['request.request'].create({
-                    'type_id':             sched.request_type_id.id,
-                    'stage_id':            sched.request_type_id.start_stage_id.id,
-                    'name':                name,
-                    'request_text':        name,
-                    'team_id':             sched.team_id.id if sched.team_id else False,
-                    'service_id':          sched.service_id.id if sched.service_id else False,
-                    'generic_location_id': asset.location_id.id if asset.location_id else False,
-                    'deadline_date':       sched.next_due_date,
-                    'nrs_asset_id':        asset.id,
-                })
-                sched.write({'last_request_id': req.id})
+                # One savepoint per schedule, where `self.env.cr.rollback()`
+                # used to be. A rollback is not schedule-scoped: it threw away
+                # every PM request the run had already created — and `created`
+                # is a plain integer, so the summary line below went on
+                # counting them and the cron reported work that no longer
+                # existed. The failed schedule now undoes itself and the ones
+                # before it stand, which is what the count has always claimed.
+                with self.env.cr.savepoint():
+                    req = self.env['request.request'].create({
+                        'type_id':             sched.request_type_id.id,
+                        'stage_id':            sched.request_type_id.start_stage_id.id,
+                        'name':                name,
+                        'request_text':        name,
+                        'team_id':             sched.team_id.id if sched.team_id else False,
+                        'service_id':          sched.service_id.id if sched.service_id else False,
+                        'generic_location_id': asset.location_id.id if asset.location_id else False,
+                        'deadline_date':       sched.next_due_date,
+                        'nrs_asset_id':        asset.id,
+                    })
+                    sched.write({'last_request_id': req.id})
                 created += 1
-            except Exception as e:
-                self.env.cr.rollback()
-        _logger = __import__('logging').getLogger(__name__)
-        _logger.info('Asset PM cron: created %d PM requests', created)
+            except Exception:
+                # catch-all: reported — creating a `request.request` runs the
+                # request engine's own create hooks, its stage resolution and
+                # whatever a tenant has added to the model, so the set is open.
+                # It is caught rather than raised because one unbuildable
+                # schedule must not stop the other tenants' PM run, and it is
+                # LOGGED because the alternative is the state this cron was in:
+                # a schedule whose request failed to create is indistinguishable
+                # from one that was not due, on a maintenance job nobody watches
+                # until an asset is missed. The failure is counted, named and
+                # traced.
+                failed += 1
+                _logger.warning(
+                    'Asset PM cron: schedule %s (%s) on asset %s — could not '
+                    'create the PM request',
+                    sched.id, sched.name, asset.name or asset.id,
+                    exc_info=True,
+                )
+        if failed:
+            _logger.warning(
+                'Asset PM cron: created %d PM request(s), %d schedule(s) '
+                'FAILED — see the tracebacks above', created, failed)
+        else:
+            _logger.info('Asset PM cron: created %d PM requests', created)
         return True
 
 
