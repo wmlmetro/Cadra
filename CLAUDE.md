@@ -27,6 +27,40 @@ This project is run by **two cooperating Claude sessions**, the same way its sib
 
 If a handoff cannot be completed without a manual step that is not in it, that is a defect in the handoff — say so in the report.
 
+### How the Architect's commits reach this repo
+
+The Architect runs in a sandbox that **cannot push and cannot delete files**, so it can
+create commits but cannot update a working tree. For a while it committed straight onto
+`dev` by moving the branch ref, which silently desynchronised whatever was checked
+out — `git status` then reported twenty-six files of *already committed, already pushed*
+work as pending changes. Nothing was ever lost; it looked alarming and cost an hour.
+
+So: **the Architect commits to a dedicated branch, `architect/next`, and never onto
+`dev` directly.**
+
+```bash
+git merge --ff-only architect/next     # ordinary merge: index and working tree move too
+git push origin dev
+```
+
+Because that is a real merge into the checked-out branch, Git updates the files and the
+index together and the problem cannot occur.
+
+**If you ever do see a large block of committed work reported as staged changes**, it is a
+branch ref that moved under a live working tree — not lost work, and not a corrupt repo.
+Confirm with `git log HEAD^..HEAD` and `git diff HEAD origin/dev`, then:
+
+```bash
+git reset --hard HEAD
+```
+
+Untracked files are untouched by that. Nothing needs recovering.
+
+**And merge the previous handoff's PR before the Architect writes the next one.** Otherwise
+the merge moves `origin/dev` past the commit carrying the new instruction file, and the
+file has to be replayed onto the new tip — which happened four times in two days and twice
+ended with a Builder branching from a base that was missing its own instructions.
+
 ### Parallel execution (Builder)
 
 Work a handoff with **multiple subagents in parallel** when its steps are independent.
