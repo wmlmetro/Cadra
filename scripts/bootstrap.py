@@ -205,6 +205,13 @@ def ensure_test_client():
             "client_id": client_id,
             "scopes": all_scopes,
             "token_ttl_seconds": 3600,
+            # This credential runs the API test suite against a live tenant,
+            # and the suite moves an asset's custodian on purpose — the chain
+            # of custody is append-only, so those links are permanent. The
+            # flag is what makes them say `source: test` when an auditor
+            # reads the chain, instead of passing as history somebody would
+            # have to be told about.
+            "is_test_credential": True,
         })
         _say(f"created API client {client_id!r} running as {rec.user_id.login!r}")
     else:
@@ -216,6 +223,10 @@ def ensure_test_client():
         if rec.scopes != all_scopes:
             rec.scopes = all_scopes
             _say(f"updated scopes on existing client {client_id!r}")
+        if not rec.is_test_credential:
+            rec.is_test_credential = True
+            _say(f"marked {client_id!r} as a test credential — its custody "
+                 f"links will read `test`")
         if rec.user_id == env.ref("base.user_admin"):
             rec.action_provision_user()
             _say(f"re-homed {client_id!r} off Administrator onto "

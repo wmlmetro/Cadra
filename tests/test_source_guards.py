@@ -1820,3 +1820,226 @@ def paginate(model, domain):
     assert not _capped_count_findings(waived)
     assert _capped_count_findings(
         waived.replace("   # capped-count-ok: the page, not the register", ""))
+
+
+# ─── a catch-all that cannot say what it is hiding ───────────────────
+#
+# `except Exception: pass` and `except Exception: return []` are the worst
+# of the family this repo has spent three handoffs on. A capped count is at
+# least a number, and somebody might notice it stop moving. This returns
+# "there are none" — a complete, confident, wrong answer — and it survives
+# forever: `kpis.vendors` told every tenant "No approved vendors yet" for
+# three years because a field had been renamed, and nothing anywhere said
+# so.
+#
+# The work is not "remove them". Some are load-bearing for tenants without
+# the fleet or asset modules, and turning those into hard failures would
+# break working installations. The work is to make every one answer the
+# question WHAT IS THIS HIDING, and the answer has to be visible where the
+# code is rather than in a document nobody opens beside it.
+#
+# So this guard is an INVENTORY, pinned by a comment at each site, and every
+# entry carries one of three words:
+#
+#   optional — the failure is expected and benign (a module that may not be
+#              installed, a caller's malformed input). Prefer deleting the
+#              handler: `env.get('some.model')` answers None and
+#              `'some.model' in self.env` works. Where one must stay, narrow
+#              the type so it cannot hide a typo.
+#   reported — not optional. It raises, or it logs at WARNING and returns
+#              something that ADMITS the gap. An empty panel is a lie.
+#   unknown  — genuinely nobody knows what can arrive here. Logged at
+#              WARNING with the traceback so the next person gets a line
+#              instead of silence. The fallback, not the default.
+#
+# A narrowed handler needs no marker, because it is no longer a catch-all —
+# which is the outcome this guard is trying to produce, not to police.
+#
+# Same convention as `capped-count-ok:` above, deliberately: a second
+# mechanism for the same job is a second thing to forget. And the same
+# argument for why it is a sentence somebody has to write rather than a
+# central list — a list lives away from the code, so it is updated by
+# whoever remembers it exists, and the handler it describes is edited by
+# whoever does not.
+
+_CATCH_ALL_MARKER = "catch-all:"
+_CATCH_ALL_CLASSES = ("optional", "reported", "unknown")
+_BROAD_EXCEPTIONS = {"Exception", "BaseException"}
+
+
+def _is_broad_handler(handler):
+    """A handler that catches anything: `except:`, `except Exception:`, or a
+    tuple with one of those in it."""
+    if handler.type is None:
+        return True
+    caught = handler.type
+    names = set()
+    if isinstance(caught, ast.Name):
+        names.add(caught.id)
+    elif isinstance(caught, ast.Tuple):
+        names.update(e.id for e in caught.elts if isinstance(e, ast.Name))
+    elif isinstance(caught, ast.Attribute):     # e.g. builtins.Exception
+        names.add(caught.attr)
+    return bool(names & _BROAD_EXCEPTIONS)
+
+
+def _marker_class(line):
+    """The classification word on a line carrying the marker, or None."""
+    index = line.find(_CATCH_ALL_MARKER)
+    if index < 0:
+        return None
+    rest = line[index + len(_CATCH_ALL_MARKER):].strip()
+    word = rest.split()[0].strip(".,:;—-") if rest else ""
+    return word if word in _CATCH_ALL_CLASSES else ""
+
+
+def _handler_marker(lines, handler):
+    """The classification for `handler`, or None if it carries no marker.
+
+    Three placements, all of which read naturally and none of which can
+    drift onto a handler it was not written for:
+
+      - on the `except` line itself;
+      - in the contiguous comment block IMMEDIATELY above it;
+      - in the contiguous comment block that OPENS the handler body.
+
+    Contiguity is what makes it safe. The moment a line of code lands
+    between the comment and the `except`, the marker stops applying and the
+    guard speaks up — the same rule as the capped-count waiver above, for
+    the same reason.
+    """
+    found = _marker_class(lines[handler.lineno - 1])
+    if found is not None:
+        return found
+
+    index = handler.lineno - 2
+    while index >= 0 and lines[index].strip().startswith("#"):
+        found = _marker_class(lines[index])
+        if found is not None:
+            return found
+        index -= 1
+
+    if handler.body:
+        index = handler.lineno            # first line inside the handler
+        stop = handler.body[0].lineno - 1
+        while index < stop and index < len(lines):
+            stripped = lines[index].strip()
+            if not stripped:
+                break
+            if not stripped.startswith("#"):
+                break
+            found = _marker_class(lines[index])
+            if found is not None:
+                return found
+            index += 1
+    return None
+
+
+def _broad_handler_findings(source):
+    """(lineno, problem) for every broad handler without a valid marker."""
+    lines = source.splitlines()
+    findings = []
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, ast.ExceptHandler) or not _is_broad_handler(node):
+            continue
+        marker = _handler_marker(lines, node)
+        if marker is None:
+            findings.append((node.lineno, "no `catch-all:` classification"))
+        elif marker == "":
+            findings.append(
+                (node.lineno,
+                 "`catch-all:` is followed by something that is not one of %s"
+                 % (", ".join(_CATCH_ALL_CLASSES))))
+    return findings
+
+
+def test_every_catch_all_says_what_it_is_hiding():
+    """Every broad handler in our own code carries a classification.
+
+    A new one that does not fails here. That is the whole mechanism: the
+    shape is findable and whether a given one is LEGITIMATE is not, so the
+    guard does not try to judge — it requires the author to have judged, in
+    a sentence, on the line.
+    """
+    offenders = []
+    for path in _first_party_python_files():
+        source = path.read_text(encoding="utf-8")
+        try:
+            findings = _broad_handler_findings(source)
+        except SyntaxError:
+            continue
+        for lineno, problem in findings:
+            offenders.append("%s:%d — %s"
+                             % (path.relative_to(REPO_ROOT), lineno, problem))
+
+    assert not offenders, (
+        "%d broad exception handler(s) do not say what they are hiding:\n  %s"
+        "\n\nAdd one of `# catch-all: optional|reported|unknown — <why>` on "
+        "the `except` line, in the comment block immediately above it, or in "
+        "the comment block that opens the handler body. Better: narrow the "
+        "exception type, or delete the handler — a narrowed one needs no "
+        "marker because it is no longer a catch-all."
+        % (len(offenders), "\n  ".join(offenders)))
+
+
+_CATCH_ALL_SHAPES = [
+    ("a bare except", "try:\n    f()\nexcept:\n    pass\n"),
+    ("except Exception", "try:\n    f()\nexcept Exception:\n    pass\n"),
+    ("except BaseException", "try:\n    f()\nexcept BaseException:\n    pass\n"),
+    ("Exception inside a tuple",
+     "try:\n    f()\nexcept (ValueError, Exception):\n    pass\n"),
+]
+
+
+@pytest.mark.parametrize("label,source", _CATCH_ALL_SHAPES,
+                         ids=[s[0] for s in _CATCH_ALL_SHAPES])
+def test_the_catch_all_guard_finds_every_broad_spelling(label, source):
+    assert _broad_handler_findings(source), (
+        "%s went unnoticed. A guard that misses a spelling is an inventory "
+        "with a hole in it, and the hole is where the next one lands."
+        % label)
+
+
+def test_a_narrowed_handler_needs_no_marker():
+    """Because it is no longer a catch-all, which is the point."""
+    assert not _broad_handler_findings(
+        "try:\n    f()\nexcept (ValueError, KeyError):\n    pass\n")
+
+
+def test_the_classification_has_to_be_one_of_the_three_words():
+    """`# catch-all: probably fine` is a sentence, not a judgement."""
+    assert _broad_handler_findings(
+        "try:\n    f()\nexcept Exception:  # catch-all: probably fine\n"
+        "    pass\n")
+
+
+_MARKER_PLACEMENTS = [
+    ("on the except line",
+     "try:\n    f()\nexcept Exception:  # catch-all: unknown — why\n    pass\n"),
+    ("in the block above",
+     "try:\n    f()\n# catch-all: optional — why\nexcept Exception:\n    pass\n"),
+    ("opening the handler body",
+     "try:\n    f()\nexcept Exception:\n"
+     "    # catch-all: reported — why\n    _logger.warning('x')\n"),
+]
+
+
+@pytest.mark.parametrize("label,source", _MARKER_PLACEMENTS,
+                         ids=[s[0] for s in _MARKER_PLACEMENTS])
+def test_the_three_placements_all_count(label, source):
+    assert not _broad_handler_findings(source), label
+
+
+def test_the_marker_cannot_drift_onto_a_handler_it_was_not_written_for():
+    """Contiguity, same rule as the capped-count waiver.
+
+    A comment separated from its `except` by a line of code is a comment
+    about that line of code. Letting it waive the handler below would mean a
+    marker keeps applying to whatever ends up under it after the next edit.
+    """
+    contiguous = ("try:\n    f()\n# catch-all: optional — why\n"
+                  "except Exception:\n    pass\n")
+    assert not _broad_handler_findings(contiguous)
+    drifted = ("# catch-all: optional — why\nx = 1\ntry:\n    f()\n"
+               "except Exception:\n    pass\n")
+    assert _broad_handler_findings(drifted)

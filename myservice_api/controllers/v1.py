@@ -70,6 +70,7 @@ from .utils import (
     get_params,
     jwt_encode,
     jwt_secret,
+    JwtSecretMissing,
     log_safe as _log_safe,
     caller_ip as _caller_ip,
     caller_ip_label as _caller_ip_label,
@@ -290,7 +291,13 @@ class MyserviceApiV1(http.Controller):
 
         try:
             secret = jwt_secret(request.env)
-        except Exception as e:
+        except JwtSecretMissing as e:
+            # Narrowed from `Exception`. `jwt_secret` raises exactly one
+            # thing, and its message is written to be read by an operator —
+            # but `str(e)` of ANYTHING ELSE goes to an UNAUTHENTICATED
+            # caller in a 500 body. A database error here would have put
+            # Postgres' own text on the public auth endpoint, and the broad
+            # catch is what made that reachable.
             return _http_response(err("server_misconfigured", str(e), status=500))
 
         # An empty scopes field means NO permissions, not every permission.
@@ -349,6 +356,13 @@ class MyserviceApiV1(http.Controller):
                 outcome, extra = self._classify_auth_failure(
                     Client, client_id, active_exact_match)
         except Exception:
+            # catch-all: reported — deliberately broad. This wraps a
+            # DIAGNOSTIC, and the whole point is that no failure inside it
+            # may reach the caller: the 401 is already decided. The
+            # traceback is logged in full against the request_id, and the
+            # log line still names the request as unclassified, so a
+            # diagnostic that stops working says so instead of going quiet.
+            #
             # A diagnostic must never change the answer. A 401 that turns
             # into a 500 because we tried to explain it would be a worse bug
             # than the one this exists to fix.
@@ -477,7 +491,13 @@ class MyserviceApiV1(http.Controller):
 
         try:
             secret = jwt_secret(request.env)
-        except Exception as e:
+        except JwtSecretMissing as e:
+            # Narrowed from `Exception`. `jwt_secret` raises exactly one
+            # thing, and its message is written to be read by an operator —
+            # but `str(e)` of ANYTHING ELSE goes to an UNAUTHENTICATED
+            # caller in a 500 body. A database error here would have put
+            # Postgres' own text on the public auth endpoint, and the broad
+            # catch is what made that reachable.
             return _http_response(err("server_misconfigured", str(e), status=500))
 
         # Derived from the user's Odoo groups. This used to be `["*"]`, which
@@ -529,7 +549,13 @@ class MyserviceApiV1(http.Controller):
 
         try:
             secret = jwt_secret(request.env)
-        except Exception as e:
+        except JwtSecretMissing as e:
+            # Narrowed from `Exception`. `jwt_secret` raises exactly one
+            # thing, and its message is written to be read by an operator —
+            # but `str(e)` of ANYTHING ELSE goes to an UNAUTHENTICATED
+            # caller in a 500 body. A database error here would have put
+            # Postgres' own text on the public auth endpoint, and the broad
+            # catch is what made that reachable.
             return _http_response(err("server_misconfigured", str(e), status=500))
 
         result, error = request.env["myservice.api.refresh_token"].sudo().verify_and_rotate(
@@ -817,7 +843,7 @@ class MyserviceApiV1(http.Controller):
                                 "type": "string",
                                 "enum": ["api_transfer", "api_write",
                                          "transfer", "direct",
-                                         "tracking_backfill"],
+                                         "tracking_backfill", "test"],
                                 "description": (
                                     "Where the change came from. "
                                     "`tracking_backfill` marks a link "
@@ -830,7 +856,13 @@ class MyserviceApiV1(http.Controller):
                                     "does, so a chain is sparser than the "
                                     "asset's own age. `direct` is a write "
                                     "that declared no source: the Odoo form, "
-                                    "an import or a script."),
+                                    "an import or a script. `test` is a link "
+                                    "written by Cadra's own test suite: the "
+                                    "suite exercises the recorder, the "
+                                    "recorder is append-only, and the links "
+                                    "it leaves behind are permanent — so "
+                                    "they say what they are rather than "
+                                    "passing as history."),
                             },
                         },
                     },

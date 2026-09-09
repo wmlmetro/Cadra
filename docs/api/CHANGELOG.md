@@ -21,6 +21,54 @@ branch on it, it goes here.
 
 ---
 
+## 2026-09-09 — handoff 15
+
+### WIDENING · The chain of custody is exempt from the per-credential record cap
+
+**Who is affected:** any client provisioned with a `total_record_cap` — the
+external default is 100 records of any one resource across all cursor pages.
+This is a widening, so it breaks nobody. It is listed because a client that
+built around 100 links should be able to find out that it no longer is.
+
+`GET /assets/<id>/custody` now returns the **whole** chain however the
+credential is capped. `include=custody` always did, because it does not
+paginate — so until today the same question had two answers, one of them
+silently shorter, depending on which way you asked it.
+
+The cap is not going anywhere else. A chain of custody is not a page of a
+register: it is one asset's complete record, bounded by how often that asset
+changed hands rather than by how much data a tenant holds, and **a truncated
+chain cannot be told from a complete one** — which is the entire finding the
+model was built to close. `total_estimate` is the true count on both paths,
+as everywhere.
+
+The per-page ceiling is unchanged. It bounds the cost of one `SELECT` and is
+not the commercial control; a capped client walks the whole chain with the
+cursor.
+
+### NEW ENUM VALUE · `source: "test"` on a custody link
+
+**Who is affected:** anybody reading `source` off a custody link. Additive —
+a new value in an existing enum. If you branch on `source`, treat an
+unrecognised value as "not a live change of custodian" rather than failing.
+
+Cadra's own API test suite runs against live-shaped tenants and moves an
+asset's custodian on purpose, because a test that does not exercise the
+recorder proves nothing about whether the chain is written at all. The
+recorder is append-only, so those links are **permanent**.
+
+`source: "test"` is how you can tell. It is decided server-side from the
+credential that made the change and never from anything a caller sends —
+a header saying "this one is a test" would let anybody disguise a real change
+of custodian as an artefact, in the one model whose whole value is that its
+contents were not invented.
+
+Same argument as `tracking_backfill`, one step further on: a reader of the
+chain must be able to see what a link is without being told the artefacts
+exist.
+
+---
+
 ## 2026-09-09 — handoff 14
 
 ### NEW · The chain of custody is readable — `GET /assets/<id>/custody`

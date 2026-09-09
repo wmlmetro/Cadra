@@ -447,6 +447,11 @@ def scopes_for_user(user):
             if user.has_group(xmlid):
                 granted.update(scopes)
         except Exception:
+            # catch-all: unknown — on Odoo 19 the expected case does not
+            # raise at all (`has_group` answers False for an xmlid it
+            # cannot resolve), so anything arriving here is unaccounted
+            # for and the log line is the whole point of the handler.
+            #
             # Logged, not swallowed silently: the expected case (an addon
             # that is not installed on this tenant) is uninteresting, but a
             # transient ACL or cursor failure here hands a legitimate user an
@@ -548,10 +553,18 @@ def turnstile_error(env, token):
             timeout=TURNSTILE_TIMEOUT,
         )
         body = response.json()
-    except Exception as e:
-        # Cloudflare unreachable or answering with something that isn't
-        # JSON. Fail closed — an open failure mode would let anyone turn
-        # the challenge off by making siteverify time out.
+    except (requests.RequestException, ValueError) as e:
+        # Narrow on purpose. `requests.RequestException` is every transport
+        # failure including `JSONDecodeError`, and `ValueError` is the same
+        # thing spelled by the stdlib — between them they are "Cloudflare
+        # unreachable, or answering with something that is not JSON", which
+        # is the entire expected failure here. A broad catch would also
+        # swallow a NameError or an AttributeError in the lines above and
+        # report it to the caller as "could not verify the challenge",
+        # which is a bug that looks like weather.
+        #
+        # Fail closed either way — an open failure mode would let anyone
+        # turn the challenge off by making siteverify time out.
         _logger.warning("Turnstile siteverify call failed: %s", e)
         return err(ERR_INTERNAL, "Could not verify the Turnstile challenge",
                    status=502)
@@ -606,10 +619,17 @@ def jwt_decode(token, secret):
         payload = json.loads(_b64url_decode(payload_b64).decode("utf-8"))
     except JwtError:
         raise
-    except Exception:
-        # Catch base64 padding errors, JSON decode errors, unicode errors —
-        # anything that signals "this is not a well-formed JWT". Maps them
-        # all onto JwtError so require_jwt returns 401 instead of 500.
+    except (ValueError, TypeError):
+        # Base64 padding errors (`binascii.Error`), JSON decode errors and
+        # unicode errors are all `ValueError` subclasses; `TypeError` is a
+        # non-string component. Together they are exactly "this is not a
+        # well-formed JWT", and they map onto JwtError so require_jwt
+        # answers 401 rather than 500.
+        #
+        # Narrow rather than broad because this runs on every authenticated
+        # request: a typo in the signature check above would otherwise be
+        # reported to every caller as "malformed token" — an authentication
+        # outage indistinguishable from clients sending bad tokens.
         raise JwtError("Malformed token")
 
     exp = payload.get("exp")
@@ -748,7 +768,11 @@ def decode_cursor(token):
         return {}
     try:
         return json.loads(_b64url_decode(token).decode("utf-8"))
-    except Exception:
+    except (ValueError, TypeError):
+        # A cursor is opaque caller input; anything that is not our own
+        # base64url JSON is a caller error and "start from the beginning"
+        # is the documented answer. Narrowed so it cannot also absorb a
+        # fault in `_b64url_decode` itself.
         return {}
 
 
@@ -869,7 +893,28 @@ def truncation_warning():
     return getattr(request, "cadra_truncation", None)
 
 
-def paginate(model, domain, *, limit, cursor=None, order="id"):
+# Resources the total_record_cap does not apply to, and the reason.
+#
+# A chain of custody is not a page of a register. It is ONE ASSET'S COMPLETE
+# RECORD — bounded by how often that asset changed hands, not by how much
+# data a tenant holds — and the entire finding `nrs.asset.custody` was built
+# to close is that **a truncated chain cannot be told from a complete one**.
+# An auditor handed the first 100 links of a 140-link chain has no way to
+# know, and no way to trust the part they can see. Capping it would put the
+# defect back in the one place a handoff was just spent removing it.
+#
+# `include=custody` on the asset serializer has always been exempt because it
+# does not paginate at all; this is what makes the dedicated route agree with
+# it instead of quietly answering a shorter version of the same question.
+#
+# `total_estimate` is unaffected either way — it is always the true count.
+# The per-page ceiling is unaffected too: it bounds the cost of one SELECT
+# and is not the commercial control. A capped client walks the whole chain
+# with the cursor.
+CAP_EXEMPT_REASON_CUSTODY = "a chain of custody is complete or it is evidence of nothing"
+
+
+def paginate(model, domain, *, limit, cursor=None, order="id", uncapped=False):
     """Cursor-paginate `model.search(domain)`.
 
     Returns (records, next_cursor_or_None, total_estimate).
@@ -889,6 +934,11 @@ def paginate(model, domain, *, limit, cursor=None, order="id"):
     the domain, sorted by `order`. Pagination still works inside that
     window; once the cumulative records served exceed the cap, next_cursor
     goes to null — and `flag_truncation` makes the response say so.
+
+    `uncapped=True` exempts one resource from the record cap. It exists for
+    exactly one caller today — see CAP_EXEMPT_REASON_CUSTODY above, which is
+    where the reasoning lives, not here. It does NOT touch `total_estimate`,
+    which is the true count on every path.
     """
     cursor_data = decode_cursor(cursor) if cursor else {}
     effective_domain = list(domain)
@@ -897,7 +947,7 @@ def paginate(model, domain, *, limit, cursor=None, order="id"):
 
     # Compute the visible window once, before any cursor filtering, so the
     # cap survives across pages.
-    cap = record_cap()
+    cap = None if uncapped else record_cap()
     if cap is not None:
         allowed = model.search(domain, order=order, limit=cap)
         if not allowed:
@@ -984,7 +1034,7 @@ def idempotency_check(key, endpoint_path):
         return None
     try:
         return json.loads(rec.response_body)
-    except Exception:
+    except (ValueError, TypeError):
         # An unreadable row is worse than no row: it can never be replayed,
         # and it holds the (key, endpoint) slot for the full TTL, so every
         # retry under that key hits the unique constraint and gets a 409
@@ -1075,13 +1125,24 @@ def get_params():
     try:
         body = request.httprequest.get_json(silent=True, force=True, cache=True)
     except Exception:
+        # catch-all: unknown — `silent=True` already means werkzeug returns
+        # None for a body it cannot parse, so nothing here is SUPPOSED to
+        # raise. What does is a property of whichever werkzeug ships with
+        # the image, and the raw-body fallback below recovers from it. It
+        # goes to the log so that a version bump changing this shows up as
+        # a line somebody can read rather than as intermittent 400s.
+        _logger.warning("get_json raised despite silent=True; "
+                        "falling back to the raw body", exc_info=True)
         body = None
     if not isinstance(body, dict):
         raw = request.httprequest.get_data(cache=True, as_text=False)
         if raw:
             try:
                 body = json.loads(raw)
-            except Exception:
+            except (ValueError, TypeError):
+                # The caller sent a body that is not JSON. Expected, and
+                # the endpoint's own required-field validation is what
+                # tells them so.
                 body = None
     return body if isinstance(body, dict) else {}
 
@@ -1166,6 +1227,11 @@ def _selection_allowed_values(model_name, field_name):
             return None
         return list(field.get_values(request.env))
     except Exception:
+        # catch-all: unknown — this runs AFTER the route decorator has
+        # already rolled back once, on a transaction that may be in any
+        # state, purely to enrich an error message. Narrowing it would mean
+        # predicting what a poisoned cursor raises; the rollback below is
+        # the guarantee that matters and it must run whatever arrives.
         _logger.warning("could not resolve selection values for %s.%s",
                         model_name, field_name, exc_info=True)
         request.env.cr.rollback()
@@ -1366,6 +1432,13 @@ def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
                              "column": e.diag.column_name},
                 ))
             except Exception:
+                # catch-all: reported — the last line of the envelope. It is
+                # BROAD BY DESIGN: every route in this API ends here, and a
+                # failure that escaped it would answer a raw Odoo HTML page
+                # to an integration that branches on `error.code`. It logs
+                # the traceback, rolls back, and returns the envelope's own
+                # 500. Nothing is hidden; the caller is told the truth and
+                # so is the log.
                 _logger.exception("Unhandled error in %s", endpoint_path)
                 request.env.cr.rollback()
                 return _http_response(err(ERR_INTERNAL, "Unhandled server error", status=500))

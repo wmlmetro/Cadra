@@ -52,7 +52,61 @@ def ok(created, name):
     print(f'  {"+ created" if created else "✓ exists "}  {name}')
 
 # ─── STEP 0: WIPE ─────────────────────────────────────────────────────────────
+#
+# THE CHAIN OF CUSTODY, AND THE DOOR OUT OF THE REFUSAL
+#
+# `nrs.asset.custody` is append-only and its link to the asset is
+# `ondelete='restrict'`, so the wipe below STOPS on any tenant that has
+# custody history. That refusal is deliberate: a script that would destroy an
+# audit-grade record should stop and say so.
+#
+# But a refusal people route around is worse than a refusal with a documented
+# exit, and the route around this one is dropping the database — which
+# destroys the chain AND everything else, with nothing left to say it
+# happened. So there is a door, and it is a FLAG:
+#
+#     CADRA_SEED_DESTROY_CUSTODY=1
+#
+# An environment variable rather than a prompt, because this script is piped
+# into `odoo shell` and a prompt there is answered by whatever the rest of the
+# file happens to be. A flag cannot be hit by accident and cannot be answered
+# by pressing return.
+#
+# Under the flag the deletion is raw SQL, and that is not laziness: the model
+# refuses `unlink()` unconditionally, including under `sudo()`, and that
+# refusal is its entire value. Going round it is meant to look like going
+# round it. The count and the tenant are printed FIRST, so the operator sees
+# what they are about to destroy and where, in a log they keep.
+import os
+
+CUSTODY_ESCAPE_FLAG = 'CADRA_SEED_DESTROY_CUSTODY'
+
 sep('STEP 0: WIPE EXISTING nrs.asset RECORDS')
+
+if 'nrs.asset.custody' in env:
+    custody_links = env['nrs.asset.custody'].sudo().search_count([])
+    if custody_links:
+        print(f'  Chain of custody on {env.cr.dbname!r}: '
+              f'{custody_links} link(s).')
+        if os.environ.get(CUSTODY_ESCAPE_FLAG, '').strip() not in ('1', 'true', 'TRUE', 'yes'):
+            raise SystemExit(
+                f'\n  REFUSED. Wiping the register would destroy '
+                f'{custody_links} chain-of-custody link(s) on tenant '
+                f'{env.cr.dbname!r}.\n'
+                f'  These are append-only audit records: once gone there is '
+                f'nothing left to say they existed.\n'
+                f'  If you genuinely mean to discard them, re-run with '
+                f'{CUSTODY_ESCAPE_FLAG}=1 set.\n'
+            )
+        print(f'  {CUSTODY_ESCAPE_FLAG} is set. DESTROYING {custody_links} '
+              f'chain-of-custody link(s) on tenant {env.cr.dbname!r}.')
+        print(f'  This goes around nrs.asset.custody\'s own append-only '
+              f'guard. It is not recoverable.')
+        _logger.warning(
+            'nrs_hq_seed: %s set — deleting %s chain-of-custody link(s) on %s',
+            CUSTODY_ESCAPE_FLAG, custody_links, env.cr.dbname)
+        env.cr.execute('DELETE FROM nrs_asset_custody')
+        print(f'  - Removed {custody_links} chain-of-custody links')
 
 existing = env['nrs.asset'].search([])
 cats     = env['nrs.asset.category'].search([])
