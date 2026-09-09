@@ -328,16 +328,41 @@ class FleetVehicle(models.Model):
             ticket_vals['generic_location_id'] = self.home_location_id.id
 
         try:
-            ticket = self.env['request.request'].sudo().create(ticket_vals)
+            # A savepoint, not a bare try. The only caller is
+            # `_cron_check_maintenance_due`, which loops over every due vehicle
+            # and counts the tickets it made, and the whole reason this
+            # returns False instead of raising is so one bad vehicle does not
+            # take the run down. Without a savepoint it did anyway: a database
+            # error leaves the transaction aborted, so every REMAINING vehicle
+            # in the loop fails too — on "current transaction is aborted",
+            # naming nothing useful — and the cron signs off with
+            # "0 ticket(s) created". Per-vehicle isolation is only true if the
+            # failed vehicle can be rolled back.
+            with self.env.cr.savepoint():
+                ticket = self.env['request.request'].sudo().create(ticket_vals)
             _logger.info(
                 "Created maintenance ticket %s for vehicle %s",
                 ticket.name, self.name
             )
             return ticket
-        except Exception as e:
+        except Exception:
+            # catch-all: reported — a cron over every due vehicle: the
+            # failure goes to the log with its traceback and the vehicle is
+            # skipped and left out of the run's count, so no ticket is claimed
+            # that does not exist. Broad because the set of things one
+            # tenant's data can do to a create is open-ended, and skipping
+            # that vehicle is the right answer to all of them.
+            #
+            # Every field in `ticket_vals` is checked against
+            # `myservice_request_core`'s `request.request`, so there is no
+            # known failure left to name here. What was wrong was the report,
+            # not the breadth: `str(e)` reduced a stack to one line, so a
+            # ticket that failed on a constraint three models deep logged the
+            # constraint's message and nothing about where it came from. The
+            # traceback goes in the log now.
             _logger.error(
-                "Failed to create maintenance ticket for vehicle %s: %s",
-                self.name, str(e)
+                "Failed to create maintenance ticket for vehicle %s",
+                self.name, exc_info=True
             )
             return False
 
