@@ -2043,3 +2043,88 @@ def test_the_marker_cannot_drift_onto_a_handler_it_was_not_written_for():
     drifted = ("# catch-all: optional — why\nx = 1\ntry:\n    f()\n"
                "except Exception:\n    pass\n")
     assert _broad_handler_findings(drifted)
+
+
+# ─── the retry layers Odoo owns above cadra_route ────────────────────
+#
+# Odoo recovers from two conditions by seeing an exception come OUT of the
+# dispatch and replaying the request:
+#
+#   * `http.py` catches `ReadOnlySqlTransaction` and re-dispatches on a
+#     read/write cursor, which is how a route that turns out to write on a
+#     read-only cursor still succeeds;
+#   * `service/model.retrying` catches `OperationalError` and
+#     `ConcurrencyError` and replays up to five times on a serialization
+#     failure, which is how two callers writing the same row both succeed.
+#
+# `cadra_route`'s `except Exception` sits INSIDE both, so swallowing either
+# turns something Odoo fixes transparently into a `500 internal_error` the
+# caller has to handle — and there is no way for the caller to tell it from
+# a real fault.
+#
+# Found live: `POST /assets/<id>/transfer-custody` answered 500 in a run
+# where `/auth/token`, which is NOT wrapped by this decorator, hit the same
+# condition on the same cursor and retried into a 200. The unwrapped route
+# was the one that worked, which is the wrong way round for a decorator
+# whose job is to make the contract better.
+#
+# `IntegrityError` is deliberately absent: `retrying` re-raises it at once
+# unless it is a serialization failure, and the envelope publishes 409 and
+# 400 for unique and foreign-key violations.
+
+_MUST_REACH_ODOO = ("ReadOnlySqlTransaction", "OperationalError",
+                    "ConcurrencyError")
+
+
+def _cadra_route_wrapper():
+    tree = ast.parse(_UTILS.read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "cadra_endpoint":
+            return node
+    raise AssertionError(
+        "myservice_api/controllers/utils.py no longer defines "
+        "cadra_endpoint(). It is where every route's exceptions are turned "
+        "into the envelope; if it was renamed, move this guard with it.")
+
+
+def test_the_envelope_lets_odoos_own_retries_through():
+    """A clause that re-raises them, and it comes first."""
+    fn = _cadra_route_wrapper()
+
+    reraising = []
+    for handler in (n for n in ast.walk(fn) if isinstance(n, ast.ExceptHandler)):
+        names = set(_handler_names(handler))
+        if not names & set(_MUST_REACH_ODOO):
+            continue
+        body = handler.body
+        assert len(body) == 1 and isinstance(body[0], ast.Raise) \
+            and body[0].exc is None, (
+            "the clause on line %d catches %s and then does something other "
+            "than re-raise. These have to leave the decorator untouched: "
+            "Odoo replays the request on them, and a bare `raise` is the "
+            "only body that lets it."
+            % (handler.lineno, sorted(names & set(_MUST_REACH_ODOO))))
+        reraising.append((handler.lineno, names))
+
+    covered = set()
+    for _, names in reraising:
+        covered |= names & set(_MUST_REACH_ODOO)
+    missing = set(_MUST_REACH_ODOO) - covered
+    assert not missing, (
+        "cadra_endpoint() swallows %s. Odoo's own retry layers sit ABOVE "
+        "this decorator and work by seeing the exception; enveloping it as "
+        "a 500 removes a recovery the caller cannot perform itself."
+        % ", ".join(sorted(missing)))
+
+    # And it has to be FIRST, for the same reason the AccessError guard
+    # above exists: `except psycopg2.OperationalError` under a broad clause
+    # is a comment, not a handler.
+    first_reraise = min(lineno for lineno, _ in reraising)
+    for handler in (n for n in ast.walk(fn) if isinstance(n, ast.ExceptHandler)):
+        if handler.lineno >= first_reraise:
+            continue
+        names = set(_handler_names(handler))
+        assert not (names & {"Exception", "BaseException"}), (
+            "a broad handler on line %d sits ABOVE the re-raise clause on "
+            "line %d, so the re-raise is dead code and Odoo never sees the "
+            "exception." % (handler.lineno, first_reraise))

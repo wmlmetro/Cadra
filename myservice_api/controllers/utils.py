@@ -23,6 +23,7 @@ import requests
 from odoo import fields
 from odoo.exceptions import (
     AccessError,
+    ConcurrencyError,
     MissingError,
     UserError,
     ValidationError,
@@ -1353,6 +1354,35 @@ def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
             # reports itself as a validation failure tells an integrator to fix
             # their payload when the answer is to fix their credentials.
             # Specific first, `UserError` last.
+            # RE-RAISED, NOT ENVELOPED. Odoo owns two retry layers ABOVE
+            # this decorator, and both of them work by seeing an exception
+            # come out of the dispatch:
+            #
+            #   * `http.py` catches `ReadOnlySqlTransaction` and re-dispatches
+            #     the whole request on a read/write cursor — that is how a
+            #     route that turns out to write on a read-only cursor still
+            #     succeeds;
+            #   * `service/model.retrying` catches `OperationalError` and
+            #     `ConcurrencyError` and replays the request up to five times
+            #     on a serialization failure, which is how two callers writing
+            #     the same row at once both succeed.
+            #
+            # `except Exception` below is INSIDE both of them, so swallowing
+            # these turned a condition Odoo recovers from transparently into a
+            # `500 internal_error` the caller has to handle. Found by a new
+            # HttpCase in this handoff: `POST /assets/<id>/transfer-custody`
+            # answered 500 where `/auth/token` — which is not wrapped by this
+            # decorator — retried and succeeded, in the same run, on the same
+            # cursor. The unwrapped route was the one that worked.
+            #
+            # `IntegrityError` is deliberately NOT here: `retrying` re-raises
+            # it immediately unless it is a serialization failure, and the
+            # handlers below turn a unique or foreign-key violation into the
+            # 409 and 400 the API publishes for them.
+            except (psycopg2.errors.ReadOnlySqlTransaction,
+                    psycopg2.OperationalError,
+                    ConcurrencyError):
+                raise
             except AccessError as e:
                 request.env.cr.rollback()
                 return _http_response(err(ERR_FORBIDDEN, str(e), status=403))

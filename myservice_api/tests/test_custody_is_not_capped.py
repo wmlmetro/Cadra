@@ -101,6 +101,18 @@ class TestCustodyIsNotCapped(HttpCase):
         self.assertEqual(r.status_code, 200, r.text)
         return r.json()
 
+    def _other_custodian(self):
+        """The probe employee the asset is NOT currently assigned to.
+
+        Hard-coding one of the two is wrong: the transfer route refuses a
+        move to the current custodian with a 400, and each test method starts
+        from the class savepoint rather than from the previous test — so
+        which of the pair is held depends only on how many writes setUpClass
+        happened to make. A test that fails on that is testing the fixture.
+        """
+        held = self.asset.custodian_id
+        return self.employees[1] if held == self.employees[0] else self.employees[0]
+
     def _whole_chain(self, client):
         """Walk the cursor. NOT a big `limit=` — `parse_limit` clamps that to
         the client's own page ceiling, so naming a large number silently
@@ -186,7 +198,7 @@ class TestCustodyIsNotCapped(HttpCase):
         token = self._token(self.client_test)
         r = self.url_open(
             "/api/v1/assets/%d/transfer-custody" % self.asset.id,
-            data=json.dumps({"to_custodian_id": self.employees[0].id,
+            data=json.dumps({"to_custodian_id": self._other_custodian().id,
                              "reason": "test_custody_is_not_capped"}),
             headers={"Authorization": "Bearer %s" % token,
                      "Content-Type": "application/json"})
@@ -212,7 +224,7 @@ class TestCustodyIsNotCapped(HttpCase):
         try:
             r = self.url_open(
                 "/api/v1/assets/%d/transfer-custody" % self.asset.id,
-                data=json.dumps({"to_custodian_id": self.employees[1].id,
+                data=json.dumps({"to_custodian_id": self._other_custodian().id,
                                  "source": "test",
                                  "reason": "trying to label my own write"}),
                 headers={"Authorization": "Bearer %s" % token,
