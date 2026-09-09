@@ -105,28 +105,85 @@ An `updated_since` filter is the single highest-value addition to this API for I
 
 ### 2.3 "Show me who has held this laptop."
 
-**No. This is the question Cadra cannot answer, and the one to fix first.**
+**Yes, from 9 September 2026 — with one qualification that must be read
+before the answer is used.**
 
-The specification calls it *"custodianship chain for any asset (full history)"* and the PRD calls it *"the full sequence of custodianship records… immutable; it cannot be edited retrospectively, only appended… an audit-grade record suitable for legal and compliance purposes."*
+```
+GET /api/v1/assets/<id>/custody          # paginated, oldest first
+GET /api/v1/assets/<id>?include=custody  # the whole chain, embedded
+```
 
-What exists:
+Both take `assets:read`. A link carries the asset, the outgoing and incoming
+custodian, the timestamp, **the acting user** — who moved it, which is a
+different question from who held it and one the two custodian fields cannot
+answer — a free-text reason where the caller gave one, and a `source`.
 
-- `custodian_id` — the **current** holder, one field, `tracking=True`.
-- `nrs.asset.transfer` — a real history model, but **location-move-centric**: `from_location_id` and `to_location_id` are both `required`, and a constraint forbids from == to, so a pure custody change cannot be recorded in it at all. When `POST /assets/<id>/move` writes a row it fills both custodian slots with the same unchanged custodian.
-- `POST /assets/<id>/transfer-custody` — **deliberately creates no history row.** Its docstring says so: *"the audit trail comes via Odoo's `mail.thread` auto-logging (`custodian_id` has `tracking=True`) plus an explicit `message_post`… We deliberately do NOT use `nrs.asset.transfer` here."*
+**Append-only, on the model rather than by access rule.** `nrs.asset.custody`
+raises on `write` and on `unlink`, so a link cannot be altered or removed
+once recorded: not over the API, not in the Odoo interface, and **not by an
+administrator using `sudo()`** — which matters here because every API route
+in this codebase calls `sudo()` on every request. An ACL would not have
+carried this; an ACL is configuration, and `sudo()` bypasses configuration by
+design. The asset link is `ondelete='restrict'`, so deleting an asset cannot
+take its history with it either. There is deliberately **no write endpoint**:
+a link is a side effect of a custodian change, never a payload.
 
-So the chain of custody is not missing — **it is being written to a place no auditor can read.** Measured on the live databases today:
+**Written wherever `custodian_id` moves, not by one route.** The recorder is
+in `nrs.asset.write`, because `custodian_id` has at least five writers —
+`POST /assets/<id>/transfer-custody`, `POST /assets`, `PATCH /assets/<id>`
+(it is in `_WRITABLE_FIELDS`), `nrs.asset.transfer.action_complete`, and
+`action_mark_retrieved` when an employee leaves — plus the field being
+editable on the Odoo form. Recording in the transfer route alone would have
+produced a chain that was incomplete on its first day, and **a gap in an
+append-only record is indistinguishable from a period of no movement**, which
+is the one failure this model cannot recover from.
 
-| Tenant | `custodian_id` changes recorded as chatter tracking rows | `nrs.asset.transfer` rows carrying a custodian change |
+**The qualification: `source`, and what `tracking_backfill` means.**
+
+| `source` | what it is |
+|---|---|
+| `api_transfer` | `POST /assets/<id>/transfer-custody` |
+| `api_write` | `POST /assets` or `PATCH /assets/<id>` |
+| `transfer` | an `nrs.asset.transfer` completed |
+| `direct` | a write that declared no source — the Odoo form, an import, a script |
+| `tracking_backfill` | **reconstructed** from the chatter tracking values that predate the model |
+
+The backfill is faithful: a tracking value carries the outgoing employee, the
+incoming employee, the acting user and the timestamp, so nothing in a
+backfilled link is invented. But it is still a reconstruction, and it **begins
+where `custodian_id` became a tracked field, not where the register does**.
+Rows written by direct SQL during seeding produced no tracking value and are
+therefore absent entirely.
+
+**So a chain is sparser than its asset is old, and that is the correct
+picture rather than a defect.** An auditor told where the record begins can
+work with it. One who discovers the gap later cannot trust any of it,
+including the part that is complete — which is why `source` is published on
+every link rather than left in a migration note.
+
+Backfilled on 9 September 2026, per tenant:
+
+| Tenant | tracking values read | custody links written |
 |---|---|---|
-| `jaizbankplc` | **217** | **0** |
+| `jaizbankplc` | 221 | 221 |
+| `gtb19` | 152 | 152 |
+| `gtb` | 150 | 150 |
+| `lasg` | 150 | 150 |
 | `nrs19` | 1 | 1 |
+| `cadra19`, `test19`, `nrs` | 0 | 0 |
 
-Every one of those 217 is a genuine custody event with an actor and a timestamp, sitting in `mail_tracking_value`. **No API route exposes an asset's `message_ids` or tracking values** — `include=` on the asset endpoints accepts only `transfers`, `pm` and `children`, and `include=messages` exists on requests but not on assets. The embedded `transfers` list is additionally capped at the **last 20**.
+The two columns agree on every tenant. Three tenants have no history at all
+because their registers were seeded without producing tracking values; the
+`nrs19` figure of 1 against ~11,878 assets is the same fact in its starkest
+form. INT-10 §2.3 previously measured `jaizbankplc` at 217 — four custody
+changes were made between that measurement and this one.
 
-And chatter is the wrong store for an audit-grade guarantee even once it is readable: `mail.message` records are deletable by a user with the right groups, and the PRD requires the chain be append-only. A chain of custody that can be deleted is not a chain of custody.
-
-**Recommendation:** an append-only `nrs.asset.custody` model — asset, from, to, at, by, reason, source (API call / UI / import) — written by `transfer-custody` and by any `custodian_id` write, with the existing 217 tracking rows backfilled into it (they carry actor and timestamp, so the backfill is faithful rather than invented). Exposed as `GET /api/v1/assets/<id>/custody`. This is a handoff of its own and is Cadra's largest INT-10 gap.
+**What is still capped, and what is not.** The embedded `transfers` list is
+capped at the last 20. `include=custody` is **not**: "the last twenty
+custodians" is precisely the answer an auditor cannot use, because a
+truncated chain cannot be told from a complete one. The paginated route
+reports a true `total_estimate` and announces the record cap in
+`_warnings.truncated` like every other list endpoint.
 
 ### 2.4 "Show me what changed on this asset, and who changed it."
 
@@ -290,12 +347,17 @@ Every field below is stored — either a plain column or a stored compute. **A s
 | `asset_tag` | the physical label number | tracked, minted by Cadra, **deliberately removed from `_WRITABLE_FIELDS`** — a client could otherwise PATCH it until it no longer matched the physical label, defeating the affix control |
 | `last_verified_date` | the verification control | tracked, but **writable over the API without an actor** — §2.8 |
 | `assignment_date`, `last_verified_by`, `verification_notes`, `retrieval_*` | custody and verification evidence | stored but **not serialized** — invisible over the API |
+| `nrs.asset.custody` (every column) | the chain of custody itself | strongly guarded — `write` and `unlink` raise on the model, so no link can be altered or removed after the fact, including under `sudo()`; the asset link is `ondelete='restrict'` so deleting the asset cannot erase it either |
 
 **The pattern is worth naming.** Everything Cadra *generates* — the asset code, the tag number, the affix record, the SAP code source — is guarded properly, most of it by a write override rather than by `readonly=True`, because `readonly=True` is a web-client hint and not an ORM guard. Everything Cadra *receives from another system* — the provenance references, the serial, the department, the money — is guarded by nothing at all. For an interface whose purpose is tracing an asset back to what was paid for it, that is the wrong way round.
 
 ### 3.3 The three things that do not exist
 
-1. **A custody history model.** §2.3.
+1. ~~**A custody history model.**~~ **Built** — `nrs.asset.custody`,
+   9 September 2026. §2.3. What remains is the *reach* of the backfill, not
+   the model: three tenants start empty and `nrs19` starts with one link,
+   because the history before this date only exists where chatter tracking
+   captured it.
 2. **An audit log.** §2.4, §2.10. No before/after table, no per-API-call record, no actor-and-source trail beyond `mail.thread`'s 18 fields.
 3. **A `Vendra`-side link.** §5. `grn_reference` is a string; nothing validates that it names a real receipt.
 
@@ -359,7 +421,7 @@ Five things, in order of how much they unblock.
 
 **5. The expected unit count per line.** §2.1's second gap. Cadra registers one row per physical unit and has no quantity field, by design. Given the line's quantity, "this GRN line was for five and Cadra holds four" becomes a query. Without it, that finding is invisible from either system alone — **which is the strongest single argument that INT-10 is one interface across two systems and not two interfaces that happen to share a name.**
 
-**And one thing Vendra should expect from Cadra.** Vendra's half should assume Cadra will expose, per asset: the provenance block as it does today, the SAP dual-code state including the `exception` finding, the tag lifecycle with actors and timestamps, and — once §2.3 is built — the custody chain. INT-05 already echoes the whole provenance block back to Vendra on every affix *so you never need to hold a Cadra id to match*; the same principle should hold for INT-10. **Neither system should need the other's primary keys to answer an auditor.**
+**And one thing Vendra should expect from Cadra.** Vendra's half should assume Cadra will expose, per asset: the provenance block as it does today, the SAP dual-code state including the `exception` finding, the tag lifecycle with actors and timestamps, and the custody chain (§2.3, built). INT-05 already echoes the whole provenance block back to Vendra on every affix *so you never need to hold a Cadra id to match*; the same principle should hold for INT-10. **Neither system should need the other's primary keys to answer an auditor.**
 
 ---
 
@@ -368,7 +430,7 @@ Five things, in order of how much they unblock.
 Specification §13.3 offers two patterns and marks both `[NRS INPUT REQUIRED]`. Our recommendation is **both, in this order**, and the order is the point.
 
 1. **Fix the pagination cap (§2.11) and add `updated_since` (§2.2).** Until these exist there is no continuous read access, only a demonstration of one. Together they turn every query in §2 from "the first 100 matches, described as all of them" into a walkable result set, and turn "pull the register again" into "pull what changed". Small, and blocking.
-2. **Build the custody chain (§2.3).** The one question the specification names as audit-grade and Cadra cannot answer at all. The data exists as 217 chatter rows on one tenant; it needs a home an auditor can read and a guarantee it is append-only.
+2. ~~**Build the custody chain (§2.3).**~~ **Done, 9 September 2026.** `nrs.asset.custody`, append-only on the model itself, backfilled from the chatter tracking rows and readable at `GET /assets/<id>/custody`. What is NOT done is the reach backwards: the chain starts where `custodian_id` became a tracked field, and three of the eight tenants therefore start empty. Every backfilled link says so on its face (`source: tracking_backfill`) rather than leaving an auditor to discover the gap.
 3. **Then the scheduled bulk extract.** A daily snapshot of the asset register, the location register and the request register, retained — which also gives §2.5's point-in-time answer honestly, by storing it rather than reconstructing it.
 4. **Webhook event subscription last, if at all.** §8.6 imagines an NRS audit system subscribing to all events for retention. Cadra has the machinery — the INT-05 outbox with capped exponential backoff, `event_id` idempotency, 4xx-is-permanent classification and a visible dead-letter state — so this is cheap to add. But an event stream is a poor primary audit interface: it tells you what happened while you were listening, and an auditor's first question is always about a period that predates the subscription.
 

@@ -76,6 +76,7 @@ Note: ~25 admin-scoped tests skip when the tenant's client does not hold the
 | `test_locations.py` | 7 location endpoints (list/get/create/patch/children/ancestors/descendants) |
 | `test_assets.py` | 8 asset endpoints (incl. move + transfer-custody actions) |
 | `test_assets_csv.py` | /assets/export.csv (non-JSON) |
+| `test_custody.py` | /assets/<id>/custody + `include=custody` — the append-only chain (INT-10 §2.3) |
 | `test_requests.py` | 8 service-request endpoints (incl. assign/transition/comment actions) |
 | `test_dashboards.py` | 9 dashboard endpoints (operations + security + fleet + fm) |
 | `test_barcode.py` | 4 barcode endpoints + /tags/lookup |

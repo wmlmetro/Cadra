@@ -21,6 +21,87 @@ branch on it, it goes here.
 
 ---
 
+## 2026-09-09 — handoff 14
+
+### NEW · The chain of custody is readable — `GET /assets/<id>/custody`
+
+**Who is affected:** anybody asking who has held an asset. Nothing existing
+changes shape.
+
+Cadra now keeps an append-only record of every change of custodian, on a new
+`nrs.asset.custody` model. Until this release the chain lived in Odoo's
+chatter tracking values: no route exposed it, and a user with the right
+groups could delete it. The PRD requires a record that *"cannot be edited
+retrospectively, only appended"*, and a chain of custody that can be deleted
+is not a chain of custody.
+
+Two ways to read it:
+
+```
+GET /api/v1/assets/<id>/custody          # paginated, oldest first
+GET /api/v1/assets/<id>?include=custody  # the whole chain, embedded
+```
+
+Both need `assets:read`. **There is no write endpoint and there will not
+be** — a link is a side effect of a custodian change, never a payload, and a
+route that accepted one would be a way to write history directly.
+
+A link carries: `changed_at`, `from_custodian` / `to_custodian` (plus the
+names **as recorded**, which survive the employee record being deleted),
+`changed_by` — the acting user, which is a different question from who held
+it — `reason`, and `source`.
+
+**Read `source` before you draw a conclusion from a chain.** It is one of
+`api_transfer`, `api_write`, `transfer`, `direct` or `tracking_backfill`.
+`tracking_backfill` marks a link **reconstructed** from the chatter tracking
+values that predate this model. The reconstruction is faithful — those rows
+carry the actor and the timestamp — but it begins where `custodian_id` became
+a tracked field, not where the register does. **A chain is therefore sparser
+than the asset's own age, and that is the honest picture rather than a
+defect.** An auditor told where the record begins can work with it; one who
+discovers the gap later cannot trust any of it, including the complete part.
+
+`include=custody` is deliberately **not** capped. The embedded `transfers`
+list takes the last 20; "the last twenty custodians" is precisely the answer
+an auditor cannot use, because a truncated chain cannot be told from a
+complete one. The paginated route is there for a chain long enough to want
+paging, and reports a true `total_estimate` like every other list endpoint.
+
+> **Deployment note — schema before code, on every tenant.** This release
+> adds a stored model (`nrs.asset.custody`), so `myservice_asset_register`
+> must be upgraded on **every** tenant database *before* the image rolls
+> forward. One Odoo registry serves them all: on a tenant that has not been
+> upgraded, `nrs.asset.write({'custodian_id': ...})` reaches a table that
+> does not exist and answers `500` with the transaction aborted — and that
+> includes `POST /assets` carrying a custodian, which is on Vendra's INT-03
+> path. The `upgrade-19` fan-out runs per database and must complete first.
+
+### ADDITIVE · `custody_id` on the transfer-custody response
+
+`POST /assets/<id>/transfer-custody` now returns
+`data.custody_change.custody_id` — the append-only link that call produced.
+Existing fields are unchanged.
+
+### FIXED · Three auth routes answered HTML to a malformed body
+
+`POST /auth/login`, `POST /auth/refresh` and `POST /auth/revoke` returned a
+raw Odoo HTML 500 page — not a Cadra envelope — when an unauthenticated
+caller sent a non-string where a string was expected. They now answer
+`400 invalid_request` in the envelope, as `POST /auth/token` has since
+handoff 12. `POST /auth/revoke` in particular documents that it always
+answers `200 {"revoked": true}`, which was not true under a malformed body.
+
+### ADMINISTRATIVE · A non-default record cap forces a one-hour token
+
+`myservice.api.client` refuses to save a `token_ttl_seconds` above 3600 when
+`max_page_limit` or `total_record_cap` differs from the default. The cap is
+stamped into the access JWT and a JWT is unrevocable for its lifetime, so a
+long-lived token is a raised limit that outlives the decision to lower it
+again. Every client on every tenant is already at 3600, so nothing changes
+today.
+
+---
+
 ## 2026-09-08 — handoff 12
 
 ### BEHAVIOUR CHANGE · `pagination.total_estimate` now reports the TRUE count

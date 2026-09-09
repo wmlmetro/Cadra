@@ -416,8 +416,26 @@ class MyserviceApiV1(http.Controller):
         and authorises nothing.
         """
         data = get_params()
-        login = (data.get("login") or data.get("username") or "").strip()
-        password = data.get("password") or ""
+        raw_login = data.get("login") or data.get("username") or ""
+        raw_password = data.get("password") or ""
+        raw_turnstile = data.get("turnstile_token") or ""
+
+        # All three are unauthenticated body values consumed before anything
+        # validates them: `login` reaches `.strip()` on the next line,
+        # `password` reaches Odoo's password verifier, and `turnstile_token`
+        # is posted to Cloudflare as form data. A non-string in any of them
+        # answered a raw HTML 500 — /auth/login is one of the nine routes
+        # that predate @cadra_route and has no envelope handler under it.
+        # Same defect and same fix as /auth/token above.
+        if not all(isinstance(v, str)
+                   for v in (raw_login, raw_password, raw_turnstile)):
+            return _http_response(err(
+                ERR_INVALID_REQUEST,
+                "`login`, `password` and `turnstile_token` must be strings",
+            ))
+
+        login = raw_login.strip()
+        password = raw_password
 
         if not login or not password:
             return _http_response(err(
@@ -428,7 +446,7 @@ class MyserviceApiV1(http.Controller):
         # Cloudflare Turnstile. A no-op unless this tenant has a secret key
         # configured; checked after the field validation above so a
         # malformed request never costs a round-trip to Cloudflare.
-        challenge_error = turnstile_error(request.env, data.get("turnstile_token"))
+        challenge_error = turnstile_error(request.env, raw_turnstile)
         if challenge_error:
             return _http_response(challenge_error)
 
@@ -499,6 +517,15 @@ class MyserviceApiV1(http.Controller):
             return _http_response(err(
                 ERR_INVALID_REQUEST, "`refresh_token` is required",
             ))
+        # `verify_and_rotate` hashes this with `raw.encode("utf-8")`, so a
+        # non-string raises AttributeError before any check runs — and this
+        # route has no envelope handler under it either, so an
+        # UNAUTHENTICATED caller got a raw HTML 500. Same defect as
+        # /auth/token; same two-line fix.
+        if not isinstance(raw, str):
+            return _http_response(err(
+                ERR_INVALID_REQUEST, "`refresh_token` must be a string",
+            ))
 
         try:
             secret = jwt_secret(request.env)
@@ -550,16 +577,26 @@ class MyserviceApiV1(http.Controller):
         """Revoke a refresh token (and its whole rotation family).
 
         Body (flat JSON): {"refresh_token": "..."}
-        Always returns 200 {"revoked": true} — revocation is idempotent and
-        the response never reveals whether the token existed. Outstanding
-        access tokens remain valid until their short TTL elapses; this stops
-        any further refresh.
+        Any well-formed body returns 200 {"revoked": true} — revocation is
+        idempotent and the response never reveals whether the token existed.
+        A body that does not carry a `refresh_token` string is refused with
+        400 `invalid_request`; that is the only case that is not a 200, and
+        it says nothing about any token. Outstanding access tokens remain
+        valid until their short TTL elapses; this stops any further refresh.
         """
         data = get_params()
         raw = data.get("refresh_token")
         if not raw:
             return _http_response(err(
                 ERR_INVALID_REQUEST, "`refresh_token` is required",
+            ))
+        # `revoke()` hashes this with `raw.encode("utf-8")`. This route has
+        # no try/except at ALL and advertises that it always answers 200, so
+        # a JSON object here was the cleanest way for an unauthenticated
+        # caller to get a raw HTML 500 out of the auth surface.
+        if not isinstance(raw, str):
+            return _http_response(err(
+                ERR_INVALID_REQUEST, "`refresh_token` must be a string",
             ))
         request.env["myservice.api.refresh_token"].sudo().revoke(raw, reason="logout")
         return _http_response(ok({"revoked": True}))
@@ -739,6 +776,62 @@ class MyserviceApiV1(http.Controller):
                                                        "vendra", "excel", "other"]},
                             "import_date": {"type": "string", "format": "date", "nullable": True},
                             "import_ref": {"type": "string", "nullable": True},
+                        },
+                    },
+                    "AssetCustody": {
+                        "type": "object",
+                        "description": (
+                            "One link in an asset's chain of custody (PRD "
+                            "§8.5). APPEND-ONLY: `nrs.asset.custody` refuses "
+                            "write and unlink on the model itself, so a link "
+                            "cannot be altered or removed once recorded — not "
+                            "over the API, not in the Odoo interface, and not "
+                            "by an administrator. There is no write endpoint; "
+                            "links are produced as a side effect of a "
+                            "custodian change."),
+                        "properties": {
+                            "id": {"type": "integer"},
+                            "changed_at": {
+                                "type": "string", "nullable": True,
+                                "description": "ISO 8601, naive (server time), no offset"},
+                            "from_custodian": {"type": "object", "nullable": True},
+                            "to_custodian": {"type": "object", "nullable": True},
+                            "from_custodian_name": {
+                                "type": "string", "nullable": True,
+                                "description": (
+                                    "The name AS RECORDED at the time. Not "
+                                    "derived from `from_custodian`, which "
+                                    "goes null if that employee record is "
+                                    "later deleted — the link degrades, the "
+                                    "evidence does not.")},
+                            "to_custodian_name": {"type": "string", "nullable": True},
+                            "changed_by": {
+                                "type": "object", "nullable": True,
+                                "description": (
+                                    "WHO MADE THE CHANGE — the acting user, "
+                                    "not the custodian. An auditor asks that "
+                                    "as often as who held it.")},
+                            "changed_by_name": {"type": "string", "nullable": True},
+                            "reason": {"type": "string", "nullable": True},
+                            "source": {
+                                "type": "string",
+                                "enum": ["api_transfer", "api_write",
+                                         "transfer", "direct",
+                                         "tracking_backfill"],
+                                "description": (
+                                    "Where the change came from. "
+                                    "`tracking_backfill` marks a link "
+                                    "RECONSTRUCTED from the chatter tracking "
+                                    "values that predate this model. The "
+                                    "reconstruction is faithful — those rows "
+                                    "carry the actor and the timestamp — but "
+                                    "it begins where `custodian_id` became a "
+                                    "tracked field, not where the register "
+                                    "does, so a chain is sparser than the "
+                                    "asset's own age. `direct` is a write "
+                                    "that declared no source: the Odoo form, "
+                                    "an import or a script."),
+                            },
                         },
                     },
                     "AssetTagging": {
