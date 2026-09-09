@@ -42,6 +42,35 @@ def _no_hand_written_links_message():
     )
 
 
+def _acts_for_a_test_credential(env, user):
+    """True when `user` is the Odoo user behind a test API credential.
+
+    The external API suite exercises the RECORDER — it moves an asset's
+    custodian over HTTP — because a test that does not exercise the recorder
+    proves nothing about whether the chain is written. The recorder is
+    append-only, so those links are PERMANENT in whichever tenant the suite
+    ran against. That is accepted. What is not accepted is a reader of the
+    chain being unable to tell them apart from history.
+
+    The label is decided HERE, from the acting user, and never from anything
+    the caller sends. A request header saying "this one is a test" would let
+    anybody disguise a real change of custodian as an artefact, in the one
+    model whose whole value is that its contents were not invented.
+
+    `myservice_api` sits ABOVE this module, so the lookup is a membership
+    test rather than an import — a tenant without the API module has no test
+    credentials and every link is real. `active_test=False` because an
+    archived credential's artefacts are still artefacts.
+    """
+    Client = env.get('myservice.api.client')
+    if Client is None or not user:
+        return False
+    return bool(Client.sudo().with_context(active_test=False).search_count([
+        ('user_id', '=', user.id),
+        ('is_test_credential', '=', True),
+    ]))
+
+
 class NRSAssetCustody(models.Model):
     """One link in an asset's chain of custody. Append-only, and it means it.
 
@@ -79,8 +108,15 @@ class NRSAssetCustody(models.Model):
         # from now on that script stops on any tenant that has custody
         # history — five of the eight do. That is the intended behaviour
         # rather than a casualty of it: a script that would destroy an
-        # append-only audit record should refuse and say so, and an operator
-        # who genuinely means to discard the register can drop the database.
+        # append-only audit record should refuse and say so.
+        #
+        # A refusal people route around is worse than a refusal with a
+        # documented exit, though, and the route around this one was
+        # dropping the database — which destroys the chain AND everything
+        # else, with nothing left to say it happened. So the script now
+        # refuses BY NAME and offers a flag, `CADRA_SEED_DESTROY_CUSTODY=1`,
+        # which prints the link count and the tenant before it proceeds.
+        #
         # A cascade would have made the wipe silent, which is the one
         # outcome nobody could audit afterwards.
         ondelete='restrict')
@@ -116,6 +152,19 @@ class NRSAssetCustody(models.Model):
         ('transfer', 'Asset transfer completion'),
         ('direct', 'Direct write (Odoo UI, import or script)'),
         ('tracking_backfill', 'Reconstructed from chatter tracking'),
+        # Written by the automated test suite. The suite exercises the
+        # RECORDER — an asset's custodian actually moving — because a test
+        # that does not cannot prove the chain is written at all; and the
+        # recorder is append-only, so the links it produces are permanent in
+        # whatever tenant the suite ran against. That is accepted. What is
+        # not accepted is a reader being unable to tell.
+        #
+        # The reason string used to carry the test's own name, which is a
+        # string somebody has to know to look for. A first-class `source`
+        # returned by the API says it to anyone reading the chain, without
+        # being told the artefacts exist — the same argument as
+        # `tracking_backfill`, one step further on.
+        ('test', 'Written by the automated test suite'),
     ], string='Source', required=True, default='direct', index=True)
 
     # ── Append-only ───────────────────────────────────────────────────
@@ -156,8 +205,18 @@ class NRSAssetCustody(models.Model):
         `source` falls back to the caller's context key rather than to a
         parameter default, so a route can declare where a write came from
         once and every `custodian_id` write underneath it is labelled.
+
+        A write made under a test API credential is relabelled `test`,
+        whatever the caller declared — see `_acts_for_a_test_credential`. It
+        overrides rather than sits alongside because the reader's first
+        question about a link is whether it happened, and "it was a test"
+        answers that before "it arrived via the transfer route" is worth
+        knowing. The `reason` still carries the caller's own string.
         """
         user = changed_by if changed_by is not None else self.env.user
+        source = source or self.env.context.get(CUSTODY_SOURCE_KEY) or 'direct'
+        if _acts_for_a_test_credential(self.env, user):
+            source = 'test'
         vals = {
             'asset_id': asset.id,
             'from_custodian_id': from_custodian.id if from_custodian else False,
@@ -168,7 +227,7 @@ class NRSAssetCustody(models.Model):
             'changed_by_id': user.id if user else False,
             'changed_by_name': user.name if user else False,
             'reason': reason or False,
-            'source': source or self.env.context.get(CUSTODY_SOURCE_KEY) or 'direct',
+            'source': source,
         }
         return self.sudo().with_context(
             **{CUSTODY_APPEND_KEY: True}).create(vals)

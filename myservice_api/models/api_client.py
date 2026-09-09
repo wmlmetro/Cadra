@@ -75,6 +75,13 @@ class MyserviceApiClient(models.Model):
     # 0 keeps today's behaviour exactly, so this is invisible until somebody
     # deliberately raises a limit on one client.
 
+    is_test_credential = fields.Boolean(
+        string='Test Credential', default=False,
+        help="Records written under this credential are TEST ARTEFACTS and "
+             "are labelled as such where the record is audit-grade. Set on "
+             "the smoke-test client that bootstrap provisions; leave off for "
+             "every credential a real system authenticates with.")
+
     max_page_limit = fields.Integer(
         default=0,
         help="Most records this client may pull in ONE page. "
