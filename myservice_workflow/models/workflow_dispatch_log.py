@@ -357,13 +357,25 @@ class WorkflowDispatchLog(models.Model):
                 if row._deliver_once():
                     delivered += 1
             except Exception:               # noqa: BLE001
+                # catch-all: unknown — anything reaching here has already
+                # escaped a method whose contract is that it does not raise,
+                # so by construction it is something nobody anticipated.
+                #
                 # `_deliver_once` is written not to raise, but its own writes
-                # and `config._get_adapter()` sit outside its inner try. An
-                # escape here would abort the whole batch AND leave the row at
+                # and `config._get_adapter()` sit outside its inner try, and
+                # the `_mark_delivered` / `_mark_failed` overrides in
+                # `sap_asset_events.py` write to `nrs.asset` from in here too.
+                # An escape would abort the whole batch AND leave the row at
                 # the head of an oldest-first window with its `next_attempt_at`
                 # unchanged — permanently blocking everything behind it. Roll
                 # back to a clean cursor, then push the row back by one
                 # backoff so the queue keeps moving.
+                #
+                # This does not turn a permanent failure into an infinite
+                # retry: `_defer_after_error` reads the SNAPSHOTTED
+                # `max_attempts`, which the config constraint holds at 1 or
+                # more, so a row that keeps arriving here dead-letters on
+                # schedule and becomes visible rather than looping.
                 self.env.cr.rollback()
                 _logger.exception(
                     "workflow: unhandled error delivering %s; deferring", row.name)
@@ -372,6 +384,13 @@ class WorkflowDispatchLog(models.Model):
                     if not in_test:
                         self.env.cr.commit()
                 except Exception:           # noqa: BLE001
+                    # catch-all: unknown — this is the handler for "the
+                    # handler failed", and the only honest thing to say about
+                    # what arrives here is that the cursor is no longer
+                    # trustworthy. The row keeps its old `next_attempt_at`, so
+                    # the next pass will try it again; the traceback is the
+                    # only evidence there will be, which is why it is logged
+                    # and not swallowed.
                     self.env.cr.rollback()
                     _logger.exception(
                         "workflow: could not defer %s either", row.name)
@@ -470,9 +489,21 @@ class WorkflowDispatchLog(models.Model):
         try:
             result = adapter.deliver(payload, self.event_id,
                                      request_ref=self.name)
-        except Exception as e:                      # noqa: BLE001 — a cron
-            # must not die on one bad row, and an adapter that raises is
-            # itself the defect being reported.
+        except Exception as e:                      # noqa: BLE001
+            # catch-all: unknown — `deliver()` is an ADAPTER BOUNDARY whose
+            # published contract is "never raises", so anything arriving here
+            # is by definition outside what this module can enumerate, and the
+            # adapter that raised is itself the defect being reported.
+            #
+            # `retryable=True` is deliberate and is NOT a classification
+            # decision taken from an exception. The classifier lives in
+            # `_classify`, which only ever sees an HTTP response; a raise
+            # means no response was classified at all, and the queue's stated
+            # default for "nothing said" is to retry, because retrying a
+            # deliverable event costs a minute and dropping one costs an audit
+            # trail. It cannot become an infinite retry — `max_attempts` is
+            # snapshotted on the row and bounded by the config constraint — so
+            # a permanently-raising adapter dead-letters and is seen.
             _logger.exception("workflow: adapter raised delivering %s", self.name)
             self._mark_failed('%s: %s' % (type(e).__name__, e), retryable=True)
             return False
@@ -620,9 +651,20 @@ class WorkflowDispatchLog(models.Model):
                 }
                 self.asset_id.sudo().message_post(body=body)
             except Exception:               # noqa: BLE001
+                # catch-all: unknown — `message_post` runs the whole mail.thread
+                # stack (followers, subtypes, notification scheduling), and the
+                # `Markup(_(...)) % {...}` above can be broken by a translation
+                # that loses a placeholder. Neither surface is enumerable here.
+                # Verified rather than assumed: `nrs.asset` does inherit
+                # `mail.thread` (`myservice_asset_register/models/asset.py`),
+                # so the one thing a narrow clause would have bought — catching
+                # a `message_post` that no longer exists — is not in play.
+                #
                 # Never let the notification break the drain: the dead letter
-                # is already recorded, and losing the chatter note is a
-                # smaller failure than losing the batch.
+                # is already recorded in the error log and in the row, and an
+                # escape from here would roll the DEAD-LETTERING back at the
+                # loop above and hand the event another attempt it has already
+                # spent. Losing the chatter note is the smaller failure.
                 _logger.exception(
                     "workflow: could not post dead-letter note for %s", self.name)
 

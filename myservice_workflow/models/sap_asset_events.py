@@ -561,6 +561,22 @@ class WorkflowDispatchLogSAP(models.Model):
                     'returned for it.'
                 ) % reason)
             except Exception:               # noqa: BLE001
+                # catch-all: unknown — `message_post` runs the whole
+                # mail.thread stack and this module cannot enumerate its
+                # failure surface; the note is a courtesy and the fact is
+                # already in the log and in `delivery_history`.
+                #
+                # Verified rather than assumed: `nrs.asset` does inherit
+                # `mail.thread` (`myservice_asset_register/models/asset.py`),
+                # so a narrow clause would not be buying a check on a
+                # `message_post` that has gone away.
+                #
+                # Broad because of WHERE this sits. `_apply_sap_master_response`
+                # is called from `_mark_delivered`, inside the drain loop's own
+                # try: an escape from here would be caught up there, the cursor
+                # rolled back, and the row — already delivered to SAP, already
+                # written `posted` — would be handed another attempt. A failed
+                # chatter note would become a second INT-06 asset master POST.
                 _logger.exception(
                     "workflow: could not post not-capitalised note for %s",
                     self.name)
