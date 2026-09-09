@@ -172,14 +172,15 @@ ReadOnlySqlTransaction"* when the clause is removed.
   followed it; what changed is the machine. I have not softened the entry —
   the measurement in it is true of the day it was taken, and the recipe costs
   nothing when the host is healthy.
-- **New entry, and it is the one that will cost somebody an afternoon:**
-  **in test mode Odoo hands a read/write route a READ-ONLY cursor and relies on
-  a retry that a controller-level `except Exception` defeats.** This is why
-  `ENVIRONMENT-FACTS` already says the `cannot execute INSERT in a read-only
-  transaction` lines are noise — they are, *for routes whose exceptions reach
-  Odoo*. For a route inside `cadra_route` they were a silent 500 that only an
-  `HttpCase` can see, because the live server never hands those routes a
-  read-only cursor. I have added it under **The test suites**.
+- **New entry, added under "The test suites", and it is the one that will cost
+  somebody an afternoon:** in test mode Odoo hands a read/write route a
+  **read-only cursor** and relies on a retry that a controller-level
+  `except Exception` defeats. This is why the file already says the
+  `cannot execute INSERT in a read-only transaction` lines are noise — they
+  are, *for routes whose exceptions reach Odoo*. For a route inside
+  `cadra_route` they were a silent 500 that only an `HttpCase` can see,
+  because the live server never hands those routes a read-only cursor. The
+  entry names the tell: the **unwrapped** route is the one that works.
 
 Also confirmed, since it was left open in report 13's notes: **`mobile_phone`
 does exist on Odoo 19's `hr.employee`** (`hr/models/hr_employee.py:121`). The
