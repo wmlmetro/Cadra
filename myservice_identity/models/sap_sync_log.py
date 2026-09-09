@@ -177,7 +177,15 @@ class NRSSapSyncLog(models.Model):
             # connection — and swallowing that produced a `log` recordset the
             # rollback had already erased, which every caller then read
             # `log.status` off and got a MissingError from. Raising is the
-            # honest answer; the caller's own row handler catches it.
+            # honest answer.
+            #
+            # Two of the three callers have a row handler that catches it —
+            # the xlsx import job and the SAP import wizard.
+            # `myservice_identity/controllers/sap_webhook.py` has none, so a
+            # raise there is an unhandled fault on the webhook. Still better
+            # than handing all five callers a recordset the rollback had
+            # already deleted, but it is a gap and it is written down here
+            # rather than implied.
             log.write({
                 'status': 'error',
                 # The type as well as the text: several ORM and psycopg2

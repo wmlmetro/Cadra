@@ -111,3 +111,47 @@ def test_every_401_carries_a_request_id_to_quote(api_base, capture):
     body = r.json()
     assert body["error"].get("request_id"), (
         "a 401 with no correlation id cannot be debugged at all")
+
+
+# A JWT header that is valid JSON but not an OBJECT.
+#   base64url("[]") . base64url("{}") . base64url("sig")
+# Every segment decodes, and every segment is the wrong shape.
+_NON_OBJECT_JWT = "W10.e30.c2ln"
+
+
+def test_a_token_whose_header_is_not_an_object_gets_a_401_envelope(
+        api_base, capture):
+    """Not an HTML 500, and not on every route at once.
+
+    `jwt_decode` read `header.get("alg")` straight off whatever the header
+    segment decoded to. `[]`, `"x"` and `1` are all valid JSON and none has
+    `.get`, so the AttributeError escaped the decoder, escaped `require_jwt`
+    (which catches only JwtError) and escaped `cadra_route` — whose try
+    starts AFTER the auth call — and Odoo rendered its own HTML error page
+    at an unauthenticated caller. One request, no credentials, every
+    authenticated route in the API.
+
+    Handoff 15 settled the shape rather than widening the handler: a JWT
+    header is required to be an object, and now something says so.
+    """
+    r = requests.get(f"{api_base}/api/v1/assets",
+                     headers={"Authorization": f"Bearer {_NON_OBJECT_JWT}"})
+    capture("auth/token_header_not_an_object", r)
+    assert r.headers.get("Content-Type", "").startswith("application/json"), (
+        "an HTML body here means the exception escaped the envelope "
+        "entirely: %r" % r.text[:200])
+    assert_envelope_err(r, expected_status=401, expected_code="unauthorized")
+
+
+def test_a_token_whose_payload_is_not_an_object_gets_a_401_envelope(
+        api_base, capture):
+    """The same shape one segment along, and reachable before handoff 15
+    regardless of what the decoder caught — `exp` is read outside the try."""
+    header = "eyJhbGciOiJIUzI1NiJ9"          # {"alg":"HS256"}
+    r = requests.get(f"{api_base}/api/v1/assets",
+                     headers={"Authorization": f"Bearer {header}.W10.c2ln"})
+    capture("auth/token_payload_not_an_object", r)
+    assert r.headers.get("Content-Type", "").startswith("application/json"), (
+        "an HTML body here means the exception escaped the envelope: %r"
+        % r.text[:200])
+    assert_envelope_err(r, expected_status=401, expected_code="unauthorized")

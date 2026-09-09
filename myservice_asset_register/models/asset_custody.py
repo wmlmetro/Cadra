@@ -42,35 +42,6 @@ def _no_hand_written_links_message():
     )
 
 
-def _acts_for_a_test_credential(env, user):
-    """True when `user` is the Odoo user behind a test API credential.
-
-    The external API suite exercises the RECORDER — it moves an asset's
-    custodian over HTTP — because a test that does not exercise the recorder
-    proves nothing about whether the chain is written. The recorder is
-    append-only, so those links are PERMANENT in whichever tenant the suite
-    ran against. That is accepted. What is not accepted is a reader of the
-    chain being unable to tell them apart from history.
-
-    The label is decided HERE, from the acting user, and never from anything
-    the caller sends. A request header saying "this one is a test" would let
-    anybody disguise a real change of custodian as an artefact, in the one
-    model whose whole value is that its contents were not invented.
-
-    `myservice_api` sits ABOVE this module, so the lookup is a membership
-    test rather than an import — a tenant without the API module has no test
-    credentials and every link is real. `active_test=False` because an
-    archived credential's artefacts are still artefacts.
-    """
-    Client = env.get('myservice.api.client')
-    if Client is None or not user:
-        return False
-    return bool(Client.sudo().with_context(active_test=False).search_count([
-        ('user_id', '=', user.id),
-        ('is_test_credential', '=', True),
-    ]))
-
-
 class NRSAssetCustody(models.Model):
     """One link in an asset's chain of custody. Append-only, and it means it.
 
@@ -198,6 +169,30 @@ class NRSAssetCustody(models.Model):
         raise UserError(_append_only_message())
 
     @api.model
+    def _resolve_source(self, declared, user):
+        """The label this link carries. The extension point for provenance.
+
+        Split out of `_record` so that a module ABOVE this one can have an
+        opinion about a link's provenance without this one reaching upward.
+        `myservice_api` overrides it to relabel a write made under a test
+        credential, and the flag it reads is a column that module owns.
+
+        That direction is load-bearing rather than tidy. When the lookup
+        lived here, this module read `myservice_api.client.is_test_credential`
+        while not depending on `myservice_api` — so Odoo's dependency graph
+        could not order the two, and any tenant carrying the new Python with
+        the older `myservice_api` schema would have raised `UndefinedColumn`
+        on EVERY custodian write: the API create and patch, the transfer
+        route, the transfer completion, the employee-departure clear, the
+        Odoo form, the importer. One registry serves every database here, so
+        that is a cross-tenant outage from a single-module upgrade.
+
+        Declared as an override point, it cannot happen: the column and the
+        code that reads it ship in the same module and move together.
+        """
+        return declared or self.env.context.get(CUSTODY_SOURCE_KEY) or 'direct'
+
+    @api.model
     def _record(self, asset, from_custodian, to_custodian, *,
                 reason=None, changed_at=None, changed_by=None, source=None):
         """Append one link. The only way a row is ever written.
@@ -206,17 +201,12 @@ class NRSAssetCustody(models.Model):
         parameter default, so a route can declare where a write came from
         once and every `custodian_id` write underneath it is labelled.
 
-        A write made under a test API credential is relabelled `test`,
-        whatever the caller declared — see `_acts_for_a_test_credential`. It
-        overrides rather than sits alongside because the reader's first
-        question about a link is whether it happened, and "it was a test"
-        answers that before "it arrived via the transfer route" is worth
-        knowing. The `reason` still carries the caller's own string.
+        The label itself is decided by `_resolve_source`, which
+        `myservice_api` extends — see there for why a write made under a test
+        credential is relabelled.
         """
         user = changed_by if changed_by is not None else self.env.user
-        source = source or self.env.context.get(CUSTODY_SOURCE_KEY) or 'direct'
-        if _acts_for_a_test_credential(self.env, user):
-            source = 'test'
+        source = self._resolve_source(source, user)
         vals = {
             'asset_id': asset.id,
             'from_custodian_id': from_custodian.id if from_custodian else False,

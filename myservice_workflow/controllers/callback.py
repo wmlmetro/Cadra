@@ -49,7 +49,24 @@ class WorkflowCallbackController(http.Controller):
         # found in `cadra_route`, avoided by scope rather than by order.
         try:
             config = request.env['workflow.config'].sudo().get_active_config()
-        except UserError as e:
+        except Exception as e:
+            # catch-all: reported — this route is `type='http'`, `auth='public'`
+            # and answers a MACHINE, so the one thing it may never do is let
+            # Odoo render an HTML error page. `get_active_config()` raises
+            # `UserError` and nothing else, which is why the clause is scoped
+            # to this one call rather than wrapped round the handler — a
+            # `UserError` clause over the whole thing would swallow an outcome
+            # handler's `ValidationError` (its subclass on Odoo 19) and answer
+            # 503, inviting WorkSpace to retry a payload that can never be
+            # accepted. But scoping it to `UserError` alone left a cursor or
+            # ORM failure on that `search` producing exactly the HTML page the
+            # rule forbids, so the clause is broad and the SCOPE is what keeps
+            # it honest.
+            if not isinstance(e, UserError):
+                _logger.exception("Workflow callback: could not resolve the "
+                                  "WorkSpace configuration")
+                return self._json_response(
+                    {'error': 'Workflow integration is not available'}, 503)
             # A tenant that was never wired to a WorkSpace. That is a real
             # state, not a server fault — and answering 500 in the config's
             # own words ("Please configure one under Settings → WorkSpace

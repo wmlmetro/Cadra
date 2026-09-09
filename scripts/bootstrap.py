@@ -174,7 +174,13 @@ def _all_scopes():
     try:
         from odoo.addons.myservice_api.controllers.utils import ALL_SCOPES as canonical
         return " ".join(sorted(canonical))
-    except Exception as exc:  # myservice_api not installed yet on a cold DB
+    except ImportError as exc:
+        # catch-all: optional — narrowed from `Exception`. The case this
+        # exists for is `myservice_api` not being on a cold database yet,
+        # which is an ImportError and nothing else. A broad catch here would
+        # hide a typo in `ALL_SCOPES` behind a hard-coded list that silently
+        # stops matching the code — and this list decides what every client
+        # in the estate is provisioned with.
         _say(f"could not import canonical scopes ({exc}); falling back", level="WARN")
         return (
             "admin approvals:write assets:read assets:write dashboards:read "
@@ -616,7 +622,12 @@ def run_seeds():
             env.cr.commit()
             _say(f"    ✓ {label}")
         except Exception as e:
-            _say(f"    ✗ {label} failed: {e}", level="ERROR")
+            # catch-all: reported — a seed is arbitrary tenant-provisioning
+            # code `exec`ed from this process, so its failure surface is
+            # whatever that file does. One seed failing must not abort the
+            # rest of provisioning, and the failure is announced at ERROR
+            # with the seed's own label rather than counted or dropped.
+            _say(f"    ✗ {label} failed: {type(e).__name__}: {e}", level="ERROR")
 
 
 # ─── main ──────────────────────────────────────────────────────────
@@ -636,6 +647,10 @@ def main():
         run_seeds()
         env.cr.commit()
     except Exception:
+        # catch-all: reported — the outermost handler of the whole script. It
+        # RE-RAISES: the rollback and the traceback are the point, not the
+        # catching. Without it a half-provisioned tenant would be committed
+        # by whatever ran last, which is worse than none.
         env.cr.rollback()
         _logger.exception("bootstrap failed")
         raise

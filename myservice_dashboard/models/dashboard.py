@@ -237,11 +237,20 @@ class MyServiceDashboard(models.AbstractModel):
         #
         # So a panel that cannot be built is NAMED rather than served empty.
         # `data._warnings` is already how this API admits a partial answer
-        # inside a successful payload (`rejected_fields` on assets, requests,
-        # locations and settings; `truncated` from `ok()` itself), so this is
-        # that convention one key deeper, not a new one. The point is only that
-        # `[]` and "I could not build this" stop being the same answer: rule 3
-        # is about silent degradation, and a named gap is not silent.
+        # inside a successful payload — `rejected_fields` on assets, requests,
+        # locations and settings — so this is that convention one key deeper
+        # and not a new one.
+        #
+        # It is NOT the same key as the envelope's own `_warnings.truncated`,
+        # which `ok()` attaches at the TOP LEVEL and deliberately so: a list
+        # endpoint's `data` is an array and has nowhere to hang it. The two
+        # can therefore both appear in one response, at different depths. A
+        # caller reading warnings has to look in both places, which is worth
+        # saying out loud rather than discovering.
+        #
+        # The point is only that `[]` and "I could not build this" stop being
+        # the same answer: rule 3 is about silent degradation, and a named gap
+        # is not silent.
         #
         # It is additive, so it breaks no existing consumer.
         unavailable = []
@@ -371,7 +380,6 @@ class MyServiceDashboard(models.AbstractModel):
         #
         # `soon_14` went with it: it was computed and never read.
         compliance = []
-        today_s = today.strftime('%Y-%m-%d')
         try:
             contract_overdue = Vehicle.search_count([
                 ('contract_renewal_overdue', '=', True)])
