@@ -46,6 +46,55 @@ The per-page ceiling is unchanged. It bounds the cost of one `SELECT` and is
 not the commercial control; a capped client walks the whole chain with the
 cursor.
 
+### ADDITIVE · `GET /dashboard/fleet-command` names a panel it could not build
+
+**Who is affected:** anybody reading the fleet-command payload. The new key is
+present only when something failed, so its absence carries no meaning and a
+client that never looks is unaffected.
+
+Three panels — vendor performance, compliance alerts and recent maintenance
+logs — returned an empty list for any failure, with nothing anywhere saying
+so. Two of the three had been empty on **every tenant since they were
+written**, because they read fields that do not exist on Odoo's fleet models:
+compliance counted an `insurance_expiration_date` that is in no version of
+`fleet.vehicle`, and the maintenance log read a `service_id` off
+`fleet.vehicle.log.services`, which has `service_type_id`. Both are fixed.
+
+A panel that now fails is named:
+
+```json
+{ "data": { "...": "...", "_warnings": { "unavailable": ["vendors"] } } }
+```
+
+A key listed there means the value in this payload is a placeholder, not an
+answer. `[]` and "I could not build this" were the same response until today.
+
+### BEHAVIOUR CHANGE · `POST /integrations/sap/employee-sync` no longer reports rows it then destroyed
+
+**Who is affected:** anybody sending more than one employee in a batch. The
+response shape is unchanged; what changes is that it is now true.
+
+The per-employee handler isolated a failed row by calling `rollback()`. A
+rollback is not row-scoped — it discards everything since the last commit —
+so one unmappable employee erased **every employee written before it in the
+same request**, while the `results` array had already recorded them as
+`"status": "success"`. A caller reconciling against that array believed it
+had written rows that no longer existed, and nothing in the response said
+otherwise.
+
+Each employee is now applied inside its own savepoint. A failure undoes that
+employee and nothing else, `status` is `error` for it and stays correct for
+the rows before it, and `error_message` carries the exception type as well as
+its text — several ORM and Postgres errors stringify to an empty string, so
+some callers were shown nothing at all.
+
+The same fix applies to the file-upload path
+(`POST /integrations/employees/import`, read back with
+`GET /integrations/employees/import/<job_id>`), where a batch is 200 rows
+between commits. That job's `error_samples` also returned `[]` when its own
+stored error list could not be read — "no errors" for a job full of them —
+and now returns an entry saying the detail is unreadable.
+
 ### NEW ENUM VALUE · `source: "test"` on a custody link
 
 **Who is affected:** anybody reading `source` off a custody link. Additive —

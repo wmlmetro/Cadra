@@ -22,7 +22,14 @@ def _selection_label(record, field_name):
         return ''
     try:
         selection = record.fields_get([field_name])[field_name]['selection']
-    except Exception:
+    except KeyError:
+        # Optional: the field exists — `record[field_name]` above would have
+        # raised otherwise — but is not a Selection, so `fields_get` describes
+        # it without a `selection` key and the raw stored value is the best
+        # label available. Narrowed from `except Exception`, which would also
+        # have hidden a real failure inside `fields_get` and returned a code
+        # where a label was expected, indistinguishable from a field that had
+        # simply never been a Selection.
         return value
     return dict(selection).get(value, value)
 
