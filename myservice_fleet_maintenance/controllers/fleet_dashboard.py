@@ -15,8 +15,11 @@ class FleetDashboardController(http.Controller):
         today = date.today()
 
         # ── Total fleet counts ──
+        # `active_domain` is what every breakdown below is counted over, so
+        # the columns sum to `kpis.active` in this same response.
+        active_domain = [('active', '=', True)]
         total = Vehicle.search_count([])
-        active = Vehicle.search_count([('active', '=', True)])
+        active = Vehicle.search_count(active_domain)
 
         # Maintenance status breakdown
         ok_count = Vehicle.search_count([
@@ -42,8 +45,9 @@ class FleetDashboardController(http.Controller):
         staff_buses = Vehicle.search_count([('is_staff_bus', '=', True)])
 
         # ── Vehicle list ──
-        vehicles = Vehicle.search(
-            [('active', '=', True)], order='name', limit=100)
+        # A LIST, and allowed to be a window: it is a sample and says so by
+        # being a list. `kpis.active` beside it says how many there are.
+        vehicles = Vehicle.search(active_domain, order='name', limit=100)
         vehicle_list = []
         for v in vehicles:
             vehicle_list.append({
@@ -67,10 +71,14 @@ class FleetDashboardController(http.Controller):
             })
 
         # ── Vehicles by state breakdown ──
-        state_counts = {}
-        for v in vehicles:
-            state = v.state_id.name if v.state_id else 'Unknown'
-            state_counts[state] = state_counts.get(state, 0) + 1
+        # Counted over the whole active fleet, not tallied over the 100-row
+        # `vehicles` window above. The breakdown used to be returned NEXT TO
+        # `kpis.total`, which is a real count — so on any fleet over 100 the
+        # columns did not add up to the headline in the same response, and
+        # the reasonable conclusion for anyone who summed them was that the
+        # register was wrong.
+        state_counts = self._tally(Vehicle, active_domain, 'state_id',
+                                   empty_label='Unknown')
 
         # ── Maintenance due vehicles ──
         maint_vehicles = Vehicle.search([
@@ -98,10 +106,8 @@ class FleetDashboardController(http.Controller):
             ('is_approved', '=', True), ('active', '=', True)])
 
         # ── Fuel type breakdown ──
-        fuel_counts = {}
-        for v in vehicles:
-            ft = v.fuel_type or 'unknown'
-            fuel_counts[ft] = fuel_counts.get(ft, 0) + 1
+        fuel_counts = self._tally(Vehicle, active_domain, 'fuel_type',
+                                  empty_label='unknown')
 
         return {
             'kpis': {
@@ -121,3 +127,19 @@ class FleetDashboardController(http.Controller):
             'fuel_counts':     fuel_counts,
             'maintenance':     maintenance_list,
         }
+
+    @staticmethod
+    def _tally(Model, domain, groupby, empty_label='Unknown'):
+        """{group label: count} over the WHOLE domain — one query, exact.
+
+        `_read_group` is never handed a limit. A Selection groups by its
+        raw value (what the JS keys off); a many2one groups by its record.
+        """
+        out = {}
+        for group, count in Model._read_group(domain, [groupby], ['__count']):
+            if hasattr(group, '_name'):
+                label = group.display_name if group else empty_label
+            else:
+                label = group if group else empty_label
+            out[label] = out.get(label, 0) + count
+        return out

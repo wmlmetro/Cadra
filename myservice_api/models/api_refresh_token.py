@@ -46,7 +46,7 @@ class MyserviceApiRefreshToken(models.Model):
 
     expires_at = fields.Datetime(required=True, index=True)
     revoked = fields.Boolean(default=False, index=True)
-    revoked_reason = fields.Char(help="rotated | reuse_detected | logout | user_disabled | client_disabled")
+    revoked_reason = fields.Char(help="rotated | reuse_detected | logout | user_disabled | client_disabled | limits_changed")
 
     replaced_by_id = fields.Many2one(
         "myservice.api.refresh_token", string="Rotated Into", ondelete="set null")
@@ -81,6 +81,28 @@ class MyserviceApiRefreshToken(models.Model):
             "last_used_ip": ip or False,
         })
         return rec, raw
+
+    @api.model
+    def _revoke_client_families(self, clients, reason):
+        """Revoke every live refresh token belonging to these clients.
+
+        Used when a client's pagination limits move. Widening fails safe
+        and narrowing does not: a cap is REDUCED because somebody decided
+        this credential should see less — a partner in dispute, an
+        integration behaving badly — and "it keeps the old limit until its
+        token expires" is fine at 3600 seconds and indefensible at the
+        86400 a client can be configured with. The administrative action
+        that most needs to be immediate is the restricting one.
+
+        Returns the number of tokens revoked, so the caller can log it.
+        """
+        live = self.sudo().search([
+            ("client_id", "in", clients.ids),
+            ("revoked", "=", False),
+        ])
+        if live:
+            live.write({"revoked": True, "revoked_reason": reason})
+        return len(live)
 
     @api.model
     def _revoke_family(self, family_id, reason):

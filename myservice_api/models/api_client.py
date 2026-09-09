@@ -1,8 +1,11 @@
+import logging
 import secrets
 
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 from werkzeug.security import check_password_hash, generate_password_hash
+
+_logger = logging.getLogger(__name__)
 
 
 class MyserviceApiClient(models.Model):
@@ -189,6 +192,10 @@ class MyserviceApiClient(models.Model):
             return False
         return check_password_hash(self.client_secret_hash, raw_secret)
 
+    #: Changing either of these invalidates every token already minted for
+    #: this client — the cap is stamped into the access JWT as a claim.
+    LIMIT_FIELDS = ('max_page_limit', 'total_record_cap')
+
     def write(self, vals):
         """Keep a client user's groups honest when its scopes move.
 
@@ -200,7 +207,32 @@ class MyserviceApiClient(models.Model):
         rewriting that person's groups from a scope string would be an
         escalation nobody asked for.
         """
+        # Snapshot BEFORE the write: a limit that is set to the value it
+        # already had must not revoke anything. Saving the form is not an
+        # administrative decision.
+        moved = [name for name in self.LIMIT_FIELDS if name in vals]
+        previous = ({record.id: {name: record[name] for name in moved}
+                     for record in self} if moved else {})
+
         result = super().write(vals)
+
+        if moved:
+            changed = self.filtered(
+                lambda r: any(r[name] != previous[r.id][name] for name in moved))
+            if changed:
+                # The access JWT carries the cap as a claim and is
+                # unrevocable for its TTL; the refresh FAMILY is the part
+                # that would otherwise go on re-minting under the old
+                # ceiling for a 30-day sliding window. /auth/refresh already
+                # re-reads the limits off this record, so this closes the
+                # remaining case: a caller that never refreshes and simply
+                # keeps its family alive.
+                revoked = self.env['myservice.api.refresh_token'].sudo(
+                )._revoke_client_families(changed, 'limits_changed')
+                _logger.info(
+                    "api client limits changed on %s; revoked %d refresh "
+                    "token(s)", ", ".join(changed.mapped('client_id')), revoked)
+
         if 'scopes' in vals:
             prefix = self.CLIENT_USER_LOGIN_PREFIX
             for record in self:

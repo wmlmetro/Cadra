@@ -25,12 +25,41 @@ is one grep away.
 Logger `cadra.auth`, one line per attempt:
 
 ```
-… WARNING <db> cadra.auth: request_id=9f2c… client_id=Vendra outcome=case_mismatch matched=vendra
-… WARNING <db> cadra.auth: request_id=…    client_id=vendra outcome=bad_secret
-… WARNING <db> cadra.auth: request_id=…    client_id=vendra outcome=inactive
-… WARNING <db> cadra.auth: request_id=…    client_id=vendr  outcome=no_such_client
+… WARNING <db> cadra.auth: request_id=9f2c… client_id=Vendra outcome=case_mismatch matched=vendra ip=102.89.x.x ip_source=xff
+… WARNING <db> cadra.auth: request_id=…    client_id=vendra outcome=bad_secret ip=102.89.x.x ip_source=xff
+… WARNING <db> cadra.auth: request_id=…    client_id=vendra outcome=inactive ip=102.89.x.x ip_source=xff
+… WARNING <db> cadra.auth: request_id=…    client_id=vendr  outcome=no_such_client ip=10.244.1.7 ip_source=xff,infra
 … INFO    <db> cadra.auth: request_id=…    client_id=vendra outcome=ok
 ```
+
+`ip=` is on the **failures only**. The success path records the address on
+the client record (`last_used_ip`) instead, which is where you look for
+"where does this credential normally call from".
+
+## Reading the ip
+
+It is the field that separates *"somebody typed the secret wrong"* from
+*"somebody is working through a list"*, so `ip_source=` says how much the
+value is worth:
+
+| ip_source | meaning |
+|---|---|
+| `xff` | One proxy hop was declared. This is the caller. |
+| `xff+N` | N further hops were declared to the left. The value is the nearest address we actually trust, and the caller is behind another proxy — so it is **not** the caller. |
+| `peer` | No `X-Forwarded-For` at all: the socket's own peer. Direct traffic, or a proxy that strips the header. |
+| `…,infra` | The resolved address is private, loopback or link-local — it is our ingress, a proxy or a sidecar, **not a caller**. Said out loud because a field that always reads the same is worse than no field. |
+
+Only the **right-most** `X-Forwarded-For` entry is logged. That is the one
+our own nearest proxy appended; everything to its left is caller-supplied
+and forgeable, and logging it would be recording a claim as an observation.
+
+Do not rely on Odoo's `proxy_mode` for this. Odoo 19 applies werkzeug's
+ProxyFix only when the request also carries `X-Forwarded-Host`
+(`odoo/http.py`, `Application.__call__`), and the dev stack's nginx sends
+`X-Forwarded-For` and `X-Forwarded-Proto` but not `X-Forwarded-Host` — which
+is why `last_used_ip` reads the proxy container's address on every client
+row in every local tenant. Cadra resolves the address itself, the same way
+in both environments.
 
 ```bash
 # staging / prod
@@ -54,6 +83,12 @@ docker compose -f docker-compose.yml -f docker-compose.19.yml logs odoo | grep c
 
 The client **secret**. Not hashed, not truncated, not as a length. If you find
 one in a log, that is a defect, not a debugging aid.
+
+The source **IP** IS logged, on failures. It is not a new category of data:
+it arrives on the same unauthenticated request as the client id below, and
+`last_used_ip` has always recorded it on success — so until handoff 13 the
+caller who succeeded was identified and the one who failed was anonymous,
+which is backwards. It is sanitised like any other header value.
 
 The client **id** is logged as sent, because it is half of a credential pair
 and it arrived in the clear — that is the whole point of the `case_mismatch`

@@ -1475,3 +1475,348 @@ def test_the_record_cap_is_not_read_straight_from_the_aud_claim():
     assert "CLAIM_TOTAL_RECORD_CAP" in body, (
         "record_cap() no longer consults the per-client claim, so the cap is "
         "back to being decided by whether the caller looks like a browser.")
+
+
+# ─── a count derived from a capped window ────────────────────────────
+#
+# Handoff 12 found six places where a number published to a caller was
+# `len()` over a `search(..., limit=N)`. Two were in myservice_api and were
+# fixed there; handoff 13 fixed the other four. The interesting part is not
+# the four — it is the fifth, which nobody has written yet.
+#
+# The defect has a shape, and the shape is mechanical: a name bound to a
+# LIMITED search, and a COUNT taken from it. It reaches a published payload
+# three ways, and all three were live in this repo:
+#
+#     all_open = Req.search(domain, limit=500)
+#     kpis['open'] = len(all_open)                      # direct
+#     kpis['overdue'] = len(all_open.filtered(...))     # through a filter
+#     for r in all_open: tally[k] = tally.get(k, 0) + 1 # through a tally
+#
+# What the AST genuinely cannot tell is a "how many are there" from a "how
+# many did I just fetch" — `len(records) > limit` inside a paginator is the
+# correct code, and it has the identical shape. So the guard does not try:
+# it flags the shape and requires the author to say, on the line, that this
+# one counts the page on purpose:
+#
+#     has_more = len(records) > limit   # capped-count-ok: the page size
+#
+# A waiver that has to be written out is the point. It turns a silent wrong
+# number into a sentence somebody chose to write.
+
+_CAPPED_COUNT_WAIVER = "capped-count-ok"
+
+
+def _limited_search(node):
+    """A `.search(...)` / `.search_read(...)` carrying a non-zero limit."""
+    if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+        return False
+    if node.func.attr not in ("search", "search_read"):
+        return False
+    for keyword in node.keywords:
+        if keyword.arg == "limit" and not (
+                isinstance(keyword.value, ast.Constant)
+                and keyword.value.value in (None, 0)):
+            return True
+    # search(domain, offset, limit, order) positionally.
+    return node.func.attr == "search" and len(node.args) >= 3
+
+
+def _holds_limited_search(node):
+    return any(_limited_search(child) for child in ast.walk(node))
+
+
+def _names_in(node):
+    return {n.id for n in ast.walk(node) if isinstance(n, ast.Name)}
+
+
+def _bound_names(target):
+    return {n.id for n in ast.walk(target) if isinstance(n, ast.Name)}
+
+
+def _root_name(node):
+    """The name at the root of `x`, `x.filtered(...)`, `x[:30]`, `x.ids`."""
+    while True:
+        if isinstance(node, ast.Name):
+            return node.id
+        if isinstance(node, ast.Call):
+            node = node.func
+        elif isinstance(node, ast.Attribute):
+            node = node.value
+        elif isinstance(node, ast.Subscript):
+            node = node.value
+        else:
+            return None
+
+
+class _CappedCountScan:
+    """Walk one file's functions in SOURCE ORDER, tracking which names hold
+    a capped window.
+
+    In order, and with a kill on rebinding, because these controllers reuse
+    `v` and `r` across three loops in one function. A flow-insensitive
+    version flagged an honest tally forty lines below an unrelated capped
+    search, purely because the loop variable had the same name.
+    """
+
+    def __init__(self, source):
+        self.lines = source.splitlines()
+        self.findings = []
+
+    def _waived(self, lineno):
+        """The line itself, or the comment block IMMEDIATELY above it.
+
+        Contiguous, so a waiver cannot drift onto a statement it was never
+        written for: the moment a line of code lands between the comment
+        and the count, the waiver stops applying and the guard speaks up.
+        """
+        if _CAPPED_COUNT_WAIVER in self.lines[lineno - 1]:
+            return True
+        index = lineno - 2
+        while index >= 0 and self.lines[index].strip().startswith("#"):
+            if _CAPPED_COUNT_WAIVER in self.lines[index]:
+                return True
+            index -= 1
+        return False
+
+    def _flag(self, node, why):
+        if not self._waived(node.lineno):
+            self.findings.append((node.lineno, why))
+
+    def _expressions(self, node, capped):
+        for child in ast.walk(node):
+            if not (isinstance(child, ast.Call)
+                    and isinstance(child.func, ast.Name)
+                    and child.func.id == "len" and child.args):
+                continue
+            arg = child.args[0]
+            if _holds_limited_search(arg):
+                self._flag(child, "len() of a limited search")
+            elif _root_name(arg) in capped:
+                self._flag(child, "len() of %s, a capped window"
+                                  % _root_name(arg))
+            elif isinstance(arg, (ast.ListComp, ast.SetComp, ast.GeneratorExp)):
+                if any(_holds_limited_search(gen.iter)
+                       or (_names_in(gen.iter) & set(capped))
+                       for gen in arg.generators):
+                    self._flag(child, "len() of a comprehension over a "
+                                      "capped window")
+
+    def block(self, body, capped):
+        for statement in body:
+            self.statement(statement, capped)
+
+    def statement(self, node, capped):
+        if isinstance(node, ast.Assign):
+            self._expressions(node.value, capped)
+            hot = _holds_limited_search(node.value) or bool(
+                _names_in(node.value) & set(capped))
+            for target in node.targets:
+                if isinstance(target, ast.Subscript):
+                    if (_root_name(target) in capped
+                            and isinstance(node.value, ast.BinOp)
+                            and isinstance(node.value.op, ast.Add)
+                            and isinstance(node.value.right, ast.Constant)
+                            and node.value.right.value == 1):
+                        self._flag(node, "a tally over a capped window")
+                    continue
+                for name in _bound_names(target):
+                    if hot:
+                        capped[name] = node.lineno
+                    else:
+                        capped.pop(name, None)
+        elif isinstance(node, ast.AugAssign):
+            self._expressions(node.value, capped)
+            if (_root_name(node.target) in capped
+                    and isinstance(node.op, ast.Add)
+                    and isinstance(node.value, ast.Constant)
+                    and node.value.value == 1):
+                self._flag(node, "a tally over a capped window")
+        elif isinstance(node, ast.For):
+            self._expressions(node.iter, capped)
+            hot = _holds_limited_search(node.iter) or bool(
+                _names_in(node.iter) & set(capped))
+            for name in _bound_names(node.target):
+                if hot:
+                    capped[name] = node.lineno
+                else:
+                    capped.pop(name, None)
+            if hot:
+                # Anything the loop APPENDS TO or keys into is being built
+                # out of the window, so it inherits the window's blindness.
+                for child in ast.walk(node):
+                    if (isinstance(child, ast.Call)
+                            and isinstance(child.func, ast.Attribute)
+                            and child.func.attr in ("append", "extend", "add",
+                                                    "update", "setdefault")):
+                        root = _root_name(child.func.value)
+                        if root:
+                            capped.setdefault(root, child.lineno)
+                    if isinstance(child, (ast.Assign, ast.AugAssign)):
+                        targets = list(getattr(child, "targets", []))
+                        if getattr(child, "target", None) is not None:
+                            targets.append(child.target)
+                        for target in targets:
+                            if isinstance(target, ast.Subscript):
+                                root = _root_name(target)
+                                if root:
+                                    capped.setdefault(root, child.lineno)
+            self.block(node.body, capped)
+            self.block(node.orelse, capped)
+        elif isinstance(node, (ast.If, ast.While)):
+            self._expressions(node.test, capped)
+            self.block(node.body, capped)
+            self.block(node.orelse, capped)
+        elif isinstance(node, ast.Try):
+            self.block(node.body, capped)
+            for handler in node.handlers:
+                self.block(handler.body, capped)
+            self.block(node.orelse, capped)
+            self.block(node.finalbody, capped)
+        elif isinstance(node, ast.With):
+            self.block(node.body, capped)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            self.block(node.body, {})
+        else:
+            for child in ast.iter_child_nodes(node):
+                if isinstance(child, ast.expr):
+                    self._expressions(child, capped)
+
+
+def _capped_count_findings(source):
+    """[(lineno, why)] for one module's source."""
+    scan = _CappedCountScan(source)
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            scan.block(node.body, {})
+    return sorted(set(scan.findings))
+
+
+def test_no_published_count_is_taken_from_a_capped_window():
+    """The whole first-party tree, by shape rather than by a list of files.
+
+    A pinned list of the four known sites would have closed handoff 13 and
+    caught nothing afterwards. This is what stops the fifth one.
+    """
+    offenders = []
+    for path in _first_party_python_files():
+        if "/tests/" in str(path):
+            continue
+        findings = _capped_count_findings(path.read_text(encoding="utf-8"))
+        for lineno, why in findings:
+            offenders.append("%s:%d — %s"
+                             % (path.relative_to(REPO_ROOT), lineno, why))
+
+    assert not offenders, (
+        "a number that describes the register is being derived from a "
+        "bounded fetch:\n  " + "\n  ".join(offenders)
+        + "\n\nCount it with search_count() or _read_group() on the "
+          "unclamped domain. If this one genuinely counts the rows just "
+          "fetched — a page size, a 'the window was full so ask for another "
+          "pass' — say so on the line with a `%s:` comment."
+        % _CAPPED_COUNT_WAIVER)
+
+
+# The four shapes, written as they actually appeared before handoff 13. A
+# guard that has never been seen to fail is a decoration.
+_HANDOFF_13_SHAPES = [
+    ("A2 — the FM KPIs", """
+def dashboard_data(self):
+    all_open = Req.search([('closed', '=', False)], limit=500)
+    overdue = all_open.filtered(lambda r: r.deadline_date < today)
+    return {'open': len(all_open), 'overdue': len(overdue)}
+""", 2),
+    ("A1 — sla_pct", """
+def dashboard_data(self):
+    all_open = Req.search([('closed', '=', False)], limit=500)
+    groups = {}
+    for r in all_open:
+        groups.setdefault(r.category_id.name, []).append(r)
+    for name in groups:
+        reqs = groups.get(name, [])
+        total = len(reqs)
+        ov = len([r for r in reqs if r.deadline_date < today])
+""", 2),
+    ("A3 — the fleet breakdown", """
+def fleet_dashboard_data(self):
+    vehicles = Vehicle.search([('active', '=', True)], order='name', limit=100)
+    state_counts = {}
+    for v in vehicles:
+        state = v.state_id.name if v.state_id else 'Unknown'
+        state_counts[state] = state_counts.get(state, 0) + 1
+""", 1),
+    ("A4 — kpis.vendors", """
+def get_fleet_command(self):
+    vendors = []
+    for v in self.env['fleet.service.vendor'].search([], limit=6):
+        vendors.append({'id': v.id})
+    return {'kpis': {'vendors': len(vendors)}}
+""", 1),
+]
+
+
+@pytest.mark.parametrize("label,source,expected",
+                         _HANDOFF_13_SHAPES,
+                         ids=[s[0] for s in _HANDOFF_13_SHAPES])
+def test_the_guard_would_have_caught_handoff_13(label, source, expected):
+    findings = _capped_count_findings(source)
+    assert len(findings) >= expected, (
+        "%s: the guard found %d of the %d counts in this shape — it would "
+        "have let the defect through.\n%s"
+        % (label, len(findings), expected, findings))
+
+
+_HONEST_SHAPES = [
+    ("the page size, waived", """
+def paginate(model, domain):
+    records = model.search(domain, limit=limit + 1)
+    has_more = len(records) > limit   # capped-count-ok: the page, not the register
+"""),
+    ("a count over an unclamped domain", """
+def kpis(self):
+    return {'open': Req.search_count([('closed', '=', False)])}
+"""),
+    ("a grouped count", """
+def sla(self):
+    return dict(Req._read_group([('closed', '=', False)], ['category_id'], ['__count']))
+"""),
+    ("a tally over an unlimited search", """
+def by_make(self):
+    counts = {}
+    for v in Vehicle.search([]):
+        counts[v.brand_id.name] = counts.get(v.brand_id.name, 0) + 1
+"""),
+    ("a loop variable reused after the capped one is done", """
+def mixed(self):
+    recent = Vehicle.search([], order='name', limit=10)
+    for v in recent:
+        pass
+    counts = {}
+    for v in Vehicle.search([]):
+        counts[v.id] = counts.get(v.id, 0) + 1
+"""),
+]
+
+
+@pytest.mark.parametrize("label,source", _HONEST_SHAPES,
+                         ids=[s[0] for s in _HONEST_SHAPES])
+def test_the_guard_is_not_fooled_into_flagging_honest_code(label, source):
+    findings = _capped_count_findings(source)
+    assert not findings, (
+        "%s: the guard flagged correct code %s. A guard that cries wolf "
+        "gets waived everywhere, which is the same as not having it."
+        % (label, findings))
+
+
+def test_the_waiver_has_to_be_written_out():
+    """Remove the comment and the same line fails. Otherwise the waiver is
+    decoration and the guard is asserting nothing."""
+    waived = """
+def paginate(model, domain):
+    records = model.search(domain, limit=limit + 1)
+    has_more = len(records) > limit   # capped-count-ok: the page, not the register
+"""
+    assert not _capped_count_findings(waived)
+    assert _capped_count_findings(
+        waived.replace("   # capped-count-ok: the page, not the register", ""))

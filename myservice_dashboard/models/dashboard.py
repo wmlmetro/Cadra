@@ -1,5 +1,9 @@
+import logging
+
 from odoo import models, api
 from datetime import date, timedelta
+
+_logger = logging.getLogger(__name__)
 
 
 class MyServiceDashboard(models.AbstractModel):
@@ -221,8 +225,16 @@ class MyServiceDashboard(models.AbstractModel):
             idle = 0
 
         # ── Vendor performance ────────────────────────────────────────
+        # `vendor_total` is the NUMBER; `vendors` is a six-row sample of it.
+        # `kpis.vendors` used to be `len(vendors)`, so it maxed out at 6
+        # while `get_kpis()` counted the same quantity correctly — two
+        # endpoints, two answers, one question. The web client labels this
+        # figure "Approved Vendors", so that is what it counts.
+        vendor_total = 0
         vendors = []
         try:
+            vendor_total = self.env['fleet.service.vendor'].search_count(
+                [('is_approved', '=', True)])
             for v in self.env['fleet.service.vendor'].search(
                     [('is_approved','=',True)], limit=6):
                 vendors.append({
@@ -230,10 +242,26 @@ class MyServiceDashboard(models.AbstractModel):
                     'name': v.name,
                     'approved': v.is_approved,
                     'specialisation': v.specialisation or '',
-                    'state': v.state_id.name if v.state_id else '',
+                    # The vendor's own state, via its contact. It was
+                    # `v.state_id`, and `fleet.service.vendor` HAS NO SUCH
+                    # FIELD — the columns are name, partner_id, email,
+                    # phone, specialisation, is_approved, active, notes. So
+                    # the first vendor raised AttributeError into the bare
+                    # `except` below and the list came back EMPTY on every
+                    # tenant, always. `kpis.vendors` was `len()` of that, so
+                    # it was not "capped at 6": it was zero, and the web
+                    # client's card read "No approved vendors yet" to a
+                    # tenant that had them.
+                    'state': (v.partner_id.state_id.name
+                              if v.partner_id.state_id else ''),
                 })
         except Exception:
-            pass
+            # The model is absent outside the NRS bundle, which is the case
+            # this try exists for. Anything else is a defect, and silently
+            # returning an empty list is how this one survived — so it goes
+            # to the log rather than to nowhere.
+            _logger.warning("dashboard: vendor performance unavailable",
+                            exc_info=True)
 
         # ── Vehicles by location (top 10) ─────────────────────────────
         by_location = []
@@ -322,7 +350,7 @@ class MyServiceDashboard(models.AbstractModel):
                 'idle':         idle,
                 'no_location':  without_loc,
                 'unassigned':   unassigned_drv,
-                'vendors':      len(vendors),
+                'vendors':      vendor_total,
             },
             'by_location':  by_location,
             'by_make':      by_make_list,

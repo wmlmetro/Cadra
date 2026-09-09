@@ -386,6 +386,9 @@ class WorkflowDispatchLog(models.Model):
         # another pass rather than making a backlog wait a whole interval per
         # batch — after a long outage that is the difference between minutes
         # and hours.
+        # capped-count-ok: asking whether the WINDOW came back full is
+        # the whole point of the check — it is how the drain knows to
+        # book another pass rather than making a backlog wait.
         if len(rows) == limit:
             self._trigger_drain()
         return delivered
