@@ -100,6 +100,34 @@ Cadra is one of three systems in the NRS integration programme, defined by *"End
 
 Odoo 19 removed it. `odoo/orm/model_classes.py:162` logs *"Model attribute '_sql_constraints' is no longer supported, please define models.Constraint on the model"* and **creates no constraint** — a uniqueness guarantee declared the old way silently stops existing. **8 declaration sites** were affected — 2 first-party plus 6 in `crnd-19/` — and all are now ported; `docs/constraint-audit.md` is the standing record. Use `models.Constraint("UNIQUE (a, b)", "message")` on 19, keeping the legacy list behind an `_ODOO_MAJOR` guard in our own modules only (the 15 stack still loads them). `dist/` is the Odoo 15 vendor tree and is **not** on the 19 addons path — its `_sql_constraints` are correct as they stand; `crnd-19/`/`oca-19/` are 19-only and need no guard. `tests/test_source_guards.py` fails on any unguarded reintroduction in our modules.
 
+### Multi-tenancy is a development and demo arrangement, not how a client runs
+
+**Every real client gets its own server and its own single-tenant deployment.** The
+shared cluster — `nrs19`, `jaizbankplc`, `gtb19`, `cadra19`, `nrs`, `lasg`, `gtb`,
+`test19` on one registry — exists so one machine can carry development work and
+demonstrations side by side. It is not the production topology and never was.
+
+**This is load-bearing for how you read everything below and every measurement in
+any report.** Three consequences, in order of how easily they mislead:
+
+1. **A per-tenant row count is a fact about a demo, not about an estate.** Numbers
+   from `jaizbankplc` or `nrs19` size a test, they do not size a customer. Say which
+   tenant a number came from and treat it as a fixture unless somebody confirms
+   otherwise.
+2. **The fan-out below is a development obligation.** It is real and it must be
+   done here, because one registry does serve every database on this machine. On a
+   client's own server there is one database, so "schema before code" collapses to
+   an ordinary migration and the blast radius of a missed tenant is zero.
+3. **Anything justified by "other tenants share this" needs re-reading.** The
+   external record cap was described as a paywall protecting us from partner
+   integrations on a shared cluster; on a single-tenant server its purpose is rate
+   limiting and nothing else. Keeping it is still right. The *reason* changed, and a
+   control whose stated reason has quietly stopped being true is how a future
+   maintainer argues it away.
+
+`docs/DEPLOYMENT.md`'s `prod` profile — one VPS, one domain, Caddy — is the real
+shape. The Kubernetes cluster is the demo estate.
+
 ### Adding a stored field is a multi-tenant migration, not a code change
 
 One Odoo process serves every database from one registry, so the moment a stored field lands in the Python, **every tenant that has not been upgraded is broken** — reads of that column raise `UndefinedColumn`, and any serializer touching it 500s the endpoint. Upgrade **all** databases before the code ships, not just the one you tested on:
@@ -286,3 +314,4 @@ On staging/prod the `cadra-upgrade` Job must likewise fan out per tenant databas
 - 2026-09-09 · `[landed]` **Changing a client's pagination limits revokes its refresh families.** `/auth/refresh` already re-reads the limits off the client record, so widening bites on the next refresh; what was left open is a family that keeps rotating under the OLD ceiling for a 30-day sliding window, and narrowing is the direction that matters — a cap is reduced because somebody decided this credential should see less. Widening revokes too, because a rule with an exception is a rule somebody has to remember. **What this does NOT close: the access JWT carries the cap as a claim and is unrevocable for its TTL.** Every client on every tenant is at the 3600-second default today, which is the window the ruling itself calls acceptable; the 86400 a client can be configured with would not be. · Handoff 13 B1.
 - 2026-09-09 · `[landed]` **The source IP is logged on `/auth/token` failures, with a label saying how much it is worth.** `ip_source` is `xff` (one declared hop — the caller), `xff+N` (the nearest trusted address, not the caller), or `peer`; a private, loopback or link-local value is additionally marked `,infra`, because a field that always reads the same is worse than no field. Only the RIGHT-most `X-Forwarded-For` entry is used — the one our own proxy appended — and it is printed only after `ipaddress` has parsed it, so an unauthenticated caller cannot append a field to our log line through a header value where spaces are legal and `ip=` is last. · Handoff 13 B2.
 - 2026-09-09 · **Odoo 19 applies ProxyFix only when the request carries `X-Forwarded-Host`** (`odoo/http.py`, `Application.__call__`), and the dev nginx sends `X-Forwarded-For` and `X-Forwarded-Proto` but not that one. So `proxy_mode = True` is not enough: `remote_addr` was the nginx container, and `last_used_ip` read `172.20.0.4` on every API client row in every local tenant. Cadra now resolves the address itself, identically with or without ProxyFix, and `last_used_ip` records the caller. · Handoff 13 B2; an ENVIRONMENT-FACTS candidate.
+- 2026-09-09 · **Multi-tenancy is development and demo only; every client runs single-tenant on its own server.** Recorded because it silently reframes three things that were argued from the shared cluster — what a per-tenant measurement means, why the per-tenant upgrade fan-out exists, and what the external record cap is for. The fan-out stays mandatory here and is meaningless there; the cap stays and its reason changes from a shared-cluster paywall to rate limiting. · Owner, on requesting dedicated servers from NRS.
