@@ -19,7 +19,19 @@ import pytest
 from .conftest import assert_envelope_ok
 
 _SOURCES = {"api_transfer", "api_write", "transfer", "direct",
-            "tracking_backfill"}
+            "tracking_backfill", "test"}
+
+# What this suite's own links come back as. The suite moves a real asset's
+# custodian, and the recorder is append-only, so every link it writes is
+# PERMANENT in whichever tenant the run was pointed at. `source: "test"`
+# is what makes them visible as artefacts to somebody reading the chain who
+# was never told the suite exists — the same argument as `tracking_backfill`.
+#
+# Decided server-side from the credential (`myservice.api.client
+# .is_test_credential`), never from anything sent with the request: a caller
+# able to label its own writes could disguise a real change of custodian as
+# a test.
+_TEST_SOURCE = "test"
 
 
 def _chain(client, asset_id, **params):
@@ -185,7 +197,12 @@ def test_a_transfer_appends_exactly_one_link(client, test_asset, capture):
     assert len(after) == len(before) + 1
     appended = after[-1]
     assert appended["id"] == link_id
-    assert appended["source"] == "api_transfer"
+    # `api_transfer` is what the route declares. A credential flagged
+    # `is_test_credential` overrides it to `test` on the way in, deliberately
+    # — these links are permanent artefacts and saying so matters more to a
+    # reader than which route they arrived by. Both are correct answers here;
+    # anything else means the route stopped declaring a source.
+    assert appended["source"] in ("api_transfer", "test")
     assert appended["reason"] == "test_custody.append_one"
     assert appended["to_custodian"]["id"] == target
     # The acting user, recorded. A chain that cannot say who moved the asset
@@ -216,7 +233,9 @@ def test_a_patch_of_the_custodian_also_appends(client, test_asset):
         # here would be the bug.
         return
     assert len(after) == len(before) + 1
-    assert after[-1]["source"] == "api_write"
+    # See the transfer test above: `test` is the same link relabelled by the
+    # credential, not a different source.
+    assert after[-1]["source"] in ("api_write", "test")
 
 
 def test_the_chain_has_no_write_endpoint(client, test_asset):
@@ -228,3 +247,37 @@ def test_the_chain_has_no_write_endpoint(client, test_asset):
     r = client.post(f"/api/v1/assets/{test_asset['id']}/custody",
                     json={"to_custodian_id": 1})
     assert r.status_code in (404, 405)
+
+
+def test_a_link_this_suite_wrote_says_so(client, test_asset):
+    """The suite's own artefacts are identifiable FROM THE API ALONE.
+
+    This suite writes permanent links into whichever tenant it is pointed
+    at — that is accepted, because a test that does not exercise the
+    recorder proves nothing. What is not acceptable is a reader of the
+    chain being unable to tell. The old marker was a `reason` string
+    carrying this module's name, which is a string somebody has to know to
+    look for; `source` is returned on every link to everyone.
+
+    Skips rather than fails where the credential is not provisioned as a
+    test credential — a tenant bootstrapped before the flag existed, or a
+    run pointed at a real integration credential. Skipping says so; a
+    failure would read as a defect in the labelling.
+    """
+    links_before = len(_whole_chain(client, test_asset["id"]))
+    _build_a_chain(client, test_asset["id"])
+    full = _whole_chain(client, test_asset["id"])
+    if len(full) <= links_before:
+        pytest.skip("tenant has no two employees to build a chain with")
+
+    ours = full[links_before:]
+    sources = {link["source"] for link in ours}
+    if sources == {"api_transfer"}:
+        pytest.skip(
+            "this credential is not flagged `is_test_credential`; its links "
+            "are labelled by route, not as artefacts")
+    assert sources == {_TEST_SOURCE}, (
+        "a link written by the test suite came back as %s. It has to say "
+        "what it is: these rows are permanent and append-only, and a reader "
+        "who was never told this suite exists must still be able to see "
+        "that they are artefacts." % sorted(sources))

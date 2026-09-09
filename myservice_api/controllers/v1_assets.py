@@ -70,6 +70,12 @@ def _tag_label_states():
             if values:
                 return values
     except Exception:
+        # catch-all: unknown — broad on purpose. The FALLBACK is
+        # the safe answer here, not the exception: whatever goes
+        # wrong reading the model, the published tuple below still
+        # rejects a typo, which is the control. Narrowing would
+        # mean guessing what `get_values` can raise and letting
+        # the guess decide whether every list request 500s.
         _logger.warning(
             "could not read nrs.asset.tag_label_state selection; "
             "falling back to the published values", exc_info=True)
@@ -106,6 +112,12 @@ def _sap_reconciliation_states():
             if values:
                 return values
     except Exception:
+        # catch-all: unknown — broad on purpose. The FALLBACK is
+        # the safe answer here, not the exception: whatever goes
+        # wrong reading the model, the published tuple below still
+        # rejects a typo, which is the control. Narrowing would
+        # mean guessing what `get_values` can raise and letting
+        # the guess decide whether every list request 500s.
         _logger.warning(
             "could not read nrs.asset.sap_reconciliation_state selection; "
             "falling back to the published values", exc_info=True)
@@ -1155,9 +1167,14 @@ class CadraAssetsV1(http.Controller):
         honestly with the cursor this API publishes.
 
         `source` tells a live link from one reconstructed out of the chatter
-        tracking values that preceded this model (`tracking_backfill`). The
-        reconstruction is faithful, but it begins where `custodian_id` became
-        a tracked field, not where the register does.
+        tracking values that preceded this model (`tracking_backfill`), and a
+        link written by the test suite against a live-shaped tenant (`test`).
+        The reconstruction is faithful, but it begins where `custodian_id`
+        became a tracked field, not where the register does.
+
+        The chain is EXEMPT from the per-credential record cap. It is one
+        asset's complete record rather than a page of a register, and a
+        client limited to 100 records still walks all of it.
         """
         rec, error = _browse_or_404(id)
         if error:
@@ -1167,6 +1184,14 @@ class CadraAssetsV1(http.Controller):
         page, next_cursor, total = paginate(
             Custody, [("asset_id", "=", rec.id)],
             limit=parse_limit(qs), cursor=qs.get("cursor"),
+            # Exempt from `total_record_cap`, deliberately, and the reasoning
+            # is at `utils.CAP_EXEMPT_REASON_CUSTODY`: a truncated chain
+            # cannot be told from a complete one, which is the defect this
+            # model exists to close. The embed (`include=custody`) has always
+            # returned the whole chain; this is what makes the two paths give
+            # the same answer to the same question instead of one of them
+            # being silently shorter. `total_estimate` is true on both.
+            uncapped=True,
         )
         return ok(
             data=[_serialize_custody(c) for c in page],

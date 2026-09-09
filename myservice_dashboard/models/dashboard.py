@@ -46,14 +46,25 @@ class MyServiceDashboard(models.AbstractModel):
             ('date_created', '>=', date.today().strftime('%Y-%m-%d')),
         ])
 
-        # Vendor KPIs
-        try:
-            total_vendors = self.env['fleet.service.vendor'].search_count([])
-            approved_vendors = self.env['fleet.service.vendor'].search_count([
-                ('is_approved', '=', True)])
-        except Exception:
-            total_vendors = 0
-            approved_vendors = 0
+        # Vendor KPIs.
+        #
+        # This was `except Exception: total = approved = 0` — the same shape,
+        # over the same model, that told every tenant "No approved vendors yet"
+        # for three years on `get_fleet_command`. Two endpoints, one question,
+        # and this was the half that still answered zero without saying so.
+        #
+        # Nothing here needs a handler. `myservice_dashboard.__manifest__`
+        # DEPENDS on `myservice_fleet_maintenance`, which is where
+        # `fleet.service.vendor` is declared, so Odoo cannot load the model
+        # holding this method without loading that one — the "vendors module
+        # may not be installed" case the handler read as does not exist. And
+        # `is_approved` is one of its eight columns. A handler over a body that
+        # cannot fail is not protection; it is a standing instruction to report
+        # zero the next time somebody renames something, which is precisely how
+        # the last one survived.
+        Vendor = self.env['fleet.service.vendor']
+        total_vendors = Vendor.search_count([])
+        approved_vendors = Vendor.search_count([('is_approved', '=', True)])
 
         # Asset KPIs + category breakdown.
         # `read_group` on nrs.asset groups all rows by category_id, returning
@@ -215,14 +226,53 @@ class MyServiceDashboard(models.AbstractModel):
         without_loc    = total - with_location
         unassigned_drv = Vehicle.search_count([('driver_id','=',False)])
 
-        # Idle: no maintenance log in 30 days
+        # ── How a failed panel answers ────────────────────────────────
+        #
+        # This method is a seven-panel aggregator served two ways: the Odoo web
+        # client calls it directly, and `GET /api/v1/dashboard/fleet-command`
+        # wraps whatever it returns as `data` in the PRD envelope. `cadra_route`
+        # has no per-key failure shape — `err()` replaces the whole body — so
+        # raising out of one panel answers nothing about the other six, to
+        # either caller, beyond `500 internal_error`.
+        #
+        # So a panel that cannot be built is NAMED rather than served empty.
+        # `data._warnings` is already how this API admits a partial answer
+        # inside a successful payload — `rejected_fields` on assets, requests,
+        # locations and settings — so this is that convention one key deeper
+        # and not a new one.
+        #
+        # It is NOT the same key as the envelope's own `_warnings.truncated`,
+        # which `ok()` attaches at the TOP LEVEL and deliberately so: a list
+        # endpoint's `data` is an array and has nowhere to hang it. The two
+        # can therefore both appear in one response, at different depths. A
+        # caller reading warnings has to look in both places, which is worth
+        # saying out loud rather than discovering.
+        #
+        # The point is only that `[]` and "I could not build this" stop being
+        # the same answer: rule 3 is about silent degradation, and a named gap
+        # is not silent.
+        #
+        # It is additive, so it breaks no existing consumer.
+        unavailable = []
+
+        # Idle: no maintenance log in 30 days.
+        #
+        # The `except Exception: idle = 0` that was here could not fire. Its
+        # only conceivable failure was `fleet.vehicle.log.services` being
+        # absent, and that model ships in the same core `fleet` addon as the
+        # `fleet.vehicle` this method already browses unguarded fifteen lines
+        # above — if fleet were missing, line 1 of this method would have raised
+        # first. `date` and `vehicle_id` are its own columns.
+        #
+        # Nor is there anywhere to admit a gap: `idle` is a NUMBER inside
+        # `kpis`, and `idle: 0` — "every vehicle has been serviced this month" —
+        # is exactly the confident wrong answer this pass exists to remove. If
+        # this ever does raise, a 500 naming the model is a better bug report
+        # than a zero nobody can see.
         since_30 = (today - timedelta(days=30)).strftime('%Y-%m-%d')
-        try:
-            active_ids = self.env['fleet.vehicle.log.services'].search(
-                [('date','>=',since_30)]).mapped('vehicle_id').ids
-            idle = Vehicle.search_count([('id','not in',active_ids)])
-        except Exception:
-            idle = 0
+        active_ids = self.env['fleet.vehicle.log.services'].search(
+            [('date', '>=', since_30)]).mapped('vehicle_id').ids
+        idle = Vehicle.search_count([('id', 'not in', active_ids)])
 
         # ── Vendor performance ────────────────────────────────────────
         # `vendor_total` is the NUMBER; `vendors` is a six-row sample of it.
@@ -256,12 +306,27 @@ class MyServiceDashboard(models.AbstractModel):
                               if v.partner_id.state_id else ''),
                 })
         except Exception:
-            # The model is absent outside the NRS bundle, which is the case
-            # this try exists for. Anything else is a defect, and silently
-            # returning an empty list is how this one survived — so it goes
-            # to the log rather than to nowhere.
+            # catch-all: reported — a panel of the answer, so a failure is
+            # announced in `_warnings.unavailable` rather than served as an
+            # empty vendor list. Broad because nothing identifiable is left to
+            # fail, not because the failure is acceptable.
+            #
+            # Handoff 13 left this reading "the model is absent outside the NRS
+            # bundle, which is the case this try exists for". That is not true:
+            # `myservice_dashboard` depends on `myservice_fleet_maintenance` in
+            # its manifest, so `fleet.service.vendor` cannot be absent here, and
+            # the sibling handler in `get_kpis()` has been deleted on exactly
+            # that evidence. Every field this block reads is verified against
+            # the model. So this is `unknown`, not `optional` — there is no
+            # benign condition it is waiting for.
+            #
+            # It stays broad, and stays here, only because of the aggregator
+            # rule above: six working panels should not be taken out by the
+            # seventh. What has changed is that an empty list can no longer be
+            # mistaken for "no approved vendors".
             _logger.warning("dashboard: vendor performance unavailable",
                             exc_info=True)
+            unavailable.append('vendors')
 
         # ── Vehicles by location (top 10) ─────────────────────────────
         by_location = []
@@ -292,27 +357,69 @@ class MyServiceDashboard(models.AbstractModel):
         ]
 
         # ── Compliance alerts ─────────────────────────────────────────
+        #
+        # THIS PANEL WAS STRUCTURALLY EMPTY ON EVERY TENANT, ALWAYS.
+        #
+        # It counted `('insurance_expiration_date', '<', today)` on
+        # `fleet.vehicle`. There is no such field — not in core fleet on any
+        # version, and nowhere in this repo: the string appears in exactly two
+        # files, this one and the throwaway `fleet_command_patch.py` it was
+        # copied from. Odoo's domain parser rejects an unknown field, the bare
+        # `except: pass` below ate the error, and the Compliance Alerts panel
+        # has shown nothing since the day it was written. Same family as the FM
+        # `in_progress` KPI and the vendor list: not a wrong number, a
+        # permanent zero that no one can distinguish from good news.
+        #
+        # Odoo models vehicle insurance as `fleet.vehicle.log.contract`
+        # (`expiration_date`, `insurer_id`), surfaced on the vehicle as the
+        # searchable `contract_renewal_overdue` / `contract_renewal_due_soon`.
+        # Those keep the panel counting VEHICLES, which is what the old `count`
+        # meant, and take the "soon" window from fleet's own
+        # `hr_fleet.delay_alert_contract` parameter (30 days by default) rather
+        # than a second one declared here.
+        #
+        # `soon_14` went with it: it was computed and never read.
         compliance = []
-        soon_30 = (today + timedelta(days=30)).strftime('%Y-%m-%d')
-        soon_14 = (today + timedelta(days=14)).strftime('%Y-%m-%d')
-        today_s = today.strftime('%Y-%m-%d')
         try:
-            # Insurance expiry
-            ins_overdue = Vehicle.search_count([
-                ('insurance_expiration_date','<', today_s)])
-            ins_soon    = Vehicle.search_count([
-                ('insurance_expiration_date','>=', today_s),
-                ('insurance_expiration_date','<=', soon_30)])
-            if ins_overdue:
-                compliance.append({'type':'Insurance expired',
-                    'count':ins_overdue, 'level':'critical'})
-            if ins_soon:
-                compliance.append({'type':'Insurance expiring soon',
-                    'count':ins_soon, 'level':'warning'})
+            contract_overdue = Vehicle.search_count([
+                ('contract_renewal_overdue', '=', True)])
+            contract_soon = Vehicle.search_count([
+                ('contract_renewal_due_soon', '=', True)])
+            if contract_overdue:
+                compliance.append({'type': 'Insurance / contract expired',
+                    'count': contract_overdue, 'level': 'critical'})
+            if contract_soon:
+                compliance.append({'type': 'Insurance / contract expiring soon',
+                    'count': contract_soon, 'level': 'warning'})
         except Exception:
-            pass
+            # catch-all: reported — the panel this replaces was empty for
+            # years because its failure had nowhere to go, so its
+            # replacement's failure is announced in `_warnings.unavailable`
+            # instead of repeating the trick.
+            _logger.warning("dashboard: compliance alerts unavailable",
+                            exc_info=True)
+            unavailable.append('compliance')
 
         # ── Recent maintenance logs ───────────────────────────────────
+        #
+        # THIS PANEL WAS EMPTY ON EVERY TENANT THAT HAD ANY SERVICE LOG.
+        #
+        # `lg.service_id` — `fleet.vehicle.log.services` has no such field. Its
+        # columns are vehicle_id, service_type_id, description, notes, amount,
+        # date, vendor_id, purchaser_id, inv_ref, odometer*, state. So the
+        # FIRST row of the loop raised AttributeError, the bare `except: pass`
+        # below swallowed it, and `recent_maint` came back `[]` — with the
+        # partially-built list discarded, so even the rows that had already
+        # been appended were lost. Byte for byte the `v.state_id` defect
+        # handoff 13 found in the vendor block twenty lines up, in the same
+        # function, written the same day. A model with no rows would produce
+        # the identical output, which is why nobody caught it.
+        #
+        # `service_type_id` is required on the model, so it is always set; the
+        # `description` / `notes` fallbacks preserve what the old expression
+        # was reaching for. Note `vendor_id` here is a `res.partner`, not the
+        # `fleet.service.vendor` of the vendors panel above — two different
+        # models, one word.
         recent_maint = []
         try:
             logs = self.env['fleet.vehicle.log.services'].search(
@@ -322,7 +429,8 @@ class MyServiceDashboard(models.AbstractModel):
                     'id':      lg.id,
                     'vehicle': lg.vehicle_id.name if lg.vehicle_id else '',
                     'plate':   lg.vehicle_id.license_plate if lg.vehicle_id else '',
-                    'service': lg.service_id.name if lg.service_id else lg.notes or '',
+                    'service': (lg.service_type_id.name
+                                or lg.description or lg.notes or ''),
                     'vendor':  lg.vendor_id.name if lg.vendor_id else '',
                     'date':    lg.date.strftime('%d %b %Y') if lg.date else '',
                     'cost':    lg.amount or 0,
@@ -330,7 +438,20 @@ class MyServiceDashboard(models.AbstractModel):
                                if lg.vehicle_id and lg.vehicle_id.home_location_id else '',
                 })
         except Exception:
-            pass
+            # catch-all: reported — a per-row build over live tenant data,
+            # where a partial list is indistinguishable from a short one, so
+            # the panel is dropped and named in `_warnings.unavailable` rather
+            # than served half-built.
+            #
+            # This is the only one of the three whose body loops over rows the
+            # tenant supplies rather than issuing counts, so it is also the
+            # only one where the old handler destroyed work it had already
+            # done. Naming it is what makes "no services logged" and "I could
+            # not read the service log" two different answers.
+            recent_maint = []
+            _logger.warning("dashboard: recent maintenance logs unavailable",
+                            exc_info=True)
+            unavailable.append('recent_maint')
 
         # ── Driver stats ──────────────────────────────────────────────
         driver_stats = {
@@ -341,7 +462,7 @@ class MyServiceDashboard(models.AbstractModel):
             'assigned':      total - unassigned_drv,
         }
 
-        return {
+        out = {
             'kpis': {
                 'total':        total,
                 'overdue':      overdue,
@@ -360,4 +481,10 @@ class MyServiceDashboard(models.AbstractModel):
             'recent_maint': recent_maint,
             'driver_stats': driver_stats,
         }
+        # Present only when a panel failed, so its absence carries no meaning
+        # and a client that never looks is unaffected. A key listed here is a
+        # panel whose value in this payload is a placeholder, not an answer.
+        if unavailable:
+            out['_warnings'] = {'unavailable': unavailable}
+        return out
 

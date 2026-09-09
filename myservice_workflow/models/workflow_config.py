@@ -442,8 +442,16 @@ class WorkflowRestAdapter:
             if r.status_code < 400:
                 return {'ok': True, 'message': f"HTTP {r.status_code}"}
             return {'ok': False, 'error': f"HTTP {r.status_code}: {r.text[:200]}"}
-        except Exception as e:
-            return {'ok': False, 'error': str(e)}
+        # "The target is unreachable" is the answer this button exists to
+        # produce, and every way of being unreachable — DNS, TLS, a refused
+        # connection, a timeout, a base URL with no scheme — arrives as a
+        # `RequestException`. Nothing else in the block can raise: the config
+        # reads are Char fields guarded with `or ''`, and `status_code` and
+        # `text` do not raise. So anything else is a defect in Cadra, and
+        # `action_test_connection` reporting it as "Connection failed" would
+        # send whoever pressed the button to look at the wrong system.
+        except req.RequestException as e:
+            return {'ok': False, 'error': f"{type(e).__name__}: {e}"}
 
     def submit(self, payload):
         import requests as req
@@ -460,24 +468,64 @@ class WorkflowRestAdapter:
             )
             _logger.info("Workflow REST submit → %s  status=%s", url, r.status_code)
             if r.status_code in (200, 201, 202):
+                unparsed = False
                 try:
                     data = r.json()
-                except Exception:
+                except ValueError:
+                    # NOT optional. We sent `Accept: application/json` and the
+                    # request was accepted, so a body we cannot read is not
+                    # "the remote is allowed to answer anything" — it is the
+                    # one case where a failed submission looks like a
+                    # successful one. `workspace_ref` below then falls back to
+                    # `WF-200`, a string Cadra invented, which is written onto
+                    # the request as *the NRS WorkSpace's own reference* and
+                    # shown to the approver in the chatter. An intercepting
+                    # proxy or an SSO login page answering `200 text/html` is
+                    # exactly this shape.
+                    #
+                    # `ok` stays True because a 2xx IS an acceptance and
+                    # calling it a failure would raise a UserError that aborts
+                    # the stage change that triggered the send. What changes is
+                    # that it is announced in the log and admitted in the
+                    # returned `message`, and `raw` keeps the body it actually
+                    # sent. (`requests` raises its own JSONDecodeError, which
+                    # is a ValueError; that is the only thing `r.json()` can
+                    # raise.)
                     data = {}
+                    unparsed = True
+                    _logger.warning(
+                        "Workflow REST submit → %s accepted with HTTP %s but "
+                        "answered a body that is not JSON (content-type %r): "
+                        "%s", url, r.status_code,
+                        r.headers.get('Content-Type'), r.text[:300],
+                        exc_info=True)
                 return {
                     'ok': True,
                     'workspace_ref': data.get('reference') or data.get('ref')
                                     or data.get('id') or f"WF-{r.status_code}",
-                    'message': data.get('message', 'Submitted'),
+                    'message': data.get(
+                        'message',
+                        'Submitted — but the response was not JSON and '
+                        'carried no WorkSpace reference'
+                        if unparsed else 'Submitted'),
                     'raw': r.text[:500],
                 }
             return {
                 'ok': False,
                 'error': f"HTTP {r.status_code}: {r.text[:300]}",
             }
-        except Exception as e:
+        # Every network-level failure `requests` can produce, `InvalidJSONError`
+        # included — that is what a payload it cannot serialise for the wire
+        # arrives as. Deliberately NOT `Exception`: the only other thing in
+        # here that can raise is a `TypeError` out of `json.dumps` for a value
+        # the payload builder should not have produced. `_send_to_workflow`
+        # stores the payload with `default=str` and `requests` sends it
+        # without, so the two CAN disagree — and reporting that to a user as
+        # "Failed to send to NRS WorkSpace" points them at WorkSpace for a
+        # defect in Cadra.
+        except req.RequestException as e:
             _logger.error("Workflow REST submit error: %s", e, exc_info=True)
-            return {'ok': False, 'error': str(e)}
+            return {'ok': False, 'error': f"{type(e).__name__}: {e}"}
 
     def deliver(self, payload, event_id, request_ref=None):
         """POST one asset lifecycle event. Never raises — the queue reads the
@@ -574,7 +622,20 @@ class WorkflowRestAdapter:
         """The receiver's own id for the event, if it returned one."""
         try:
             data = response.json()
-        except Exception:
+        except ValueError:
+            # Optional, and the delivery contract already admits the gap
+            # rather than hiding it: no identity back means `acknowledged` is
+            # False, so `_classify` lands the row at `sent` — "received" — and
+            # not at `acknowledged`, while `body` keeps up to 2000 characters
+            # of whatever did come back for a human to look at. A receiver is
+            # entitled to answer 202 with an empty body and a proxy is
+            # entitled to answer 200 with HTML; neither is a delivery failure
+            # and neither is an acknowledgement. Narrow because `requests`
+            # raises its own JSONDecodeError, which is a ValueError, and that
+            # is the only thing `response.json()` can raise.
+            _logger.debug(
+                "workflow: receiver answered a body that is not JSON; "
+                "recording the event as sent, not acknowledged")
             return None
         if not isinstance(data, dict):
             return None
@@ -639,11 +700,47 @@ class WorkflowEmailAdapter:
                 'state': 'outgoing',
             })
             mail.send()
+            # `mail.mail.send()` does NOT raise when delivery fails. Its
+            # default is `raise_exception=False`, under which a dead SMTP
+            # host, a missing outgoing mail server or a refused recipient is
+            # recorded ON THE MAIL RECORD and the call returns normally. So
+            # returning `ok` on the strength of the call not raising is how an
+            # approval that never left the server came to be reported as
+            # "📤 Sent to NRS WorkSpace" in the chatter and left the request
+            # at "Sent — Awaiting Approval", waiting for a reply to a message
+            # nobody received. `state` is certain to exist — it is set in the
+            # `create` above — and is re-read because `_send` writes it
+            # through a different environment.
+            mail = mail.exists()
+            if mail:
+                mail.invalidate_recordset(['state'])
+            if mail and mail.state == 'exception':
+                _logger.error(
+                    "Workflow email to %s was NOT delivered (ref %s); Odoo "
+                    "recorded the failure against the mail record",
+                    self.config.email_to, ref)
+                return {
+                    'ok': False,
+                    'error': 'The approval email to %s was not delivered. '
+                             'Odoo recorded the reason against the message '
+                             'in Settings → Technical → Email → Emails.'
+                             % self.config.email_to,
+                }
             _logger.info("Workflow email sent to %s ref=%s", self.config.email_to, ref)
             return {'ok': True, 'workspace_ref': ref, 'message': f"Email sent to {self.config.email_to}"}
         except Exception as e:
+            # catch-all: unknown — `mail.mail` create/send reaches Odoo core's
+            # mail stack and the SMTP libraries under it, and this module
+            # cannot enumerate that failure surface from here.
+            #
+            # Broad rather than narrowed because of what `submit()` owes its
+            # caller: `_send_to_workflow` reads a VERDICT DICT and turns a
+            # failure into a UserError itself. An escape from here does not
+            # reach that code — it aborts the `write()` that triggered the
+            # send, so a mail server outage would come back as a traceback on
+            # a stage change. The traceback is logged either way.
             _logger.error("Workflow email error: %s", e, exc_info=True)
-            return {'ok': False, 'error': str(e)}
+            return {'ok': False, 'error': f"{type(e).__name__}: {e}"}
 
     def _build_email_body(self, payload, ref):
         rows = ''.join(

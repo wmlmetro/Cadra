@@ -720,7 +720,7 @@ acurl "$API/api/v1/assets/124/custody?limit=50"
 |---|---|
 | `changed_by` | **Who moved it**, which is a different question from who held it. The two custodian fields cannot answer it. |
 | `from_custodian_name` / `to_custodian_name` | The names **as recorded at the time**. Not derived from the linked records: an employee deleted since is `null` in `from_custodian`/`to_custodian` and still named here. The link degrades, the evidence does not. |
-| `source` | Where the change came from — `api_transfer`, `api_write`, `transfer`, `direct`, or `tracking_backfill`. |
+| `source` | Where the change came from — `api_transfer`, `api_write`, `transfer`, `direct`, `tracking_backfill`, or `test`. |
 
 ### `tracking_backfill` — read this before drawing a conclusion
 
@@ -735,6 +735,33 @@ are absent entirely. **A chain is therefore sparser than its asset is old,
 and that is the honest picture rather than a defect** — an auditor told where
 the record begins can work with it, one who discovers the gap later cannot
 trust any of it, including the part that is complete.
+
+### `test` — a link Cadra's own test suite wrote
+
+Cadra's API test suite runs against live-shaped tenants and moves an asset's
+custodian deliberately, because a test that does not exercise the recorder
+proves nothing about whether the chain is written at all. The recorder is
+append-only, so those links are **permanent** in whichever tenant the suite
+ran against.
+
+`source: "test"` is how you tell one. It is decided server-side from the
+credential that made the change and can never be set by a caller — a request
+saying "this one is a test" would let anybody disguise a real change of
+custodian as an artefact.
+
+Same reason `tracking_backfill` exists: a reader must be able to see what a
+link is without having been told the artefacts are there.
+
+### Neither form is capped
+
+`GET /api/v1/assets/<id>/custody` is **exempt from the per-credential record
+cap**. A client limited to the first 100 records of any one resource still
+walks the entire chain with the cursor, and `total_estimate` is the true
+count. A chain of custody is not a page of a register — it is one asset's
+complete record, and a truncated chain cannot be told from a complete one.
+
+The per-page ceiling still applies; it bounds one `SELECT` and is not the
+commercial control.
 
 ### Embedded form
 

@@ -85,28 +85,50 @@ class SAPImportWizard(models.TransientModel):
 
         for i, row in enumerate(rows, 1):
             try:
-                payload = {}
-                for col, val in row.items():
-                    mapped = COLUMN_MAP.get(col.strip(), col.strip())
-                    payload[mapped] = val.strip() if val else ''
+                # One savepoint per row. Without it a row that fails in the
+                # database — a duplicate IR, a constraint — leaves the
+                # transaction aborted, and the next thing to touch it is
+                # `self.result_html = html` at the bottom of this method: the
+                # wizard would then 500 on the line that exists to TELL the
+                # operator which rows failed, and the whole import would be
+                # rolled back with nothing on screen to say why.
+                with self.env.cr.savepoint():
+                    payload = {}
+                    for col, val in row.items():
+                        mapped = COLUMN_MAP.get(col.strip(), col.strip())
+                        payload[mapped] = val.strip() if val else ''
 
-                if not payload.get('ir_number'):
-                    skipped += 1
-                    continue
+                    if not payload.get('ir_number'):
+                        skipped += 1
+                        continue
 
-                _emp, log = SyncLog.process_sap_payload(payload, sync_type='csv_import')
-                if log.status == 'success':
+                    _emp, log = SyncLog.process_sap_payload(
+                        payload, sync_type='csv_import')
+                    status = log.status
+                    error_message = log.error_message
+                if status == 'success':
                     success += 1
-                elif log.status == 'skipped':
+                elif status == 'skipped':
                     skipped += 1
                 else:
                     error += 1
                     errors.append(
-                        'Row %d (%s): %s' % (i, payload.get('ir_number'), log.error_message)
+                        'Row %d (%s): %s' % (i, payload.get('ir_number'), error_message)
                     )
             except Exception as e:
+                # catch-all: reported — one row is a call into
+                # `process_sap_payload`, which reaches hr.employee and
+                # everything a tenant has added to it, so the set is open. The
+                # row is counted as an error and its message is rendered into
+                # the result panel the operator is looking at, so nothing is
+                # lost by catching it here.
+                _logger.warning(
+                    'SAP CSV import: row %s failed', i, exc_info=True)
                 error += 1
-                errors.append('Row %d: %s' % (i, e))
+                # The type as well as the text: `str(KeyError('x'))` is "'x'"
+                # and several ORM errors stringify to nothing at all, which
+                # rendered as "Row 12: " in the operator's error list.
+                errors.append('Row %d: %s: %s' % (i, type(e).__name__, e))
 
         cls = 'success' if error == 0 else 'warning'
         html = (

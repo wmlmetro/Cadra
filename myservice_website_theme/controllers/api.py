@@ -1,9 +1,17 @@
 import logging
 from werkzeug.utils import redirect as wz_redirect
 from odoo import http, SUPERUSER_ID
+from odoo.exceptions import AccessError, MissingError, UserError, ValidationError
 from odoo.http import request
 
 _logger = logging.getLogger(__name__)
+
+# Returned when the failure is ours, not the caller's. These routes are
+# `auth='public'`, so whatever goes in `error` is read by an unauthenticated
+# visitor; the detail belongs in the log.
+_INTERNAL_ERROR = (
+    "Sorry — we could not submit your request. Please try again shortly."
+)
 
 
 class NRSHomepageAPI(http.Controller):
@@ -135,33 +143,89 @@ class NRSHomepageAPI(http.Controller):
         if kwargs.get('priority'):
             vals['priority'] = kwargs['priority']
 
-        # Website channel
-        channel = env.ref(
-            'generic_request.request_channel_website',
-            raise_if_not_found=False)
-        if channel and channel.sudo().active:
-            vals['channel_id'] = channel.id
+        # Intake channel.
+        #
+        # Three lines used to live here, and between them they meant this
+        # endpoint COULD NOT SUCCEED ON ODOO 19 — every homepage quick-submit
+        # returned `{'success': False}`:
+        #
+        #   `vals['channel_id']`  — `request.request` on 19 is first-party
+        #     (`myservice_request_core`) and has no `channel_id`; the concept
+        #     came from `generic_request`, which is not on the 19 addons path.
+        #     Inert only by luck: the `env.ref` above it could never resolve,
+        #     so the assignment never ran. `docs/upgrade/rebuild-on-19-plan.md`
+        #     lists this one as a "runtime ref to fix" — it is the harmless one
+        #     of the three.
+        #
+        #   `vals['website_id']` — not a field on `request.request` either, and
+        #     nothing guarded it: `get_current_website()` always returns a
+        #     website, so this key was on EVERY create and every create raised
+        #     `Invalid field 'website_id'` into the handler below. Not flagged
+        #     anywhere.
+        #
+        #   `_get_or_create_partner_from_email` — a `crnd_wsd` method that does
+        #     not exist on the 19 model. It sat OUTSIDE the try, so any visitor
+        #     who typed an address with an "@" in it got a 500 rather than the
+        #     JSON error, and the log line said nothing about the form.
+        #
+        # `intake_channel` (from `myservice_request_fields`) is the field that
+        # carries what `channel_id` meant, and it already defaults to
+        # 'portal' — which this form is — so nothing needs setting here.
 
-        # Website
-        website = env['website'].sudo().get_current_website()
-        if website:
-            vals['website_id'] = website.id
-
-        # Author from contact info
-        email = kwargs.get('reporter_contact', '')
-        if '@' in email:
-            partner_id = env['request.request'].sudo(
-            )._get_or_create_partner_from_email(email, force_create=True)
-            if partner_id:
-                vals['author_id'] = partner_id
+        email = (kwargs.get('reporter_contact') or '').strip()
 
         try:
+            # INSIDE the try, and that is the whole point of the note above.
+            # The method this replaces sat outside it, which is why a visitor
+            # typing an address with an "@" in it got a raw 500 instead of
+            # the JSON error this handler exists to return. Moving the call
+            # and leaving its replacement outside would have fixed the name
+            # and kept the defect.
+            #
+            # Author from contact info, resolved directly the same way the
+            # security portal does, rather than through a model method this
+            # model does not have.
+            if '@' in email:
+                partner = env['res.partner'].sudo().search(
+                    [('email', '=ilike', email)], limit=1)
+                if not partner:
+                    partner = env['res.partner'].sudo().create({
+                        'name': kwargs.get('reporter_name') or email,
+                        'email': email,
+                    })
+                vals['author_id'] = partner.id
+
             req = env['request.request'].with_user(SUPERUSER_ID).create(vals)
             return {
                 'success': True,
                 'request_name': req.name,
                 'request_id': req.id,
             }
-        except Exception as e:
-            _logger.exception('Quick-submit failed')
+        except (AccessError, MissingError):
+            # Caught before UserError because on Odoo 19 both subclass it, so
+            # placed after they would be reported to the caller as their own
+            # mistake — handoff 09's ordering finding. Neither is.
+            _logger.exception('Quick-submit refused')
+            return {'success': False, 'error': _INTERNAL_ERROR}
+        except (UserError, ValidationError, ValueError) as e:
+            # Optional: what a bad submission looks like. `priority` arrives
+            # from a public POST and goes into a Selection unvalidated, so an
+            # unexpected value raises ValueError here; a constraint on
+            # `request.request` raises UserError or ValidationError. These
+            # messages are written to be read and the form has somewhere to
+            # show them.
             return {'success': False, 'error': str(e)}
+        except Exception:
+            # catch-all: reported — the caller is told the submission failed
+            # and the traceback goes to the log. Broad because the create
+            # reaches every module that extends `request.request`, so what it
+            # can meet is not enumerable from here.
+            #
+            # It stays broad because a homepage form should say it failed
+            # rather than hand a visitor a JSON-RPC fault. What changed is the
+            # answer: `str(e)` used to put ORM internals on a public endpoint,
+            # and for three years the string it put there was
+            # "Invalid field 'website_id'" — a message that describes our bug
+            # while reading, to anyone watching the form, like theirs.
+            _logger.exception('Quick-submit failed')
+            return {'success': False, 'error': _INTERNAL_ERROR}

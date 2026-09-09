@@ -95,75 +95,104 @@ class NRSSapSyncLog(models.Model):
         })
 
         try:
-            vals = self._map_sap_to_odoo(payload)
-            vals['sap_last_sync'] = fields.Datetime.now()
-            vals['sap_sync_status'] = 'synced'
+            # One payload, one savepoint. What stood here was
+            # `self.env.cr.rollback()` in the handler below, and a rollback is
+            # not payload-scoped: it discards everything since the last commit.
+            # Both bulk callers loop over this method — the xlsx import job
+            # (200 rows between commits) and the SAP webhook (one transaction
+            # for the whole request) — so one unmappable employee silently
+            # destroyed every employee written before it in the batch, while
+            # the job's counters and the webhook's per-row `"status":
+            # "success"` went on reporting them as written. The savepoint also
+            # leaves the `pending` log row above intact, because it was created
+            # OUTSIDE the savepoint and flushed on the way in, so the error is
+            # recorded on the row the caller is already holding rather than on
+            # a replacement.
+            with self.env.cr.savepoint():
+                vals = self._map_sap_to_odoo(payload)
+                vals['sap_last_sync'] = fields.Datetime.now()
+                vals['sap_sync_status'] = 'synced'
 
-            employee = self.env['hr.employee'].search(
-                [('ir_number', '=', ir_number)], limit=1,
-            )
-            changes = []
+                employee = self.env['hr.employee'].search(
+                    [('ir_number', '=', ir_number)], limit=1,
+                )
+                changes = []
 
-            if employee:
-                for k, v in vals.items():
-                    old = getattr(employee, k, None)
-                    if hasattr(old, 'id'):
-                        old = old.id
-                    if old != v:
-                        changes.append('%s: %s -> %s' % (k, old, v))
-                if changes:
-                    employee.write(vals)
+                if employee:
+                    for k, v in vals.items():
+                        old = getattr(employee, k, None)
+                        if hasattr(old, 'id'):
+                            old = old.id
+                        if old != v:
+                            changes.append('%s: %s -> %s' % (k, old, v))
+                    if changes:
+                        employee.write(vals)
+                        log.write({
+                            'status': 'success',
+                            'changes_applied': '\n'.join(changes),
+                        })
+                    else:
+                        log.write({
+                            'status': 'skipped',
+                            'changes_applied': 'No changes detected',
+                        })
+                else:
+                    vals['ir_number'] = ir_number
+                    # Use company context so resource.resource gets calendar_id
+                    company = self.env['res.company'].sudo().search([], limit=1)
+                    if 'company_id' not in vals:
+                        vals['company_id'] = company.id
+                    Employee = self.env['hr.employee'].sudo().with_company(company)
+                    employee = Employee.create(vals)
+                    changes.append('Created new employee: %s' % employee.name)
                     log.write({
                         'status': 'success',
                         'changes_applied': '\n'.join(changes),
                     })
-                else:
-                    log.write({
-                        'status': 'skipped',
-                        'changes_applied': 'No changes detected',
-                    })
-            else:
-                vals['ir_number'] = ir_number
-                # Use company context so resource.resource gets calendar_id
-                company = self.env['res.company'].sudo().search([], limit=1)
-                if 'company_id' not in vals:
-                    vals['company_id'] = company.id
-                Employee = self.env['hr.employee'].sudo().with_company(company)
-                employee = Employee.create(vals)
-                changes.append('Created new employee: %s' % employee.name)
+
+                self._handle_status_triggers(
+                    employee,
+                    payload.get('sap_status') or payload.get('employmentStatus'),
+                    payload.get('previous_status'),
+                )
+
                 log.write({
-                    'status': 'success',
-                    'changes_applied': '\n'.join(changes),
+                    'employee_id': employee.id,
+                    'duration_ms': int((time.time() - start) * 1000),
                 })
-
-            self._handle_status_triggers(
-                employee,
-                payload.get('sap_status') or payload.get('employmentStatus'),
-                payload.get('previous_status'),
-            )
-
-            log.write({
-                'employee_id': employee.id,
-                'duration_ms': int((time.time() - start) * 1000),
-            })
             return employee, log
 
         except Exception as e:
+            # catch-all: reported — the payload is third-party JSON mapped onto
+            # whatever a tenant's hr.employee looks like, so the set is open
+            # (ValidationError from a constraint, ValueError from a field the
+            # tenant does not have, psycopg2 from a duplicate IR, KeyError from
+            # `generic.location` where the FM modules are not installed). The
+            # traceback is logged and the failure is written onto the log row
+            # the caller reads `status` off, so it reaches the operator as an
+            # errored row rather than as a missing one.
             _logger.exception('SAP sync error for IR %s', ir_number)
-            # The create may have aborted the transaction; rollback to
-            # the savepoint so we can still write the error to the log.
-            try:
-                self.env.cr.rollback()
-                log = self.create({
-                    'ir_number': ir_number,
-                    'sync_type': sync_type,
-                    'status': 'error',
-                    'error_message': str(e),
-                    'payload': str(payload),
-                    'sap_event': payload.get('event', ''),
-                })
-            except Exception:
-                _logger.exception('Failed to write error log for IR %s', ir_number)
+            # No inner handler: the savepoint above means the transaction is
+            # usable here, so the only way this write can now fail is a dead
+            # connection — and swallowing that produced a `log` recordset the
+            # rollback had already erased, which every caller then read
+            # `log.status` off and got a MissingError from. Raising is the
+            # honest answer.
+            #
+            # Two of the three callers have a row handler that catches it —
+            # the xlsx import job and the SAP import wizard.
+            # `myservice_identity/controllers/sap_webhook.py` has none, so a
+            # raise there is an unhandled fault on the webhook. Still better
+            # than handing all five callers a recordset the rollback had
+            # already deleted, but it is a gap and it is written down here
+            # rather than implied.
+            log.write({
+                'status': 'error',
+                # The type as well as the text: several ORM and psycopg2
+                # errors stringify to '' or to a bare quoted key.
+                'error_message': '%s: %s' % (type(e).__name__, e),
+                'duration_ms': int((time.time() - start) * 1000),
+            })
             return None, log
 
     # ------------------------------------------------------------------

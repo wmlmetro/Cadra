@@ -1820,3 +1820,376 @@ def paginate(model, domain):
     assert not _capped_count_findings(waived)
     assert _capped_count_findings(
         waived.replace("   # capped-count-ok: the page, not the register", ""))
+
+
+# ─── a catch-all that cannot say what it is hiding ───────────────────
+#
+# `except Exception: pass` and `except Exception: return []` are the worst
+# of the family this repo has spent three handoffs on. A capped count is at
+# least a number, and somebody might notice it stop moving. This returns
+# "there are none" — a complete, confident, wrong answer — and it survives
+# forever: `kpis.vendors` told every tenant "No approved vendors yet" for
+# three years because a field had been renamed, and nothing anywhere said
+# so.
+#
+# The work is not "remove them". Some are load-bearing for tenants without
+# the fleet or asset modules, and turning those into hard failures would
+# break working installations. The work is to make every one answer the
+# question WHAT IS THIS HIDING, and the answer has to be visible where the
+# code is rather than in a document nobody opens beside it.
+#
+# So this guard is an INVENTORY, pinned by a comment at each site, and every
+# entry carries one of three words:
+#
+#   optional — the failure is expected and benign (a module that may not be
+#              installed, a caller's malformed input). Prefer deleting the
+#              handler: `env.get('some.model')` answers None and
+#              `'some.model' in self.env` works. Where one must stay, narrow
+#              the type so it cannot hide a typo.
+#   reported — not optional. It raises, or it logs at WARNING and returns
+#              something that ADMITS the gap. An empty panel is a lie.
+#   unknown  — genuinely nobody knows what can arrive here. Logged at
+#              WARNING with the traceback so the next person gets a line
+#              instead of silence. The fallback, not the default.
+#
+# A narrowed handler needs no marker, because it is no longer a catch-all —
+# which is the outcome this guard is trying to produce, not to police.
+#
+# Same convention as `capped-count-ok:` above, deliberately: a second
+# mechanism for the same job is a second thing to forget. And the same
+# argument for why it is a sentence somebody has to write rather than a
+# central list — a list lives away from the code, so it is updated by
+# whoever remembers it exists, and the handler it describes is edited by
+# whoever does not.
+
+# SCOPE, stated because a guard whose reach nobody knows is worse than one
+# that admits its edge. This walks `_first_party_python_files()` — the Odoo
+# modules, the code that serves requests — and NOT `scripts/`, `seeds/`,
+# `tests/` or the loader scripts at the repo root. Measured at the time of
+# writing: **49 broad handlers live outside that boundary**, in first-party
+# code, unclassified. `scripts/bootstrap.py` is classified anyway, by hand,
+# because it provisions the credentials every tenant authenticates with and
+# because this handoff edits it.
+#
+# Widening the guard is a real decision rather than an oversight: it would
+# put ~46 one-shot tenant seeds and loaders in front of CI, and a seed
+# script's `except: pass` around an `env.ref` is the genuinely optional case
+# this convention says to narrow rather than to annotate. It is recorded in
+# report 15 for the Architect to schedule. What must not happen is somebody
+# reading a green guard as "there are none", which is the exact failure the
+# guard exists to prevent, one level up.
+_CATCH_ALL_MARKER = "catch-all:"
+_CATCH_ALL_CLASSES = ("optional", "reported", "unknown")
+_BROAD_EXCEPTIONS = {"Exception", "BaseException"}
+
+
+def _is_broad_handler(handler):
+    """A handler that catches anything: `except:`, `except Exception:`, or a
+    tuple with one of those in it."""
+    if handler.type is None:
+        return True
+    caught = handler.type
+    names = set()
+    if isinstance(caught, ast.Name):
+        names.add(caught.id)
+    elif isinstance(caught, ast.Tuple):
+        names.update(e.id for e in caught.elts if isinstance(e, ast.Name))
+    elif isinstance(caught, ast.Attribute):     # e.g. builtins.Exception
+        names.add(caught.attr)
+    return bool(names & _BROAD_EXCEPTIONS)
+
+
+def _marker_class(line):
+    """The classification word on a line carrying the marker, or None."""
+    index = line.find(_CATCH_ALL_MARKER)
+    if index < 0:
+        return None
+    rest = line[index + len(_CATCH_ALL_MARKER):].strip()
+    word = rest.split()[0].strip(".,:;—-") if rest else ""
+    return word if word in _CATCH_ALL_CLASSES else ""
+
+
+def _handler_marker(lines, handler):
+    """The classification for `handler`, or None if it carries no marker.
+
+    Three placements, all of which read naturally:
+
+      - on the `except` line itself;
+      - in the contiguous comment block IMMEDIATELY above it;
+      - in the contiguous comment block that OPENS the handler body.
+
+    Contiguity is what makes it safe. The moment a line of code lands
+    between the comment and the `except`, the marker stops applying and the
+    guard speaks up — the same rule as the capped-count waiver above, for
+    the same reason.
+
+    Contiguity ALONE is not enough, though, and this is the case that got
+    past the first version: the comment block above an `except` is the TAIL
+    OF THE TRY BODY. A comment written about the last statement inside the
+    try would silently classify the handler underneath it —
+
+        try:
+            f()
+            # a note about f(), indented into the try
+        except Exception:
+            pass
+
+    — which is the drift this convention exists to prevent, arriving from
+    the one direction nobody looks. So the block above must also be at the
+    `except` keyword's OWN indentation. A comment inside the try is indented
+    deeper and does not count.
+
+    Known limit, stated rather than chased: a handler written as
+    `E = Exception` then `except E:` is not seen as broad, here or by any
+    other guard in this file. It is not a spelling anybody uses, and a guard
+    that tried to follow assignments would be answering a question about
+    aliasing rather than about exception handling.
+    """
+    found = _marker_class(lines[handler.lineno - 1])
+    if found is not None:
+        return found
+
+    handler_indent = len(lines[handler.lineno - 1]) - len(
+        lines[handler.lineno - 1].lstrip())
+    index = handler.lineno - 2
+    while index >= 0 and lines[index].strip().startswith("#"):
+        if len(lines[index]) - len(lines[index].lstrip()) != handler_indent:
+            break                       # inside the try body, not about this
+        found = _marker_class(lines[index])
+        if found is not None:
+            return found
+        index -= 1
+
+    if handler.body:
+        index = handler.lineno            # first line inside the handler
+        stop = handler.body[0].lineno - 1
+        while index < stop and index < len(lines):
+            stripped = lines[index].strip()
+            if not stripped:
+                break
+            if not stripped.startswith("#"):
+                break
+            found = _marker_class(lines[index])
+            if found is not None:
+                return found
+            index += 1
+    return None
+
+
+def _broad_handler_findings(source):
+    """(lineno, problem) for every broad handler without a valid marker."""
+    lines = source.splitlines()
+    findings = []
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, ast.ExceptHandler) or not _is_broad_handler(node):
+            continue
+        marker = _handler_marker(lines, node)
+        if marker is None:
+            findings.append((node.lineno, "no `catch-all:` classification"))
+        elif marker == "":
+            findings.append(
+                (node.lineno,
+                 "`catch-all:` is followed by something that is not one of %s"
+                 % (", ".join(_CATCH_ALL_CLASSES))))
+    return findings
+
+
+def test_every_catch_all_says_what_it_is_hiding():
+    """Every broad handler in our own code carries a classification.
+
+    A new one that does not fails here. That is the whole mechanism: the
+    shape is findable and whether a given one is LEGITIMATE is not, so the
+    guard does not try to judge — it requires the author to have judged, in
+    a sentence, on the line.
+    """
+    offenders = []
+    for path in _first_party_python_files():
+        source = path.read_text(encoding="utf-8")
+        try:
+            findings = _broad_handler_findings(source)
+        except SyntaxError:
+            continue
+        for lineno, problem in findings:
+            offenders.append("%s:%d — %s"
+                             % (path.relative_to(REPO_ROOT), lineno, problem))
+
+    assert not offenders, (
+        "%d broad exception handler(s) in the Odoo modules do not say what "
+        "they are hiding (see the SCOPE note above — `scripts/` and `seeds/` "
+        "are not walked):\n  %s"
+        "\n\nAdd one of `# catch-all: optional|reported|unknown — <why>` on "
+        "the `except` line, in the comment block immediately above it, or in "
+        "the comment block that opens the handler body. Better: narrow the "
+        "exception type, or delete the handler — a narrowed one needs no "
+        "marker because it is no longer a catch-all."
+        % (len(offenders), "\n  ".join(offenders)))
+
+
+_CATCH_ALL_SHAPES = [
+    ("a bare except", "try:\n    f()\nexcept:\n    pass\n"),
+    ("except Exception", "try:\n    f()\nexcept Exception:\n    pass\n"),
+    ("except BaseException", "try:\n    f()\nexcept BaseException:\n    pass\n"),
+    ("Exception inside a tuple",
+     "try:\n    f()\nexcept (ValueError, Exception):\n    pass\n"),
+]
+
+
+@pytest.mark.parametrize("label,source", _CATCH_ALL_SHAPES,
+                         ids=[s[0] for s in _CATCH_ALL_SHAPES])
+def test_the_catch_all_guard_finds_every_broad_spelling(label, source):
+    assert _broad_handler_findings(source), (
+        "%s went unnoticed. A guard that misses a spelling is an inventory "
+        "with a hole in it, and the hole is where the next one lands."
+        % label)
+
+
+def test_a_narrowed_handler_needs_no_marker():
+    """Because it is no longer a catch-all, which is the point."""
+    assert not _broad_handler_findings(
+        "try:\n    f()\nexcept (ValueError, KeyError):\n    pass\n")
+
+
+def test_the_classification_has_to_be_one_of_the_three_words():
+    """`# catch-all: probably fine` is a sentence, not a judgement."""
+    assert _broad_handler_findings(
+        "try:\n    f()\nexcept Exception:  # catch-all: probably fine\n"
+        "    pass\n")
+
+
+_MARKER_PLACEMENTS = [
+    ("on the except line",
+     "try:\n    f()\nexcept Exception:  # catch-all: unknown — why\n    pass\n"),
+    ("in the block above",
+     "try:\n    f()\n# catch-all: optional — why\nexcept Exception:\n    pass\n"),
+    ("opening the handler body",
+     "try:\n    f()\nexcept Exception:\n"
+     "    # catch-all: reported — why\n    _logger.warning('x')\n"),
+]
+
+
+@pytest.mark.parametrize("label,source", _MARKER_PLACEMENTS,
+                         ids=[s[0] for s in _MARKER_PLACEMENTS])
+def test_the_three_placements_all_count(label, source):
+    assert not _broad_handler_findings(source), label
+
+
+def test_the_marker_cannot_drift_onto_a_handler_it_was_not_written_for():
+    """Contiguity, same rule as the capped-count waiver.
+
+    A comment separated from its `except` by a line of code is a comment
+    about that line of code. Letting it waive the handler below would mean a
+    marker keeps applying to whatever ends up under it after the next edit.
+    """
+    contiguous = ("try:\n    f()\n# catch-all: optional — why\n"
+                  "except Exception:\n    pass\n")
+    assert not _broad_handler_findings(contiguous)
+    drifted = ("# catch-all: optional — why\nx = 1\ntry:\n    f()\n"
+               "except Exception:\n    pass\n")
+    assert _broad_handler_findings(drifted)
+
+
+def test_a_comment_inside_the_try_body_does_not_classify_the_handler():
+    """The block above an `except` IS the tail of the try body.
+
+    A note written about the last statement inside the try is contiguous
+    with the `except` below it, so contiguity alone let it classify a
+    handler nobody had thought about. Indentation settles it: a comment
+    inside the try is indented deeper than the `except` keyword.
+    """
+    inside = ("try:\n    f()\n    # catch-all: optional — about f(), not "
+              "about the handler\nexcept Exception:\n    pass\n")
+    assert _broad_handler_findings(inside), (
+        "a comment indented into the try body classified the handler below "
+        "it. That is the drift this convention exists to prevent, arriving "
+        "from the one direction nobody looks.")
+
+
+def test_a_starred_except_group_is_still_broad():
+    """`except* Exception:` catches everything in the group."""
+    assert _broad_handler_findings(
+        "try:\n    f()\nexcept* Exception:\n    pass\n")
+
+
+# ─── the retry layers Odoo owns above cadra_route ────────────────────
+#
+# Odoo recovers from two conditions by seeing an exception come OUT of the
+# dispatch and replaying the request:
+#
+#   * `http.py` catches `ReadOnlySqlTransaction` and re-dispatches on a
+#     read/write cursor, which is how a route that turns out to write on a
+#     read-only cursor still succeeds;
+#   * `service/model.retrying` catches `OperationalError` and
+#     `ConcurrencyError` and replays up to five times on a serialization
+#     failure, which is how two callers writing the same row both succeed.
+#
+# `cadra_route`'s `except Exception` sits INSIDE both, so swallowing either
+# turns something Odoo fixes transparently into a `500 internal_error` the
+# caller has to handle — and there is no way for the caller to tell it from
+# a real fault.
+#
+# Found live: `POST /assets/<id>/transfer-custody` answered 500 in a run
+# where `/auth/token`, which is NOT wrapped by this decorator, hit the same
+# condition on the same cursor and retried into a 200. The unwrapped route
+# was the one that worked, which is the wrong way round for a decorator
+# whose job is to make the contract better.
+#
+# `IntegrityError` is deliberately absent: `retrying` re-raises it at once
+# unless it is a serialization failure, and the envelope publishes 409 and
+# 400 for unique and foreign-key violations.
+
+_MUST_REACH_ODOO = ("ReadOnlySqlTransaction", "OperationalError",
+                    "ConcurrencyError")
+
+
+def _cadra_route_wrapper():
+    tree = ast.parse(_UTILS.read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "cadra_endpoint":
+            return node
+    raise AssertionError(
+        "myservice_api/controllers/utils.py no longer defines "
+        "cadra_endpoint(). It is where every route's exceptions are turned "
+        "into the envelope; if it was renamed, move this guard with it.")
+
+
+def test_the_envelope_lets_odoos_own_retries_through():
+    """A clause that re-raises them, and it comes first."""
+    fn = _cadra_route_wrapper()
+
+    reraising = []
+    for handler in (n for n in ast.walk(fn) if isinstance(n, ast.ExceptHandler)):
+        names = set(_handler_names(handler))
+        if not names & set(_MUST_REACH_ODOO):
+            continue
+        body = handler.body
+        assert len(body) == 1 and isinstance(body[0], ast.Raise) \
+            and body[0].exc is None, (
+            "the clause on line %d catches %s and then does something other "
+            "than re-raise. These have to leave the decorator untouched: "
+            "Odoo replays the request on them, and a bare `raise` is the "
+            "only body that lets it."
+            % (handler.lineno, sorted(names & set(_MUST_REACH_ODOO))))
+        reraising.append((handler.lineno, names))
+
+    covered = set()
+    for _, names in reraising:
+        covered |= names & set(_MUST_REACH_ODOO)
+    missing = set(_MUST_REACH_ODOO) - covered
+    assert not missing, (
+        "cadra_endpoint() swallows %s. Odoo's own retry layers sit ABOVE "
+        "this decorator and work by seeing the exception; enveloping it as "
+        "a 500 removes a recovery the caller cannot perform itself."
+        % ", ".join(sorted(missing)))
+
+    # And it has to be FIRST, for the same reason the AccessError guard
+    # above exists: `except psycopg2.OperationalError` under a broad clause
+    # is a comment, not a handler.
+    first_reraise = min(lineno for lineno, _ in reraising)
+    for handler in (n for n in ast.walk(fn) if isinstance(n, ast.ExceptHandler)):
+        if handler.lineno >= first_reraise:
+            continue
+        names = set(_handler_names(handler))
+        assert not (names & {"Exception", "BaseException"}), (
+            "a broad handler on line %d sits ABOVE the re-raise clause on "
+            "line %d, so the re-raise is dead code and Odoo never sees the "
+            "exception." % (handler.lineno, first_reraise))

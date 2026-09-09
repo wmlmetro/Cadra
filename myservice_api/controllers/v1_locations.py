@@ -99,20 +99,29 @@ def serialize_location(loc, *, include=(), include_counts=False):
         # =like clause picks up self + all descendants.
         # Gated behind `include_counts` because list endpoints fan this
         # out across hundreds of rows; only single-record GETs pay it.
+        # `asset_count` used to sit inside a bare `except Exception:` that
+        # set it to 0, with a comment claiming the case was "nrs.asset not
+        # installed". It was not: `env.get` ALREADY answers None for a model
+        # that is not in the registry, so the handler could only ever fire on
+        # a real fault — and it answered "this location holds no assets",
+        # which is a complete, confident, wrong number published under
+        # `asset_count`. Nothing distinguished it from a location that is
+        # genuinely empty.
+        #
+        # So there is no handler. A module that is not installed is a
+        # membership test, and its zero is TRUE. A query that fails raises,
+        # and `cadra_route` turns it into the envelope's own 500 — which the
+        # caller can tell apart from an answer. This is gated behind
+        # `include_counts`, so it costs a single-record GET, not a list.
+        Asset = loc.env.get('nrs.asset')
         asset_count = 0
-        try:
-            Asset = loc.env.get('nrs.asset')
-            if Asset is not None and loc.parent_path:
-                descendant_locs = loc.search(
-                    [('parent_path', '=like', loc.parent_path + '%')]
-                )
-                asset_count = Asset.search_count(
-                    [('location_id', 'in', descendant_locs.ids)]
-                )
-        except Exception:
-            # nrs.asset not installed, or transient query error — fall back
-            # to 0 rather than 500-ing the whole serialization.
-            asset_count = 0
+        if Asset is not None and loc.parent_path:
+            descendant_locs = loc.search(
+                [('parent_path', '=like', loc.parent_path + '%')]
+            )
+            asset_count = Asset.search_count(
+                [('location_id', 'in', descendant_locs.ids)]
+            )
         data['asset_count'] = asset_count
     if "children" in include:
         data["children"] = [{"id": c.id, "name": c.name} for c in loc.child_ids]

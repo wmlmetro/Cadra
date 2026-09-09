@@ -75,6 +75,13 @@ class MyserviceApiClient(models.Model):
     # 0 keeps today's behaviour exactly, so this is invisible until somebody
     # deliberately raises a limit on one client.
 
+    is_test_credential = fields.Boolean(
+        string='Test Credential', default=False,
+        help="Records written under this credential are TEST ARTEFACTS and "
+             "are labelled as such where the record is audit-grade. Set on "
+             "the smoke-test client that bootstrap provisions; leave off for "
+             "every credential a real system authenticates with.")
+
     max_page_limit = fields.Integer(
         default=0,
         help="Most records this client may pull in ONE page. "
@@ -240,7 +247,22 @@ class MyserviceApiClient(models.Model):
             if not vals.get('user_id'):
                 vals['user_id'] = self._provision_client_user(
                     vals['client_id'], vals.get('name'), vals.get('scopes')).id
-        return super().create(vals_list)
+        records = super().create(vals_list)
+        # `nrs.asset.custody._is_test_credential_user` is ormcached on the
+        # user id, because it runs once per custody link and a bulk import
+        # would otherwise issue one query per row. A new client can change
+        # that answer, so the cache goes with it.
+        self.env.registry.clear_cache()
+        return records
+
+    def unlink(self):
+        # Same cache as create/write. A stale entry here would keep saying
+        # "test credential" for a user whose credential is gone, which
+        # mislabels a real change of custodian in a record that refuses
+        # correction by design.
+        result = super().unlink()
+        self.env.registry.clear_cache()
+        return result
 
     def set_client_secret(self, raw_secret):
         self.ensure_one()
@@ -275,6 +297,13 @@ class MyserviceApiClient(models.Model):
                      for record in self} if moved else {})
 
         result = super().write(vals)
+
+        # See `create`: the custody provenance lookup is ormcached on the
+        # user id, and `is_test_credential` or `user_id` moving changes it.
+        # Cleared unconditionally rather than on those two keys — a client
+        # write is rare, and a cache that is only sometimes invalidated is
+        # the harder thing to reason about.
+        self.env.registry.clear_cache()
 
         if moved:
             changed = self.filtered(

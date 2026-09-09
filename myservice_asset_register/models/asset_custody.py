@@ -79,8 +79,15 @@ class NRSAssetCustody(models.Model):
         # from now on that script stops on any tenant that has custody
         # history — five of the eight do. That is the intended behaviour
         # rather than a casualty of it: a script that would destroy an
-        # append-only audit record should refuse and say so, and an operator
-        # who genuinely means to discard the register can drop the database.
+        # append-only audit record should refuse and say so.
+        #
+        # A refusal people route around is worse than a refusal with a
+        # documented exit, though, and the route around this one was
+        # dropping the database — which destroys the chain AND everything
+        # else, with nothing left to say it happened. So the script now
+        # refuses BY NAME and offers a flag, `CADRA_SEED_DESTROY_CUSTODY=1`,
+        # which prints the link count and the tenant before it proceeds.
+        #
         # A cascade would have made the wipe silent, which is the one
         # outcome nobody could audit afterwards.
         ondelete='restrict')
@@ -116,6 +123,19 @@ class NRSAssetCustody(models.Model):
         ('transfer', 'Asset transfer completion'),
         ('direct', 'Direct write (Odoo UI, import or script)'),
         ('tracking_backfill', 'Reconstructed from chatter tracking'),
+        # Written by the automated test suite. The suite exercises the
+        # RECORDER — an asset's custodian actually moving — because a test
+        # that does not cannot prove the chain is written at all; and the
+        # recorder is append-only, so the links it produces are permanent in
+        # whatever tenant the suite ran against. That is accepted. What is
+        # not accepted is a reader being unable to tell.
+        #
+        # The reason string used to carry the test's own name, which is a
+        # string somebody has to know to look for. A first-class `source`
+        # returned by the API says it to anyone reading the chain, without
+        # being told the artefacts exist — the same argument as
+        # `tracking_backfill`, one step further on.
+        ('test', 'Written by the automated test suite'),
     ], string='Source', required=True, default='direct', index=True)
 
     # ── Append-only ───────────────────────────────────────────────────
@@ -149,6 +169,30 @@ class NRSAssetCustody(models.Model):
         raise UserError(_append_only_message())
 
     @api.model
+    def _resolve_source(self, declared, user):
+        """The label this link carries. The extension point for provenance.
+
+        Split out of `_record` so that a module ABOVE this one can have an
+        opinion about a link's provenance without this one reaching upward.
+        `myservice_api` overrides it to relabel a write made under a test
+        credential, and the flag it reads is a column that module owns.
+
+        That direction is load-bearing rather than tidy. When the lookup
+        lived here, this module read `myservice_api.client.is_test_credential`
+        while not depending on `myservice_api` — so Odoo's dependency graph
+        could not order the two, and any tenant carrying the new Python with
+        the older `myservice_api` schema would have raised `UndefinedColumn`
+        on EVERY custodian write: the API create and patch, the transfer
+        route, the transfer completion, the employee-departure clear, the
+        Odoo form, the importer. One registry serves every database here, so
+        that is a cross-tenant outage from a single-module upgrade.
+
+        Declared as an override point, it cannot happen: the column and the
+        code that reads it ship in the same module and move together.
+        """
+        return declared or self.env.context.get(CUSTODY_SOURCE_KEY) or 'direct'
+
+    @api.model
     def _record(self, asset, from_custodian, to_custodian, *,
                 reason=None, changed_at=None, changed_by=None, source=None):
         """Append one link. The only way a row is ever written.
@@ -156,8 +200,13 @@ class NRSAssetCustody(models.Model):
         `source` falls back to the caller's context key rather than to a
         parameter default, so a route can declare where a write came from
         once and every `custodian_id` write underneath it is labelled.
+
+        The label itself is decided by `_resolve_source`, which
+        `myservice_api` extends — see there for why a write made under a test
+        credential is relabelled.
         """
         user = changed_by if changed_by is not None else self.env.user
+        source = self._resolve_source(source, user)
         vals = {
             'asset_id': asset.id,
             'from_custodian_id': from_custodian.id if from_custodian else False,
@@ -168,7 +217,7 @@ class NRSAssetCustody(models.Model):
             'changed_by_id': user.id if user else False,
             'changed_by_name': user.name if user else False,
             'reason': reason or False,
-            'source': source or self.env.context.get(CUSTODY_SOURCE_KEY) or 'direct',
+            'source': source,
         }
         return self.sudo().with_context(
             **{CUSTODY_APPEND_KEY: True}).create(vals)
