@@ -5,14 +5,19 @@ Implements the subset of PRD §8 that maps onto `nrs.asset`. The in-house
 model has a simpler 5-state lifecycle (active/in_repair/disposed/
 transferred/missing) versus PRD §8.4's 10-state machine
 (procured/received/tagged/deployed/in_maintenance/in_transit/idle/lost/
-retired/disposed). The full state machine, the immutable custodianship
-chain (PRD §8.5), and the disposal-approval workflow (PRD §8.9) are
-deferred to a future schema-extension pass.
+retired/disposed). The full state machine and the disposal-approval
+workflow (PRD §8.9) are deferred to a future schema-extension pass.
+
+The immutable custodianship chain (PRD §8.5) is `nrs.asset.custody`,
+readable as `include=custody` on an asset and as
+`GET /assets/<id>/custody`. It is written by `nrs.asset.write` rather
+than by any one route, because `custodian_id` has several writers and a
+chain with a gap in it cannot be told from a period of no movement.
 
 The move endpoint persists its side-effect by creating an
-`nrs.asset.transfer` row. Transfer-custody uses `mail.thread` instead
-because `nrs.asset.transfer._check_locations` forbids same-location
-transfers.
+`nrs.asset.transfer` row. Transfer-custody does not: that model requires
+a location change and `_check_locations` forbids from == to, so a pure
+custody move cannot be recorded in it at all.
 """
 import datetime
 import logging
@@ -295,6 +300,33 @@ def _serialize_sap(a):
     }
 
 
+def _serialize_custody(c):
+    """One link in the chain of custody.
+
+    `source` is published deliberately. A link reconstructed from the old
+    chatter tracking values reads `tracking_backfill`, and an auditor has to
+    be able to see that WITHOUT knowing to ask — a reconstruction presented
+    as a contemporaneous record is worse than no record.
+
+    The `*_name` fields are the names as they stood when the change was
+    made. They are not derived from the linked records: an employee deleted
+    since is null in `from`/`to` and still named here.
+    """
+    return {
+        "id": c.id,
+        "changed_at": _date(c.changed_at),
+        "from_custodian": _ref(c.from_custodian_id),
+        "to_custodian": _ref(c.to_custodian_id),
+        "from_custodian_name": c.from_custodian_name or None,
+        "to_custodian_name": c.to_custodian_name or None,
+        # Who MOVED it, which is a different question from who held it.
+        "changed_by": _ref(c.changed_by_id),
+        "changed_by_name": c.changed_by_name or None,
+        "reason": c.reason or None,
+        "source": c.source,
+    }
+
+
 # ─── serializer ──────────────────────────────────────────────────────
 
 def serialize_asset(a, *, include=()):
@@ -302,6 +334,7 @@ def serialize_asset(a, *, include=()):
 
     `include` accepts:
       - "transfers"   : embed nrs.asset.transfer history (last 20)
+      - "custody"     : embed the WHOLE chain of custody, oldest first
       - "pm"          : embed PM schedule summaries
       - "children"    : embed direct sub-assets (id+name)
     """
@@ -413,6 +446,21 @@ def serialize_asset(a, *, include=()):
             }
             for t in a.transfer_ids.sorted(lambda r: r.transfer_date or odoo_fields.Date.today(), reverse=True)[:20]
         ]
+    if "custody" in include:
+        # NOT capped. The embedded `transfers` list above takes the last 20,
+        # and "the last twenty custodians" is precisely the answer an auditor
+        # cannot use: a truncated chain is indistinguishable from a complete
+        # one, so the question it exists to answer comes back wrong with no
+        # sign that it did.
+        #
+        # Sorted by id, not by the model's `changed_at, id` default, so this
+        # is byte-for-byte the order `GET /assets/<id>/custody` returns —
+        # that route pages on an ascending id cursor and cannot sort any
+        # other way. Both are oldest-first, which is the direction a chain
+        # reads; the two agreeing is what stops a reader who switches from
+        # the embed to the route seeing a different chain.
+        data["custody"] = [_serialize_custody(c)
+                           for c in a.custody_ids.sorted("id")]
     if "children" in include:
         data["children"] = [{"id": c.id, "name": c.name, "asset_code": c.asset_code} for c in a.child_ids]
     if "pm" in include:
@@ -743,7 +791,7 @@ class CadraAssetsV1(http.Controller):
                  response_schema={"$ref": "#/components/schemas/Asset"},
                  query_params=[
                      {"name": "include", "schema": {"type": "string"},
-                      "description": "Comma-separated optional sections: transfers, pm, children"},
+                      "description": "Comma-separated optional sections: transfers, custody, pm, children. `custody` embeds the WHOLE chain of custody, oldest first and uncapped; `GET /assets/<id>/custody` is the paginated form for a chain long enough to want one."},
                  ])
     def get_asset(self, id, **kwargs):
         rec, error = _browse_or_404(id)
@@ -760,7 +808,7 @@ class CadraAssetsV1(http.Controller):
                  response_schema={"$ref": "#/components/schemas/Asset"},
                  query_params=[
                      {"name": "include", "schema": {"type": "string"},
-                      "description": "Comma-separated optional sections: transfers, pm, children"},
+                      "description": "Comma-separated optional sections: transfers, custody, pm, children. `custody` embeds the WHOLE chain of custody, oldest first and uncapped; `GET /assets/<id>/custody` is the paginated form for a chain long enough to want one."},
                  ])
     def get_asset_by_tag(self, tag, **kwargs):
         Asset = request.env["nrs.asset"].sudo()
@@ -864,7 +912,11 @@ class CadraAssetsV1(http.Controller):
         if not vals.get("name"):
             return err(ERR_INVALID_REQUEST, "`name` is required",
                        details={"rejected_fields": rejected} if rejected else None)
-        rec = request.env["nrs.asset"].sudo().create(vals)
+        # An asset created already assigned to somebody opens its chain of
+        # custody. `nrs.asset.create` records the link; this says where it
+        # came from, so the row does not read as an anonymous direct write.
+        rec = request.env["nrs.asset"].sudo().with_context(
+            cadra_custody_source="api_write").create(vals)
         out = serialize_asset(rec)
         if rejected:
             out["_warnings"] = {"rejected_fields": rejected}
@@ -914,7 +966,12 @@ class CadraAssetsV1(http.Controller):
         if not vals and not rejected:
             return err(ERR_INVALID_REQUEST, "Empty patch — no writable fields supplied")
         if vals:
-            rec.write(vals)
+            # `custodian_id` is in `_WRITABLE_FIELDS`, so this route moves
+            # custody as surely as transfer-custody does — it just does not
+            # announce it. The recorder in `nrs.asset.write` catches it
+            # either way; the context is what stops it being labelled
+            # `direct`.
+            rec.with_context(cadra_custody_source="api_write").write(vals)
         out = serialize_asset(rec)
         if rejected:
             out["_warnings"] = {"rejected_fields": rejected}
@@ -972,7 +1029,8 @@ class CadraAssetsV1(http.Controller):
             "reason": body.get("reason") or "",
             "state": "done",
         })
-        rec.write({"location_id": to_loc.id})
+        rec.with_context(cadra_custody_source="api_write").write(
+            {"location_id": to_loc.id})
 
         return {
             "asset": serialize_asset(rec),
@@ -1004,11 +1062,23 @@ class CadraAssetsV1(http.Controller):
                      "reason": "Previous custodian left the company",
                  })
     def transfer_custody(self, id, **kwargs):
-        """Reassign the asset's custodian. The audit trail comes via Odoo's
-        mail.thread auto-logging (custodian_id has tracking=True) plus an
-        explicit message_post carrying the optional reason. We deliberately
-        do NOT use nrs.asset.transfer here — that model has a NOT-NULL
-        location-change constraint and is location-move-centric."""
+        """Reassign the asset's custodian.
+
+        The audit trail is an append-only `nrs.asset.custody` row, written by
+        `nrs.asset.write` and readable at `GET /assets/<id>/custody` or as
+        `include=custody` on the asset. It is append-only on the model
+        itself, so it cannot be edited or deleted afterwards, by anyone,
+        including an administrator using sudo.
+
+        The chatter entry below is kept — it is what an Odoo user reads on
+        the record — but it is no longer where the trail lives. It used to
+        be, and a `mail.message` is deletable by any user holding the groups
+        that let them delete one.
+
+        We deliberately do NOT use `nrs.asset.transfer` here: both of its
+        location fields are required and a constraint forbids from == to, so
+        a pure custody change cannot be recorded in it at all.
+        """
         rec, error = _browse_or_404(id)
         if error:
             return error
@@ -1028,8 +1098,20 @@ class CadraAssetsV1(http.Controller):
             return err(ERR_INVALID_REQUEST, "Asset is already assigned to that custodian",
                        details={"current_custodian_id": from_cust.id})
 
-        rec.write({"custodian_id": to_cust.id})
         reason = body.get("reason") or ""
+        if reason and not isinstance(reason, str):
+            return err(ERR_INVALID_REQUEST, "`reason` must be a string")
+        # The source and the reason travel in the context because the ORM
+        # write that carries a custody change has nowhere to put either. The
+        # recorder is in `nrs.asset.write`, not here, because `custodian_id`
+        # has several other writers — PATCH, the transfer completion, the
+        # Odoo form — and a chain missing those is a chain with gaps that
+        # read as periods of no movement.
+        rec.with_context(
+            cadra_custody_source="api_transfer",
+            cadra_custody_reason=reason or False,
+        ).write({"custodian_id": to_cust.id})
+        custody = rec.custody_ids.sorted("id")[-1:]
         msg_body = (f"Custody transferred via API: "
                     f"<b>{from_cust.name or 'unassigned'}</b> → <b>{to_cust.name}</b>")
         if reason:
@@ -1044,8 +1126,56 @@ class CadraAssetsV1(http.Controller):
                 "to_custodian": _ref(to_cust),
                 "reason": reason or None,
                 "message_id": msg.id if msg else None,
+                # The append-only link this call produced. Additive: a
+                # consumer that reads `custody_change` keeps working, and one
+                # that wants the audit record can follow this id without
+                # re-listing the chain.
+                "custody_id": custody.id if custody else None,
             },
         }
+
+    # ── Chain of custody: GET /api/v1/assets/<id>/custody ──────────
+
+    @cadra_route("/api/v1/assets/<int:id>/custody", method="GET",
+                 summary="The asset's append-only chain of custody",
+                 scopes=[SCOPE_ASSETS_READ],
+                 response_schema={
+                     "type": "array",
+                     "items": {"$ref": "#/components/schemas/AssetCustody"},
+                 },
+                 query_params=[*PAGINATION_QUERY_PARAMS])
+    def asset_custody(self, id, **kwargs):
+        """Every recorded change of custodian for one asset, oldest first.
+
+        Append-only: `nrs.asset.custody` refuses `write` and `unlink` on the
+        model itself, so a link cannot be altered once written.
+
+        Oldest first, because a chain reads forwards and because cursor
+        pagination walks ascending ids — a descending list could not be paged
+        honestly with the cursor this API publishes.
+
+        `source` tells a live link from one reconstructed out of the chatter
+        tracking values that preceded this model (`tracking_backfill`). The
+        reconstruction is faithful, but it begins where `custodian_id` became
+        a tracked field, not where the register does.
+        """
+        rec, error = _browse_or_404(id)
+        if error:
+            return error
+        qs = get_params()
+        Custody = request.env["nrs.asset.custody"].sudo()
+        page, next_cursor, total = paginate(
+            Custody, [("asset_id", "=", rec.id)],
+            limit=parse_limit(qs), cursor=qs.get("cursor"),
+        )
+        return ok(
+            data=[_serialize_custody(c) for c in page],
+            pagination={
+                "next_cursor": next_cursor,
+                "previous_cursor": None,
+                "total_estimate": total,
+            },
+        )
 
     # ── Confirm tagging: POST /api/v1/assets/<id>/tag-affixed ──────
 

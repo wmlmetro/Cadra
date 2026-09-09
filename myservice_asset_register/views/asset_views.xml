@@ -150,6 +150,22 @@
                                 </list>
                             </field>
                         </page>
+                        <page string="Chain of Custody" name="custody">
+                            <!-- Append-only. `create`, `edit` and `delete`
+                                 are off here so the UI does not offer an
+                                 action the model refuses; the model is the
+                                 control, not this attribute. -->
+                            <field name="custody_ids" readonly="1">
+                                <list create="false" edit="false" delete="false">
+                                    <field name="changed_at"/>
+                                    <field name="from_custodian_name"/>
+                                    <field name="to_custodian_name"/>
+                                    <field name="changed_by_name"/>
+                                    <field name="source"/>
+                                    <field name="reason"/>
+                                </list>
+                            </field>
+                        </page>
                         <page string="Verification Notes" name="verification">
                             <group>
                                 <field name="verification_notes"/>

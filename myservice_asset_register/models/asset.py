@@ -4,6 +4,8 @@ from odoo import models, fields, api, release, _
 from odoo.exceptions import ValidationError
 from odoo.tools import config
 
+from .asset_custody import CUSTODY_REASON_KEY
+
 # How long a physical verification counts as current, when the asset's category
 # does not state its own window. Database-per-tenant means a config parameter
 # IS per-tenant.
@@ -164,6 +166,17 @@ class NRSAsset(models.Model):
     transfer_ids = fields.One2many(
         'nrs.asset.transfer', 'asset_id', string='Transfers')
 
+    # ── Chain of custody ──────────────────────────────────────
+    # `copy=False` is load-bearing, not tidiness. Odoo's Duplicate action
+    # copies a one2many by re-creating its lines, so without this the new
+    # asset would open with the ORIGINAL asset's custody links — same
+    # timestamps, same actors, same `source` — and they are append-only, so
+    # the fabrication could never be removed. `transfer_ids` has the same
+    # shape and is merely untidy; here it would be invented evidence.
+    custody_ids = fields.One2many(
+        'nrs.asset.custody', 'asset_id', string='Chain of Custody',
+        readonly=True, copy=False)
+
     # ── Notes ─────────────────────────────────────────────────
     notes = fields.Text('Notes')
     image = fields.Image('Asset Photo', max_width=1024, max_height=1024)
@@ -234,7 +247,59 @@ class NRSAsset(models.Model):
                         'This is a provisioning fault — restore the sequence '
                         'before creating assets.'))
                 vals['asset_code'] = code
-        return super().create(vals_list)
+        records = super().create(vals_list)
+        # An asset created already assigned to somebody is the FIRST link of
+        # its chain, not a state that precedes the chain. The chatter
+        # tracking rows this model replaces record creation the same way
+        # (`old_value_integer = 0`), so leaving it out would make the
+        # backfilled half and the live half disagree about what a chain
+        # begins with.
+        for record in records:
+            if record.custodian_id:
+                record._record_custody_change(
+                    self.env['hr.employee'], record.custodian_id)
+        return records
+
+    def write(self, vals):
+        """Record every custodian change, whoever made it.
+
+        The handoff scoped this to `POST /assets/<id>/transfer-custody`, on
+        the grounds that it is the only writer. It is not: `custodian_id` is
+        in the API's `_WRITABLE_FIELDS`, so both `POST /assets` and `PATCH
+        /assets/<id>` write it; `nrs.asset.transfer.action_complete` writes
+        it; `action_mark_retrieved` in `myservice_identity` clears it; and it
+        is an editable field on the Odoo form. Recording in the route would
+        have produced a chain that was incomplete on its first day — which
+        is the one failure an append-only model cannot recover from, because
+        a gap in it is indistinguishable from a period of no movement.
+
+        So the recorder sits at the ORM, where every writer passes. Callers
+        that know why they are writing declare it through
+        `CUSTODY_SOURCE_KEY` in the context; everything else is `direct`.
+        """
+        if 'custodian_id' not in vals:
+            return super().write(vals)
+        before = {record.id: record.custodian_id for record in self}
+        result = super().write(vals)
+        for record in self:
+            was = before.get(record.id, self.env['hr.employee'])
+            now = record.custodian_id
+            if was.id != now.id:
+                record._record_custody_change(was, now)
+        return result
+
+    def _record_custody_change(self, from_custodian, to_custodian):
+        """Append one link to this asset's chain.
+
+        `reason` is read off the context because the ORM write that carries a
+        custody change carries no room for one — the transfer-custody route
+        supplies it there alongside the source.
+        """
+        self.ensure_one()
+        return self.env['nrs.asset.custody']._record(
+            self, from_custodian, to_custodian,
+            reason=self.env.context.get(CUSTODY_REASON_KEY),
+        )
 
     @api.depends('last_verified_date',
                  'category_id', 'category_id.verification_interval_days')

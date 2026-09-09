@@ -620,8 +620,13 @@ acurl -X POST $API/api/v1/assets/124/move \
 
 ## 3.7 POST `/api/v1/assets/<id>/transfer-custody` — reassign custodian
 
-Scope: `assets:write`. Success: **200**. Posts a chatter note via
-`mail.thread` for the audit trail.
+Scope: `assets:write`. Success: **200**. Appends a link to the asset's
+append-only chain of custody (§3.7.1) and posts a chatter note.
+
+Until 9 September 2026 the chatter note WAS the audit trail. It no longer is:
+a `mail.message` is deletable by any user holding the groups that let them
+delete one, and the PRD requires a record that cannot be edited
+retrospectively.
 
 ### Request
 
@@ -640,7 +645,7 @@ acurl -X POST $API/api/v1/assets/124/transfer-custody \
 {
   "data": {
     "asset": { "id": 124, "current_custodian": { "id": 42, "name": "Adaobi Eze" }, "...": "full asset record" },
-    "custody_log": { "message_id": 8123, "from_custodian": null, "to_custodian": { "id": 42, "name": "Adaobi Eze" }, "reason": "Custodian handover at quarter-end" }
+    "custody_change": { "custody_id": 5514, "message_id": 8123, "from_custodian": null, "to_custodian": { "id": 42, "name": "Adaobi Eze" }, "reason": "Custodian handover at quarter-end" }
   },
   "meta": { "request_id": "…", "timestamp": "…", "version": "v1" }
 }
@@ -656,6 +661,89 @@ acurl -X POST $API/api/v1/assets/124/transfer-custody \
 ```json
 { "error": { "code": "invalid_request", "message": "`to_custodian_id` is required", "request_id": "…", "details": { "http_status": 400 } } }
 ```
+
+## 3.7.1 GET `/api/v1/assets/<id>/custody` — the chain of custody
+
+Scope: `assets:read`. Cursor-paginated, **oldest first**. INT-10 §2.3.
+
+Every recorded change of custodian for one asset. **Append-only:**
+`nrs.asset.custody` raises on `write` and on `unlink` on the model itself, so
+a link cannot be altered or removed once recorded — not over the API, not in
+the Odoo interface, and not by an administrator using `sudo()`. **There is no
+write endpoint**: a link is a side effect of a custodian change, never a
+payload.
+
+### Request
+
+```bash
+acurl "$API/api/v1/assets/124/custody?limit=50"
+```
+
+### Success — `200 OK`
+
+```json
+{
+  "data": [
+    {
+      "id": 5513,
+      "changed_at": "2026-08-18T12:05:05",
+      "from_custodian": null,
+      "to_custodian": { "id": 15, "name": "Kunle Bello" },
+      "from_custodian_name": null,
+      "to_custodian_name": "Kunle Bello",
+      "changed_by": { "id": 2, "name": "Administrator" },
+      "changed_by_name": "Administrator",
+      "reason": null,
+      "source": "tracking_backfill"
+    },
+    {
+      "id": 5514,
+      "changed_at": "2026-09-09T11:02:41",
+      "from_custodian": { "id": 15, "name": "Kunle Bello" },
+      "to_custodian": { "id": 42, "name": "Adaobi Eze" },
+      "from_custodian_name": "Kunle Bello",
+      "to_custodian_name": "Adaobi Eze",
+      "changed_by": { "id": 9, "name": "cadra_client_vendra" },
+      "changed_by_name": "cadra_client_vendra",
+      "reason": "Custodian handover at quarter-end",
+      "source": "api_transfer"
+    }
+  ],
+  "pagination": { "next_cursor": null, "previous_cursor": null, "total_estimate": 2 },
+  "meta": { "request_id": "…", "timestamp": "…", "version": "v1" }
+}
+```
+
+### The three fields that decide what a chain means
+
+| Field | Why it is there |
+|---|---|
+| `changed_by` | **Who moved it**, which is a different question from who held it. The two custodian fields cannot answer it. |
+| `from_custodian_name` / `to_custodian_name` | The names **as recorded at the time**. Not derived from the linked records: an employee deleted since is `null` in `from_custodian`/`to_custodian` and still named here. The link degrades, the evidence does not. |
+| `source` | Where the change came from — `api_transfer`, `api_write`, `transfer`, `direct`, or `tracking_backfill`. |
+
+### `tracking_backfill` — read this before drawing a conclusion
+
+A link marked `tracking_backfill` was **reconstructed** from the Odoo chatter
+tracking values that predate this model. The reconstruction is faithful:
+those rows carry the outgoing employee, the incoming employee, the acting
+user and the timestamp, so nothing in a backfilled link is invented.
+
+But it **begins where `custodian_id` became a tracked field, not where the
+register does.** Records seeded by direct SQL produced no tracking value and
+are absent entirely. **A chain is therefore sparser than its asset is old,
+and that is the honest picture rather than a defect** — an auditor told where
+the record begins can work with it, one who discovers the gap later cannot
+trust any of it, including the part that is complete.
+
+### Embedded form
+
+`GET /api/v1/assets/<id>?include=custody` returns the **whole** chain under
+`data.custody`, uncapped. The embedded `transfers` list is capped at the last
+20; this one deliberately is not, because "the last twenty custodians" cannot
+be told from a complete chain and is therefore the one answer an auditor
+cannot use. Use the paginated route above for a chain long enough to want
+paging.
 
 ## 3.8 POST `/api/v1/assets/<id>/tag-affixed` — confirm physical tagging
 
@@ -2754,6 +2842,7 @@ acurl "$API/api/v1/reports/depreciation?category_id=abc"
 | 8 | PATCH  | `/api/v1/assets/<id>` | `assets:write` |
 | 9 | POST   | `/api/v1/assets/<id>/move` | `assets:write` |
 | 10 | POST   | `/api/v1/assets/<id>/transfer-custody` | `assets:write` |
+| 10a | GET    | `/api/v1/assets/<id>/custody` | `assets:read` |
 | 11 | GET    | `/api/v1/assets/export` | `assets:read` |
 | 12 | GET    | `/api/v1/assets/export.csv` | `assets:read` |
 | 13 | GET    | `/api/v1/assets/<id>/depreciation` | `assets:read` |

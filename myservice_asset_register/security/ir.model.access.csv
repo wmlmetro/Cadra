@@ -22,3 +22,6 @@ access_nrs_asset_import_manager,nrs.asset.import manager,model_nrs_asset_import,
 access_nrs_asset_import_line_manager,nrs.asset.import.line manager,model_nrs_asset_import_line,myservice_asset_register.group_asset_manager,1,1,1,1
 access_nrs_asset_label_wizard_user,nrs.asset.label.wizard user,model_nrs_asset_label_wizard,myservice_asset_register.group_asset_user,1,1,1,1
 access_nrs_asset_label_wizard_manager,nrs.asset.label.wizard manager,model_nrs_asset_label_wizard,myservice_asset_register.group_asset_manager,1,1,1,1
+access_nrs_asset_custody_employee,nrs.asset.custody employee,model_nrs_asset_custody,base.group_user,1,0,0,0
+access_nrs_asset_custody_user,nrs.asset.custody user,model_nrs_asset_custody,myservice_asset_register.group_asset_user,1,0,0,0
+access_nrs_asset_custody_manager,nrs.asset.custody manager,model_nrs_asset_custody,myservice_asset_register.group_asset_manager,1,0,0,0

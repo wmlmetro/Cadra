@@ -105,6 +105,66 @@ class MyserviceApiClient(models.Model):
                         "-1 (uncapped) or a positive number. Got %(value)s."
                     ) % {"field": field_name, "value": value})
 
+    #: A client whose pagination limits differ from the default may not hold
+    #: an access token for longer than this.
+    NON_DEFAULT_LIMIT_TTL_CEILING = 3600
+
+    @api.constrains('token_ttl_seconds', 'max_page_limit', 'total_record_cap')
+    def _check_a_raised_limit_cannot_outlive_its_decision(self):
+        """Bound the window in which a withdrawn limit is still in force.
+
+        Reducing a limit revokes the client's refresh families (handoff 13
+        B1), so the family stops re-minting under the old ceiling at once.
+        What that does NOT close is the access token already in the caller's
+        hand: the cap is stamped into the JWT as a claim, and an access token
+        is unrevocable for its lifetime by design. So the raised limit
+        survives exactly as long as the TTL — a raised limit that outlives
+        the decision to lower it again.
+
+        The window cannot be removed; it can be bounded. One hour is what
+        every client on every tenant already carries, so this changes nothing
+        today; the 86400 a client CAN be configured with is the indefensible
+        case, and it is now unreachable.
+
+        `-1` (uncapped) is a non-default limit like any other — a credential
+        granted an unbounded view of the register on a token nobody can call
+        back for a day is the worst instance of this, not an exemption from
+        it. `0` on BOTH fields is the external default and is untouched: the
+        ceiling exists to bound a decision, and no decision has been made.
+
+        The rule bites on whichever field is written last, which is why all
+        three are in the trigger list — raising the TTL first and the limit
+        afterwards must be refused just as surely as the other order.
+        """
+        for record in self:
+            defaulted = (record.max_page_limit == 0
+                         and record.total_record_cap == 0)
+            if defaulted:
+                continue
+            if record.token_ttl_seconds <= self.NON_DEFAULT_LIMIT_TTL_CEILING:
+                continue
+            raise ValidationError(_(
+                "A client whose pagination limits differ from the default "
+                "may not hold a token for longer than %(ceiling)s seconds. "
+                "%(client)s asks for %(ttl)s, with max_page_limit "
+                "%(page)s and total_record_cap %(cap)s (0 = the external "
+                "default, -1 = uncapped).\n\n"
+                "The cap is stamped into the access JWT as a claim and an "
+                "access token cannot be revoked before it expires, so a "
+                "token minted under a raised limit keeps that limit for its "
+                "whole life: a raised limit that outlives the decision to "
+                "lower it again. Reducing the limit already revokes this "
+                "client's refresh families; bounding the TTL bounds what is "
+                "left.\n\n"
+                "Either lower %(field)s to %(ceiling)s or below, or return "
+                "both limits to 0."
+            ) % {"ceiling": self.NON_DEFAULT_LIMIT_TTL_CEILING,
+                 "client": record.client_id or record.name or _("This client"),
+                 "ttl": record.token_ttl_seconds,
+                 "page": record.max_page_limit,
+                 "cap": record.total_record_cap,
+                 "field": "token_ttl_seconds"})
+
     last_used_at = fields.Datetime(readonly=True)
     last_used_ip = fields.Char(readonly=True)
 

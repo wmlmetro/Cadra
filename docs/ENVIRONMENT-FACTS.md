@@ -32,6 +32,37 @@ An `odoo shell` overlapping a pytest run has produced *"all server processes ter
 
 **Not new, and not caused by whatever you were running.** The same line appears repeatedly in this log going back to August. Budget twenty minutes and one discarded test run; do not go looking for what you broke.
 
+**The cause, measured in handoff 14: it is the Docker VM's OOM killer, and the trigger is TWO Odoo registry loads at once.** The `db` log carries `statistics collector process … was terminated by signal 9: Killed` immediately before every *"all server processes terminated"*, and the container itself reports `OOMKilled=false` with no memory limit — so the kill comes from the VM's kernel, not from Docker's per-container accounting.
+
+**The VM is not the tight resource; the Mac is, and it is far past tight.** Containers were using ~1.5 GiB of the VM's 7.7 GiB when this fired. On the host at the same moment:
+
+| | |
+|---|---|
+| free pages | ~60 MB |
+| swap used | 21.1 GB of 22.5 GB |
+| pages in the compressor | 3.5 million |
+
+The host also runs the **Frappe/Vendra stack — eleven containers, ~1.2 GiB** — alongside this one, plus a browser and several editor sessions. Under that pressure the guest's pages are swapped out from underneath it and its kernel starts killing. A second Odoo registry load is what tips it, but the machine is already over the line before anything Odoo does.
+
+**What this means in practice: never run two `--stop-after-init` upgrades or test runs at the same time.** Handoff 14 lost roughly ninety minutes to six consecutive crashes, every one of them while a subagent's `-u myservice_api` run overlapped the main session's `-u myservice_asset_register` run **against a different tenant**. Different databases do not help — the memory is the shared resource, not the registry lock.
+
+**What worked, and is the recipe for any multi-tenant fan-out here:**
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.19.yml stop odoo
+# then, one tenant at a time, in a throwaway container:
+docker compose -f docker-compose.yml -f docker-compose.19.yml run --rm --no-deps -T odoo \
+  odoo -c /etc/odoo/odoo.conf -d <db> -u <module> --stop-after-init \
+  --workers=0 --max-cron-threads=0 --http-port=8199 --gevent-port=8198
+docker compose -f docker-compose.yml -f docker-compose.19.yml start odoo   # when done
+```
+
+Stopping the long-running server first is what makes the difference: it is three Odoo processes on its own, and `run --rm` then leaves exactly one registry in memory.
+
+**It reduces the crashes; it does not end them.** `nrs19` still crash-restarted twice on the 77-module registry load with the server stopped and nothing else of ours running — because 21 of the host's 22.5 GB of swap were already in use before any of this started. **Build a retry into any fan-out** (three attempts, waiting for the database to come back between them) and it gets through. Retry a *crash*; do not retry a code fault, or you get the same error twice and the second copy buries the first.
+
+**And a false green to watch for.** A run whose database died before the test phase reports `0 failed, 0 error(s) of 0 tests` **and exits 0**. It is indistinguishable from a pass unless you grep the output for `of 0 tests` and for `CRITICAL`. One agent's retry wrapper here declared success on a log whose entire content was `service "odoo" is not running`.
+
 ### The `.env.example` database is `odoo`, and a 19 worker cannot load it
 
 `odoo` on this machine is a 15-era leftover. A 19 worker refuses it with `ERROR: operator does not exist: character varying ->> unknown`, then `Failed to load registry` — an error that names nothing relevant to the actual cause.
