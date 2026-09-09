@@ -42,6 +42,19 @@ COMMIT_EVERY = 200
 # only count the rest; otherwise an entirely bad sheet blows the field up.
 MAX_ERROR_SAMPLES = 100
 
+# What the status endpoint reports when the stored error list cannot be read
+# back. `error_count` is a separate integer and stays true, so the operator is
+# told the DETAIL is missing rather than being handed an empty list, which
+# reads as "this job had no errors" — the exact confident-wrong-answer this
+# handler used to produce.
+UNREADABLE_ERROR_SAMPLE = {
+    'row': 0,
+    'ir_number': '',
+    'message': 'Error detail for this job could not be read back — the stored '
+               'list is not valid JSON. The error COUNT is still accurate; the '
+               'rows themselves are in the Odoo log.',
+}
+
 
 def _norm_cell(value):
     if value is None:
@@ -136,10 +149,34 @@ class NrsEmployeeImportJob(models.Model):
 
     def to_status_dict(self):
         self.ensure_one()
-        try:
-            err_list = json.loads(self.errors) if self.errors else []
-        except Exception:
-            err_list = []
+        err_list = []
+        if self.errors:
+            # `errors` is written by `_run()` and by nothing else, always as
+            # `json.dumps(<list of dicts>)`. So a value that will not parse
+            # means a row hand-edited or written by an older format — a
+            # ValueError (json.JSONDecodeError is one) and nothing else. The
+            # narrow catch is the point: the broad one here could not tell bad
+            # stored data from a typo in this method, and answered "no errors"
+            # to both.
+            try:
+                err_list = json.loads(self.errors)
+            except ValueError:
+                _logger.warning(
+                    'Employee import job %s: stored error list is not valid '
+                    'JSON (%d chars) — reporting the gap, not "no errors"',
+                    self.id, len(self.errors), exc_info=True,
+                )
+                err_list = [dict(UNREADABLE_ERROR_SAMPLE)]
+            if not isinstance(err_list, list):
+                # Valid JSON of the wrong shape: `err_list[:20]` below would
+                # slice a string or raise on an int, so the shape is settled
+                # here rather than at the point of use.
+                _logger.warning(
+                    'Employee import job %s: stored error list parsed as %s, '
+                    'not a list — reporting the gap',
+                    self.id, type(err_list).__name__,
+                )
+                err_list = [dict(UNREADABLE_ERROR_SAMPLE)]
         return {
             'id': self.id,
             'state': self.state,
@@ -172,6 +209,9 @@ class NrsEmployeeImportJob(models.Model):
                 job = env['nrs.employee.import.job'].browse(job_id)
                 job._run()
         except Exception:
+            # catch-all: reported — this is a thread root, so anything at all
+            # can arrive; the traceback is logged and the job is moved to
+            # `failed` so the status endpoint stops saying "processing".
             _logger.exception('Employee import job %s crashed at thread root', job_id)
             # Best-effort: open a second cursor to mark the job failed so the
             # status endpoint shows something useful instead of "processing
@@ -185,6 +225,10 @@ class NrsEmployeeImportJob(models.Model):
                         'finished_at': fields.Datetime.now(),
                     })
             except Exception:
+                # catch-all: reported — by here the database itself is
+                # unreachable, so the log line is the only channel left. What
+                # it records is a real gap: the job stays at `processing`
+                # forever and only this traceback says why.
                 _logger.exception(
                     'Could not even mark import job %s as failed', job_id,
                 )
@@ -199,10 +243,19 @@ class NrsEmployeeImportJob(models.Model):
         try:
             rows = self._parse_xlsx()
         except Exception as e:
+            # catch-all: reported — `_parse_xlsx` runs base64, zipfile and
+            # openpyxl over a file an operator uploaded, and those raise a zoo
+            # (BadZipFile, InvalidFileException, binascii.Error, KeyError,
+            # IndexError on an empty workbook, MemoryError on a huge one) with
+            # no shared base class worth naming. The job is marked `failed` and
+            # the exception is carried to the operator verbatim.
             _logger.exception('Failed to parse xlsx for job %s', self.id)
             self.write({
                 'state': 'failed',
-                'fatal_message': 'Parse error: %s' % e,
+                # The type as well as the text: several of the above stringify
+                # to '' or to a bare quoted key, and 'Parse error: ' told the
+                # operator nothing at all.
+                'fatal_message': 'Parse error: %s: %s' % (type(e).__name__, e),
                 'finished_at': fields.Datetime.now(),
                 'duration_ms': int((time.time() - start) * 1000),
             })
@@ -220,16 +273,27 @@ class NrsEmployeeImportJob(models.Model):
         for i, payload in enumerate(rows, 1):
             ir = payload.get('ir_number', '')
             try:
-                pre_existing = Employee.search([('ir_number', '=', ir)], limit=1)
-                _employee, log = SyncLog.process_sap_payload(
-                    payload, sync_type='csv_import',
-                )
-                if log.status == 'success':
+                # One savepoint per row, so a row that fails undoes ITSELF.
+                # `self.env.cr.rollback()` used to stand in the handler below,
+                # and a rollback is not row-scoped: it discards everything
+                # since the last commit — up to COMMIT_EVERY - 1 employees
+                # that imported perfectly — while `created` and `updated` are
+                # plain Python integers that went on counting them. The job
+                # then reported 200 created for a batch that wrote none.
+                with self.env.cr.savepoint():
+                    pre_existing = Employee.search(
+                        [('ir_number', '=', ir)], limit=1)
+                    _employee, log = SyncLog.process_sap_payload(
+                        payload, sync_type='csv_import',
+                    )
+                    status = log.status
+                    error_message = log.error_message
+                if status == 'success':
                     if pre_existing:
                         updated += 1
                     else:
                         created += 1
-                elif log.status == 'skipped':
+                elif status == 'skipped':
                     skipped += 1
                 else:
                     errored += 1
@@ -237,19 +301,28 @@ class NrsEmployeeImportJob(models.Model):
                         sampled_errors.append({
                             'row': i,
                             'ir_number': ir,
-                            'message': log.error_message or 'unknown',
+                            'message': error_message or 'unknown',
                         })
             except Exception as e:
-                # process_sap_payload already rolls back internally on its
-                # own errors; for anything that escapes it we rollback to
-                # the last savepoint here so the next row can proceed.
-                self.env.cr.rollback()
+                # catch-all: reported — a row is one call into
+                # `process_sap_payload`, which reaches hr.employee, the SAP
+                # field mapping and whatever a tenant has added to either, so
+                # the set is open; the row is counted as an error and its
+                # message is carried to the operator in `error_samples`.
                 errored += 1
                 if len(sampled_errors) < MAX_ERROR_SAMPLES:
+                    # Logged only while we are still sampling, so a wholly bad
+                    # 10k sheet cannot put 10k tracebacks in the log.
+                    _logger.warning(
+                        'Employee import job %s: row %s (IR %s) failed',
+                        self.id, i, ir or '(blank)', exc_info=True,
+                    )
                     sampled_errors.append({
                         'row': i,
                         'ir_number': ir,
-                        'message': str(e),
+                        # The type as well as the text — `str(KeyError('x'))`
+                        # is "'x'" and several ORM errors stringify to ''.
+                        'message': '%s: %s' % (type(e).__name__, e),
                     })
 
             if i % COMMIT_EVERY == 0:

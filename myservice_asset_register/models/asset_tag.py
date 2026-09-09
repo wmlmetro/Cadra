@@ -574,7 +574,20 @@ class IrActionsReport(models.Model):
             # bookkeeping" is only true if the bookkeeping can be rolled back.
             with self.env.cr.savepoint():
                 self._stamp_printed_tags(report_ref, res_ids)
-        except Exception:          # noqa: BLE001 — never fail a print over bookkeeping
+        except Exception:          # noqa: BLE001
+            # catch-all: reported — deliberately broad and deliberately not
+            # re-raised. The PDF in `result` already exists, so failing the
+            # print over its own bookkeeping would take a working label away
+            # from somebody holding a printer, and this hook sits under every
+            # report render in the product, not only ours. What it can meet is
+            # correspondingly open: a readonly cursor, a second connection the
+            # registry cannot hand out, `nrs.asset` absent on a tenant that
+            # does not carry the asset modules, anything `_mark_printed` grows.
+            # The traceback is logged with both the report and the ids, because
+            # this is the funnel that recorded 2 prints in 17,217 labels while
+            # saying nothing at all (handoff 10) — an unstamped print must
+            # leave an ERROR line behind, which is how the next regression gets
+            # noticed rather than measured a year later.
             _logger.exception("could not stamp tag print for %s / %s",
                               report_ref, res_ids)
         return result

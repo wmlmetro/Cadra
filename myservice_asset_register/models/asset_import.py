@@ -1,7 +1,10 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 import json
+import logging
 from datetime import date
+
+_logger = logging.getLogger(__name__)
 
 
 class NRSAssetImport(models.Model):
@@ -54,8 +57,25 @@ class NRSAssetImport(models.Model):
             raise ValidationError(_('No data to validate.'))
         try:
             records = json.loads(self.raw_data)
-        except Exception:
-            raise ValidationError(_('Invalid JSON format.'))
+        except ValueError as e:
+            # Narrow, and it is the whole of what this try can raise: the body
+            # is one `json.loads` over a Text field already known to be
+            # non-empty, so the only failure is malformed input —
+            # json.JSONDecodeError, which is a ValueError. The broad catch that
+            # stood here also claimed 'Invalid JSON format.' for anything else
+            # that ever got added to the block, and the position that says
+            # WHERE the JSON is broken was thrown away.
+            raise ValidationError(
+                _('Invalid JSON format: %s') % e) from e
+
+        if not isinstance(records, list):
+            # Valid JSON, wrong shape. A pasted object rather than an array
+            # used to iterate its KEYS, so `row.get` raised AttributeError on a
+            # string and the operator got an Odoo traceback instead of the
+            # message this method already has for bad input.
+            raise ValidationError(_(
+                'Expected a JSON array of asset records, got %s.'
+            ) % type(records).__name__)
 
         lines = []
         for row in records:
@@ -109,71 +129,98 @@ class NRSAssetImport(models.Model):
 
         for line in self.line_ids.filtered(lambda l: l.status in ['new', 'update']):
             try:
-                row = json.loads(line.raw_line)
-                # Resolve category
-                cat = Cat.search([('name', 'ilike', line.category)], limit=1)
-                # Resolve location
-                loc = Loc.search([('name', 'ilike', line.location)], limit=1) if line.location else False
+                # One savepoint per line. The handler below reports the failure
+                # by WRITING it onto the line — and a failed `nrs.asset` create
+                # is usually a database error (a duplicate `asset_code`, a
+                # NOT NULL), which leaves the transaction aborted, so that
+                # write raised too and took the whole import down with a
+                # message about the wrong thing. A per-line report is only a
+                # report if the line can still be written after the failure.
+                with self.env.cr.savepoint():
+                    row = json.loads(line.raw_line)
+                    # Resolve category
+                    cat = Cat.search([('name', 'ilike', line.category)], limit=1)
+                    # Resolve location
+                    loc = Loc.search([('name', 'ilike', line.location)], limit=1) if line.location else False
 
-                vals = {
-                    'name':             line.asset_name,
-                    'asset_code':       line.asset_code,
-                    'category_id':      cat.id if cat else False,
-                    'domain':           line.domain or 'other',
-                    'location_id':      loc.id if loc else False,
-                    'acquisition_cost': line.cost,
-                    'condition':        line.condition or 'good',
-                    'sap_asset_number': line.sap_number,
-                    'import_source':    self.source,
-                    'import_date':      self.import_date,
-                    'import_ref':       self.name,
-                    'tag_source':       'sap' if self.source == 'sap' else 'other',
-                }
-                if line.status == 'new':
-                    # On create the spreadsheet's tag is the number already on
-                    # the physical asset, and nrs.asset.create mints a matching
-                    # label record for it.
-                    if line.asset_tag:
-                        vals['asset_tag'] = line.asset_tag
-                    asset = self.env['nrs.asset'].create(vals)
-                    line.write({'asset_id': asset.id, 'status': 'imported'})
-                else:
-                    existing = self.env['nrs.asset'].search(
-                        [('asset_code', '=', line.asset_code)], limit=1)
-                    if not existing:
-                        # `write()` on an empty recordset is a silent no-op, so
-                        # this used to mark the line `imported` having changed
-                        # nothing at all.
-                        line.write({
-                            'status': 'error',
-                            'status_note': 'No asset with code %s to update' % (
-                                line.asset_code or '(blank)'),
-                        })
-                        continue
-                    # `asset_tag` is deliberately NOT written on update. Writing
-                    # it on an existing asset changes the number the register
-                    # shows without touching the tag label — no label record is
-                    # created for it, nothing is reprinted, and nobody goes near
-                    # the asset — so the register drifts away from the sticker
-                    # in the room. That is the same defect the API's
-                    # writable-field allow-list closes. A tag genuinely changes
-                    # only through the replacement flow, which prints a new
-                    # label and takes an affix confirmation.
-                    incoming = (line.asset_tag or '').strip()
-                    line_vals = {'asset_id': existing.id, 'status': 'imported'}
-                    if incoming and incoming != (existing.asset_tag or '').strip():
-                        line_vals['status_note'] = (
-                            'Tag %s in the file was NOT applied: the asset '
-                            'carries %s. Request a tag replacement to change '
-                            'it.' % (incoming, existing.asset_tag or '(none)'))
-                    # No `status_note` key when there is nothing to say, so the
-                    # validation step's own note survives instead of being
-                    # blanked.
-                    existing.write(vals)
-                    line.write(line_vals)
+                    vals = {
+                        'name':             line.asset_name,
+                        'asset_code':       line.asset_code,
+                        'category_id':      cat.id if cat else False,
+                        'domain':           line.domain or 'other',
+                        'location_id':      loc.id if loc else False,
+                        'acquisition_cost': line.cost,
+                        'condition':        line.condition or 'good',
+                        'sap_asset_number': line.sap_number,
+                        'import_source':    self.source,
+                        'import_date':      self.import_date,
+                        'import_ref':       self.name,
+                        'tag_source':       'sap' if self.source == 'sap' else 'other',
+                    }
+                    if line.status == 'new':
+                        # On create the spreadsheet's tag is the number already on
+                        # the physical asset, and nrs.asset.create mints a matching
+                        # label record for it.
+                        if line.asset_tag:
+                            vals['asset_tag'] = line.asset_tag
+                        asset = self.env['nrs.asset'].create(vals)
+                        line.write({'asset_id': asset.id, 'status': 'imported'})
+                    else:
+                        existing = self.env['nrs.asset'].search(
+                            [('asset_code', '=', line.asset_code)], limit=1)
+                        if not existing:
+                            # `write()` on an empty recordset is a silent no-op, so
+                            # this used to mark the line `imported` having changed
+                            # nothing at all.
+                            line.write({
+                                'status': 'error',
+                                'status_note': 'No asset with code %s to update' % (
+                                    line.asset_code or '(blank)'),
+                            })
+                            continue
+                        # `asset_tag` is deliberately NOT written on update. Writing
+                        # it on an existing asset changes the number the register
+                        # shows without touching the tag label — no label record is
+                        # created for it, nothing is reprinted, and nobody goes near
+                        # the asset — so the register drifts away from the sticker
+                        # in the room. That is the same defect the API's
+                        # writable-field allow-list closes. A tag genuinely changes
+                        # only through the replacement flow, which prints a new
+                        # label and takes an affix confirmation.
+                        incoming = (line.asset_tag or '').strip()
+                        line_vals = {'asset_id': existing.id, 'status': 'imported'}
+                        if incoming and incoming != (existing.asset_tag or '').strip():
+                            line_vals['status_note'] = (
+                                'Tag %s in the file was NOT applied: the asset '
+                                'carries %s. Request a tag replacement to change '
+                                'it.' % (incoming, existing.asset_tag or '(none)'))
+                        # No `status_note` key when there is nothing to say, so the
+                        # validation step's own note survives instead of being
+                        # blanked.
+                        existing.write(vals)
+                        line.write(line_vals)
 
             except Exception as e:
-                line.write({'status': 'error', 'status_note': str(e)[:200]})
+                # catch-all: reported — a line is a create or write of an
+                # `nrs.asset` from spreadsheet text, so the set is open by
+                # construction: a ValueError for a `condition` or `domain`
+                # value the selection does not have, a ValidationError from an
+                # asset constraint, psycopg2 for a duplicate `asset_code`,
+                # KeyError for `generic.location` where the FM modules are not
+                # installed. The failure is written onto the line, which is
+                # where the operator reads the result of the import.
+                _logger.warning(
+                    'Asset import %s: line %s (%s) failed',
+                    self.name, line.id, line.asset_code or '(blank)',
+                    exc_info=True,
+                )
+                # The type as well as the text: several ORM errors stringify
+                # to '' and the note then read as a blank cell beside the word
+                # "Error".
+                line.write({
+                    'status': 'error',
+                    'status_note': ('%s: %s' % (type(e).__name__, e))[:200],
+                })
 
         self.write({'state': 'imported'})
 
