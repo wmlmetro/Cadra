@@ -140,10 +140,16 @@ jobs:
           # PreforkServer does not have. Every test in such a class ERRORS in
           # setUpClass, and the run still reports "N tests" and exits 0, so the
           # suite looks green while proving nothing. odoo.conf sets workers = 2.
+          # myservice_api is named for the same reason as the last two: it
+          # depends on security and nrs_base, so `-u` on those already drags
+          # it in and its HttpCases would run as invisible transitive
+          # coverage that vanishes the day a dependency moves. Its tests
+          # cover the record cap and the /auth/token failure causes — the
+          # two things a partner integration meets first.
           DB=$(grep -E '^POSTGRES_DB=' .env.example | cut -d= -f2-)
           docker compose -f docker-compose.yml -f docker-compose.19.yml exec -T odoo \
             odoo -c /etc/odoo/odoo.conf -d "$DB" \
-              -u myservice_workflow,myservice_asset_depreciation,myservice_nrs_base,myservice_asset_register,myservice_request_fields,myservice_security,myservice_fleet_maintenance,myservice_barcode_station \
+              -u myservice_workflow,myservice_asset_depreciation,myservice_nrs_base,myservice_asset_register,myservice_request_fields,myservice_security,myservice_fleet_maintenance,myservice_barcode_station,myservice_api \
               --test-enable --stop-after-init --workers=0 \
               --http-port=8099 --gevent-port=8098
 

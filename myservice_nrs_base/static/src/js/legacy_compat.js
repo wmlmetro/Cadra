@@ -130,6 +130,7 @@ odoo.define(
                 this.__ref = useRef("root");
                 this.actionService = useService("action");
                 this.ormService = useService("orm");
+                this.notificationService = useService("notification");
                 // Widget-era props the dashboards may read.
                 this.action = this.props.action || {};
                 this.options = this.props.options || {};
@@ -187,6 +188,36 @@ odoo.define(
 
             do_action(action, options) {
                 return this.actionService.doAction(action, options);
+            }
+
+            // Widget.prototype.do_notify(title, message). Absent from this
+            // shim until now, so every caller threw — and the barcode
+            // station's "Request replacement" throws AFTER the write has
+            // committed, so the request is filed and the screen never
+            // refreshes: it reads as though nothing happened. A write that
+            // succeeded and looks like it failed is the same defect as a
+            // truncation that does not announce itself.
+            //
+            // NOTE the argument order flips: the legacy call is
+            // (title, message); Odoo 19's notification service is
+            // add(message, {title}).
+            do_notify(title, message, sticky) {
+                return this.notificationService.add(message || title, {
+                    title: message ? title : undefined,
+                    type: "success",
+                    sticky: !!sticky,
+                });
+            }
+
+            // Widget.prototype.do_warn(title, message) — the failure twin of
+            // do_notify, and equally absent. Shimmed alongside it so the
+            // next caller does not rediscover this the same way.
+            do_warn(title, message, sticky) {
+                return this.notificationService.add(message || title, {
+                    title: message ? title : undefined,
+                    type: "danger",
+                    sticky: !!sticky,
+                });
             }
 
             _bindLegacyEvents() {

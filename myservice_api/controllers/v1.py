@@ -20,12 +20,15 @@ the caller proves identity:
                        expose the full data set (up to MAX_PAGE_LIMIT/page).
     - Service / M2M  → POST /api/v1/auth/token with {client_id, client_secret}
                        (myservice.api.client records, scoped per consumer).
-                       No `aud` claim — list endpoints expose only the first
-                       EXTERNAL_TOTAL_CAP (100) records of any resource and
-                       per-request limit is clamped to EXTERNAL_MAX_PAGE_LIMIT
-                       (100). Bulk export endpoints honour the same cap.
-                       This is the paywall safeguard against external
-                       consumers pulling the full dataset.
+                       Bounded by the client record's own `total_record_cap`
+                       and `max_page_limit`, defaulting to the first
+                       EXTERNAL_TOTAL_CAP (100) records of any resource with
+                       the per-request limit clamped to
+                       EXTERNAL_MAX_PAGE_LIMIT (100). Bulk export endpoints
+                       honour the same cap. This is the paywall safeguard
+                       against external consumers pulling the full dataset —
+                       and it always reports the TRUE total alongside the
+                       truncated rows, plus a `_warnings.truncated` block.
 Send `Authorization: Bearer <token>` on every subsequent call. Scopes use
 the resource:action format from the Cadra API spec (assets:read,
 requests:write, etc.) — see utils.SCOPE_* for the list.
@@ -38,6 +41,7 @@ import base64
 import csv
 import io
 import json
+import logging
 import re
 import time
 
@@ -50,7 +54,6 @@ from .utils import (
     ERR_INVALID_REQUEST,
     ERR_NOT_FOUND,
     ERR_UNAUTHORIZED,
-    EXTERNAL_TOTAL_CAP,
     SCOPE_ADMIN,
     SCOPE_ASSETS_READ,
     SCOPE_ASSETS_WRITE,
@@ -59,17 +62,26 @@ from .utils import (
     SCOPE_REQUESTS_READ,
     SCOPE_REQUESTS_WRITE,
     _http_response,
-    _request_is_frontend,
+    _new_request_id,
     cadra_endpoint,
+    client_limit_claims,
     err,
+    flag_truncation,
     get_params,
     jwt_encode,
     jwt_secret,
+    log_safe as _log_safe,
     ok,
+    record_cap,
     require_jwt,
     scopes_for_user,
     turnstile_error,
 )
+
+
+# Auth outcomes go to their own logger so `--log-handler cadra.auth:DEBUG` and
+# a grep for "cadra.auth" both work without dragging in the rest of v1.
+_auth_logger = logging.getLogger("cadra.auth")
 
 
 # ─── route metadata registry (drives the OpenAPI generator) ─────────
@@ -82,10 +94,22 @@ _ROUTE_REGISTRY = []
 
 # Shared cursor-pagination query params — spread into any list endpoint.
 PAGINATION_QUERY_PARAMS = (
-    {"name": "limit", "schema": {"type": "integer", "default": 50, "maximum": 200, "minimum": 1},
-     "description": "Page size (1–200, default 50)"},
+    # The documented maximum said 200 and had said so since before
+    # MAX_PAGE_LIMIT was lifted to 2000 — so the published number matched
+    # neither ceiling in force. It is caller-dependent, so say that instead
+    # of naming a figure that is wrong for everyone.
+    {"name": "limit", "schema": {"type": "integer", "default": 50, "minimum": 1},
+     "description": (
+         "Page size, default 50. Silently clamped to the ceiling for your "
+         "credential: 100 for a service token unless its client record "
+         "raises `max_page_limit`, 2000 for the Cadra web frontend.")},
     {"name": "cursor", "schema": {"type": "string"},
-     "description": "Opaque cursor from a previous response's pagination.next_cursor"},
+     "description": (
+         "Opaque cursor from a previous response's pagination.next_cursor. "
+         "A null next_cursor means either that you have reached the end or "
+         "that your credential's record cap is exhausted — check "
+         "`_warnings.truncated` and `pagination.total_estimate` to tell "
+         "the two apart.")},
 )
 
 
@@ -165,8 +189,16 @@ class MyserviceApiV1(http.Controller):
 
     # ── Auth ────────────────────────────────────────────────────────
 
-    def _mint_access(self, secret, *, sub, uid, scopes, aud=None, ttl=3600):
-        """Build and sign the short-lived access JWT. Returns the token string."""
+    def _mint_access(self, secret, *, sub, uid, scopes, aud=None, ttl=3600,
+                     extra_claims=None):
+        """Build and sign the short-lived access JWT. Returns the token string.
+
+        `extra_claims` carries the per-client pagination limits so the hot
+        list path reads a claim instead of re-reading the client record on
+        every call. Only non-default values are ever passed, so an
+        unconfigured client's token is byte-identical to the one it used to
+        receive.
+        """
         now = int(time.time())
         claims = {
             "iss": "myservice_api",
@@ -178,6 +210,7 @@ class MyserviceApiV1(http.Controller):
         }
         if aud:
             claims["aud"] = aud
+        claims.update(extra_claims or {})
         return jwt_encode(claims, secret)
 
     def _session_payload(self, secret, *, sub, user, scopes, aud=None,
@@ -187,6 +220,7 @@ class MyserviceApiV1(http.Controller):
         """
         access_token = self._mint_access(
             secret, sub=sub, uid=user.id, scopes=scopes, aud=aud, ttl=access_ttl,
+            extra_claims=client_limit_claims(client),
         )
         rec, raw = request.env["myservice.api.refresh_token"].sudo()._issue(
             user=user, scopes=scopes, aud=aud, client=client,
@@ -220,11 +254,34 @@ class MyserviceApiV1(http.Controller):
                 ERR_INVALID_REQUEST,
                 "`client_id` and `client_secret` are required",
             ))
+        # Both go straight into an ORM domain, where a non-string raises
+        # before any of our code runs — `{"client_id": {"$ne": null}}`
+        # answered a raw HTML 500 from an UNAUTHENTICATED request, because
+        # /auth/token is one of the nine routes that predate @cadra_route
+        # and has no envelope handler under it. Found by the test written
+        # for the diagnostic below, not by the diagnostic.
+        if not isinstance(client_id, str) or not isinstance(client_secret, str):
+            return _http_response(err(
+                ERR_INVALID_REQUEST,
+                "`client_id` and `client_secret` must be strings",
+            ))
 
-        client = request.env["myservice.api.client"].sudo().search(
+        Client = request.env["myservice.api.client"].sudo()
+        client = Client.search(
             [("client_id", "=", client_id), ("active", "=", True)], limit=1
         )
         if not client or not client.check_client_secret(client_secret):
+            # ONE body for all four causes, DELIBERATELY. Telling an
+            # unauthenticated caller which half of the pair is wrong turns
+            # this endpoint into a client-id enumeration oracle, and a 401
+            # that distinguishes "no such client" from "wrong secret" is a
+            # worse system than a slow debugging session. Do not "improve"
+            # this by naming the cause in the response.
+            #
+            # The cause goes to the log instead, against the `request_id`
+            # this response already carries — which is what makes that id
+            # worth having.
+            self._log_auth_failure(Client, client_id, client)
             return _http_response(err(
                 ERR_UNAUTHORIZED, "Invalid client credentials", status=401,
             ))
@@ -252,7 +309,76 @@ class MyserviceApiV1(http.Controller):
             "last_used_ip": request.httprequest.remote_addr,
         })
 
+        # A log that records only failures cannot answer "did this
+        # credential ever work", which is the second question anybody asks.
+        _auth_logger.info(
+            "request_id=%s client_id=%s outcome=ok",
+            _new_request_id(), _log_safe(client_id),
+        )
         return _http_response(ok(payload))
+
+    def _log_auth_failure(self, Client, client_id, active_exact_match):
+        """Name the cause of a /auth/token 401 in the server log.
+
+        Four distinct causes answer with one identical body; without this
+        the `request_id` we hand back is a token with nothing behind it.
+        The extra queries run on the failure path only.
+
+        The client id is logged as sent. It is half of a credential pair
+        and it arrived in the clear, so it is not a secret — but it IS
+        attacker-controlled text going into a log line, hence `_log_safe`.
+        The secret never appears here: not hashed, not truncated, not as a
+        length.
+        """
+        request_id = _new_request_id()
+        safe_id = _log_safe(client_id)
+        try:
+            # A savepoint, not a bare try: `client_id` is unauthenticated
+            # input and reaches the ORM as a DOMAIN VALUE, so a JSON object
+            # or a number there raises a psycopg error that poisons the
+            # transaction — and the 401 we are on our way to returning would
+            # then fail at teardown. The diagnostic rolls back to here and
+            # the response is unaffected.
+            with request.env.cr.savepoint():
+                outcome, extra = self._classify_auth_failure(
+                    Client, client_id, active_exact_match)
+        except Exception:
+            # A diagnostic must never change the answer. A 401 that turns
+            # into a 500 because we tried to explain it would be a worse bug
+            # than the one this exists to fix.
+            _auth_logger.exception(
+                "request_id=%s client_id=%s outcome=unclassified",
+                request_id, safe_id)
+            return
+
+        _auth_logger.warning(
+            "request_id=%s client_id=%s outcome=%s%s",
+            request_id, safe_id, outcome, extra,
+        )
+
+    def _classify_auth_failure(self, Client, client_id, active_exact_match):
+        """Return (outcome, extra) for one failed /auth/token attempt."""
+        if active_exact_match:
+            return "bad_secret", ""
+        else:
+            # `active_test=False` — an archived client is a different fact
+            # from a client that was never created, and only one of them is
+            # fixed by reactivating it.
+            inactive = Client.with_context(active_test=False).search(
+                [("client_id", "=", client_id)], limit=1)
+            if inactive:
+                return "inactive", ""
+            else:
+                # `=` on a Postgres varchar is case-sensitive, so `Vendra`
+                # and `vendra` are different clients and answer identically.
+                # An hour was lost to exactly this on staging. `=ilike` is
+                # a case-insensitive EXACT match — no wildcards are added.
+                near = Client.with_context(active_test=False).search(
+                    [("client_id", "=ilike", client_id)], limit=1)
+                if near:
+                    return ("case_mismatch",
+                            " matched=%s" % _log_safe(near.client_id))
+                return "no_such_client", ""
 
     # ── Auth: user login (OAuth2 ROPC) ─────────────────────────────
 
@@ -383,6 +509,12 @@ class MyserviceApiV1(http.Controller):
             secret,
             sub=client.client_id if client else user.login,
             uid=user.id, scopes=scopes, aud=result["aud"], ttl=access_ttl,
+            # Re-read off the client RECORD rather than replaying the claims
+            # in the presented token — the same rule already applied to a
+            # client family's user and to a session family's scopes. Raising
+            # a client's cap must bite on its next refresh, not thirty days
+            # later.
+            extra_claims=client_limit_claims(client),
         )
         new_rec = result["new_record"]
         refresh_ttl = int((new_rec.expires_at - fields.Datetime.now()).total_seconds())
@@ -1271,11 +1403,20 @@ class MyserviceApiV1(http.Controller):
                  summary="Export all assets as JSON (paginated externally if needed)",
                  scopes=[SCOPE_ASSETS_READ])
     def assets_export(self, **kwargs):
-        # External (non-frontend) tokens see only the first EXTERNAL_TOTAL_CAP
-        # records — same paywall safeguard as the cursor-paginated endpoints.
-        # The frontend always receives the full set.
-        cap = None if _request_is_frontend() else EXTERNAL_TOTAL_CAP
-        assets = request.env["nrs.asset"].sudo().search([], limit=cap)
+        # Capped callers see only the first `record_cap()` records — the same
+        # paywall safeguard as the cursor-paginated endpoints. The frontend
+        # and any client provisioned uncapped receive the full set.
+        Asset = request.env["nrs.asset"].sudo()
+        cap = record_cap()
+        # `total` is the register, not the response. `count` used to be
+        # len(items) on a capped search, so this endpoint answered "there
+        # are 100 assets" to a tenant holding 2,363 — the same false
+        # statement paginate() used to make, in a route that calls itself
+        # "export ALL assets".
+        total = Asset.search_count([])
+        assets = Asset.search([], limit=cap)
+        if cap is not None:
+            flag_truncation(cap, total)
         items = [{
             "asset_code": a.asset_code,
             "name": a.name,
@@ -1290,7 +1431,7 @@ class MyserviceApiV1(http.Controller):
             "retrieval_flag": a.retrieval_flag,
             "serial_number": a.serial_number or None,
         } for a in assets]
-        return {"count": len(items), "assets": items,
+        return {"count": len(items), "total": total, "assets": items,
                 "exported_at": str(fields.Datetime.now())}
 
     @http.route("/api/v1/assets/export.csv", type="http", auth="none",
@@ -1302,10 +1443,13 @@ class MyserviceApiV1(http.Controller):
         if envelope is not None:
             return _http_response(envelope)
 
-        # External (non-frontend) tokens see only the first EXTERNAL_TOTAL_CAP
-        # rows — same paywall safeguard as the JSON paths.
-        cap = None if _request_is_frontend() else EXTERNAL_TOTAL_CAP
-        assets = request.env["nrs.asset"].sudo().search([], limit=cap)
+        # Capped callers see only the first `record_cap()` rows — the same
+        # paywall safeguard as the JSON paths.
+        Asset = request.env["nrs.asset"].sudo()
+        cap = record_cap()
+        total = Asset.search_count([])
+        assets = Asset.search([], limit=cap)
+        truncated = cap is not None and total > cap
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow([
@@ -1328,13 +1472,25 @@ class MyserviceApiV1(http.Controller):
                 "YES" if a.retrieval_flag else "NO",
                 a.serial_number or "",
             ])
-        return request.make_response(
-            output.getvalue(),
-            headers=[
-                ("Content-Type", "text/csv"),
-                ("Content-Disposition", "attachment; filename=nrs_assets.csv"),
-            ],
-        )
+        headers = [
+            ("Content-Type", "text/csv"),
+            ("Content-Disposition", "attachment; filename=nrs_assets.csv"),
+        ]
+        if truncated:
+            # A CSV bypasses the envelope, so it cannot carry `_warnings`.
+            # It gets both halves instead: a header for anything reading the
+            # response programmatically, and a final commented row for the
+            # human who opens the file — because this is the artefact that
+            # gets saved, emailed and cited, and a file that is silently a
+            # twentieth of the register is the worst thing in this finding.
+            headers.append(("X-Cadra-Truncated", "%d/%d" % (cap, total)))
+            writer.writerow([
+                "# TRUNCATED: this export contains the first %d of %d assets. "
+                "This credential is limited to the first %d records of any "
+                "query. Filter the query, or contact WestMetro to raise the "
+                "limit." % (cap, total, cap)
+            ])
+        return request.make_response(output.getvalue(), headers=headers)
 
     # ── Service requests (portal / quick submit) ───────────────────
 
