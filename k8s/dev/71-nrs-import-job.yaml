@@ -8,9 +8,21 @@
 # bootstrap_db=staging19, extra=cadra_brand_nrs) — that installs modules + grants
 # admin the Asset Manager group (required, or asset creates are denied).
 #
-# The image ref is sed-substituted by nrs-import.yml (REPLACE_ME_IMAGE). Admin
-# XML-RPC password defaults to 'admin' (image env ODOO_ADMIN_PW) — override in
-# the Job env if the tenant's admin password differs.
+# The image ref is sed-substituted by nrs-import.yml (REPLACE_ME_IMAGE).
+#
+# ODOO_ADMIN_PW is the Odoo *admin user* password used for XML-RPC (not the
+# master password, which is ODOO_MASTER_PASSWORD). It used to be baked into
+# the image as `admin` and this comment documented the fallback rather than
+# setting the variable — so the Job authenticated as the tenant's admin on a
+# password committed to this repository, shipped inside a pulled image layer.
+# It now comes from the cadra-odoo Secret and the entrypoint refuses without
+# it. Add the key before running the Job:
+#
+#   kubectl -n cadra-dev patch secret cadra-odoo --type merge \
+#     -p '{"stringData":{"ODOO_ADMIN_PASSWORD":"<password>"}}'
+#
+# Without it the pod stays in CreateContainerConfigError, which is the
+# refusal: a missing credential must stop the run, not pick one.
 #
 # Re-run: kubectl -n cadra-dev delete job cadra-nrs-import && kubectl apply -f -
 apiVersion: batch/v1
@@ -54,6 +66,11 @@ spec:
                 secretKeyRef:
                   name: cadra-db
                   key: POSTGRES_PASSWORD
+            - name: ODOO_ADMIN_PW
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: ODOO_ADMIN_PASSWORD
           resources:
             requests:
               cpu: 200m

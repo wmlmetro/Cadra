@@ -199,7 +199,10 @@ that cannot be delegated away:
 | Body | JSON **or form-encoded** | JSON only, schema-validated |
 | Response | bare `{"ok": true, …}` | PRD §10.7 envelope |
 | Idempotency | none | `X-Idempotency-Key` |
-| Dispatch log | **reconciles** the outbound `sent` row it answers | always appends a new inbound row |
+| Dispatch log | **reconciles** the outbound `sent` row it answers | ~~always appends a new inbound row~~ — **fixed in handoff 18**: both now share `workflow.dispatch.log._reconcile_callback` |
+| Replay | fires on the transition; a replay writes nothing and answers `200 {"replayed": true}` | same decision, same model method, `"replayed": true` in `data` |
+| Contradiction | `409` naming both outcomes | `409 conflict`, `details.current_outcome` / `details.attempted_outcome` |
+| Unconfigured tenant | `503`, opaque body (handoff 15) | `503 server_misconfigured`, opaque body (**handoff 18**) |
 
 The authentication line is the one that settles it: WorkSpace holds a shared
 token, not a Cadra client credential, and a public route cannot delegate into
@@ -230,7 +233,23 @@ of writing the table:
    with no workspace config, and creating one on a demo tenant to prove a
    documentation finding is not a trade worth making.
 
-Both are the Architect's to schedule.
+**Both were scheduled as handoff 18 B and both are now fixed.**
+
+1. `workflow.dispatch.log._reconcile_callback` is shared by both controllers,
+   so the v1 route answers the dispatch it is a reply to. It is scoped to
+   exclude `event_type` rows — INT-05 asset events live in the same table and
+   also pass through `sent`, and one of those is not an answer to an approval
+   request. The defect was **latent, not live**: `_send_to_workflow` has never
+   run on any of the eight local tenants, so there is no outbound
+   request-approval row anywhere to have been left at `sent`.
+2. The v1 route resolves `workflow.config` itself and answers **`503
+   server_misconfigured`** with the body *"Workflow integration is not
+   available"*, the configuration sentence going to the log at WARNING. This
+   WAS probed live in the end, on `jaizbankplc`, before and after: the source
+   reading was right, and it turned out cheap to confirm because every tenant
+   is an unconfigured tenant (0 of 8 have an active workspace config).
+   It now refuses `queried` too, which used to succeed on an unconfigured
+   tenant because only the approved/rejected handlers looked a config up.
 
 ---
 

@@ -77,3 +77,27 @@ def test_no_dead_sql_constraints_in_the_registry(client, admin_scope, capture):
         "these models declare constraints Odoo 19 silently does not create: "
         f"{dead['models']} — see docs/constraint-audit.md"
     )
+
+
+def test_the_spec_declares_every_status_the_callback_can_answer(client, capture):
+    """A status the generated spec omits is one a code-generated client
+    handles in its generic error branch.
+
+    Handoff 18 gave `POST /api/v1/integrations/workflow/callback` a `409`
+    (a callback contradicting a decision already recorded) and a `503` (a
+    tenant never wired to a workflow engine), updated the hand-written
+    reference, and left THIS artefact — the one an integration runs a
+    generator against — declaring neither. `cadra_route`'s `error_statuses`
+    is what carries them now, and this is what stops them drifting apart
+    again. CLAUDE.md rule 2: the annotation moves with the change.
+    """
+    r = client.get("/api/v1/openapi.json")
+    capture("meta/openapi_callback_statuses", r)
+    assert r.status_code == 200
+
+    op = r.json()["paths"]["/api/v1/integrations/workflow/callback"]["post"]
+    declared = set(op["responses"])
+    for status in ("200", "400", "401", "403", "404", "409", "500", "503"):
+        assert status in declared, (
+            "the workflow callback answers %s and the generated spec does "
+            "not declare it; declared: %s" % (status, sorted(declared)))

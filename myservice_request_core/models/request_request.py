@@ -146,16 +146,46 @@ class RequestRequest(models.Model):
         return records
 
     def write(self, vals):
+        """A stage change is a stage CHANGING, not the word appearing in vals.
+
+        This branched on `'stage_id' in vals`, so writing a request's current
+        stage back over itself reset `date_moved` to now and appended a
+        `stage_changed` row to `request.event` — the request's own audit
+        trail — saying a move had happened when none had.
+
+        Handoff 18 found it through the WorkSpace callback, which wrote the
+        configured approved stage unconditionally on every replay: a
+        double-count in the audit trail on every duplicate POST. But the
+        callback is only the caller that made it visible. Any caller writing
+        an unchanged stage — a bulk edit, an import, `api_move_request` on a
+        route that ends where it starts — has been fabricating events here
+        for as long as this method has existed.
+
+        The subset that actually moved is computed BEFORE `super()`, because
+        afterwards every record compares equal to the new value and there is
+        nothing left to tell them apart. `date_moved` is then written to that
+        subset alone rather than merged into `vals`, so a record that did not
+        move does not have its last-moved timestamp reset by one that did.
+        A `date_moved`-only write carries no `stage_id`, so it does not
+        re-enter this branch.
+        """
         track_stage = 'stage_id' in vals
         track_assign = 'user_id' in vals
+        moved = self.browse()
         if track_stage:
-            vals.setdefault('date_moved', fields.Datetime.now())
+            target = vals['stage_id'] or False
+            # `!=` against a non-int (a recordset somebody passed by mistake)
+            # is True for every record, which lands on the old behaviour —
+            # the safe direction for a guard that decides whether to record.
+            moved = self.filtered(
+                lambda rec: (rec.stage_id.id or False) != target)
         res = super().write(vals)
-        if track_stage:
-            for rec in self:
-                rec._log_event('stage_changed')
-                if rec.stage_id.closed and not rec.date_closed:
-                    rec.date_closed = fields.Datetime.now()
+        if moved and 'date_moved' not in vals:
+            moved.write({'date_moved': fields.Datetime.now()})
+        for rec in moved:
+            rec._log_event('stage_changed')
+            if rec.stage_id.closed and not rec.date_closed:
+                rec.date_closed = fields.Datetime.now()
         if track_assign:
             for rec in self:
                 if rec.user_id and not rec.date_assigned:

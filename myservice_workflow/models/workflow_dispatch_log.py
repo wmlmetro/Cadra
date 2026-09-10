@@ -229,6 +229,50 @@ class WorkflowDispatchLog(models.Model):
         self._assert_event_write_allowed(vals)
         return super().write(vals)
 
+    # ── Inbound callback reconciliation ───────────────────────────────
+
+    @api.model
+    def _reconcile_callback(self, request_rec, outcome, workspace_ref, data):
+        """The row a callback answers: the outbound dispatch, or a new inbound.
+
+        Shared by BOTH callback controllers, and that sharing is the fix.
+        The legacy `/myservice/workflow/callback` route found the
+        `direction='outbound', status='sent'` row it was answering and
+        rewrote it to the outcome; the documented `/api/v1` twin always
+        appended a fresh inbound row and never touched the dispatch. So on a
+        tenant using v1, an answered dispatch read `sent` for ever and
+        "which dispatches are still unanswered" could not be asked at all.
+
+        The legacy behaviour is the right one, so it is the one both get.
+
+        There is no outbound request-approval row on any of the eight local
+        tenants today — `_send_to_workflow` has never run on any of them —
+        so this is latent rather than live. It stops being latent the first
+        time a tenant sends one.
+        """
+        log = self.sudo().search([
+            ('request_id', '=', request_rec.id),
+            ('direction', '=', 'outbound'),
+            ('status', '=', 'sent'),
+            # Asset lifecycle events (INT-05) also live in this table and
+            # also pass through `sent`. One of those is not an answer to an
+            # approval request and must never be rewritten by a callback
+            # about one — the same scoping ruling handoff 06 made for the
+            # drain, which is scoped by `event_type` and not by status.
+            ('event_type', '=', False),
+        ], limit=1, order='create_date desc')
+
+        if log:
+            return log
+
+        return self.sudo().create({
+            'request_id':        request_rec.id,
+            'direction':         'inbound',
+            'status':            outcome,
+            'workspace_ref':     workspace_ref,
+            'response_received': json.dumps(data, default=str),
+        })
+
     def action_view_request(self):
         if self.request_id:
             return {

@@ -34,6 +34,32 @@ def _expected_sap_secret():
     return value or None
 
 
+def _raw_json_body():
+    """The POSTed JSON body, JSON-RPC envelope stripped, or ``{}``.
+
+    ``request.jsonrequest`` DOES NOT EXIST on Odoo 19. It is an attribute of
+    the dispatcher, never of ``request``, so reading it raises
+    ``AttributeError`` — and this file read it on the branch reached when
+    ``kwargs`` is empty, which is exactly the branch whose intended answer is
+    ``{'success': False, 'error': 'Empty payload'}``. A caller POSTing an
+    empty or non-JSON-RPC body got a 500 instead, on an ``auth='none'`` route
+    an external system calls.
+
+    ``request.get_json_data()`` is the public replacement. The dispatcher has
+    already parsed the body by the time a handler runs and werkzeug caches
+    the raw data, so re-reading costs a parse and no I/O. ``ValueError``
+    covers a body that is not JSON and one that is not UTF-8; the dispatcher
+    would normally have refused first, so this is the belt on the braces.
+    """
+    try:
+        payload = request.get_json_data()
+    except (ValueError, AttributeError):
+        return {}
+    if isinstance(payload, dict) and 'params' in payload and 'jsonrpc' in payload:
+        payload = payload['params']
+    return payload or {}
+
+
 def _secrets_equal(supplied, expected):
     """Constant-time comparison; both sides encoded, so non-ASCII is safe."""
     return hmac.compare_digest(
@@ -77,20 +103,23 @@ class SAPWebhookController(http.Controller):
             return {'success': False, 'error': 'Unauthorized'}
 
         # For type='json' routes, Odoo unpacks JSON-RPC params into kwargs.
-        # Also support raw JSON POST (non-RPC) where request.jsonrequest
-        # holds the payload directly.
-        if kwargs:
-            payload = kwargs
-        else:
-            payload = request.jsonrequest or {}
-            # Strip JSON-RPC envelope if present
-            if 'params' in payload and 'jsonrpc' in payload:
-                payload = payload['params']
+        # Also support raw JSON POST (non-RPC), where the body IS the payload
+        # and `kwargs` is empty because there was no `params` key to unpack.
+        payload = kwargs if kwargs else _raw_json_body()
 
         if not payload:
             return {'success': False, 'error': 'Empty payload'}
 
         employees = payload if isinstance(payload, list) else [payload]
+        # A JSON body is legally a list, an object, a string or a number, and
+        # only the first two are employees. Without this, `["a", "b"]` or a
+        # bare `5` reaches `emp_data.get(...)` and raises `AttributeError` —
+        # a 500 on the unauthenticated route, on the same branch the fix
+        # above exists to make answer properly. The twin below already
+        # guarded this; this one stopped a line short.
+        if not all(isinstance(emp, dict) for emp in employees):
+            return {'success': False,
+                    'error': 'Expected an employee object or a list of them'}
         results = []
 
         SyncLog = request.env['nrs.sap.sync.log'].sudo()
@@ -111,9 +140,15 @@ class SAPWebhookController(http.Controller):
     )
     def sap_sync_test(self, **kwargs):
         """Authenticated test endpoint for verifying integration."""
-        payload = dict(kwargs) if kwargs else dict(request.jsonrequest or {})
-        if 'params' in payload and 'jsonrpc' in payload:
-            payload = payload['params']
+        payload = dict(kwargs) if kwargs else _raw_json_body()
+        if not isinstance(payload, dict):
+            # A raw JSON list is a legal body on the sync route above, which
+            # handles many employees. This probe handles one, and
+            # `.setdefault` on a list is an AttributeError — a 500 on an
+            # authenticated route, same family as the defect above.
+            return {'success': False,
+                    'error': 'Expected a single employee object'}
+        payload = dict(payload)
         payload.setdefault('event', 'TestEvent')
         employee, log = request.env['nrs.sap.sync.log'].sudo().process_sap_payload(
             payload, sync_type='manual',

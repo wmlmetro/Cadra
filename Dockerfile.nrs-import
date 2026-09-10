@@ -24,11 +24,18 @@ COPY docs/seed/NRS_asset_seed/ /opt/pack/NRS_asset_seed/
 COPY scripts/nrs_import_entrypoint.sh /opt/cadra/entrypoint.sh
 RUN chmod +x /opt/cadra/entrypoint.sh
 
+# ODOO_ADMIN_PW is deliberately NOT here. An image layer is pulled: a
+# credential baked into one ships to every host that runs this image and to
+# anyone who can read the registry, and `docker history` prints it. It used
+# to default to `admin`, which the entrypoint passed straight to XML-RPC —
+# so the Job authenticated as the tenant's admin on a password committed to
+# this repository. The entrypoint now REFUSES when it is unset and names it;
+# k8s/dev/71-nrs-import-job.yaml supplies it from the cadra-odoo Secret.
+# A credential may default to nothing. It may never default to something.
 ENV ODOO_URL=http://odoo-19:8069 \
     SOURCE_DB=staging \
     TARGET_DB=staging19 \
     DB_HOST=db \
-    ODOO_ADMIN_PW=admin \
     PACK=/opt/pack/NRS_asset_seed
 
 ENTRYPOINT ["/opt/cadra/entrypoint.sh"]

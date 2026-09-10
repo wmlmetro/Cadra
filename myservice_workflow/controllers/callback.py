@@ -234,22 +234,88 @@ class WorkflowCallbackController(http.Controller):
                 _logger.warning("Workflow callback: request '%s' not found", ref)
                 return self._json_response({'error': f"Request '{ref}' not found"}, 404)
 
-            # ── Find or create dispatch log ───────────────────────────
-            log = request.env['workflow.dispatch.log'].sudo().search([
-                ('request_id', '=', req.id),
-                ('direction', '=', 'outbound'),
-                ('status', '=', 'sent'),
-            ], limit=1, order='create_date desc')
+            # ── Replay, contradiction, or apply ───────────────────────
+            #
+            # Before ANYTHING is written. A second byte-identical POST used
+            # to answer `200 {"ok": true}` and do it all again: another
+            # dispatch-log row, another chatter post, and another write of
+            # the configured approved stage — which dragged a request a
+            # human had since moved onward back to where the approval put
+            # it, and appended a `stage_changed` event for a stage that had
+            # not changed.
+            #
+            # The check has to sit here rather than inside the three
+            # handlers because the dispatch-log row is written before they
+            # are called. `_workflow_callback_disposition` is on the model
+            # so that the `/api/v1` twin reaches the identical decision.
+            disposition = req._workflow_callback_disposition(outcome)
 
-            if not log:
-                # Create inbound log if no matching outbound found
-                log = request.env['workflow.dispatch.log'].sudo().create({
-                    'request_id':         req.id,
-                    'direction':          'inbound',
-                    'status':             outcome,
-                    'workspace_ref':       workspace_ref,
-                    'response_received':  json.dumps(data, default=str),
-                })
+            if disposition == req.CALLBACK_REPLAY:
+                # The caller replayed a request we honoured. Telling them so
+                # is the truth, and writing nothing is the whole point —
+                # handoff 06's "one physical act is one event", inbound.
+                #
+                # But "writes nothing" must not mean "discards in silence".
+                # The disposition compares `workflow_status` and nothing
+                # else, so a second `approved` carrying a `payment_ref` the
+                # first did not have is dropped — and both fields are
+                # optional in the published schema, so a caller sending the
+                # approval first and the reference when it clears is doing
+                # nothing wrong. Rule 3. Anything discarded is named, in the
+                # log and in the body.
+                discarded = req._discarded_by_replay(payment_ref, comment)
+                if discarded:
+                    _logger.warning(
+                        "Workflow callback: request %s is already '%s'; the "
+                        "repeat was NOT applied and it carried %s, which is "
+                        "therefore discarded. (workspace_ref=%r) %s",
+                        ref, outcome, ', '.join(discarded), workspace_ref,
+                        caller_ip_label())
+                else:
+                    _logger.info(
+                        "Workflow callback: request %s is already '%s'; "
+                        "replay ignored, nothing written (workspace_ref=%r). "
+                        "%s", ref, outcome, workspace_ref, caller_ip_label())
+                body = {
+                    'ok': True,
+                    'replayed': True,
+                    'message': ("Outcome '%s' was already applied to request "
+                                "'%s'; nothing changed" % (outcome, ref)),
+                }
+                if discarded:
+                    body['discarded_fields'] = discarded
+                return self._json_response(body)
+
+            if disposition == req.CALLBACK_CONFLICT:
+                # Two systems disagreeing about one request. NOT absorbed:
+                # applying it would overwrite a recorded decision on the say-so
+                # of a message that may be a stale redelivery arriving out of
+                # order, and there is nothing in the payload that can tell the
+                # two apart. 409 names both outcomes so the caller knows
+                # exactly what we hold; a reversal is a human decision and now
+                # requires one. ERROR, not WARNING — this is the one case here
+                # where somebody has to look.
+                _logger.error(
+                    "Workflow callback CONFLICT: request %s is '%s' and the "
+                    "callback says '%s'. Refused — a recorded decision is not "
+                    "overwritten by a later contradicting one. Re-send the "
+                    "request to WorkSpace if the decision genuinely changed. "
+                    "(workspace_ref=%r) %s",
+                    ref, req.workflow_status, outcome, workspace_ref,
+                    caller_ip_label())
+                return self._json_response({
+                    'error': ("Request '%s' is already '%s'; refusing to "
+                              "apply '%s'" % (ref, req.workflow_status, outcome)),
+                    'current_outcome': req.workflow_status,
+                    'attempted_outcome': outcome,
+                }, 409)
+
+            # ── Find or create dispatch log ───────────────────────────
+            # Shared with the /api/v1 twin, which used to always append a
+            # fresh inbound row and so left an answered outbound dispatch
+            # reading `sent` for ever.
+            log = request.env['workflow.dispatch.log'].sudo()._reconcile_callback(
+                req, outcome, workspace_ref, data)
 
             # ── Route to correct handler ──────────────────────────────
             if outcome == 'approved':
@@ -274,6 +340,7 @@ class WorkflowCallbackController(http.Controller):
 
             return self._json_response({
                 'ok': True,
+                'replayed': False,
                 'message': f"Outcome '{outcome}' applied to request '{ref}'",
             })
 

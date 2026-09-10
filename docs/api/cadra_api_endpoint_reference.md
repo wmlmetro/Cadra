@@ -36,7 +36,9 @@ calls use plain `curl`.
 **Error codes.** `invalid_request` (400), `unauthorized` (401),
 `forbidden` (403), `not_found` (404), `conflict` (409),
 `unprocessable` (422), `rate_limited` (429), `internal_error` (500),
-`server_misconfigured` (500).
+`server_misconfigured` (500, and **503** on
+`POST /integrations/workflow/callback` for a tenant with no WorkSpace
+configuration).
 
 ---
 
@@ -2544,9 +2546,65 @@ acurl -X POST $API/api/v1/integrations/workflow/callback \
 {
   "data": {
     "applied_outcome": "approved",
-    "request_reference": "INCIDENT-052026-0000002"
+    "request_reference": "INCIDENT-052026-0000002",
+    "replayed": false
   },
   "meta": { "request_id": "a23f1717…", "timestamp": "…", "version": "v1" }
+}
+```
+
+### Replay — `200 OK` with `replayed: true`
+
+**An outcome already applied is a no-op that answers success.** Send the same
+callback twice and the second one writes nothing at all: no dispatch-log row,
+no chatter post, no stage change, no audit event. `data.replayed` is how you
+tell the two apart.
+
+```json
+{
+  "data": {
+    "applied_outcome": "approved",
+    "request_reference": "INCIDENT-052026-0000002",
+    "replayed": true
+  },
+  "meta": { "request_id": "0d61b2aa…", "timestamp": "…", "version": "v1" }
+}
+```
+
+Re-sending the request to the workflow engine resets it to `pending`, so a
+second dispatch's decision is a second transition and applies normally.
+
+### Error — `409 conflict` (a different outcome after a decision)
+
+A request Cadra records as `approved` cannot be turned into `rejected` by a
+later callback, and vice versa; `queried` after either is refused on the same
+terms. Nothing is written, and the error says what Cadra currently holds.
+
+```json
+{
+  "error": {
+    "code": "conflict",
+    "message": "Request 'INCIDENT-052026-0000002' is already 'approved'; refusing to apply 'rejected'",
+    "request_id": "7c04e1f9…",
+    "details": {
+      "current_outcome": "approved",
+      "attempted_outcome": "rejected",
+      "http_status": 409
+    }
+  }
+}
+```
+
+### Error — `503 server_misconfigured` (tenant not wired to a workflow engine)
+
+```json
+{
+  "error": {
+    "code": "server_misconfigured",
+    "message": "Workflow integration is not available",
+    "request_id": "10574f56…",
+    "details": { "http_status": 503 }
+  }
 }
 ```
 

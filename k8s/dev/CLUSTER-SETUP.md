@@ -104,6 +104,26 @@ cert-manager's HTTP-01 challenge will not validate until this resolves.
 - `CADRA_TEST_CLIENT_SECRET`
 - `CADRA_TURNSTILE_SECRET` — optional; Cloudflare Turnstile secret key
 
+**Cluster-only secret key** (not a GitHub secret — set directly on the
+`cadra-odoo` K8s secret):
+
+- `ODOO_ADMIN_PASSWORD` — the Odoo **admin user** password, used for XML-RPC by
+  the one-off `cadra-nrs-import` Job (`k8s/dev/71-nrs-import-job.yaml`). Not the
+  same thing as `ODOO_MASTER_PASSWORD`, which is the database manager's master
+  password. It used to be baked into the import image as `admin`; a credential
+  in an image layer is pulled by every host that runs the image and printed by
+  `docker history`, so it has no default any more and the Job's entrypoint
+  refuses without it.
+
+  ```bash
+  kubectl -n cadra-dev patch secret cadra-odoo --type merge \
+    -p '{"stringData":{"ODOO_ADMIN_PASSWORD":"<password>"}}'
+  ```
+
+  `nrs-import.yml` pre-checks this key and fails naming it, because a missing
+  `secretKeyRef` otherwise leaves the pod in `CreateContainerConfigError` with
+  no logs at all.
+
 **Variables** (same screen → Variables):
 - `DO_REGISTRY_NAME` (e.g. `vendra-registry`)
 - `DO_CLUSTER_NAME`

@@ -2388,6 +2388,14 @@ def test_the_envelope_lets_odoos_own_retries_through():
 #           genuinely occur here.
 #   `salt`  has no real collisions (`asphalt` and `assault` do not contain
 #           it) but costs nothing to segment and removes the question.
+#   `pw`    added in handoff 18, and it is the reason this list is a list and
+#           not a finished thing. `ODOO_ADMIN_PW` — the exact name of the
+#           credential baked into `Dockerfile.nrs-import` — matched NOTHING
+#           here: `pwd` is listed, `pw` was not, and `password` does not
+#           contain it. The guard read the Dockerfile correctly and called
+#           the credential an ordinary variable. Segmented, because as a bare
+#           substring it is inside `pwd` (already covered) and would fire on
+#           any word containing those two letters.
 #
 # Deliberately absent, both from the verification pass's suggested list:
 #
@@ -2410,7 +2418,7 @@ _CREDENTIAL_RE = re.compile(
     r"api[_-]?key|secret|token|password|passwd|passphrase|credential"
     r"|private[_-]?key|_key|bearer|signature|pwd|jwt|oauth"
     r"|authorization|authorisation"
-    r"|(?:^|[^a-z])(?:auth|pass|salt)(?:[^a-z]|$)",
+    r"|(?:^|[^a-z])(?:auth|pass|salt|pw)(?:[^a-z]|$)",
     re.IGNORECASE,
 )
 
@@ -2988,6 +2996,496 @@ _CREDENTIAL_EVASIONS = [
      "fields.Char(string='api_key', default='')",
      False),
 ]
+
+
+# ─────────────────────────────────────────────────────────────────────
+# `request.jsonrequest` does not exist on Odoo 19
+# ─────────────────────────────────────────────────────────────────────
+#
+# Handoff 18 item D. `jsonrequest` is an attribute of the DISPATCHER
+# (`odoo/http.py`, `JsonRPCDispatcher.__init__`), never of `request`, so
+# `request.jsonrequest` raises `AttributeError`. `myservice_identity/
+# controllers/sap_webhook.py` read it on the branch taken when `kwargs` is
+# empty — which is precisely the branch whose intended answer is
+# `{'success': False, 'error': 'Empty payload'}`. An empty or non-JSON-RPC
+# body to the unauthenticated inbound employee endpoint got a 500.
+#
+# It is a guard rather than a fix note because the attribute is real on Odoo
+# 15 (`dist/`), the 15 stack is still production, and anyone reading a 15
+# controller for a pattern will copy a line that works there and 500s here.
+# `request.get_json_data()` is the replacement.
+_DEAD_REQUEST_ATTRS = {
+    "jsonrequest": "an attribute of the JSON-RPC dispatcher, not of request; "
+                   "use request.get_json_data()",
+}
+
+
+def test_no_controller_reads_an_attribute_odoo_19_removed_from_request():
+    offenders = []
+    for path in _repo_files({".py"}):
+        rel = path.relative_to(REPO_ROOT).as_posix()
+        if "/tests/" in "/" + rel or path.name == "test_source_guards.py":
+            continue
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+        except (SyntaxError, UnicodeDecodeError) as exc:  # pragma: no cover
+            offenders.append("%s could not be parsed: %s" % (rel, exc))
+            continue
+        for node in ast.walk(tree):
+            # `request.<attr>` and `http.request.<attr>` alike: the guard
+            # keys on the attribute chain ending in `request`, so an alias
+            # (`req = request`) escapes it and a rename does not.
+            if not isinstance(node, ast.Attribute):
+                continue
+            if node.attr not in _DEAD_REQUEST_ATTRS:
+                continue
+            base = node.value
+            base_name = (base.id if isinstance(base, ast.Name)
+                         else getattr(base, "attr", None))
+            if base_name != "request":
+                continue
+            offenders.append("%s:%d reads request.%s — %s"
+                             % (rel, node.lineno, node.attr,
+                                _DEAD_REQUEST_ATTRS[node.attr]))
+
+    assert not offenders, (
+        "These attributes do not exist on Odoo 19's `request`. Reading one "
+        "is an AttributeError at runtime, which on a public webhook is a 500 "
+        "where the code below it was written to answer a refusal.\n  "
+        + "\n  ".join(offenders))
+
+
+# ─────────────────────────────────────────────────────────────────────
+# …and the same rule where there is no Python to parse
+# ─────────────────────────────────────────────────────────────────────
+#
+# Handoff 18 item C. `Dockerfile.nrs-import` carried
+#
+#     ENV ODOO_URL=... ODOO_ADMIN_PW=admin PACK=...
+#
+# and `scripts/nrs_import_entrypoint.sh` passed that straight to XML-RPC as
+# the tenant's admin. The guard above walks `.py` only, so it could not see
+# it — and this one is WORSE than the two `get_param` defaults it was written
+# for, in one specific way the handoff named: **images get pulled**. A literal
+# in a source file stays where it was written. A literal in an `ENV` layer
+# ships to every host that runs the image, is printed by `docker history`, and
+# is readable by anyone with access to the registry.
+#
+# The rule is unchanged — a credential may default to nothing and never to
+# something. What changes is the file format, so the reader changes with it:
+# an AST for Python, an instruction parser for a Dockerfile, an indentation
+# walk for a k8s manifest, a fallback-operator match for TypeScript. Three
+# small readers rather than one clever one, because each format spells "this
+# is the default" differently and a regex that tried to cover all three would
+# be wrong about all three.
+#
+# **What is deliberately NOT covered, and why it is a finding rather than a
+# hole.** `docker-compose.yml` resolves `${POSTGRES_PASSWORD:-odoo}` (twice)
+# and `.env.example` ships `POSTGRES_PASSWORD=odoo` and
+# `ODOO_MASTER_PASSWORD=admin`. Those are the same shape and the same rule
+# would flag all four. They are left alone here because changing them changes
+# the local bring-up for every checkout, which is not this handoff's business
+# — and `.env.example` is a template whose own header says every value must be
+# overridden in production, which is a different (and weaker) argument than an
+# image layer's. Report 18 records them for the Architect to rule on rather
+# than widening the guard and its blast radius in the same commit.
+
+#: Values that are not a baked-in credential even though they are non-empty.
+#: A Dockerfile `ENV X=$Y` or a manifest `value: "$(FOO)"` defers to something
+#: outside the file, which is the fix, not the defect.
+_INDIRECTION_RE = re.compile(r"^\$[({]?[A-Za-z_][A-Za-z0-9_]*[)}]?$")
+
+
+def _is_baked_value(value):
+    """True when `value` is a literal a machine would authenticate with."""
+    value = (value or "").strip().strip('"').strip("'").strip()
+    if not value:
+        return False            # the sanctioned shape: default to nothing
+    return not _INDIRECTION_RE.match(value)
+
+
+def _dockerfile_credential_defaults(path):
+    """Credential-named `ENV`/`ARG` assignments carrying a literal value.
+
+    Handles what Docker actually accepts: line continuations, several
+    assignments on one instruction, quoted values, and the legacy
+    space-separated `ENV KEY value` form (one pair per instruction).
+    """
+    # Join continuations — the defect was on the FOURTH line of a five-line
+    # ENV, so a per-line reader misses it entirely. But the join has to keep
+    # the original line number with it: collapsing first and numbering the
+    # result reported `Dockerfile.nrs-import:34` for a defect on line 39,
+    # pointing five lines up at a comment. A finding that names the wrong
+    # line sends whoever reads it to the wrong place, which is most of what
+    # a guard's output is for.
+    source_lines = path.read_text(encoding="utf-8").splitlines()
+
+    def physical_line(start, name, value):
+        """The line the ASSIGNMENT is on, not the line the instruction is on.
+
+        Reporting the instruction's first line was already better than the
+        collapsed-text number it replaced, but on the five-line `ENV` this
+        guard exists for it still pointed four lines above the credential.
+        """
+        needle = "%s=" % name
+        for offset, text in enumerate(source_lines[start - 1:], start=start):
+            if needle in text:
+                return offset
+        return start
+
+    instructions = []          # (original lineno, joined text)
+    pending, start = None, None
+    for lineno, raw in enumerate(source_lines, start=1):
+        line = raw.rstrip()
+        if pending is None:
+            pending, start = line.strip(), lineno
+        else:
+            pending += " " + line.strip()
+        if pending.endswith("\\"):
+            pending = pending[:-1].rstrip()
+            continue
+        instructions.append((start, pending))
+        pending = None
+    if pending is not None:
+        instructions.append((start, pending))
+
+    findings = []
+    for lineno, stripped in instructions:
+        if not re.match(r"^(ENV|ARG)\s", stripped, re.IGNORECASE):
+            continue
+        body = stripped.split(None, 1)[1] if len(stripped.split(None, 1)) > 1 else ""
+        pairs = re.findall(r"([A-Za-z_][A-Za-z0-9_]*)=(\"[^\"]*\"|'[^']*'|\S*)", body)
+        if not pairs:
+            # Legacy `ENV KEY value ...` — everything after the name is the
+            # value, spaces included. `ARG KEY` alone has no value at all.
+            parts = body.split(None, 1)
+            if len(parts) == 2:
+                pairs = [(parts[0], parts[1])]
+        for name, value in pairs:
+            if _looks_like_a_credential(name) and _is_baked_value(value):
+                findings.append((physical_line(lineno, name, value), name,
+                                 value.strip('"').strip("'")))
+    return sorted(findings)
+
+
+#: How deep a k8s `value:` may sit below its `- name:` and still belong to the
+#: same list item. Two covers `value:` and a comment line between them; a
+#: deeper one is a different structure and is not guessed at.
+_MANIFEST_VALUE_WINDOW = 4
+
+
+def _manifest_credential_defaults(path):
+    """Credential-named container env vars carrying a literal `value:`.
+
+    Text rather than YAML: the pytest venv has no pyyaml and a guard that
+    silently skips every manifest when an import fails is worse than one that
+    reads them with an indentation walk. The shape is fixed by k8s itself —
+
+        - name: ODOO_ADMIN_PW
+          value: "admin"          # flagged
+        - name: DB_PASSWORD
+          valueFrom:              # the fix — not flagged
+            secretKeyRef: ...
+    """
+    findings = []
+    lines = path.read_text(encoding="utf-8").splitlines()
+    for i, line in enumerate(lines):
+        # A trailing comment on the `- name:` line defeated the first version
+        # of this — `- name: ODOO_ADMIN_PW  # the admin pw` matched nothing,
+        # and the manifests in this repo are heavily commented, so that is
+        # the spelling a person here actually writes.
+        flow = re.match(
+            r"^\s*-\s*\{\s*name:\s*([^,}]+),\s*value:\s*([^}]+)\}", line)
+        if flow:
+            fname = flow.group(1).strip().strip('"').strip("'")
+            fvalue = flow.group(2).strip()
+            if _looks_like_a_credential(fname) and _is_baked_value(fvalue):
+                findings.append((i + 1, fname,
+                                 fvalue.strip().strip('"').strip("'")))
+            continue
+        m = re.match(r"^(\s*)-\s+name:\s*([^#]+?)\s*(?:#.*)?$", line)
+        if not m:
+            continue
+        indent, name = m.group(1), m.group(2).strip().strip('"').strip("'")
+        if not _looks_like_a_credential(name):
+            continue
+        for follow in lines[i + 1:i + 1 + _MANIFEST_VALUE_WINDOW]:
+            if re.match(r"^\s*-\s", follow) or (
+                    follow.strip() and len(follow) - len(follow.lstrip()) <= len(indent)):
+                break               # next list item, or out of this block
+            v = re.match(r"^\s*value:\s*(.*)$", follow)
+            if v and _is_baked_value(v.group(1).split("#")[0]):
+                findings.append((i + 1, name,
+                                 v.group(1).split("#")[0].strip().strip('"').strip("'")))
+                break
+    return sorted(findings)
+
+
+#: `process.env.X ?? "lit"` / `|| "lit"`, which is JavaScript for
+#: `os.getenv('X', 'lit')`. Only the UNCONDITIONAL fallback — `e2e/config.ts`
+#: keeps an `admin` default behind an "is this origin local?" test, which is
+#: the exception handoff 18 allowed, and a conditional default is not this
+#: shape. That is by construction rather than by waiver: gating the default
+#: is exactly what takes it out of the guard's reach, so the guard rewards
+#: the fix instead of needing an exception written for it.
+#: `process.env.X` and Vite's `import.meta.env.X`, dotted or bracketed. The
+#: second matters here: `Frontend/` is a Vite app and that is the spelling it
+#: uses, so a reader that knew only `process.env` covered the e2e harness and
+#: none of the product.
+_JS_ENV_ACCESS = (
+    r"(?:process\.env|import\.meta\.env)"
+    r"(?:\.([A-Za-z_$][\w$]*)|\[\s*[\"'`]([^\"'`]+)[\"'`]\s*\])"
+)
+
+#: `<env access> ?? "lit"`, `|| "lit"`, and the ternary spelling of the same
+#: thing. `\s*` spans newlines under DOTALL-free matching because it includes
+#: `\n`, which is what a formatter breaking a long line produces.
+_JS_ENV_FALLBACK_RE = re.compile(
+    _JS_ENV_ACCESS + r"\s*(?:\?\?|\|\|)\s*[\"'`]([^\"'`]+)[\"'`]")
+
+#: `x ? x : "lit"` — the pre-`??` spelling, still written.
+_JS_ENV_TERNARY_RE = re.compile(
+    _JS_ENV_ACCESS + r"\s*\?[^?:]{0,200}?:\s*[\"'`]([^\"'`]+)[\"'`]")
+
+#: `const { E2E_PASS = "admin" } = process.env;` — the ordinary JS idiom, and
+#: the one the first version of this reader missed entirely. The destructuring
+#: pattern is matched first and each defaulted binding inside it is judged.
+_JS_DESTRUCTURE_RE = re.compile(
+    r"\{([^{}]*=[^{}]*)\}\s*=\s*(?:process\.env|import\.meta\.env)")
+_JS_DESTRUCTURE_BINDING_RE = re.compile(
+    r"([A-Za-z_$][\w$]*)\s*(?::\s*[A-Za-z_$][\w$]*\s*)?=\s*[\"'`]([^\"'`]+)[\"'`]")
+
+
+def _js_credential_defaults(path):
+    """Whole-file rather than line-by-line.
+
+    A prettier run that breaks `process.env.E2E_PASS ?? "admin"` across two
+    lines is not an evasion anybody intends, and a per-line reader cannot see
+    it. Line numbers come from counting newlines up to the match instead.
+    """
+    text = path.read_text(encoding="utf-8")
+
+    def lineno_at(offset):
+        return text.count("\n", 0, offset) + 1
+
+    findings = []
+    for regex in (_JS_ENV_FALLBACK_RE, _JS_ENV_TERNARY_RE):
+        for m in regex.finditer(text):
+            name = m.group(1) or m.group(2)
+            default = m.group(3)
+            if _looks_like_a_credential(name) and _is_baked_value(default):
+                findings.append((lineno_at(m.start()), name, default))
+    for m in _JS_DESTRUCTURE_RE.finditer(text):
+        for name, default in _JS_DESTRUCTURE_BINDING_RE.findall(m.group(1)):
+            if _looks_like_a_credential(name) and _is_baked_value(default):
+                findings.append((lineno_at(m.start()), name, default))
+    return sorted(findings)
+
+
+_NON_PYTHON_CREDENTIAL_READERS = (
+    ("Dockerfile", _dockerfile_credential_defaults,
+     lambda rel: pathlib.Path(rel).name.startswith("Dockerfile")),
+    ("k8s manifest", _manifest_credential_defaults,
+     lambda rel: rel.startswith("k8s/") and rel.endswith((".yaml", ".yml"))),
+    ("JS/TS", _js_credential_defaults,
+     lambda rel: rel.endswith((".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"))),
+)
+
+
+def test_no_credential_defaults_in_an_image_layer_or_a_manifest():
+    """The Python rule, applied where there is no Python.
+
+    An `ENV ODOO_ADMIN_PW=admin` is not a worse-looking literal than a
+    `get_param` default — it is a worse-PLACED one. Source sits in a clone;
+    an image layer is pulled onto every host that runs it and is printed by
+    `docker history`.
+    """
+    offenders = []
+    for path in _repo_files():
+        rel = path.relative_to(REPO_ROOT).as_posix()
+        if "/tests/" in "/" + rel or "/node_modules/" in "/" + rel:
+            continue
+        for label, reader, applies in _NON_PYTHON_CREDENTIAL_READERS:
+            if not applies(rel):
+                continue
+            try:
+                found = reader(path)
+            except (OSError, UnicodeDecodeError):  # pragma: no cover
+                continue
+            for lineno, name, value in found:
+                offenders.append(
+                    "%s:%d (%s) assigns %s the literal %r"
+                    % (rel, lineno, label, name, value))
+
+    assert not offenders, (
+        "A credential must not default to a value, and an image layer or a "
+        "cluster manifest is the worst place for one — the image is pulled "
+        "and the manifest is applied. Read it from a Secret or an "
+        "environment variable and REFUSE when it is unset, naming what is "
+        "missing.\n  " + "\n  ".join(offenders))
+
+
+def test_the_non_python_credential_guard_reaches_its_file_types():
+    """A reader whose predicate matches nothing is a guard that passes."""
+    seen = {label: 0 for label, _, _ in _NON_PYTHON_CREDENTIAL_READERS}
+    for path in _repo_files():
+        rel = path.relative_to(REPO_ROOT).as_posix()
+        for label, _reader, applies in _NON_PYTHON_CREDENTIAL_READERS:
+            if applies(rel):
+                seen[label] += 1
+    for label, count in seen.items():
+        assert count, "the %s reader matched no tracked file" % label
+
+
+# Each case is (label, filename, source, should_flag). The first entry is the
+# defect handoff 18 found, byte for byte including its position on the fourth
+# continuation line — a per-line reader passes it, which is why the reader
+# joins continuations before it looks at anything.
+_NON_PYTHON_EVASIONS = [
+    ("the baked image credential itself", "Dockerfile.x",
+     "ENV ODOO_URL=http://odoo-19:8069 \\\n"
+     "    SOURCE_DB=staging \\\n"
+     "    DB_HOST=db \\\n"
+     "    ODOO_ADMIN_PW=admin \\\n"
+     "    PACK=/opt/pack\n", True),
+    ("a single-line ENV credential", "Dockerfile",
+     "ENV API_KEY=NRS_KEY_2025\n", True),
+    ("the legacy space-separated ENV form", "Dockerfile",
+     "ENV ADMIN_PASSWORD hunter2\n", True),
+    ("a quoted value", "Dockerfile",
+     'ENV SERVICE_TOKEN="changeme"\n', True),
+    ("a lowercase instruction", "Dockerfile",
+     "env admin_password=admin\n", True),
+    ("an ARG default is pulled too — it is in the build history", "Dockerfile",
+     "ARG JWT_SECRET=dev-secret\n", True),
+    ("a non-credential ENV is nobody's business", "Dockerfile",
+     "ENV ODOO_URL=http://odoo-19:8069 SOURCE_DB=staging\n", False),
+    ("an ENV deferring to a build arg bakes nothing in", "Dockerfile",
+     "ENV ODOO_ADMIN_PW=$ADMIN_PW\n", False),
+    ("the braced spelling of the same", "Dockerfile",
+     "ENV ODOO_ADMIN_PW=${ADMIN_PW}\n", False),
+    ("an empty default is the sanctioned shape here too", "Dockerfile",
+     'ENV ODOO_ADMIN_PW=""\n', False),
+    ("an ARG with no value at all", "Dockerfile",
+     "ARG ODOO_ADMIN_PW\n", False),
+    ("a bare PATH-ish name that merely contains 'pass'", "Dockerfile",
+     "ENV BYPASS_CACHE=1\n", False),
+
+    ("a literal manifest env credential", "k8s/dev/x.yaml",
+     "          env:\n"
+     "            - name: ODOO_ADMIN_PW\n"
+     '              value: "admin"\n', True),
+    ("the same with a comment between", "k8s/dev/x.yaml",
+     "          env:\n"
+     "            - name: DB_PASSWORD\n"
+     "              # set by hand for now\n"
+     '              value: "odoo"\n', True),
+    ("secretKeyRef is the fix and must not be flagged", "k8s/dev/x.yaml",
+     "          env:\n"
+     "            - name: DB_PASSWORD\n"
+     "              valueFrom:\n"
+     "                secretKeyRef:\n"
+     "                  name: cadra-db\n"
+     "                  key: POSTGRES_PASSWORD\n", False),
+    ("a non-credential literal value", "k8s/dev/x.yaml",
+     "          env:\n"
+     "            - name: TARGET_DB\n"
+     '              value: "staging19"\n', False),
+    ("a credential name whose value is the NEXT item's", "k8s/dev/x.yaml",
+     "          env:\n"
+     "            - name: DB_PASSWORD\n"
+     "              valueFrom:\n"
+     "                secretKeyRef:\n"
+     "                  name: cadra-db\n"
+     "                  key: POSTGRES_PASSWORD\n"
+     "            - name: TARGET_DB\n"
+     '              value: "staging19"\n', False),
+    ("a downward field reference is not a literal", "k8s/dev/x.yaml",
+     "          env:\n"
+     "            - name: API_KEY\n"
+     '              value: "$(SOME_OTHER_VAR)"\n', False),
+
+    ("the JS spelling of a credential default", "e2e/x.ts",
+     'export const PASS = process.env.E2E_PASS ?? "admin";\n', True),
+    ("the `||` spelling", "e2e/x.ts",
+     'const token = process.env.API_TOKEN || "NRS_KEY";\n', True),
+    ("the bracket spelling", "e2e/x.ts",
+     'const s = process.env["SERVICE_SECRET"] || "hunter2";\n', True),
+    ("a non-credential env default", "e2e/x.ts",
+     'export const ORIGIN = process.env.E2E_ORIGIN ?? "http://localhost:8069";\n',
+     False),
+    ("a default GATED on something is not an unconditional default",
+     "e2e/x.ts",
+     'function pw() { if (isLocal()) return "admin";\n'
+     '  throw new Error("E2E_PASS is not set"); }\n', False),
+    ("no default at all", "e2e/x.ts",
+     'export const PASS = process.env.E2E_PASS;\n', False),
+
+    # ── what a verification pass wrote against the FIRST version of these
+    #    three readers and measured them accepting. Every one is a spelling
+    #    somebody reaches for without meaning to evade anything, which is the
+    #    point: a guard that only catches the keystrokes of the defect it was
+    #    written for is a record of that defect, not a rule. Same discipline
+    #    as the six bypasses of the Python guard above.
+    ("a trailing comment on the name line — and this repo comments heavily",
+     "k8s/dev/x.yaml",
+     "          env:\n"
+     "            - name: ODOO_ADMIN_PW  # the admin pw\n"
+     '              value: "admin"\n', True),
+    ("a YAML flow mapping on one line", "k8s/dev/x.yaml",
+     "          env:\n"
+     '            - {name: ODOO_ADMIN_PW, value: "admin"}\n', True),
+    ("a quoted name with a trailing comment", "k8s/dev/x.yaml",
+     "          env:\n"
+     '            - name: "DB_PASSWORD"   # from the secret one day\n'
+     '              value: "odoo"\n', True),
+    ("a flow mapping using secretKeyRef is still the fix", "k8s/dev/x.yaml",
+     "          env:\n"
+     "            - {name: DB_PASSWORD, valueFrom: x}\n", False),
+
+    ("the ordinary destructuring idiom", "e2e/x.ts",
+     'const { E2E_PASS = "admin" } = process.env;\n', True),
+    ("destructuring with a rename", "e2e/x.ts",
+     'const { API_TOKEN: tok = "NRS_KEY" } = process.env;\n', True),
+    ("destructuring a non-credential", "e2e/x.ts",
+     'const { E2E_ORIGIN = "http://localhost:8069" } = process.env;\n', False),
+    ("a fallback a formatter broke across two lines", "e2e/x.ts",
+     'export const PASS =\n  process.env.E2E_PASS ??\n  "admin";\n', True),
+    ("Vite's import.meta.env — the spelling the Frontend/ app uses",
+     "e2e/x.ts",
+     'const s = import.meta.env.VITE_API_SECRET ?? "abc";\n', True),
+    ("the pre-`??` ternary spelling", "e2e/x.ts",
+     'const p = process.env.E2E_PASS ? process.env.E2E_PASS : "admin";\n',
+     True),
+    ("a ternary on a non-credential", "e2e/x.ts",
+     'const o = process.env.E2E_ORIGIN ? process.env.E2E_ORIGIN : "http://x";\n',
+     False),
+]
+
+
+@pytest.mark.parametrize(
+    "label,filename,source,should_flag", _NON_PYTHON_EVASIONS,
+    ids=[c[0] for c in _NON_PYTHON_EVASIONS])
+def test_the_non_python_credential_guard_is_not_fooled(
+        tmp_path, label, filename, source, should_flag):
+    """Proven to fail before it passes, in both directions and per format.
+
+    The negative half carries the weight again. `secretKeyRef` and
+    `ENV X=$ARG` are the two shapes the fix takes, so a guard that flagged
+    either would be a guard that punishes the correction — and the gated
+    TypeScript default is the exception handoff 18 granted, passing because
+    of how it is written rather than because it is named in a waiver list.
+    """
+    rel = pathlib.Path(filename)
+    path = tmp_path / rel.name
+    path.write_text(source, encoding="utf-8")
+
+    reader = next(r for _l, r, applies in _NON_PYTHON_CREDENTIAL_READERS
+                  if applies(filename))
+    flagged = bool(reader(path))
+    assert flagged is should_flag, (
+        "%s: expected flagged=%s, got %s (%r)"
+        % (label, should_flag, flagged, reader(path)))
 
 
 @pytest.mark.parametrize("label,source,should_flag", _CREDENTIAL_EVASIONS,

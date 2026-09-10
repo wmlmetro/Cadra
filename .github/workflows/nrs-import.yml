@@ -55,6 +55,25 @@ jobs:
         # kubectl loses auth (the original failure mode).
         run: doctl kubernetes cluster kubeconfig save --expiry-seconds 7200 "${{ vars.DO_CLUSTER_NAME }}"
 
+      - name: Pre-check — the admin credential exists in the cluster
+        # The Job reads ODOO_ADMIN_PW from cadra-odoo/ODOO_ADMIN_PASSWORD. If
+        # that key is absent the pod sits in CreateContainerConfigError, which
+        # is a correct refusal and an opaque one — the run streams no logs and
+        # times out an hour later. Fail here instead, naming the key. The
+        # credential used to be baked into the image as `admin`, so on a
+        # cluster set up before handoff 18 this key does not exist yet.
+        run: |
+          set -e
+          if ! kubectl -n "$NAMESPACE" get secret cadra-odoo \
+               -o jsonpath='{.data.ODOO_ADMIN_PASSWORD}' | grep -q .; then
+            echo "::error::cadra-odoo has no ODOO_ADMIN_PASSWORD key. That is"
+            echo "::error::the Odoo admin USER password the import uses for"
+            echo "::error::XML-RPC (not ODOO_MASTER_PASSWORD). Add it with:"
+            echo "::error::  kubectl -n $NAMESPACE patch secret cadra-odoo --type merge -p '{\"stringData\":{\"ODOO_ADMIN_PASSWORD\":\"<password>\"}}'"
+            exit 1
+          fi
+          echo "cadra-odoo/ODOO_ADMIN_PASSWORD is present."
+
       - name: Pre-check — is staging19 already imported?
         id: precheck
         env:
