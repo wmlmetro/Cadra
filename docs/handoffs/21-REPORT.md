@@ -282,6 +282,77 @@ filters — but unlike them it is *documented* behaviour, and turning it into a
 
 ---
 
+---
+
+## Addendum — the CI failure after the PR was opened
+
+**CI went red on this branch, and it was not this branch.** The
+`bootstrap-and-test` job died in 1m40s with two lines a hundred milliseconds
+apart:
+
+```
+  postgres ready after 2s
+FATAL: postgres did not become ready
+```
+
+The identical code passed on the very next run, which is the signature of a
+race rather than a defect in what was being tested. The deployment workflows
+(`deploy-dev`, `k8s-lint`) were green throughout and are unaffected.
+
+**The race is in the postgres image and the fault is in our wait.** `initdb`
+starts a TEMPORARY server to create the database and run init scripts, then
+shuts it down before starting the real one. `pg_isready` answers yes to that
+temporary server. `scripts/bootstrap.sh` broke its wait loop on the first
+yes, then ran a **second, independent confirmation probe with no retry** —
+which landed during the shutdown.
+
+A check that passes, followed by the same check failing. **This repository
+has been here before**: the first prod start-up shell refused every correct
+configuration because `set -e` killed it on the check that PASSED, and
+`tests/test_prod_entrypoint.py` exists because that shell was not runnable by
+anything.
+
+So it gets the same treatment.
+
+- The wait now requires readiness to **hold** — three consecutive successful
+  probes, tunable by `CADRA_PG_READY_STREAK` — and carries the loop's own
+  outcome forward instead of asking a second time. The `pg_ready=0` /
+  `pg_ready=1` assignment is written out longhand rather than as
+  `check && pg_ready=1`, because that form is what killed the prod
+  entrypoint's first draft under `set -e`.
+- The failure now says how close it got (`the last streak reached N`) and
+  dumps the last 50 lines of the database's log, so an operator can tell a
+  slow start from a dead container.
+- The reported second is when readiness was **confirmed**, not when the
+  first hopeful answer arrived. "ready after 2s" on a build that then failed
+  was a number about the wrong server.
+- `tests/test_bootstrap_pg_wait.py` **executes the shipped block**, extracted
+  between two markers, against a stubbed `docker` that replays a scripted
+  sequence of probe results. No docker and no database required.
+
+**Mutation-proven.** Restoring the original wait loop byte for byte
+reproduces the CI failure deterministically:
+`test_the_initdb_blip_no_longer_fails_the_build` fails with "the wait failed
+on a server that came up after a normal initdb blip", along with two others.
+Ten tests cover the blip, a lone probe, a flapping server, a database that
+never arrives, a healthy fast start, and the two shape guards — no second
+probe after the loop, and not the `&&` assignment form.
+
+**Same defect, not fixed, and here is why.** The three k8s init containers
+(`k8s/dev/50-bootstrap-19-job.yaml`, `51-upgrade-19-job.yaml`,
+`52-depreciation-job.yaml`) run the same single-probe wait. They do **not**
+have the double-probe bug — each `exit 0`s on the first success — so they
+cannot produce the failure above. They can still latch onto the temporary
+server, in which case the main container fails to connect and the pod
+restarts into a working database. That is self-healing rather than a red
+build, and rewriting three deployment manifests to fix a hypothetical, on a
+branch whose subject is query parameters and with no way to test them here,
+is a worse trade than naming it. **It is named.**
+
+Suites after the fix: `246 passed` across the five static files
+(`test_bootstrap_pg_wait`, `test_prod_entrypoint`, `test_deployment_profile`,
+`test_query_param_guard`, `test_source_guards`).
+
 ## Three things for the owner, unchanged and still true
 
 - **The Odoo `admin` password is set by nothing in this repository, on any

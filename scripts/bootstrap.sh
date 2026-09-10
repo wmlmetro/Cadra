@@ -93,18 +93,62 @@ docker compose "${COMPOSE_FILES[@]}" up -d db
 
 echo ""
 echo "▶ Waiting for postgres healthcheck..."
-for i in $(seq 1 60); do
+#
+# `pg_isready` answering yes ONCE is not enough, and this used to trust it.
+#
+# The postgres image runs a TEMPORARY server during initdb — to create the
+# database and run any init scripts — and then shuts it down before starting
+# the real one. `pg_isready` says yes to that temporary server. So the loop
+# broke on it, the single confirmation probe below ran during the shutdown,
+# and the build died with the two lines a hundred milliseconds apart:
+#
+#     postgres ready after 2s
+#     FATAL: postgres did not become ready
+#
+# A check that passes followed by the same check failing. This repository has
+# been here before — the first prod entrypoint refused a correct
+# configuration for a different reason of the same shape — and the fix is the
+# same one: do not ask twice and believe the second answer. **Require the
+# answer to HOLD**, then carry the loop's own outcome forward rather than
+# re-probing.
+#
+# `CADRA_PG_READY_STREAK` consecutive seconds, because initdb's temporary
+# server is up for well under that and the real one, once up, stays up. The
+# assignment is written out rather than as `check && ready=1`: under `set -e`
+# that form kills the script on the check that PASSES, which is exactly how
+# the inline prod start-up shell came to refuse every correct configuration.
+# cadra-pg-wait: begin — tests/test_bootstrap_pg_wait.py extracts everything
+# between these two markers and RUNS it against a stubbed `docker` that
+# reproduces the initdb blip. Move the markers and the test says so.
+PG_READY_STREAK="${CADRA_PG_READY_STREAK:-3}"
+PG_WAIT_SECONDS="${CADRA_PG_WAIT_SECONDS:-60}"
+pg_ready=0
+pg_streak=0
+
+for i in $(seq 1 "$PG_WAIT_SECONDS"); do
     if docker compose "${COMPOSE_FILES[@]}" exec -T db pg_isready -U "$ODOO_USER_DB" -d "$ODOO_DB" >/dev/null 2>&1; then
-        echo "  postgres ready after ${i}s"
-        break
+        pg_streak=$((pg_streak + 1))
+        if [ "$pg_streak" -ge "$PG_READY_STREAK" ]; then
+            echo "  postgres ready after ${i}s"
+            pg_ready=1
+            break
+        fi
+    else
+        # Any refusal resets it. A server that answered and then stopped
+        # answering was not the one we are waiting for.
+        pg_streak=0
     fi
     sleep 1
 done
 
-if ! docker compose "${COMPOSE_FILES[@]}" exec -T db pg_isready -U "$ODOO_USER_DB" -d "$ODOO_DB" >/dev/null 2>&1; then
-    echo "FATAL: postgres did not become ready" >&2
+if [ "$pg_ready" -ne 1 ]; then
+    echo "FATAL: postgres did not become ready in ${PG_WAIT_SECONDS}s" >&2
+    echo "       (needed ${PG_READY_STREAK} consecutive successful pg_isready" >&2
+    echo "       probes; the last streak reached ${pg_streak})" >&2
+    docker compose "${COMPOSE_FILES[@]}" logs --tail=50 db >&2 || true
     exit 1
 fi
+# cadra-pg-wait: end
 
 # ─── step 3: detect DB state ─────────────────────────────────────────
 
