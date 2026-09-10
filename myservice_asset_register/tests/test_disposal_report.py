@@ -153,9 +153,26 @@ class TestFindingsAreTheProduct(DisposalCase):
         asset = self._bare_disposal()
         row = self._row_for(self._report(), asset)
         for finding in ("no_authorising_reference", "no_approver",
-                        "no_disposal_method", "no_disposal_reason",
-                        "no_sap_asset_number"):
+                        "no_disposal_method", "no_disposal_reason"):
             self.assertIn(finding, row["findings"])
+
+    def test_a_missing_sap_number_is_not_a_per_row_finding(self):
+        """The absence is real and it is NOT a finding (handoff 17 E1).
+
+        It is absent from ~100% of rows on every tenant, and a finding that
+        fires on every row is one a reader learns to skip — which costs
+        `no_approver` and `no_authorising_reference`, sitting in the same
+        column, the weight they were meant to carry. The FACT survives: the
+        row still publishes `sap_asset_number: None`, and the period says so
+        once in `summary.sap_coverage`.
+        """
+        asset = self._bare_disposal()
+        row = self._row_for(self._report(), asset)
+        self.assertNotIn("no_sap_asset_number", row["findings"])
+        self.assertIsNone(
+            row["sap_asset_number"],
+            "the per-row FACT went with the per-row finding. Only the "
+            "finding label was meant to go.")
 
     def test_a_documented_disposal_has_no_findings(self):
         """The other direction, and it is the one that makes the first
@@ -239,6 +256,105 @@ class TestFindingsAreTheProduct(DisposalCase):
         proceeds = report["summary"]["proceeds_by_currency"]
         self.assertEqual(len(proceeds), 1)
         self.assertAlmostEqual(sum(proceeds.values()), 50000.0, places=2)
+
+
+@tagged("post_install", "-at_install")
+class TestTheSapPositionIsStatedOnce(DisposalCase):
+    """`summary.sap_coverage` — handoff 17 E1.
+
+    EVERY test here is SCOPED with `extra_domain`, and that is not tidiness.
+    `disposal_report` reports the REGISTER, and in CI `pytest tests/` runs
+    before this suite and COMMITS disposal fixtures of its own, none of them
+    carrying a SAP number. An unscoped coverage assertion would be an
+    assertion about whatever the database happened to hold — the same defect
+    the whole report exists to remove, turned on its own tests. The proceeds
+    test above learned this the hard way.
+    """
+
+    def _coverage(self, assets):
+        report = self._report(
+            extra_domain=[("id", "in", [a.id for a in assets])])
+        return report["summary"]["sap_coverage"]
+
+    def test_a_period_where_nothing_reached_sap_says_so_once(self):
+        """The sentence the ruling asked for, and it is said ONCE for the
+        period rather than 63 times down a findings column."""
+        assets = [self._bare_disposal(), self._bare_disposal()]
+        coverage = self._coverage(assets)
+        self.assertEqual(coverage["coverage"], "none")
+        self.assertEqual(coverage["total"], 2)
+        self.assertEqual(coverage["with_sap_asset_number"], 0)
+        self.assertEqual(coverage["without_sap_asset_number"], 2)
+        self.assertIn("No disposal in this period carried a SAP asset "
+                      "number", coverage["statement"])
+
+    def test_a_period_where_some_reached_sap_never_says_none_did(self):
+        """The case that makes the absolute sentence a lie.
+
+        Three of five carrying a SAP number must not be rendered as *"No
+        disposal in this period carried a SAP asset number"*. A renderer
+        cannot get this wrong by accident because the verdict is not left to
+        it: `coverage` is `partial` and the statement counts.
+        """
+        assets = [self._bare_disposal(), self._bare_disposal(),
+                  self._documented_disposal(), self._documented_disposal(),
+                  self._documented_disposal()]
+        coverage = self._coverage(assets)
+        self.assertEqual(coverage["coverage"], "partial")
+        self.assertEqual(coverage["total"], 5)
+        self.assertEqual(coverage["with_sap_asset_number"], 3)
+        self.assertEqual(coverage["without_sap_asset_number"], 2)
+        self.assertNotIn("No disposal in this period", coverage["statement"])
+        self.assertIn("3 of 5", coverage["statement"])
+
+    def test_a_period_where_all_reached_sap_says_that_instead(self):
+        assets = [self._documented_disposal(), self._documented_disposal()]
+        coverage = self._coverage(assets)
+        self.assertEqual(coverage["coverage"], "complete")
+        self.assertEqual(coverage["without_sap_asset_number"], 0)
+        self.assertIn("Every disposal", coverage["statement"])
+
+    def test_an_empty_period_is_not_the_same_statement_as_none_reached_sap(
+            self):
+        """Both counts are zero and the two mean different things.
+
+        "No disposal in this period carried a SAP asset number" is true of
+        the empty set and reads to a human as a finding about disposals that
+        do not exist. `empty` keeps the two apart.
+        """
+        coverage = self._coverage([])
+        self.assertEqual(coverage["coverage"], "empty")
+        self.assertEqual(coverage["total"], 0)
+        self.assertNotIn("SAP", coverage["statement"])
+
+    def test_the_coverage_counts_add_up_to_the_rows_they_describe(self):
+        """The failure this catches is a coverage block counted over a
+        different population from `summary.total` — two numbers in one
+        response that cannot both be about the same period."""
+        assets = [self._bare_disposal(), self._documented_disposal(),
+                  self._documented_disposal()]
+        report = self._report(
+            extra_domain=[("id", "in", [a.id for a in assets])])
+        coverage = report["summary"]["sap_coverage"]
+        self.assertEqual(coverage["total"], report["summary"]["total"])
+        self.assertEqual(
+            coverage["with_sap_asset_number"]
+            + coverage["without_sap_asset_number"],
+            len(report["rows"]))
+        self.assertEqual(
+            coverage["with_sap_asset_number"],
+            sum(1 for row in report["rows"] if row["sap_asset_number"]))
+
+    def test_no_row_carries_the_retired_finding(self):
+        """The acceptance criterion, stated where it will fail loudly if
+        anybody puts it back: `no_sap_asset_number` appears once as a
+        statement, never per row."""
+        assets = [self._bare_disposal(), self._documented_disposal()]
+        report = self._report(
+            extra_domain=[("id", "in", [a.id for a in assets])])
+        for row in report["rows"] + report["unplaceable"]:
+            self.assertNotIn("no_sap_asset_number", row["findings"])
+        self.assertNotIn("no_sap_asset_number", report["summary"]["findings"])
 
 
 @tagged("post_install", "-at_install")
