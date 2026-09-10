@@ -327,6 +327,45 @@ report, the rollback decode, tracked-versus-untracked, period placement,
 `summary`/`pagination` agreement, the cap, module layering, the writable-field
 gate, both source guards, comment accuracy and no AI references.
 
+## What CI found that I did not
+
+**One test failed in CI after I reported this handoff green, and the reason is
+the handoff's own subject.**
+
+`test_proceeds_are_totalled_per_currency_and_never_across_them` asserted an
+absolute proceeds total of 50,000 across the whole register. CI answered
+175,000.
+
+**CI runs `pytest tests/` BEFORE the in-registry Odoo suites; I ran them the
+other way round.** The pytest suite commits a disposal fixture carrying 125,000
+in proceeds into the same database, and `disposal_report` reports the
+*register* — so the assertion was a claim about every disposal on the tenant.
+It passed locally because the tenant happened to hold none at that moment. **A
+`TransactionCase` rolls back its own rows and cannot roll back somebody
+else's.**
+
+That is an assertion that was true because of what happened to be in the
+database, presented as an assertion about the code — which is the defect this
+whole handoff exists to find, turned on my own tests. I wrote a paragraph
+about that shape in §2 and then shipped one.
+
+Fixed by scoping the report to the two assets the test creates, through the
+report's own `extra_domain`, which is already proven to narrow. Not vacuous:
+an empty scope fails the single-currency assertion above it. **Reproduced
+before claiming it fixed** — the in-registry suite re-run in CI's order,
+against a tenant holding 12 committed disposals and 250,000 in proceeds, passes
+**0 failed of 123**. CI is green on both triggers, all six checks.
+
+I audited the other two new test files for the same shape. One other count
+assertion exists and is scoped to an explicit two-asset recordset. The
+summary-versus-rows assertions compare the report against itself and hold
+whatever else is in the tenant.
+
+**Worth carrying forward:** running the two suites in CI's order is the only
+way to catch this class locally, and nothing in `CLAUDE.md` says which order
+CI uses. The in-registry command it documents is run against a tenant whose
+state you do not control.
+
 ## Open, and yours to rule on
 
 1. **`no_sap_asset_number` fires on ~100% of rows.** §3 above. True, and
