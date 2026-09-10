@@ -170,7 +170,7 @@ done
 ## Backlog — agreed, not yet scheduled
 
 - **The nine pre-envelope routes adopt `@cadra_route`** (`/auth/*`, `/openapi.json`, `/docs`, `/assets/export.csv`, `/integrations/employees/import`, `/brand`). They validate nothing and sit outside the standard envelope — and `/auth/token` is the first endpoint every integration touches. Refactor of the auth surface; after INT-03 is live.
-- **Query-parameter validation, API-wide (report 01 V4).** Scoped in report 05: **~26 sites across 5 files** — 13 enum params (`200 []`), **5 boolean params that silently drop the filter and return the UNFILTERED list**, and 8 int params that `except: pass`. The booleans are the dangerous half and should go first: an empty list reads as "no matches", a full list reads as an answer. `utils.py:830` already holds the primitive. Handoff 05 did the tagging filters only.
+- **Query-parameter validation, API-wide (report 01 V4).** Scoped in report 05: **~26 sites across 5 files** — 13 enum params (`200 []`), **5 boolean params that silently drop the filter and return the UNFILTERED list**, and 8 int params that `except: pass`. The booleans are the dangerous half and should go first: an empty list reads as "no matches", a full list reads as an answer. `utils._selection_allowed_values` already holds the primitive (it was cited as `utils.py:830`, which is now unrelated code). Handoff 05 did the tagging filters only.
 - **Per-session test artefact paths.** Two concurrent pytest sessions clobber each other's report and captures. Cosmetic.
 
 ## Decisions
