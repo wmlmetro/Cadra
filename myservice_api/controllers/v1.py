@@ -2393,14 +2393,29 @@ class MyserviceApiV1(http.Controller):
         # Same decision the legacy twin reaches, from the same model method,
         # and taken BEFORE the dispatch-log row is written — a replay that
         # appends a row has not written nothing.
-        disposition = req_rec._workflow_callback_disposition(outcome)
+        #
+        # The comment is passed for the same reason the legacy twin passes it:
+        # `queried` dedups on the PAIR, because a decision arrives once but a
+        # second, genuinely different question does not.
+        disposition = req_rec._workflow_callback_disposition(outcome, comment)
 
         if disposition == req_rec.CALLBACK_REPLAY:
-            # Writing nothing must not mean discarding in silence — rule 3.
-            # See `_discarded_by_replay`: a second `approved` carrying a
-            # `payment_ref` the first did not have is dropped, and both are
-            # optional in this route's own published schema.
-            discarded = req_rec._discarded_by_replay(payment_ref, comment)
+            # Not re-applying the outcome must not mean discarding in silence
+            # — rule 3 — nor naming a field that had somewhere to go. See
+            # `_record_replay_extras`: a second `approved` carrying a
+            # `payment_ref` the first did not have is RECORDED (both fields
+            # are optional in this route's own published schema, so sending
+            # the approval first and the reference when it clears is within
+            # contract); anything left with nowhere to go is named.
+            stored, discarded = req_rec._record_replay_extras(
+                payment_ref, comment)
+            if stored:
+                # INFO: this is the contract working, not a caller mistake.
+                _logger.info(
+                    "Workflow callback (v1): request %s is already '%s'; the "
+                    "outcome was NOT applied again and the repeat carried %s, "
+                    "which is now recorded on the request. (workspace_ref=%r)",
+                    ref, outcome, ", ".join(stored), workspace_ref)
             if discarded:
                 _logger.warning(
                     "Workflow callback (v1): request %s is already '%s'; the "
@@ -2409,6 +2424,17 @@ class MyserviceApiV1(http.Controller):
                     ref, outcome, ", ".join(discarded), workspace_ref)
             data = {"applied_outcome": outcome, "request_reference": ref,
                     "replayed": True}
+            # `stored_fields` sits BESIDE `_warnings`, not inside it. Every
+            # other `_warnings` block on this API means the same thing — what
+            # you sent that did not take effect (`rejected_fields`,
+            # `truncated`) — and a field we accepted and wrote is the
+            # opposite of that. Filing a success under warnings teaches an
+            # integration to treat the working case as an anomaly, and the
+            # ones that alert on `_warnings` would alert on every late
+            # payment reference. `discarded_fields` keeps its meaning
+            # unchanged; `stored_fields` is purely additive.
+            if stored:
+                data["stored_fields"] = stored
             if discarded:
                 data["_warnings"] = {"discarded_fields": discarded}
             return data

@@ -176,7 +176,8 @@ def token(api_base, creds):
     except requests.exceptions.ConnectionError as e:
         pytest.fail(
             f"Could not connect to Cadra API at {api_base}.\n"
-            f"Is the docker stack up? (docker compose -f docker-compose.dev.yml up -d)\n"
+            f"Is the docker stack up?\n"
+            f"  ODOO_DBFILTER='^%d$' docker compose -f docker-compose.yml -f docker-compose.19.yml up -d\n"
             f"Underlying error: {e}"
         )
     if r.status_code != 200:

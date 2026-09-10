@@ -246,6 +246,31 @@ jobs:
       - name: docker compose config (prod)
         run: docker compose -f docker-compose.yml -f docker-compose.prod.yml config > /dev/null
       - name: docker compose config (dev)
-        run: docker compose -f docker-compose.yml -f docker-compose.dev.yml config > /dev/null
-      - name: docker compose config (dev19 — Odoo 19 rebuild stack)
         run: docker compose -f docker-compose.yml -f docker-compose.19.yml config > /dev/null
+
+      - name: Every profile resolves to the supported Odoo major
+        run: |
+          # The other half of tests/test_deployment_profile.py. That file
+          # parses the compose YAML itself, because the pytest suite runs with
+          # `pytest` and `requests` and nothing else and a guard that needs
+          # the docker CLI is a guard that SKIPS where the CLI is missing.
+          # This step is the same fact read from the REAL resolver, in the one
+          # place docker genuinely exists — so neither reader can be wrong on
+          # its own, and neither can go quiet.
+          #
+          # `prod` resolved to `cadra-odoo:15.0-dev` for the whole of the
+          # Odoo 19 migration. It is the profile a CLIENT is deployed with,
+          # CI builds and tests only 19, and myservice_request_core is
+          # 19-only. Nothing caught it because nothing looked.
+          expected=19
+          fail=0
+          check() {
+            got=$(docker compose -f docker-compose.yml -f "$1" config                   --format json | python3 -c                   'import json,sys; print(json.load(sys.stdin)["services"]["odoo"]["image"])')
+            case "$got" in
+              *:"$expected".*) echo "  $2 -> $got" ;;
+              *) echo "::error::profile '$2' resolves the odoo service to $got, not Odoo $expected. A client deployed by this profile gets that runtime."; fail=1 ;;
+            esac
+          }
+          check docker-compose.19.yml dev
+          check docker-compose.prod.yml prod
+          exit $fail

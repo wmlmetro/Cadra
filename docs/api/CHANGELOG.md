@@ -33,6 +33,65 @@ live at was never the point.
 
 ---
 
+## 2026-09-10 — handoff 20
+
+### ADDITIVE · A late `payment_ref` on a replay is recorded, and says so
+
+**Affects `POST /api/v1/integrations/workflow/callback` and
+`POST /myservice/workflow/callback`.**
+
+Handoff 18 made a replay name what it was dropping. It still dropped it. A
+payment reference is exactly the thing somebody looks for later and does not
+find, and both `payment_ref` and `comment` are optional in the published
+schema — so sending the approval when it is granted and the reference when it
+clears has always been within contract.
+
+A repeat whose `payment_ref` differs from the one Cadra already holds now
+writes it to the request, and reports that it did:
+
+- v1: `data.stored_fields: ["payment_ref"]`, **beside** `_warnings`, not
+  inside it. Every other `_warnings` block on this API means "what you sent
+  that did not take effect"; a field we accepted and wrote is the opposite,
+  and filing it under warnings would make every late reference look like an
+  anomaly to anything alerting on that key.
+- Legacy: `stored_fields` on the bare body, and the `message` no longer
+  claims "nothing changed" when something was recorded.
+
+**`replayed` is still `true`** and the outcome is still not applied a second
+time. None of the five effects a replay is forbidden happens: no stage write,
+no `date_moved`, no `request.event` row, no chatter, no second dispatch-log
+row. `discarded_fields` keeps its exact meaning and now fires only on what
+genuinely has nowhere to go.
+
+The log level for this case moved from WARNING to INFO. It is the contract
+working, and a level that says "look at this" on the correct path is how a log
+stops being read.
+
+### BEHAVIOUR CHANGE · A second `queried` carrying a NEW question is applied
+
+**Affects both callback routes.** Deduplication for `queried` is now on the
+pair `(outcome, comment)` rather than on the outcome alone.
+
+A decision arrives once — a second `approved` is the same approval
+redelivered. A question does not: a workflow engine can legitimately ask a
+second, different question while the first is still open, and comparing the
+outcome alone swallowed it. The text is the only thing that separates a new
+question from a redelivery, so the text is what is compared, against the
+verbatim comment on the last inbound dispatch-log row.
+
+**What a consumer sees change:** a `queried` callback whose comment differs
+from the previous one now answers `"replayed": false` and applies — new
+chatter, the dispatch log updated — where it previously answered
+`"replayed": true` with the question reported as discarded. **A redelivery of
+the SAME text is unchanged**: still a replay, still writes nothing, still
+warns about nothing. This is marked a behaviour change rather than a fix
+because a consumer branching on `replayed` sees a different value for a POST
+it could have sent yesterday.
+
+`approved` and `rejected` are deliberately NOT included. A second approval
+carrying a different note is still one approval; treating the note as a new
+decision would re-apply a stage.
+
 ## 2026-09-10 — handoff 18
 
 ### BEHAVIOUR CHANGE · A replayed workflow callback writes nothing
@@ -74,6 +133,12 @@ body, and a WARNING in the server log. Additive. An identical redelivery
 reports nothing, so the field's presence means something was genuinely lost.
 **A second `queried` carrying a different comment is a replay too**, and its
 question is reported as discarded rather than applied.
+
+> **Superseded by handoff 20**, above (this file is newest first), on both counts: a late `payment_ref` is
+> now RECORDED rather than named, and a second `queried` carrying new text is
+> APPLIED rather than replayed. The paragraph is left standing because it
+> describes what shipped, and a consumer reading this file in order needs to
+> see the state it is reading forward from.
 
 ### BREAKING · A contradicting outcome is refused `409`
 

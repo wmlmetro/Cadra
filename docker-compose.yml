@@ -1,12 +1,23 @@
 # Base docker-compose for Cadra / myservicenrs.
 #
 # This file alone does nothing useful — it's always combined with one of:
-#   docker-compose.dev.yml   (local development: exposed ports, no TLS)
-#   docker-compose.prod.yml  (VPS deployment: Caddy + Let's Encrypt, restart policies)
+#   docker-compose.19.yml    (local development: nginx, exposed ports, no TLS)
+#   docker-compose.prod.yml  (single-tenant client server: Caddy + Let's Encrypt)
 #
 # Usage:
-#   make dev    or  docker compose -f docker-compose.yml -f docker-compose.dev.yml  up -d
-#   make prod   or  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#   docker compose -f docker-compose.yml -f docker-compose.19.yml   up -d
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# There is ONE runtime and it is Odoo 19. The base used to build
+# `cadra-odoo:15.0-dev` from `FROM odoo:15.0` and only the 19 overlay
+# overrode it, so `prod` — the profile a client is actually deployed with —
+# resolved to a runtime CI never builds and which cannot load this repo's own
+# modules (myservice_request_core is 19-only). Nothing had been deployed that
+# way, which is the only reason it survived two handoffs. Pinning the version
+# HERE rather than in one overlay is what makes a future overlay inherit the
+# right runtime instead of having to remember to ask for it, and
+# tests/test_deployment_profile.py fails if any profile resolves to another
+# major.
 #
 # All sensitive values come from .env (see .env.example).
 
@@ -30,8 +41,8 @@ services:
   odoo:
     build:
       context: .
-      dockerfile: Dockerfile.odoo.dev
-    image: cadra-odoo:15.0-dev
+      dockerfile: Dockerfile.odoo.19.dev
+    image: cadra-odoo:19.0-dev
     platform: linux/amd64
     depends_on:
       db:

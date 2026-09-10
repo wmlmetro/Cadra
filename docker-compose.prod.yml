@@ -1,14 +1,24 @@
 # Production overrides for Cadra / myservicenrs.
 #
+# THIS IS THE PROFILE A CLIENT IS DEPLOYED WITH: one server, one database,
+# one domain. The shared multi-tenant cluster is the demo estate, not this.
+#
 # Use with the base compose:
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# The runtime is Odoo 19, and it comes from the base compose rather than from
+# here — see the header of docker-compose.yml for why this file overriding
+# the command and the volumes but NOT the image is how `prod` spent two
+# handoffs resolving to Odoo 15.
 #
 # Prod-specific behavior:
 #   - Caddy reverse proxy on host ports 80 + 443 (auto Let's Encrypt TLS)
 #   - postgres + odoo NOT exposed to the host (only reachable inside the compose network)
 #   - restart: unless-stopped on every container
 #   - list_db disabled (odoo.prod.conf)
-#   - admin_passwd MUST be supplied via ODOO_MASTER_PASSWORD env var
+#   - admin_passwd MUST be supplied via ODOO_MASTER_PASSWORD env var, and the
+#     container REFUSES TO START if it, or the Postgres password, still holds
+#     a value this repository ships as a default
 #   - CADRA_DOMAIN and CADRA_ACME_EMAIL MUST be set in .env
 #   - source-tree mounted read-only at /mnt/extra-addons (same as dev, but
 #     prod operators should pin to a tagged image build, not bind-mount —
@@ -49,20 +59,26 @@ services:
 
   odoo:
     # No host port exposure in prod — Caddy proxies inside the network.
-    # Odoo 15 has no --admin-passwd CLI flag, so we copy the conf to a
-    # writable path at container start and append the env-supplied password.
+    #
+    # `command:` replaces CMD, NOT ENTRYPOINT, so the Odoo image's
+    # /entrypoint.sh runs with $1 = `bash`, falls through its `*) exec "$@"`
+    # branch, and its HOST/USER/PASSWORD injection never happens. Everything
+    # that branch would have supplied has to be supplied by the script below
+    # instead — see config/prod-entrypoint.sh, which is where the reasoning
+    # and the k8s precedent live.
     environment:
       ODOO_MASTER_PASSWORD: ${ODOO_MASTER_PASSWORD:?ODOO_MASTER_PASSWORD must be set in .env for prod}
     volumes:
       - ./config/odoo.prod.conf:/etc/odoo/odoo.conf.template:ro
-    command:
-      - bash
-      - -c
-      - |
-        set -e
-        cp /etc/odoo/odoo.conf.template /tmp/odoo.conf
-        printf '\nadmin_passwd = %s\n' "$$ODOO_MASTER_PASSWORD" >> /tmp/odoo.conf
-        exec odoo -c /tmp/odoo.conf --workers=${ODOO_WORKERS:-4} --max-cron-threads=${ODOO_MAX_CRON_THREADS:-2}
+      - ./config/prod-entrypoint.sh:/usr/local/bin/cadra-prod-entrypoint:ro
+    # The start-up sequence lives in config/prod-entrypoint.sh, not inline
+    # here. A shell block inside a YAML block scalar cannot be executed by a
+    # test, and this is the riskiest code in the deployment: it refuses
+    # default credentials, and it appends the database credentials WITHOUT
+    # WHICH ODOO CANNOT CONNECT AT ALL. The first inline draft refused a
+    # correct configuration and printed nothing, and a read-through did not
+    # catch it. tests/test_prod_entrypoint.py runs the file directly.
+    command: ["bash", "/usr/local/bin/cadra-prod-entrypoint"]
     restart: unless-stopped
 
 volumes:

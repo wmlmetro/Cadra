@@ -1,6 +1,6 @@
 # Cadra Odoo 19 image for Kubernetes (the rebuild stack).
 #
-# 19 counterpart of Dockerfile.odoo.k8s. Bakes every ported addon, the CRND 19
+# The image a client server or the cluster runs. Bakes every ported addon, the CRND 19
 # foundation (crnd-19/), the OCA 19 bundle (oca-19/), the seed files, and the
 # bootstrap script into the layer — the K8s pod has no host source tree.
 #

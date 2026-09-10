@@ -38,7 +38,7 @@ vendored trees are **mutually exclusive by Odoo version**:
 
 | Tree | Loaded by | `addons_path` entry |
 |---|---|---|
-| `dist/` (Odoo 15 vendor bundle) | Odoo **15** only | `config/odoo.dev.conf:17`, `config/odoo.prod.conf:26` |
+| `dist/` (Odoo 15 vendor bundle) | **nothing, since handoff 20** | *(was `config/odoo.dev.conf` and `config/odoo.prod.conf`; both are gone or repointed)* |
 | `crnd-19/`, `oca-19/` | Odoo **19** only | `config/odoo.19.conf:21` |
 
 `config/odoo.19.conf` says so in its own comment — *"the legacy 15.0 vendor tree
@@ -59,7 +59,27 @@ generic_team             path=/mnt/extra-addons/crnd-19/generic_team
 
 Corroborated in the logs: `module generic_request: not installable, skipped`.
 
-**Consequence:** the 61 constraints in `dist/` are **correct as they stand**.
+> **Handoff 20 correction — the premise below changed, the conclusion did not.**
+> This audit's reasoning was "`dist/` is loaded by Odoo 15, so its old-style
+> `_sql_constraints` are correct there". Handoff 20 retired the Odoo 15 stack:
+> `config/odoo.dev.conf` is deleted and `config/odoo.prod.conf`'s addons path
+> now lists `crnd-19`/`oca-19` instead. **`dist/` is on no addons path in this
+> repository at all**, so nothing loads it and its 61 constraints are neither
+> correct nor incorrect — they are unreached.
+>
+> Leaving them alone is still right, and the reason is now simpler: it is a
+> vendored tree we do not control, nothing loads it, and editing 43 files of
+> third-party Odoo 15 source to satisfy a rule that cannot apply to them buys
+> nothing. **A conclusion whose stated reason has quietly stopped being true
+> is how a future maintainer argues it away** — the same trap `CLAUDE.md`
+> records for the external record cap — so the reason is restated rather than
+> left standing on a deleted file.
+>
+> What this does open: `dist/` is now 182 MB of Odoo 15 source that nothing
+> reads. Deleting it is a decision for the Architect, not a fix.
+
+**Consequence:** the 61 constraints in `dist/` are **unreached** (they were
+"correct as they stand" while Odoo 15 loaded them; see the correction above).
 They run on Odoo 15, where `_sql_constraints` is still honoured. Porting them
 would be work with no effect on the 19 stack and a regression risk for the 15
 stack that is still production. `_upgrade/` is likewise unreachable (not on the

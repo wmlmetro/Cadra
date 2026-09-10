@@ -72,8 +72,12 @@ def ensure_jwt_secret():
       2. Existing ir.config_parameter value (if meaningful)
       3. Generate a new one (48 url-safe chars)
 
-    Returns the secret that's now set, so the host orchestrator can
-    write it back to .env.runtime for future runs.
+    Returns the secret that's now set. This used to say the host
+    orchestrator writes it back to `.env.runtime`; nothing has ever written
+    that file, and `.env.example` repeated the same claim. What actually
+    happens is that bootstrap.sh captures it from the sentinel-wrapped
+    output into `docs/api/.creds.<db>` (mode 600). The secret lives in
+    `ir.config_parameter`, per database, and survives a restart on its own.
     """
     param = env["ir.config_parameter"].sudo()
     current = param.get_param("myservice_api.jwt_secret", "")
@@ -579,7 +583,7 @@ def _resolve_seed_path(path):
 
     In dev (docker-compose), the whole repo is bind-mounted at
     /mnt/extra-addons, so scripts/ files live at /mnt/extra-addons/scripts/.
-    In k8s (Dockerfile.odoo.k8s), scripts/ is copied to /opt/cadra/scripts/
+    In k8s (Dockerfile.odoo.19.k8s), scripts/ is copied to /opt/cadra/scripts/
     instead. Profile entries are written using the dev layout; this swap
     lets the same profile work in both environments.
     """

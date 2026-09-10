@@ -1,7 +1,8 @@
 # Odoo 19 rebuild override — branch feat/rebuild-odoo-19.
 #
-# Use WITH the base compose (NOT together with docker-compose.dev.yml — this
-# file replaces it, and mounts its own odoo.19.conf so the two don't collide):
+# Use WITH the base compose. It IS the dev stack now — the Odoo 15
+# docker-compose.dev.yml it used to sit beside was deleted in handoff 20, and
+# `CADRA_PROFILE=dev` resolves here:
 #
 #   docker compose -f docker-compose.yml -f docker-compose.19.yml up -d
 #
