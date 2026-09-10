@@ -166,7 +166,8 @@ done
 | 15 | Nothing swallowed — 50 broad handlers classified, 24 of them hiding a live fault |
 | 16 | The reports an auditor asks for |
 | 17 | The four external doors, all standing open on every tenant, now shut |
-| 18 | **not started** — the callback that answers twice |
+| 18 | The callback that answers twice — a replay writes nothing · the v1 twin reconciles its dispatch and stops publishing a menu path · a credential out of an image layer · `request.jsonrequest` |
+| 19 | `CLAUDE.md` split — `docs/STATUS.md` and `docs/DECISIONS.md` |
 
 ## Backlog — agreed, not yet scheduled
 

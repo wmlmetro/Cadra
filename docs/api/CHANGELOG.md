@@ -33,6 +33,134 @@ live at was never the point.
 
 ---
 
+## 2026-09-10 — handoff 18
+
+### BEHAVIOUR CHANGE · A replayed workflow callback writes nothing
+
+**Affects `POST /api/v1/integrations/workflow/callback` and
+`POST /myservice/workflow/callback`.**
+
+Both routes used to act on the CALL. A second byte-identical POST answered
+success and applied the outcome again — appending a second dispatch-log row,
+re-posting chatter, and re-writing the configured approved stage. Where a
+human had moved the request onward after the first approval, the replay
+**dragged it back**, and the request's own audit trail gained a
+`stage_changed` event for a stage that had not changed.
+
+They now fire on the TRANSITION. An outcome already applied is a no-op that
+answers success and writes nothing at all.
+
+- v1: `data.replayed` is `true` on a replay and `false` on a first
+  application. Additive field; a consumer that ignores it sees the same 200 it
+  saw before.
+- Legacy: `"replayed": true` is added to the bare `{"ok": true, …}` body, and
+  the `message` says "was already applied … nothing changed". A consumer
+  branching on `ok` is unaffected.
+
+Re-sending a request to the workflow engine sets it back to `pending`, so a
+second dispatch's decision is a second transition and applies normally.
+
+**"Writes nothing" means the five effects above.** A v1 replay still stamps
+the calling client's `last_used_ip` / `last_used_at`, and still records an
+idempotency entry when you send `X-Idempotency-Key`, because it answers a
+success envelope. Nothing on the request changes.
+
+**A repeat carrying data we do not already hold is reported, not swallowed.**
+`payment_ref` and `comment` are both optional, so sending the approval when it
+is granted and the payment reference when it clears is within contract — and
+a replay applies neither. Anything discarded that way is now named:
+`data._warnings.discarded_fields` on v1, `discarded_fields` on the legacy
+body, and a WARNING in the server log. Additive. An identical redelivery
+reports nothing, so the field's presence means something was genuinely lost.
+**A second `queried` carrying a different comment is a replay too**, and its
+question is reported as discarded rather than applied.
+
+### BREAKING · A contradicting outcome is refused `409`
+
+**Affects both callback routes.** A callback carrying a DIFFERENT outcome
+after a decision has been recorded — `rejected` on a request Cadra holds as
+`approved`, or either after the other, or `queried` after either — is refused
+and writes nothing. It used to be applied silently.
+
+- v1: `409 conflict`, with `details.current_outcome` and
+  `details.attempted_outcome`.
+- Legacy: HTTP `409` with `current_outcome` and `attempted_outcome` in the
+  body.
+
+Applying it overwrites a recorded decision on the say-so of a message that may
+be a stale redelivery arriving out of order, and nothing in the payload can
+tell a genuine reversal from one. A real reversal is a human decision: re-send
+the request to the workflow engine, which returns it to `pending`.
+
+### BREAKING · The v1 callback answers `503 server_misconfigured` on an unconfigured tenant
+
+**Affects `POST /api/v1/integrations/workflow/callback`.** It used to answer
+**`400 validation_failed`** carrying *"No active Workflow integration
+configuration found … Please configure one under Settings → WorkSpace
+Integration"* — an internal navigation path in the published envelope, and a
+validation code for a state that has nothing to do with the caller's payload.
+It now answers `503 server_misconfigured` with the body *"Workflow integration
+is not available"*; the configuration sentence goes to the server log.
+
+**And it now refuses `queried` as well.** That outcome used to succeed on a
+tenant with no WorkSpace configuration, because only the `approved` and
+`rejected` handlers looked a config up. A callback from a workflow engine the
+tenant is not wired to is not a thing to half-apply, and the legacy route has
+refused all three since handoff 15.
+
+`server_misconfigured` was documented as a 500-only code. It is 500 everywhere
+else and 503 here, and `docs/api/cadra_api_endpoint_reference.md` says so.
+
+### ADDITIVE · The v1 callback reconciles the outbound dispatch it answers
+
+**Affects `POST /api/v1/integrations/workflow/callback`.** It always appended
+a fresh inbound `workflow.dispatch.log` row and never touched the outbound
+dispatch it was replying to, so on a tenant using this route an answered
+dispatch read `sent` for ever. It now rewrites that row to the outcome, the
+way `/myservice/workflow/callback` always has. Nothing in the response
+changes; what changes is what an operator sees in the dispatch log.
+
+### ADDITIVE · The generated OpenAPI declares the callback's `409` and `503`
+
+`/api/v1/openapi.json` published only `200/400/401/403/404/500` for every
+route, so a client generated from it handled the two new statuses in its
+generic error branch. `POST /api/v1/integrations/workflow/callback` now
+declares both. No behaviour change — the spec caught up with the route.
+
+### BEHAVIOUR CHANGE · A request stage written to the value it already holds is no longer a move
+
+**Affects `GET /api/v1/requests/<id>` (`data.dates.moved`) and
+`?include=events`.** `request.request.write` treated any write mentioning
+`stage_id` as a stage change, so writing a request's current stage back over
+itself reset `dates.moved` and appended a `stage_changed` entry to the
+timeline. It now records only an actual move.
+
+The visible consequence: `POST /api/v1/requests/<id>/transition` along a route
+whose `stage_to_id` equals its `stage_from_id` still answers success, and the
+timeline and `dates.moved` correctly stand still. A consumer counting timeline
+entries or polling `dates.moved` sees fewer of the first and less movement in
+the second — because the ones that go away were never real.
+
+### FIXED · `POST /api/sap/employee-sync` answered 500 instead of "Empty payload"
+
+**Affects `POST /api/sap/employee-sync` and
+`POST /api/sap/employee-sync/test`.** A body with no JSON-RPC `params` key —
+`{}`, an envelope with empty `params`, or a raw JSON object — left `kwargs`
+empty and reached `request.jsonrequest`, which does not exist on Odoo 19, and
+raised `AttributeError`. The route answered a 500 on exactly the branch whose
+intended answer is `{"success": false, "error": "Empty payload"}`. It now
+answers what it intends.
+
+(A genuinely empty body never got that far: Odoo's JSON-RPC dispatcher parses
+it first and aborts `400 Invalid JSON data` before any handler runs. An
+earlier draft of this entry said otherwise.)
+
+Both routes also now refuse a JSON body that is neither an object nor a list
+of objects — `["a","b"]` or a bare number used to reach `.get()` and raise,
+which on the `auth='none'` route was a 500 for a malformed payload.
+
+---
+
 ## 2026-09-10 — handoff 17
 
 ### BREAKING · Four routes outside `/api/v1` now refuse an unconfigured credential

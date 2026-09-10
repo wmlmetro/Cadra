@@ -46,12 +46,14 @@ import re
 import time
 
 from odoo import fields, http
-from odoo.exceptions import AccessDenied
+from odoo.exceptions import AccessDenied, UserError
 from odoo.http import request
 
 from .utils import (
     API_VERSION,
+    ERR_CONFLICT,
     ERR_INVALID_REQUEST,
+    ERR_MISCONFIGURED,
     ERR_NOT_FOUND,
     ERR_UNAUTHORIZED,
     SCOPE_ADMIN,
@@ -86,6 +88,8 @@ from .utils import (
 # a grep for "cadra.auth" both work without dragging in the rest of v1.
 _auth_logger = logging.getLogger("cadra.auth")
 
+_logger = logging.getLogger(__name__)
+
 
 # ─── route metadata registry (drives the OpenAPI generator) ─────────
 #
@@ -118,7 +122,7 @@ PAGINATION_QUERY_PARAMS = (
 
 def cadra_route(path, *, method="GET", summary="", scopes=(), idempotent=False,
                 success_status=None, request_schema=None, request_example=None,
-                query_params=None, response_schema=None):
+                query_params=None, response_schema=None, error_statuses=()):
     """REST route registrar + auth/envelope wrapper.
 
     method:          "GET" | "POST" | "PATCH" | "PUT" | "DELETE"
@@ -147,6 +151,11 @@ def cadra_route(path, *, method="GET", summary="", scopes=(), idempotent=False,
                      This is where a field is marked `deprecated` — a
                      published response field cannot be removed without
                      breaking a consumer, so it is annotated instead.
+    error_statuses:  Error codes this route answers BEYOND the five every
+                     route can (400/401/403/404/500). A status the generated
+                     spec does not declare is one a code-generated client
+                     handles in its generic error branch, so this is not
+                     documentation — it is the contract.
     """
     method = method.upper()
 
@@ -170,6 +179,7 @@ def cadra_route(path, *, method="GET", summary="", scopes=(), idempotent=False,
             "request_example": request_example,
             "query_params": list(query_params or ()),
             "response_schema": response_schema,
+            "error_statuses": tuple(error_statuses or ()),
         })
         wrapped = cadra_endpoint(
             scopes=scopes,
@@ -1719,6 +1729,7 @@ class MyserviceApiV1(http.Controller):
                 "responses": _standard_responses(
                     success_status=entry["success_status"],
                     data_schema=entry.get("response_schema"),
+                    error_statuses=entry.get("error_statuses") or (),
                 ),
             }
             if params:
@@ -2302,6 +2313,9 @@ class MyserviceApiV1(http.Controller):
                  scopes=[SCOPE_INTEGRATIONS_WRITE],
                  idempotent=True,
                  success_status=200,  # action endpoint, not a resource create
+                 # 409 — a callback contradicting a decision already recorded.
+                 # 503 — a tenant that was never wired to a workflow engine.
+                 error_statuses=(409, 503),
                  request_schema={
                      "type": "object",
                      "required": ["reference", "outcome"],
@@ -2347,13 +2361,79 @@ class MyserviceApiV1(http.Controller):
         if not req_rec:
             return err(ERR_NOT_FOUND, f"Request '{ref}' not found", status=404)
 
-        log = request.env["workflow.dispatch.log"].sudo().create({
-            "request_id": req_rec.id,
-            "direction": "inbound",
-            "status": outcome,
-            "workspace_ref": workspace_ref,
-            "response_received": json.dumps(data, default=str),
-        })
+        # The tenant's WorkSpace configuration, resolved HERE rather than
+        # three frames down inside `_workflow_callback_approved`.
+        #
+        # `get_active_config()` raises `UserError` on a tenant that has never
+        # been wired to a WorkSpace, and `cadra_route` renders `str(e)` — so
+        # this documented route answered `400 validation_failed` carrying the
+        # sentence "Please configure one under Settings → WorkSpace
+        # Integration". Two faults in one envelope: an internal navigation
+        # path published to an API caller, and a VALIDATION code for a state
+        # that has nothing to do with the caller's payload. Handoff 15 removed
+        # exactly this from the legacy `/myservice/workflow/callback` route;
+        # this is the same answer, on the twin. 503, opaque body, and the
+        # configuration sentence goes to the log where an operator reads it.
+        #
+        # It refuses for `queried` too, which previously worked without a
+        # config because only the approved/rejected handlers looked one up.
+        # A callback from a workflow engine this tenant is not wired to is
+        # not a thing to half-apply; the legacy route has refused all three
+        # since handoff 15 and the twins now agree.
+        try:
+            request.env["workflow.config"].sudo().get_active_config()
+        except UserError as e:
+            _logger.warning(
+                "POST /api/v1/integrations/workflow/callback refused on "
+                "database %s: %s", request.env.cr.dbname, e)
+            return err(ERR_MISCONFIGURED,
+                       "Workflow integration is not available", status=503)
+
+        # ── Replay, contradiction, or apply ───────────────────────────
+        # Same decision the legacy twin reaches, from the same model method,
+        # and taken BEFORE the dispatch-log row is written — a replay that
+        # appends a row has not written nothing.
+        disposition = req_rec._workflow_callback_disposition(outcome)
+
+        if disposition == req_rec.CALLBACK_REPLAY:
+            # Writing nothing must not mean discarding in silence — rule 3.
+            # See `_discarded_by_replay`: a second `approved` carrying a
+            # `payment_ref` the first did not have is dropped, and both are
+            # optional in this route's own published schema.
+            discarded = req_rec._discarded_by_replay(payment_ref, comment)
+            if discarded:
+                _logger.warning(
+                    "Workflow callback (v1): request %s is already '%s'; the "
+                    "repeat was NOT applied and it carried %s, which is "
+                    "therefore discarded. (workspace_ref=%r)",
+                    ref, outcome, ", ".join(discarded), workspace_ref)
+            data = {"applied_outcome": outcome, "request_reference": ref,
+                    "replayed": True}
+            if discarded:
+                data["_warnings"] = {"discarded_fields": discarded}
+            return data
+
+        if disposition == req_rec.CALLBACK_CONFLICT:
+            _logger.error(
+                "Workflow callback (v1) CONFLICT: request %s is '%s' and the "
+                "callback says '%s'. Refused — a recorded decision is not "
+                "overwritten by a later contradicting one. (workspace_ref=%r)",
+                ref, req_rec.workflow_status, outcome, workspace_ref)
+            return err(ERR_CONFLICT,
+                       "Request '%s' is already '%s'; refusing to apply '%s'"
+                       % (ref, req_rec.workflow_status, outcome),
+                       status=409,
+                       details={"current_outcome": req_rec.workflow_status,
+                                "attempted_outcome": outcome})
+
+        # Reconcile the outbound dispatch this callback ANSWERS, rather than
+        # always appending a fresh inbound row. Appending left an answered
+        # dispatch reading `sent` for ever on any tenant using this route, so
+        # "which dispatches are still unanswered" could not be asked at all.
+        # The legacy route has always done it this way; the helper is now
+        # shared so the twins cannot drift again.
+        log = request.env["workflow.dispatch.log"].sudo()._reconcile_callback(
+            req_rec, outcome, workspace_ref, data)
 
         if outcome == "approved":
             req_rec._workflow_callback_approved(
@@ -2375,7 +2455,8 @@ class MyserviceApiV1(http.Controller):
                 log=log,
             )
 
-        return {"applied_outcome": outcome, "request_reference": ref}
+        return {"applied_outcome": outcome, "request_reference": ref,
+                "replayed": False}
 
 
 # ─── OpenAPI helpers ────────────────────────────────────────────────
@@ -2442,13 +2523,41 @@ def _tag_from_path(path):
     return "Other"
 
 
-def _standard_responses(success_status=200, data_schema=None):
+#: Error statuses every endpoint can answer, and what to call them. A route
+#: that answers something outside this set declares it with `error_statuses=`
+#: — see `cadra_route`.
+_ERROR_STATUS_DESCRIPTIONS = {
+    400: "Bad Request",
+    401: "Unauthorized",
+    403: "Forbidden",
+    404: "Not Found",
+    409: "Conflict",
+    422: "Unprocessable Entity",
+    429: "Too Many Requests",
+    500: "Server Error",
+    503: "Service Unavailable",
+}
+
+#: What `_standard_responses` publishes when a route says nothing.
+_DEFAULT_ERROR_STATUSES = (400, 401, 403, 404, 500)
+
+
+def _standard_responses(success_status=200, data_schema=None,
+                        error_statuses=()):
     """Standard set of responses for any endpoint. `success_status` tells
     Swagger which 2xx code to expect on success (200 vs 201).
 
     `data_schema`, when given, narrows the success envelope's `data` member
     to a specific schema instead of the free-form object. It is composed with
     allOf so the envelope's `meta`/`pagination` contract stays in one place.
+
+    `error_statuses` adds codes beyond the five every route can answer.
+    Handoff 18 gave the workflow callback a `409` and a `503`, updated the
+    hand-written reference, and left the GENERATED spec declaring neither —
+    which is the artefact a consumer runs a code generator against, so a
+    status it does not list falls into that client's generic error path.
+    Rule 2 says the annotation moves with the change; this is the parameter
+    that lets it.
     """
     success_schema = {"$ref": "#/components/schemas/Envelope"}
     if data_schema:
@@ -2461,25 +2570,11 @@ def _standard_responses(success_status=200, data_schema=None):
             "description": "OK" if success_status == 200 else "Created",
             "content": {"application/json": {"schema": success_schema}},
         },
-        "400": {
-            "description": "Bad Request",
-            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}},
-        },
-        "401": {
-            "description": "Unauthorized",
-            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}},
-        },
-        "403": {
-            "description": "Forbidden",
-            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}},
-        },
-        "404": {
-            "description": "Not Found",
-            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}},
-        },
-        "500": {
-            "description": "Server Error",
-            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}},
-        },
     }
+    for status in sorted(set(_DEFAULT_ERROR_STATUSES) | set(error_statuses or ())):
+        responses[str(status)] = {
+            "description": _ERROR_STATUS_DESCRIPTIONS.get(status, "Error"),
+            "content": {"application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}}},
+        }
     return responses

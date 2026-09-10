@@ -147,6 +147,16 @@ jobs:
           # cover the record cap and the /auth/token failure causes — the
           # two things a partner integration meets first.
           #
+          # myservice_request_core was added in handoff 18 and had NO tests
+          # at all before it. `-u` upgrades a module and everything that
+          # depends on it, so naming workflow/api/fields already drags core
+          # in — but as invisible transitive coverage that vanishes the day
+          # a dependency moves, which is the exact failure this whole step
+          # exists to fix. Its tests hold the rule that a stage change is a
+          # stage CHANGING: writing a request's current stage back over
+          # itself used to append a `stage_changed` row to the request's own
+          # audit trail and reset `date_moved`.
+          #
           # myservice_identity was added in handoff 17 and is NOT optional
           # here. `-u` upgrades a module and everything that DEPENDS on it,
           # not its dependencies — `myservice_api` depends on identity, so
@@ -158,7 +168,7 @@ jobs:
           DB=$(grep -E '^POSTGRES_DB=' .env.example | cut -d= -f2-)
           docker compose -f docker-compose.yml -f docker-compose.19.yml exec -T odoo \
             odoo -c /etc/odoo/odoo.conf -d "$DB" \
-              -u myservice_workflow,myservice_asset_depreciation,myservice_nrs_base,myservice_asset_register,myservice_request_fields,myservice_security,myservice_fleet_maintenance,myservice_barcode_station,myservice_api,myservice_identity \
+              -u myservice_workflow,myservice_asset_depreciation,myservice_nrs_base,myservice_asset_register,myservice_request_core,myservice_request_fields,myservice_security,myservice_fleet_maintenance,myservice_barcode_station,myservice_api,myservice_identity \
               --test-enable --stop-after-init --workers=0 \
               --http-port=8099 --gevent-port=8098
 

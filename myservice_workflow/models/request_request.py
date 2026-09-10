@@ -200,6 +200,137 @@ class RequestRequest(models.Model):
             'target': 'current',
         }
 
+    # ── Callback disposition — replay, contradiction, or apply ───────
+    #
+    # A callback is an EVENT, and an event that has already been applied is
+    # not an instruction to apply it again. Both controllers used to act on
+    # the CALL: a second byte-identical POST answered `200 {"ok": true}` and
+    # re-did all three effects — a second dispatch-log row, a second chatter
+    # post, and a second write of `approved_stage_id`. The third is the
+    # damaging one. Where an approved stage is configured the stage was
+    # written unconditionally, so a replay arriving after a human had moved
+    # the request onward DRAGGED IT BACK, and `request.request.write` logged
+    # a `stage_changed` event for a stage that had not changed — a
+    # double-count inside the request's own audit trail.
+    #
+    # Handoff 06 settled the shape for INT-05 in the other direction: one
+    # physical act is one event, and `_mark_affixed` fires on the
+    # TRANSITION. This is the same rule pointed inbound.
+    #
+    # **Why the transition and not `workspace_ref`.** `workspace_ref` is the
+    # natural dedup key and is stored on both the request and the log — and
+    # it is optional in both published contracts (`data.get('workspace_ref',
+    # '')` here, `nullable: True` in the v1 schema). Measured across all
+    # eight local tenants before this was written: `request.request.
+    # workspace_ref` is set on **0 of 407** requests, and every one of the 76
+    # request-approval log rows that carries one carries the same pytest
+    # fixture constant. A key that is absent by contract and empty in fact
+    # cannot be the thing a dedup stands on. `workflow_status` is written by
+    # every path that applies an outcome and is therefore always there;
+    # `workspace_ref` corroborates in the log line instead.
+    #
+    # A re-send is what re-opens the door: `_send_to_workflow` sets
+    # `workflow_status` back to `pending`, so a second decision on a second
+    # dispatch transitions normally. Replay suppression only bites where
+    # nothing new was asked.
+
+    #: Outcomes that are a DECISION. A different decision arriving after one
+    #: of these is two systems disagreeing, not a workflow progressing.
+    WORKFLOW_DECISIONS = ('approved', 'rejected')
+
+    #: The three dispositions a callback can have.
+    CALLBACK_APPLY = 'apply'
+    CALLBACK_REPLAY = 'replay'
+    CALLBACK_CONFLICT = 'conflict'
+
+    def _workflow_callback_disposition(self, outcome):
+        """What this callback should do: apply, replay, or conflict.
+
+        Consulted by BOTH controllers before either writes anything — the
+        dispatch-log row included, which is why this cannot live inside the
+        three handlers. `myservice_api` appends its row before it calls
+        them, so a check one layer in would still leave a row per replay.
+
+        - `replay`   — the outcome already stands. Write nothing, answer
+                       success: the caller replayed a request we honoured,
+                       and telling them so is the truth.
+        - `conflict` — a DIFFERENT outcome after a decision was recorded.
+                       Refused, not absorbed. See the controllers.
+        - `apply`    — everything else, including `queried` → `approved`
+                       and any outcome on a request still `pending`.
+        """
+        self.ensure_one()
+        current = self.workflow_status
+        if current == outcome:
+            return self.CALLBACK_REPLAY
+        if current in self.WORKFLOW_DECISIONS:
+            return self.CALLBACK_CONFLICT
+        return self.CALLBACK_APPLY
+
+    def _discarded_by_replay(self, payment_ref=None, comment=None):
+        """What a repeat is carrying that this request does not already hold.
+
+        A replay writes nothing, which is the point — and "writes nothing"
+        must not become "throws information away in silence". Rule 3: a thing
+        that silently degrades is a defect even when it returns 200, and this
+        was one. The disposition compares `workflow_status` and nothing else,
+        so a SECOND `approved` carrying a `payment_ref` the first did not have
+        was discarded and answered `200`. `payment_ref` is optional in both
+        published schemas, so a workflow engine that sends the approval first
+        and the payment reference when it clears is doing nothing wrong.
+
+        Same for a second `queried` whose comment is a NEW question rather
+        than a redelivery of the old one — the text is the only thing that
+        distinguishes the two, and dropping it loses a question somebody
+        asked.
+
+        Naming them is the minimum. Whether a late `payment_ref` should be
+        RECORDED on a replay is a contract decision and is in report 18's
+        open questions; what is not open is that it may not vanish quietly.
+        Returns a sorted list of field names, empty when the repeat carries
+        nothing new.
+        """
+        self.ensure_one()
+        discarded = []
+        if payment_ref and payment_ref != self.workflow_payment_ref:
+            discarded.append('payment_ref')
+        if comment and comment != self._last_recorded_comment():
+            discarded.append('comment')
+        return sorted(discarded)
+
+    def _last_recorded_comment(self):
+        """The comment the previous callback on this request carried.
+
+        Compared against the chatter body first, which was wrong: the
+        outcome handlers wrap the comment in HTML, so matching it means
+        matching markup, and every ordinary redelivery came back as a NEW
+        question. A guard that fires on the common case is a guard somebody
+        turns off — the first run of the suite failed on exactly that.
+
+        `workflow.dispatch.log.workflow_comment` holds the text verbatim,
+        written by all three outcome handlers, so the comparison is a string
+        against the same string. No row means nothing to compare against and
+        any comment counts as new, which is the safe direction.
+        """
+        self.ensure_one()
+        log = self.env['workflow.dispatch.log'].sudo().search(
+            [('request_id', '=', self.id), ('event_type', '=', False)],
+            limit=1, order='create_date desc, id desc')
+        return log.workflow_comment or ''
+
+    def _set_workflow_stage(self, stage):
+        """Move to `stage`, and only if that is a move.
+
+        `request.request.write` now branches on the value changing rather
+        than on `'stage_id' in vals`, so this is belt and braces — but the
+        callback is the caller that made the difference visible and the
+        guard is one line where the consequence is a fabricated
+        `stage_changed` event.
+        """
+        self.ensure_one()
+        if stage and self.stage_id != stage:
+            self.write({'stage_id': stage.id})
+
     # ── Callback handlers — called by the webhook controller ─────────
     def _workflow_callback_approved(self, workspace_ref, payment_ref=None,
                                     comment=None, log=None):
@@ -211,8 +342,7 @@ class RequestRequest(models.Model):
         self.write(vals)
 
         # Advance to approved stage if configured
-        if config.approved_stage_id:
-            self.write({'stage_id': config.approved_stage_id.id})
+        self._set_workflow_stage(config.approved_stage_id)
 
         msg = (f"<p>✅ <strong>Approved by NRS WorkSpace</strong>"
                f" — Ref: {workspace_ref}</p>")
@@ -237,8 +367,7 @@ class RequestRequest(models.Model):
         self.write({'workflow_status': 'rejected'})
 
         # Move back to rejected stage if configured
-        if config.rejected_stage_id:
-            self.write({'stage_id': config.rejected_stage_id.id})
+        self._set_workflow_stage(config.rejected_stage_id)
 
         msg = (f"<p>❌ <strong>Rejected by NRS WorkSpace</strong>"
                f" — Ref: {workspace_ref}</p>")

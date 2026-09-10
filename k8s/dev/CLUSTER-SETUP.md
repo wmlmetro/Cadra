@@ -104,6 +104,54 @@ cert-manager's HTTP-01 challenge will not validate until this resolves.
 - `CADRA_TEST_CLIENT_SECRET`
 - `CADRA_TURNSTILE_SECRET` — optional; Cloudflare Turnstile secret key
 
+**Cluster-only secret key** (not a GitHub secret — set directly on the
+`cadra-odoo` K8s secret):
+
+- `ODOO_ADMIN_PASSWORD` — the password of the Odoo **`admin` user** (a
+  `res.users` login) on the tenant being imported into. The one-off
+  `cadra-nrs-import` Job (`k8s/dev/71-nrs-import-job.yaml`) is its only
+  consumer: `scripts/nrs_import_entrypoint.sh` passes it to
+  `migrate_nrs_locations.py` and `seed_nrs_assets.py`, which authenticate over
+  XML-RPC and load the location tree, categories, employees and assets.
+
+  **Not `ODOO_MASTER_PASSWORD`**, which is also in this Secret. That one is
+  `admin_passwd` in `odoo.conf` — the database manager's master password, for
+  creating, duplicating and dropping databases. Different credential.
+
+  It used to be baked into the import image as `admin`; a credential in an
+  image layer is pulled by every host that runs the image and printed by
+  `docker history`, so it has no default any more and the Job's entrypoint
+  refuses without it.
+
+  **Set it to whatever the tenant's `admin` user password actually is.**
+  Nothing in this repository ever sets that password — `bootstrap.py` adds
+  `base.user_admin` to groups and never touches it — so on a tenant nobody has
+  changed it by hand, it is still Odoo's install-time `admin`. Putting `admin`
+  here is honest and restores the position that existed before, minus the
+  published image layer. Changing it means changing the user's password in
+  Odoo first (Settings → Users → Administrator), which affects everyone who
+  signs in as `admin`.
+
+  ```bash
+  kubectl -n cadra-dev patch secret cadra-odoo --type merge \
+    -p '{"stringData":{"ODOO_ADMIN_PASSWORD":"<password>"}}'
+  ```
+
+  `nrs-import.yml` pre-checks this key and fails naming it, because a missing
+  `secretKeyRef` otherwise leaves the pod in `CreateContainerConfigError` with
+  no logs at all.
+
+  **Why it is patched in rather than listed as a GitHub secret.** `deploy-dev`
+  rebuilds `cadra-odoo` on every push to `dev` with
+  `kubectl create … --dry-run=client -o yaml | kubectl apply -f -`. A key added
+  by `kubectl patch` was never in that apply's
+  `last-applied-configuration`, so the three-way merge leaves it alone and it
+  survives — but that is a subtlety to rely on, not a guarantee to build on,
+  and a `kubectl replace` or a namespace rebuild would take it out. If this
+  Job becomes something run more than once, add `ODOO_ADMIN_PASSWORD` to the
+  GitHub secrets and to the `create secret generic cadra-odoo` block in
+  `deploy-dev.yml`, next to `ODOO_MASTER_PASSWORD`.
+
 **Variables** (same screen → Variables):
 - `DO_REGISTRY_NAME` (e.g. `vendra-registry`)
 - `DO_CLUSTER_NAME`
