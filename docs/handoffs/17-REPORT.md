@@ -181,7 +181,7 @@ reduced this: a caller with a valid token can still replay freely.
 
 ## 5 · Wall-clock, correction share, and the machine
 
-**Wall-clock:** about 1h50m from branching to the report.
+**Wall-clock:** 54 minutes, branch created to PR pushed (07:44 → 08:38).
 
 **The machine behaved, and the discipline is why.** **Zero Postgres
 crash-restarts** against handoff 14's eight. Every `--stop-after-init` run was
