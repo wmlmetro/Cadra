@@ -13,6 +13,14 @@ WorkSpace, and Cadra publishes its URL to that system from
 whose behaviour we changed, with no document anywhere that owed anyone a
 word about it. Nobody knew how many more of those there were.
 
+> **Handoff 17 closed the three findings below.** The section
+> [Three things a reader must not have to derive](#three-things-a-reader-must-not-have-to-derive)
+> is kept, rewritten, because a reader arriving at these routes still has to
+> know what they used to be: the credentials involved were published in this
+> repository's history and are being rotated, and a route whose defect has
+> been fixed in `dev` is still open on anything not yet deployed. Each entry
+> now says what was true, what is true now, and what still needs doing.
+
 **This is an inventory, not a contract.** Nothing here is promised to
 anybody. It says what exists, who is on the other end of it, and what would
 break — so that the next person changing one of these knows, in one place,
@@ -55,13 +63,13 @@ exception. 36 − 9 = **27**.
 
 ## Three things a reader must not have to derive
 
-### `/myservice/workflow/callback` has optional authentication
+### `/myservice/workflow/callback` had optional authentication — FIXED in handoff 17
 
-It is `auth='public'`, `csrf=False`, `methods=['POST']`, it mutates
-`request.request` state, and **its token check is conditional**:
+It is `auth='public'`, `csrf=False`, `methods=['POST']`, and it mutates
+`request.request` state. Its token check **used to be conditional**:
 
 ```python
-# myservice_workflow/controllers/callback.py
+# the defect, as it stood
 if config.callback_token:
     provided = (request.httprequest.headers.get('X-Callback-Token')
                 or kwargs.get('token', ''))
@@ -69,31 +77,79 @@ if config.callback_token:
         ... 401
 ```
 
-A tenant whose `workflow.config` has no `callback_token` set has **no
-authentication on this route at all** — an anonymous POST can approve or
-reject a request. The token is a field an administrator may or may not have
-filled in; nothing forces it, and nothing warns when it is empty. It also
-accepts the token as a `?token=` query parameter, which puts it in the same
-place as the query-string key below.
+A tenant whose `workflow.config` had no `callback_token` had **no
+authentication on this route at all** — an anonymous POST could approve or
+reject a request. The token was a field an administrator may or may not have
+filled in; nothing forced it and nothing warned when it was empty.
 
-### `/api/myservice/assets/export/csv` authenticates with a query parameter, and both Redhubs routes fall back to a key literal in source
+**This was not hypothetical and it was not rare. It was the state of every
+tenant.** Measured on this machine at handoff 17: `callback_token` was set on
+**0 of 8** local tenants. Proved live before the fix, on `test19` with a
+`workspace` config carrying no token — an anonymous POST, and a POST with a
+deliberately *wrong* token, both answered
 
-`export_assets_csv` reads its key from `request.httprequest.args.get('api_key')`
-— a query string, which lands in nginx access logs, any intervening proxy's
-logs, and browser history. Its JSON sibling uses an `X-API-Key` header, which
-is the right shape.
-
-Both resolve the expected value the same way:
-
-```python
-request.env['ir.config_parameter'].sudo().get_param(
-    'myservice_identity.redhubs_api_key', 'NRS_REDHUBS_KEY_2025')
+```
+HTTP 404  {"error": "Request 'H17-PROBE-NO-SUCH' not found"}
 ```
 
-The second argument is the default. On any tenant where that parameter was
-never set, the credential guarding a **full dump of the asset register** is a
-string committed to this repository. `/api/sap/employee-sync` has the same
-pattern with `NRS_SAP_WEBHOOK_SECRET_2025`.
+A route that reports a reference lookup to a caller holding a wrong credential
+has already passed its authentication gate. The only thing between an
+anonymous POST and an approval was knowing a reference name.
+
+**Now:** a missing token refuses every callback with `503` and the same opaque
+body an unwired tenant already gets, and logs at ERROR naming
+`workflow.config.callback_token` and the tenant database. The `?token=` query
+parameter is still accepted **for one more release** and every use logs a
+WARNING naming the caller, so the migration has a visible end date. The header
+is `X-Callback-Token`.
+
+**Still open, and it is its own piece of work:** a replayed callback is **not
+idempotent**. A second byte-identical POST answers `200 {"ok": true}`, appends
+a second dispatch-log row, re-posts chatter, and — where
+`approved_stage_id`/`rejected_stage_id` is configured — re-applies the stage
+write, which drags a request a human had moved onward back to the approved
+stage and appends a `request.event` row through `_log_event('stage_changed')`
+even when the stage does not change. Nothing here fires on a *transition*, the
+way `_mark_affixed` does for INT-05.
+
+### The Redhubs and SAP credentials had a default baked into source — FIXED in handoff 17
+
+`export_assets_csv` read its key from `request.httprequest.args.get('api_key')`
+— a query string, which lands in nginx access logs, any intervening proxy's
+logs, and browser history. Its JSON sibling used an `X-API-Key` header, which
+is the right shape.
+
+Worse than the query string: **all three routes fell back to a literal in
+source.**
+
+```python
+# the defect, as it stood
+get_param('myservice_identity.redhubs_api_key',  'NRS_REDHUBS_KEY_2025')
+get_param('myservice_identity.sap_webhook_secret', 'NRS_SAP_WEBHOOK_SECRET_2025')
+```
+
+The second argument is the default. **Measured at handoff 17: neither
+parameter was set on any of the eight local tenants** — `myservice_identity.*`
+returned zero rows on all of them. So the credential guarding a full dump of
+the asset register, and the one guarding inbound employee writes, was in every
+case a string committed to this repository, present in every clone, every fork
+and every CI log since it was written.
+
+**Now:** unset configuration refuses and says so at ERROR naming the parameter
+and the database; the CSV route is header-first with `?api_key=` deprecated
+for one release under a WARNING naming the caller; each credential is resolved
+in exactly one place per module; comparisons are `hmac.compare_digest`.
+
+**Both literals are compromised and must be rotated on the box** — they are in
+git history and cannot be taken out of it. They are quoted above deliberately:
+a rotation list that will not name what it is rotating is not one an operator
+can work through. `tests/test_source_guards.py` now fails the build on any
+credential resolved with a non-empty literal default, and pins these two
+strings out of first-party source.
+
+**This is a live cutover, not a silent one.** Any tenant relying on the
+default now answers Unauthorized to Redhubs and to SAP until an operator sets
+the parameter.
 
 ### `/tags/lookup` is unauthenticated where its `/api/v1` twin is scope-gated
 
@@ -115,17 +171,66 @@ someone else, sends requests here.
 
 | Route | File | Auth | Who calls it | Shape published? | Is a change breaking? |
 |---|---|---|---|---|---|
-| `POST /myservice/workflow/callback` | `myservice_workflow/controllers/callback.py:33` | `public`, `csrf=False`; **optional** shared token | **NRS WorkSpace.** Cadra tells it this URL: `workflow_config.py:243` computes `callback_url_hint` as `<web.base.url>/myservice/workflow/callback` and shows it in Settings | No | **Yes.** This is the only route in the repo whose URL Cadra actively publishes to a third party. Status codes, the accepted payload keys (`reference`, `workspace_ref`, `outcome`, `payment_ref`, `comment`) and the `outcome` enum are all load-bearing for WorkSpace. Handoff 15 changed three status codes here |
-| `POST /api/myservice/assets/export` | `myservice_identity/controllers/redhubs_api.py:19` | `none`, `csrf=False`; `X-API-Key` header | **Redhubs**, an external system | No | **Yes.** It returns the whole asset register with a fixed 13-key row shape. Renaming or dropping a key breaks their parser silently; there is no version marker in the payload to hang a migration on |
-| `GET /api/myservice/assets/export/csv` | `redhubs_api.py:53` | `none`; `?api_key=` **query parameter** | Redhubs, for systems that cannot do JSON | No | **Yes**, and worse than the JSON one: the CSV is positional. Inserting a column in the middle silently shifts every field after it, and a CSV consumer has no way to notice |
-| `POST /api/sap/employee-sync` | `myservice_identity/controllers/sap_webhook.py:10` | `none`, `csrf=False`; `X-SAP-Webhook-Secret` header | **SAP SuccessFactors**, pushing employee change events | No | **Inbound, so mostly not** — SAP sends, we accept, and accepting more is safe. But the **response** shape (`success`, `processed`, `results[]` with `ir_number`/`status`/`employee_id`/`changes`) is read by whatever calls it, and narrowing what the request will accept is breaking |
+| `POST /myservice/workflow/callback` | `myservice_workflow/controllers/callback.py:43` | `public`, `csrf=False`; **optional** shared token | **NRS WorkSpace.** Cadra tells it this URL: `workflow_config.py:243` computes `callback_url_hint` as `<web.base.url>/myservice/workflow/callback` and shows it in Settings | No | **Yes.** This is the only route in the repo whose URL Cadra actively publishes to a third party. Status codes, the accepted payload keys (`reference`, `workspace_ref`, `outcome`, `payment_ref`, `comment`) and the `outcome` enum are all load-bearing for WorkSpace. Handoff 15 changed three status codes here |
+| `POST /api/myservice/assets/export` | `myservice_identity/controllers/redhubs_api.py:117` | `none`, `csrf=False`; `X-API-Key` header | **Redhubs**, an external system | No | **Yes.** It returns the whole asset register with a fixed 13-key row shape. Renaming or dropping a key breaks their parser silently; there is no version marker in the payload to hang a migration on |
+| `GET /api/myservice/assets/export/csv` | `redhubs_api.py:183` | `none`; `?api_key=` **query parameter** | Redhubs, for systems that cannot do JSON | No | **Yes**, and worse than the JSON one: the CSV is positional. Inserting a column in the middle silently shifts every field after it, and a CSV consumer has no way to notice |
+| `POST /api/sap/employee-sync` | `myservice_identity/controllers/sap_webhook.py:47` | `none`, `csrf=False`; `X-SAP-Webhook-Secret` header | **SAP SuccessFactors**, pushing employee change events | No | **Inbound, so mostly not** — SAP sends, we accept, and accepting more is safe. But the **response** shape (`success`, `processed`, `results[]` with `ir_number`/`status`/`employee_id`/`changes`) is read by whatever calls it, and narrowing what the request will accept is breaking |
 
-**A note on the callback's twin.** `POST /api/v1/integrations/workflow/callback`
-exists, is scope-gated on `integrations:write`, returns the PRD §10.7 envelope,
-validates against a JSON schema and is fully documented — and it is a
-**different function** (`v1.py:1820`) from the legacy one. Two callbacks, one
-documented and one in use. That is worth resolving, and resolving it is not
-this document's job.
+**The callback's twin, and how handoff 17 resolved it.**
+`POST /api/v1/integrations/workflow/callback` exists, is scope-gated on
+`integrations:write`, returns the PRD §10.7 envelope, validates against a JSON
+schema and is fully documented — and it is a **different function** from the
+legacy one. Two callbacks, one documented and one in use.
+
+**They are genuinely different contracts, and the documentation is wrong about
+which is which.** Handoff 17 was asked to choose between making the legacy
+route a thin delegate to the `/api/v1` one, repointing WorkSpace, or accepting
+that they differ. The answer is the third, and the deciding fact is that
+**"one implementation and two paths" is already true of everything that can be
+shared.** Both controllers call the same three model methods —
+`request.request._workflow_callback_approved` / `_rejected` / `_queried` — so
+there is exactly one implementation of what an outcome *does*. What is left
+duplicated is only the HTTP layer, and every part of it differs for a reason
+that cannot be delegated away:
+
+| | `/myservice/workflow/callback` | `/api/v1/integrations/workflow/callback` |
+|---|---|---|
+| Authentication | shared token from `workflow.config` | JWT bearer, `integrations:write` |
+| Body | JSON **or form-encoded** | JSON only, schema-validated |
+| Response | bare `{"ok": true, …}` | PRD §10.7 envelope |
+| Idempotency | none | `X-Idempotency-Key` |
+| Dispatch log | **reconciles** the outbound `sent` row it answers | always appends a new inbound row |
+
+The authentication line is the one that settles it: WorkSpace holds a shared
+token, not a Cadra client credential, and a public route cannot delegate into
+a decorator that demands a JWT without either issuing WorkSpace a client (that
+is the "repoint WorkSpace" option, a coordinated change with another team) or
+weakening `/api/v1`. Neither is a refactor.
+
+**So what needs doing is documentation, not code** — and two defects fall out
+of writing the table:
+
+1. **The v1 twin never reconciles the outbound dispatch.** The legacy route
+   finds the `direction='outbound', status='sent'` row it is answering and
+   rewrites it to the outcome; the v1 route always appends a fresh inbound
+   row. On a tenant using v1 an answered dispatch reads `sent` forever, so
+   "which dispatches are still unanswered" cannot be asked. The legacy
+   behaviour is the better one.
+2. **The v1 twin leaks the unconfigured-tenant message that handoff 15 removed
+   from the legacy route.** It does not resolve `workflow.config` itself;
+   `_workflow_callback_approved` calls `get_active_config()` (defaulting to
+   `purpose='workspace'`), which raises `UserError` on a tenant with no
+   workspace config. `cadra_route`'s `except (UserError, ValidationError)`
+   clause renders `str(e)`, so the documented route answers **`400
+   validation_failed`** carrying *"No active Workflow integration
+   configuration found … Please configure one under Settings → WorkSpace
+   Integration"* — an internal menu path in the published envelope, and a
+   validation code for what is a tenant-configuration state. Read from source,
+   not probed live: reaching it needs a real request reference on a tenant
+   with no workspace config, and creating one on a demo tenant to prove a
+   documentation finding is not a trade worth making.
+
+Both are the Architect's to schedule.
 
 ---
 
@@ -175,7 +280,7 @@ system is known to.
 
 | Route | File | Auth | Why it has no caller | Is a change breaking? |
 |---|---|---|---|---|
-| `GET /myservice/workflow/callback/test` | `myservice_workflow/controllers/callback.py:213` | `user` | A manual probe. No JS, no test, no doc references it | **No**, but it is a **status check somebody may be running by hand or from monitoring outside this repo**. Handoff 15 changed it from 200 to 503 for an unconfigured tenant — deliberately, because 200 read a never-wired tenant as healthy |
+| `GET /myservice/workflow/callback/test` | `myservice_workflow/controllers/callback.py:305` | `user` | A manual probe. No JS, no test, no doc references it | **No**, but it is a **status check somebody may be running by hand or from monitoring outside this repo**. Handoff 15 changed it from 200 to 503 for an unconfigured tenant — deliberately, because 200 read a never-wired tenant as healthy |
 | `POST /api/sap/employee-sync/test` | `sap_webhook.py:59` | `user` | Same: an authenticated probe for verifying the SAP integration by hand | No |
 | `POST /myservice/fleet_dashboard/data` | `myservice_fleet_maintenance/controllers/fleet_dashboard.py:11` | `user` | Its JS caller exists (`fleet_dashboard.js:68`) but **ships in an empty bundle** — `__manifest__.py:42` sets `'web.assets_backend': []`, with a comment explaining the retirement. The tag `myservice_fleet_dashboard` is not in the browser registry. Still exercised by `tests/test_honest_counts.py:49` | No |
 | `POST /myservice/security/kpis` | `myservice_security/controllers/main.py:8` | `user` | **`myservice_security/__manifest__.py` has no `assets` key at all** — the module ships no JavaScript. `security_tabs.js` and `security_dashboard.js` exist on disk and are in no bundle | No |

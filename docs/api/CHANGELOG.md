@@ -33,6 +33,133 @@ live at was never the point.
 
 ---
 
+## 2026-09-10 — handoff 17
+
+### BREAKING · Four routes outside `/api/v1` now refuse an unconfigured credential
+
+**Affects `POST /myservice/workflow/callback`, `POST /api/myservice/assets/export`,
+`GET /api/myservice/assets/export/csv` and `POST /api/sap/employee-sync`.**
+These are the routes the NRS WorkSpace, Redhubs and SAP SuccessFactors call.
+They are listed as breaking in `docs/api/EXTERNAL-SURFACES.md`, which is what
+puts them in this file's scope.
+
+**This is a live cutover on every tenant, not a gradual one**, because on
+every tenant measured the credential was unconfigured:
+
+| | measured at handoff 17 |
+|---|---|
+| tenants with `workflow.config.callback_token` set | 0 of 8 |
+| tenants with `myservice_identity.redhubs_api_key` set | 0 of 8 |
+| tenants with `myservice_identity.sap_webhook_secret` set | 0 of 8 |
+
+**What changed.**
+
+- **`/myservice/workflow/callback` answers a NEW `503`** when the tenant has
+  no `callback_token`. It previously performed **no authentication at all** in
+  that state — the token check was `if config.callback_token:`, so an absent
+  credential and a passing check were the same code path, on the endpoint that
+  approves and rejects requests. Proved live before the fix: an anonymous POST
+  carrying a deliberately *wrong* token was answered `404 "Request '…' not
+  found"`, which is a reference lookup, which is past the gate. `503` is a
+  status this route has not returned for this reason before; WorkSpace should
+  treat it as "not configured here", not as "retry later and it will work".
+- **The two Redhubs routes and the SAP webhook answer `Unauthorized`** where
+  they previously fell back to a credential literal committed to this
+  repository. Any caller relying on that default stops working until an
+  operator sets the parameter. The literals are compromised and are being
+  rotated; they are in git history and cannot be removed from it.
+- Every refusal is logged at **ERROR** naming the exact `ir.config_parameter`
+  or field and the tenant database, so the cutover is findable in a log rather
+  than discovered from a support call.
+
+**How to restore service.** Set the credential on the tenant. For WorkSpace,
+`workflow.config.callback_token` (Settings → WorkSpace Integration); for the
+others, the `ir.config_parameter` named in the ERROR line.
+
+### DEPRECATED · Credentials in a query string, removed next release
+
+`GET /api/myservice/assets/export/csv` takes `X-API-Key` and
+`POST /myservice/workflow/callback` takes `X-Callback-Token`. Both still
+accept the old `?api_key=` / `?token=` query parameter **for one more
+release**, and both still *compare* it — a wrong one is still a `401`. Every
+use logs a WARNING naming the caller's IP, so the migration has a visible end
+date rather than an assumed one.
+
+A credential in a URL is in nginx's access log, every proxy in front of us,
+and the caller's browser history. Send the header.
+
+The callback additionally distinguishes a token sent as a **form field** from
+one sent in the **query string**, because only the second is exposed in access
+logs and a migration list that conflates them is wrong about who is at risk.
+
+
+### REMOVED · `no_sap_asset_number` is no longer a disposal-report finding
+
+**Affects `GET /api/v1/reports/disposals` only. Vendra reads none of this and
+writes none of it.** Shipped in handoff 16 on 2026-09-09 and removed one day
+later, before anything downstream can have come to depend on it — which is
+what makes removing it the honest option rather than deprecating it in place.
+
+`no_sap_asset_number` **can no longer appear in any row's `findings`**, and no
+longer appears in `summary.findings`. It is removed from the `findings` enum
+in `/openapi.json`: a documented value the endpoint cannot return is a value
+an integrator writes a branch for and never sees fire.
+
+**Why.** It fired on close to every row — 2 of 11,942 assets on `nrs19` carry
+a SAP asset number and none does on any other tenant — and a control that
+fires on ~100% of rows is one a reader learns to skip. That cost is not
+confined to the noisy finding: `no_approver` and `no_authorising_reference`
+sit in the same column and get skimmed with it.
+
+**Nothing true was hidden.** The fact is published in two places, both of them
+unchanged or new:
+
+- **Per row**, as it always was: `sap_asset_number`, `null` where there is
+  none. No row lost any data in this change.
+- **Once for the period**, in the new `summary.sap_coverage` below.
+
+### ADDED · `summary.sap_coverage` on the disposal report
+
+Additive. A new object on `data.summary`, describing the WHOLE PERIOD on
+every page like the rest of the summary:
+
+```json
+"sap_coverage": {
+  "total": 63,
+  "with_sap_asset_number": 0,
+  "without_sap_asset_number": 63,
+  "coverage": "none",
+  "statement": "No disposal in this period carried a SAP asset number, so INT-09 sent no disposal instruction to the financial system for any of them."
+}
+```
+
+**`coverage` is the field to branch on.** Four values, and they are published
+API surface:
+
+| value | meaning |
+|---|---|
+| `empty` | the period holds no disposals at all |
+| `none` | disposals exist and not one carried a SAP asset number |
+| `partial` | some did and some did not |
+| `complete` | every disposal in the period carried one |
+
+`empty` and `none` are kept apart deliberately even though both counts are
+zero: *"no disposal carried a SAP asset number"* is true of the empty set and
+reads to a human as a finding about disposals that do not exist.
+
+**`statement` is prose for a reader, not a contract.** The wording may be
+improved without notice; `coverage` may not. It is deliberately **not
+translated** — a published payload whose text changes with the acting user's
+language cannot be stored, diffed or reconciled against last quarter's run.
+
+**The statement is period-scoped and stays that way.** It says *"no disposal
+**in this period**"*, and does not claim INT-09 has never sent a disposal
+instruction at all. This report reads one period; a disposal outside its
+bounds could carry a SAP number, and asserting "never" from a bounded window
+is the same defect as counting a register from a page of it.
+
+---
+
 ## 2026-09-09 — handoff 16
 
 ### ADDED · The two audit reports the specification names (§13.4)

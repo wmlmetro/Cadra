@@ -118,6 +118,8 @@ Cadra is one of three systems in the NRS integration programme, defined by *"End
   ```
   The venv is `tests/.venv` (Python 3.13) — the repo's own Python, not the container's. `docs/api/smoke_test.py` is the 30-second liveness check. Note the suite's token has no `admin` scope, so ~24 admin-scoped tests skip; that is expected, not a failure.
   **`.env.example` says `POSTGRES_DB=odoo` and `ODOO_DBFILTER=^odoo$`, and `odoo` is not a database you can test against.** It is a genuine 15-era leftover; a 19 worker refuses it with *"Skipping database odoo as its base version is not 19.0.1.3"*, and any command aimed at it comes back as a `psycopg2` error about a unix socket that names nothing relevant. The defaults are right for CI, which creates its own single database — they are wrong for every command in this file. Export `ODOO_DBFILTER='^%d$'` and name a real tenant (`jaizbankplc` for pytest). Whoever hits this next should lose two minutes, not an afternoon.
+  **Run the suites in CI's order: `pytest tests/` FIRST, then the in-registry Odoo suites.** `.github/workflows/ci.yml` runs them that way and the order is load-bearing, not cosmetic — the HTTP suite exercises the API against the registry the previous step left behind, so running the Odoo suites first can leave state that makes a pytest failure reproduce only in CI. Report 16's CI failure is the only way that class gets caught locally, and nothing in this file used to say which order CI used.
+
   **Check the DENOMINATOR, never the exit code.** An Odoo test run whose database died before the test phase reports `0 failed, 0 error(s) of 0 tests` **and exits 0** — a green that executed nothing, indistinguishable from a pass. Both of handoff 14's subagents hit it and one nearly reported it as a pass. **Quote the `of N tests` in every result you report, and treat a collapsed denominator as a failed run.** Grep the output for `of 0 tests` and for `CRITICAL` before believing anything.
   **In-registry Odoo tests live in `<module>/tests/` and are run by the upgrade command with `--test-enable`, but any `HttpCase` also needs `--workers=0`** — `setUpClass` reads `odoo.service.server.server.httpd.server_port` and `PreforkServer` has no `httpd`, so under the committed `workers = 2` every test in the class errors in setUpClass and the run reports "0 failed":
   ```
@@ -171,12 +173,14 @@ shape. The Kubernetes cluster is the demo estate.
 One Odoo process serves every database from one registry, so the moment a stored field lands in the Python, **every tenant that has not been upgraded is broken** — reads of that column raise `UndefinedColumn`, and any serializer touching it 500s the endpoint. Upgrade **all** databases before the code ships, not just the one you tested on:
 
 ```
-for db in cadra19 nrs19 gtb19 nrs lasg gtb jaizbankplc; do
+for db in cadra19 nrs19 gtb19 test19 nrs lasg gtb jaizbankplc; do
   docker compose -f docker-compose.yml -f docker-compose.19.yml exec -T odoo \
     odoo -c /etc/odoo/odoo.conf -d $db -u <module> --stop-after-init \
     --http-port=8099 --gevent-port=8098
 done
 ```
+
+**`test19` was missing from that loop** until handoff 17, while the tenancy section above listed it as a live 19-era database — so the documented fan-out reached seven of the eight tenants it names, and the eighth would have met `UndefinedColumn` on the first read of any new stored field. `odoo` is correctly absent: it is 15-era and a 19 worker skips it.
 
 On staging/prod the `cadra-upgrade` Job must likewise fan out per tenant database.
 
