@@ -29,6 +29,8 @@ from odoo.exceptions import (
 )
 from odoo.http import request
 
+from .query_params import BadFilter, parse_int
+
 _logger = logging.getLogger(__name__)
 
 API_VERSION = "v1"
@@ -817,11 +819,18 @@ def parse_limit(kwargs):
     `max_page_limit` when it has one, EXTERNAL_MAX_PAGE_LIMIT otherwise.
 
     A capped caller can still paginate via `cursor` up to `record_cap()`.
+
+    CLAMPING and REFUSING are different answers to different inputs, and both
+    are deliberate. `?limit=100000` is clamped, silently, and that is the
+    published contract — the ceiling is per-credential, so a caller cannot
+    know it in advance and being refused for asking would be unhelpful.
+    `?limit=all` is refused: it is not a number at all, and quietly serving
+    50 rows to a caller who believes they asked for everything is the same
+    false statement the filters used to make.
     """
     raw = kwargs.get("limit", DEFAULT_PAGE_LIMIT)
-    try:
-        limit = int(raw)
-    except (TypeError, ValueError):
+    limit = parse_int("limit", raw, null_is_absent=False, minimum=1)
+    if limit is None:
         limit = DEFAULT_PAGE_LIMIT
     return max(1, min(limit, page_limit_ceiling()))
 
@@ -1175,6 +1184,47 @@ _COERCION_RES = (
 )
 
 
+def selection_values(model_name, field_name, fallback):
+    """The accepted values for a Selection field, on the READ path. Never empty.
+
+    Reads the model's own Selection so a value the model gains is accepted by
+    the filter that publishes it on the same day, and falls back to the
+    published tuple if it cannot — never to "skip the check". A validator
+    that disables itself on failure puts `?state=bogus` back to answering
+    `200 []`, which is the silent degradation the validation exists to
+    remove.
+
+    Deliberately NOT `_selection_allowed_values` below, and the difference is
+    the whole reason this exists: that one calls `cr.rollback()` when it
+    cannot read a field, because it runs on the error path AFTER a failed
+    write where the cursor is already dirty. This runs on the happy path of
+    every list request, where rolling back a cursor nobody asked it to touch
+    would turn a transient read failure into a corrupted response. The
+    ruling is landed (docs/DECISIONS.md, 2026-09-06).
+
+    Reads the registry, not the database: `_fields[...]` is Python and
+    `get_values` resolves a Selection's own list. `ir.model.fields.selection`
+    rows exist for studio-added values only; none of the fields this is used
+    for has any.
+    """
+    try:
+        field = request.env[model_name]._fields[field_name]
+        if field.type == "selection":
+            values = list(field.get_values(request.env))
+            if values:
+                return values
+    except Exception:
+        # catch-all: unknown — broad on purpose. The FALLBACK is the safe
+        # answer here, not the exception: whatever goes wrong reading the
+        # model, the published tuple still rejects a typo, which is the
+        # control. Narrowing would mean guessing what `get_values` can raise
+        # and letting the guess decide whether every list request 500s.
+        _logger.warning(
+            "could not read %s.%s selection; falling back to the published "
+            "values", model_name, field_name, exc_info=True)
+    return list(fallback)
+
+
 def _selection_allowed_values(model_name, field_name):
     """The accepted values for a Selection field, or None if we cannot read them.
 
@@ -1344,6 +1394,24 @@ def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
                     psycopg2.OperationalError,
                     ConcurrencyError):
                 raise
+            except BadFilter as e:
+                # A query parameter we could not read. Every list route also
+                # catches this around its own domain builder, and this is the
+                # floor UNDER those: a route that forgets the try/except, or
+                # one written next year, still answers 400 rather than the
+                # 500 a bare exception would produce — and a 500 tells an
+                # integration to retry a request that can never succeed.
+                #
+                # **No rollback**, and that is the point rather than an
+                # omission. This is raised at the door, before the request
+                # has touched the database at all, so there is no
+                # transaction to undo — and rolling back a clean cursor is
+                # the exact behaviour that ruled `_selection_allowed_values`
+                # out of the read path in the first place
+                # (docs/DECISIONS.md, 2026-09-06).
+                return _http_response(err(
+                    ERR_INVALID_REQUEST, str(e), status=400, details=e.details,
+                ))
             except AccessError as e:
                 request.env.cr.rollback()
                 return _http_response(err(ERR_FORBIDDEN, str(e), status=403))

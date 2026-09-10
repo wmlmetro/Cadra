@@ -282,6 +282,84 @@ def test_no_odoo_15_image_can_be_built_from_this_repository():
         "thing the next compose overlay points at.\n  " + "\n  ".join(offenders))
 
 
+#: A first-party CI configuration. `crnd-19/.gitlab-ci.yml` is inside the
+#: vendored CRND tree and is theirs; anything at the repository root is ours,
+#: whoever wrote it originally.
+_FIRST_PARTY_CI_GLOBS = (".gitlab-ci.yml", ".gitlab-ci.yaml",
+                         ".github/workflows/*.yml",
+                         ".github/workflows/*.yaml")
+
+_SERIES_RE = re.compile(r"(?<![\d.])(\d+)\.0(?![\d])")
+
+#: A YAML comment, which is prose and not a pin. `.github/workflows/ci.yml`
+#: explains in a comment why `prod` used to resolve to `cadra-odoo:15.0-dev`,
+#: and a guard that reads the explanation as the defect is a guard somebody
+#: deletes the explanation to satisfy.
+_YAML_COMMENT_RE = re.compile(r"(?:^|\s)#.*$")
+
+
+def test_no_first_party_ci_config_pins_a_retired_odoo_series():
+    """The same argument as the Dockerfile above, one file type along.
+
+    The root `.gitlab-ci.yml` was a CRND assembly artifact — `SERIES_BRANCH:
+    '15.0'`, a `registry.crnd.pro` image, a GitLab that is not a remote of
+    this repository, last touched by an assembly bot in March 2023. It was
+    left in place at handoff 20 on the grounds that it was inert, and inert
+    is exactly the state the Dockerfile above was in when it was the thing
+    the prod overlay pointed at. A pipeline definition nobody runs is what
+    somebody wires up when they next want a pipeline.
+
+    So the file is gone, and this is what stops it, or a successor, coming
+    back carrying a version this repository cannot run.
+    """
+    offenders = []
+    for glob in _FIRST_PARTY_CI_GLOBS:
+        for path in sorted(REPO_ROOT.glob(glob)):
+            text = path.read_text(encoding="utf-8", errors="replace")
+            for raw_line in text.splitlines():
+                line = _YAML_COMMENT_RE.sub("", raw_line)
+                # Only lines that are talking about Odoo. A `python-3.11.0`
+                # or an `actions/checkout@v4.0` is not a series pin, and a
+                # guard that flags them is a guard somebody switches off.
+                if "odoo" not in line.lower():
+                    continue
+                for m in _SERIES_RE.finditer(line):
+                    if int(m.group(1)) != EXPECTED_ODOO_MAJOR:
+                        offenders.append("%s: %s" % (
+                            path.relative_to(REPO_ROOT), line.strip()))
+    assert not offenders, (
+        "These CI configurations name an Odoo series this repository no "
+        "longer supports:\n  " + "\n  ".join(offenders))
+
+
+def test_the_ci_series_guard_reads_the_file_it_was_written_for(tmp_path):
+    """Mutation proof: restore the deleted file and the guard must fail.
+
+    Without this, `test_no_first_party_ci_config_pins_a_retired_odoo_series`
+    passes because there is no `.gitlab-ci.yml` left to read, which is
+    indistinguishable from passing because it reads one and approves of it.
+    """
+    (tmp_path / ".github" / "workflows").mkdir(parents=True)
+    (tmp_path / ".gitlab-ci.yml").write_text(
+        "variables:\n"
+        "    ODOO_SERIES_BRANCH: '15.0'\n"
+        "    CI_JOB_TOKEN_GIT_HOST: 'gitlab.crnd.pro'\n")
+    # And the two shapes that must NOT trip it: a version that is not Odoo's,
+    # and a comment explaining the history this guard exists because of.
+    (tmp_path / ".github" / "workflows" / "ci.yml").write_text(
+        "jobs:\n  build:\n    steps:\n"
+        "      # `prod` used to resolve to cadra-odoo:15.0-dev\n"
+        "      - uses: actions/setup-python@v5.0\n"
+        "        with: {python-version: '3.11.0'}\n")
+
+    with _repo_root_at(tmp_path):
+        with pytest.raises(AssertionError) as exc:
+            test_no_first_party_ci_config_pins_a_retired_odoo_series()
+    assert "ODOO_SERIES_BRANCH" in str(exc.value)
+    assert "setup-python" not in str(exc.value)
+    assert "used to resolve" not in str(exc.value)
+
+
 def test_every_compose_overlay_is_covered_by_a_profile():
     """A guard that names its own inputs cannot see a new one.
 

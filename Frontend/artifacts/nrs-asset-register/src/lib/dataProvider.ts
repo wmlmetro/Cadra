@@ -42,7 +42,7 @@ import type { ServiceRequest } from "../types";
 export interface AssetFilters {
   category?: string;
   status?: string;
-  condition?: string;
+  condition?: Asset["condition"];
   zone?: string;
   search?: string;
 }
@@ -71,9 +71,15 @@ export function getAsset(id: string): Asset | undefined {
 
 // ─── API-BACKED ASSETS ───────────────────────────────────────────────────────
 
-// Frontend filter values mapped to backend enum values.
-const CONDITION_TO_API: Record<string, string> = {
-  Good: "good", Fair: "fair", Poor: "poor", Faulty: "damaged",
+// Frontend filter values mapped to backend enum values. The accepted set is
+// `nrs.asset.condition` — new/good/fair/poor/decommissioned — and the backend
+// refuses anything else with a 400.
+// Keyed by both unions on purpose: an unmapped display value would yield
+// `undefined`, drop the filter, and hand back the UNFILTERED register, which
+// reads as an answer rather than as a broken filter. Typing it this way makes
+// that a compile error instead.
+const CONDITION_TO_API: Record<Asset["condition"], ApiAsset["condition"]> = {
+  Good: "good", Fair: "fair", Poor: "poor", Decommissioned: "decommissioned",
 };
 
 export interface AssetsPage {
@@ -206,7 +212,7 @@ export interface AssetWriteBody {
   location_id?: number | null;
   custodian_id?: number | null;
   department?: string | null;
-  condition?: "new" | "good" | "fair" | "poor" | "damaged";
+  condition?: "new" | "good" | "fair" | "poor" | "decommissioned";
   state?: "active" | "in_repair" | "disposed" | "transferred" | "missing";
   currency_id?: number | null;
   purchase_date?: string | null;
@@ -306,7 +312,7 @@ export interface CategoryDashboardData {
   inRepair: number;
   disposed: number;
   unverified: number;
-  byCondition: { new: number; good: number; fair: number; poor: number; damaged: number };
+  byCondition: { new: number; good: number; fair: number; poor: number; decommissioned: number };
   recent: Asset[];
 }
 
@@ -332,7 +338,7 @@ async function fetchCategoryDashboard(categoryRegex: RegExp): Promise<CategoryDa
   const id = cat.id;
   const [
     total, active, inRepair, disposed, unverified,
-    cNew, cGood, cFair, cPoor, cDamaged,
+    cNew, cGood, cFair, cPoor, cDecommissioned,
     recentRes,
   ] = await Promise.all([
     countAssets({ category_id: id }),
@@ -344,14 +350,14 @@ async function fetchCategoryDashboard(categoryRegex: RegExp): Promise<CategoryDa
     countAssets({ category_id: id, condition: "good" }),
     countAssets({ category_id: id, condition: "fair" }),
     countAssets({ category_id: id, condition: "poor" }),
-    countAssets({ category_id: id, condition: "damaged" }),
+    countAssets({ category_id: id, condition: "decommissioned" }),
     apiGet<ApiAsset[]>("/api/v1/assets", { category_id: id, limit: 20 }),
   ]);
   return {
     categoryId: id,
     categoryName: cat.name,
     total, active, inRepair, disposed, unverified,
-    byCondition: { new: cNew, good: cGood, fair: cFair, poor: cPoor, damaged: cDamaged },
+    byCondition: { new: cNew, good: cGood, fair: cFair, poor: cPoor, decommissioned: cDecommissioned },
     recent: recentRes.data.map(apiAssetToAsset),
   };
 }

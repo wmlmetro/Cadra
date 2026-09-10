@@ -20,6 +20,7 @@ ratified.
 from odoo import http
 from odoo.http import request
 
+from .query_params import BadFilter, int_filter_terms, parse_bool, parse_enum
 from .utils import (
     ERR_INVALID_REQUEST,
     ERR_NOT_FOUND,
@@ -30,8 +31,25 @@ from .utils import (
     ok,
     paginate,
     parse_limit,
+    selection_values,
 )
 from .v1 import PAGINATION_QUERY_PARAMS, cadra_route
+
+
+# What `generic.location.location_type` actually declares
+# (crnd-19/generic_location/models/generic_location.py, and the identical
+# Odoo 15 copy in dist/). This is the floor under `selection_values()`, not a
+# second source of truth — the model is the source of truth, and this tuple
+# exists so a typo is still refused on a day the registry cannot be read.
+#
+# The `_list_domain` docstring used to describe this field as "NRS
+# Zone/State/City/etc.", which is not a set the model has ever had: there is
+# no `state` and no `city` location_type, and a caller who filtered by either
+# received `200 []` and read it as "this tenant has no state offices".
+_LOCATION_TYPES = ("building", "floor", "wing", "room", "zone")
+
+# The optional sections `GET /api/v1/locations/<id>` knows how to embed.
+_INCLUDE_SECTIONS = ("children", "ancestors")
 
 
 # ─── serializer ──────────────────────────────────────────────────────
@@ -149,13 +167,24 @@ def _list_domain(qs):
 
     Query string params (all optional):
       - q              : substring match on `name` (case-insensitive)
-      - type_id        : exact location-type FK
-      - location_type  : exact Selection match (NRS Zone/State/City/etc.)
+      - type_id        : exact location-type FK (generic.location.type)
+      - location_type  : exact Selection match — one of building, floor,
+                         wing, room, zone. Nothing else; see
+                         `_LOCATION_TYPES` for what this docstring used to
+                         claim and why it was wrong.
       - parent_id      : direct-children filter (use /descendants for deep)
       - country_id     : country (matches stored `_country_id`, not inherited)
       - state_id       : state (matches stored `_state_id`, not inherited)
-      - active         : 'true' | 'false' (default true)
-      - has_coordinates: 'true' to require lat AND lng
+      - active         : `true` | `false`. Absent or empty still means
+                         `true` — the published default is unchanged. A
+                         value that is present and unreadable is now a 400
+                         rather than silently the active list.
+      - has_coordinates: `true` requires lat AND lng; `false` requires at
+                         least one of them missing. Both branches now exist.
+
+    Every value this cannot read is REFUSED — `BadFilter`, turned into a 400
+    by the listing route — never dropped. `query_params.py` carries the
+    reasoning.
 
     Note on address-field filtering: `street`, `city`, `state_id`, `country_id`
     are compute=l_parent_compute (store=False) — they inherit from the parent
@@ -177,31 +206,59 @@ def _list_domain(qs):
             ("_city", "ilike", q),
         ]
         domain += ["|"] * (len(terms) - 1) + terms
-    if qs.get("location_type"):
-        domain.append(("location_type", "=", qs["location_type"]))
-    for fld in ("type_id", "parent_id"):
-        val = qs.get(fld)
-        if val not in (None, "", "null"):
-            try:
-                domain.append((fld, "=", int(val)))
-            except (TypeError, ValueError):
-                pass
-    for client_fld, stored_fld in (("country_id", "_country_id"), ("state_id", "_state_id")):
-        val = qs.get(client_fld)
-        if val not in (None, "", "null"):
-            try:
-                domain.append((stored_fld, "=", int(val)))
-            except (TypeError, ValueError):
-                pass
-    active_filter = qs.get("active")
-    if active_filter in ("false", "False", False):
-        domain.append(("active", "=", False))
-    elif active_filter in ("true", "True", True):
-        domain.append(("active", "=", True))
-    else:
-        domain.append(("active", "=", True))
-    if qs.get("has_coordinates") in ("true", "True", True):
+    # `location_type` is an enum and used to be appended raw, so
+    # `?location_type=Building` — the capitalisation the label uses in every
+    # screen and export — matched no row and answered `200 []`. That reads
+    # as "this tenant has no buildings", which for a facilities register is
+    # the single most misleading empty answer available. The accepted values
+    # come from the model's own Selection so this cannot drift from it.
+    location_type = parse_enum(
+        "location_type", qs.get("location_type"),
+        selection_values("generic.location", "location_type", _LOCATION_TYPES))
+    if location_type is not None:
+        domain.append(("location_type", "=", location_type))
+    # `country_id` and `state_id` are the CLIENT-facing names, and the terms
+    # deliberately go on the stored backing fields `_country_id`/`_state_id`
+    # instead: the public `country_id`/`state_id` are parent-computed
+    # store=False (see the docstring above), Odoo treats an unsearchable
+    # term as always-true, and a term that is always true does not narrow a
+    # list — it silently widens it back to everything.
+    #
+    # All four sat inside `except (TypeError, ValueError): pass`, so
+    # `?parent_id=headquarters` threw the term away and returned every
+    # location in the tenant instead of one branch of the tree.
+    domain += int_filter_terms(qs, (
+        "type_id",
+        "parent_id",
+        ("country_id", "_country_id"),
+        ("state_id", "_state_id"),
+    ))
+    # `active` keeps its published default exactly: absent or empty means the
+    # active locations. Only the third case changes. `?active=1` used to fall
+    # past both branches into an `else` that appended `active = True`, so a
+    # caller asking for decommissioned sites was handed the live ones — not
+    # the unfiltered list, but the wrong filter, and a plausible-looking
+    # answer is the kind nobody goes back to check.
+    active = parse_bool("active", qs.get("active"))
+    domain.append(("active", "=", True if active is None else active))
+    # `has_coordinates` had only a `true` branch. `?has_coordinates=false` —
+    # the question that finds the sites nobody has surveyed yet — appended no
+    # term at all and returned EVERY location, mapped or not, and so did
+    # `?has_coordinates=1`. Report 05's inventory of the silent booleans did
+    # not have this one.
+    #
+    # The false branch is the exact negation of the true branch: De Morgan on
+    # `latitude != 0 AND longitude != 0` gives `latitude = 0 OR longitude =
+    # 0`, and Odoo already folds NULL into the `!=` side, so the two branches
+    # partition the register between them with nothing falling through.
+    # (0/0 is this model's unset marker — `latitude` and `longitude` are
+    # plain Floats defaulting to zero — and the point it names is open water
+    # in the Gulf of Guinea, so no real site can sit on it.)
+    has_coordinates = parse_bool("has_coordinates", qs.get("has_coordinates"))
+    if has_coordinates is True:
         domain += [("latitude", "!=", 0.0), ("longitude", "!=", 0.0)]
+    elif has_coordinates is False:
+        domain += ["|", ("latitude", "=", 0.0), ("longitude", "=", 0.0)]
     return domain
 
 
@@ -246,15 +303,23 @@ class CadraLocationsV1(http.Controller):
                      {"name": "parent_id", "schema": {"type": "integer"}},
                      {"name": "country_id", "schema": {"type": "integer"}},
                      {"name": "state_id", "schema": {"type": "integer"}},
-                     {"name": "location_type", "schema": {"type": "string"}},
-                     {"name": "active", "schema": {"type": "boolean"}},
-                     {"name": "has_coordinates", "schema": {"type": "boolean"}},
+                     {"name": "location_type",
+                      "schema": {"type": "string", "enum": list(_LOCATION_TYPES)},
+                      "description": "Exact location_type match"},
+                     {"name": "active", "schema": {"type": "boolean"},
+                      "description": "Defaults to true when absent"},
+                     {"name": "has_coordinates", "schema": {"type": "boolean"},
+                      "description": ("true: latitude and longitude both set. "
+                                      "false: at least one missing.")},
                      *PAGINATION_QUERY_PARAMS,
                  ])
     def list_locations(self, **kwargs):
         qs = get_params()
         Location = request.env["generic.location"].sudo()
-        domain = _list_domain(qs)
+        try:
+            domain = _list_domain(qs)
+        except BadFilter as e:
+            return err(ERR_INVALID_REQUEST, str(e), details=e.details)
         limit = parse_limit(qs)
         page, next_cursor, total = paginate(
             Location, domain,
@@ -276,13 +341,33 @@ class CadraLocationsV1(http.Controller):
                  scopes=[SCOPE_LOCATIONS_READ],
                  query_params=[
                      {"name": "include", "schema": {"type": "string"},
-                      "description": "Comma-separated optional sections: children, ancestors"},
+                      "description": ("Comma-separated optional sections: "
+                                      "children, ancestors. An unrecognised "
+                                      "section is refused with a 400.")},
                  ])
     def get_location(self, id, **kwargs):
         rec, error = _browse_or_404(id)
         if error:
             return error
-        include = [s.strip() for s in (kwargs.get("include") or "").split(",") if s.strip()]
+        # An unrecognised section used to be dropped in silence, so
+        # `?include=childs` returned a 200 with no `children` key on it —
+        # indistinguishable, to the caller, from a location that has no
+        # children. Same family as the filters above and the same rule: a
+        # request we cannot carry out is refused, not half-answered.
+        #
+        # Through the door rather than a hand-written comparison, and the
+        # difference is not style: `tests/test_query_param_guard.py` reads
+        # the `parse_enum` call to know this parameter is validated at all.
+        # A local `if x not in ALLOWED` is invisible to it, which is how a
+        # deleted check goes unnoticed.
+        try:
+            include = [
+                parse_enum("include", token, _INCLUDE_SECTIONS)
+                for token in (kwargs.get("include") or "").split(",")
+                if token.strip()
+            ]
+        except BadFilter as e:
+            return err(ERR_INVALID_REQUEST, str(e), details=e.details)
         return serialize_location(rec, include=include, include_counts=True)
 
     # ── Create: POST /api/v1/locations ─────────────────────────────

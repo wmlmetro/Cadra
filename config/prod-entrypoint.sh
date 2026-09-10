@@ -13,7 +13,8 @@
 # runs this file directly, with a table of values and a stubbed `odoo`.
 #
 # Three jobs, in order:
-#   1. Refuse a credential that still holds a value this repository ships.
+#   1. Refuse a credential that still holds a value this repository ships,
+#      or that carries a line break.
 #   2. Build a writable config: the mounted template plus the three settings
 #      that must come from the environment rather than from a committed file.
 #   3. exec odoo.
@@ -71,6 +72,59 @@ cadra_check ODOO_MASTER_PASSWORD "${ODOO_MASTER_PASSWORD:-}"
 # it per database in ir.config_parameter, which is the documented flow. What
 # it may not be is one of the placeholders above.
 cadra_check CADRA_JWT_SECRET "${CADRA_JWT_SECRET:-}"
+
+# ── 1b. Refuse a credential carrying a LINE BREAK ───────────────────────
+#
+# Section 2 below appends three of these values to an INI file with
+# `printf '%s\n'`. An INI file is line-oriented, so a value containing a
+# newline does not stay a value: everything after the break is read by Odoo
+# as its own directive. `ODOO_MASTER_PASSWORD=$'x\nworkers = 0'` writes a
+# real `workers = 0` line into the running config, and nothing anywhere
+# would say so.
+#
+# The value is operator-supplied, so this is self-inflicted rather than an
+# attack surface — but it is self-inflicted in a way that produces a server
+# quietly running a configuration nobody chose, which is the worst available
+# outcome. A stray `\r` from a `.env` edited on Windows lands in the same
+# place with no intent at all.
+#
+# **Refusing the input, not hardening the printf.** There is no legitimate
+# credential with a line break in it, so the narrow rule is the whole fix and
+# it runs BEFORE anything is written.
+#
+# `$'\n'` / `$'\r'` in variables rather than inside the `case` pattern:
+# tests/test_deployment_profile.py reads the FIRST `a|b)` alternation in this
+# file as the list of refused default values, so these arms are written as
+# separate patterns with no `|` in them.
+CADRA_NL=$'\n'
+CADRA_CR=$'\r'
+
+cadra_check_no_newline() {
+    case "${2:-}" in
+        *"$CADRA_NL"*) cadra_refuse_newline "$1" ;;
+        *"$CADRA_CR"*) cadra_refuse_newline "$1" ;;
+    esac
+}
+
+cadra_refuse_newline() {
+    # The VALUE is never printed. It is a credential, and one that has just
+    # been shown to contain something the operator did not intend — echoing
+    # it into a container log is how it ends up somewhere it should not be.
+    echo "FATAL: $1 contains a line break." >&2
+    echo "       It would be appended to Odoo's config file, where every" >&2
+    echo "       line after the break becomes a configuration directive." >&2
+    echo "       Check for a stray newline in .env (a wrapped paste, or a" >&2
+    echo "       file saved with Windows line endings)." >&2
+    echo "       Refusing to start. See docs/DEPLOYMENT.md." >&2
+    CADRA_REFUSE=1
+}
+
+cadra_check_no_newline POSTGRES_PASSWORD "${PASSWORD:-}"
+cadra_check_no_newline ODOO_MASTER_PASSWORD "${ODOO_MASTER_PASSWORD:-}"
+cadra_check_no_newline CADRA_JWT_SECRET "${CADRA_JWT_SECRET:-}"
+# POSTGRES_USER is not a credential but it is appended to the same file on
+# the same line-oriented terms, so it is refused on the same rule.
+cadra_check_no_newline POSTGRES_USER "${USER:-odoo}"
 
 [ "$CADRA_REFUSE" = "0" ] || exit 1
 

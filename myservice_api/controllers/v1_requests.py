@@ -21,6 +21,13 @@ Deferred from PRD §9.10 endpoints (not in this MVP):
 from odoo import http
 from odoo.http import request
 
+from .query_params import (
+    BadFilter,
+    int_filter_terms,
+    parse_bool,
+    parse_enum,
+    parse_int,
+)
 from .utils import (
     ERR_INVALID_REQUEST,
     ERR_NOT_FOUND,
@@ -31,8 +38,54 @@ from .utils import (
     ok,
     paginate,
     parse_limit,
+    selection_values,
 )
 from .v1 import PAGINATION_QUERY_PARAMS, cadra_route
+
+
+# ─── published enums ─────────────────────────────────────────────────
+
+# The floor under the `priority` filter, not its definition: the accepted
+# values are read off `request.request.priority` at request time so a value
+# the model gains is accepted by the filter that publishes it on the same
+# day, and this tuple is only what the check falls back to if the model
+# cannot be read.
+#
+# It has FIVE values, and the route used to publish four. The model declares
+# `('0','Low'),('1','Normal'),('2','High'),('3','Critical'),('4','Very
+# Urgent')`; the OpenAPI annotation said `["0","1","2","3"]` and described 3
+# as "urgent". Per CLAUDE.md architecture rule 4 the model is the published
+# surface and the document was wrong on both counts — `4` was always
+# accepted by the ORM, and `3` never meant "urgent". Correcting the
+# annotation is additive; validating against four values would have been the
+# breaking change, because it would start refusing a `priority=4` the
+# register already stores.
+_PRIORITY_VALUES = ("0", "1", "2", "3", "4")
+
+# Same floor for `kanban_state`, whose three values the PATCH schema already
+# published and the list route did not publish at all.
+_KANBAN_STATES = ("normal", "done", "blocked")
+
+# The sections `?include=` may name. An unknown one used to be dropped in
+# silence — `?include=route`, singular, returned a 200 whose body simply had
+# no `available_routes` key — and a client that asks for optional sections
+# cannot tell that from a request that has no outbound routes. A dropped
+# field is a defect even when it returns 200 (CLAUDE.md architecture rule 3).
+_INCLUDE_SECTIONS = ("routes", "events", "messages")
+
+
+def _parse_include(raw):
+    """The requested `include` sections, or a `BadFilter` naming the set.
+
+    Validated per comma-separated token so the error names the one section
+    the caller got wrong rather than the whole string.
+    """
+    sections = []
+    for token in (raw or "").split(","):
+        token = token.strip()
+        if token:
+            sections.append(parse_enum("include", token, _INCLUDE_SECTIONS))
+    return sections
 
 
 # ─── small helpers ───────────────────────────────────────────────────
@@ -160,40 +213,73 @@ def _list_domain(qs):
             ("partner_id.name", "ilike", q),
         ]
         domain += ["|"] * (len(terms) - 1) + terms
-    for fld in ("type_id", "category_id", "stage_id", "user_id",
-                "author_id", "partner_id", "service_id", "parent_id"):
-        val = qs.get(fld)
-        if val not in (None, "", "null"):
-            try:
-                domain.append((fld, "=", int(val)))
-            except (TypeError, ValueError):
-                pass
+    # The foreign keys. Every one of these used to sit inside
+    # `except (TypeError, ValueError): pass`, so `?stage_id=resolved` dropped
+    # the term and handed back EVERY request in the register — every stage,
+    # open and closed — to a caller who had asked for one stage. Nothing in
+    # the envelope distinguishes that from an answer.
+    domain += int_filter_terms(qs, ("type_id", "category_id", "stage_id",
+                                    "user_id", "author_id", "partner_id",
+                                    "service_id", "parent_id"))
     Req = request.env["request.request"]
+    # These two are registry guards, NOT filter decisions, and they stay
+    # exactly as they were. `location_id` and `nrs_asset_id` arrive with
+    # myservice_request_fields; on a tenant that has not installed it there
+    # is no column to filter on, so the parameter is ignored rather than
+    # refused. Ignoring a filter the model cannot answer is a different thing
+    # from ignoring a value we could not read, and only the second is what
+    # this pass is closing.
     if "location_id" in Req._fields:
-        val = qs.get("location_id")
-        if val not in (None, "", "null"):
-            try:
-                domain.append(("location_id", "=", int(val)))
-            except (TypeError, ValueError):
-                pass
+        domain += int_filter_terms(qs, ("location_id",))
     if "nrs_asset_id" in Req._fields:
-        val = qs.get("asset_id") or qs.get("nrs_asset_id")
-        if val not in (None, "", "null"):
-            try:
-                domain.append(("nrs_asset_id", "=", int(val)))
-            except (TypeError, ValueError):
-                pass
-    for fld in ("priority", "kanban_state"):
-        val = qs.get(fld)
-        if val:
-            domain.append((fld, "=", val))
-    closed = qs.get("closed")
-    if closed in ("true", "True", True):
-        domain.append(("closed", "=", True))
-    elif closed in ("false", "False", False):
-        domain.append(("closed", "=", False))
-    if qs.get("has_deadline") in ("true", "True", True):
+        # `asset_id` is the published name and `nrs_asset_id` the model
+        # field; both are accepted as input and both stay accepted. The
+        # error names whichever one the caller actually sent, so a client
+        # reading `details` sees the parameter it typed rather than our
+        # column name.
+        param = "asset_id" if qs.get("asset_id") not in (None, "") else "nrs_asset_id"
+        asset_id = parse_int(param, qs.get(param))
+        if asset_id is not None:
+            domain.append(("nrs_asset_id", "=", asset_id))
+    # `priority` and `kanban_state` were appended raw, so a typo answered
+    # `200 []` — which reads as "there are no critical requests" rather than
+    # as "you asked a question I could not parse", and the reassuring reading
+    # is the wrong one. The accepted values come from the model's own
+    # Selection (see `_PRIORITY_VALUES` for what that corrected in the
+    # published annotation); the tuples are only the floor under it.
+    priority = parse_enum(
+        "priority", qs.get("priority"),
+        selection_values("request.request", "priority", _PRIORITY_VALUES))
+    if priority is not None:
+        domain.append(("priority", "=", priority))
+    kanban_state = parse_enum(
+        "kanban_state", qs.get("kanban_state"),
+        selection_values("request.request", "kanban_state", _KANBAN_STATES))
+    if kanban_state is not None:
+        domain.append(("kanban_state", "=", kanban_state))
+    # `?closed=1` used to fall through both branches, append nothing, and
+    # return every request there is — open and closed together — to a caller
+    # asking for exactly one of the two. This is the filter an auditor
+    # reaches for to ask what is still outstanding, and answering it with the
+    # whole register is a false statement rather than an empty one.
+    #
+    # The literal `"null"` is refused here rather than read as "no filter".
+    # That leniency exists on `is_tagged` because `is_tagged` published it
+    # before this rule existed; `closed` never published it — `?closed=null`
+    # simply fell into the same hole as `?closed=1` and returned everything.
+    closed = parse_bool("closed", qs.get("closed"))
+    if closed is not None:
+        domain.append(("closed", "=", closed))
+    # `has_deadline` was worse, because only half of it existed. There was no
+    # `false` branch at all, so `?has_deadline=false` — "which requests has
+    # nobody put a date on" — returned the entire list, and every request in
+    # it appeared to have no deadline. Both answers now filter, and a value
+    # that is neither is refused.
+    has_deadline = parse_bool("has_deadline", qs.get("has_deadline"))
+    if has_deadline is True:
         domain.append(("deadline_date", "!=", False))
+    elif has_deadline is False:
+        domain.append(("deadline_date", "=", False))
     return domain
 
 
@@ -250,18 +336,49 @@ class CadraRequestsV1(http.Controller):
                       "description": "request.stage id"},
                      {"name": "user_id", "schema": {"type": "integer"},
                       "description": "Assignee res.users id"},
+                     {"name": "author_id", "schema": {"type": "integer"},
+                      "description": "Author res.partner id"},
+                     {"name": "partner_id", "schema": {"type": "integer"},
+                      "description": "Contact res.partner id"},
+                     {"name": "service_id", "schema": {"type": "integer"},
+                      "description": "generic.service id"},
+                     {"name": "parent_id", "schema": {"type": "integer"},
+                      "description": "Parent request.request id"},
+                     # Corrected, not extended: the model has declared five
+                     # priorities all along and this said four, with `3`
+                     # labelled "urgent" where the model calls it Critical.
+                     # See `_PRIORITY_VALUES`.
                      {"name": "priority", "schema": {"type": "string",
-                      "enum": ["0", "1", "2", "3"]},
-                      "description": "0=low, 1=normal, 2=high, 3=urgent"},
-                     {"name": "closed", "schema": {"type": "boolean"}},
-                     {"name": "location_id", "schema": {"type": "integer"}},
-                     {"name": "asset_id", "schema": {"type": "integer"}},
+                      "enum": ["0", "1", "2", "3", "4"]},
+                      "description": "0=Low, 1=Normal, 2=High, 3=Critical, "
+                                     "4=Very Urgent"},
+                     {"name": "kanban_state", "schema": {"type": "string",
+                      "enum": ["normal", "done", "blocked"]},
+                      "description": "normal=In Progress, done=Ready, "
+                                     "blocked=Blocked"},
+                     {"name": "closed", "schema": {"type": "boolean"},
+                      "description": "true = only closed requests, "
+                                     "false = only open ones"},
+                     {"name": "has_deadline", "schema": {"type": "boolean"},
+                      "description": "true = only requests with a deadline "
+                                     "set, false = only those without one"},
+                     {"name": "location_id", "schema": {"type": "integer"},
+                      "description": "Ignored on a tenant without "
+                                     "myservice_request_fields installed"},
+                     {"name": "asset_id", "schema": {"type": "integer"},
+                      "description": "Related nrs.asset id; `nrs_asset_id` "
+                                     "is accepted as an alias"},
+                     {"name": "nrs_asset_id", "schema": {"type": "integer"},
+                      "description": "Alias of `asset_id`"},
                      *PAGINATION_QUERY_PARAMS,
                  ])
     def list_requests(self, **kwargs):
         qs = get_params()
         Req = request.env["request.request"].sudo()
-        domain = _list_domain(qs)
+        try:
+            domain = _list_domain(qs)
+        except BadFilter as e:
+            return err(ERR_INVALID_REQUEST, str(e), details=e.details)
         limit = parse_limit(qs)
         page, next_cursor, total = paginate(
             Req, domain,
@@ -283,13 +400,19 @@ class CadraRequestsV1(http.Controller):
                  scopes=[SCOPE_REQUESTS_READ],
                  query_params=[
                      {"name": "include", "schema": {"type": "string"},
-                      "description": "Comma-separated optional sections: routes, events, messages"},
+                      "description": "Comma-separated optional sections: "
+                                     "routes, events, messages. An "
+                                     "unrecognised section is refused with a "
+                                     "400 rather than dropped."},
                  ])
     def get_request(self, id, **kwargs):
         rec, error = _browse_or_404(id)
         if error:
             return error
-        include = [s.strip() for s in (kwargs.get("include") or "").split(",") if s.strip()]
+        try:
+            include = _parse_include(kwargs.get("include"))
+        except BadFilter as e:
+            return err(ERR_INVALID_REQUEST, str(e), details=e.details)
         return serialize_request(rec, include=include)
 
     # ── Get by reference: GET /api/v1/requests/by-reference/<ref> ──
@@ -299,14 +422,20 @@ class CadraRequestsV1(http.Controller):
                  scopes=[SCOPE_REQUESTS_READ],
                  query_params=[
                      {"name": "include", "schema": {"type": "string"},
-                      "description": "Comma-separated optional sections: routes, events, messages"},
+                      "description": "Comma-separated optional sections: "
+                                     "routes, events, messages. An "
+                                     "unrecognised section is refused with a "
+                                     "400 rather than dropped."},
                  ])
     def get_request_by_reference(self, reference, **kwargs):
         rec = request.env["request.request"].sudo().search(
             [("name", "=", reference)], limit=1)
         if not rec:
             return err(ERR_NOT_FOUND, f"No request with reference '{reference}'", status=404)
-        include = [s.strip() for s in (kwargs.get("include") or "").split(",") if s.strip()]
+        try:
+            include = _parse_include(kwargs.get("include"))
+        except BadFilter as e:
+            return err(ERR_INVALID_REQUEST, str(e), details=e.details)
         return serialize_request(rec, include=include)
 
     # ── Create: POST /api/v1/requests ──────────────────────────────
@@ -323,9 +452,13 @@ class CadraRequestsV1(http.Controller):
                          "category_id": {"type": "integer", "nullable": True},
                          "request_text": {"type": "string",
                                           "description": "Issue description (HTML allowed)"},
+                         # Five values, from the model. See `_PRIORITY_VALUES`
+                         # — the four published here were never what the ORM
+                         # accepted, and `3` is Critical, not "urgent".
                          "priority": {"type": "string",
-                                      "enum": ["0", "1", "2", "3"],
-                                      "description": "0=low, 1=normal, 2=high, 3=urgent"},
+                                      "enum": ["0", "1", "2", "3", "4"],
+                                      "description": "0=Low, 1=Normal, 2=High, "
+                                                     "3=Critical, 4=Very Urgent"},
                          "impact": {"type": "string", "nullable": True},
                          "urgency": {"type": "string", "nullable": True},
                          "author_id": {"type": "integer", "nullable": True,
@@ -381,7 +514,8 @@ class CadraRequestsV1(http.Controller):
                                      "excluded — use POST .../transition. Unknown "
                                      "fields are reported under `_warnings`."),
                      "properties": {
-                         "priority": {"type": "string", "enum": ["0", "1", "2", "3"]},
+                         "priority": {"type": "string",
+                                      "enum": ["0", "1", "2", "3", "4"]},
                          "impact": {"type": "string"},
                          "urgency": {"type": "string"},
                          "kanban_state": {"type": "string",

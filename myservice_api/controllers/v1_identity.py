@@ -16,7 +16,9 @@ identification_id, passport_id, marital, birthday) are never exposed.
 from odoo import http
 from odoo.http import request
 
+from .query_params import BadFilter, int_filter_terms, parse_bool, parse_enum
 from .utils import (
+    ERR_INVALID_REQUEST,
     ERR_NOT_FOUND,
     SCOPE_ASSETS_READ,
     SCOPE_IDENTITY_READ,
@@ -25,9 +27,20 @@ from .utils import (
     ok,
     paginate,
     parse_limit,
+    selection_values,
 )
 from .v1 import PAGINATION_QUERY_PARAMS, cadra_route
 from .v1_assets import serialize_asset
+
+
+# The `sap_status` and `sap_sync_status` values this endpoint publishes, and
+# the floor under `selection_values()` when the registry cannot be read. The
+# MODEL is the source of truth — `myservice_identity/models/hr_employee.py`
+# — and both tuples were checked against it as part of this change and match
+# it exactly. They exist so a typo is still refused on a day the read fails,
+# never so the filter can quietly accept a value the model does not have.
+_SAP_STATUSES = ("active", "suspended", "on_leave", "transferred", "exited")
+_SAP_SYNC_STATUSES = ("synced", "pending", "error", "never")
 
 
 # ─── helpers ─────────────────────────────────────────────────────────
@@ -115,7 +128,16 @@ def _list_domain(qs):
       - location_id    : exact sap_location_id FK
       - department_id  : exact department_id FK
       - grade_level    : exact match
-      - active         : 'true' | 'false' (default true)
+      - active         : `true` | `false`. Absent or empty still means
+                         `true` — the published default is unchanged. What
+                         changed is the third case: a value that is present
+                         and unreadable is now a 400 instead of being
+                         silently answered with the active roster.
+
+    Every value this cannot read is REFUSED — `BadFilter`, turned into a 400
+    by the listing route — never dropped. `query_params.py` carries the
+    reasoning; the short version is that a filter which fails open answers a
+    question the caller did not ask and says nothing about having done so.
     """
     domain = []
     q = (qs.get("q") or "").strip()
@@ -123,29 +145,46 @@ def _list_domain(qs):
         domain += ["|", ("name", "ilike", q), ("ir_number", "ilike", q)]
     if qs.get("ir_number"):
         domain.append(("ir_number", "=", qs["ir_number"].strip()))
-    if qs.get("sap_status"):
-        domain.append(("sap_status", "=", qs["sap_status"]))
-    if qs.get("sap_sync_status"):
-        domain.append(("sap_sync_status", "=", qs["sap_sync_status"]))
+    # `sap_status` and `sap_sync_status` are enums that used to be appended
+    # raw, so `?sap_status=exitted` matched no row and answered `200 []`.
+    # An empty list for a value the caller mistyped is indistinguishable
+    # from an empty list for a value that genuinely matched nothing, and on
+    # this filter the reassuring reading — "nobody has left" — is the wrong
+    # one. The accepted values come from the model's own Selection, so a
+    # value the model gains is accepted by the filter the same day.
+    sap_status = parse_enum(
+        "sap_status", qs.get("sap_status"),
+        selection_values("hr.employee", "sap_status", _SAP_STATUSES))
+    if sap_status is not None:
+        domain.append(("sap_status", "=", sap_status))
+    sap_sync_status = parse_enum(
+        "sap_sync_status", qs.get("sap_sync_status"),
+        selection_values("hr.employee", "sap_sync_status", _SAP_SYNC_STATUSES))
+    if sap_sync_status is not None:
+        domain.append(("sap_sync_status", "=", sap_sync_status))
     if qs.get("grade_level"):
         domain.append(("grade_level", "=", qs["grade_level"]))
-    for client_fld, model_fld in (
+    # `location_id` names the employee's office and is STORED as
+    # `sap_location_id`; the client-facing name and the model field differ,
+    # and that translation is the only reason this was ever a hand-written
+    # loop rather than a list of names. Both filters sat inside
+    # `except (TypeError, ValueError): pass`, so `?location_id=abuja` threw
+    # the term away and returned every employee on the register — the whole
+    # roster presented as the staff of one office.
+    domain += int_filter_terms(qs, (
         ("location_id", "sap_location_id"),
-        ("department_id", "department_id"),
-    ):
-        val = qs.get(client_fld)
-        if val not in (None, "", "null"):
-            try:
-                domain.append((model_fld, "=", int(val)))
-            except (TypeError, ValueError):
-                pass
-    active_filter = qs.get("active")
-    if active_filter in ("false", "False", False):
-        domain.append(("active", "=", False))
-    elif active_filter in ("true", "True", True):
-        domain.append(("active", "=", True))
-    else:
-        domain.append(("active", "=", True))
+        "department_id",
+    ))
+    # `active` keeps its published default exactly: absent or empty means the
+    # ACTIVE roster, which is what every caller of this endpoint has been
+    # relying on since it shipped. Only the third case changes. `?active=1`
+    # used to fall past both branches into an `else` that appended
+    # `active = True`, so a caller asking for departed staff was handed the
+    # currently-employed ones. Not the unfiltered list — the wrong filter,
+    # which is worse in one specific way: the result is plausible, so nothing
+    # about it invites a second look.
+    active = parse_bool("active", qs.get("active"))
+    domain.append(("active", "=", True if active is None else active))
     return domain
 
 
@@ -185,7 +224,10 @@ class CadraIdentityV1(http.Controller):
     def list_employees(self, **kwargs):
         qs = get_params()
         Employee = request.env["hr.employee"].sudo()
-        domain = _list_domain(qs)
+        try:
+            domain = _list_domain(qs)
+        except BadFilter as e:
+            return err(ERR_INVALID_REQUEST, str(e), details=e.details)
         limit = parse_limit(qs)
         page, next_cursor, total = paginate(
             Employee, domain,

@@ -27,7 +27,7 @@ const STATUSES = [
   "Review — VIN not verifiable",
   "Review — possible duplicate",
 ] as const;
-const CONDITIONS = ["Good", "Fair", "Poor", "Faulty"] as const;
+const CONDITIONS = ["Good", "Fair", "Poor", "Decommissioned"] as const;
 const GROUP_BY_OPTIONS = ["None", "By Category", "By Zone", "By Status"] as const;
 
 const CATEGORY_CONFIG = {
@@ -301,7 +301,9 @@ export default function AssetRegister() {
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
-  const [filterCondition, setFilterCondition] = useState("");
+  // Narrowed so the display->API condition map stays compile-checked; the
+  // dropdown is shared with the other filters and still hands back a string.
+  const [filterCondition, setFilterCondition] = useState<Asset["condition"] | "">("");
   const [groupBy, setGroupBy] = useState("None");
 
   useEffect(() => {
@@ -440,7 +442,8 @@ export default function AssetRegister() {
         {/* Filters */}
         <FilterDropdown label="Category" value={filterCategory} options={CATEGORIES} onChange={setFilterCategory} />
         <FilterDropdown label="Status" value={filterStatus} options={STATUSES} onChange={setFilterStatus} />
-        <FilterDropdown label="Condition" value={filterCondition} options={CONDITIONS} onChange={setFilterCondition} />
+        <FilterDropdown label="Condition" value={filterCondition} options={CONDITIONS}
+                        onChange={(v) => setFilterCondition(v as Asset["condition"] | "")} />
 
         {hasFilters && (
           <button
