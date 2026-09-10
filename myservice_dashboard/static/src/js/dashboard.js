@@ -290,6 +290,15 @@ odoo.define('myservice_dashboard.Dashboard', ['web.AbstractAction', 'web.core', 
             rpc.query({ route: '/myservice/dashboard/fleet_command', params: {} })
             .then(function(d) {
                 self._fleetLoaded = true;
+                // Handoff 16 §A. `get_fleet_command` announces a panel it
+                // could not build in `_warnings.unavailable`, and nothing
+                // here read it — so a dropped panel rendered as "No approved
+                // vendors yet", which is the exact lie the warning exists to
+                // replace. The tab DOES reach a user (proved in a browser on
+                // jaizbankplc, 20,143 bytes through the legacy shim), so the
+                // warning had a screen to appear on and no code to put it
+                // there.
+                self._renderFleetWarnings(d._warnings);
                 self._renderFleetKpis(d.kpis);
                 self._renderFleetLocBars(d.by_location);
                 self._renderFleetStatusList(d.by_status);
@@ -300,6 +309,30 @@ odoo.define('myservice_dashboard.Dashboard', ['web.AbstractAction', 'web.core', 
             }).catch(function(e) {
                 console.warn('Fleet command load error:', e);
             });
+        },
+
+        // Panels the server could not build, named where the empty panel is.
+        _renderFleetWarnings: function(w) {
+            var $panel = this.$('[data-panel="fleet"]');
+            $panel.find('.ms-fleet-warning').remove();
+            var missing = (w && w.unavailable) || [];
+            if (!missing.length) { return; }
+            var labels = {
+                vendors: 'Approved vendors',
+                compliance: 'Compliance alerts',
+                recent_maint: 'Recent maintenance logs',
+                by_location: 'Vehicles by location',
+                by_make: 'Fleet by make',
+            };
+            var named = missing.map(function (k) { return labels[k] || k; });
+            $panel.prepend(
+                '<div class="ms-fleet-warning" style="margin:0 0 14px;padding:10px 14px;' +
+                'border-left:4px solid #BA7517;background:#FFF8E6;color:#5C4813;' +
+                'border-radius:4px;font-size:13px">' +
+                '<strong>Some panels could not be loaded:</strong> ' +
+                _.escape(named.join(', ')) +
+                '. These are showing as empty, not as zero \u2014 the server ' +
+                'logged the reason.</div>');
         },
 
         _renderFleetKpis: function(k) {

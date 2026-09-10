@@ -155,7 +155,18 @@ class NRSAssetPM(models.Model):
             # Check if a request was already created for this cycle
             if sched.last_request_id:
                 req = sched.last_request_id
-                if req.stage_id.name not in ['Resolved', 'Closed']:
+                # `closed` is the boolean that MEANS "this stage ends the
+                # request". This used to match on `stage_id.name` against
+                # ['Resolved', 'Closed'] — the same shape as the FM
+                # `stage_id.code == 'progress'` KPI that was structurally
+                # zero on every tenant, and working here only because the
+                # stock stage data happens to agree. `name` is a translated
+                # jsonb column: rename a stage, add a language, or ship a
+                # tenant whose closing stage is called anything else, and
+                # this check silently inverts — either skipping forever so
+                # the asset is never serviced again, or raising a duplicate
+                # PM request every single day.
+                if not req.stage_id.closed:
                     continue  # existing open request — skip
             if not sched.request_type_id:
                 continue
@@ -171,10 +182,18 @@ class NRSAssetPM(models.Model):
                 # existed. The failed schedule now undoes itself and the ones
                 # before it stand, which is what the count has always claimed.
                 with self.env.cr.savepoint():
+                    # `name` is NOT passed. On `request.request` it is the
+                    # Reference field (`required`, `readonly`, filled from the
+                    # `request.request` sequence in `create` — but only when
+                    # the caller leaves it empty or 'New'). Passing the
+                    # description here overrode the sequence, so every PM
+                    # request carried its own description where its REQ-000123
+                    # reference belongs and had no reference at all. The
+                    # description reaches the user through `request_text`,
+                    # which is what the Subject column is computed from.
                     req = self.env['request.request'].create({
                         'type_id':             sched.request_type_id.id,
                         'stage_id':            sched.request_type_id.start_stage_id.id,
-                        'name':                name,
                         'request_text':        name,
                         'team_id':             sched.team_id.id if sched.team_id else False,
                         'service_id':          sched.service_id.id if sched.service_id else False,

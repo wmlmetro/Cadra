@@ -322,9 +322,24 @@ Stage 6 of the September flow defines two exchanges — 6.2 *"location/custodian
 |---|---|---|
 | `asset.transferred` | An approved transfer is **completed** — the asset has physically moved | `from` / `to` objects with `location` (building, floor, room, `cadra_location_id`, `sap_cost_center`) and `custodian` (name, IR number, department); `transfer_reference`, `transfer_date`, `reason`, `approved_by`, `approved_at` |
 | `asset.custodian_changed` | Custody reassigned without a location move | `from.custodian` / `to.custodian`, `changed_at`, `changed_by`, `reason` |
-| `asset.disposed` | Asset moves to `disposed` | `disposal_date`, `disposal_reason`, `condition_at_disposal`, `approved_by`, `approved_at`, `disposal_type` (`disposal` or `retirement`) |
+| `asset.disposed` | Asset moves to `disposed` | `disposal_date`, `disposal_reason`, `condition_at_disposal`, `approved_by`, `approved_at`, `disposal_type` (`disposal` or `retirement`), plus `disposal_method`, `reference`, `proceeds`, `proceeds_currency` — **see the note below** |
 
 **Why `asset.transferred` fires on completion, not approval.** The September register says the trigger is *"transfer approved"*. Taken literally that is wrong, and we are saying so rather than implementing it: in Cadra, approval authorises the move and completion records that it happened — the asset's location and custodian fields change on completion. Firing on approval would tell SAP an asset had moved to a new cost centre while it was still in the old building, and an approved-then-abandoned transfer would leave your asset master permanently wrong with nothing in Cadra to reconcile against. **Cadra will fire on completion.** If SAP needs the commitment at approval time as well, tell us and we will add a distinct `asset.transfer_approved` event rather than overloading this one.
+
+
+**The disposal event was under-built until handoff 16, and this row was aspirational.** `disposal_type` was a hardcoded literal `'disposal'` on every event ever sent, and `approved_by`/`approved_at` were absent entirely — while `asset.transferred` above has carried both since the day it was written. There were no fields on the register to answer with: `disposal_method`, `disposal_reference`, `disposal_approved_by`, `disposal_approved_date` and `disposal_proceeds` did not exist. They do now, and the event sends them.
+
+`disposal_type` is derived from Cadra's own `disposal_method` by `SAP_DISPOSAL_TYPE` in `myservice_asset_register/models/asset_disposal.py`, which the workflow module imports so the two cannot drift. The accounting line is that an asset leaving through a transaction with somebody is a **disposal**, and one that ceases to exist in place is a **retirement**:
+
+| Cadra `disposal_method` | SAP `disposal_type` |
+|---|---|
+| `sale`, `auction`, `transfer`, `donation`, `trade_in`, `other` | `disposal` |
+| `scrapped`, `write_off` | `retirement` |
+| unset | `disposal` |
+
+**Additive and deliberately non-breaking.** An asset with no recorded method — which is every asset on every tenant today — still sends `disposal`, the exact value SAP has been receiving, so nothing SAP already keys on changes. The new keys are **present and null** where Cadra does not know, rather than omitted: a receiver seeing a null knows Cadra does not know, where one seeing no key cannot tell that from a Cadra too old to send it. `proceeds` always travels with `proceeds_currency`, because a money figure with no currency beside it is how two systems agree on a number and disagree on what it is worth.
+
+`myservice_workflow/tests/test_sap_events.py` asserts each of these from the payload builder itself rather than from the mapping table — a table proven correct in isolation says nothing about whether the builder reads it.
 
 ### 4.3 What we are **not** sending, and why
 

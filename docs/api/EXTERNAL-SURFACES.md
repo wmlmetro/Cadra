@@ -1,0 +1,223 @@
+# HTTP surfaces outside `/api/v1`
+
+**What this is:** an inventory of every first-party HTTP route in this repo
+that is **not** under `/api/v1/*`, with who calls it, whether its shape is
+published anywhere, and whether changing it breaks something.
+
+**Why it exists.** Handoff 15 changed three status codes on
+`/myservice/workflow/callback` — correctly, and the change was right — and
+then found that `docs/api/CHANGELOG.md`'s own rule does not reach it, because
+the rule is scoped to `/api/v1/*`. That route is POSTed to by the NRS
+WorkSpace, and Cadra publishes its URL to that system from
+`workflow_config.py`. So there was a surface an external organisation calls,
+whose behaviour we changed, with no document anywhere that owed anyone a
+word about it. Nobody knew how many more of those there were.
+
+**This is an inventory, not a contract.** Nothing here is promised to
+anybody. It says what exists, who is on the other end of it, and what would
+break — so that the next person changing one of these knows, in one place,
+whether they are touching a private detail or somebody else's integration.
+See [What would make one of these a contract](#what-would-make-one-of-these-a-contract).
+
+---
+
+## The counts
+
+**27 routes**, across **9 controller files** in **7 modules**.
+
+| | routes |
+|---|---|
+| Called by an **external organisation** | **4** |
+| Called by an **anonymous browser** (public portal / homepage) | **5** |
+| Called by **our own Odoo web client**, and nothing else | **8** |
+| **No caller at all** | **10** |
+| **Total** | **27** |
+
+**Published shape: 0 of 27.** Not one of these paths appears in
+`docs/api/cadra_api_endpoint_reference.md`, the OpenAPI spec, the demo guide,
+`README.md`'s endpoint table or `docs/api/CHANGELOG.md`. Every `docs/` hit for
+one of these paths turns out to be its `/api/v1` mirror — the reference
+documents `POST /api/v1/integrations/workflow/callback`, which is a
+**separate handler** from the legacy callback, and `GET /api/v1/tags/lookup`,
+which is a separate handler from `/tags/lookup`. Five of the 27 are described
+in `docs/retired-screens.md`, but that document records that they are dead,
+not what they answer.
+
+**How the number was arrived at.** 36 `@http.route` decorators exist in
+first-party Python (a 37th `@http.route(` match is Odoo's own report route
+quoted inside a docstring in `myservice_asset_register/models/asset_tag.py`).
+Nine of the 36 are the raw pre-envelope `/api/v1` routes in
+`myservice_api/controllers/` — the ones `CLAUDE.md`'s backlog wants moved onto
+`@cadra_route`. All 65 `@cadra_route` sites are under `/api/v1` without
+exception. 36 − 9 = **27**.
+
+---
+
+## Three things a reader must not have to derive
+
+### `/myservice/workflow/callback` has optional authentication
+
+It is `auth='public'`, `csrf=False`, `methods=['POST']`, it mutates
+`request.request` state, and **its token check is conditional**:
+
+```python
+# myservice_workflow/controllers/callback.py
+if config.callback_token:
+    provided = (request.httprequest.headers.get('X-Callback-Token')
+                or kwargs.get('token', ''))
+    if provided != config.callback_token:
+        ... 401
+```
+
+A tenant whose `workflow.config` has no `callback_token` set has **no
+authentication on this route at all** — an anonymous POST can approve or
+reject a request. The token is a field an administrator may or may not have
+filled in; nothing forces it, and nothing warns when it is empty. It also
+accepts the token as a `?token=` query parameter, which puts it in the same
+place as the query-string key below.
+
+### `/api/myservice/assets/export/csv` authenticates with a query parameter, and both Redhubs routes fall back to a key literal in source
+
+`export_assets_csv` reads its key from `request.httprequest.args.get('api_key')`
+— a query string, which lands in nginx access logs, any intervening proxy's
+logs, and browser history. Its JSON sibling uses an `X-API-Key` header, which
+is the right shape.
+
+Both resolve the expected value the same way:
+
+```python
+request.env['ir.config_parameter'].sudo().get_param(
+    'myservice_identity.redhubs_api_key', 'NRS_REDHUBS_KEY_2025')
+```
+
+The second argument is the default. On any tenant where that parameter was
+never set, the credential guarding a **full dump of the asset register** is a
+string committed to this repository. `/api/sap/employee-sync` has the same
+pattern with `NRS_SAP_WEBHOOK_SECRET_2025`.
+
+### `/tags/lookup` is unauthenticated where its `/api/v1` twin is scope-gated
+
+`GET /api/v1/tags/lookup` requires a JWT carrying `assets:read`.
+`/tags/lookup` is `auth='public'`, `type='json'`, runs `sudo()`, and has no
+scope check of any kind. Both answer the same question — hand it a tag number
+or asset code and it returns the asset's name, category, location, condition,
+state and last service date. The public one exists for the field-team portal
+scanner at `/tags`, which is deliberately login-free; the point is only that
+the gate on one is not the gate on the other, and a reader who has seen the
+`/api/v1` route will assume it is.
+
+---
+
+## 1 · Called by an external organisation — 4 routes
+
+These are the ones that matter. Something outside this codebase, owned by
+someone else, sends requests here.
+
+| Route | File | Auth | Who calls it | Shape published? | Is a change breaking? |
+|---|---|---|---|---|---|
+| `POST /myservice/workflow/callback` | `myservice_workflow/controllers/callback.py:33` | `public`, `csrf=False`; **optional** shared token | **NRS WorkSpace.** Cadra tells it this URL: `workflow_config.py:243` computes `callback_url_hint` as `<web.base.url>/myservice/workflow/callback` and shows it in Settings | No | **Yes.** This is the only route in the repo whose URL Cadra actively publishes to a third party. Status codes, the accepted payload keys (`reference`, `workspace_ref`, `outcome`, `payment_ref`, `comment`) and the `outcome` enum are all load-bearing for WorkSpace. Handoff 15 changed three status codes here |
+| `POST /api/myservice/assets/export` | `myservice_identity/controllers/redhubs_api.py:19` | `none`, `csrf=False`; `X-API-Key` header | **Redhubs**, an external system | No | **Yes.** It returns the whole asset register with a fixed 13-key row shape. Renaming or dropping a key breaks their parser silently; there is no version marker in the payload to hang a migration on |
+| `GET /api/myservice/assets/export/csv` | `redhubs_api.py:53` | `none`; `?api_key=` **query parameter** | Redhubs, for systems that cannot do JSON | No | **Yes**, and worse than the JSON one: the CSV is positional. Inserting a column in the middle silently shifts every field after it, and a CSV consumer has no way to notice |
+| `POST /api/sap/employee-sync` | `myservice_identity/controllers/sap_webhook.py:10` | `none`, `csrf=False`; `X-SAP-Webhook-Secret` header | **SAP SuccessFactors**, pushing employee change events | No | **Inbound, so mostly not** — SAP sends, we accept, and accepting more is safe. But the **response** shape (`success`, `processed`, `results[]` with `ir_number`/`status`/`employee_id`/`changes`) is read by whatever calls it, and narrowing what the request will accept is breaking |
+
+**A note on the callback's twin.** `POST /api/v1/integrations/workflow/callback`
+exists, is scope-gated on `integrations:write`, returns the PRD §10.7 envelope,
+validates against a JSON schema and is fully documented — and it is a
+**different function** (`v1.py:1820`) from the legacy one. Two callbacks, one
+documented and one in use. That is worth resolving, and resolving it is not
+this document's job.
+
+---
+
+## 2 · Called by an anonymous browser — 5 routes
+
+Public web surfaces. No external organisation integrates against them, but
+they are reachable by anyone who can reach the host, and a change is visible
+to a member of the public.
+
+| Route | File | Auth | Who calls it | Shape published? | Is a change breaking? |
+|---|---|---|---|---|---|
+| `GET/POST /security/incident/report` | `myservice_security/controllers/portal.py:20` | `public`, `website=True`, **CSRF enforced** | A public HTML form rendered by the same route (`views/portal_templates.xml:16`) | No | **No.** Route and form ship together in one module, and the form carries `request.csrf_token()`, so nothing can post to it from off-site anyway. **Note it has no inbound link from anywhere in the repo** — it is reachable only by a typed or shared URL |
+| `GET /tags` | `myservice_barcode_station/controllers/main.py:261` | `public`, `website=True` | A field team, from a printed/shared URL, and from the backend barcode station's own button (`static/src/xml/barcode_station.xml:213`) | No | **No** — it renders a template that ships beside it. The **URL itself** is quoted to users as `myservice.com.ng/tags` in the station UI, so the path is the thing not to rename |
+| `POST /tags/lookup` | `main.py:266` | **`public`, no scope check** | The public portal scanner, `static/src/js/barcode_portal.js:12` | No | **No** for the JS, which ships with it. See the flagged finding above for why it still deserves a look |
+| `POST /api/myservice/form-data` | `myservice_website_theme/controllers/api.py:24` | `public`, `csrf=False` | The **static homepage**, `homepage/index.html:527` — deployed by `install.sh:371` to `/var/www/html/index.html` and served by nginx at `location = /` | Effectively | **Yes in practice.** The caller is a static file copied outside the Odoo tree at install time, so it does **not** move when the module upgrades. A shape change here goes live for Odoo and not for the page calling it |
+| `POST /api/myservice/quick-submit` | `api.py:73` | `public`, `csrf=False` | Same homepage, `index.html:579` | Effectively | Same as above, and this one **creates records** from an unauthenticated form |
+
+---
+
+## 3 · Called by our own Odoo web client, and nothing else — 8 routes
+
+Internal plumbing between a controller and the JavaScript that ships in the
+same module. `auth='user'`, `type='json'`, no external consumer.
+
+| Route | File | Caller | Is a change breaking? |
+|---|---|---|---|
+| `/myservice/dashboard/kpis` | `myservice_dashboard/controllers/main.py:8` | `static/src/js/dashboard.js:114` | **No** — route and caller ship in one module and upgrade together |
+| `/myservice/dashboard/map` | `main.py:13` | `dashboard.js:115` | No |
+| `/myservice/dashboard/fleet_command` | `main.py:18` | `dashboard.js:290` | No |
+| `/myservice/fm_dashboard/data` | `myservice_fm_dashboard/controllers/dashboard.py:33` | `static/src/js/fm_dashboard.js:80`, and `tests/test_honest_counts.py:69` | No |
+| `/barcode/lookup` | `myservice_barcode_station/controllers/main.py:41` | `static/src/js/barcode_station.js:135` | No |
+| `/barcode/kpis` | `main.py:80` | `barcode_station.js:104` | No |
+| `/barcode/recent_tags` | `main.py:97` | `barcode_station.js:116` | No |
+| `/barcode/print_url` | `main.py:199` | `barcode_station.js:178` and `:236`; covered by `myservice_barcode_station/tests/test_print_url_route.py` | No — but it is the **only path in the repo that renders a label PDF end to end** (handoff 10), so "not breaking for an integrator" is not the same as "safe to break" |
+
+All eight are live: `myservice_dashboard`, `myservice_fm_dashboard` and
+`myservice_barcode_station` each ship their JS in a populated
+`web.assets_backend` bundle, and all three client-action tags mount in a
+browser (see `docs/ENVIRONMENT-FACTS.md`, the legacy shim entry).
+
+---
+
+## 4 · No caller at all — 10 routes
+
+Reachable over HTTP; nothing in this repository calls them, and no external
+system is known to.
+
+| Route | File | Auth | Why it has no caller | Is a change breaking? |
+|---|---|---|---|---|
+| `GET /myservice/workflow/callback/test` | `myservice_workflow/controllers/callback.py:213` | `user` | A manual probe. No JS, no test, no doc references it | **No**, but it is a **status check somebody may be running by hand or from monitoring outside this repo**. Handoff 15 changed it from 200 to 503 for an unconfigured tenant — deliberately, because 200 read a never-wired tenant as healthy |
+| `POST /api/sap/employee-sync/test` | `sap_webhook.py:59` | `user` | Same: an authenticated probe for verifying the SAP integration by hand | No |
+| `POST /myservice/fleet_dashboard/data` | `myservice_fleet_maintenance/controllers/fleet_dashboard.py:11` | `user` | Its JS caller exists (`fleet_dashboard.js:68`) but **ships in an empty bundle** — `__manifest__.py:42` sets `'web.assets_backend': []`, with a comment explaining the retirement. The tag `myservice_fleet_dashboard` is not in the browser registry. Still exercised by `tests/test_honest_counts.py:49` | No |
+| `POST /myservice/security/kpis` | `myservice_security/controllers/main.py:8` | `user` | **`myservice_security/__manifest__.py` has no `assets` key at all** — the module ships no JavaScript. `security_tabs.js` and `security_dashboard.js` exist on disk and are in no bundle | No |
+| `POST /myservice/security/map_data` | `main.py:34` | `user` | Same | No |
+| `POST /myservice/security/trend` | `main.py:83` | `user` | Same, and it has **never** had a caller in either direction — no JS file references it even among the unbundled ones | No |
+| `POST /myservice/security/recent` | `main.py:96` | `user` | Same | No |
+| `POST /barcode/untagged` | `myservice_barcode_station/controllers/main.py:120` | `user` | The station's JS does not call it; the SPA uses `GET /api/v1/barcode/untagged` | No |
+| `POST /barcode/generate` | `main.py:152` | `user` | Same — the SPA uses `POST /api/v1/barcode/generate` | No |
+| `GET /a/<string:asset_code>` | `myservice_website_theme/controllers/api.py:19` | `public` | **Dead in both directions.** No QR generator in the repo emits a `/a/…` URL — the label templates encode the bare `asset_tag` string into the QR (`views/asset_tag_report.xml:98,155`) — and the target it 301s to, `/asset-scan`, **is declared by no controller and no `website.page`**. The only `/asset-scan` references anywhere are two navigation links (`homepage/index.html:478`, `views/website_layout.xml:23`), both of which 404 | No. It is a redirect from nothing to nothing |
+
+The four security routes and the fleet one are the five described in
+`docs/retired-screens.md`, which also records two things in that module that
+must **not** be tidied up.
+
+---
+
+## What would make one of these a contract
+
+Nothing here is published, so nothing here is owed. Turning one of these into
+a real contract takes four things, and the first is the one that costs:
+
+1. **A named consumer, written down.** "Redhubs calls it" is a fact about
+   today. A contract names who, at which organisation, so that a change has
+   somebody to tell.
+2. **The shape in `docs/api/cadra_api_endpoint_reference.md`** — request,
+   response, status codes, error bodies — or a dedicated `docs/integrations/`
+   document, the way INT-05 has one.
+3. **A test that fails when the shape moves**, in the same commit. Rule 6 in
+   `CLAUDE.md`. Without it the document drifts and becomes a worse lie than no
+   document.
+4. **The route in `docs/api/CHANGELOG.md`'s scope**, so a change to it has
+   somewhere to be announced. That step is now done for all 27 collectively;
+   the other three are per-route.
+
+The obvious candidate for all four is `/myservice/workflow/callback`, because
+it is the one Cadra publishes to somebody else. The obvious candidate for
+retirement rather than documentation is `/a/<asset_code>`, and the obvious
+candidate for a security decision rather than either is the pair of Redhubs
+export routes.
+
+---
+
+*Verified against the tree at handoff 16. If you add a route outside
+`/api/v1`, add it here — the count at the top is the thing this document is
+for.*

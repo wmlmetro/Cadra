@@ -77,6 +77,10 @@ def _sp_create(env, Model, vals):
     try:
         with env.cr.savepoint():
             return Model.create(vals)
+    # catch-all: reported — the savepoint is the point: one bad row must not
+    # roll back the seed. The skip is logged with the model and the error and
+    # None is returned, and every caller gates its counter on `is not None`, so
+    # a row that did not create is never counted as one that did.
     except Exception as ex:  # noqa: BLE001
         _logger.info("create %s skipped: %s", Model._name, str(ex)[:120])
         return None
@@ -88,6 +92,10 @@ def _sp_write(env, rec, vals):
         with env.cr.savepoint():
             rec.write(vals)
             return True
+    # catch-all: reported — returns False, and the callers that own a counter
+    # gate it on the return value, so the seed's printed totals count writes
+    # that landed. A savepoint keeps the failure from taking the transaction
+    # with it.
     except Exception:  # noqa: BLE001
         return False
 

@@ -506,6 +506,95 @@ class TestSAPAssetEvents(TransactionCase):
         self.assertEqual(change['disposal_date'], '2026-08-31')
         self.assertEqual(change['condition_at_disposal'], 'decommissioned')
 
+    def test_a_scrapping_is_announced_to_sap_as_a_RETIREMENT(self):
+        """The one key on this event whose VALUE changed in handoff 16.
+
+        `disposal_type` was the literal `'disposal'` on every event ever
+        sent, because there was no field on the register to answer with.
+        `SAP_DISPOSAL_TYPE` now maps Cadra's route onto the two words the
+        requirements document §4.2 specifies, and the accounting line is
+        that an asset which leaves through a transaction with somebody is a
+        disposal while one that ceases to exist in place is a retirement.
+
+        Asserted from THIS call site deliberately. The mapping table has its
+        own exhaustive test, and a table proven correct in isolation says
+        nothing about whether the payload builder reads it — which is the
+        whole of what SAP will receive.
+        """
+        asset = self._asset(sap_asset_number='4000005560',
+                            sap_code_source='import')
+        asset.write({'state': 'disposed', 'disposal_method': 'scrapped'})
+
+        change = self._payload(self._events(asset, EVENT_DISPOSED))['change']
+        self.assertEqual(change['disposal_type'], 'retirement')
+        self.assertEqual(change['disposal_method'], 'scrapped')
+
+    def test_a_disposal_with_no_recorded_method_still_sends_the_old_value(self):
+        """The non-breaking half, and the reason this change is additive.
+
+        Every disposal SAP has ever received said `'disposal'`. An asset
+        with no recorded method — which is every asset on every tenant
+        today — must keep saying exactly that, or a live integration keying
+        on the value starts seeing something new for records that did not
+        change.
+        """
+        asset = self._asset(sap_asset_number='4000005561',
+                            sap_code_source='import')
+        asset.write({'state': 'disposed'})
+
+        change = self._payload(self._events(asset, EVENT_DISPOSED))['change']
+        self.assertEqual(change['disposal_type'], 'disposal')
+        self.assertIsNone(change['disposal_method'])
+
+    def test_the_disposal_event_carries_the_authorisation_and_the_proceeds(self):
+        """§4.2 asks this event for an approver, and it never had one.
+
+        The transfer event a hundred lines below has carried `approved_by`
+        and `approved_at` since the day it was written; the disposal event
+        announced that an asset had left the estate and said nothing about
+        who authorised it. `proceeds` travels with its currency because a
+        money figure with no currency beside it is how two systems agree on
+        a number and disagree on what it is worth.
+        """
+        asset = self._asset(sap_asset_number='4000005562',
+                            sap_code_source='import')
+        asset.write({
+            'state': 'disposed',
+            'disposal_method': 'auction',
+            'disposal_reference': 'BOS/2026/014',
+            'disposal_proceeds': 450000.0,
+            'disposal_approved_by': self.env.user.id,
+            'disposal_approved_date': '2026-08-30 10:15:00',
+        })
+
+        change = self._payload(self._events(asset, EVENT_DISPOSED))['change']
+        self.assertEqual(change['disposal_type'], 'disposal')
+        self.assertEqual(change['reference'], 'BOS/2026/014')
+        self.assertEqual(change['approved_by'], self.env.user.name)
+        self.assertTrue(change['approved_at'].startswith('2026-08-30'))
+        self.assertEqual(change['proceeds'], 450000.0)
+        self.assertEqual(change['proceeds_currency'],
+                         asset.currency_id.name)
+
+    def test_an_undocumented_disposal_sends_NULLS_rather_than_omitting_the_keys(self):
+        """Null is the honest answer and it has to be ON the wire.
+
+        Today every disposal on every tenant is undocumented, so this is
+        not the edge case — it is the case. A receiver that sees the key
+        with a null knows Cadra does not know; one that sees no key at all
+        cannot tell that from a Cadra too old to send it.
+        """
+        asset = self._asset(sap_asset_number='4000005563',
+                            sap_code_source='import')
+        asset.write({'state': 'disposed'})
+
+        change = self._payload(self._events(asset, EVENT_DISPOSED))['change']
+        for key in ('reference', 'approved_by', 'approved_at',
+                    'proceeds', 'proceeds_currency', 'disposal_method'):
+            self.assertIn(key, change,
+                          "%s must be present and null, not absent" % key)
+            self.assertIsNone(change[key])
+
     def test_a_lifecycle_event_for_an_asset_sap_has_never_heard_of_is_not_sent(self):
         """No SAP asset number means no asset master to update.
 

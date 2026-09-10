@@ -82,6 +82,17 @@ class RequestRequest(models.Model):
         adapter = config._get_adapter()
 
         payload = self._build_workflow_payload()
+        # Normalise ONCE, here, so the copy we store and the copy `requests`
+        # puts on the wire cannot disagree. The log used `default=str` and
+        # `requests` serialises `json=payload` WITHOUT one, so a value the
+        # builder should not have produced — a `date`, a `Decimal`, a
+        # recordset — logged fine and then raised `TypeError` inside the
+        # adapter. With the adapter's outer clause now `RequestException`-only
+        # (handoff 15) that surfaces as a traceback naming Cadra, which is
+        # correct; before it surfaced as "Failed to send to NRS WorkSpace",
+        # which sent whoever pressed the button to audit the wrong system.
+        # Round-tripping makes the payload JSON-native, so neither can happen.
+        payload = json.loads(json.dumps(payload, default=str))
         log = self.env['workflow.dispatch.log'].create({
             'request_id':   self.id,
             'direction':    'outbound',

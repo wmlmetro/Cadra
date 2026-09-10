@@ -788,6 +788,7 @@ class MyserviceApiV1(http.Controller):
                             "provenance": {"$ref": "#/components/schemas/AssetProvenance"},
                             "tagging": {"$ref": "#/components/schemas/AssetTagging"},
                             "sap": {"$ref": "#/components/schemas/AssetSap"},
+                            "disposal": {"$ref": "#/components/schemas/AssetDisposal"},
                         },
                     },
                     "AssetProvenance": {
@@ -802,6 +803,448 @@ class MyserviceApiV1(http.Controller):
                                                        "vendra", "excel", "other"]},
                             "import_date": {"type": "string", "format": "date", "nullable": True},
                             "import_ref": {"type": "string", "nullable": True},
+                        },
+                    },
+                    "AssetDisposal": {
+                        "type": "object",
+                        "description": (
+                            "How the asset left the estate and what "
+                            "authorised it (specification §13.4, INT-10 "
+                            "§2.9). Grouped rather than flattened for the "
+                            "same reason `provenance` and `sap` are: it "
+                            "answers one question — WAS IT AUTHORISED, BY "
+                            "WHOM, AND IS THE PAPER THERE — and six loose "
+                            "top-level keys would bury it. `date` and "
+                            "`reason` are ALSO published at "
+                            "`dates.disposal_date` and at the top-level "
+                            "`disposal_reason`, where they have always "
+                            "been; both spellings read the same column and "
+                            "neither is going away."),
+                        "properties": {
+                            "date": {"type": "string", "format": "date",
+                                     "nullable": True},
+                            "date_reconstructed": {
+                                "type": "boolean",
+                                "description": (
+                                    "TRUE means this disposal date was "
+                                    "RECOVERED from the tracked state change "
+                                    "by a migration, not recorded when the "
+                                    "disposal happened. Published rather "
+                                    "than hidden behind the report for the "
+                                    "same reason `AssetCustody.source` "
+                                    "publishes `tracking_backfill`: a "
+                                    "reconstruction presented as a "
+                                    "contemporaneous record is worse than no "
+                                    "record. Read-only — it is absent from "
+                                    "the writable-field allow-list, because "
+                                    "a client able to clear it could erase "
+                                    "the disclosure."),
+                            },
+                            "method": {
+                                "type": "string", "nullable": True,
+                                "enum": ["sale", "auction", "transfer",
+                                         "donation", "trade_in", "scrapped",
+                                         "write_off", "other"],
+                                "description": (
+                                    "The route out of the estate. `sale`, "
+                                    "`auction`, `transfer`, `donation`, "
+                                    "`trade_in` and `other` map onto SAP's "
+                                    "`disposal`; `scrapped` and `write_off` "
+                                    "map onto `retirement` (INT-06/07/09 "
+                                    "§4.2) — nothing changed hands. "
+                                    "Writable."),
+                            },
+                            "reference": {
+                                "type": "string", "nullable": True,
+                                "description": (
+                                    "The board minute, approval memo or "
+                                    "disposal certificate that authorised "
+                                    "this disposal. Its ABSENCE is the "
+                                    "finding `no_authorising_reference` on "
+                                    "GET /api/v1/reports/disposals. "
+                                    "Writable."),
+                            },
+                            "approved_by": {
+                                "type": "object", "nullable": True,
+                                "readOnly": True,
+                                "description": (
+                                    "Who authorised the disposal — WHO "
+                                    "PRESSED THE BUTTON, recorded by "
+                                    "`action_approve_disposal` from the "
+                                    "acting user. READ-ONLY over the API and "
+                                    "deliberately so: a client able to PATCH "
+                                    "this could create a disposal and name "
+                                    "its own approver in the same request, "
+                                    "turning the `no_approver` finding into "
+                                    "a clean row without anybody having "
+                                    "authorised anything. Same distinction "
+                                    "as `sap.code_source`: a value the "
+                                    "system produced is evidence, a value a "
+                                    "client typed is a claim."),
+                            },
+                            "approved_at": {
+                                "type": "string", "nullable": True,
+                                "readOnly": True,
+                                "description": (
+                                    "ISO 8601, naive (server time), no "
+                                    "offset. Read-only for the reason above "
+                                    "and one more: a writable date beside a "
+                                    "read-only approver would let a caller "
+                                    "backdate an approval across a financial "
+                                    "year."),
+                            },
+                            "proceeds": {
+                                "type": "number", "nullable": True,
+                                "description": (
+                                    "Money ACTUALLY RECEIVED for the asset. "
+                                    "Not `financial.depreciation."
+                                    "salvage_value`, which is an estimate of "
+                                    "residual worth used to truncate a "
+                                    "depreciation board and exists on assets "
+                                    "that will never be sold. Writable — it "
+                                    "is a fact about a transaction that "
+                                    "finance holds independently and "
+                                    "reconciles against a bank statement."),
+                            },
+                            "currency": {"type": "object", "nullable": True},
+                            "reason": {"type": "string", "nullable": True},
+                        },
+                    },
+                    "AssetSnapshotFidelity": {
+                        "type": "object",
+                        "description": (
+                            "WHICH FIELDS THE SNAPSHOT COULD ROLL BACK AND "
+                            "WHICH IT COULD NOT. Read this before "
+                            "reconciling any figure in `assets` against "
+                            "anything. Cadra's history is uneven — "
+                            "`custodian_id` has an append-only chain, "
+                            "depreciation is a pure function of a date, and "
+                            "most other fields have only `mail.tracking_"
+                            "value` rows or nothing at all — so a snapshot "
+                            "that silently mixed as-of-the-date values with "
+                            "as-of-today values would be worse than no "
+                            "snapshot: the discrepancy would surface in an "
+                            "audit and it would be ours."),
+                        "properties": {
+                            "rolled_back": {
+                                "type": "array", "items": {"type": "string"},
+                                "description": (
+                                    "Fields answered AS OF `as_of`. These "
+                                    "are the figures an auditor can "
+                                    "reconcile."),
+                            },
+                            "as_of_today": {
+                                "type": "array", "items": {"type": "string"},
+                                "description": (
+                                    "Fields published at their CURRENT "
+                                    "value because their history does not "
+                                    "support a rollback. They are returned "
+                                    "rather than omitted — an auditor needs "
+                                    "to see the asset — but a figure derived "
+                                    "from them is a figure about today."),
+                            },
+                            "not_recoverable": {
+                                "type": "array", "items": {"type": "string"},
+                                "description": (
+                                    "Fields the snapshot cannot answer at "
+                                    "all and does not attempt."),
+                            },
+                            "notes": {
+                                "type": "object",
+                                "description": (
+                                    "Per-field prose: what the rollback is "
+                                    "derived from, and where it stops."),
+                            },
+                        },
+                    },
+                    "AssetSnapshotRow": {
+                        "type": "object",
+                        "description": (
+                            "One asset as it stood on `as_of`. Carries `id`, "
+                            "every field named in `fidelity.rolled_back` at "
+                            "its as-of-the-date value, every field named in "
+                            "`fidelity.as_of_today` at its current value, "
+                            "and a `value` block "
+                            "(`accumulated_depreciation`, `book_value`, "
+                            "`state`) computed for the date."),
+                        "properties": {
+                            "id": {"type": "integer"},
+                            "value": {"type": "object"},
+                            "_fidelity": {
+                                "type": "object",
+                                "description": (
+                                    "PRESENT ONLY WHEN NON-EMPTY, and its "
+                                    "presence is the point: this row "
+                                    "specifically is degraded beyond the "
+                                    "report-wide declaration. `as_of_today` "
+                                    "names fields that fell back to their "
+                                    "current value for THIS asset; "
+                                    "`unknown` names fields the snapshot "
+                                    "could not establish for it at all. A "
+                                    "consumer that ignores this key is "
+                                    "reading today's value as history."),
+                            },
+                            "_changed_since": {
+                                "type": "array", "items": {"type": "string"},
+                                "description": (
+                                    "PRESENT ONLY WHEN NON-EMPTY. Names the "
+                                    "rolled-back fields whose value on "
+                                    "`as_of` differs from today's — which "
+                                    "is what stops \"tracked and never "
+                                    "changed\" and \"not tracked at all\" "
+                                    "from producing byte-identical rows "
+                                    "with no way to tell them apart."),
+                            },
+                        },
+                    },
+                    "AssetRegisterSnapshot": {
+                        "type": "object",
+                        "description": (
+                            "The register as it stood at a past date "
+                            "(specification §13.4). NOTE THE SHAPE: `data` "
+                            "is an OBJECT and the rows are at "
+                            "`data.assets`, which is the one place in this "
+                            "API where a list endpoint does not return "
+                            "`data` as an array. That is deliberate — it "
+                            "makes it impossible to receive the rows "
+                            "without receiving `data.fidelity` alongside "
+                            "them, and a boundary a consumer can miss by "
+                            "reading the obvious key is not a boundary. "
+                            "`pagination` is at envelope level as usual, so "
+                            "the cursor walk is identical to every other "
+                            "list route, and the per-credential record cap "
+                            "applies (see `_warnings.truncated`)."),
+                        "properties": {
+                            "as_of": {"type": "string", "format": "date"},
+                            "cutoff": {
+                                "type": "string",
+                                "description": (
+                                    "The exact instant the rollback was "
+                                    "taken at, ISO 8601 naive with no "
+                                    "offset. Published because \"as at 31 "
+                                    "March\" in UTC and in UTC+1 are "
+                                    "different questions and an auditor "
+                                    "reconciling to the hour is entitled to "
+                                    "know which one was answered."),
+                            },
+                            "cutoff_timezone": {
+                                "type": "string",
+                                "description": (
+                                    "Always \"UTC\", and it describes the "
+                                    "`cutoff` VALUE above, not the day "
+                                    "boundary. Cadra stores naive UTC "
+                                    "throughout and the cutoff is published "
+                                    "in the same terms rather than "
+                                    "converted to a session timezone, which "
+                                    "would invent a precision the tracking "
+                                    "rows do not have. WHICH DAY BOUNDARY "
+                                    "was taken is a separate question and "
+                                    "is answered in "
+                                    "`fidelity.notes.cutoff`: the snapshot "
+                                    "cuts at the end of the requested day "
+                                    "in West Africa Time (UTC+01:00, "
+                                    "fixed), i.e. 23:00:00 UTC on that "
+                                    "date — so a change made at 23:30 UTC "
+                                    "on 31 March is 00:30 on 1 April in "
+                                    "Lagos and is NOT in the 31 March "
+                                    "snapshot."),
+                            },
+                            "fidelity": {
+                                "$ref": "#/components/schemas/AssetSnapshotFidelity"},
+                            "filters": {
+                                "type": "object",
+                                "description": (
+                                    "The second half of the boundary. "
+                                    "Filters select on the asset's CURRENT "
+                                    "value — the rows are rolled back, the "
+                                    "SELECTION is not — so "
+                                    "`?as_of=2026-03-31&state=active` means "
+                                    "\"assets active today, reported as "
+                                    "they stood on 31 March\", which is a "
+                                    "different population from \"assets "
+                                    "active on 31 March\". Filter on "
+                                    "`as_of` alone for a figure that "
+                                    "reconciles."),
+                                "properties": {
+                                    "query_parameters_supplied": {
+                                        "type": "array",
+                                        "items": {"type": "string"}},
+                                    "evaluated_as_of": {"type": "string"},
+                                    "note": {"type": "string"},
+                                },
+                            },
+                            "omitted_asset_ids": {
+                                "type": "array", "items": {"type": "integer"},
+                                "description": (
+                                    "Assets the existence domain selected "
+                                    "for this page but for which the "
+                                    "snapshot builder produced no row. "
+                                    "ALWAYS PRESENT, normally empty. Named "
+                                    "rather than dropped: a row quietly "
+                                    "missing from a page reads to an "
+                                    "auditor as an asset that did not exist "
+                                    "on the date."),
+                            },
+                            "assets": {
+                                "type": "array",
+                                "items": {"$ref": "#/components/schemas/AssetSnapshotRow"},
+                            },
+                        },
+                    },
+                    "DisposalReportRow": {
+                        "type": "object",
+                        "description": (
+                            "One disposal, with everything missing from it "
+                            "NAMED. Nothing is filtered out for having a "
+                            "finding — a disposal with no authorising "
+                            "reference IS the finding, and a report showing "
+                            "only the well-documented ones would be a "
+                            "report of the paperwork rather than of the "
+                            "estate."),
+                        "properties": {
+                            "asset_id": {"type": "integer"},
+                            "name": {"type": "string", "nullable": True},
+                            "asset_code": {"type": "string", "nullable": True},
+                            "sap_asset_number": {"type": "string", "nullable": True},
+                            "disposal_date": {"type": "string", "format": "date",
+                                              "nullable": True},
+                            "date_source": {
+                                "type": "string",
+                                "enum": ["recorded", "reconstructed",
+                                         "state_transition", "none"],
+                                "description": (
+                                    "WHERE THE DATE PLACING THIS ROW IN THE "
+                                    "PERIOD CAME FROM. `recorded` was "
+                                    "entered at the time; `reconstructed` "
+                                    "was recovered by a migration; "
+                                    "`state_transition` was read off the "
+                                    "tracked change into `disposed` at "
+                                    "report time; `none` could not be "
+                                    "established, and those rows are in "
+                                    "`unplaceable`, never in a period."),
+                            },
+                            "disposal_method": {
+                                "type": "string", "nullable": True,
+                                "enum": ["sale", "auction", "transfer",
+                                         "donation", "trade_in", "scrapped",
+                                         "write_off", "other"]},
+                            "sap_disposal_type": {
+                                "type": "string",
+                                "enum": ["disposal", "retirement"],
+                                "description": (
+                                    "How this route collapses onto SAP's "
+                                    "two words (INT-06/07/09 §4.2). "
+                                    "`disposal` when no method is "
+                                    "recorded — the conservative side, and "
+                                    "the value `asset.disposed` has always "
+                                    "carried."),
+                            },
+                            "disposal_reference": {"type": "string", "nullable": True},
+                            "approved_by_id": {"type": "integer", "nullable": True},
+                            "approved_by": {"type": "string", "nullable": True},
+                            "approved_at": {"type": "string", "nullable": True},
+                            "proceeds": {"type": "number"},
+                            "currency": {"type": "string", "nullable": True},
+                            "disposal_reason": {"type": "string", "nullable": True},
+                            "condition_at_disposal": {"type": "string", "nullable": True},
+                            "findings": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "enum": ["no_authorising_reference",
+                                             "no_approver",
+                                             "no_approval_date",
+                                             "no_disposal_method",
+                                             "no_disposal_date",
+                                             "no_disposal_reason",
+                                             "no_proceeds_recorded",
+                                             "disposal_date_reconstructed",
+                                             "no_sap_asset_number"]},
+                                "description": (
+                                    "Machine-readable, because the point of "
+                                    "a finding is that somebody can count "
+                                    "and filter on it. Empty means the "
+                                    "auditor's three-part test passes. "
+                                    "`no_proceeds_recorded` fires only on "
+                                    "`sale`, `auction` and `trade_in` — a "
+                                    "scrapping with no proceeds is "
+                                    "ordinary, and flagging it would bury "
+                                    "the sales that are missing theirs."),
+                            },
+                        },
+                    },
+                    "DisposalReport": {
+                        "type": "object",
+                        "description": (
+                            "Disposals in a period with the documentation "
+                            "behind each (specification §13.4, INT-10 "
+                            "§2.9). `data` is an object; the schedule is at "
+                            "`data.rows` and PAGES, while `data.summary` "
+                            "describes the WHOLE PERIOD on every page — so "
+                            "\"41 of 63 disposals carry no authorising "
+                            "reference\" is one read of page one and not a "
+                            "walk. `summary.total` and "
+                            "`pagination.total_estimate` come from one call "
+                            "to the model and cannot disagree. Rows are "
+                            "ordered by ASCENDING ASSET ID, not by disposal "
+                            "date, because cursor pagination walks "
+                            "ascending ids; every row carries "
+                            "`disposal_date` for re-ordering after a full "
+                            "walk."),
+                        "properties": {
+                            "period": {
+                                "type": "object",
+                                "description": (
+                                    "The period asked for. `inclusive: "
+                                    "\"both\"` — an auditor asks for a "
+                                    "quarter by naming its first and last "
+                                    "day, and an exclusive upper bound "
+                                    "would silently lose everything "
+                                    "disposed of on 31 March."),
+                                "properties": {
+                                    "date_from": {"type": "string", "format": "date"},
+                                    "date_to": {"type": "string", "format": "date"},
+                                    "inclusive": {"type": "string"},
+                                },
+                            },
+                            "summary": {
+                                "type": "object",
+                                "description": (
+                                    "Over the whole period, never the page. "
+                                    "`findings` is a count per finding "
+                                    "string, so the reader never has to "
+                                    "walk pages to size a problem."),
+                                "properties": {
+                                    "total": {"type": "integer"},
+                                    "unplaceable": {"type": "integer"},
+                                    "clean": {"type": "integer"},
+                                    "findings": {"type": "object"},
+                                    "by_method": {"type": "object"},
+                                    "proceeds_by_currency": {"type": "object"},
+                                },
+                            },
+                            "unplaceable": {
+                                "type": "array",
+                                "items": {"$ref": "#/components/schemas/DisposalReportRow"},
+                                "description": (
+                                    "Disposals with no recorded date and no "
+                                    "tracked state change. They cannot be "
+                                    "placed in ANY period, so they are "
+                                    "returned IN FULL in every response, "
+                                    "never mixed into the period totals "
+                                    "(that would double-count them next "
+                                    "quarter) and never dropped (that would "
+                                    "make them invisible in every report "
+                                    "ever run). NOT capped and not paged: "
+                                    "every row in it is by definition a "
+                                    "defective record, and a truncated list "
+                                    "of these cannot be told from a "
+                                    "complete one."),
+                            },
+                            "rows": {
+                                "type": "array",
+                                "items": {"$ref": "#/components/schemas/DisposalReportRow"},
+                            },
                         },
                     },
                     "AssetCustody": {

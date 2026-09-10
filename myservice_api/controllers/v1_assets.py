@@ -33,13 +33,28 @@ from .utils import (
     SCOPE_ASSETS_WRITE,
     SCOPE_DASHBOARDS_READ,
     SCOPE_TAGGING_WRITE,
+    decode_cursor,
+    encode_cursor,
     err,
+    flag_truncation,
     get_params,
     ok,
     paginate,
     parse_limit,
+    record_cap,
 )
 from .v1 import PAGINATION_QUERY_PARAMS, cadra_route
+
+# The instant a historical snapshot is taken at. A module function rather
+# than a model method because it is arithmetic on a date and has no record to
+# hang off; imported at module level, NOT inside the handler, so a rename in
+# `myservice_asset_register` fails the whole controller at load with a
+# traceback naming the symbol instead of turning into a per-request 500 that
+# reads like a data problem. `myservice_api` already declares that module in
+# its `depends`, so the import order is guaranteed.
+from odoo.addons.myservice_asset_register.models.asset_snapshot import (
+    snapshot_cutoff,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -312,6 +327,137 @@ def _serialize_sap(a):
     }
 
 
+def _naive_iso(v):
+    """A naive datetime as ISO 8601 with no offset, or None.
+
+    Deliberately not `format: date-time` in the OpenAPI schema: Cadra stores
+    naive UTC and renders it with `.isoformat()`, e.g. "2026-03-31T23:59:59".
+    That is not the RFC 3339 `date-time` promises, and claiming the format
+    would make a strict parser reject a value that is otherwise perfectly
+    readable. Same reasoning as `AssetTagging.printed_at`.
+    """
+    return v.isoformat() if v else None
+
+
+def _parse_report_date(qs, param, *, required=False):
+    """Read one YYYY-MM-DD query parameter. Returns (date_or_None, error).
+
+    Copied in rigour from `get_asset_depreciation`'s `as_of` block, which is
+    the only other date parameter in this API, and tightened in one place:
+    an ABSENT required parameter is a 400 of its own rather than a silent
+    default.
+
+    That matters more here than it reads. CLAUDE.md's backlog records five
+    boolean query parameters API-wide that silently drop their filter and
+    return the UNFILTERED list — an empty list reads as "no matches", a full
+    list reads as an answer, and the full list is the dangerous half. The
+    equivalent failure on an audit report is a period nobody asked for and a
+    snapshot silently dated today, both of which answer 200 with a figure an
+    auditor would put in a file. Every path out of this function is either a
+    date the caller supplied or a 400 naming the parameter.
+
+    Deliberately NOT `utils._selection_allowed_values`: that helper calls
+    `cr.rollback()` on failure and is written for the post-rollback error
+    path, and these run on the happy path of a read.
+    """
+    raw = (qs.get(param) or "").strip()
+    if not raw:
+        if required:
+            return None, err(
+                ERR_INVALID_REQUEST,
+                "`%s` is required and must be a date in YYYY-MM-DD format"
+                % param,
+                details={param: qs.get(param)})
+        return None, None
+    try:
+        parsed = odoo_fields.Date.from_string(raw)
+    except (ValueError, TypeError):
+        parsed = None
+    if parsed is None:
+        return None, err(
+            ERR_INVALID_REQUEST,
+            "`%s` must be a date in YYYY-MM-DD format" % param,
+            details={param: raw})
+    return parsed, None
+
+
+# Query parameters this report reads for itself rather than passing to the
+# asset filter builder. Everything else the caller sent is a filter, and is
+# disclosed as one.
+_SNAPSHOT_OWN_PARAMS = frozenset({"as_of", "limit", "cursor"})
+
+
+def _snapshot_filter_disclosure(qs):
+    """What the caller filtered on, and the fact that it was evaluated TODAY.
+
+    This is the second half of the fidelity boundary and it is easy to miss.
+    `_list_domain` builds an ordinary Odoo domain over the asset table, so
+    every filter matches the asset's CURRENT value — including filters on
+    fields the snapshot then rolls back. `?as_of=2026-03-31&state=active`
+    therefore means "assets that are active TODAY, reported as they stood on
+    31 March", which is a different population from "assets that were active
+    on 31 March" and will reconcile to a different number.
+
+    Rolling the filters back too would need the whole domain evaluated
+    against history, which the tracking values cannot support. So the report
+    says what it did instead of implying it did the other thing (rule 3).
+    """
+    supplied = sorted(k for k in qs if k not in _SNAPSHOT_OWN_PARAMS)
+    return {
+        "query_parameters_supplied": supplied,
+        "evaluated_as_of": "today",
+        "note": (
+            "Filters select on the asset's CURRENT value, not its value on "
+            "`as_of` — the rows are rolled back, the selection is not. A "
+            "filter on any field listed in `fidelity.rolled_back` therefore "
+            "chooses a different population from the one the snapshot "
+            "reports for that field. Filter on `as_of` alone for a figure "
+            "that reconciles. Parameters this endpoint does not recognise "
+            "are ignored by the filter builder exactly as they are on "
+            "GET /api/v1/assets, and are still echoed here as sent."),
+    }
+
+
+def _serialize_disposal(a):
+    """How the asset left the estate, and the paper that authorised it.
+
+    Grouped rather than flattened for the same reason `provenance` and `sap`
+    are: six new top-level keys would bury the one question this block
+    answers, which is the auditor's three-part test — *was it authorised, by
+    whom, and is the paper there?* (specification §13.4, INT-10 §2.9).
+
+    `date` and `reason` are ALSO published at `dates.disposal_date` and at
+    the top-level `disposal_reason`, where they have always been. They are
+    repeated here rather than moved: removing a published field is a
+    breaking change (rule 1) and Vendra is downstream, and a block that
+    answers "was this disposal documented" while the date lives somewhere
+    else is not an answer an auditor can read in one pass. Both spellings
+    read the same column.
+
+    `approved_by` and `approved_at` are READ-ONLY — deliberately absent from
+    `_WRITABLE_FIELDS`, for the reasoning recorded there. They are written by
+    `nrs.asset.action_approve_disposal` from the acting user, which is
+    evidence; a field a client can PATCH is a claim.
+
+    `date_reconstructed` says the date was recovered from the tracked state
+    change rather than recorded when the disposal happened. It is published,
+    not hidden behind the report, because an auditor reading one asset needs
+    the same disclosure as one reading the schedule — the same argument as
+    `nrs.asset.custody.source = 'tracking_backfill'`.
+    """
+    return {
+        "date": _date(a.disposal_date),
+        "date_reconstructed": a.disposal_date_reconstructed,
+        "method": a.disposal_method or None,
+        "reference": a.disposal_reference or None,
+        "approved_by": _ref(a.disposal_approved_by, name_field="name"),
+        "approved_at": _date(a.disposal_approved_date),
+        "proceeds": a.disposal_proceeds or None,
+        "currency": _ref(a.currency_id),
+        "reason": a.disposal_reason or None,
+    }
+
+
 def _serialize_custody(c):
     """One link in the chain of custody.
 
@@ -413,6 +559,12 @@ def serialize_asset(a, *, include=()):
         # once an affix confirmation has been received (INT-04/05).
         "tagging": _serialize_tagging(a),
         "disposal_reason": a.disposal_reason or None,
+        # How the asset left, and whether anybody authorised it (§13.4).
+        # `disposal_reason` above and `dates.disposal_date` are the older
+        # published spellings of two of these fields and stay exactly where
+        # they were — this block adds the four that did not exist and the
+        # flag on the date, so the whole disposal reads as one thing.
+        "disposal": _serialize_disposal(a),
         # Where the asset came from. Grouped rather than flattened so the
         # commercial hand-off (INT-03) reads as one block: `grn_reference`
         # and `purchase_order_reference` are Vendra's and SAP's identifiers
@@ -639,6 +791,17 @@ _WRITABLE_FIELDS = {
     "purchase_value", "replacement_cost",
     "acquisition_date", "acquisition_cost", "current_value",
     "disposal_date", "disposal_reason",
+    # Disposal documentation (specification §13.4, INT-10 §2.9). Three of the
+    # six new disposal fields are here and three are deliberately NOT — see
+    # the block below the allow-list for why. `disposal_method` describes the
+    # route out of the estate and `disposal_reference` cites the document
+    # that authorised it; both are descriptions of an event, not assertions
+    # of authority, and both are tracked on the asset's mail.thread so a
+    # later change leaves a trail. `disposal_proceeds` is money that actually
+    # changed hands — a fact finance holds independently and reconciles
+    # against a bank statement, which is what makes an overstated figure fail
+    # against outside evidence rather than stand as a record.
+    "disposal_method", "disposal_reference", "disposal_proceeds",
     # Depreciation policy (PRD §8.6)
     "use_category_policy", "depreciation_method", "useful_life_months",
     "declining_rate", "salvage_rate", "depreciation_start_date",
@@ -658,6 +821,41 @@ _WRITABLE_FIELDS = {
     "last_verified_date", "verification_notes",
     "notes",
 }
+
+# `disposal_approved_by`, `disposal_approved_date` and
+# `disposal_date_reconstructed` are deliberately ABSENT, and they are the
+# highest-value omission in this file.
+#
+# The whole point of the disposal report is the auditor's three-part test —
+# **was it authorised, by whom, and is the paper there?** `no_approver` is
+# one of its findings. A client able to PATCH `disposal_approved_by` could
+# create a disposal and name any user in the tenant as the person who
+# authorised it, in the same request, turning that finding into a clean row
+# without anybody having authorised anything. That is not a report of the
+# estate any more; it is a report of what the integration chose to write.
+# `action_approve_disposal` records WHO PRESSED THE BUTTON, which is
+# evidence — the same distinction as `sap_code_source`: a code returned by
+# SAP is evidence finance booked the asset, a code typed in is a claim that
+# they did.
+#
+# `disposal_approved_date` is withheld for the same reason and one more: a
+# writable date beside a non-writable approver would let a client backdate
+# an approval it did not make, or move one across a financial year boundary,
+# which is a disposal-report answer nobody could challenge from the record.
+# It is stamped from the clock at the moment of approval.
+#
+# `disposal_date_reconstructed` marks a date the 19.0.1.14.0 migration
+# RECOVERED from the tracked state change rather than one recorded when the
+# disposal happened. A client able to clear it would erase the disclosure
+# that the date is a reconstruction — precisely the defect
+# `nrs.asset.custody.source = 'tracking_backfill'` exists to prevent. It is
+# `readonly=True` on the model and written by the migration and nothing else.
+#
+# All three are published read-only under `data.disposal`. There is no API
+# route that records a disposal approval today: `action_approve_disposal` is
+# reachable from the Odoo form only. That is a gap rather than a control, and
+# it is named in report 16 — but the gap is the safe side of this trade, and
+# closing it needs its own scope decision rather than an allow-list entry.
 
 # The `sap_*` fields are deliberately ABSENT for the same reason `asset_tag`
 # is. They are written by the SAP integration (`_set_sap_master`, INT-07) and
@@ -1410,3 +1608,349 @@ class CadraAssetsV1(http.Controller):
                 "book_value": p["book_value"],
             } for p in periods],
         }
+
+    # ── Audit reports (specification §13.4, INT-10) ────────────────
+    #
+    # SCOPE, and why it is `assets:read` on both rather than the
+    # `dashboards:read` the only other `/reports/*` route takes.
+    #
+    # `/reports/depreciation` above returns AGGREGATES — totals, a
+    # per-category breakdown, two data-quality counts. Nothing in it
+    # identifies an asset, which is what makes `dashboards:read` an honest
+    # gate for it: it is a figure on a screen.
+    #
+    # The two reports below return ROWS OF THE REGISTER — one per asset,
+    # carrying custodian, location, condition, state, value, and in the
+    # disposal report the authorising reference and the approver. That is the
+    # same data `GET /api/v1/assets` returns, asked a different way. Gating
+    # it on `dashboards:read` would put a SECOND, WEAKER DOOR onto the asset
+    # base: a Security Officer or an FM dashboard credential holding
+    # `dashboards:read` and not `assets:read` could pull the whole register
+    # through a report, which is precisely the "undeclared gate" defect
+    # handoff 09 removed from the dashboard routes, running the other way.
+    #
+    # The rule this settles on: **the same data takes the same scope,
+    # whatever the route is called.** An audit report is a view of the
+    # register, so it takes the register's scope.
+    #
+    # Deliberately NOT a new `audit:read` scope. A scope no group grants and
+    # no client holds makes the reports unreachable on every tenant on the
+    # day they ship, and the thing an audit credential actually needs is not
+    # a different scope — it is `total_record_cap = -1` on its
+    # `myservice.api.client` row, which is the mechanism handoff 12 built and
+    # INT-10 §7 recommends.
+
+    @cadra_route("/api/v1/reports/asset-register", method="GET",
+                 summary="The asset register as it stood at a past date",
+                 scopes=[SCOPE_ASSETS_READ],
+                 response_schema={"$ref": "#/components/schemas/AssetRegisterSnapshot"},
+                 query_params=[
+                     {"name": "as_of", "required": True,
+                      "schema": {"type": "string", "format": "date"},
+                      "description": (
+                          "REQUIRED. The date the register is reported as at "
+                          "(YYYY-MM-DD), inclusive. There is no default: a "
+                          "snapshot that quietly means 'today' is "
+                          "GET /api/v1/assets wearing a report's name, and "
+                          "every fidelity claim in it would be vacuous. A "
+                          "future date is a 400.")},
+                     {"name": "q", "schema": {"type": "string"}},
+                     {"name": "category_id", "schema": {"type": "integer"}},
+                     {"name": "subcategory_id", "schema": {"type": "integer"}},
+                     {"name": "location_id", "schema": {"type": "integer"}},
+                     {"name": "building_id", "schema": {"type": "integer"}},
+                     {"name": "floor_id", "schema": {"type": "integer"}},
+                     {"name": "room_id", "schema": {"type": "integer"}},
+                     {"name": "custodian_id", "schema": {"type": "integer"}},
+                     {"name": "state", "schema": {"type": "string",
+                      "enum": ["active", "in_repair", "disposed",
+                               "transferred", "missing"]}},
+                     {"name": "condition", "schema": {"type": "string",
+                      "enum": ["new", "good", "fair", "poor",
+                               "decommissioned"]}},
+                     {"name": "domain", "schema": {"type": "string"}},
+                     {"name": "asset_level", "schema": {"type": "string"}},
+                     *PAGINATION_QUERY_PARAMS,
+                 ])
+    def asset_register_snapshot(self, **kwargs):
+        """*"What did the register say on 31 March?"* — specification §13.4.
+
+        READ-ONLY. Nothing on this path writes: the rollback is computed from
+        `mail.tracking_value` rows and the chain of custody, no field is
+        stamped, no schedule is applied, and `_apply_depreciation()` is never
+        called. Report 19 in the Vendra repository made the argument and it
+        holds here — a report that quietly repairs what it finds can never
+        honestly report zero.
+
+        ── The response shape, and why `data` is an OBJECT ──
+
+        Every other list route in this API returns `data` as an ARRAY. This
+        one does not, and the reason is the acceptance criterion the handoff
+        wrote in capitals: *a snapshot that silently mixes as-of-the-date
+        values with as-of-today values is worse than no snapshot, because an
+        auditor will reconcile it against a figure and the discrepancy will
+        be ours.*
+
+        There is nowhere honest to put that declaration on an array. The
+        handler-level `data._warnings` convention needs `data` to be an
+        object — which is exactly why handoff 12 moved the truncation warning
+        up to the envelope — and the envelope's `_warnings` is built inside
+        `ok()` for truncation, is a *warning* channel, and is the one part of
+        the body a client reading `body["data"]` never sees. A boundary a
+        consumer can miss by reading the obvious key is not a boundary.
+
+        So the rows live INSIDE the declaration, at `data.assets`, and it is
+        not possible to receive them without receiving `data.fidelity`
+        alongside. `pagination` stays at envelope level, so the cursor walk
+        is byte-identical to every other list endpoint.
+
+        ── `cutoff` ──
+
+        `data.cutoff` is the exact instant the rollback was taken at, because
+        "as at 31 March" in UTC and in UTC+1 are different questions and an
+        auditor reconciling to the hour is entitled to know which one was
+        answered. Cadra stores naive UTC throughout; the cutoff is published
+        in the same terms rather than converted to a session timezone, which
+        would invent a precision the tracking rows do not have.
+
+        ── The cap: this report IS capped, deliberately ──
+
+        `include=custody` and `GET /assets/<id>/custody` are exempt from the
+        per-client record cap (`utils.CAP_EXEMPT_REASON_CUSTODY`) because a
+        chain of custody is ONE ASSET'S COMPLETE RECORD, bounded by how often
+        that asset changed hands. That argument does not transfer here and
+        applying it would be a mistake with a large blast radius.
+
+        This report is a page of the REGISTER, bounded by tenant size —
+        11,942 assets on `nrs19` — and it accepts the same filters as
+        `GET /api/v1/assets`. Exempting it would not loosen a cap on an audit
+        report; it would DELETE the record cap API-wide, because
+        `?as_of=<today>` is the register, and any capped credential could
+        route round its own limit by asking for it here.
+
+        So the cap applies and `paginate()` makes it honest for free:
+        `total_estimate` is always the true count of the unclamped domain,
+        and `ok()` attaches `_warnings.truncated` the moment the cap bites.
+        A caller who is capped is TOLD they are capped, on page one, with the
+        real number beside it — which is the whole of what INT-10 §2.11 asked
+        for. The remedy for an audit credential is `total_record_cap = -1` on
+        its `myservice.api.client` row: a per-client setting, provisioned
+        deliberately, which is handoff 12's mechanism and INT-10 §7's own
+        recommendation.
+        """
+        qs = get_params()
+
+        as_of, error = _parse_report_date(qs, "as_of", required=True)
+        if error:
+            return error
+        if as_of > odoo_fields.Date.today():
+            # A snapshot of tomorrow is today's register with a wrong label
+            # on it. Answering 200 would put a date in an audit file that the
+            # data cannot support.
+            return err(ERR_INVALID_REQUEST,
+                       "`as_of` cannot be in the future — the register has no "
+                       "value at a date that has not happened",
+                       details={"as_of": qs.get("as_of"),
+                                "today": odoo_fields.Date.today().isoformat()})
+
+        try:
+            filter_domain = _list_domain(qs)
+        except _BadFilter as e:
+            return err(ERR_INVALID_REQUEST, str(e), details=e.details)
+
+        Asset = request.env["nrs.asset"].sudo()
+        domain = Asset.snapshot_existence_domain(as_of) + filter_domain
+
+        page, next_cursor, total = paginate(
+            Asset, domain,
+            limit=parse_limit(qs), cursor=qs.get("cursor"),
+        )
+
+        rows_by_id = page.snapshot_at(as_of)
+        rows = []
+        omitted = []
+        for asset in page:
+            row = rows_by_id.get(asset.id)
+            if row is None:
+                # The snapshot builder returned no row for an asset that its
+                # own existence domain selected. That is a hole, and a hole
+                # in an audit report is only survivable if it is NAMED — a
+                # row quietly dropped from a page reads to an auditor as an
+                # asset that did not exist on the date. Never silently short
+                # (rule 3).
+                omitted.append(asset.id)
+                continue
+            rows.append(row)
+        if omitted:
+            _logger.warning(
+                "asset-register snapshot as_of=%s: snapshot_at() returned no "
+                "row for %d of %d assets its existence domain selected: %s",
+                as_of, len(omitted), len(page), omitted[:20])
+
+        return ok(
+            data={
+                "as_of": _date(as_of),
+                # The instant the rollback was taken at, naive UTC, no
+                # offset — the same terms Cadra stores every datetime in.
+                "cutoff": _naive_iso(snapshot_cutoff(as_of)),
+                "cutoff_timezone": "UTC",
+                "fidelity": Asset.snapshot_fidelity(),
+                "filters": _snapshot_filter_disclosure(qs),
+                # Named, never dropped. Empty on every healthy request.
+                "omitted_asset_ids": omitted,
+                "assets": rows,
+            },
+            pagination={
+                "next_cursor": next_cursor,
+                "previous_cursor": None,
+                "total_estimate": total,
+            },
+        )
+
+    @cadra_route("/api/v1/reports/disposals", method="GET",
+                 summary="Disposals in a period, with what is missing from each",
+                 scopes=[SCOPE_ASSETS_READ],
+                 response_schema={"$ref": "#/components/schemas/DisposalReport"},
+                 query_params=[
+                     {"name": "from", "required": True,
+                      "schema": {"type": "string", "format": "date"},
+                      "description": "REQUIRED. First day of the period, "
+                                     "INCLUSIVE (YYYY-MM-DD)."},
+                     {"name": "to", "required": True,
+                      "schema": {"type": "string", "format": "date"},
+                      "description": (
+                          "REQUIRED. Last day of the period, INCLUSIVE. An "
+                          "auditor asks for a quarter by naming its first "
+                          "and last day; an exclusive upper bound would "
+                          "silently lose everything disposed of on 31 "
+                          "March.")},
+                     *PAGINATION_QUERY_PARAMS,
+                 ])
+    def disposals_report(self, **kwargs):
+        """*"Show me every disposal this quarter and the paper behind it."*
+
+        Specification §13.4 asks for a *disposal report with documentation
+        refs, per period*; INT-10 §2.9 recorded that Cadra had neither the
+        references nor the report. This is the report half.
+
+        READ-ONLY. `nrs.asset.disposal_report` performs one search and one
+        SELECT over the tracking values and writes nothing — no repaired
+        date, no stamped field, no chatter post.
+
+        ── Findings are never filtered out ──
+
+        A disposal with no authorising reference IS the finding. It appears
+        in `rows` carrying `no_authorising_reference` in its own `findings`
+        list, and it is counted in `summary.findings` — so *"41 of 63
+        disposals carry no authorising reference"* is one read of page one
+        and not a walk through pages. A report that showed only the
+        well-documented disposals would be a report of the paperwork rather
+        than of the estate.
+
+        ── `summary` describes the PERIOD; `rows` is a page of it ──
+
+        The summary is computed over every disposal in the period on every
+        request, never over the page, and `pagination.total_estimate` is the
+        same number as `summary.total` — they come from one call to the model
+        so they cannot disagree. A caller whose credential is capped still
+        gets the true headline counts; what shortens is the schedule, and
+        `_warnings.truncated` says so.
+
+        ── `unplaceable` ──
+
+        A disposal with no recorded date and no tracked state change cannot
+        be placed in ANY period. It is returned in full, in its own key, in
+        every response, with its own count in the summary — never mixed into
+        the period totals, because that would double-count it in the next
+        period, and never dropped, because dropping it makes it invisible in
+        every report ever run. It is deliberately NOT capped: unlike the
+        register it is not a resource anybody could walk to extract the
+        estate — every row in it is by definition a defective record — and a
+        truncated list of "the disposals that appear in no period report"
+        cannot be told from a complete one, which is
+        `CAP_EXEMPT_REASON_CUSTODY`'s argument in its proper place.
+
+        ── Row order is ASCENDING ASSET ID, not disposal date ──
+
+        The model returns the schedule in `disposal_date, id` order. This
+        route re-sorts by asset id because cursor pagination walks ascending
+        ids and a date-ordered list cannot be paged honestly with the cursor
+        this API publishes — the same trade `GET /assets/<id>/custody` makes
+        and for the same reason. Every row carries `disposal_date`, so a
+        caller who has walked the whole period can order it however it likes.
+        """
+        qs = get_params()
+
+        date_from, error = _parse_report_date(qs, "from", required=True)
+        if error:
+            return error
+        date_to, error = _parse_report_date(qs, "to", required=True)
+        if error:
+            return error
+        if date_from > date_to:
+            # The model raises UserError on this, which the decorator turns
+            # into `validation_failed`. Caught here instead so the answer
+            # names the parameters — an integration branching on
+            # `error.code` should be told its REQUEST was wrong, not that a
+            # record failed validation.
+            return err(ERR_INVALID_REQUEST,
+                       "The period ends before it starts: `from` must be on "
+                       "or before `to`",
+                       details={"from": qs.get("from"), "to": qs.get("to")})
+
+        Asset = request.env["nrs.asset"].sudo()
+        # ONE call. `summary`, `rows` and `unplaceable` come out of a single
+        # pass, so the headline counts and the schedule cannot describe two
+        # different reads of the table — Odoo runs READ COMMITTED, and two
+        # calls a few milliseconds apart genuinely can see different data.
+        report = Asset.disposal_report(date_from, date_to)
+
+        # `summary.total` is the model's own count over an unlimited search
+        # of the period. It is the number published as `total_estimate`, so
+        # there is exactly one count of the period in this response.
+        total = report["summary"]["total"]
+        rows = sorted(report["rows"], key=lambda r: r["asset_id"])
+
+        # The record cap, applied by hand because the schedule is a list of
+        # dicts from a model method rather than a recordset `paginate()`
+        # could take. Same semantics as the CSV export: the window is the
+        # first `cap` rows of the whole period, computed BEFORE the cursor so
+        # it survives across pages, and `flag_truncation` makes `ok()` say so.
+        cap = record_cap()
+        if cap is not None:
+            rows = rows[:cap]
+            flag_truncation(cap, total)
+
+        cursor_data = decode_cursor(qs.get("cursor"))
+        if "last_id" in cursor_data:
+            try:
+                last_id = int(cursor_data["last_id"])
+            except (TypeError, ValueError):
+                # An unreadable cursor means "start from the beginning",
+                # which is `decode_cursor`'s own documented behaviour for a
+                # token that is not ours. Silently returning the LAST page
+                # would be the degradation.
+                last_id = None
+            if last_id is not None:
+                rows = [r for r in rows if r["asset_id"] > last_id]
+
+        limit = parse_limit(qs)
+        page = rows[:limit]
+        next_cursor = None
+        if page and len(rows) > limit:
+            next_cursor = encode_cursor({"last_id": page[-1]["asset_id"]})
+
+        return ok(
+            data={
+                "period": report["period"],
+                # Over the WHOLE period, on every page. See the docstring.
+                "summary": report["summary"],
+                "unplaceable": report["unplaceable"],
+                "rows": page,
+            },
+            pagination={
+                "next_cursor": next_cursor,
+                "previous_cursor": None,
+                "total_estimate": total,
+            },
+        )

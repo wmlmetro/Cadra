@@ -362,9 +362,10 @@ class MyServiceDashboard(models.AbstractModel):
         #
         # It counted `('insurance_expiration_date', '<', today)` on
         # `fleet.vehicle`. There is no such field — not in core fleet on any
-        # version, and nowhere in this repo: the string appears in exactly two
-        # files, this one and the throwaway `fleet_command_patch.py` it was
-        # copied from. Odoo's domain parser rejects an unknown field, the bare
+        # version, and nowhere in this repo: it was copied from a throwaway
+        # root-level patch script, `fleet_command_patch.py`, which is now
+        # deleted (handoff 16 C1) because a reader would re-seed the defect
+        # from it. Odoo's domain parser rejects an unknown field, the bare
         # `except: pass` below ate the error, and the Compliance Alerts panel
         # has shown nothing since the day it was written. Same family as the FM
         # `in_progress` KPI and the vendor list: not a wrong number, a

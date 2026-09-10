@@ -19,6 +19,126 @@ listed for completeness; the ones that can break a consumer are marked
 consumer cannot see. Rule 1 in `CLAUDE.md` is the test: if Vendra could
 branch on it, it goes here.
 
+**And it is not only `/api/v1`.** Handoff 15 changed three status codes on
+`/myservice/workflow/callback` — correctly — and the rule above did not reach
+it, because that route is not under `/api/v1/*`. It is the route the NRS
+WorkSpace POSTs approval outcomes to, and Cadra publishes its URL to that
+system itself. There are **27** first-party routes outside `/api/v1`; four of
+them are called by an organisation that is not us. They are inventoried in
+`docs/api/EXTERNAL-SURFACES.md`, with who calls each one and whether changing
+it breaks anything. A change to any surface listed there as breaking belongs
+in this file on the same terms as a change to `/api/v1` — the test is still
+whether somebody downstream could branch on it, and the path it happens to
+live at was never the point.
+
+---
+
+## 2026-09-09 — handoff 16
+
+### ADDED · The two audit reports the specification names (§13.4)
+
+**Additive. Nothing removed, no enum value changed, no error code changed.**
+Vendra reads none of this and writes none of it.
+
+**`GET /api/v1/reports/asset-register?as_of=YYYY-MM-DD`** — the register as it
+stood at a past date. Scope `assets:read`. `as_of` is REQUIRED and a future
+date is a `400`: a snapshot that quietly means "today" is `GET /api/v1/assets`
+wearing a report's name.
+
+**`data` is an OBJECT on this route, not an array** — the only list endpoint
+in this API where that is true, and it is deliberate. The rows are at
+`data.assets`, **inside** `data.fidelity`, which names every field the
+snapshot rolled back (`rolled_back`, 28), every field published at its
+CURRENT value because no history supports a rollback (`as_of_today`, 21), and
+every field it cannot answer at all (`not_recoverable`, 23). A row degraded
+beyond that carries its own `_fidelity`. An array had nowhere honest to put
+the boundary, and the envelope's `_warnings` is the one part of the body a
+client reading `body["data"]` never sees — a boundary a consumer can miss by
+reading the obvious key is not a boundary.
+
+**Read the declaration before reconciling any figure.** A snapshot that
+silently mixed as-of-the-date with as-of-today would produce a discrepancy in
+an audit, and the discrepancy would be ours.
+
+`data.cutoff` is the exact instant the rollback cut at, naive UTC, with
+`fidelity.notes.cutoff` saying which day boundary was taken — end of day
+**Africa/Lagos**, which is 23:00 UTC. `data.filters` records that filters
+match CURRENT values: the rows are rolled back, the selection is not.
+
+**`GET /api/v1/reports/disposals?from=YYYY-MM-DD&to=YYYY-MM-DD`** — disposals
+in a period with the documentation behind each. Scope `assets:read`. Both
+bounds INCLUSIVE. `data.rows` pages; `data.summary` describes the WHOLE
+PERIOD on every page, so *"41 of 63 carry no authorising reference"* is one
+read of page one. `summary.total` and `pagination.total_estimate` come from
+one model call and cannot disagree. Rows are ordered by ascending asset id,
+because cursor pagination walks ascending ids and a date-ordered list cannot
+be paged honestly with this cursor; every row carries `disposal_date`.
+
+**A disposal with no authorising reference is never filtered out** — it
+appears carrying `no_authorising_reference` in `findings`. `data.unplaceable`
+carries disposals that belong to no period at all, in full and uncapped:
+dropping them makes them invisible in every report, and putting them in one
+period double-counts them in the next.
+
+Findings: `no_authorising_reference`, `no_approver`, `no_approval_date`,
+`no_disposal_method`, `no_disposal_date`, `no_disposal_reason`,
+`no_proceeds_recorded`, `disposal_date_reconstructed`, `no_sap_asset_number`.
+
+**Both reports are READ-ONLY and neither repairs what it finds.** A report
+that quietly fixes what it finds can never honestly report zero. Proved by
+fingerprinting every table they read, before and after six calls: identical.
+
+### ADDED · `data.disposal` on the asset serialiser, and three writable fields
+
+`data.disposal` carries `date`, `date_reconstructed`, `method`, `reference`,
+`approved_by`, `approved_at`, `proceeds`, `currency`, `reason`. Grouped like
+`provenance` and `sap`. `dates.disposal_date` and the top-level
+`disposal_reason` are unchanged and are not going away.
+
+**Newly writable:** `disposal_method`, `disposal_reference`,
+`disposal_proceeds`.
+
+**Deliberately NOT writable:** `disposal_approved_by`,
+`disposal_approved_date`, `disposal_date_reconstructed`. `no_approver` is one
+of the report's own findings — a client able to PATCH the approver could
+create a disposal and name any user as its authority in the same request,
+turning that finding into a clean row without anybody having authorised
+anything. An approval is recorded from the acting user by
+`action_approve_disposal`. A writable approval date beside a read-only
+approver would additionally let a caller backdate an approval across a
+financial year. Rejected fields are reported in `data._warnings.rejected_fields`,
+never dropped silently.
+
+**Consequence, stated rather than hidden:** there is currently **no API route
+that records a disposal approval**. That is a gap and not a control; closing
+it needs its own scope decision.
+
+### CHANGED · The outbound `asset.disposed` SAP event carries the authorisation
+
+**Not an `/api/v1` surface — it is INT-09, outbound to SAP — and it is in this
+file because the scope note above says it should be.** `disposal_type` was a
+hardcoded literal `'disposal'` on every event ever sent, and no approver went
+with it, while `asset.transferred` has carried `approved_by`/`approved_at`
+since the day it was written. `disposal_type` is now derived from
+`disposal_method`, so a scrapping or a write-off sends `retirement` where the
+SAP requirements document §4.2 always said it should; `disposal_method`,
+`reference`, `approved_by`, `approved_at`, `proceeds` and `proceeds_currency`
+are new keys.
+
+**Additive and non-breaking.** An asset with no recorded method — every asset
+on every tenant today — still sends `disposal`, the exact value SAP has been
+receiving. New keys are **present and null** where Cadra does not know, rather
+than omitted: a receiver seeing a null knows Cadra does not know, where one
+seeing no key cannot tell that from a Cadra too old to send it. The mapping is
+in `docs/integrations/INT-06-07-09-sap-requirements.md` §4.2.
+
+### CHANGED · `disposal_date` and `disposal_reason` are now tracked
+
+They were not, which meant the two fields an auditor reads first on a
+disposal could be changed with no record. Five new disposal fields are
+tracked from birth. No API shape changes; what changes is that a change to
+any of them now leaves a trail.
+
 ---
 
 ## 2026-09-09 — handoff 15

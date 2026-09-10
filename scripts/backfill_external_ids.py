@@ -122,6 +122,8 @@ def upsert_xids(models, db, uid, password, model, mapping, dry_run, label):
         try:
             rpc(models, db, uid, password, "ir.model.data", "create", vals_list)
             created += len(chunk)
+        # catch-all: reported — prints the failed batch and its exception, then
+        # retries the chunk row by row so the bad row names itself below.
         except Exception as e:
             # Fall back to per-row to localise the bad row(s).
             print(f"    ! bulk batch failed ({e}); falling back row-by-row")
@@ -129,6 +131,10 @@ def upsert_xids(models, db, uid, password, model, mapping, dry_run, label):
                 try:
                     rpc(models, db, uid, password, "ir.model.data", "create", vals)
                     created += 1
+                # catch-all: reported — prints the model, the id and the
+                # exception, and does NOT increment `created`, so the count
+                # this function returns is the number of external ids that
+                # actually exist.
                 except Exception as e2:
                     print(f"      ! __export__.{name} → {model} id={rid}: {e2}")
         print(f"    + created {min(i + BATCH, len(to_create))}/{len(to_create)}")

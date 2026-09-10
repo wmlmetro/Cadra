@@ -51,6 +51,12 @@ def nominatim_geocode(name, state_name):
                 data = json.loads(resp.read().decode())
             if data:
                 return float(data[0]['lat']), float(data[0]['lon'])
+        # catch-all: reported — the run tallies geocoded / fallback / failed
+        # separately, so a swallowed HTTP or JSON error lands in one of the two
+        # honest columns and never in the geocoded count. What it CANNOT tell
+        # apart is "Nominatim has no such place" from "Nominatim is
+        # unreachable": a total outage writes a jittered state-capital
+        # coordinate for every location and reports the lot as fallbacks.
         except Exception:
             pass
         time.sleep(1)
