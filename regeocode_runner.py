@@ -3,12 +3,25 @@
 Odoo shell runner for re-geocoding NRS locations.
 Run as: sudo -u odoo python3 /opt/odoo/odoo/odoo-bin shell \
     -c /etc/odoo/odoo.conf -d myservice --no-http < regeocode_runner.py
+
+Every coordinate this script writes also records HOW it was obtained, in
+`generic.location.geocode_source` (myservice_nrs_base). A jittered state
+capital and a real fix on the building look identical on a map, and a reader
+who cannot tell them apart reconciles against the wrong one — see the module
+docstring in myservice_nrs_base/models/generic_location.py.
+
+And a geocoder that cannot REACH its service writes nothing at all: an outage
+or a 403 rate-limit used to be indistinguishable from "no such place", so a
+total outage produced plausible coordinates for the whole estate, reported as
+state_capital fallbacks.
 """
 import sys
 import time
 import re
 import json
+import socket
 import urllib.request
+import urllib.error
 import urllib.parse
 import random
 
@@ -57,6 +70,40 @@ CITY_STATE_MAP = {
 
 STATES_NG = list(STATE_CAPITALS.keys())
 
+# ── Three outcomes from the service, not two ──────────────────────────
+#
+#   OK          it answered and had a match.
+#   NOT_FOUND   it answered and had no match — an empty result list, or a 404.
+#               Falling through to the next strategy, and ultimately to the
+#               state-capital approximation, is honest here.
+#   UNREACHABLE we did not get an ANSWER: network error, timeout, any other
+#               HTTP status (403 rate-limit above all), a body that is not
+#               JSON, or a JSON body with no usable coordinate. NOTHING is
+#               written for that location and the state-capital fallback is
+#               NOT reached — an outage tells us nothing about where a
+#               building is, and a coordinate invented from nothing is the
+#               defect this classification exists to remove.
+OK = 'ok'
+NOT_FOUND = 'not_found'
+UNREACHABLE = 'unreachable'
+
+# Written into `generic.location.geocode_source` when the service answered "no
+# such place" and a jittered state capital was written instead. Must match
+# myservice_nrs_base/models/generic_location.py; the preflight below refuses to
+# run if it does not.
+SOURCE_APPROXIMATE = 'state_capital_approx'
+
+# Stop the run after this many locations in a row come back unreachable.
+#
+# Five. One unreachable answer is ordinary — a dropped connection, a slow DNS
+# lookup — and the loop already sleeps 1.1s between calls and may make four
+# calls per location, so five consecutive failures is the best part of a minute
+# in which the service answered nothing at all. That is the service, not those
+# five places. The alternative is walking 11,000 locations against a 403,
+# writing nothing, for hours, printing thousands of lines nobody will read.
+MAX_CONSECUTIVE_UNREACHABLE = 5
+
+
 def extract_state(name, street):
     text = f"{name} {street}".upper()
     for s in STATES_NG:
@@ -78,77 +125,210 @@ def extract_city(name):
         return m.group(1).strip()
     return None
 
+def _classify(exc):
+    """Map an exception from the HTTP call onto NOT_FOUND / UNREACHABLE.
+
+    A 404 is the only status that is an answer about the PLACE; everything else
+    is an answer about the service, or no answer at all. A 403 is Nominatim's
+    rate limit and reading it as "no such place" is precisely how an outage
+    used to turn into state-capital coordinates for the whole estate.
+    """
+    if isinstance(exc, urllib.error.HTTPError):
+        if exc.code == 404:
+            return NOT_FOUND, 'HTTP 404'
+        return UNREACHABLE, f'HTTP {exc.code} {exc.reason}'
+    if isinstance(exc, urllib.error.URLError):
+        return UNREACHABLE, f'network error: {exc.reason}'
+    if isinstance(exc, (socket.timeout, TimeoutError)):
+        return UNREACHABLE, 'timed out'
+    if isinstance(exc, ValueError):
+        # json.JSONDecodeError subclasses ValueError: a body that is not JSON
+        # is a proxy error page, not an answer.
+        return UNREACHABLE, f'unreadable response: {exc}'
+    if isinstance(exc, (KeyError, IndexError, TypeError)):
+        return UNREACHABLE, f'response had no usable coordinate: {exc!r}'
+    return UNREACHABLE, f'{type(exc).__name__}: {exc}'
+
+
 def nominatim(query):
+    """Return (status, coords, reason). `coords` is (lat, lng) only when OK.
+
+    This used to be a bare `except:` returning `(None, None, '')`. Two things
+    were wrong with it: it swallowed KeyboardInterrupt, so the only way to stop
+    a long run was to kill the process; and it collapsed "no such place" and "no
+    answer" into one value that the caller read as the former.
+    """
     try:
         params = urllib.parse.urlencode({'q':query,'format':'json','limit':1,'countrycodes':'ng'})
         url = f"https://nominatim.openstreetmap.org/search?{params}"
         req = urllib.request.Request(url, headers={'User-Agent':'NRS-myservice/1.0'})
         with urllib.request.urlopen(req, timeout=10) as r:
             data = json.loads(r.read())
-            if data:
-                return float(data[0]['lat']), float(data[0]['lon']), data[0].get('display_name','')
-    # catch-all: reported — returns (None, None, '') so the caller falls
-    # through to the next strategy and the run's stats say which strategy
-    # answered. Same limit as geocode_locations.py: a Nominatim outage is
-    # indistinguishable from "no such place", and both come out as
-    # state_capital coordinates in the tally.
-    except:
-        pass
-    return None, None, ''
+        if data:
+            return OK, (float(data[0]['lat']), float(data[0]['lon'])), ''
+        # An empty list is an ANSWER: the service looked and found nothing.
+        return NOT_FOUND, None, ''
+    except KeyboardInterrupt:
+        raise
+    # catch-all: reported — `_classify()` sorts every exception into NOT_FOUND
+    # (a 404, the one status that is an answer about the place) or UNREACHABLE
+    # (everything else: no answer at all). The status is returned, counted in
+    # `stats`, printed with its reason, and an UNREACHABLE writes nothing and
+    # never reaches the state-capital fallback. Nothing is swallowed and no
+    # error becomes a coordinate. Deliberately broad, with a fall-through in
+    # `_classify` for the unanticipated: dying mid-estate on one strange
+    # exception is worse than recording that location as unreachable.
+    except Exception as exc:
+        status, reason = _classify(exc)
+        return status, None, reason
+
 
 def geocode(loc):
+    """Return (status, coords, method, reason).
+
+    `method` is the value written into `geocode_source`: one of the strategy
+    names when the service found the place, or `state_capital_approx` when it
+    answered "no such place" and a jittered capital was substituted.
+
+    **The service is asked at least one real question before anything is
+    approximated.** The three precise strategies can only be built from a
+    street or a recognised city, so a location with neither — a name carrying
+    a state and nothing else — fell through an EMPTY ladder straight to the
+    state-capital fallback and was stamped `state_capital_approx`, a value
+    whose published meaning is "the service was reachable, answered, and had
+    no such place". It had not been asked anything. Zero HTTP calls, and a
+    provenance statement that was not true. The name-only query is now the
+    ladder's last rung whenever no stronger question can be posed, so every
+    approximation is preceded by an actual answer.
+
+    The ORDER is otherwise unchanged, including S4 (state capital) coming
+    before a bare name match: where a PRECISE question was asked and came back
+    "no such place", an approximation in the right state beats a name match
+    that could land anywhere in Nigeria — the approximation announces itself in
+    `geocode_source` and a wrong name match does not. The weakest question is
+    asked only when it is the only question available.
+
+    And ANY unreachable answer stops the ladder immediately and returns
+    UNREACHABLE — the next strategy would be asking a service that is not
+    answering, and the fallback at the bottom of the ladder must not be
+    reached by an outage.
+    """
     name = loc.name or ''
     street = loc.street or ''
     state = extract_state(name, street)
     city = extract_city(name)
 
-    # S1: full address
+    # S1: full address / S2: name + city + state / S3: city + state
+    ladder = []
     if street and state:
-        lat,lng,dn = nominatim(f"{name}, {street}, {state}, Nigeria")
-        time.sleep(1.1)
-        if lat: return lat,lng,'full_address'
-
-    # S2: name + city + state
+        ladder.append((f"{name}, {street}, {state}, Nigeria", 'full_address'))
     if city and state:
-        lat,lng,dn = nominatim(f"{name}, {city}, {state}, Nigeria")
-        time.sleep(1.1)
-        if lat: return lat,lng,'name_city_state'
+        ladder.append((f"{name}, {city}, {state}, Nigeria", 'name_city_state'))
+        ladder.append((f"{city}, {state}, Nigeria", 'city_state'))
+    if not ladder:
+        # S5, as the ladder's last rung rather than as code below the
+        # fallback that a location with a state could never reach. Nothing
+        # else can be asked about this location, and asking the weak question
+        # is strictly better than approximating without asking any.
+        ladder.append((f"{name}, Nigeria", 'name_only'))
 
-    # S3: city + state
-    if city and state:
-        lat,lng,dn = nominatim(f"{city}, {state}, Nigeria")
+    for query, method in ladder:
+        status, coords, reason = nominatim(query)
         time.sleep(1.1)
-        if lat: return lat,lng,'city_state'
+        if status == UNREACHABLE:
+            return UNREACHABLE, None, '', reason
+        if status == OK:
+            return OK, coords, method, ''
 
-    # S4: state capital + small random offset
+    # S4: state capital + small random offset. Reached only because the service
+    # ANSWERED every question that could be posed about this location and had
+    # nothing — never because it failed to answer, and never without asking.
     if state and state in STATE_CAPITALS:
         cap = STATE_CAPITALS[state]
-        return (cap[0]+random.uniform(-0.05,0.05),
-                cap[1]+random.uniform(-0.05,0.05),
-                'state_capital')
+        return (NOT_FOUND,
+                (cap[0]+random.uniform(-0.05,0.05),
+                 cap[1]+random.uniform(-0.05,0.05)),
+                'state_capital', '')
 
-    # S5: name only
-    lat,lng,dn = nominatim(f"{name}, Nigeria")
-    time.sleep(1.1)
-    if lat: return lat,lng,'name_only'
+    return NOT_FOUND, None, 'failed', ''
 
-    return None,None,'failed'
+# ── Preflight ─────────────────────────────────────────────────────────
+#
+# `geocode_source` reaches a tenant only via `odoo -u myservice_nrs_base` on
+# that database. Running against a tenant that has not been upgraded would
+# write coordinates carrying no statement of where they came from — the state
+# this script exists to stop producing — so it refuses to start rather than
+# degrade quietly.
+_loc_fields = env['generic.location']._fields
+if 'geocode_source' not in _loc_fields:
+    raise SystemExit(
+        "generic.location has no `geocode_source` field on this database.\n"
+        "Upgrade myservice_nrs_base on this tenant first:\n"
+        "  odoo -c /etc/odoo/odoo.conf -d <db> -u myservice_nrs_base "
+        "--stop-after-init --http-port=8099 --gevent-port=8098\n"
+        "Refusing to write coordinates that cannot say where they came from."
+    )
+# `fields_get`, not `dict(field.selection)` — see the handoff 05 ruling:
+# `.selection` is a callable on a related Selection and dict() of it raises.
+_allowed_sources = {
+    v for v, _l in env['generic.location']
+    .fields_get(['geocode_source'])['geocode_source']['selection']
+}
+if SOURCE_APPROXIMATE not in _allowed_sources:
+    raise SystemExit(
+        f"`geocode_source` on this database has no `{SOURCE_APPROXIMATE}` "
+        f"value (it has: {sorted(_allowed_sources)}).\n"
+        "The approximation would be written with no way to tell it from a "
+        "real geocode. Refusing to run."
+    )
 
 # ── Main ──────────────────────────────────────────────────────────────
 locs = env['generic.location'].search([], order='name asc')
 total = len(locs)
 print(f"Re-geocoding {total} locations...")
 
+# `state_capital` counts APPROXIMATIONS — the service answered and had no such
+# place. `failed` counts a not-found with no fallback available, so nothing was
+# written. `unreachable` counts locations we got no answer about at all;
+# nothing was written for those either, and crucially they were NOT quietly
+# turned into state_capital rows, which is what used to happen.
 stats = {'full_address':0,'name_city_state':0,'city_state':0,
-         'state_capital':0,'name_only':0,'failed':0,'skipped':0}
+         'state_capital':0,'name_only':0,'failed':0,'skipped':0,
+         'unreachable':0}
 
 BATCH = 50  # commit every 50
 
-for i, loc in enumerate(locs):
-    lat, lng, method = geocode(loc)
+consecutive_unreachable = 0
+aborted = False
+last_reason = ''
+processed = 0
 
-    if lat:
-        loc.write({'latitude': lat, 'longitude': lng})
+for i, loc in enumerate(locs):
+    status, coords, method, reason = geocode(loc)
+    processed = i + 1
+
+    if status == UNREACHABLE:
+        # Nothing written. No coordinate, no source, no fallback.
+        stats['unreachable'] += 1
+        consecutive_unreachable += 1
+        last_reason = reason
+        print(f"  [{i+1}/{total}] {(loc.name or '')[:40]} — UNREACHABLE: "
+              f"{reason} (nothing written)")
+        if consecutive_unreachable >= MAX_CONSECUTIVE_UNREACHABLE:
+            aborted = True
+            break
+        continue
+
+    consecutive_unreachable = 0
+
+    if coords:
+        source = method if method in _allowed_sources else (
+            SOURCE_APPROXIMATE if method == 'state_capital' else False)
+        # The source is stamped in the SAME write as the coordinates. A pair of
+        # floats that arrives without its provenance is exactly the ambiguity
+        # the field exists to remove, and a second write could fail alone.
+        loc.write({'latitude': coords[0], 'longitude': coords[1],
+                   'geocode_source': source})
         stats[method] += 1
     else:
         stats['failed'] += 1
@@ -158,7 +338,27 @@ for i, loc in enumerate(locs):
         print(f"  [{i+1}/{total}] committed — stats so far: {stats}")
 
 env.cr.commit()
-print(f"\n=== COMPLETE ===")
-print(f"Total: {total}")
-for k,v in stats.items():
-    print(f"  {k}: {v}")
+
+if aborted:
+    remaining = total - processed
+    print()
+    print("!" * 70)
+    print(f"  ABORTED after {MAX_CONSECUTIVE_UNREACHABLE} consecutive "
+          f"unreachable responses (last: {last_reason}).")
+    print(f"  Nominatim is down, rate-limiting us, or unreachable from here.")
+    print(f"  NO coordinates were written for the remaining {remaining} "
+          f"location(s), and none were guessed.")
+    print(f"  Everything written before the abort is committed; re-run when "
+          f"the service answers.")
+    print("!" * 70)
+
+print(f"\n=== {'ABORTED' if aborted else 'COMPLETE'} ===")
+print(f"Total locations: {total} (attempted: {processed})")
+print("  Geocoded — the service found the place:")
+for k in ('full_address','name_city_state','city_state','name_only'):
+    print(f"      {k}: {stats[k]}")
+print(f"  Approximated — no such place, state capital written: "
+      f"{stats['state_capital']}")
+print(f"  Not found, no fallback available (nothing written): {stats['failed']}")
+print(f"  Unreachable — no answer, nothing written: {stats['unreachable']}")
+print(f"  Skipped: {stats['skipped']}")

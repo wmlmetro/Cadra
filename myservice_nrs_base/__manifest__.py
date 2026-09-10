@@ -1,6 +1,6 @@
 {
     'name': 'NRS Design System Base',
-    'version': '19.0.1.2.0',
+    'version': '19.0.1.3.0',
     'summary': 'Shared CSS design tokens and component styles for all NRS modules',
     'category': 'Theme',
     'author': 'WestMetro Limited',
