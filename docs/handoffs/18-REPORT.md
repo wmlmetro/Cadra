@@ -458,14 +458,51 @@ one mechanism on.
 
 - **The PR merge.** The Builder's permission layer refuses `gh pr merge`.
 - **`cadra-odoo/ODOO_ADMIN_PASSWORD` must be created in the cluster before the
-  next `nrs-import` run**, or the Job's pre-check fails naming it. The
-  credential it replaces was `admin`, baked into a published image, so it
-  should be a new value rather than that one:
+  next `nrs-import` run**, or the Job's pre-check fails naming it.
+
+  **What it is.** The password of the Odoo **`admin` user** — a `res.users`
+  login — on the target tenant database. `scripts/nrs_import_entrypoint.sh`
+  passes it as `--password` to `migrate_nrs_locations.py` and
+  `seed_nrs_assets.py`, which `common.authenticate(db, 'admin', pw, {})` over
+  XML-RPC against `odoo-19:8069` and then write the location tree, the asset
+  categories, ~11.4k employees and ~11.9k assets.
+
+  **It is not `ODOO_MASTER_PASSWORD`**, which is already in this Secret. That
+  one is `admin_passwd` in `odoo.conf` — the database manager's master
+  password, used to create, duplicate and drop databases. Different
+  credential, different job. Conflating them is easy and the old comment in
+  `71-nrs-import-job.yaml` did not help.
+
+  **The `cadra-nrs-import` Job is its only consumer**, in the cluster or
+  anywhere else. Nothing else authenticates as the admin user over XML-RPC:
+  `backfill_external_ids.py` accepts a `--password` but is wired into no Job
+  and no workflow.
+
   ```bash
   kubectl -n cadra-dev patch secret cadra-odoo --type merge \
     -p '{"stringData":{"ODOO_ADMIN_PASSWORD":"<password>"}}'
   ```
   Documented in `k8s/dev/CLUSTER-SETUP.md`.
+
+- **AND THE VALUE IS THE POINT. Taking the default out of the image stopped
+  PUBLISHING the credential; it did not rotate it.** Setting this key to
+  `admin` restores exactly the security position that existed before, minus
+  the image layer. Whether that is acceptable depends on the next item.
+
+- **Nothing in this repository ever sets the Odoo `admin` user's password, on
+  any tenant.** `scripts/bootstrap.py` adds `base.user_admin` to groups and
+  never touches its password; no seed, migration, Job or workflow does either.
+  Measured on this machine: `admin`/`admin` authenticates as uid 2 on
+  `jaizbankplc`, `nrs19`, `cadra19` and `test19`. **The cluster was not
+  probed** — I have no access to it from here — but the same code provisions
+  it, so the same is likely true of `staging19`, `staging`, `gtb`, `lasg` and
+  `jaizbankplc` there.
+
+  That is a larger finding than the one this handoff was given, and it is not
+  the Builder's to fix: changing a live tenant's admin password is an
+  operational act with a blast radius (anyone signing in as `admin`, any
+  saved session, any script somebody keeps locally). It is recorded here as
+  the thing the image-layer fix uncovered rather than the thing it solved.
 - **The two live-cutover credentials from report 17 §3 are still unrotated.**
   Not this handoff's work; still true.
 
