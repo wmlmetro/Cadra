@@ -110,7 +110,26 @@ FINDING_NO_DATE = 'no_disposal_date'
 FINDING_NO_REASON = 'no_disposal_reason'
 FINDING_NO_PROCEEDS = 'no_proceeds_recorded'
 FINDING_RECONSTRUCTED_DATE = 'disposal_date_reconstructed'
-FINDING_NO_SAP_NUMBER = 'no_sap_asset_number'
+
+# `no_sap_asset_number` WAS a finding here and is deliberately no longer one
+# (handoff 17 E1). It fired on close to every row — 2 of 11,942 assets on
+# `nrs19` carry a SAP number and none does on any other tenant — and a
+# control that fires on ~100% of rows is one a reader learns to skip, which
+# costs the findings BESIDE it the weight they were meant to have. Removing
+# it would hide something true, so it did not go: the per-row FACT is still
+# there in every row's `sap_asset_number`, and the period's position is
+# stated ONCE, in `summary.sap_coverage`, where it reads as a fact about
+# INT-09 rather than as a defect repeated on each row. Announced as a
+# removal in `docs/api/CHANGELOG.md`. Do not reintroduce it per row.
+
+# How the period stands against SAP, as one value a renderer can branch on.
+# `empty` exists so that a period holding no disposals at all cannot be
+# rendered as "no disposal carried a SAP asset number" — true of the empty
+# set, and read by a human as a finding about disposals that do not exist.
+SAP_COVERAGE_EMPTY = 'empty'
+SAP_COVERAGE_NONE = 'none'
+SAP_COVERAGE_PARTIAL = 'partial'
+SAP_COVERAGE_COMPLETE = 'complete'
 
 # Where the date on a report row came from. An auditor reconciling a period
 # total has to know whether the date placing a row in that period was
@@ -494,18 +513,15 @@ class NRSAssetDisposal(models.Model):
             # scrapping with no proceeds is ordinary and flagging it would
             # bury the sales that are missing theirs.
             findings.append(FINDING_NO_PROCEEDS)
-        if not asset.sap_asset_number:
-            # No SAP asset number means the asset was never capitalised
-            # there, so INT-09 sent no disposal instruction — by design, and
-            # documented in the SAP requirements §4.1. The consequence for
-            # this report is that the disposal never reached the financial
-            # system, which is a finding whatever the reason for it.
-            #
-            # This will fire on close to every row on today's tenants: 2 of
-            # 11,942 assets on `nrs19` carry a SAP number and none on
-            # `jaizbankplc`. That is the true picture of the dual-code
-            # position and it belongs in the report rather than in a footnote.
-            findings.append(FINDING_NO_SAP_NUMBER)
+        # NOT a finding: a missing `sap_asset_number`. It is a real fact
+        # about the dual-code position — the asset was never capitalised in
+        # SAP, so INT-09 sent no disposal instruction for it — and it is
+        # published on this row as `sap_asset_number: null`. What it is not
+        # is a per-row defect: it is absent from ~100% of rows on every
+        # tenant, and a finding that fires on every row trains the reader to
+        # skim the findings column, taking `no_approver` and
+        # `no_authorising_reference` down with it. The period's coverage is
+        # counted and stated once in `summary.sap_coverage`.
 
         return {
             'asset_id': asset.id,
@@ -542,6 +558,14 @@ class NRSAssetDisposal(models.Model):
         Proceeds are totalled **per currency and never across them**. Every
         tenant here is single-currency today, which is exactly the condition
         under which a cross-currency sum looks correct for years.
+
+        `sap_coverage` is the SAP position said ONCE. It replaces the
+        per-row `no_sap_asset_number` finding, which fired on essentially
+        every row and so said nothing a reader could act on. Like the
+        findings tally it is over the PERIOD's rows and not over
+        `unplaceable`, for the same reason: merging the two produces a
+        number whose meaning depends on how much undated data the tenant
+        holds.
         """
         findings = {}
         for row in rows:
@@ -565,8 +589,68 @@ class NRSAssetDisposal(models.Model):
             'unplaceable': len(unplaceable),
             'clean': sum(1 for row in rows if not row['findings']),
             'findings': findings,
+            'sap_coverage': self._disposal_report_sap_coverage(rows),
             'by_method': by_method,
             'proceeds_by_currency': proceeds,
+        }
+
+    @api.model
+    def _disposal_report_sap_coverage(self, rows):
+        """How much of this period reached SAP, as counts plus one enum.
+
+        The reason this is not a sentence in a `notes` string: a caller
+        cannot branch on prose, and a client rendering its own sentence off
+        two raw counts is one `if` away from printing *"No disposal in this
+        period carried a SAP asset number"* over a table where three of them
+        did. `coverage` is that `if`, made once and made here, so every
+        renderer of this report reaches the same verdict from the same
+        numbers.
+
+        `statement` carries the English for a reader, already correct for
+        all four cases. Branch on `coverage`, never on `statement` — the
+        wording may be improved, the enum may not. It is deliberately NOT
+        run through `_()`: this is a published API payload, and a value that
+        changes with the acting user's language is not something a consumer
+        can store, diff or reconcile against last quarter's run.
+
+        The `none` statement says *"in this period"* and stops there. The
+        stronger claim — that INT-09 has never sent a disposal instruction
+        at all — is not this report's to make: it reads one period, and a
+        disposal outside the bounds could carry a SAP number. Asserting
+        "never" from a bounded window is the same defect as counting a
+        register from a page of it.
+        """
+        total = len(rows)
+        with_number = sum(1 for row in rows if row['sap_asset_number'])
+        without_number = total - with_number
+
+        if not total:
+            coverage = SAP_COVERAGE_EMPTY
+            statement = "No disposals fall in this period."
+        elif not with_number:
+            coverage = SAP_COVERAGE_NONE
+            statement = (
+                "No disposal in this period carried a SAP asset number, so "
+                "INT-09 sent no disposal instruction to the financial "
+                "system for any of them.")
+        elif not without_number:
+            coverage = SAP_COVERAGE_COMPLETE
+            statement = (
+                "Every disposal in this period (%d) carried a SAP asset "
+                "number." % total)
+        else:
+            coverage = SAP_COVERAGE_PARTIAL
+            statement = (
+                "%d of %d disposals in this period carried a SAP asset "
+                "number; the other %d reached no financial system through "
+                "INT-09." % (with_number, total, without_number))
+
+        return {
+            'total': total,
+            'with_sap_asset_number': with_number,
+            'without_sap_asset_number': without_number,
+            'coverage': coverage,
+            'statement': statement,
         }
 
     # ── The action that produces a disposal ───────────────────

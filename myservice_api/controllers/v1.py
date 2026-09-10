@@ -1158,8 +1158,7 @@ class MyserviceApiV1(http.Controller):
                                              "no_disposal_date",
                                              "no_disposal_reason",
                                              "no_proceeds_recorded",
-                                             "disposal_date_reconstructed",
-                                             "no_sap_asset_number"]},
+                                             "disposal_date_reconstructed"]},
                                 "description": (
                                     "Machine-readable, because the point of "
                                     "a finding is that somebody can count "
@@ -1169,7 +1168,18 @@ class MyserviceApiV1(http.Controller):
                                     "`sale`, `auction` and `trade_in` — a "
                                     "scrapping with no proceeds is "
                                     "ordinary, and flagging it would bury "
-                                    "the sales that are missing theirs."),
+                                    "the sales that are missing theirs. "
+                                    "REMOVED 2026-09-10: "
+                                    "`no_sap_asset_number` is no longer "
+                                    "returned by any row. It fired on "
+                                    "essentially every disposal, and a "
+                                    "finding present on every row is one a "
+                                    "reader learns to skip — taking the "
+                                    "findings beside it with it. The fact "
+                                    "is unchanged and is published twice: "
+                                    "per row as `sap_asset_number`, and "
+                                    "once for the period as "
+                                    "`summary.sap_coverage`."),
                             },
                         },
                     },
@@ -1219,6 +1229,61 @@ class MyserviceApiV1(http.Controller):
                                     "unplaceable": {"type": "integer"},
                                     "clean": {"type": "integer"},
                                     "findings": {"type": "object"},
+                                    "sap_coverage": {
+                                        "type": "object",
+                                        "description": (
+                                            "THE SAP POSITION FOR THE "
+                                            "PERIOD, SAID ONCE. Replaces "
+                                            "the per-row "
+                                            "`no_sap_asset_number` finding, "
+                                            "which was absent from almost "
+                                            "no row and so distinguished "
+                                            "nothing. Counted over "
+                                            "`rows`, never over "
+                                            "`unplaceable` — the same "
+                                            "boundary `findings` keeps. "
+                                            "BRANCH ON `coverage`, never on "
+                                            "`statement`: the wording may "
+                                            "be improved, the enum may not. "
+                                            "`statement` is untranslated on "
+                                            "purpose, so that a stored "
+                                            "report can be diffed against "
+                                            "last quarter's."),
+                                        "properties": {
+                                            "total": {"type": "integer"},
+                                            "with_sap_asset_number": {
+                                                "type": "integer"},
+                                            "without_sap_asset_number": {
+                                                "type": "integer"},
+                                            "coverage": {
+                                                "type": "string",
+                                                "enum": ["empty", "none",
+                                                         "partial",
+                                                         "complete"],
+                                                "description": (
+                                                    "`none` — not one "
+                                                    "disposal in the period "
+                                                    "carried a SAP asset "
+                                                    "number, so INT-09 sent "
+                                                    "no disposal "
+                                                    "instruction for any of "
+                                                    "them. `partial` — SOME "
+                                                    "did, and a renderer "
+                                                    "must not print the "
+                                                    "absolute sentence over "
+                                                    "that table. "
+                                                    "`complete` — all did. "
+                                                    "`empty` — the period "
+                                                    "holds no disposals at "
+                                                    "all, which is NOT the "
+                                                    "same statement as "
+                                                    "`none` even though "
+                                                    "both counts are "
+                                                    "zero."),
+                                            },
+                                            "statement": {"type": "string"},
+                                        },
+                                    },
                                     "by_method": {"type": "object"},
                                     "proceeds_by_currency": {"type": "object"},
                                 },

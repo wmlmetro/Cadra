@@ -48,10 +48,30 @@ _METHODS = {"sale", "auction", "transfer", "donation", "trade_in",
 
 # The published finding strings. A finding nobody can branch on is a
 # sentence, not a finding.
+#
+# `no_sap_asset_number` was here and was RETIRED in handoff 17 E1 — it fired
+# on close to every row, and a finding present on every row is one a reader
+# learns to skip. It is deliberately absent from this set rather than merely
+# unasserted, so that
+# `test_every_finding_and_enum_is_one_we_publish` FAILS if any row starts
+# emitting it again. The fact it carried did not go anywhere: it is on each
+# row as `sap_asset_number`, and stated once for the period in
+# `summary.sap_coverage`.
 _FINDINGS = {"no_authorising_reference", "no_approver", "no_approval_date",
              "no_disposal_method", "no_disposal_date", "no_disposal_reason",
-             "no_proceeds_recorded", "disposal_date_reconstructed",
-             "no_sap_asset_number"}
+             "no_proceeds_recorded", "disposal_date_reconstructed"}
+
+_RETIRED_FINDINGS = {"no_sap_asset_number"}
+
+# The four verdicts `summary.sap_coverage.coverage` can carry. Published API
+# surface (rule 4) like every other enum in this file.
+_SAP_COVERAGE = {"empty", "none", "partial", "complete"}
+
+# The sentence that is true ONLY when no disposal in the period carried a SAP
+# number. Asserted as a forbidden substring everywhere else, because printing
+# it over a table where three rows DO carry one is the single way this
+# replacement can be worse than the finding it replaced.
+_ABSOLUTE_SAP_SENTENCE = "No disposal in this period carried a SAP asset number"
 
 _DATE_SOURCES = {"recorded", "reconstructed", "state_transition", "none"}
 
@@ -546,6 +566,113 @@ def test_the_summary_counts_match_the_rows(client, disposed_assets, capture):
     later = assert_envelope_ok(
         client.get(DISPOSALS, params={"from": date, "to": date, "limit": 1}))
     assert later["data"]["summary"] == summary
+
+
+def test_the_sap_position_is_a_statement_and_not_a_per_row_finding(
+        client, disposed_assets):
+    """Handoff 17 E1, stated as the acceptance criterion it is.
+
+    `no_sap_asset_number` fired on essentially every row of this report on
+    every tenant, and a control that fires on 100% of rows is one a reader
+    learns to skip — taking `no_approver` and `no_authorising_reference`,
+    sitting in the same column, down with it. It is now said ONCE for the
+    period, where it reads as a fact about INT-09 rather than as a defect
+    repeated on each row.
+
+    Removing it would have hidden something true, so the FACT is asserted in
+    both places it survives: `sap_asset_number` on the row, and the counts in
+    `summary.sap_coverage`.
+    """
+    date = disposed_assets["date"]
+    rows, first = _walk_disposals(client, date, date)
+    summary = first["data"]["summary"]
+
+    for row in rows + first["data"]["unplaceable"]:
+        assert not (set(row["findings"]) & _RETIRED_FINDINGS), (
+            f"row {row['asset_id']} carries a retired finding: "
+            f"{set(row['findings']) & _RETIRED_FINDINGS}. It moved to "
+            "`summary.sap_coverage` and must appear once, not per row.")
+        # The fact itself is still published per row. Only the label went.
+        assert "sap_asset_number" in row
+
+    assert "no_sap_asset_number" not in summary["findings"], (
+        "the findings TALLY still counts it, so it is still being emitted "
+        "somewhere")
+
+    coverage = summary["sap_coverage"]
+    assert coverage["coverage"] in _SAP_COVERAGE
+    assert coverage["total"] == summary["total"], (
+        "`sap_coverage` is counted over a different population from "
+        "`summary.total` — two numbers in one response that cannot both be "
+        "about the same period")
+    assert (coverage["with_sap_asset_number"]
+            + coverage["without_sap_asset_number"]) == coverage["total"]
+
+    # The fixture creates its disposals through the API, and
+    # `sap_asset_number` is not writable there — deliberately, and asserted
+    # elsewhere in this file. So the bare/documented/partial trio contribute
+    # three rows with no SAP number, and the period cannot be `empty` or
+    # `complete`.
+    assert coverage["coverage"] in ("none", "partial")
+    assert coverage["without_sap_asset_number"] >= 3, (
+        "the fixture put three disposals with no SAP number in this period "
+        "and the coverage block counted fewer than three")
+
+
+def test_the_sap_statement_is_never_the_absolute_one_when_it_is_untrue(
+        client, disposed_assets):
+    """The one way this replacement can be worse than the finding it
+    replaced.
+
+    *"No disposal in this period carried a SAP asset number"* is the sentence
+    the ruling asked for and it is true only when the count is ALL of them.
+    Printed over a table where three rows DO carry one it is a false
+    statement in an audit report — which is worse than a noisy findings
+    column. The verdict is therefore not left to the renderer: `coverage`
+    decides, once, in the model.
+
+    Asserted in BOTH directions, because an implementation that never emits
+    the absolute sentence at all would pass a one-directional test while
+    failing the ruling.
+    """
+    date = disposed_assets["date"]
+    rows, first = _walk_disposals(client, date, date)
+    if first.get("_warnings", {}).get("truncated"):
+        pytest.skip(
+            "this credential's record cap bit on the disposal schedule, so "
+            "the walked rows are a window and cannot be compared with a "
+            "coverage block that describes the period.")
+    coverage = first["data"]["summary"]["sap_coverage"]
+
+    with_number = sum(1 for row in rows if row["sap_asset_number"])
+    assert coverage["with_sap_asset_number"] == with_number, (
+        "the coverage count and the rows disagree about how many disposals "
+        "reached SAP")
+
+    if with_number:
+        assert coverage["coverage"] == "partial"
+        assert _ABSOLUTE_SAP_SENTENCE not in coverage["statement"], (
+            f"{with_number} disposal(s) in this period carry a SAP asset "
+            "number and the report states that none does. A period-scoped "
+            "absolute is a false statement in an audit report.")
+        assert str(with_number) in coverage["statement"]
+    else:
+        assert coverage["coverage"] == "none"
+        assert _ABSOLUTE_SAP_SENTENCE in coverage["statement"], (
+            "no disposal in this period reached SAP and the report does not "
+            "say so. The fact was moved out of the findings column, not "
+            "deleted.")
+
+    # `statement` is prose for a human; `coverage` is the thing to branch on.
+    # A caller told to branch on the enum needs the enum to be there.
+    assert isinstance(coverage["statement"], str) and coverage["statement"]
+
+    # And it is identical on every page, like the rest of the summary — the
+    # statement sits ABOVE the table, so a reader on page two must not see a
+    # different one.
+    later = assert_envelope_ok(
+        client.get(DISPOSALS, params={"from": date, "to": date, "limit": 1}))
+    assert later["data"]["summary"]["sap_coverage"] == coverage
 
 
 def test_the_period_bounds_are_both_inclusive(client, disposed_assets):

@@ -146,10 +146,19 @@ jobs:
           # coverage that vanishes the day a dependency moves. Its tests
           # cover the record cap and the /auth/token failure causes — the
           # two things a partner integration meets first.
+          #
+          # myservice_identity was added in handoff 17 and is NOT optional
+          # here. `-u` upgrades a module and everything that DEPENDS on it,
+          # not its dependencies — `myservice_api` depends on identity, so
+          # naming api drags in nothing of identity's. Its new tests cover
+          # the Redhubs asset export and the SAP employee webhook, both of
+          # which stood on a credential default committed to this repo, and
+          # without this name every one of those tests runs nowhere. That is
+          # the same failure mode this whole step exists to fix.
           DB=$(grep -E '^POSTGRES_DB=' .env.example | cut -d= -f2-)
           docker compose -f docker-compose.yml -f docker-compose.19.yml exec -T odoo \
             odoo -c /etc/odoo/odoo.conf -d "$DB" \
-              -u myservice_workflow,myservice_asset_depreciation,myservice_nrs_base,myservice_asset_register,myservice_request_fields,myservice_security,myservice_fleet_maintenance,myservice_barcode_station,myservice_api \
+              -u myservice_workflow,myservice_asset_depreciation,myservice_nrs_base,myservice_asset_register,myservice_request_fields,myservice_security,myservice_fleet_maintenance,myservice_barcode_station,myservice_api,myservice_identity \
               --test-enable --stop-after-init --workers=0 \
               --http-port=8099 --gevent-port=8098
 
