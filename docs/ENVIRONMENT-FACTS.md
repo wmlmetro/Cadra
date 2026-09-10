@@ -16,6 +16,59 @@ Asset-bundle attachments are missing, so the backend `500`s on `web_tour.interac
 
 **Not:** a code fault, and not something a migration fixes. Found in handoff 12 while proving a stylesheet relocation, at the cost of an afternoon.
 
+### `myservice_nrs_base` ships a legacy shim, so `odoo.define` modules requiring `web.AbstractAction` DO load on 19
+
+`myservice_nrs_base/static/src/js/legacy_compat.js` re-provides `web.core`,
+`web.rpc`, `web.ajax`, `web.session` and `web.AbstractAction` using the
+loader's native three-argument `odoo.define(name, [deps], factory)` form,
+backed by real Odoo 19 services. `web.core.action_registry.add` writes into
+the genuine OWL `registry.category("actions")`, so a tag registered by legacy
+code resolves for an `ir.actions.client`; `AbstractAction` is an OWL
+`Component` subclass whose template is
+`<div t-ref="root" class="o_client_action o_nrs_legacy_action"/>`. It is
+bundled at `myservice_nrs_base/__manifest__.py:30` into `web.assets_backend`,
+with jQuery `prepend`ed at line 28.
+
+**How it shows:** measured in a real browser on `jaizbankplc` by
+`e2e/probes/odoo-client-actions.mjs` (`node e2e/probes/odoo-client-actions.mjs`):
+
+| tag | registered | mounted | legacy DOM bytes | console errors |
+|---|---|---|---|---|
+| `myservice_dashboard` | true | true | 20,143 | 0 |
+| `barcode_station` | true | true | 47,226 | 0 |
+| `nrs_asset_dashboard` | true | true | 24,065 | 0 |
+| `myservice_fm_dashboard` | true | true | 48,262 | 0 |
+| `bus_dashboard` | true | false | 6,552 | 0 (Access Error dialog) |
+| `myservice_fleet_dashboard` | false | false | 0 | 0 |
+| `nrs_security_command_center` | false | false | 0 | 0 |
+| `nrs_case_management` | false | false | 0 | 0 |
+| `myservice_security_dashboard` | false | false | 0 | 0 |
+
+**The measurement trap, which is the more useful half of this entry:**
+measuring `.o_action_manager` is **not** a mount test. An unresolvable tag
+still renders about **9,716 bytes** of Odoo's own error surface into that
+element, which reads as a successful mount and is not one — the first version
+of the probe reported all four retired tags as mounted. The sound
+discriminator is the shim's own root class, `.o_nrs_legacy_action`, which is
+present only when a legacy client action really mounted. And `odoo.loader` is
+populated as the backend bundle executes, i.e. **after** the navigation
+resolves, so evaluating the registry immediately after login reads
+`undefined`.
+
+**Not:** true of Odoo core, and that is the whole trap. The premise *"an
+`odoo.define` module requiring `web.AbstractAction` cannot load on 19"* is
+correct about stock Odoo and false about this codebase, so a search of the
+Odoo source proves the wrong thing with complete conviction. It has now
+produced a wrong conclusion in **both** directions across five handoffs —
+handoff 10 R46 and handoff 11, which nearly retired a working screen, and
+handoff 15 §6.1, which declared a live tab dead. **Not a substitute for the
+probe either:** a tag being registered says the shim worked, not that a route
+reaches the screen — `myservice_fleet_dashboard` is retired by an empty asset
+bundle, not by the shim failing. Report 11 measured this correctly in a
+browser and never committed the probe, which is why report 15 had to reason
+from the source tree and got it wrong. The probe is committed now; run it
+rather than reading either source tree. Handoff 16.
+
 ### ProxyFix does not run here, so `remote_addr` is the nginx container
 
 Odoo 19 applies ProxyFix only when the request carries `X-Forwarded-Host` (`odoo/http.py`, `Application.__call__`: `if config['proxy_mode'] and environ.get("HTTP_X_FORWARDED_HOST")`). The dev nginx sends `X-Forwarded-For` and `X-Forwarded-Proto` and **not** that one, so `proxy_mode = True` in all four configs has no effect.
@@ -76,6 +129,34 @@ Not in the documented command. Found in handoff 12.
 ---
 
 ## The test suites
+
+### A `TransactionCase` that writes a tracked field finds no tracking row
+
+Odoo 19 defers tracking to `cr.precommit` — `addons/mail/models/mail_thread.py:534`
+does `self.env.cr.precommit.add(self._track_finalize)` and stashes the initial
+values, so `mail.tracking.value` rows are created when the cursor is about to
+commit and **not** on flush. A `TransactionCase` never commits.
+
+**How it shows:** you write a tracked field, `flush_all()`, then
+`search_count` on `mail.tracking.value` and get **zero** — for a field you can
+see carries `tracking=True` and which has thousands of rows in the live
+database. The idiom that works is Odoo's own:
+
+```python
+self.env.flush_all()
+self.env.cr.precommit.run()
+self.env.flush_all()
+```
+
+**Not** a sign that tracking is broken, and **not** harmless to work around by
+weakening the assertion. Two tests in handoff 16 would have passed for the
+wrong reason without it: a date-fallback test that reads back the `state`
+transition it just made, and a fingerprint that was supposed to prove a report
+writes nothing — the fingerprint would have missed a tracked write entirely,
+which is the one thing it exists to catch. Same family as the two lessons
+below it: `create_date` is written by Postgres so `freeze_time` cannot move it,
+and a stored compute left pending is evaluated on the later flush. In all three
+the test is green and has tested nothing. Handoff 16.
 
 ### In-registry runs log `cannot execute INSERT in a read-only transaction` and pass
 

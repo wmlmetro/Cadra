@@ -56,6 +56,9 @@ try:
         print(f"  ✓ Company branding updated → {company.name}")
     else:
         print("  ! No company found — set branding manually in Settings")
+# catch-all: reported — branding is cosmetic and deliberately never fatal, but
+# the failure is printed with its traceback, so a seed that left the company
+# unbranded says so on the console.
 except Exception:
     print("  ! Branding error (non-fatal):")
     traceback.print_exc()
@@ -419,6 +422,9 @@ def build_stages_and_routes(rtype_id, rtype_code):
                 })
 
         return True
+    # catch-all: reported — prints the request type and its traceback and
+    # returns False, which the caller counts into err_count. A stage workflow
+    # that did not build is never counted as one that did.
     except Exception:
         print(f"    ! Error on {rtype_code}:")
         traceback.print_exc()
@@ -497,6 +503,8 @@ for type_code, type_id in type_map.items():
             })
             classifier_ok += 1
             print(f"  + Classifier: {svc_code} → {cat_code} → {type_code}")
+        # catch-all: reported — counted into classifier_err and printed with
+        # the exception; the run ends with "N OK | M errors".
         except Exception as e:
             classifier_err += 1
             print(f"  ✗ Failed: {type_code} — {e}")
@@ -18590,6 +18598,9 @@ for i, v in enumerate(VEHICLES, 1):
             env.cr.commit()
             print(f"  [committed batch at {i}/{len(VEHICLES)}]")
 
+    # catch-all: reported — counted into `errors` and printed with the plate
+    # and the exception; the run ends with created / updated / skipped /
+    # errors.
     except Exception as e:
         errors += 1
         print(f"  ✗ [{i}] {v.get('license_plate', '?')} — {e}")

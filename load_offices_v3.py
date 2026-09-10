@@ -62,6 +62,11 @@ for code, name in LOCATION_TYPES:
         else:
             type_map[code] = existing.id
             print(f"  o Type: {name}")
+    # catch-all: reported — prints the exception and records the type id as
+    # None. It also hides a latent bug rather than a data problem: when
+    # `type_model` is falsy, `rec` is None and `rec.id` raises AttributeError,
+    # which comes out as "Type skipped" for every type in turn instead of
+    # "there is no location-type model here".
     except Exception as e:
         print(f"  ! Type {name} skipped — {e}")
         type_map[code] = None
@@ -216,8 +221,7 @@ for cname, primary_state, address, other_states in COORD_GROUPS:
         if NIGERIA_ID:
             vals['country_id'] = NIGERIA_ID
         if coord_type_id:
-            try: vals['type_id'] = coord_type_id
-            except: pass
+            vals['type_id'] = coord_type_id
         rec = env['generic.location'].create(vals)
         coord_map[cname] = (rec.id, address)
         print(f"  + Coord: {cname}")
@@ -703,10 +707,7 @@ for i, (num, name, address, ownership, coord_name) in enumerate(OFFICES, 1):
             # Try location type
             type_id = get_type_id(name)
             if type_id:
-                try:
-                    vals['type_id'] = type_id
-                except Exception:
-                    pass
+                vals['type_id'] = type_id
             env['generic.location'].create(vals)
             created += 1
             if created <= 30 or created % 50 == 0:
@@ -718,6 +719,8 @@ for i, (num, name, address, ownership, coord_name) in enumerate(OFFICES, 1):
             env.cr.commit()
             print(f"  [committed batch {i}/{len(OFFICES)}]")
 
+    # catch-all: reported — prints the office, the exception and the full
+    # traceback, and counts the row into `errors`, printed at the end.
     except Exception as e:
         errors += 1
         print(f"  ✗ [{num}] {name[:50]} — {e}")

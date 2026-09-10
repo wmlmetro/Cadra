@@ -165,6 +165,11 @@ def seed_demo_requests(env, target=30):
                 vals[text_field] = blurb + (f" — {branch.name}" if branch else "")
             try:
                 rec = Req.create(vals)          # proven-minimal create
+            # catch-all: reported — the first error is kept in `first_err` and
+            # printed when nothing was created, and `made` counts only the
+            # creates that landed. The gap it leaves: a PARTIAL failure is
+            # visible only as a lower count, because first_err is printed only
+            # when made == 0.
             except Exception as ex:             # noqa: BLE001 — per-record
                 first_err = first_err or str(ex)
                 continue
@@ -173,6 +178,11 @@ def seed_demo_requests(env, target=30):
             if loc_field and branch:
                 try:
                     rec.write({loc_field: branch.id})
+                # catch-all: optional — demo decoration on a demo row. The
+                # request already exists and is already counted; a failed
+                # location write leaves it unplaced, which is a less pretty
+                # demo and not a wrong number. The seed's printed count is
+                # unaffected and stays true.
                 except Exception:  # noqa: BLE001
                     pass
             code = open_codes[i % len(open_codes)]
@@ -180,6 +190,10 @@ def seed_demo_requests(env, target=30):
             if stage_id:
                 try:
                     rec.write({"stage_id": stage_id})
+                # catch-all: optional — same as the location write above: the
+                # request keeps whatever stage the type gave it. It is worth a
+                # look if the FM dashboard's stage columns come out empty, but
+                # nothing here reports a number that this could falsify.
                 except Exception:  # noqa: BLE001
                     pass
         env.cr.commit()
@@ -187,6 +201,9 @@ def seed_demo_requests(env, target=30):
         if made == 0 and first_err:
             msg += f"  (first error: {first_err[:140]})"
         print(msg)
+    # catch-all: reported — logs at WARNING and prints "Demo requests skipped"
+    # with the exception. Demo activity is best-effort by design and must never
+    # break a tenant seed, but a seed that skipped it never claims it ran.
     except Exception as ex:  # noqa: BLE001 — must never break the seed
         _logger.warning("GTB demo-request seeding skipped: %s", ex)
         print(f"  ! Demo requests skipped: {ex}")

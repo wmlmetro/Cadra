@@ -87,6 +87,11 @@ def nominatim(query):
             data = json.loads(r.read())
             if data:
                 return float(data[0]['lat']), float(data[0]['lon']), data[0].get('display_name','')
+    # catch-all: reported — returns (None, None, '') so the caller falls
+    # through to the next strategy and the run's stats say which strategy
+    # answered. Same limit as geocode_locations.py: a Nominatim outage is
+    # indistinguishable from "no such place", and both come out as
+    # state_capital coordinates in the tally.
     except:
         pass
     return None, None, ''

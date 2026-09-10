@@ -434,6 +434,10 @@ for i, (num, name, address, state) in enumerate(OFFICES, 1):
             env.cr.commit()
             print(f"  [committed batch at {i}/{len(OFFICES)}]")
     
+    # catch-all: reported — the office is printed with its exception. Note the
+    # gap it does NOT close: the row is counted into `skipped`, the same
+    # counter as "already existed", so the final tally cannot separate a
+    # failure from a no-op. The per-row line is the only evidence.
     except Exception as e:
         print(f"  ✗ [{num}] {name} — {e}")
         skipped += 1

@@ -122,6 +122,10 @@ for i, payload in enumerate(rows, 1):
             tag = 'ERROR'
             err_lines.append(f'  {ir} ({name}): {log.error_message}')
         print(f'  [{i:>3}] {tag:8} IR={ir:<8} {name}')
+    # catch-all: reported — counts the row into `errored`, appends it to
+    # err_lines with the exception and rolls the cursor back; the run ends by
+    # printing every error line. An employee that did not import is never
+    # counted as imported.
     except Exception as e:
         errored += 1
         err_lines.append(f'  {ir} ({name}): {e}')

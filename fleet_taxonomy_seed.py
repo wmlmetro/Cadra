@@ -418,6 +418,10 @@ for (svc_rec, cat_name, cat_existing_id, types) in TAXONOMY:
     try:
         cat = get_or_create_category(cat_name, existing_id=cat_existing_id)
         cat_count += 1
+    # catch-all: reported — a category that will not create is printed with its
+    # exception, the cursor is rolled back and the row is counted into
+    # err_count, which the run prints at the end. The taxonomy comes out short
+    # and says so.
     except Exception as e:
         print(f"  X Category '{cat_name}': {e}")
         env.cr.rollback()
@@ -429,6 +433,9 @@ for (svc_rec, cat_name, cat_existing_id, types) in TAXONOMY:
             t = get_or_create_type(type_name, existing_id=type_existing_id)
             classify(svc_rec.id, cat.id, t.id)
             type_count += 1
+        # catch-all: reported — same as the category handler above: the type is
+        # printed with its exception and counted into err_count. A
+        # classification that did not happen is never counted as one that did.
         except Exception as e:
             print(f"    X Type '{type_name}': {e}")
             env.cr.rollback()

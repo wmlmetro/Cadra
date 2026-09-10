@@ -14,6 +14,15 @@
                             invisible="state in ['missing', 'disposed']"/>
                     <button name="action_condemn" string="Condemn / Dispose" type="object"
                             invisible="state == 'disposed'"/>
+                    <!-- Records the acting user as the approving authority,
+                         which is evidence; a name typed into the field below
+                         is a claim. It disappears once an approval exists,
+                         because the method refuses to overwrite one — an
+                         approver silently replaced is the only record of who
+                         authorised the disposal, gone. -->
+                    <button name="action_approve_disposal" string="Approve Disposal"
+                            type="object" class="btn-primary"
+                            invisible="state != 'disposed' or disposal_approved_by != False"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="active,in_repair,disposed"/>
                 </header>
@@ -93,13 +102,38 @@
                             <field name="acquisition_date"/>
                             <field name="acquisition_cost"/>
                             <field name="current_value"/>
-                            <field name="disposal_date"
-                                   invisible="state != 'disposed'"/>
                         </group>
                         <group string="Acquisition Provenance">
                             <field name="grn_reference"/>
                             <field name="purchase_order_reference"/>
                             <field name="purchase_vendor"/>
+                        </group>
+                        <!-- A group of its own, and `disposal_date` has moved
+                             out of Financial to join it.
+
+                             An auditor's test on a disposal is one question in
+                             three parts — was it authorised, by whom, and is
+                             the paper there — and answering it meant reading a
+                             date out of the Financial block and finding the
+                             other five answers nowhere. Splitting an audit
+                             trail across a group named after something else is
+                             how a missing authorising reference stays
+                             invisible: nothing on the form ever asked for it.
+                             The whole group hides unless the asset is actually
+                             disposed of, so it costs a live record nothing. -->
+                        <group string="Disposal" name="disposal"
+                               invisible="state != 'disposed'">
+                            <field name="disposal_date"/>
+                            <field name="disposal_date_reconstructed"
+                                   readonly="1"
+                                   invisible="disposal_date_reconstructed == False"/>
+                            <field name="disposal_method"/>
+                            <field name="disposal_reference"
+                                   placeholder="Board minute / memo / certificate"/>
+                            <field name="disposal_approved_by"/>
+                            <field name="disposal_approved_date"/>
+                            <field name="disposal_proceeds"/>
+                            <field name="disposal_reason"/>
                         </group>
                     </group>
                     <group string="Maintenance">

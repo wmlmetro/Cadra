@@ -1863,24 +1863,74 @@ def paginate(model, domain):
 # whoever does not.
 
 # SCOPE, stated because a guard whose reach nobody knows is worse than one
-# that admits its edge. This walks `_first_party_python_files()` — the Odoo
-# modules, the code that serves requests — and NOT `scripts/`, `seeds/`,
-# `tests/` or the loader scripts at the repo root. Measured at the time of
-# writing: **49 broad handlers live outside that boundary**, in first-party
-# code, unclassified. `scripts/bootstrap.py` is classified anyway, by hand,
-# because it provisions the credentials every tenant authenticates with and
-# because this handoff edits it.
+# that admits its edge — and kept as a COUNT, because the only reading of a
+# green run that this guard cannot survive is "there are none".
 #
-# Widening the guard is a real decision rather than an oversight: it would
-# put ~46 one-shot tenant seeds and loaders in front of CI, and a seed
-# script's `except: pass` around an `env.ref` is the genuinely optional case
-# this convention says to narrow rather than to annotate. It is recorded in
-# report 15 for the Architect to schedule. What must not happen is somebody
-# reading a green guard as "there are none", which is the exact failure the
-# guard exists to prevent, one level up.
+# It walks `_catch_all_python_files()`: the first-party Odoo modules, plus
+# `scripts/**/*.py` and the loader scripts at the repo root. `scripts/` is
+# inside because `scripts/bootstrap.py` provisions the credentials every
+# tenant authenticates with, and a provisioning script that swallows a
+# failure hands over a tenant that looks provisioned; the repo-root loaders
+# are inside because they write the location, fleet and taxonomy data the
+# register is built on, and a load that half-worked and said nothing is the
+# same defect as a count that half-worked and said nothing.
+#
+# `seeds/` is deliberately OUT, and so are `tests/` and `docs/`. A one-shot
+# tenant seed's `except: pass` around an `env.ref` is the genuinely optional
+# case this convention says to NARROW rather than to annotate, so putting
+# them in front of CI buys an annotation exercise and no guarantee.
+#
+# MEASURED 2026-09-09 (handoff 16 C3), with this file's own
+# `_broad_handler_findings()`: **12 broad handlers remain outside the
+# boundary and unclassified** — 9 in `seeds/` (nrs_asset_seed 4,
+# nrs_fleet_seed 2, nrs_seed 3), 2 in `tests/conftest.py`, 1 in
+# `docs/api/smoke_test.py`. A green run of this guard means "every broad
+# handler INSIDE the boundary has been judged". It does not mean there are
+# none. If that number is stale, re-measure it rather than delete it: the
+# sentence is the only thing standing between a green tick and a false one.
 _CATCH_ALL_MARKER = "catch-all:"
 _CATCH_ALL_CLASSES = ("optional", "reported", "unknown")
 _BROAD_EXCEPTIONS = {"Exception", "BaseException"}
+
+
+# Trees that are somebody else's code or nobody's runtime, excluded wherever
+# this guard reaches outside the Odoo modules.
+_CATCH_ALL_SKIPPED_PARTS = frozenset({
+    "dist", "crnd-19", "oca-19", "_to_delete", "_upgrade",
+    ".venv", "node_modules", "__pycache__",
+})
+
+
+def _catch_all_python_files():
+    """Everything this guard walks: the first-party Odoo modules, plus
+    `scripts/**/*.py` and the loader scripts at the repo root.
+
+    Deliberately its OWN collector rather than a widened
+    `_first_party_python_files()`. That one is shared with the
+    `_sql_constraints` guard and the capped-count guard, and both of those
+    mean by it "code that runs inside a registry and serves requests".
+    Widening it in place would silently change what two other guards assert
+    — a boundary nobody chose, moved by a third guard's convenience — and
+    the capped-count guard in particular would start reporting on one-shot
+    loaders whose counts nothing is published from.
+
+    `seeds/` is not here. See the SCOPE note above, which also carries the
+    measured count of what that leaves out.
+    """
+    seen = set()
+    for path in _first_party_python_files():
+        seen.add(path)
+        yield path
+
+    extra = sorted((REPO_ROOT / "scripts").rglob("*.py")) \
+        + sorted(REPO_ROOT.glob("*.py"))
+    for path in extra:
+        if path in seen:
+            continue
+        if set(path.relative_to(REPO_ROOT).parts) & _CATCH_ALL_SKIPPED_PARTS:
+            continue
+        seen.add(path)
+        yield path
 
 
 def _is_broad_handler(handler):
@@ -2003,7 +2053,7 @@ def test_every_catch_all_says_what_it_is_hiding():
     a sentence, on the line.
     """
     offenders = []
-    for path in _first_party_python_files():
+    for path in _catch_all_python_files():
         source = path.read_text(encoding="utf-8")
         try:
             findings = _broad_handler_findings(source)
@@ -2014,15 +2064,82 @@ def test_every_catch_all_says_what_it_is_hiding():
                              % (path.relative_to(REPO_ROOT), lineno, problem))
 
     assert not offenders, (
-        "%d broad exception handler(s) in the Odoo modules do not say what "
-        "they are hiding (see the SCOPE note above — `scripts/` and `seeds/` "
-        "are not walked):\n  %s"
+        "%d broad exception handler(s) in the Odoo modules, in `scripts/` or "
+        "in the repo-root loaders do not say what they are hiding (see the "
+        "SCOPE note above — `seeds/`, `tests/` and `docs/` are not "
+        "walked):\n  %s"
         "\n\nAdd one of `# catch-all: optional|reported|unknown — <why>` on "
         "the `except` line, in the comment block immediately above it, or in "
         "the comment block that opens the handler body. Better: narrow the "
         "exception type, or delete the handler — a narrowed one needs no "
         "marker because it is no longer a catch-all."
         % (len(offenders), "\n  ".join(offenders)))
+
+
+def test_the_catch_all_guard_walks_the_boundary_it_claims():
+    """A path typo would make the widened guard scan nothing and pass.
+
+    Same failure mode as `test_guard_covers_the_modules_we_think_it_does`
+    above, one boundary wider: this guard's whole value is the sentence in
+    the SCOPE note saying where it stops, and a collector that quietly
+    stopped somewhere else would make that sentence a lie without ever
+    going red.
+    """
+    walked = {str(p.relative_to(REPO_ROOT)) for p in _catch_all_python_files()}
+
+    # The Odoo modules, unchanged.
+    assert any(f.startswith("myservice_api/") for f in walked)
+
+    # `scripts/` — bootstrap.py provisions every tenant's credentials.
+    assert "scripts/bootstrap.py" in walked, (
+        "scripts/bootstrap.py is not walked. It provisions the credentials "
+        "every tenant authenticates with; it is the reason `scripts/` is "
+        "inside the boundary at all.")
+    assert len([f for f in walked if f.startswith("scripts/")]) >= 15, (
+        "only %d files under scripts/ — the rglob is wrong"
+        % len([f for f in walked if f.startswith("scripts/")]))
+
+    # The repo-root loaders.
+    for loader in ("myservice_master_seed.py", "load_offices_v3.py",
+                   "fleet_taxonomy_seed.py", "geocode_locations.py"):
+        assert loader in walked, "%s is not walked" % loader
+
+    # And `seeds/` is OUT, on purpose. If this ever starts failing because
+    # somebody widened the collector, the SCOPE note's measured count above
+    # is now wrong and has to move with it.
+    assert not [f for f in walked if f.startswith("seeds/")], (
+        "seeds/ is being walked. That is a real decision, not a tidy-up — "
+        "update the SCOPE note's measured count and its reasoning before "
+        "relaxing this.")
+    # The repo-level `tests/` directory is out too — this file included.
+    # (Module tests live at `myservice_*/tests/` and stay in scope.)
+    assert not [f for f in walked if f.startswith("tests/")], (
+        "the repo-level tests/ directory is being walked; the SCOPE note "
+        "says it is not.")
+
+    # Nothing vendored.
+    for tree in ("dist/", "crnd-19/", "oca-19/"):
+        assert not [f for f in walked if f.startswith(tree)], tree
+
+
+def test_the_widened_guard_would_have_caught_the_loaders(tmp_path):
+    """Proof by construction that the shape the widening exists to catch is
+    the shape it catches — a repo-root loader that swallows a data write.
+
+    Modelled on `load_offices.py`, which counts a failed create into the
+    same tally as a row that already existed.
+    """
+    source = ("for row in rows:\n"
+              "    try:\n"
+              "        env['generic.location'].create(row)\n"
+              "    except Exception:\n"
+              "        skipped += 1\n")
+    assert _broad_handler_findings(source)
+    marked = source.replace(
+        "    except Exception:",
+        "    # catch-all: reported — printed and counted\n"
+        "    except Exception:")
+    assert not _broad_handler_findings(marked)
 
 
 _CATCH_ALL_SHAPES = [

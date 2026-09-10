@@ -53,6 +53,11 @@ from odoo.exceptions import ValidationError
 import json
 import logging
 
+from odoo.addons.myservice_asset_register.models.asset_disposal import (
+    DEFAULT_SAP_DISPOSAL_TYPE,
+    SAP_DISPOSAL_TYPE,
+)
+
 from .workflow_config import PURPOSE_SAP_ASSETS
 
 _logger = logging.getLogger(__name__)
@@ -346,12 +351,37 @@ class NRSAssetSAPEvents(models.Model):
             was_custodian, was_state = before.get(record.id, (None, None))
 
             if (record.state == 'disposed' and was_state != 'disposed'):
+                # `disposal_type` was the literal `'disposal'` on every event
+                # ever sent, and no approver went with it — while the
+                # transfer event below has carried `approved_by` and
+                # `approved_at` from the day it was written. The requirements
+                # document §4.2 asks this event for both, plus the
+                # disposal/retirement distinction, and until handoff 16 there
+                # were no fields on the register to answer with.
+                #
+                # Additive, and deliberately non-breaking: an asset with no
+                # recorded method still sends `'disposal'`, the exact value
+                # SAP has been receiving, so nothing SAP already keys on
+                # changes. The four new keys are null where Cadra does not
+                # know — which today is most rows, and saying so is the point.
                 record._queue_sap_event(EVENT_ASSET_DISPOSED, change={
-                    'disposal_type': 'disposal',
+                    'disposal_type': SAP_DISPOSAL_TYPE.get(
+                        record.disposal_method, DEFAULT_SAP_DISPOSAL_TYPE),
+                    'disposal_method': record.disposal_method or None,
                     'disposal_date': _date(record.disposal_date
                                            or fields.Date.today()),
                     'disposal_reason': record.disposal_reason or None,
                     'condition_at_disposal': record.condition or None,
+                    'reference': record.disposal_reference or None,
+                    'approved_by': record.disposal_approved_by.name or None
+                                   if record.disposal_approved_by else None,
+                    'approved_at': _iso(record.disposal_approved_date),
+                    'proceeds': record.disposal_proceeds or None,
+                    # A money figure with no currency beside it is how two
+                    # systems agree on a number and disagree on what it is
+                    # worth. Null when there are no proceeds to denominate.
+                    'proceeds_currency': (record.currency_id.name or None)
+                                         if record.disposal_proceeds else None,
                 })
 
             # Suppressed inside a transfer: `asset.transferred` already

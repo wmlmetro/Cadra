@@ -68,6 +68,18 @@ INT-10 is not an event interface. It is **standing read access to two registers 
 
 Eleven questions, drawn from specification §13.4, PRD §5.11 and §8.14, and from what a VFM review of a fixed-asset estate actually does. For each: **can Cadra answer it today, and how.**
 
+**Scoreboard against §13.4's five named reports**, updated 9 September 2026. When this document was written Cadra had **none of the five** as an API surface.
+
+| §13.4 report | Status |
+|---|---|
+| Custodianship chain for any asset | **Built** — handoff 14. §2.3 |
+| Asset register snapshot at any historical date | **Built, with a published boundary** — handoff 16. §2.5 |
+| Disposal report with documentation refs, per period | **Built** — handoff 16. §2.9 |
+| Access changes for any user, per period | **Not built.** No log exists to build it from. §2.10 |
+| Configuration change log | **Not built.** §2.10 |
+
+The two that remain are the two log-shaped ones, and they are not reports missing from an existing record — **there is no record**. That is the work, not the endpoint.
+
 Legend: **Yes** · **Partly** — answerable but incomplete or degraded, and the caller is not told · **No**.
 
 ### 2.1 "Show me every asset that arrived on this goods receipt."
@@ -189,11 +201,15 @@ reports a true `total_estimate` and announces the record cap in
 
 **No, over the API. Partly, in the Odoo UI.**
 
-PRD §8.14 requires *"who, when, what changed (before/after values), and the source (which API call, which user or system)."* Cadra has the first three for **18 fields** and none of the fourth.
+PRD §8.14 requires *"who, when, what changed (before/after values), and the source (which API call, which user or system)."* Cadra has the first three for **20 fields** and none of the fourth.
 
-`nrs.asset` inherits `mail.thread`, and 18 fields carry `tracking=True`: `name`, `asset_code`, `asset_tag`, `category_id`, `subcategory_id`, `asset_type_id`, `asset_level`, `domain`, `building_id`, `floor_id`, `room_id`, `location_id`, `custodian_id`, `condition`, `state`, `last_verified_date`, `retrieval_flag`, `depreciation_method`.
+`nrs.asset` inherits `mail.thread`, and **20** fields are tracked. Eighteen carry `tracking=True` where you can see it: `name`, `asset_code`, `asset_tag`, `category_id`, `subcategory_id`, `asset_type_id`, `asset_level`, `domain`, `building_id`, `floor_id`, `room_id`, `location_id`, `custodian_id`, `condition`, `state`, `last_verified_date`, `retrieval_flag`, `depreciation_method`.
 
-**Untracked, and materially so:** `serial_number`, `legacy_asset_code`, `make`/`model_name`/`manufacturer`, `department`, **`grn_reference`**, **`purchase_order_reference`**, **`purchase_vendor`**, `import_source`/`import_date`/`import_ref`, **every `sap_*` field including `sap_asset_number`**, **every financial field** (`purchase_value`, `acquisition_cost`, `current_value`, `replacement_cost`, `accumulated_depreciation`, `current_book_value`), every date except `last_verified_date`, `assignment_date`, `disposal_date`, `disposal_reason`, `notes`.
+**Two more are tracked invisibly, and this document said 18 because of it.** `tag_label_state` (`related='physical_tag_id.label_state'`) and `active_tag_number` (`related='active_tag_id.name'`) declare no `tracking=` of their own — **a related field inherits `tracking` from its target**, and both targets are tracked on `nrs.asset.tag.label`. So a grep for `tracking=True` under-reports the tracked set, and the measured table below has been showing `tag_label_state` as the largest tracked field on `nrs.asset` while the prose above it denied the field was tracked at all. The authority is `ir_model_fields.tracking > 0` in a live registry, which reads 20 on both `nrs19` and `jaizbankplc`. Handoff 16 asserts that tuple against the registry in both directions, so the next invisible one cannot fall out silently.
+
+A consequence: **"was this asset tagged on 31 March?" is answerable.** `is_tagged` is not a column — it is computed in the serialiser as `tag_label_state == 'affixed'` — so a rolled-back `tag_label_state` answers it. §2.6 listed that as unavailable.
+
+**Untracked, and materially so:** `serial_number`, `legacy_asset_code`, `make`/`model_name`/`manufacturer`, `department`, **`grn_reference`**, **`purchase_order_reference`**, **`purchase_vendor`**, `import_source`/`import_date`/`import_ref`, **every `sap_*` field including `sap_asset_number`**, **every financial field** (`purchase_value`, `acquisition_cost`, `current_value`, `replacement_cost`, `accumulated_depreciation`, `current_book_value`), every date except `last_verified_date`, `assignment_date`, `notes`. ~~`disposal_date`, `disposal_reason`~~ — **both now tracked** (handoff 16 §B2), along with the five new disposal fields §2.9 describes.
 
 Read that list against the question a VFM review asks. **Every value an auditor would challenge — what we paid, which receipt it came from, which SAP code it was booked under — can be changed silently.** The identity and location of the asset are tracked; its money is not.
 
@@ -210,13 +226,29 @@ There is **no audit-log model of our own** — no `cadra.audit.log`, no before/a
 
 ### 2.5 "Show me the register as it stood on 31 March."
 
-**No, except for depreciation.**
+**Yes, for 28 fields, and the response says which 44 it is NOT answering.** Built in handoff 16: `GET /api/v1/reports/asset-register?as_of=YYYY-MM-DD`, scope `assets:read`.
 
-`GET /api/v1/assets/<id>/depreciation?as_of=YYYY-MM-DD` is a genuine point-in-time view, and it is genuine for a specific reason: the depreciation engine is a pure function of `as_of` — it rebuilds the whole schedule from the start date and reads off the last elapsed period, persisting no period rows. Missing twelve runs and missing one produce identical output.
+**This section previously recommended against building it.** That recommendation was right about the thing it was arguing against — *"a reconstruction answers it approximately while looking exact, which is worse"* — and the build does not do that thing. What makes the difference is that the boundary is **in the response**, not in a document beside it: `data.fidelity` names every field the snapshot rolled back, every field published at today's value because no history supports a rollback, and every field it will not answer at all. The rows sit at `data.assets`, **inside** that declaration, so a consumer reading the obvious key cannot miss it.
 
-Nothing else has an `as_of`. A register snapshot at a historical date would have to be reconstructed by replaying tracking values backwards over the 18 tracked fields, which is unsound for the reasons in §2.4 — the untracked fields cannot be replayed at all.
+| | count | what it means |
+|---|---|---|
+| `rolled_back` | **28** | answered AS OF THE DATE, from `mail.tracking.value` and, for custody, from `nrs.asset.custody` |
+| `as_of_today` | **21** | published at its CURRENT value, labelled. Omitting them would send an auditor to a second query that answers as-of-today without saying so |
+| `not_recoverable` | **23** | named and deliberately NOT published. A today's figure under a heading an auditor reads as historical is the specific harm |
 
-**Recommendation:** do not build a general point-in-time reconstruction. Build the §13.3 scheduled bulk extract instead and retain the snapshots. A stored daily snapshot answers "as at 31 March" exactly and honestly; a reconstruction answers it approximately while looking exact, which is worse.
+**What cannot be rolled back, and why it matters most:** every financial figure (`current_value`, `replacement_cost`, `accumulated_depreciation`, `current_book_value`), every `sap_*` field including `sap_asset_number`, the acquisition provenance (`grn_reference`, `purchase_order_reference`, `purchase_vendor`), `serial_number`, `department`, and the asset hierarchy (`parent_id`). §2.4's observation stands and this report makes it concrete: **the identity and location of an asset are historical; its money is not.**
+
+Three refinements the response carries beyond the field lists:
+
+- **`data.cutoff`** — the exact instant the rollback cut at, naive UTC, with `fidelity.notes.cutoff` naming the day boundary taken: end of day **Africa/Lagos**, 23:00 UTC. WAT is a fixed +01:00 and Nigeria has never observed DST, so this is exact arithmetic. A change at 23:30 UTC on 31 March is 00:30 on 1 April locally and is not in the 31 March snapshot.
+- **`data.filters`** — filters match **current** values. `?as_of=2026-03-31&state=active` means "assets active *today*, reported as they stood on 31 March", which is a different population from "active on 31 March". The response says so rather than implying otherwise.
+- **Per-row `_fidelity`** — present only when a row is degraded beyond the global declaration: a custody chain that does not reach back to the date, an `erp_managed` asset with no value history, a selection label that would not map.
+
+**Existence is handled and is the easy thing to get wrong.** An asset whose `create_date` is after the cutoff was not in the register on that date and is excluded. An asset **deleted** since is unrecoverable, so the snapshot is a **lower bound** on the register's size — `not_recoverable` says `deleted_assets` on its face, because an auditor reconciling a count has to know that.
+
+**Depreciation remains the one genuinely exact answer.** `value_at(as_of)` rebuilds the whole board from the start date and persists nothing, so it is a pure function of the date. The caveat is now published per row rather than only in prose: only `depreciation_method` is tracked, so the cost basis, life, salvage and start date that `value_at` computes *from* are read as they stand today.
+
+**The §13.3 scheduled bulk extract is still the right thing to build**, and this does not replace it. A stored daily snapshot answers "as at 31 March" for every field, including the 44 this one cannot. What changed is that "no answer at all" is no longer the alternative.
 
 ### 2.6 "Show me every asset with no physical tag confirmed on it."
 
@@ -268,9 +300,22 @@ Two caveats for an auditor:
 
 ### 2.9 "What has been disposed of, and on whose authority?"
 
-**Partly.** `state = 'disposed'`, `disposal_date` and `disposal_reason` exist and are filterable via `?state=disposed`. `state` is tracked, so the transition has an actor and a timestamp in chatter.
+**Yes, as of handoff 16** — `GET /api/v1/reports/disposals?from=&to=`, scope `assets:read`, both bounds inclusive.
 
-Missing against §13.4's *"disposal report with documentation refs (per period)"*: there is **no documentation reference field** — no board minute, no approval reference, no disposal certificate — `disposal_date` and `disposal_reason` are untracked, and there is no period report endpoint. Note also that `state = 'missing'` is deliberately **not** a disposal; an asset that cannot be found has not been disposed of, and conflating them would let a loss be written off as a disposal.
+This section used to read *"partly"*, and the missing halves were the ones that mattered: no documentation reference field, no approver, no method, no proceeds, `disposal_date` and `disposal_reason` untracked, and no period report. **All of that had to be built before a report could cite any of it.** `nrs.asset` now carries `disposal_method`, `disposal_reference` (the board minute, memo or disposal certificate), `disposal_approved_by`, `disposal_approved_date` and `disposal_proceeds` — all tracked, as `disposal_date` and `disposal_reason` now also are.
+
+**The findings are the product, not a by-product.** An auditor's test on a disposal is always *was it authorised, by whom, and is the paper there* — so a disposal missing any of that appears in the report **carrying the finding**, never filtered out. `summary.findings` counts each one across the whole period on every page, so *"41 of 63 carry no authorising reference"* is one read rather than a page walk.
+
+Findings published: `no_authorising_reference`, `no_approver`, `no_approval_date`, `no_disposal_method`, `no_disposal_date`, `no_disposal_reason`, `no_proceeds_recorded`, `disposal_date_reconstructed`, `no_sap_asset_number`.
+
+Four things worth knowing before reading one:
+
+- **A date can be recovered, and says so.** `action_condemn` wrote no date for the life of the product, so an undated disposal is the common case rather than the edge one. Where `disposal_date` is null the report places the row by the tracked `state → disposed` transition, marks `date_source: "state_transition"` and raises `no_disposal_date`. The migration that recovered dates into the column marks each one `disposal_date_reconstructed`, on the same reasoning as `nrs.asset.custody.source = 'tracking_backfill'`: a reconstructed value written into the same column as a recorded one is otherwise indistinguishable from it.
+- **`data.unplaceable`** carries disposals with no date and no recoverable transition — placeable in no period at all. Returned in full and uncapped in every report, never mixed into the period totals. Dropping them makes them invisible in every report, which is the hole this closes; putting them in one period double-counts them in the next.
+- **`state = 'missing'` is not a disposal** and never appears. An asset that cannot be found has not been disposed of, and conflating them would let a loss be written off as a disposal.
+- **The approver cannot be asserted over the API.** `disposal_approved_by` and `disposal_approved_date` are deliberately absent from `_WRITABLE_FIELDS`: a client able to PATCH the approver could create a disposal and name any user as its authority in the same request, turning the `no_approver` finding into a clean row with nobody having authorised anything. `action_approve_disposal` records who pressed the button. **The consequence is a real gap: there is no API route that records a disposal approval**, and closing it needs its own scope decision.
+
+**Measured across all eight tenants at the time of building: zero disposals.** 17,795 assets, none disposed, none missing, and `state` carries no tracking rows anywhere — no asset has ever changed state in Cadra. So the report ships against an empty set, which is exactly what makes it safe to have added required-shaped fields now, before anybody relies on the old behaviour. It also means `no_sap_asset_number` will fire on essentially every future row: 2 of 11,942 assets on `nrs19` carry a SAP number and none does elsewhere, so INT-09 has never sent a disposal instruction to the financial system.
 
 ### 2.10 "Who had access to what, and when did that change?"
 
@@ -358,7 +403,7 @@ Every field below is stored — either a plain column or a stored compute. **A s
    the model: three tenants start empty and `nrs19` starts with one link,
    because the history before this date only exists where chatter tracking
    captured it.
-2. **An audit log.** §2.4, §2.10. No before/after table, no per-API-call record, no actor-and-source trail beyond `mail.thread`'s 18 fields.
+2. **An audit log.** §2.4, §2.10. No before/after table, no per-API-call record, no actor-and-source trail beyond `mail.thread`'s 20 fields.
 3. **A `Vendra`-side link.** §5. `grn_reference` is a string; nothing validates that it names a real receipt.
 
 ---
