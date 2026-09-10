@@ -217,10 +217,26 @@ class TestFindingsAreTheProduct(DisposalCase):
 
     def test_proceeds_are_totalled_per_currency_and_never_across_them(self):
         """Every tenant is single-currency today, which is exactly the
-        condition under which a cross-currency sum looks correct for years."""
-        self._documented_disposal(disposal_proceeds=45000.0)
-        self._documented_disposal(disposal_proceeds=5000.0)
-        proceeds = self._report()["summary"]["proceeds_by_currency"]
+        condition under which a cross-currency sum looks correct for years.
+
+        SCOPED to this test's own two assets, and the first version was not.
+        `disposal_report` reports the REGISTER, so an absolute total is a
+        claim about every disposal on the tenant — which passed locally
+        because the tenant happened to hold none at that moment, and failed
+        in CI, where `pytest tests/` runs BEFORE the in-registry suites and
+        commits a disposal fixture carrying proceeds of its own. A
+        `TransactionCase` rolls back its own rows and cannot roll back
+        somebody else's.
+
+        This is the same defect the whole handoff is about, turned on the
+        tests: an assertion that is true because of what happened to be in
+        the database, presented as an assertion about the code.
+        """
+        first = self._documented_disposal(disposal_proceeds=45000.0)
+        second = self._documented_disposal(disposal_proceeds=5000.0)
+        report = self._report(
+            extra_domain=[("id", "in", [first.id, second.id])])
+        proceeds = report["summary"]["proceeds_by_currency"]
         self.assertEqual(len(proceeds), 1)
         self.assertAlmostEqual(sum(proceeds.values()), 50000.0, places=2)
 
