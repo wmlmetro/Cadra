@@ -68,6 +68,7 @@ Work a handoff with **multiple subagents in parallel** when its steps are indepe
 - **When a handoff report comes back, explain in plain English what happened first** — what was built, what broke, what it means — before accepting it, ruling on anything, or writing the next handoff. Plain language first, code second — the owner is piecing the whole ecosystem together. Plain terms means plain: no interface numbers doing the work of a sentence, no file paths standing in for an explanation. Then do the usual.
 - Plan before building; keep this file current as part of every change, not after the fact.
 - Deliverables that matter get committed into the repo, not left in chat.
+- **A document that says how to operate this system is fact-checked against the files it describes whenever a handoff touches the area it covers, and a claim nobody can check is deleted rather than carried.** `docs/DEPLOYMENT.md` was wrong in nearly every claim it made — the image, the entrypoint, the credential it named — because nobody had read it end to end against the compose files since it was written, and a runbook that is confidently wrong is worse than one that is missing.
 
 ## What this is, and why the API's shape matters beyond it
 
@@ -169,11 +170,12 @@ done
 | 18 | The callback that answers twice — a replay writes nothing · the v1 twin reconciles its dispatch and stops publishing a menu path · a credential out of an image layer · `request.jsonrequest` |
 | 19 | `CLAUDE.md` split — `docs/STATUS.md` and `docs/DECISIONS.md` |
 | 20 | What a client actually gets — every profile on Odoo 19 with two guards saying so · the 15 stack deleted · `docs/DEPLOYMENT.md` rewritten · a late `payment_ref` recorded · `queried` dedups on the pair · the prod bring-up refuses a default credential |
+| 21 | The filters that answer with everything — seven booleans, thirteen enums and nineteen foreign keys refuse what they cannot read · a pure validator at the door · `.gitlab-ci.yml` deleted · a newline-bearing credential refused |
 
 ## Backlog — agreed, not yet scheduled
 
 - **The nine pre-envelope routes adopt `@cadra_route`** (`/auth/*`, `/openapi.json`, `/docs`, `/assets/export.csv`, `/integrations/employees/import`, `/brand`). They validate nothing and sit outside the standard envelope — and `/auth/token` is the first endpoint every integration touches. Refactor of the auth surface; after INT-03 is live.
-- **Query-parameter validation, API-wide (report 01 V4).** Scoped in report 05: **~26 sites across 5 files** — 13 enum params (`200 []`), **5 boolean params that silently drop the filter and return the UNFILTERED list**, and 8 int params that `except: pass`. The booleans are the dangerous half and should go first: an empty list reads as "no matches", a full list reads as an answer. **There is no primitive to reuse yet** — this item used to cite `utils.py:830`, which is now unrelated code, and the nearest function, `utils._selection_allowed_values`, is error-enrichment that rolls the cursor back and is ruled out on a read path (see `docs/DECISIONS.md`, 2026-09-06). Handoff 05 did the tagging filters only, by hand.
+- **The SPA's own enums, checked against the models the way `condition` just was.** Handoff 21 found the asset register sending `?condition=damaged`, a value `nrs.asset` has never had, and fixed it. The same audit found four more, and two are WRITE paths that fail as 500s rather than as an empty list: the location form offers `state` and `office`, which `generic.location.location_type` does not have, and the asset form takes the FM `domain` as free text with a placeholder that is not a member of the set. Separately, every `priority` label in the SPA is shifted one step against the model, so a request created without touching the dropdown is filed as **High**. Report 21 §4 carries the list.
 - **Per-session test artefact paths.** Two concurrent pytest sessions clobber each other's report and captures. Cosmetic.
 
 ## Decisions

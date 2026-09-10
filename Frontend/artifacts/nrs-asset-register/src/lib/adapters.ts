@@ -164,7 +164,9 @@ export interface ApiAsset {
   coordinates: { latitude_display: string | null; longitude_display: string | null } | null;
   current_custodian: ApiRef | null;
   department: string | null;
-  condition: "new" | "good" | "fair" | "poor" | "damaged";
+  // The accepted set is `nrs.asset.condition`; the backend refuses anything
+  // else with a 400.
+  condition: "new" | "good" | "fair" | "poor" | "decommissioned";
   state: "active" | "in_repair" | "disposed" | "transferred" | "missing";
   is_verified: boolean;
   notes: string | null;
@@ -181,7 +183,7 @@ function bucketCategory(name: string | null | undefined): Asset["category"] {
 }
 
 const CONDITION_MAP: Record<ApiAsset["condition"], Asset["condition"]> = {
-  new: "Good", good: "Good", fair: "Fair", poor: "Poor", damaged: "Faulty",
+  new: "Good", good: "Good", fair: "Fair", poor: "Poor", decommissioned: "Decommissioned",
 };
 
 // Backend `state` is lifecycle; frontend `status` is data-quality review queue.

@@ -158,6 +158,87 @@ def test_a_real_credential_starts_the_server(tmp_path, label, env):
     assert "FATAL" not in proc.stderr, label
 
 
+# ── the line-break refusal ──────────────────────────────────────────────
+
+@pytest.mark.parametrize("label,env,expected_named", [
+    ("a newline in the master password — the one that writes a real "
+     "directive into the running config",
+     {"PASSWORD": STRONG, "ODOO_MASTER_PASSWORD": "Master-9f2x\nworkers = 0"},
+     "ODOO_MASTER_PASSWORD"),
+    ("a newline in the database password",
+     {"PASSWORD": "Xf9-strong\nlist_db = True", "ODOO_MASTER_PASSWORD": STRONG},
+     "POSTGRES_PASSWORD"),
+    ("a carriage return from a .env saved with Windows line endings",
+     {"PASSWORD": STRONG, "ODOO_MASTER_PASSWORD": "Master-9f2x\r"},
+     "ODOO_MASTER_PASSWORD"),
+    ("a trailing newline from a wrapped paste, with nothing after it",
+     {"PASSWORD": STRONG, "ODOO_MASTER_PASSWORD": "Master-9f2x\n"},
+     "ODOO_MASTER_PASSWORD"),
+    ("a newline in the jwt secret",
+     {"PASSWORD": STRONG, "ODOO_MASTER_PASSWORD": STRONG,
+      "CADRA_JWT_SECRET": "s3cret\nadmin_passwd = admin"},
+     "CADRA_JWT_SECRET"),
+    ("a newline in POSTGRES_USER, which is not a credential but is appended "
+     "to the same line-oriented file",
+     {"PASSWORD": STRONG, "ODOO_MASTER_PASSWORD": STRONG,
+      "USER": "odoo\ndb_maxconn = 1"},
+     "POSTGRES_USER"),
+])
+def test_a_credential_carrying_a_line_break_refuses_the_bring_up(
+        tmp_path, label, env, expected_named):
+    """An INI file is line-oriented, so a value with a break in it is not a
+    value — everything after the break is a directive Odoo obeys.
+
+    Refusing the input rather than hardening the `printf`: there is no
+    legitimate credential with a line break in it, so the narrow rule is the
+    whole fix and it runs before anything is written.
+    """
+    proc, conf, _argv = _run(tmp_path, **env)
+    assert proc.returncode == 1, (
+        "%s: expected a refusal\nstdout: %s\nstderr: %s"
+        % (label, proc.stdout, proc.stderr))
+    assert "REACHED_SERVER_START" not in proc.stdout, (
+        "%s: odoo was started anyway" % label)
+    assert expected_named in proc.stderr, (
+        "%s: the refusal does not name %s\n%s"
+        % (label, expected_named, proc.stderr))
+    assert "line break" in proc.stderr, (
+        "%s: the refusal does not say what is wrong with it\n%s"
+        % (label, proc.stderr))
+    assert conf == "", (
+        "%s: the config was written before the refusal. The whole point is "
+        "that nothing reaches the file.\n%s" % (label, conf))
+
+
+def test_the_line_break_refusal_never_prints_the_credential(tmp_path):
+    """A value that has just been shown to contain something the operator did
+    not intend is the last thing to echo into a container log."""
+    secret = "Master-9f2x-DO-NOT-LOG\nworkers = 0"
+    proc, _conf, _argv = _run(
+        tmp_path, PASSWORD=STRONG, ODOO_MASTER_PASSWORD=secret)
+    assert proc.returncode == 1
+    assert "DO-NOT-LOG" not in proc.stderr + proc.stdout, (
+        "the refusal printed the credential:\n%s\n%s" % (proc.stderr, proc.stdout))
+    assert "workers = 0" not in proc.stderr + proc.stdout
+
+
+@pytest.mark.parametrize("label,env", [
+    ("a password full of shell metacharacters but no line break",
+     {"PASSWORD": STRONG, "ODOO_MASTER_PASSWORD": 'a\tb$(id)`id`*?[x]'}),
+    ("a password containing a literal backslash-n, which is two characters "
+     "and not a line break",
+     {"PASSWORD": STRONG, "ODOO_MASTER_PASSWORD": "Master\\n9f2x"}),
+])
+def test_a_credential_without_a_line_break_still_starts_the_server(
+        tmp_path, label, env):
+    """The counterweight. A generated password can contain almost anything;
+    only an actual break is refused."""
+    proc, _conf, _argv = _run(tmp_path, **env)
+    assert proc.returncode == 0, (
+        "%s: refused a legitimate configuration\nstderr: %s" % (label, proc.stderr))
+    assert "REACHED_SERVER_START" in proc.stdout, label
+
+
 # ── the config it builds ────────────────────────────────────────────────
 
 def test_the_database_credentials_reach_the_config(tmp_path):

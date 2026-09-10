@@ -397,13 +397,20 @@ Postgres is exposed on `localhost:5432` in dev (user/pw: `odoo`/`odoo`).
 
 ## CRND assembly metadata (legacy)
 
-This repo was originally a CRND assembly built from
-[`odoo_packager.yml`](./odoo_packager.yml). That packager flow is preserved
-for the vendored `dist/` addons but is **not** how Cadra modules are
-maintained — they live directly in the repo root.
+This repo was originally a CRND assembly. The addon manifest it was built
+from is still here — [`odoo-packager.yml`](./odoo-packager.yml), which this
+section named as `odoo_packager.yml` and linked to nothing — and it lists the
+vendored `dist/` addons. Cadra's own modules are **not** maintained that way;
+they live directly in the repo root.
 
-For the packager docs (relevant only if you need to refresh a `dist/`
-addon), see the
+**The pipeline that ran the packager is gone.** `.gitlab-ci.yml` was deleted
+in handoff 21: it pinned `SERIES_BRANCH: '15.0'`, targeted a GitLab that is
+not a remote of this repository, and had not been touched since an assembly
+bot wrote it in March 2023. `dist/` is the Odoo 15 vendor tree and is off
+every Odoo 19 addons path, so nothing in it is refreshed any more —
+`crnd-19/` hand-ports what the 19 stack needs.
+
+For the packager docs, should anyone ever need them, see the
 [upstream packager README](https://gitlab.crnd.pro/crnd/docker/odoo-apps-packager/blob/d/README.md).
 
 ---

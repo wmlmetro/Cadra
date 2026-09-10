@@ -135,7 +135,7 @@
   --cond-good-bg:   #ECFDF3; --cond-good-fg:   #15803D;
   --cond-fair-bg:   #EFF6FF; --cond-fair-fg:   #1D4ED8;
   --cond-poor-bg:   #FFFBEB; --cond-poor-fg:   #B45309;
-  --cond-faulty-bg: #FFF1F2; --cond-faulty-fg: #BE123C;
+  --cond-decommissioned-bg: #FFF1F2; --cond-decommissioned-fg: #BE123C;
 
   --app-font-sans: 'Inter', sans-serif;
   --app-font-serif: Georgia, serif;
@@ -227,7 +227,7 @@
   --cond-good-bg:   #0E2A1B; --cond-good-fg:   #5CD08F;
   --cond-fair-bg:   #0A1E35; --cond-fair-fg:   #60A5FA;
   --cond-poor-bg:   #2A2310; --cond-poor-fg:   #FBBF24;
-  --cond-faulty-bg: #2A0E10; --cond-faulty-fg: #FB7185;
+  --cond-decommissioned-bg: #2A0E10; --cond-decommissioned-fg: #FB7185;
 
   --shadow-2xs: 0px 1px 2px 0px hsl(222 47% 5% / 0.3);
   --shadow-xs:  0px 1px 3px 0px hsl(222 47% 5% / 0.35);

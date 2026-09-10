@@ -90,7 +90,7 @@ export interface Asset {
   systemDomain?: string;
   registrationNo?: string;
   engineNo?: string;
-  condition: "Good" | "Fair" | "Poor" | "Faulty";
+  condition: "Good" | "Fair" | "Poor" | "Decommissioned";
   lifecycleState?: "active" | "in_repair" | "disposed" | "transferred" | "missing";
   isVerified?: boolean;
   custodianId?: number;

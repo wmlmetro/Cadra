@@ -9,7 +9,9 @@ richer FleetVehicle view type, filling NRS-specific fields it doesn't have yet.
 from odoo import http
 from odoo.http import request
 
+from .query_params import BadFilter, parse_bool, parse_enum, parse_int
 from .utils import (
+    ERR_INVALID_REQUEST,
     ERR_NOT_FOUND,
     SCOPE_DASHBOARDS_READ,
     err,
@@ -17,8 +19,22 @@ from .utils import (
     ok,
     paginate,
     parse_limit,
+    selection_values,
 )
 from .v1 import PAGINATION_QUERY_PARAMS, cadra_route
+
+
+# The floor under the `fuel_type` filter. `fleet.vehicle.fuel_type` is Odoo
+# core's `FUEL_TYPES` and no module in this repository extends it, so the
+# accepted values are read off the model at request time and this tuple is
+# only what the check falls back to if that read fails. Keeping a copy here
+# is what lets the filter refuse a typo even then — a validator that
+# disables itself on failure puts `?fuel_type=petrol` straight back to
+# answering `200 []`.
+_FUEL_TYPES = (
+    "diesel", "gasoline", "full_hybrid", "plug_in_hybrid_diesel",
+    "plug_in_hybrid_gasoline", "cng", "lpg", "hydrogen", "electric",
+)
 
 
 def _fleet_domain(qs):
@@ -38,18 +54,29 @@ def _fleet_domain(qs):
         ]
         domain += ["|"] * (len(terms) - 1) + terms
 
-    if qs.get("state_id"):
-        try:
-            domain.append(("state_id", "=", int(qs["state_id"])))
-        except (TypeError, ValueError):
-            pass
-    if qs.get("fuel_type"):
-        domain.append(("fuel_type", "=", qs["fuel_type"]))
-    is_bus = qs.get("is_staff_bus")
-    if is_bus in ("true", "True", True):
-        domain.append(("is_staff_bus", "=", True))
-    elif is_bus in ("false", "False", False):
-        domain.append(("is_staff_bus", "=", False))
+    # `?state_id=disposed` used to be swallowed by an
+    # `except (TypeError, ValueError): pass` that appended no term, so a
+    # caller asking for one fleet state received the whole fleet and had
+    # nothing in the response to tell them so.
+    state_id = parse_int("state_id", qs.get("state_id"))
+    if state_id is not None:
+        domain.append(("state_id", "=", state_id))
+    # `fuel_type` was appended raw, so `?fuel_type=petrol` — the ordinary
+    # British spelling of `gasoline`, and the likeliest thing anybody here
+    # types — answered `200 []`, which reads as "the fleet runs nothing on
+    # petrol" rather than as "that is not a value I know".
+    fuel_type = parse_enum(
+        "fuel_type", qs.get("fuel_type"),
+        selection_values("fleet.vehicle", "fuel_type", _FUEL_TYPES))
+    if fuel_type is not None:
+        domain.append(("fuel_type", "=", fuel_type))
+    # `?is_staff_bus=1` fell through both branches, appended nothing, and
+    # returned every vehicle on the register — staff buses and the rest
+    # together — to a caller asking for exactly one of the two. An empty list
+    # reads as "no matches"; a full list reads as an answer.
+    is_bus = parse_bool("is_staff_bus", qs.get("is_staff_bus"))
+    if is_bus is not None:
+        domain.append(("is_staff_bus", "=", is_bus))
     return domain
 
 
@@ -90,15 +117,25 @@ class CadraFleetV1(http.Controller):
                      {"name": "q", "schema": {"type": "string"},
                       "description": "Free-text across plate, VIN, name, driver, "
                                      "model, brand, home location"},
-                     {"name": "state_id", "schema": {"type": "integer"}},
-                     {"name": "fuel_type", "schema": {"type": "string"}},
-                     {"name": "is_staff_bus", "schema": {"type": "boolean"}},
+                     {"name": "state_id", "schema": {"type": "integer"},
+                      "description": "fleet.vehicle.state id"},
+                     # Declared as a bare string until now; the enum is the
+                     # set the model has always accepted, written down.
+                     {"name": "fuel_type", "schema": {"type": "string",
+                      "enum": list(_FUEL_TYPES)},
+                      "description": "fleet.vehicle fuel type"},
+                     {"name": "is_staff_bus", "schema": {"type": "boolean"},
+                      "description": "true = only staff buses, "
+                                     "false = only other vehicles"},
                      *PAGINATION_QUERY_PARAMS,
                  ])
     def list_fleet(self, **kwargs):
         qs = get_params()
         Vehicle = request.env["fleet.vehicle"].sudo()
-        domain = _fleet_domain(qs)
+        try:
+            domain = _fleet_domain(qs)
+        except BadFilter as e:
+            return err(ERR_INVALID_REQUEST, str(e), details=e.details)
         limit = parse_limit(qs)
         page, next_cursor, total = paginate(
             Vehicle, domain, limit=limit, cursor=qs.get("cursor"),

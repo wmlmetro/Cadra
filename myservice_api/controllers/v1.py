@@ -82,6 +82,7 @@ from .utils import (
     scopes_for_user,
     turnstile_error,
 )
+from .query_params import parse_enum, parse_int
 
 
 # Auth outcomes go to their own logger so `--log-handler cadra.auth:DEBUG` and
@@ -89,6 +90,13 @@ from .utils import (
 _auth_logger = logging.getLogger("cadra.auth")
 
 _logger = logging.getLogger(__name__)
+
+#: The label sizes `/barcode/print-url` accepts, mirroring the `action_map`
+#: in `myservice_barcode_station.controllers.main.get_print_url` and the
+#: OpenAPI enum on the route. Not a model Selection — there is nothing to
+#: read it off, so the two copies are kept honest by
+#: `tests/test_query_param_guard.py`.
+_LABEL_SIZES = ("small", "medium", "large", "sheet")
 
 
 # ─── route metadata registry (drives the OpenAPI generator) ─────────
@@ -1935,9 +1943,12 @@ class MyserviceApiV1(http.Controller):
                  ])
     def barcode_recent_tags(self, **kwargs):
         from odoo.addons.myservice_barcode_station.controllers.main import BarcodeStationController
-        try:
-            limit = int(kwargs.get("limit", 50))
-        except (TypeError, ValueError):
+        # `except: pass` back to 50 used to mean `?limit=all` served fifty
+        # rows to a caller who believed they had asked for every one. The
+        # route decorator turns the BadFilter into a 400.
+        limit = parse_int("limit", kwargs.get("limit"),
+                          null_is_absent=False, minimum=1)
+        if limit is None:          # absent or empty — the documented default
             limit = 50
         return BarcodeStationController().get_recent_tags(
             domain_filter=kwargs.get("domain_filter", ""),
@@ -1963,10 +1974,13 @@ class MyserviceApiV1(http.Controller):
                       "enum": ["small", "medium", "large", "sheet"],
                       "default": "medium"},
                       "description": (
-                          "Label size. `sheet` is the A4 multi-label sheet; "
-                          "it was always accepted and was missing from this "
-                          "enum. An unrecognised value falls back to "
-                          "`medium` rather than erroring.")},
+                          "Label size. `sheet` is the A4 multi-label sheet. "
+                          "A value outside the enum is a 400 "
+                          "`invalid_request` carrying `details.allowed_"
+                          "values`. It used to fall back to `medium`, which "
+                          "meant a misspelt `sheet` printed one medium label "
+                          "where a sheet of them was wanted — and the caller "
+                          "was told nothing.")},
                  ])
     def barcode_print_url(self, **kwargs):
         """Resolve the PDF URL for a tag label.
@@ -1988,9 +2002,17 @@ class MyserviceApiV1(http.Controller):
             return err(ERR_INVALID_REQUEST,
                        "`tag_id` must be an integer tag-label id",
                        details={"tag_id": raw_tag_id})
+        # `size` selects which of four QWeb report actions renders the label,
+        # and the delegate's `action_map.get(size, action_map['medium'])`
+        # answered a typo with a medium label and a 200. That is not a wrong
+        # LIST — it is a wrong PIECE OF PAPER, printed, stuck to an asset,
+        # and the caller was told the print succeeded. The four values are a
+        # fixed map in the delegate rather than a model Selection, so they
+        # are named here rather than read.
+        size = parse_enum("size", kwargs.get("size"), _LABEL_SIZES) or "medium"
         result = BarcodeStationController().get_print_url(
             tag_id=raw_tag_id,
-            size=kwargs.get("size", "medium"),
+            size=size,
         )
         return _delegate_failure(result, code=ERR_NOT_FOUND, status=404,
                                  details={"tag_id": raw_tag_id}) or result
@@ -2007,9 +2029,17 @@ class MyserviceApiV1(http.Controller):
                  ])
     def barcode_untagged(self, **kwargs):
         from odoo.addons.myservice_barcode_station.controllers.main import BarcodeStationController
+        # `limit` used to be handed to the delegate UNPARSED — a string went
+        # into `search(limit=...)`, where Odoo either coerced it or raised
+        # somewhere with no useful message. Parsed here, and the published
+        # maximum of 500 is now actually enforced rather than described.
+        limit = parse_int("limit", kwargs.get("limit"),
+                          null_is_absent=False, minimum=1, maximum=500)
+        if limit is None:          # absent or empty — the documented default
+            limit = 100
         return BarcodeStationController().get_untagged(
             q=kwargs.get("q", ""),
-            limit=kwargs.get("limit", 100),
+            limit=limit,
         )
 
     @cadra_route("/api/v1/barcode/generate", method="POST",

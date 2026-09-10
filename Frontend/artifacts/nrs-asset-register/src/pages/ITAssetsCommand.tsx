@@ -20,7 +20,7 @@ const CONDITION_COLORS: Record<string, string> = {
   good:    "#10b981",
   fair:    "#f59e0b",
   poor:    "#f97316",
-  damaged: "#ef4444",
+  decommissioned: "#ef4444",
 };
 
 export default function ITAssetsCommand() {
@@ -95,7 +95,10 @@ export default function ITAssetsCommand() {
     { label: "Unverified",    value: d.unverified,               icon: ShieldAlert,    color: "text-red-600 dark:text-red-400" },
     { label: "Verified",      value: verifiedShare,              icon: ShieldCheck,    color: "text-green-600 dark:text-green-400" },
     { label: "New",           value: d.byCondition.new,          icon: Sparkles,       color: "text-emerald-600 dark:text-emerald-400" },
-    { label: "Needs service", value: d.byCondition.poor + d.byCondition.damaged, icon: AlertTriangle, color: "text-orange-600 dark:text-orange-400" },
+    // Decommissioned assets are retired, not awaiting service, so they are not
+    // counted here. Until the condition filter was corrected this sum's second
+    // term was always 0, so the number on screen is unchanged.
+    { label: "Needs service", value: d.byCondition.poor, icon: AlertTriangle, color: "text-orange-600 dark:text-orange-400" },
     { label: "Disposed",      value: d.disposed,                 icon: Trash2,         color: "text-muted-foreground" },
   ];
 
@@ -190,7 +193,7 @@ export default function ITAssetsCommand() {
                         a.condition === "Good" && "bg-green-50 dark:bg-green-950/30 border-green-200/70 text-green-700 dark:text-green-400",
                         a.condition === "Fair" && "bg-amber-50 dark:bg-amber-950/30 border-amber-200/70 text-amber-700 dark:text-amber-400",
                         a.condition === "Poor" && "bg-orange-50 dark:bg-orange-950/30 border-orange-200/70 text-orange-700 dark:text-orange-400",
-                        a.condition === "Faulty" && "bg-red-50 dark:bg-red-950/30 border-red-200/70 text-red-700 dark:text-red-400",
+                        a.condition === "Decommissioned" && "bg-red-50 dark:bg-red-950/30 border-red-200/70 text-red-700 dark:text-red-400",
                       )}>{a.condition}</span>
                     </td>
                     <td className="px-3 py-2 text-[12px] truncate max-w-[180px]">
@@ -217,7 +220,7 @@ function ConditionBars({ data, total }: { data: CategoryDashboardData["byConditi
     { key: "good",    label: "Good",    value: data.good },
     { key: "fair",    label: "Fair",    value: data.fair },
     { key: "poor",    label: "Poor",    value: data.poor },
-    { key: "damaged", label: "Damaged", value: data.damaged },
+    { key: "decommissioned", label: "Decommissioned", value: data.decommissioned },
   ];
   const max = Math.max(1, ...rows.map(r => r.value));
   return (
@@ -227,7 +230,7 @@ function ConditionBars({ data, total }: { data: CategoryDashboardData["byConditi
         const share = total ? Math.round((r.value / total) * 1000) / 10 : 0;
         return (
           <li key={r.key} className="flex items-center gap-3">
-            <span className="text-[12px] font-medium text-foreground w-16 shrink-0">{r.label}</span>
+            <span className="text-[12px] font-medium text-foreground w-28 shrink-0">{r.label}</span>
             <div className="flex-1 h-2 bg-muted/40 rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full transition-all"

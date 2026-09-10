@@ -19,7 +19,9 @@ import type { ApiLocation } from "@/lib/adapters";
 import { ArrowLeft, AlertCircle, Loader2, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const CONDITIONS = ["new", "good", "fair", "poor", "damaged"] as const;
+// `nrs.asset.condition` in the model's own order. The backend refuses
+// anything else with a 400.
+const CONDITIONS = ["new", "good", "fair", "poor", "decommissioned"] as const;
 const STATES     = ["active", "in_repair", "disposed", "transferred", "missing"] as const;
 const LEVELS     = ["asset", "sub_asset", "component"] as const;
 

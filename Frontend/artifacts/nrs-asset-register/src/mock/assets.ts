@@ -89,7 +89,7 @@ export const mockAssets: Asset[] = [
     model: "LaserJet Pro M404n",
     serial: "VNF-89234",
     systemDomain: "LAG-IKJ-PRN-02",
-    condition: "Faulty",
+    condition: "Decommissioned",
     department: "Audit",
     location: {
       zone: "South West",

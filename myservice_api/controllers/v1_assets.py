@@ -42,6 +42,18 @@ from .utils import (
     paginate,
     parse_limit,
     record_cap,
+    selection_values,
+)
+# The door. Every query parameter this controller reads is parsed by one of
+# these before it becomes a domain term, and none of them touches the
+# database, the cursor or the request — see that module's docstring for why
+# that purity is a rule rather than a preference.
+from .query_params import (
+    BadFilter,
+    int_filter_terms,
+    parse_bool,
+    parse_enum,
+    parse_int,
 )
 from .v1 import PAGINATION_QUERY_PARAMS, cadra_route
 
@@ -58,85 +70,74 @@ from odoo.addons.myservice_asset_register.models.asset_snapshot import (
 
 _logger = logging.getLogger(__name__)
 
+# ─── the published enum floors ───────────────────────────────────────
+#
+# Every enum filter below validates against the MODEL's own Selection, read
+# by `utils.selection_values`, so a value the model gains is accepted by the
+# filter that publishes it on the same day. These tuples are the floor under
+# that reader and never a substitute for it: if the registry cannot be read,
+# the published tuple still rejects a typo. A validator that disables itself
+# on failure puts `?state=bogus` back to answering `200 []`, which is the
+# silent degradation the validation exists to remove.
+#
+# `utils.selection_values` is deliberately NOT `utils._selection_allowed_values`,
+# and the difference is the whole reason the former exists: that one calls
+# `cr.rollback()` when it cannot read a field, because it was written for the
+# error path AFTER a failed write, where the cursor is already dirty. These
+# run on the happy path of every list request, where rolling back a cursor
+# nobody asked it to touch would turn a transient read failure into a
+# corrupted response. The ruling is landed (docs/DECISIONS.md, 2026-09-06).
+
+# nrs.asset.state — the in-house 5-state lifecycle (module docstring above).
+_ASSET_STATES = ("active", "in_repair", "disposed", "transferred", "missing")
+
+# nrs.asset.condition.
+_ASSET_CONDITIONS = ("new", "good", "fair", "poor", "decommissioned")
+
+# nrs.asset.asset_level — position in the hierarchy, and the same four values
+# INT-06 §8 publishes to SAP.
+_ASSET_LEVELS = ("group", "asset", "sub_asset", "component")
+
+# nrs.asset.domain — the FM domain. The field is `related='category_id.domain'`,
+# so the Selection is declared on `nrs.asset.category`; the related field
+# carries it, which is why reading `nrs.asset.domain` off the registry gets the
+# right list — the same shape as `tag_label_state` below, which is related to
+# `nrs.asset.tag.label.label_state` and has been read off the registry that
+# way since its filter was written. Mirrors `v1_settings._FM_DOMAINS`.
+_FM_DOMAINS = ("building", "plant", "plumbing", "fleet", "security", "it",
+               "furniture", "other")
+
+# nrs.asset.import_source — which system wrote the record. `vendra` is INT-03.
+_IMPORT_SOURCES = ("myservice", "sap", "redhubb", "vendra", "excel", "other")
+
 # The published `tag_label_state` values, mirroring the model's Selection
-# (`nrs.asset.tag.label.label_state`) and the OpenAPI enum below. Used only
-# as the floor under `_tag_label_states()` — the model is still the source of
-# truth when it can be read.
+# (`nrs.asset.tag.label.label_state`) and the OpenAPI enum below.
 _TAG_LABEL_STATES = ("issued", "printed", "affixed", "scrapped")
-
-
-def _tag_label_states():
-    """Accepted values for the `tag_label_state` filter. Never empty.
-
-    Reads the model's own Selection so a value the model gains is accepted
-    the same day, and falls back to the published tuple if it cannot — never
-    to "skip the check". A validator that disables itself on failure puts
-    `?tag_label_state=bogus` back to answering `200 []`, which is the silent
-    degradation the validation exists to remove.
-
-    Deliberately NOT `utils._selection_allowed_values`, which calls
-    `cr.rollback()` on failure: that helper is written for the post-rollback
-    error path, and this runs on the happy path of every list request.
-    """
-    try:
-        field = request.env["nrs.asset"]._fields["tag_label_state"]
-        if field.type == "selection":
-            values = list(field.get_values(request.env))
-            if values:
-                return values
-    except Exception:
-        # catch-all: unknown — broad on purpose. The FALLBACK is
-        # the safe answer here, not the exception: whatever goes
-        # wrong reading the model, the published tuple below still
-        # rejects a typo, which is the control. Narrowing would
-        # mean guessing what `get_values` can raise and letting
-        # the guess decide whether every list request 500s.
-        _logger.warning(
-            "could not read nrs.asset.tag_label_state selection; "
-            "falling back to the published values", exc_info=True)
-    return list(_TAG_LABEL_STATES)
-
 
 # The published `sap_reconciliation_state` values, mirroring the model's
 # Selection (`nrs.asset.sap_reconciliation_state`) and the OpenAPI enum below.
-# Same role as `_TAG_LABEL_STATES`: the floor under the reader, never a
-# substitute for it.
+# More is at stake on this one than on any other filter here: its whole
+# audience is an auditor asking which assets are incomplete, so
+# `?sap_reconciliation_state=exceptions` — the plural, the natural typo —
+# answering `200 []` tells them there are none.
 _SAP_RECONCILIATION_STATES = ("not_tagged", "pending", "reconciled",
                               "exception")
 
+# The optional embeds the two single-asset routes accept on `include=`.
+_INCLUDE_SECTIONS = ("transfers", "custody", "pm", "children")
 
-def _sap_reconciliation_states():
-    """Accepted values for the `sap_reconciliation_state` filter. Never empty.
 
-    Same reader as `_tag_label_states()`, for the same reason and with more
-    at stake: this filter's entire audience is an auditor asking which assets
-    are incomplete, so `?sap_reconciliation_state=exceptions` — the plural,
-    the natural typo — answering `200 []` tells them there are none. Read the
-    model's own Selection so a state the model gains is accepted the same
-    day, fall back to the published tuple when it cannot be read, and never
-    fall back to skipping the check.
-
-    Deliberately NOT `utils._selection_allowed_values`, which rolls the
-    cursor back on failure; this runs on the happy path of every list
-    request.
-    """
-    try:
-        field = request.env["nrs.asset"]._fields["sap_reconciliation_state"]
-        if field.type == "selection":
-            values = list(field.get_values(request.env))
-            if values:
-                return values
-    except Exception:
-        # catch-all: unknown — broad on purpose. The FALLBACK is
-        # the safe answer here, not the exception: whatever goes
-        # wrong reading the model, the published tuple below still
-        # rejects a typo, which is the control. Narrowing would
-        # mean guessing what `get_values` can raise and letting
-        # the guess decide whether every list request 500s.
-        _logger.warning(
-            "could not read nrs.asset.sap_reconciliation_state selection; "
-            "falling back to the published values", exc_info=True)
-    return list(_SAP_RECONCILIATION_STATES)
+# ─── published descriptions ──────────────────────────────────────────
+#
+# Said once, in the wording `sap_reconciliation_state` already publishes,
+# because it is now true of every filter on this controller and a caller
+# reading the OpenAPI document should not have to infer it from one
+# parameter's description.
+_ENUM_FILTER_400 = ("A value outside the enum is a 400 `invalid_request` "
+                    "carrying `details.allowed_values`, not an empty list.")
+_ID_FILTER_400 = ("Exact match on the record id. A value that is not an "
+                  "integer is a 400 `invalid_request`, never the unfiltered "
+                  "list.")
 
 
 # ─── small helpers ───────────────────────────────────────────────────
@@ -173,20 +174,6 @@ def _serialize_depreciation(a):
         "end_date": _date(a.depreciation_end_date),
         "uses_category_policy": a.use_category_policy,
     }
-
-
-class _BadFilter(Exception):
-    """A query parameter we cannot interpret.
-
-    Raised out of the domain builder and turned into a 400 by the listing
-    endpoint. A bare ValueError would reach the decorator's catch-all and
-    answer 500, which tells an integration to retry a request that can never
-    succeed.
-    """
-
-    def __init__(self, message, details=None):
-        super().__init__(message)
-        self.details = details or {}
 
 
 def _parse_datetime(raw):
@@ -485,6 +472,29 @@ def _serialize_custody(c):
     }
 
 
+def _parse_include(raw):
+    """The `include=` sections a caller asked for, or a `BadFilter`.
+
+    Comma-separated, whitespace tolerated, absent and empty both meaning "no
+    sections". An unrecognised section used to be dropped without a word, so
+    `?include=custdy` answered 200 with an asset that simply had no `custody`
+    key on it — and a caller reading `data.get("custody", [])` is told the
+    asset has never changed hands. That is the same reassuring wrong answer
+    the filters below used to give, one parameter along, and rule 3 forbids
+    it: nothing degrades in silence.
+
+    Each token is checked on its own so the 400 names the section that was
+    not recognised rather than echoing the whole string back.
+    """
+    sections = []
+    for token in (raw or "").split(","):
+        token = token.strip()
+        if not token:
+            continue
+        sections.append(parse_enum("include", token, _INCLUDE_SECTIONS))
+    return sections
+
+
 # ─── serializer ──────────────────────────────────────────────────────
 
 def serialize_asset(a, *, include=()):
@@ -663,40 +673,57 @@ def _list_domain(qs):
             ("purchase_order_reference", "ilike", q),
         ]
         domain += ["|"] * (len(terms) - 1) + terms
-    for fld in ("category_id", "subcategory_id", "location_id", "building_id",
-                "floor_id", "room_id", "custodian_id", "parent_id"):
-        val = qs.get(fld)
-        if val not in (None, "", "null"):
-            try:
-                domain.append((fld, "=", int(val)))
-            except (TypeError, ValueError):
-                pass
-    for fld in ("state", "condition", "domain", "asset_level"):
-        val = qs.get(fld)
-        if val:
-            domain.append((fld, "=", val))
-    # Provenance lookups are exact, not fuzzy: `?grn_reference=GRN-2026-00001`
-    # has to return that receipt's assets and nothing else, or it is not an
-    # audit trail.
+    # The foreign-key filters. Every one of these used to sit inside an
+    # `except (TypeError, ValueError): pass`, so `?category_id=laptops`
+    # appended no term at all and returned EVERY asset in the register — and
+    # a caller who put a name where an id belongs reads that as "this
+    # category holds the whole estate". `"null"` still counts as absent,
+    # which is what these have always done and what a client sending it
+    # means by it.
+    domain += int_filter_terms(qs, ("category_id", "subcategory_id",
+                                    "location_id", "building_id", "floor_id",
+                                    "room_id", "custodian_id", "parent_id"))
+    # The four enum filters, which used to be `if val: domain.append(...)` —
+    # anything the caller typed became a domain term, so `?state=Active`, the
+    # capital being the natural typo, matched no row and answered `200 []`.
+    # That reads as "there are no active assets" and is indistinguishable
+    # from a genuine empty result. Validated against the model's own
+    # Selection, floored by the published tuple.
+    for fld, fallback in (("state", _ASSET_STATES),
+                          ("condition", _ASSET_CONDITIONS),
+                          ("domain", _FM_DOMAINS),
+                          ("asset_level", _ASSET_LEVELS)):
+        value = parse_enum(fld, qs.get(fld),
+                           selection_values("nrs.asset", fld, fallback))
+        if value is not None:
+            domain.append((fld, "=", value))
     # `?is_tagged=true` is the question Vendra actually asks; it maps onto the
     # one label state that means a physical label was confirmed on the asset.
-    raw_tagged = qs.get("is_tagged")
-    if raw_tagged not in (None, "", "null"):
-        if raw_tagged in ("true", "True", True):
-            domain.append(("tag_label_state", "=", "affixed"))
-        elif raw_tagged in ("false", "False", False):
-            domain.append(("tag_label_state", "!=", "affixed"))
-        else:
-            # Anything else used to fall through both branches and append no
-            # domain at all, so `?is_tagged=1` quietly returned EVERY asset
-            # and a caller branching on the result treated them all as tagged.
-            raise _BadFilter("`is_tagged` must be `true` or `false`",
-                             details={"is_tagged": raw_tagged})
+    # `"null"` reads as absent here and almost nowhere else: that leniency is
+    # what this parameter has published since handoff 01, so it keeps it. A
+    # parameter that never published it does not get it.
+    is_tagged = parse_bool("is_tagged", qs.get("is_tagged"),
+                           null_is_absent=True)
+    if is_tagged is True:
+        domain.append(("tag_label_state", "=", "affixed"))
+    elif is_tagged is False:
+        domain.append(("tag_label_state", "!=", "affixed"))
+    # Provenance lookups are exact, not fuzzy: `?grn_reference=GRN-2026-00001`
+    # has to return that receipt's assets and nothing else, or it is not an
+    # audit trail. `import_source` is the one closed set among them and is
+    # validated as one — a mistyped source answering `200 []` reads as "no
+    # Vendra receipt has ever landed here", which is a statement about INT-03
+    # nobody should be able to make by typo.
     for fld in ("grn_reference", "purchase_order_reference", "purchase_vendor",
-                "import_source", "import_ref"):
+                "import_ref"):
         val = qs.get(fld)
         if val:
             domain.append((fld, "=", val))
+    import_source = parse_enum(
+        "import_source", qs.get("import_source"),
+        selection_values("nrs.asset", "import_source", _IMPORT_SOURCES))
+    if import_source is not None:
+        domain.append(("import_source", "=", import_source))
     # `tag_label_state` is an enum, and an unrecognised value used to answer
     # `200 []` — so a typo in a poller read as "nothing is tagged yet" rather
     # than as an error, which is the silent degradation POST already refuses.
@@ -708,15 +735,11 @@ def _list_domain(qs):
     # "unfiltered" would hand back the ENTIRE register to a poller that meant
     # to narrow it. An empty list looks like "no matches"; a full list looks
     # like an answer. So it validates like any other unrecognised value: 400.
-    raw_label_state = qs.get("tag_label_state")
-    if raw_label_state not in (None, ""):
-        allowed = _tag_label_states()
-        if raw_label_state not in allowed:
-            raise _BadFilter(
-                "`tag_label_state` must be one of: %s" % ", ".join(allowed),
-                details={"tag_label_state": raw_label_state,
-                         "allowed_values": list(allowed)})
-        domain.append(("tag_label_state", "=", raw_label_state))
+    label_state = parse_enum(
+        "tag_label_state", qs.get("tag_label_state"),
+        selection_values("nrs.asset", "tag_label_state", _TAG_LABEL_STATES))
+    if label_state is not None:
+        domain.append(("tag_label_state", "=", label_state))
     # ── SAP (INT-06/07) ───────────────────────────────────────────────
     #
     # Exact, like the provenance references above and for the same reason:
@@ -737,36 +760,35 @@ def _list_domain(qs):
     # `tag_label_state` check closes — a JS caller stringifying an unset value
     # sends the literal "null" — and a new parameter should not be born with
     # it.
-    raw_has_sap_code = qs.get("has_sap_code")
-    if raw_has_sap_code not in (None, ""):
-        if raw_has_sap_code in ("true", "True", True):
-            # `= False` on a Char covers NULL and '' both, so its negation is
-            # "there is a code", not merely "the column is not NULL".
-            domain.append(("sap_asset_number", "!=", False))
-        elif raw_has_sap_code in ("false", "False", False):
-            domain.append(("sap_asset_number", "=", False))
-        else:
-            raise _BadFilter("`has_sap_code` must be `true` or `false`",
-                             details={"has_sap_code": raw_has_sap_code})
+    has_sap_code = parse_bool("has_sap_code", qs.get("has_sap_code"))
+    if has_sap_code is True:
+        # `= False` on a Char covers NULL and '' both, so its negation is
+        # "there is a code", not merely "the column is not NULL".
+        domain.append(("sap_asset_number", "!=", False))
+    elif has_sap_code is False:
+        domain.append(("sap_asset_number", "=", False))
     # The dual-code state. Same rule as `tag_label_state`, and it matters
     # more here rather than less: an auditor filtering for `exception` is
     # asking to be shown the findings, and a typo answering `200 []` reads as
     # "there are none" — the single most reassuring wrong answer this API can
     # give. `"null"` is not a "no filter" sentinel on an enum.
-    raw_recon_state = qs.get("sap_reconciliation_state")
-    if raw_recon_state not in (None, ""):
-        allowed = _sap_reconciliation_states()
-        if raw_recon_state not in allowed:
-            raise _BadFilter(
-                "`sap_reconciliation_state` must be one of: %s"
-                % ", ".join(allowed),
-                details={"sap_reconciliation_state": raw_recon_state,
-                         "allowed_values": list(allowed)})
-        domain.append(("sap_reconciliation_state", "=", raw_recon_state))
-    if qs.get("is_verified") in ("true", "True", True):
-        domain.append(("is_verified", "=", True))
-    elif qs.get("is_verified") in ("false", "False", False):
-        domain.append(("is_verified", "=", False))
+    recon_state = parse_enum(
+        "sap_reconciliation_state", qs.get("sap_reconciliation_state"),
+        selection_values("nrs.asset", "sap_reconciliation_state",
+                         _SAP_RECONCILIATION_STATES))
+    if recon_state is not None:
+        domain.append(("sap_reconciliation_state", "=", recon_state))
+    # `is_verified` was the worst of the five booleans, because BOTH of its
+    # branches were membership tests and there was no third branch at all:
+    # `?is_verified=1` fell out of the bottom having appended nothing, and
+    # the caller received the ENTIRE register — every asset in it reading as
+    # verified, including the ones nobody has laid eyes on. This is the
+    # filter an auditor uses to ask what has NOT been physically checked, so
+    # the unfiltered list is not merely wrong, it is the answer that ends the
+    # enquiry. No published leniency: `"null"` is not absent here.
+    is_verified = parse_bool("is_verified", qs.get("is_verified"))
+    if is_verified is not None:
+        domain.append(("is_verified", "=", is_verified))
     return domain
 
 
@@ -898,20 +920,45 @@ class CadraAssetsV1(http.Controller):
                      {"name": "q", "schema": {"type": "string"},
                       "description": "Free-text search across name, asset_code, asset_tag, "
                                      "serial_number, grn_reference, purchase_order_reference"},
-                     {"name": "category_id", "schema": {"type": "integer"}},
-                     {"name": "subcategory_id", "schema": {"type": "integer"}},
-                     {"name": "location_id", "schema": {"type": "integer"}},
-                     {"name": "building_id", "schema": {"type": "integer"}},
-                     {"name": "floor_id", "schema": {"type": "integer"}},
-                     {"name": "room_id", "schema": {"type": "integer"}},
-                     {"name": "custodian_id", "schema": {"type": "integer"}},
-                     {"name": "parent_id", "schema": {"type": "integer"}},
+                     {"name": "category_id", "schema": {"type": "integer"},
+                      "description": _ID_FILTER_400},
+                     {"name": "subcategory_id", "schema": {"type": "integer"},
+                      "description": _ID_FILTER_400},
+                     {"name": "location_id", "schema": {"type": "integer"},
+                      "description": _ID_FILTER_400},
+                     {"name": "building_id", "schema": {"type": "integer"},
+                      "description": _ID_FILTER_400},
+                     {"name": "floor_id", "schema": {"type": "integer"},
+                      "description": _ID_FILTER_400},
+                     {"name": "room_id", "schema": {"type": "integer"},
+                      "description": _ID_FILTER_400},
+                     {"name": "custodian_id", "schema": {"type": "integer"},
+                      "description": _ID_FILTER_400},
+                     {"name": "parent_id", "schema": {"type": "integer"},
+                      "description": _ID_FILTER_400},
                      {"name": "state", "schema": {"type": "string",
-                      "enum": ["active", "in_repair", "disposed", "transferred", "missing"]}},
+                      "enum": ["active", "in_repair", "disposed",
+                               "transferred", "missing"]},
+                      "description": _ENUM_FILTER_400},
                      {"name": "condition", "schema": {"type": "string",
-                      "enum": ["new", "good", "fair", "poor", "decommissioned"]}},
-                     {"name": "domain", "schema": {"type": "string"}},
-                     {"name": "asset_level", "schema": {"type": "string"}},
+                      "enum": ["new", "good", "fair", "poor",
+                               "decommissioned"]},
+                      "description": _ENUM_FILTER_400},
+                     # `domain` and `asset_level` published no enum at all
+                     # until this pass, while the model has always had one —
+                     # so the documented surface was wider than the data and
+                     # a caller had nothing to validate against. Additive:
+                     # every value listed is one the model already accepts.
+                     # Taken from the tuples the filter itself falls back to,
+                     # so the published list and the floor cannot drift.
+                     {"name": "domain", "schema": {"type": "string",
+                      "enum": list(_FM_DOMAINS)},
+                      "description": "The FM domain, inherited from the "
+                                     "asset's category. " + _ENUM_FILTER_400},
+                     {"name": "asset_level", "schema": {"type": "string",
+                      "enum": list(_ASSET_LEVELS)},
+                      "description": "Position in the asset hierarchy. "
+                                     + _ENUM_FILTER_400},
                      {"name": "is_verified", "schema": {"type": "boolean"},
                       "description": "Whether the last physical verification is "
                                      "still inside its window. This EXPIRES: the "
@@ -919,7 +966,12 @@ class CadraAssetsV1(http.Controller):
                                      "`verification_interval_days`, falling back to "
                                      "the tenant default (365 days), and a daily job "
                                      "re-evaluates it. An asset can therefore go from "
-                                     "true to false with no write to the record."},
+                                     "true to false with no write to the record. "
+                                     "An unparseable value is a 400 "
+                                     "`invalid_request`, never the unfiltered "
+                                     "list — this filter asks what has not been "
+                                     "physically checked, and the whole register "
+                                     "is not an answer to that."},
                      {"name": "grn_reference", "schema": {"type": "string"},
                       "description": "Exact match. Returns every asset created "
                                      "from that goods receipt (INT-03)."},
@@ -929,7 +981,10 @@ class CadraAssetsV1(http.Controller):
                       "description": "Exact match on the supplying vendor."},
                      {"name": "import_source", "schema": {"type": "string",
                       "enum": ["myservice", "sap", "redhubb", "vendra",
-                               "excel", "other"]}},
+                               "excel", "other"]},
+                      "description": "Which system wrote the record; `vendra` "
+                                     "is an INT-03 goods receipt. "
+                                     + _ENUM_FILTER_400},
                      {"name": "import_ref", "schema": {"type": "string"},
                       "description": "Exact match on the writing system's own batch reference."},
                      {"name": "is_tagged", "schema": {"type": "boolean"},
@@ -937,7 +992,12 @@ class CadraAssetsV1(http.Controller):
                                      "confirmed affixed (INT-04/05). This is "
                                      "the physical-tagging question; the `tag` "
                                      "field is populated from creation and "
-                                     "does not answer it."},
+                                     "does not answer it. Anything other than "
+                                     "`true`/`false` is a 400 `invalid_request`. "
+                                     "The literal `null` is read as 'no filter' "
+                                     "here, which is this parameter's published "
+                                     "behaviour and is not shared by the other "
+                                     "filters."},
                      {"name": "tag_label_state", "schema": {"type": "string",
                       "enum": ["issued", "printed", "affixed", "scrapped"]},
                       "description": (
@@ -977,7 +1037,7 @@ class CadraAssetsV1(http.Controller):
         Asset = request.env["nrs.asset"].sudo()
         try:
             domain = _list_domain(qs)
-        except _BadFilter as e:
+        except BadFilter as e:
             return err(ERR_INVALID_REQUEST, str(e), details=e.details)
         limit = parse_limit(qs)
         page, next_cursor, total = paginate(
@@ -1001,13 +1061,16 @@ class CadraAssetsV1(http.Controller):
                  response_schema={"$ref": "#/components/schemas/Asset"},
                  query_params=[
                      {"name": "include", "schema": {"type": "string"},
-                      "description": "Comma-separated optional sections: transfers, custody, pm, children. `custody` embeds the WHOLE chain of custody, oldest first and uncapped; `GET /assets/<id>/custody` is the paginated form for a chain long enough to want one."},
+                      "description": "Comma-separated optional sections: transfers, custody, pm, children. `custody` embeds the WHOLE chain of custody, oldest first and uncapped; `GET /assets/<id>/custody` is the paginated form for a chain long enough to want one. A section outside that set is a 400 `invalid_request` carrying `details.allowed_values` — never a silently omitted embed, which a caller cannot tell from a section that is genuinely empty."},
                  ])
     def get_asset(self, id, **kwargs):
         rec, error = _browse_or_404(id)
         if error:
             return error
-        include = [s.strip() for s in (kwargs.get("include") or "").split(",") if s.strip()]
+        try:
+            include = _parse_include(kwargs.get("include"))
+        except BadFilter as e:
+            return err(ERR_INVALID_REQUEST, str(e), details=e.details)
         return serialize_asset(rec, include=include)
 
     # ── Get by tag: GET /api/v1/assets/by-tag/<tag> ────────────────
@@ -1018,7 +1081,7 @@ class CadraAssetsV1(http.Controller):
                  response_schema={"$ref": "#/components/schemas/Asset"},
                  query_params=[
                      {"name": "include", "schema": {"type": "string"},
-                      "description": "Comma-separated optional sections: transfers, custody, pm, children. `custody` embeds the WHOLE chain of custody, oldest first and uncapped; `GET /assets/<id>/custody` is the paginated form for a chain long enough to want one."},
+                      "description": "Comma-separated optional sections: transfers, custody, pm, children. `custody` embeds the WHOLE chain of custody, oldest first and uncapped; `GET /assets/<id>/custody` is the paginated form for a chain long enough to want one. A section outside that set is a 400 `invalid_request` carrying `details.allowed_values` — never a silently omitted embed, which a caller cannot tell from a section that is genuinely empty."},
                  ])
     def get_asset_by_tag(self, tag, **kwargs):
         Asset = request.env["nrs.asset"].sudo()
@@ -1026,7 +1089,10 @@ class CadraAssetsV1(http.Controller):
             or Asset.search([("asset_code", "=", tag)], limit=1)
         if not rec:
             return err(ERR_NOT_FOUND, f"No asset with tag or code '{tag}'", status=404)
-        include = [s.strip() for s in (kwargs.get("include") or "").split(",") if s.strip()]
+        try:
+            include = _parse_include(kwargs.get("include"))
+        except BadFilter as e:
+            return err(ERR_INVALID_REQUEST, str(e), details=e.details)
         return serialize_asset(rec, include=include)
 
     # ── Create: POST /api/v1/assets ────────────────────────────────
@@ -1542,20 +1608,26 @@ class CadraAssetsV1(http.Controller):
                  scopes=[SCOPE_DASHBOARDS_READ],
                  query_params=[
                      {"name": "category_id", "schema": {"type": "integer"},
-                      "description": "Restrict the report to one asset category"},
+                      "description": "Restrict the report to one asset "
+                                     "category. A value that is not an "
+                                     "integer is a 400 `invalid_request`."},
                  ])
     def depreciation_report(self, **kwargs):
         """Totals, per-category breakdown, and the two data-quality counts that
         matter in practice: assets whose start date was inferred, and assets
         with a depreciation method but no cost to depreciate."""
         domain = []
-        raw_cat = kwargs.get("category_id")
-        if raw_cat:
-            try:
-                domain.append(("category_id", "=", int(raw_cat)))
-            except (TypeError, ValueError):
-                return err(ERR_INVALID_REQUEST, "`category_id` must be an integer",
-                           details={"category_id": raw_cat})
+        # Already refused a non-integer before this pass — it is the one hand
+        # rolled int filter in the file that never swallowed its error. Moved
+        # onto the shared parser anyway so there is one place the answer is
+        # decided; the message and `details` it produces are byte-identical
+        # to the ones this route has always published.
+        try:
+            category_id = parse_int("category_id", kwargs.get("category_id"))
+        except BadFilter as e:
+            return err(ERR_INVALID_REQUEST, str(e), details=e.details)
+        if category_id is not None:
+            domain.append(("category_id", "=", category_id))
         return request.env["nrs.asset"].sudo().get_depreciation_report(domain)
 
     # ── Depreciation schedule: GET /api/v1/assets/<id>/depreciation ─
@@ -1655,21 +1727,43 @@ class CadraAssetsV1(http.Controller):
                           "every fidelity claim in it would be vacuous. A "
                           "future date is a 400.")},
                      {"name": "q", "schema": {"type": "string"}},
-                     {"name": "category_id", "schema": {"type": "integer"}},
-                     {"name": "subcategory_id", "schema": {"type": "integer"}},
-                     {"name": "location_id", "schema": {"type": "integer"}},
-                     {"name": "building_id", "schema": {"type": "integer"}},
-                     {"name": "floor_id", "schema": {"type": "integer"}},
-                     {"name": "room_id", "schema": {"type": "integer"}},
-                     {"name": "custodian_id", "schema": {"type": "integer"}},
+                     {"name": "category_id", "schema": {"type": "integer"},
+                      "description": _ID_FILTER_400},
+                     {"name": "subcategory_id", "schema": {"type": "integer"},
+                      "description": _ID_FILTER_400},
+                     {"name": "location_id", "schema": {"type": "integer"},
+                      "description": _ID_FILTER_400},
+                     {"name": "building_id", "schema": {"type": "integer"},
+                      "description": _ID_FILTER_400},
+                     {"name": "floor_id", "schema": {"type": "integer"},
+                      "description": _ID_FILTER_400},
+                     {"name": "room_id", "schema": {"type": "integer"},
+                      "description": _ID_FILTER_400},
+                     {"name": "custodian_id", "schema": {"type": "integer"},
+                      "description": _ID_FILTER_400},
                      {"name": "state", "schema": {"type": "string",
                       "enum": ["active", "in_repair", "disposed",
-                               "transferred", "missing"]}},
+                               "transferred", "missing"]},
+                      "description": _ENUM_FILTER_400},
                      {"name": "condition", "schema": {"type": "string",
                       "enum": ["new", "good", "fair", "poor",
-                               "decommissioned"]}},
-                     {"name": "domain", "schema": {"type": "string"}},
-                     {"name": "asset_level", "schema": {"type": "string"}},
+                               "decommissioned"]},
+                      "description": _ENUM_FILTER_400},
+                     # `domain` and `asset_level` published no enum at all
+                     # until this pass, while the model has always had one —
+                     # so the documented surface was wider than the data and
+                     # a caller had nothing to validate against. Additive:
+                     # every value listed is one the model already accepts.
+                     # Taken from the tuples the filter itself falls back to,
+                     # so the published list and the floor cannot drift.
+                     {"name": "domain", "schema": {"type": "string",
+                      "enum": list(_FM_DOMAINS)},
+                      "description": "The FM domain, inherited from the "
+                                     "asset's category. " + _ENUM_FILTER_400},
+                     {"name": "asset_level", "schema": {"type": "string",
+                      "enum": list(_ASSET_LEVELS)},
+                      "description": "Position in the asset hierarchy. "
+                                     + _ENUM_FILTER_400},
                      *PAGINATION_QUERY_PARAMS,
                  ])
     def asset_register_snapshot(self, **kwargs):
@@ -1755,7 +1849,7 @@ class CadraAssetsV1(http.Controller):
 
         try:
             filter_domain = _list_domain(qs)
-        except _BadFilter as e:
+        except BadFilter as e:
             return err(ERR_INVALID_REQUEST, str(e), details=e.details)
 
         Asset = request.env["nrs.asset"].sudo()
