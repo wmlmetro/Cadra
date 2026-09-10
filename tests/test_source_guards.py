@@ -2310,3 +2310,699 @@ def test_the_envelope_lets_odoos_own_retries_through():
             "a broad handler on line %d sits ABOVE the re-raise clause on "
             "line %d, so the re-raise is dead code and Odoo never sees the "
             "exception." % (handler.lineno, first_reraise))
+
+
+
+# ─────────────────────────────────────────────────────────────────────
+# A credential may default to NOTHING. It may never default to SOMETHING.
+# ─────────────────────────────────────────────────────────────────────
+#
+# Handoff 17 item B. Two routes that dump or write the whole employee and
+# asset register resolved their credential like this:
+#
+#     get_param('myservice_identity.redhubs_api_key', 'NRS_REDHUBS_KEY_2025')
+#     get_param('myservice_identity.sap_webhook_secret', 'NRS_SAP_..._2025')
+#
+# The second argument is the default. Measured on this machine before the
+# fix: that parameter was set on ZERO of the eight local tenants, so the
+# string standing between an anonymous caller and a full dump of the asset
+# register was a literal committed to this repository — present in every
+# clone, every fork and every CI log since it was written.
+#
+# **The guard is on the LOOKUP, not on the literal.** The handoff asked for
+# a guard that spots "a literal that looks like a key", and that is the
+# wrong axis: `get_param('web.base.url', 'http://localhost:8069')` is a
+# perfectly good default that any entropy heuristic flags, while
+# `get_param('...api_key', 'changeme')` is exactly as dangerous as the
+# literal above and any entropy heuristic misses it. What makes a string
+# dangerous is not how it looks. It is that a credential resolution falls
+# back to it.
+#
+# So the rule is: when the thing being resolved is NAMED as a credential,
+# a non-empty literal default fails. An empty default is fine and is what
+# the rest of the codebase already does — `get_param("myservice_api.
+# jwt_secret", "")` then refuses on the falsy value, which is the shape
+# every credential should have.
+#
+# ── the first version of this guard was defeated six ways ──
+#
+# A verification pass wrote each of these against the guard and measured it
+# accepting them. Every one is a spelling a person would reach for without
+# meaning to evade anything, which is the point: a guard that only catches
+# the exact keystrokes of the defect it was written for is a record of that
+# defect, not a rule.
+#
+#   1. `get_param('x.api_key', default='NRS_KEY')` — the default passed by
+#      keyword. Odoo's own signature is `get_param(self, key, default=False)`,
+#      so this is the documented spelling and the guard read positional
+#      arguments only.
+#   2. `FALLBACK = 'NRS_KEY'` one line above, then passed by name. Module
+#      constants were already resolved for the KEY and not for the default.
+#   3. `get_param('x.api_key') or 'NRS_KEY'` — not a two-argument call at
+#      all, and arguably the most natural way to write the defect. Note the
+#      production code this guard exists for now uses the `value or None`
+#      shape itself, so the pattern is live in this codebase.
+#   4. `f'NRS_KEY_{2025}'` and `'NRS_' + 'KEY'` — a JoinedStr and a BinOp,
+#      neither of which is an ast.Constant. An f-string with no literal text
+#      at all (`f'{token}'`) bakes nothing in and is correctly ignored.
+#   5. `read_config('x.api_key', 'NRS_KEY')` — the resolver name was a closed
+#      list of three. See `_RESOLVER_RE` below for what replaced it and why
+#      the check was not simply dropped.
+#   6. `get_param(self.PARAM_NAME, ...)` and `get_param(PARAMS['api_key'],
+#      ...)` — an Attribute or a Subscript where the guard expected a Name.
+#      Both carry the credential's name in plain sight; read it off them the
+#      same way a bare Name already was.
+
+# ── what counts as a credential ──
+#
+# Matched case-insensitively against the NAME of the thing being resolved,
+# never against the value. Three words are matched only as a whole segment,
+# because as bare substrings they are wrong far more often than right:
+#
+#   `auth`  collides with `author_id`, `authority`, `authored`. Segmented it
+#           still catches `x_auth_key`, `AUTH`, `auth-token`; `oauth` and
+#           `authorization` are listed separately because they are single
+#           words that unambiguously name a credential.
+#   `pass`  collides with `bypass`, `compass`, `passenger`, `passive` — and
+#           this is a facilities and fleet register, so those are words that
+#           genuinely occur here.
+#   `salt`  has no real collisions (`asphalt` and `assault` do not contain
+#           it) but costs nothing to segment and removes the question.
+#
+# Deliberately absent, both from the verification pass's suggested list:
+#
+#   `webhook` alone. A webhook URL is not a credential and
+#           `get_param('x.webhook_url', 'https://…')` is an ordinary
+#           default; it is `webhook_secret` that matters, and `secret`
+#           already catches that.
+#   `-key` with a hyphen. `_key` is kept, but the hyphenated spelling is how
+#           HTTP headers are written and adding it flagged
+#           `headers.get('X-Idempotency-Key')` in docs/api/mock_sap.py.
+#           An idempotency key is a de-duplication token, not a secret.
+#           `X-API-Key` is still caught, by `api[_-]?key`.
+#
+# The bias is deliberate: a false positive costs a developer one waiver and
+# a sentence; a false negative costs a credential. But only just — a guard
+# that cries wolf is a guard somebody deletes, so `_key` is as broad as this
+# goes and each of the three segmented words was measured against the tree
+# before it was added.
+_CREDENTIAL_RE = re.compile(
+    r"api[_-]?key|secret|token|password|passwd|passphrase|credential"
+    r"|private[_-]?key|_key|bearer|signature|pwd|jwt|oauth"
+    r"|authorization|authorisation"
+    r"|(?:^|[^a-z])(?:auth|pass|salt)(?:[^a-z]|$)",
+    re.IGNORECASE,
+)
+
+# ── what counts as a resolver ──
+#
+# This was `("get_param", "getenv", "get")`, which is not a rule but a list
+# of the three resolvers that happened to be in front of whoever wrote it.
+# `read_config`, `get_setting`, `fetch_secret` and `env()` all walk past it.
+#
+# The alternative the verification pass raised — drop the resolver check
+# entirely and key purely on "a credential-named first argument with a
+# non-empty literal default" — was tried and MEASURED against this tree
+# before being rejected. It produces two false positives immediately:
+#
+#     _logger.warning("… the webhook secret is not configured. Set the "
+#                     "ir.config_parameter %r …", SAP_SECRET_PARAM, db)
+#     fields.Integer(string="token_ttl_seconds", …, "max_page_limit")
+#
+# — a log line about a missing credential, and a field declaration. Neither
+# resolves anything. With the shape rule below, the same walk over every
+# Python file in the repository returns ZERO findings, which is the honest
+# state of the tree after handoff 17's fix.
+#
+# So the check stays, expressed as a SHAPE rather than a roster: a callee
+# whose name reads as a lookup. `set_param` is in scope on purpose —
+# writing a credential to a literal is the same defect pointed the other
+# way — and so are `pop`/`setdefault`, which are how a dict-shaped config
+# is read.
+_RESOLVER_RE = re.compile(
+    r"^(?:get|getenv|read|load|fetch|resolve|lookup|pop|setdefault|set)(?:_|$)"
+    r"|(?:^|_)(?:param|params|config|conf|setting|settings|env|environ"
+    r"|secret|option|options)$",
+    re.IGNORECASE,
+)
+
+# The keyword spellings of the two arguments that matter. Odoo's own
+# signature is `get_param(self, key, default=False)`, so `default=` is not
+# an evasion — it is the documented call.
+_KEY_KEYWORDS = ("key", "name")
+_DEFAULT_KEYWORDS = ("default", "fallback")
+
+
+def _looks_like_a_credential(text):
+    return bool(text) and bool(_CREDENTIAL_RE.search(str(text)))
+
+
+def _module_string_constants(tree):
+    """Module-level `NAME = "literal"` bindings, so a resolver called with a
+    constant instead of an inline string can still be judged."""
+    constants = {}
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        if not isinstance(node.value, ast.Constant) or not isinstance(node.value.value, str):
+            continue
+        for target in node.targets:
+            if isinstance(target, ast.Name):
+                constants[target.id] = node.value.value
+    return constants
+
+
+def _resolver_name(call):
+    if isinstance(call.func, ast.Attribute):
+        return call.func.attr
+    if isinstance(call.func, ast.Name):
+        return call.func.id
+    return None
+
+
+def _key_text(node, constants):
+    """The name of the thing being resolved, however it is written.
+
+    A literal, a module constant, or — failing both — the NAME the code uses
+    for it. `self.PARAM_NAME`, `PARAMS['api_key']` and a bare `SAP_SECRET`
+    all say what they hold in plain sight; refusing to read them because the
+    node type is an Attribute or a Subscript was bypass 6.
+    """
+    if isinstance(node, ast.Constant):
+        return node.value if isinstance(node.value, str) else None
+    if isinstance(node, ast.Name):
+        return constants.get(node.id, node.id)
+    if isinstance(node, ast.Attribute):
+        return node.attr
+    if isinstance(node, ast.Subscript):
+        index = node.slice
+        if isinstance(index, ast.Constant) and isinstance(index.value, str):
+            return index.value
+        base = node.value
+        return base.id if isinstance(base, ast.Name) else getattr(base, "attr", None)
+    return None
+
+
+def _baked_in_text(node, constants):
+    """The literal text a default expression carries, or None.
+
+    Constant, module constant, f-string and `+` concatenation, because all
+    four put a fixed string in the source and the ORM cannot tell them
+    apart. An f-string whose parts are ALL placeholders (`f'{token}'`) bakes
+    nothing in and correctly returns None — the rule is about what ships in
+    the file, not about the node type.
+    """
+    if node is None:
+        return None
+    if isinstance(node, ast.Constant):
+        return node.value if isinstance(node.value, str) else None
+    if isinstance(node, ast.Name):
+        return constants.get(node.id)
+    if isinstance(node, ast.JoinedStr):
+        return "".join(part.value for part in node.values
+                       if isinstance(part, ast.Constant)
+                       and isinstance(part.value, str)) or None
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        left = _baked_in_text(node.left, constants)
+        right = _baked_in_text(node.right, constants)
+        if left is None and right is None:
+            return None
+        return (left or "") + (right or "")
+    return None
+
+
+def _resolved_credential(call, constants):
+    """The credential name this call resolves, or None if it resolves none."""
+    name = _resolver_name(call)
+    if name is None or not _RESOLVER_RE.search(name):
+        return None
+    keywords = {kw.arg: kw.value for kw in call.keywords if kw.arg}
+    key = call.args[0] if call.args else next(
+        (keywords[k] for k in _KEY_KEYWORDS if k in keywords), None)
+    if key is None:
+        return None
+    text = _key_text(key, constants)
+    return text if _looks_like_a_credential(text) else None
+
+
+def _credential_defaults(path):
+    """Every place one file resolves a credential and falls back to a value.
+
+    Two shapes, because there are two ways to spell a fallback and only one
+    of them is an argument:
+
+        get_param('x.api_key', 'NRS_KEY')      # the default argument
+        get_param('x.api_key') or 'NRS_KEY'    # the `or` tail
+
+    The second is not a two-argument call and the first version of this
+    guard could not see it at all.
+    """
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    constants = _module_string_constants(tree)
+    findings = []
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            key_text = _resolved_credential(node, constants)
+            if key_text:
+                keywords = {kw.arg: kw.value for kw in node.keywords if kw.arg}
+                default = node.args[1] if len(node.args) > 1 else next(
+                    (keywords[k] for k in _DEFAULT_KEYWORDS if k in keywords), None)
+                # A credential is ALLOWED to default to nothing — that is the
+                # sanctioned shape, and every falsy default in this codebase
+                # refuses on the falsy value a line later.
+                baked = _baked_in_text(default, constants)
+                if baked:
+                    findings.append((node.lineno, key_text, baked))
+
+        # `<credential lookup> or <literal>`. Only values to the RIGHT of the
+        # lookup are fallbacks; `'x' or get_param(...)` is a different (and
+        # nonsensical) expression and is not this defect.
+        if isinstance(node, ast.BoolOp) and isinstance(node.op, ast.Or):
+            resolved = None
+            for value in node.values:
+                if resolved is not None:
+                    baked = _baked_in_text(value, constants)
+                    if baked:
+                        findings.append((value.lineno, resolved, baked))
+                if isinstance(value, ast.Call):
+                    resolved = _resolved_credential(value, constants) or resolved
+
+    return sorted(findings)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# …and it must be looked for everywhere, not only inside an Odoo module
+# ─────────────────────────────────────────────────────────────────────
+#
+# `_first_party_python_files()` walks `myservice_*` / `cadra_brand_*`
+# directories carrying a `__manifest__.py`. That is exactly right for the
+# `_sql_constraints` guard, which is about what the ORM loads — and it is
+# wrong for these two, which are about what is committed. It leaves
+# `scripts/`, `seeds/`, the eleven repo-root Python files, `k8s/`, the
+# compose files, `.env.example` and `docs/` outside BOTH of them.
+#
+# A credential literal in a seed script or a ConfigMap is exactly as
+# compromised as one in a controller: it is in the same clone, the same
+# fork and the same CI log. So these two guards get their own walker.
+# `_first_party_python_files()` is left alone deliberately — it is shared
+# with the `_sql_constraints` guard and widening it there would start
+# failing on trees whose constraints are correct for the Odoo 15 stack.
+#
+# What that walker covers is what git tracks, minus the vendored trees —
+# see `_tracked_paths()` for why "tracked" and not "on disk". Measured at
+# 713 text files and 9 MB, well under a second, so scope is not a thing to
+# economise on here.
+import fnmatch
+import subprocess
+
+# Vendored source. `dist/` is the Odoo 15 tree (182 MB), `crnd-19/` and
+# `oca-19/` are CRND and OCA. They are tracked, they are not ours, and a
+# credential of theirs is not a credential of ours.
+_VENDORED_PREFIXES = ("dist/", "crnd-19/", "oca-19/", "_upgrade/")
+
+# Everything a credential can be written into and still be read back by a
+# machine or a person. `Dockerfile*` and `.env*` are matched by prefix
+# because that is how they are spelled, not by suffix.
+_TEXT_SUFFIXES = frozenset({
+    ".py", ".js", ".ts", ".tsx", ".jsx", ".json", ".yaml", ".yml", ".xml",
+    ".md", ".sh", ".conf", ".cfg", ".ini", ".toml", ".txt", ".env", ".sql",
+    ".html", ".css", ".service", ".sample", ".example",
+})
+_TEXT_NAMES = frozenset({"Caddyfile", "Makefile"})
+_MAX_TEXT_BYTES = 2_000_000
+
+
+def _tracked_paths():
+    """Every path git tracks, repo-relative.
+
+    Tracked rather than "present on disk", and that is the rule rather than
+    a convenience: these two guards are about what is IN EVERY CLONE, and a
+    generated artefact is not. The first version of this walk read the
+    filesystem and proved the point on its first run — it picked up
+    `docs/api/test-report.md`, this suite's own gitignored output, found a
+    burnt literal inside the failure message the PREVIOUS run had written
+    there, and failed on its own report. Nothing was wrong with the repo.
+
+    Scoping to tracked files removes that loop and takes the machine-output
+    prune list with it: node_modules, the virtualenvs, __pycache__ and the
+    built frontend bundle are all already ignored, so none of them has to be
+    named here and none of them can be forgotten.
+
+    If git is absent or this is not a checkout this returns nothing — which
+    would make both guards below pass over an empty tree. That failure is
+    caught loudly one test further down, by the coverage assertion, rather
+    than quietly here.
+    """
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(REPO_ROOT), "ls-files", "-z"],
+            capture_output=True, check=True)
+    except (OSError, subprocess.SubprocessError):  # pragma: no cover
+        return []
+    listing = completed.stdout.decode("utf-8", "replace")
+    return [rel for rel in listing.split("\0")
+            if rel and not rel.startswith(_VENDORED_PREFIXES)]
+
+
+def _repo_files(suffixes=None):
+    """Every tracked file of ours that is text (or, given `suffixes`, those)."""
+    for rel in _tracked_paths():
+        path = REPO_ROOT / rel
+        if not path.is_file():
+            continue  # a submodule, or a path removed but not yet committed
+        if suffixes is not None:
+            if path.suffix in suffixes:
+                yield path
+            continue
+        if (path.suffix in _TEXT_SUFFIXES
+                or path.name in _TEXT_NAMES
+                or path.name.startswith("Dockerfile")
+                or path.name.startswith(".env")):
+            yield path
+
+
+def test_no_credential_has_a_default_baked_into_the_source():
+    """No Python in this repository may fall back to a credential literal.
+
+    Not only the Odoo modules: a seed script that authenticates against a
+    baked-in key publishes it just as completely as a controller does.
+    Files under a `tests/` directory are exempt — a fixture that constructs
+    the defect is how the guard below proves it still works.
+    """
+    offenders = []
+    for path in _repo_files({".py"}):
+        rel = path.relative_to(REPO_ROOT).as_posix()
+        if "/tests/" in "/" + rel or path.name == "test_source_guards.py":
+            continue
+        try:
+            found = _credential_defaults(path)
+        except (SyntaxError, UnicodeDecodeError) as exc:
+            # Loud rather than skipped. A file this walk cannot parse is a
+            # file the guard is not covering, and a silent skip is a hiding
+            # place that grows one file at a time.
+            offenders.append("%s could not be parsed: %s" % (rel, exc))
+            continue
+        for lineno, key, default in found:
+            offenders.append(
+                "%s:%d resolves %r with the literal default %r"
+                % (rel, lineno, key, default))
+
+    assert not offenders, (
+        "A credential must not have a fallback value in source. A tenant "
+        "that never set the parameter then authenticates against a string "
+        "that is in every clone of this repository and in git history "
+        "forever. Resolve it with no default and refuse on the falsy "
+        "value.\n  " + "\n  ".join(offenders))
+
+
+# The pinned half, and it is deliberately only a pin. The guard above is the
+# rule; these two strings are the specific credentials handoff 17 found and
+# the owner has to rotate on the box. They are in git history and cannot be
+# taken out of it, so the only thing a test can still do is make sure nobody
+# pastes them back in — including into a comment, a doc string, a seed
+# script or a k8s manifest, which is why this reads the raw text rather than
+# the AST, and why it reads the WHOLE repository rather than the addon
+# directories. Until this handoff that claim was false: the walker it used
+# reached none of those three.
+_COMPROMISED_LITERALS = ("NRS_REDHUBS_KEY_2025", "NRS_SAP_WEBHOOK_SECRET_2025")
+
+# Two files quote these literals on purpose, and a guard with no way to say
+# so would be a guard somebody switches off.
+#
+# The waiver is a written sentence per entry rather than a bare path list,
+# for the reason CLAUDE.md records about the `db_name` guard: an exception
+# matched on a filename cannot tell a dead file from a live one that later
+# takes its name. Three things keep this one from rotting the same way:
+#
+#   1. **Only Markdown under `docs/`, plus this file, may ever be waived.**
+#      Enforced below, not merely intended. Documentation cannot
+#      authenticate anything — a doc quoting a burnt key inside a fenced
+#      block is a rotation notice, which is the opposite of a resolution.
+#      A `.py`, `.yaml`, `.conf`, `.sh` or `.env` can never take a waived
+#      name, and those are the whole reason the walk was widened.
+#   2. **A waiver that matches no file fails the test.** A dead entry
+#      cannot sit here as a hole waiting for something to drop into it.
+#   3. The reason is next to the entry, so removing it is a decision
+#      somebody writes out — the same discipline as the `capped-count-ok:`
+#      waiver on the register-count guard.
+_BURNT_LITERAL_WAIVERS = {
+    "docs/api/EXTERNAL-SURFACES.md":
+        "quotes both lines verbatim as the defect report that got them "
+        "rotated; the finding is unreadable without the string it found",
+    "docs/handoffs/*.md":
+        "a handoff instruction or report may have to name the credential "
+        "it is telling a Builder to remove",
+    "tests/test_source_guards.py":
+        "this file — the fixtures below feed the guard the real literals "
+        "to prove it still catches them",
+}
+
+
+def _burnt_literal_waiver(rel):
+    for pattern in _BURNT_LITERAL_WAIVERS:
+        if fnmatch.fnmatch(rel, pattern):
+            return pattern
+    return None
+
+
+def test_the_compromised_literals_are_gone_from_first_party_source():
+    offenders = []
+    for path in _repo_files():
+        rel = path.relative_to(REPO_ROOT).as_posix()
+        if _burnt_literal_waiver(rel):
+            continue
+        try:
+            if path.stat().st_size > _MAX_TEXT_BYTES:
+                continue
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):  # pragma: no cover - not text
+            continue
+        for literal in _COMPROMISED_LITERALS:
+            if literal in text:
+                offenders.append("%s contains %s" % (rel, literal))
+
+    assert not offenders, (
+        "These are burnt. They guarded the Redhubs asset export and the SAP "
+        "employee webhook with a value published in this repository, and "
+        "they are being rotated. Nothing may resolve to them again.\n  "
+        + "\n  ".join(offenders))
+
+
+def test_the_burnt_literal_waivers_are_narrow_and_still_earned():
+    """A waiver may only cover documentation, and must cover something.
+
+    Both halves matter. The type limit is what stops the waiver becoming a
+    door into the executable half of the repo, which is the half this guard
+    was widened to reach. The "must match a file" half is what stops a dead
+    entry sitting here until a live file inherits its name — the failure
+    CLAUDE.md records against the old `odoo.conf` exception, arriving by the
+    same route one guard later.
+    """
+    for pattern, reason in _BURNT_LITERAL_WAIVERS.items():
+        assert reason and len(reason) > 20, (
+            "%s is waived without a reason anybody can weigh" % pattern)
+        assert pattern == "tests/test_source_guards.py" or (
+            pattern.startswith("docs/") and pattern.endswith(".md")), (
+            "%s is not documentation. Only Markdown under docs/ may quote a "
+            "burnt credential; anything a machine reads must not contain one "
+            "at all." % pattern)
+        matched = [p for p in _repo_files()
+                   if fnmatch.fnmatch(p.relative_to(REPO_ROOT).as_posix(), pattern)]
+        assert matched, (
+            "the waiver %r matches no file. Delete it: an exception kept "
+            "past the thing it excused is a hole with a name on it." % pattern)
+
+
+def test_the_credential_guards_reach_the_files_the_comment_claims():
+    """A walker typo would make both guards above pass over an empty tree.
+
+    The named directories are the ones the OLD walker missed and the ones
+    the comment on the literal guard already claimed to cover — a seed
+    script, a k8s manifest, the deployment shell, the repo-root Python and
+    the docs. The exclusions are asserted too, because a walk that reached
+    `dist/` would spend its time on 182 MB of vendored Odoo and would start
+    failing on source we do not control.
+    """
+    text_files = {p.relative_to(REPO_ROOT).as_posix() for p in _repo_files()}
+    python_files = {p.relative_to(REPO_ROOT).as_posix()
+                    for p in _repo_files({".py"})}
+
+    assert len(python_files) > 200, (
+        "only %d Python files walked — the prune list is eating the repo"
+        % len(python_files))
+    for expected in ("scripts/bootstrap.py", "seeds/nrs_seed.py",
+                     "geocode_locations.py",
+                     "myservice_api/controllers/v1.py"):
+        assert expected in python_files, "%s is not walked" % expected
+    for expected in ("k8s/dev/10-configmap-odoo-19.yaml",
+                     "docker-compose.19.yml", "Dockerfile.nrs-import",
+                     "docs/api/EXTERNAL-SURFACES.md", "config/odoo.19.conf"):
+        assert expected in text_files, "%s is not walked" % expected
+
+    for excluded in ("dist", "crnd-19", "oca-19", "_upgrade"):
+        assert not any(p.startswith(excluded + "/") for p in text_files), (
+            "%s/ is vendored and must stay out of the walk" % excluded)
+    assert not any("node_modules/" in p or "/.venv/" in p for p in text_files), (
+        "the walk reached a dependency tree")
+    assert "docs/api/test-report.md" not in text_files, (
+        "the walk reached this suite's own generated report — which quotes "
+        "its own failure messages, so it will contain any literal the guard "
+        "has just complained about. A guard that reads its own output has "
+        "one failure that never clears.")
+
+
+# Each case is (label, source, should_flag). Every True below was MEASURED
+# passing the first version of this guard, one bypass at a time; every False
+# is a default somebody legitimately writes and must keep being able to
+# write. Both directions matter equally — a guard nobody can satisfy is a
+# guard that gets its assertion inverted six months later.
+_CREDENTIAL_EVASIONS = [
+    # ── the two defects handoff 17 actually found ──
+    ("the redhubs defect itself",
+     "get_param('myservice_identity.redhubs_api_key', 'NRS_REDHUBS_KEY_2025')",
+     True),
+    ("the sap defect itself",
+     "get_param('myservice_identity.sap_webhook_secret', 'NRS_SAP_X_2025')",
+     True),
+    ("a low-entropy default is exactly as bad",
+     "get_param('some.module.api_key', 'changeme')",
+     True),
+    ("an environment variable is the same defect",
+     "os.getenv('SERVICE_SECRET', 'hunter2')",
+     True),
+    ("a module constant naming a credential parameter",
+     "SAP_SECRET_PARAM = 'a.b.sap_webhook_secret'\n"
+     "x = get_param(SAP_SECRET_PARAM, 'fallback')",
+     True),
+
+    # ── bypass 1: the default passed by keyword ──
+    ("the default passed as default= — Odoo's own signature",
+     "get_param('x.api_key', default='NRS_KEY')",
+     True),
+    ("both arguments passed by keyword",
+     "get_param(key='x.api_key', default='NRS_KEY')",
+     True),
+
+    # ── bypass 2: the literal moved one line up ──
+    ("a module constant holding the DEFAULT rather than the key",
+     "FALLBACK = 'NRS_KEY'\n"
+     "get_param('x.api_key', FALLBACK)",
+     True),
+    ("the same, by keyword",
+     "FALLBACK = 'NRS_KEY'\n"
+     "get_param('x.api_key', default=FALLBACK)",
+     True),
+
+    # ── bypass 3: not a two-argument call at all ──
+    ("an `or` tail is a default with different punctuation",
+     "get_param('x.api_key') or 'NRS_KEY'",
+     True),
+    ("an `or` tail after the sanctioned empty default",
+     "get_param('x.api_key', '') or 'NRS_KEY'",
+     True),
+    ("an `or` tail holding a module constant",
+     "FALLBACK = 'NRS_KEY'\n"
+     "get_param('x.api_key') or FALLBACK",
+     True),
+
+    # ── bypass 4: a string that is not an ast.Constant ──
+    ("an f-string default",
+     "get_param('x.api_key', f'NRS_KEY_{2025}')",
+     True),
+    ("a concatenated default",
+     "get_param('x.api_key', 'NRS_' + 'KEY')",
+     True),
+
+    # ── bypass 5: a resolver nobody listed ──
+    ("a resolver outside the original three",
+     "read_config('x.api_key', 'NRS_KEY')",
+     True),
+    ("writing a credential to a literal is the same defect reversed",
+     "set_param('x.api_key', 'NRS_KEY')",
+     True),
+    ("a dict-shaped config read",
+     "conf.setdefault('sap_webhook_secret', 'NRS_KEY')",
+     True),
+
+    # ── bypass 6: the key is not a Name ──
+    ("the key held on an attribute",
+     "get_param(self.PARAM_NAME_API_KEY, 'NRS_KEY')",
+     True),
+    ("the key held in a dict",
+     "get_param(PARAMS['api_key'], 'NRS_KEY')",
+     True),
+
+    # ── bypass 7: words the first version did not think were credentials ──
+    ("an auth segment",
+     "get_param('x.x_auth_token_value', 'NRS_KEY')",
+     True),
+    ("a password by its short name",
+     "os.getenv('ODOO_ADMIN_PWD', 'admin')",
+     True),
+    ("a webhook signing secret under `signature`",
+     "get_param('x.hmac_signature', 'NRS_KEY')",
+     True),
+
+    # ── the shapes that must keep working ──
+    ("an empty default is the SANCTIONED shape",
+     "get_param('myservice_api.jwt_secret', '')",
+     False),
+    ("an empty default by keyword is equally sanctioned",
+     "get_param('myservice_api.jwt_secret', default='')",
+     False),
+    ("an empty `or` tail is not a fallback value",
+     "get_param('myservice_api.jwt_secret') or ''",
+     False),
+    ("a non-credential default is nobody's business",
+     "get_param('web.base.url', 'http://localhost:8069')",
+     False),
+    ("a high-entropy default for a non-credential is still fine",
+     "get_param('cadra.brand_primary', '#0B3D2E')",
+     False),
+    ("no default at all is the fix",
+     "get_param('myservice_identity.redhubs_api_key')",
+     False),
+    ("a credential defaulting to a COMPUTED value bakes in nothing",
+     "get_param('x.api_key') or secrets.token_hex(32)",
+     False),
+    ("an f-string with no literal text bakes in nothing",
+     "get_param('x.api_key', f'{generated}')",
+     False),
+    ("an idempotency key is a de-duplication token, not a secret",
+     "request.httprequest.headers.get('X-Idempotency-Key') or '-'",
+     False),
+    ("`author` is not `auth`",
+     "get_param('x.author_name', 'Unknown')",
+     False),
+    ("`bypass` is not `pass`",
+     "get_param('x.bypass_reason', 'none')",
+     False),
+    ("a webhook URL is not a webhook secret",
+     "get_param('x.webhook_url', 'https://vendra.network/hook')",
+     False),
+    ("a log line about a credential resolves nothing",
+     "_logger.warning('the api_key is not set on %s', 'this database')",
+     False),
+    ("a field declaration naming a credential is not a lookup",
+     "fields.Char(string='api_key', default='')",
+     False),
+]
+
+
+@pytest.mark.parametrize("label,source,should_flag", _CREDENTIAL_EVASIONS,
+                         ids=[c[0] for c in _CREDENTIAL_EVASIONS])
+def test_the_credential_guard_is_not_fooled(tmp_path, label, source, should_flag):
+    """Proven to fail before it passes, both directions.
+
+    The negative half is the half that matters most. A guard keyed on how a
+    string LOOKS flags the brand colour and the localhost URL and misses
+    `changeme`; keying it on the NAME of the thing being resolved gets every
+    case here right, and the six bypasses above are what it costs to read
+    that name in all the ways a person writes it.
+    """
+    path = tmp_path / "sample.py"
+    path.write_text(source, encoding="utf-8")
+    flagged = bool(_credential_defaults(path))
+    assert flagged is should_flag, (
+        "%s: expected flagged=%s, got %s" % (label, should_flag, flagged))
