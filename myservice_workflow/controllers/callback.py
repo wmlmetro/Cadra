@@ -1,6 +1,8 @@
 from odoo import http
+from odoo.addons.myservice_nrs_base.caller_ip import caller_ip_label
 from odoo.exceptions import UserError
 from odoo.http import request
+import hmac
 import json
 import logging
 import uuid
@@ -26,8 +28,16 @@ class WorkflowCallbackController(http.Controller):
         "comment":       "Approved by Director" // optional comment / rejection reason
     }
 
-    Security: Workflow must include the shared token in X-Callback-Token header,
-    or as a ?token= query parameter (for systems that can't set custom headers).
+    Security: WorkSpace must include the shared token in the X-Callback-Token
+    header. A tenant whose `workflow.config` carries no `callback_token` is
+    REFUSED — see `workflow_callback` — because an absent credential is the
+    one case where "no check" and "check passed" are the same code path, and
+    this is the route that approves and rejects requests.
+
+    DEPRECATED: the token is also accepted as a `?token=` query parameter, for
+    ONE MORE RELEASE. A credential in a URL is in nginx access logs, proxy
+    logs, browser history and any referrer. Every use logs a WARNING naming
+    the caller, so the migration has a visible end date.
     """
 
     @http.route(
@@ -38,6 +48,19 @@ class WorkflowCallbackController(http.Controller):
         csrf=False,
     )
     def workflow_callback(self, **kwargs):
+        """Apply an approval outcome POSTed by the NRS WorkSpace.
+
+        Authentication is the shared `callback_token` in the
+        **X-Callback-Token header**.
+
+        .. deprecated::
+           The `?token=` query parameter is accepted for ONE MORE RELEASE and
+           then removed. It is compared exactly as the header is — a wrong
+           `?token=` is still a 401 — but every request that supplies its
+           credential that way logs a WARNING naming the caller, because a
+           secret in a URL is recorded by every proxy, access log, browser
+           history and referrer between WorkSpace and here.
+        """
         # Resolved OUTSIDE the main try, and with its own narrow clause, so
         # that "this tenant has no WorkSpace configuration" cannot be confused
         # with a failure applying an outcome. `get_active_config()` raises
@@ -79,20 +102,72 @@ class WorkflowCallbackController(http.Controller):
 
         try:
             # ── Token validation ──────────────────────────────────────
-            if config.callback_token:
-                provided = (
-                    request.httprequest.headers.get('X-Callback-Token')
-                    or kwargs.get('token', '')
-                )
-                if provided != config.callback_token:
+            #
+            # `if config.callback_token:` meant a tenant that never set one
+            # had NO authentication on the endpoint that approves and rejects
+            # requests — and an absent credential is the one case where "no
+            # check" and "check passed" are the same code path. It refuses.
+            #
+            # 503 with the same opaque body as an unconfigured tenant, not
+            # 401, for three reasons: the caller may have sent a perfectly
+            # good token and the fault is OURS; handoff 15 already chose 503
+            # for "this tenant was never wired to a WorkSpace", and a config
+            # row with no token is the same class of state; and the sentence
+            # naming our internal configuration must not be handed to an
+            # UNAUTHENTICATED caller. That sentence goes to the log instead,
+            # at ERROR — an approval endpoint standing open is not a warning
+            # — naming the field and the tenant so an operator can act.
+            if not config.callback_token:
+                _logger.error(
+                    "Workflow callback REFUSED: no callback_token is set on "
+                    "the active WorkSpace configuration for database '%s'. "
+                    "Set workflow.config.callback_token (Settings → WorkSpace "
+                    "Integration); until then this endpoint refuses every "
+                    "callback rather than applying an unauthenticated "
+                    "approval. %s",
+                    request.env.cr.dbname, caller_ip_label())
+                return self._json_response(
+                    {'error': 'Workflow integration is not available'}, 503)
+
+            header_token = request.httprequest.headers.get('X-Callback-Token')
+            if header_token:
+                provided = header_token
+            else:
+                # DEPRECATED — one more release. The value is still COMPARED
+                # (a wrong token is still a 401); what is deprecated is the
+                # channel. The warning fires whenever something other than
+                # the header supplied the credential, match or no match, so
+                # the log is the list of callers who still have to migrate.
+                #
+                # The two off-header channels are named SEPARATELY because
+                # they are not equally bad and a migration list that conflates
+                # them is wrong about who is at risk. `type='http'` merges the
+                # query string AND form fields into `kwargs`, so reading
+                # `kwargs['token']` cannot tell them apart — the query string
+                # is read from `httprequest.args` explicitly instead. A token
+                # in the URL is in nginx's access log, every proxy in front of
+                # us and the caller's browser history; a token in a form body
+                # is in none of those and is merely non-standard.
+                query_token = request.httprequest.args.get('token') or ''
+                form_token = kwargs.get('token') or ''
+                provided = query_token or form_token
+                if query_token:
                     _logger.warning(
-                        "Workflow callback: invalid token from %s",
-                        request.httprequest.remote_addr)
-                    return request.make_response(
-                        json.dumps({'error': 'Unauthorized'}),
-                        headers=[('Content-Type', 'application/json')],
-                        status=401,
-                    )
+                        "Workflow callback: token supplied in the QUERY "
+                        "STRING, where it lands in every access log between "
+                        "the caller and this process. Deprecated, removed "
+                        "next release — send the X-Callback-Token header. "
+                        "%s", caller_ip_label())
+                elif form_token:
+                    _logger.warning(
+                        "Workflow callback: token supplied as a FORM FIELD. "
+                        "Deprecated, removed next release — send the "
+                        "X-Callback-Token header. %s", caller_ip_label())
+
+            if not self._token_matches(provided, config.callback_token):
+                _logger.warning(
+                    "Workflow callback: invalid token. %s", caller_ip_label())
+                return self._json_response({'error': 'Unauthorized'}, 401)
 
             # ── Parse payload ─────────────────────────────────────────
             data = {}
@@ -119,8 +194,25 @@ class WorkflowCallbackController(http.Controller):
                     return self._json_response(
                         {'error': 'Request body is not valid JSON'}, 400)
             else:
-                data = kwargs  # form-encoded fallback
+                # Form-encoded fallback. `token` is STRIPPED rather than
+                # carried through: on a `type='http'` route Odoo merges the
+                # query string and the form fields into `kwargs`, so a
+                # credential sent on either deprecated channel arrived inside
+                # the payload dict — and the INFO line below logs that dict
+                # verbatim. The tenant's live shared secret was written to our
+                # own log on every non-JSON callback, which is the defect
+                # item A2 exists to remove, reproduced one layer in.
+                #
+                # A credential is authentication, not content. It is consumed
+                # by the check above and has no business in the payload at
+                # all, so it is removed here rather than masked at the log
+                # line — masking leaves it one careless `%s` away from coming
+                # back.
+                data = {k: v for k, v in kwargs.items() if k != 'token'}
 
+            # `data` is now credential-free on both paths: the JSON branch
+            # parses the body, which never carried the token, and the form
+            # branch has had it stripped.
             _logger.info("Workflow callback received: %s", json.dumps(data, default=str))
 
             ref         = data.get('reference', '')
@@ -238,6 +330,23 @@ class WorkflowCallbackController(http.Controller):
             # keep here: unlike the callback itself, this route is
             # `auth='user'`.
             return self._json_response({'ok': False, 'error': str(e)}, 503)
+
+    @staticmethod
+    def _token_matches(provided, expected):
+        """Constant-time comparison of two shared secrets.
+
+        `!=` on a string leaks the length of the matching prefix through
+        timing. `hmac.compare_digest` accepts `str` only when BOTH sides are
+        ASCII-only and raises `TypeError` otherwise — and `provided` is
+        attacker-controlled text, so that is a `TypeError` an unauthenticated
+        caller could trigger at will. Encoding both sides to UTF-8 bytes
+        removes the guard and the exception together: `compare_digest` on
+        `bytes` has no such restriction.
+        """
+        if not provided or not expected:
+            return False
+        return hmac.compare_digest(
+            str(provided).encode('utf-8'), str(expected).encode('utf-8'))
 
     def _json_response(self, data, status=200):
         return request.make_response(
