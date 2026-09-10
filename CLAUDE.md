@@ -71,11 +71,11 @@ Work a handoff with **multiple subagents in parallel** when its steps are indepe
 
 ## What this is, and why the API's shape matters beyond it
 
-**Cadra** — the asset and facilities register for the Nigeria Revenue Service (NRS), built on **Odoo 19** with a versioned REST layer (`/api/v1/*`) in `myservice_api` over the ITSM, asset register, security and FM modules. The local stack, CI and the whole cluster are on 19; what remains of the migration is retiring the Odoo 15 **files** — `dist/` (the 15 vendor tree, not on the 19 addons path) and `docker-compose.yml`'s `cadra-odoo:15.0-dev` image, which the 19 overlay overrides.
+**Cadra** — the asset and facilities register for the Nigeria Revenue Service (NRS), built on **Odoo 19** with a versioned REST layer (`/api/v1/*`) in `myservice_api` over the ITSM, asset register, security and FM modules. The local stack, CI and the whole cluster are on 19 — every `*.cadra.ng` ingress points at the `odoo-19` service and `k8s/dev/` has no Odoo 15 manifest. **But the `prod` compose profile is still Odoo 15**, and so is the document describing it: `docker-compose.yml` builds `cadra-odoo:15.0-dev` from `FROM odoo:15.0`, only the 19 overlay overrides it, `docker-compose.prod.yml` does not, and `docs/DEPLOYMENT.md` does not mention 19 anywhere. So a client deployed by the documented `prod` route today gets 15. That, `dist/` and `crnd-19/`'s hand-ported modules are what the migration has left.
 
 Cadra is one of three systems in the NRS integration programme, defined by *"End-to-End Integration Flow — Cadra · Vendra · SAP"* (September 2026). **Vendra** (`Frappe/apps/vendra_network`, Frappe/ERPNext) does digital goods receipt, GRN, classification and inventory; **Cadra** (`wmlmetro/Cadra`, Odoo) owns the asset register, identity, tagging, custody and lifecycle; **SAP** (NRS-owned) holds POs, financial postings, SAP asset codes and payment.
 
-**Interfaces Cadra owns:** INT-03 (Vendra → Cadra, asset-classified receipt hand-off — *inbound to our API*), INT-04/05 (Cadra ↔ Tag-Issuing Unit), INT-06/07 (Cadra ↔ SAP asset master and dual-code reconciliation), INT-09 (lifecycle events → SAP), INT-10 (continuous read access for Audit and VFM).
+**Interfaces Cadra owns:** INT-03 (Vendra → Cadra, asset-classified receipt hand-off — *inbound to our API*), INT-04/05 (Cadra ↔ Tag-Issuing Unit), INT-06/07 (Cadra ↔ SAP asset master and dual-code reconciliation), INT-09 (lifecycle events → SAP).
 
 **Practical consequence:** `POST /api/v1/assets` is no longer only a UI-adjacent endpoint — it is a contract another system builds against. Changes to `_WRITABLE_FIELDS`, the response envelope, the `condition`/`state` enums, or idempotency behaviour are **breaking changes for Vendra**. Treat them as versioned API changes, and say so in the report when you touch them.
 
@@ -95,8 +95,8 @@ Cadra is one of three systems in the NRS integration programme, defined by *"End
   CADRA_API_BASE=http://jaizbankplc.localhost:8069 tests/.venv/bin/python -m pytest tests/ -q
   ```
   The venv is `tests/.venv` (Python 3.13) — the repo's own Python, not the container's. `docs/api/smoke_test.py` is the 30-second liveness check. The suite skips a batch of admin-scoped and pagination tests its own token cannot reach; `docs/ENVIRONMENT-FACTS.md` carries the expected number, and a healthy run matches it.
-- **Run the suites in CI's order: `pytest tests/` FIRST, then the in-registry Odoo suites.** `.github/workflows/ci.yml` runs them that way and the order is load-bearing, not cosmetic — the HTTP suite exercises the API against the registry the previous step left behind, so running the Odoo suites first can leave state that makes a pytest failure reproduce only in CI.
-- **Check the DENOMINATOR, never the exit code.** An Odoo test run whose database died before the test phase reports `0 failed, 0 error(s) of 0 tests` **and exits 0** — a green that executed nothing, indistinguishable from a pass. **Quote the `of N tests` in every result you report, and treat a collapsed denominator as a failed run.** Grep the output for `of 0 tests` and for `CRITICAL` before believing anything.
+- **Run the suites in CI's order: `pytest tests/` FIRST, then the in-registry Odoo suites.** `.github/workflows/ci.yml` runs them that way and the order is load-bearing, not cosmetic — the HTTP suite exercises the API against the registry the previous step left behind, so running the Odoo suites first can leave state that makes a pytest failure reproduce only in CI. Report 16's CI failure is the only way that class gets caught locally.
+- **Check the DENOMINATOR, never the exit code.** An Odoo test run whose database died before the test phase reports `0 failed, 0 error(s) of 0 tests` **and exits 0** — a green that executed nothing, indistinguishable from a pass. Both of handoff 14's subagents hit it and one nearly reported it as a pass. **Quote the `of N tests` in every result you report, and treat a collapsed denominator as a failed run.** Grep the output for `of 0 tests` and for `CRITICAL` before believing anything.
 - **Module upgrade** after model/view/manifest changes — the running container already binds port 8069, so an in-container upgrade must be given free ports:
   ```
   docker compose -f docker-compose.yml -f docker-compose.19.yml exec -T odoo \
@@ -112,7 +112,7 @@ Odoo 19 removed it. `odoo/orm/model_classes.py:162` logs *"Model attribute '_sql
 
 ### Multi-tenancy is a development and demo arrangement, not how a client runs
 
-**Every real client gets its own server and its own single-tenant deployment.** The shared cluster — `nrs19`, `jaizbankplc`, `gtb19`, `cadra19`, `nrs`, `lasg`, `gtb`, `test19` on one registry — exists so one machine can carry development work and demonstrations side by side. It is not the production topology and never was. `docs/DEPLOYMENT.md`'s `prod` profile — one VPS, one domain, Caddy — is the real shape; the Kubernetes cluster is the demo estate. **This is load-bearing for how you read every measurement in any report.** Three consequences, in order of how easily they mislead:
+**Every real client gets its own server and its own single-tenant deployment.** The shared cluster — `nrs19`, `jaizbankplc`, `gtb19`, `cadra19`, `nrs`, `lasg`, `gtb`, `test19` on one registry — exists so one machine can carry development work and demonstrations side by side. It is not the production topology and never was. `docs/DEPLOYMENT.md`'s `prod` profile — one VPS, one domain, Caddy — is the real shape; the Kubernetes cluster is the demo estate. That profile still brings up Odoo 15, which is the open half of the migration, not a leftover file. **This is load-bearing for how you read every measurement in any report.** Three consequences, in order of how easily they mislead:
 
 1. **A per-tenant row count is a fact about a demo, not about an estate.** Numbers from `jaizbankplc` or `nrs19` size a test, they do not size a customer. Say which tenant a number came from and treat it as a fixture unless somebody confirms otherwise.
 2. **The fan-out below is a development obligation.** It is real and it must be done here, because one registry does serve every database on this machine. On a client's own server there is one database, so "schema before code" collapses to an ordinary migration and the blast radius of a missed tenant is zero.
@@ -152,14 +152,15 @@ done
 | 01 | Vendra CR-01 Parts A + B — provenance fields, filters, idempotency, enum correctness |
 | 02 | Dead `_sql_constraints` — all 8 reachable sites ported and enforced in every tenant |
 | 03 | Vendra CR-01 Part C — tag capture, print stamping, `POST /assets/<id>/tag-affixed` |
+| 04 | Demo readiness — `asset_tag` off `_WRITABLE_FIELDS`, affix `serial_number` verification, the empty-scopes wildcard closed, `.env` untracked (PR #47) |
 | 05 | Login scopes derived from Odoo groups (`b8b6f64`) · demo-contract corrections (`82da6ab`) |
 | 06 | Tag transport — the INT-05 outbound outbox (`c2b124a`, PR #49) |
 | 07 | The SAP asset legs — INT-06 / INT-07 / INT-09, twelve stored columns on `nrs.asset` |
 | 08 | The scheduler reaches every tenant · API clients act as themselves, not as Administrator |
 | 09 | Five clock-reading stored computes now recompute · publisher telemetry stopped · `forbidden` and `not_found` made reachable |
 | 10 | The print funnel records prints · a ConfigMap change that cannot take effect fails the deploy |
-| 11 | Dead screens retired · the external record cap and its truncation warning |
-| 12 | What the API says when it is wrong — `/auth/token` diagnostics · the cap moved onto the client record |
+| 11 | Dead screens retired and the renderable ones proven · one CI concurrency group · the INT-10 audit read-access contract |
+| 12 | What the API says when it is wrong — `/auth/token` diagnostics · the external record cap moved onto the client record, with a truncation warning |
 | 13 | Counts taken over the register, not a capped window · two structural zeros |
 | 14 | The chain of custody, append-only · three unauthenticated HTML 500s on `/auth/*` · the token staleness window bounded |
 | 15 | Nothing swallowed — 50 broad handlers classified, 24 of them hiding a live fault |
@@ -170,7 +171,7 @@ done
 ## Backlog — agreed, not yet scheduled
 
 - **The nine pre-envelope routes adopt `@cadra_route`** (`/auth/*`, `/openapi.json`, `/docs`, `/assets/export.csv`, `/integrations/employees/import`, `/brand`). They validate nothing and sit outside the standard envelope — and `/auth/token` is the first endpoint every integration touches. Refactor of the auth surface; after INT-03 is live.
-- **Query-parameter validation, API-wide (report 01 V4).** Scoped in report 05: **~26 sites across 5 files** — 13 enum params (`200 []`), **5 boolean params that silently drop the filter and return the UNFILTERED list**, and 8 int params that `except: pass`. The booleans are the dangerous half and should go first: an empty list reads as "no matches", a full list reads as an answer. `utils._selection_allowed_values` already holds the primitive (it was cited as `utils.py:830`, which is now unrelated code). Handoff 05 did the tagging filters only.
+- **Query-parameter validation, API-wide (report 01 V4).** Scoped in report 05: **~26 sites across 5 files** — 13 enum params (`200 []`), **5 boolean params that silently drop the filter and return the UNFILTERED list**, and 8 int params that `except: pass`. The booleans are the dangerous half and should go first: an empty list reads as "no matches", a full list reads as an answer. **There is no primitive to reuse yet** — this item used to cite `utils.py:830`, which is now unrelated code, and the nearest function, `utils._selection_allowed_values`, is error-enrichment that rolls the cursor back and is ruled out on a read path (see `docs/DECISIONS.md`, 2026-09-06). Handoff 05 did the tagging filters only, by hand.
 - **Per-session test artefact paths.** Two concurrent pytest sessions clobber each other's report and captures. Cosmetic.
 
 ## Decisions
