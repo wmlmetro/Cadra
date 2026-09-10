@@ -76,7 +76,7 @@ kubectl -n $NS scale deploy/odoo --replicas=1
    `--brand-primary*` hexes (in `static/src/css/brand.css`) and the params in
    `data/brand_params.xml` (`cadra.brand_short_name`, `cadra.brand_primary`,
    `cadra.brand_primary_dark`, optional `cadra.brand_logo` data URI).
-   ⚠️ **REQUIRED: add a COPY line for it in [`Dockerfile.odoo.k8s`](../../Dockerfile.odoo.k8s)**
+   ⚠️ **REQUIRED: add a COPY line for it in [`Dockerfile.odoo.19.k8s`](../../Dockerfile.odoo.19.k8s)** — CI's `image-addons-complete` job fails if you forget
    (each module needs its own line — a glob would flatten them). Without this
    the module isn't on the image addons path and `-i`/`-u` silently ignore it
    ("invalid module names, ignored: …") so the brand never loads. Do NOT add
@@ -154,9 +154,9 @@ it with `Host:` headers (this is exactly how the mechanism was validated):
 ```sh
 docker run --rm -d --name dbfilter-test \
   --network myservicenrs_default -p 8099:8069 \
-  -v "$PWD":/mnt/extra-addons:ro cadra-odoo:15.0-dev \
+  -v "$PWD":/mnt/extra-addons:ro cadra-odoo:19.0-dev \
   odoo --db_host=db --db_user=odoo --db_password=odoo \
-       --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons,/mnt/extra-addons/dist \
+       --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons,/mnt/extra-addons/crnd-19,/mnt/extra-addons/oca-19 \
        --db-filter='^%d$' --workers=0 --max-cron-threads=0
 
 curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: odoo.cadra.ng'  localhost:8099/web/login  # 200 (DB odoo)

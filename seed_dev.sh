@@ -21,7 +21,11 @@
 # abort the chain when that happens).
 set -uo pipefail
 
-COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.dev.yml}"
+# BOTH files, always. The overlay alone resolves no image for `db` and
+# mounts no repo at /mnt/extra-addons, so every seed path below would be
+# missing inside the container. This said `-f docker-compose.dev.yml`
+# for as long as it has existed and was broken the same way.
+COMPOSE_FILES=(-f docker-compose.yml -f "${COMPOSE_FILE:-docker-compose.19.yml}")
 DB_NAME="${DB_NAME:-odoo}"
 
 # Default seed sequence — same as load_all.sh but with self-contained
@@ -56,7 +60,7 @@ run_seed() {
     # The script must be path-resolvable INSIDE the container.
     # We don't propagate the exit code — some seeds commit then crash on
     # cleanup; row-count check at the end is the real verification.
-    if ! docker compose -f "${COMPOSE_FILE}" run --rm -T odoo bash -c \
+    if ! docker compose "${COMPOSE_FILES[@]}" run --rm -T odoo bash -c \
         "odoo shell -c /etc/odoo/odoo.conf -d ${DB_NAME} --no-http <<< \"exec(open('${path}').read())\""; then
         SEED_FAILURES+=("${label}")
         echo "  ⚠  ${label} returned non-zero — continuing (check row counts at end)"
@@ -67,12 +71,12 @@ run_seed() {
 
 echo "═══════════════════════════════════════════════════════════════"
 echo "  NRS myservice — Dev Seed Loader"
-echo "  Database: ${DB_NAME}  Compose: ${COMPOSE_FILE}"
+echo "  Database: ${DB_NAME}  Compose: ${COMPOSE_FILES[*]}"
 echo "═══════════════════════════════════════════════════════════════"
 
 echo ""
 echo "==> Stopping live odoo container so seed runs don't contend for DB lock"
-docker compose -f "${COMPOSE_FILE}" stop odoo
+docker compose "${COMPOSE_FILES[@]}" stop odoo
 
 # Build the run set based on positional args
 declare -a RUN_SET
@@ -98,7 +102,7 @@ done
 
 echo ""
 echo "==> Restarting live odoo container"
-docker compose -f "${COMPOSE_FILE}" up -d odoo
+docker compose "${COMPOSE_FILES[@]}" up -d odoo
 
 echo ""
 if [ ${#SEED_FAILURES[@]} -gt 0 ]; then

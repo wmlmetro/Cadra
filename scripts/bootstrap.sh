@@ -7,7 +7,7 @@
 # done become no-ops).
 #
 # Usage:
-#   scripts/bootstrap.sh                 # dev profile (uses docker-compose.dev.yml)
+#   scripts/bootstrap.sh                 # dev profile (uses docker-compose.19.yml)
 #   CADRA_PROFILE=prod scripts/bootstrap.sh
 #
 # What it does:
@@ -16,7 +16,9 @@
 #   3. Waits for Postgres ready (healthcheck)
 #   4. Detects whether the DB already has Odoo modules installed:
 #        - 0 modules → fresh DB → run odoo with -i MODULES
-#        - N modules → existing → skip install, run -u to pick up code changes
+#        - N modules → existing → skip install. It does NOT run -u; picking
+#          up code changes is a separate step (docs/DEPLOYMENT.md, "Update
+#          modules"). The header used to claim a -u that the code never ran.
 #   5. Runs scripts/bootstrap.py inside an odoo shell:
 #        - sets JWT secret + admin groups + API client + seeds
 #   6. Captures the printed credentials, writes them to docs/api/.creds.<db>
@@ -32,11 +34,15 @@ cd "$REPO_ROOT"
 
 CADRA_PROFILE="${CADRA_PROFILE:-dev}"
 COMPOSE_FILES=(-f docker-compose.yml)
+# `dev` and `dev19` are the SAME stack. They were two, and `dev` was the
+# Odoo 15 one — which is how the prod profile came to resolve to 15 as well,
+# because there was a 15 half of the tree for it to inherit from. There is
+# one runtime now, so `dev19` survives only as the spelling CI and a year of
+# muscle memory already use.
 case "$CADRA_PROFILE" in
-    dev)   COMPOSE_FILES+=(-f docker-compose.dev.yml) ;;
-    dev19) COMPOSE_FILES+=(-f docker-compose.19.yml) ;;   # Odoo 19 rebuild stack
-    prod)  COMPOSE_FILES+=(-f docker-compose.prod.yml) ;;
-    *)     echo "FATAL: CADRA_PROFILE must be 'dev', 'dev19' or 'prod', got '$CADRA_PROFILE'" >&2; exit 1 ;;
+    dev|dev19) COMPOSE_FILES+=(-f docker-compose.19.yml) ;;
+    prod)      COMPOSE_FILES+=(-f docker-compose.prod.yml) ;;
+    *)         echo "FATAL: CADRA_PROFILE must be 'dev' ('dev19' is an alias for it) or 'prod', got '$CADRA_PROFILE'" >&2; exit 1 ;;
 esac
 
 if ! command -v docker >/dev/null 2>&1; then
@@ -237,7 +243,11 @@ cat <<EOF
   API docs:    $([ "$CADRA_PROFILE" = "prod" ] && echo "https://${CADRA_DOMAIN:-<set CADRA_DOMAIN>}/api/v1/docs" || echo "http://localhost:8069/api/v1/docs")
   OpenAPI:     $([ "$CADRA_PROFILE" = "prod" ] && echo "https://${CADRA_DOMAIN:-<set CADRA_DOMAIN>}/api/v1/openapi.json" || echo "http://localhost:8069/api/v1/openapi.json")
 
-  Admin login: admin / ${ODOO_MASTER_PASSWORD:-admin}
+  Admin login: admin / admin   (Odoo's own default — NOTHING in this repo
+               sets it, on any tenant. On prod, change it in the UI before
+               the server is reachable from the internet.)
+$([ "$CADRA_PROFILE" = "prod" ] && echo "  ⚠  ODOO_MASTER_PASSWORD is the DATABASE MANAGER password, which is a
+     different credential and is not printed here." || true)
   API client:  see ${CREDS_FILE:-docs/api/.creds.${ODOO_DB}}
 
   Run the test suite (the hostname picks the tenant, and the tenant picks

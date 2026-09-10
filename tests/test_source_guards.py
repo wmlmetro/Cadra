@@ -645,7 +645,6 @@ _ODOO_CMD_RE = re.compile(r"(?:^|[\s\"'/])odoo(?:[\s\"']|$)")
 
 _SERVER_ARGV_FILES = (
     "docker-compose.yml",
-    "docker-compose.dev.yml",
     "docker-compose.19.yml",
     "docker-compose.prod.yml",
     "k8s/dev/41-odoo-19-deployment.yaml",
@@ -661,8 +660,15 @@ def test_no_long_running_server_names_its_database_on_the_command_line():
     offenders = []
     for relpath in _SERVER_ARGV_FILES:
         path = REPO_ROOT / relpath
-        if not path.exists():
-            continue
+        # A named file that is missing used to be skipped. That is the same
+        # hole as a waiver that matches nothing: `docker-compose.dev.yml` was
+        # deleted with the Odoo 15 stack in handoff 20 and this list would
+        # have gone on reciting it, asserting nothing, indistinguishable from
+        # a pass. If a file here is genuinely gone, remove its line.
+        assert path.exists(), (
+            "%s is checked by this guard but does not exist. Delete the "
+            "entry, or restore the file — a guard reciting a dead filename "
+            "is a guard that checks nothing and says so to nobody." % relpath)
         for lineno, line in enumerate(
                 path.read_text(encoding="utf-8").splitlines(), 1):
             stripped = line.strip()
@@ -3079,16 +3085,20 @@ def test_no_controller_reads_an_attribute_odoo_19_removed_from_request():
 # is the default" differently and a regex that tried to cover all three would
 # be wrong about all three.
 #
-# **What is deliberately NOT covered, and why it is a finding rather than a
-# hole.** `docker-compose.yml` resolves `${POSTGRES_PASSWORD:-odoo}` (twice)
-# and `.env.example` ships `POSTGRES_PASSWORD=odoo` and
-# `ODOO_MASTER_PASSWORD=admin`. Those are the same shape and the same rule
-# would flag all four. They are left alone here because changing them changes
-# the local bring-up for every checkout, which is not this handoff's business
-# — and `.env.example` is a template whose own header says every value must be
-# overridden in production, which is a different (and weaker) argument than an
-# image layer's. Report 18 records them for the Architect to rule on rather
-# than widening the guard and its blast radius in the same commit.
+# **The compose files and `.env.example` ARE covered now**, and the four
+# defaults they ship are a written exception rather than a gap. Report 18
+# named them and declined to rule; handoff 20 §C rules: the values stay, the
+# exception is written, and it is a waiver that fails when it stops matching.
+# See `_ENV_DEFAULT_WAIVERS` below for the reasoning and the enforcement.
+#
+# The distinction the waiver rests on is worth stating once. An image layer is
+# PULLED onto every host that runs it and printed by `docker history`; a k8s
+# manifest is APPLIED. Neither is a thing anybody edits per deployment. A
+# compose default and a `.env.example` line are the opposite: they exist to be
+# overridden, the override is a documented step, and — since handoff 20 — the
+# prod bring-up REFUSES TO START while they have not been. That last clause is
+# what turns the argument from "a template ought to be edited" into something
+# a guard can stand on, and it is asserted in tests/test_deployment_profile.py.
 
 #: Values that are not a baked-in credential even though they are non-empty.
 #: A Dockerfile `ENV X=$Y` or a manifest `value: "$(FOO)"` defers to something
@@ -3282,6 +3292,225 @@ def _js_credential_defaults(path):
     return sorted(findings)
 
 
+#: `${NAME:-literal}` and `${NAME:?message}` — compose's own way of writing
+#: "read this from the environment, and here is what to use if it is absent".
+#: The `:?` form supplies no default at all, which is the sanctioned shape and
+#: must not be flagged; only `:-` and `:=` bake a value in.
+_COMPOSE_DEFAULT_RE = re.compile(
+    r"\$\{([A-Za-z_][A-Za-z0-9_]*)\s*:?[-=]\s*([^}]*)\}")
+
+
+def _compose_credential_defaults(path):
+    """Credential defaults in a compose file, in every spelling it accepts.
+
+    A compose file is where a deployment's environment is actually assembled,
+    and it can bake a credential in several ways that look nothing alike:
+
+        PASSWORD: ${POSTGRES_PASSWORD:-odoo}     # a default for a lookup
+        ODOO_MASTER_PASSWORD: admin              # a flat literal
+        - POSTGRES_PASSWORD=odoo                 # the list form
+        environment: {PASSWORD: odoo}            # a flow mapping
+
+    The interpolation form is judged on the ENVIRONMENT VARIABLE's name, not
+    the key's, because that is the thing being defaulted — `PASSWORD:
+    ${FOO:-odoo}` defaults FOO. The others are judged on the key.
+
+    The first version of this read only the first two, and a verification pass
+    measured it walking past the list form when quoted, the flow mapping, and
+    a literal on a line that also carried an unrelated `${...}`. Those are the
+    same spellings `docs/DECISIONS.md` records defeating the k8s reader one
+    handoff earlier — a guard that only catches the keystrokes of the defect
+    it was written for is a record of that defect, not a rule.
+    """
+    findings = []
+    for i, line in enumerate(path.read_text(encoding="utf-8").splitlines()):
+        code = _strip_yaml_comment(line)
+        if not code.strip():
+            continue
+
+        # 1. `${NAME:-literal}` / `${NAME:=literal}`, anywhere on the line,
+        #    including inside a longer string. `${NAME:?message}` supplies no
+        #    default at all — it REFUSES when the variable is unset, which is
+        #    the fix — and is deliberately not matched.
+        seen_here = set()
+        for m in _COMPOSE_DEFAULT_RE.finditer(code):
+            name, default = m.group(1), m.group(2).strip()
+            seen_here.add(name)
+            if _looks_like_a_credential(name) and _is_baked_value(default):
+                findings.append((i + 1, name, default.strip('"').strip("'")))
+
+        # 2. Every `key: value` and `- KEY=value` pair on the line, whether it
+        #    is a block mapping, a list item or inside `{...}`. A pair whose
+        #    VALUE still contains an interpolation defers to the environment
+        #    and is not a baked literal — but that is decided per PAIR, not
+        #    per line, so one unrelated `${...}` no longer hides a literal
+        #    sitting beside it.
+        for name, value in _compose_pairs(code):
+            if name in seen_here or not _looks_like_a_credential(name):
+                continue
+            if "${" in value or "$(" in value:
+                continue
+            if _is_baked_value(value):
+                findings.append((i + 1, name, value.strip('"').strip("'")))
+    return sorted(set(findings))
+
+
+#: A pair is read from TOKENS, not from one regex over the line. The regex
+#: version could not tell `environment: {PASSWORD: odoo}` apart from a value
+#: — `PASSWORD:` is a perfectly good scalar as far as a pattern is concerned
+#: — so the outer key swallowed the inner pair and the credential vanished.
+#: Tokenising says the obvious thing instead: a token ending in `:` is a key,
+#: never a value.
+_INTERPOLATION_RE = re.compile(r"\$\{[^}]*\}")
+_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _compose_pairs(code):
+    """Every `key: value` and `KEY=value` on one line, flow form included.
+
+    Flow punctuation is replaced with spaces first, which turns
+    `environment: {PASSWORD: odoo}` into the block form and lets one rule read
+    both — smaller than the regex that failed to read either.
+
+    `${DB_PASSWORD:-a#b}` must survive that flattening intact: its brace
+    closes a DEFAULT, not a mapping. Interpolations are lifted out before and
+    put back after.
+    """
+    kept = []
+
+    def _stash(m):
+        kept.append(m.group(0))
+        return "\x00%d\x00" % (len(kept) - 1)
+
+    def _restore(text):
+        for i, original in enumerate(kept):
+            text = text.replace("\x00%d\x00" % i, original)
+        return text
+
+    flat = _INTERPOLATION_RE.sub(_stash, code)
+    flat = flat.translate({ord(c): " " for c in "{},"})
+    tokens = flat.split()
+
+    for i, token in enumerate(tokens):
+        raw = token.strip('"').strip("'")
+        if "=" in raw and not raw.endswith(":"):
+            name, _, value = raw.partition("=")
+            name = name.strip('"').strip("'")
+            if _NAME_RE.match(name):
+                yield name, _restore(value).strip('"').strip("'")
+            continue
+        if not token.endswith(":"):
+            continue
+        name = token[:-1].strip('"').strip("'")
+        if not _NAME_RE.match(name):
+            continue
+        if i + 1 >= len(tokens):
+            continue
+        nxt = tokens[i + 1]
+        # The next token is itself a key, so this one has no scalar value.
+        if nxt.endswith(":") and _NAME_RE.match(nxt[:-1].strip('"').strip("'")):
+            continue
+        yield name, _restore(nxt).strip('"').strip("'")
+
+
+def _strip_yaml_comment(line):
+    """Remove a trailing YAML comment, and only a real one.
+
+    `#` opens a comment in YAML only at the start of a token — after
+    whitespace — so `${PW:-a#b}` and `#004080` are not comments. Splitting on
+    a bare `#` truncated the line before the credential could be seen, which
+    is a false PASS. `_dotenv_credential_defaults` already got this right with
+    `split(" #")`; the two readers now agree.
+    """
+    out, prev, quote = [], " ", None
+    for ch in line:
+        if quote:
+            out.append(ch)
+            if ch == quote:
+                quote = None
+        elif ch in "\"'":
+            quote = ch
+            out.append(ch)
+        elif ch == "#" and prev in " \t":
+            break
+        else:
+            out.append(ch)
+        prev = ch
+    return "".join(out)
+
+
+def _dotenv_credential_defaults(path):
+    """`NAME=value` in a committed env template.
+
+    `.env` itself is gitignored and never walked; `.env.example` is the file
+    an operator copies, so whatever it ships is what a deployment starts with
+    until somebody edits it.
+    """
+    findings = []
+    for i, line in enumerate(path.read_text(encoding="utf-8").splitlines()):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        m = re.match(r"^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$",
+                     stripped)
+        if not m:
+            continue
+        name, value = m.group(1), m.group(2).split(" #")[0].strip()
+        if _looks_like_a_credential(name) and _is_baked_value(value):
+            findings.append((i + 1, name, value.strip('"').strip("'")))
+    return sorted(findings)
+
+
+# ── the written exception, and what stops it rotting ────────────────────
+#
+# Handoff 20 §C. Four credential defaults stay exactly as they are:
+# `docker-compose.yml` resolves `${POSTGRES_PASSWORD:-odoo}` twice, and
+# `.env.example` ships `POSTGRES_PASSWORD=odoo` and `ODOO_MASTER_PASSWORD=admin`.
+#
+# Why they stay: changing them changes the local bring-up for every checkout
+# and buys nothing, because the values are not what protects a deployment —
+# the prod container's refusal to start on them is, and that landed in the
+# same change (see docker-compose.prod.yml's `command:`, asserted by
+# tests/test_deployment_profile.py). `.env.example` is a template whose own
+# header says every value must be overridden, and now says the server enforces
+# it.
+#
+# Three things keep this waiver honest, the same three that keep
+# `_BURNT_LITERAL_WAIVERS` honest, plus a fourth this shape allows:
+#
+#   1. It is keyed on (path, VARIABLE NAME), not on a path. Waiving a FILE
+#      would mean a fifth credential default dropped into `.env.example`
+#      tomorrow inherits the exception silently. These two names are waived
+#      in these two files and nothing else is.
+#   2. **An entry that matches no finding fails the test.** Fix one of these
+#      four and its waiver becomes a hole with a name on it; the suite says
+#      so on the next run rather than in a year.
+#   3. The reason is next to the entry, so removing it is a decision somebody
+#      has to write out.
+#   4. The waived VALUES must be values the prod bring-up refuses. That is
+#      checked in tests/test_deployment_profile.py, from the other side: the
+#      exception is only defensible while the assertion behind it holds, so
+#      the two are wired together rather than merely agreeing today.
+_ENV_DEFAULT_WAIVERS = {
+    ("docker-compose.yml", "POSTGRES_PASSWORD"):
+        "the local Postgres password. Compose needs a default here or a bare "
+        "`docker compose up` fails on a fresh clone, which is the developer "
+        "onboarding path and CI's. The prod overlay refuses this value.",
+    (".env.example", "POSTGRES_PASSWORD"):
+        "the template an operator copies. Shipping it blank moves the failure "
+        "from a named refusal at prod start-up to a confusing connection "
+        "error on every dev bring-up. The prod overlay refuses this value.",
+    (".env.example", "ODOO_MASTER_PASSWORD"):
+        "the Odoo database-manager password, `admin` for dev. Same reasoning; "
+        "the prod overlay refuses this value and says so in this file's own "
+        "header.",
+}
+
+
+def _env_default_waiver(rel, name):
+    return _ENV_DEFAULT_WAIVERS.get((rel, name))
+
+
 _NON_PYTHON_CREDENTIAL_READERS = (
     ("Dockerfile", _dockerfile_credential_defaults,
      lambda rel: pathlib.Path(rel).name.startswith("Dockerfile")),
@@ -3289,18 +3518,21 @@ _NON_PYTHON_CREDENTIAL_READERS = (
      lambda rel: rel.startswith("k8s/") and rel.endswith((".yaml", ".yml"))),
     ("JS/TS", _js_credential_defaults,
      lambda rel: rel.endswith((".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"))),
+    ("compose file", _compose_credential_defaults,
+     lambda rel: pathlib.Path(rel).name.startswith("docker-compose")
+     and rel.endswith((".yml", ".yaml"))),
+    ("env template", _dotenv_credential_defaults,
+     lambda rel: pathlib.Path(rel).name.startswith(".env")),
 )
 
 
-def test_no_credential_defaults_in_an_image_layer_or_a_manifest():
-    """The Python rule, applied where there is no Python.
+def _non_python_credential_findings():
+    """Walk once, and return (unwaived offenders, waiver keys that matched).
 
-    An `ENV ODOO_ADMIN_PW=admin` is not a worse-looking literal than a
-    `get_param` default — it is a worse-PLACED one. Source sits in a clone;
-    an image layer is pulled onto every host that runs it and is printed by
-    `docker history`.
+    Shared so the guard and the waiver audit below cannot disagree about what
+    was found — the failure mode a second, near-identical walk invites.
     """
-    offenders = []
+    offenders, hit = [], set()
     for path in _repo_files():
         rel = path.relative_to(REPO_ROOT).as_posix()
         if "/tests/" in "/" + rel or "/node_modules/" in "/" + rel:
@@ -3313,16 +3545,90 @@ def test_no_credential_defaults_in_an_image_layer_or_a_manifest():
             except (OSError, UnicodeDecodeError):  # pragma: no cover
                 continue
             for lineno, name, value in found:
+                if _env_default_waiver(rel, name):
+                    hit.add((rel, name))
+                    continue
                 offenders.append(
                     "%s:%d (%s) assigns %s the literal %r"
                     % (rel, lineno, label, name, value))
+    return offenders, hit
 
+
+def test_no_credential_defaults_in_an_image_layer_or_a_manifest():
+    """The Python rule, applied where there is no Python.
+
+    An `ENV ODOO_ADMIN_PW=admin` is not a worse-looking literal than a
+    `get_param` default — it is a worse-PLACED one. Source sits in a clone;
+    an image layer is pulled onto every host that runs it and is printed by
+    `docker history`.
+    """
+    offenders, _ = _non_python_credential_findings()
     assert not offenders, (
         "A credential must not default to a value, and an image layer or a "
         "cluster manifest is the worst place for one — the image is pulled "
         "and the manifest is applied. Read it from a Secret or an "
         "environment variable and REFUSE when it is unset, naming what is "
         "missing.\n  " + "\n  ".join(offenders))
+
+
+def test_no_compose_service_pulls_its_environment_from_an_unwalked_file():
+    """`env_file:` is the hole neither credential reader can see.
+
+    The env-template reader keys on a filename starting with `.env`, because
+    that is what the walk can recognise as a committed template. A service
+    that says `env_file: ./config/service.env` gets its whole environment —
+    credentials included — from a file the guard never opens, and the guard
+    stays green.
+
+    Following the reference is the wrong fix: the path can be a list, can be
+    relative to a different directory, and can point outside the repository.
+    Refusing the construct is the right one. No compose file here uses it,
+    and if one needs to, the reader has to learn about it in the same change.
+    """
+    offenders = []
+    for path in sorted(REPO_ROOT.glob("docker-compose*.yml")):
+        for i, line in enumerate(path.read_text(encoding="utf-8").splitlines()):
+            if re.match(r"^\s*env_file\s*:", line.split("#")[0]):
+                offenders.append("%s:%d" % (path.name, i + 1))
+    assert not offenders, (
+        "these services load an environment from a file the credential "
+        "guards do not walk, so a credential default in it would pass "
+        "unseen: %s\nTeach `_NON_PYTHON_CREDENTIAL_READERS` to open the "
+        "referenced file in the same change that introduces it."
+        % ", ".join(offenders))
+
+
+def test_the_env_default_waivers_are_narrow_and_still_earned():
+    """A waiver that has stopped excusing anything is a hole with a name on it.
+
+    This is the failure CLAUDE.md records against the old `odoo.conf`
+    exception and that `_BURNT_LITERAL_WAIVERS` was shaped to avoid: an
+    exception matched by name cannot tell a dead entry from a live one, so a
+    file or a variable that later takes a waived name inherits the excuse.
+    Requiring every entry to have actually matched something this run is what
+    closes it.
+    """
+    # Scope FIRST. A waiver on a Dockerfile also fails the "matched nothing"
+    # check below, and would be reported as a dead entry — which is a true
+    # sentence about the less serious of the two faults, and the one somebody
+    # fixes by making it match.
+    scope = {rel for rel, _name in _ENV_DEFAULT_WAIVERS}
+    assert scope <= {"docker-compose.yml", ".env.example"}, (
+        "this waiver covers the two files handoff 20 ruled on and nothing "
+        "else. A Dockerfile, a k8s manifest or a shell script must never "
+        "take one: those are pulled and applied, not edited per deployment, "
+        "and the prod refusal that makes this exception defensible does not "
+        "reach them. Found: %s" % sorted(scope))
+
+    _, hit = _non_python_credential_findings()
+    for (rel, name), reason in _ENV_DEFAULT_WAIVERS.items():
+        assert reason and len(reason) > 40, (
+            "%s:%s is waived without a reason anybody can weigh" % (rel, name))
+        assert (rel, name) in hit, (
+            "the waiver for %s in %s matched nothing. Either the default was "
+            "fixed — in which case delete the waiver — or the reader stopped "
+            "seeing it, which is worse, because the guard is now silent about "
+            "a file it reports on." % (name, rel))
 
 
 def test_the_non_python_credential_guard_reaches_its_file_types():
@@ -3459,6 +3765,90 @@ _NON_PYTHON_EVASIONS = [
      True),
     ("a ternary on a non-credential", "e2e/x.ts",
      'const o = process.env.E2E_ORIGIN ? process.env.E2E_ORIGIN : "http://x";\n',
+     False),
+
+    # ── compose files and env templates, added in handoff 20 §C ──
+    #
+    # The negative half is the whole reason these two readers can be turned on
+    # at all. `${VAR:?message}` is the shape that REFUSES when a variable is
+    # unset — the fix — and the first version of this reader read the refusal
+    # MESSAGE as a baked password. A guard that flags the correction is worse
+    # than no guard, because the fix is what somebody stops making.
+    ("the compose default spelling — the shape being waived",
+     "docker-compose.x.yml",
+     "    environment:\n"
+     "      PASSWORD: ${POSTGRES_PASSWORD:-odoo}\n", True),
+    ("the `:=` spelling of the same thing", "docker-compose.x.yml",
+     "      PASSWORD: ${POSTGRES_PASSWORD:=odoo}\n", True),
+    ("a flat literal, which is what somebody writes when interpolation "
+     "gets in the way", "docker-compose.x.yml",
+     "      ODOO_MASTER_PASSWORD: admin\n", True),
+    ("a quoted flat literal", "docker-compose.x.yml",
+     '      CADRA_JWT_SECRET: "dev-secret"\n', True),
+    ("`:?` supplies NO default — it refuses, which is the fix",
+     "docker-compose.x.yml",
+     "      ODOO_MASTER_PASSWORD: ${ODOO_MASTER_PASSWORD:?must be set in .env}\n",
+     False),
+    ("an empty default is the sanctioned shape here too",
+     "docker-compose.x.yml",
+     "      CADRA_JWT_SECRET: ${CADRA_JWT_SECRET:-}\n", False),
+    ("plain interpolation with no default at all", "docker-compose.x.yml",
+     "      PASSWORD: ${POSTGRES_PASSWORD}\n", False),
+    ("a non-credential default is nobody's business", "docker-compose.x.yml",
+     "      POSTGRES_DB: ${POSTGRES_DB:-odoo}\n", False),
+    ("a commented-out default is not in effect", "docker-compose.x.yml",
+     "      # PASSWORD: ${POSTGRES_PASSWORD:-odoo}\n", False),
+    ("the credential is the VARIABLE being defaulted, not the key",
+     "docker-compose.x.yml",
+     "      HOST: ${DB_PASSWORD:-odoo}\n", True),
+
+    ("an env template shipping a password", ".env.example",
+     "POSTGRES_PASSWORD=odoo\n", True),
+    ("an env template shipping a master password", ".env.example",
+     "ODOO_MASTER_PASSWORD=admin\n", True),
+    ("the `export` spelling", ".env.example",
+     "export CADRA_JWT_SECRET=dev-secret\n", True),
+    ("a blank value is the sanctioned shape", ".env.example",
+     "CADRA_JWT_SECRET=\n", False),
+    ("a commented example is documentation, not a value", ".env.example",
+     "# CADRA_TURNSTILE_SECRET=abc123\n", False),
+    ("a non-credential setting", ".env.example",
+     "POSTGRES_DB=odoo\n", False),
+    ("a value that defers to the environment", ".env.example",
+     "CADRA_JWT_SECRET=$JWT_FROM_VAULT\n", False),
+
+    # ── what a verification pass measured the FIRST compose reader walking
+    #    past. Each is a spelling somebody writes without meaning to evade
+    #    anything, and every one of them is a FALSE PASS — the dangerous
+    #    direction. Three are the same spellings docs/DECISIONS.md records
+    #    defeating the k8s reader one handoff earlier.
+    ("a YAML flow mapping — the spelling that defeated the k8s reader too",
+     "docker-compose.x.yml",
+     "    environment: {PASSWORD: odoo}\n", True),
+    ("a QUOTED list item (the unquoted one was already caught)",
+     "docker-compose.x.yml",
+     '      - "POSTGRES_PASSWORD=odoo"\n', True),
+    ("the unquoted list item", "docker-compose.x.yml",
+     "      - POSTGRES_PASSWORD=odoo\n", True),
+    ("an unrelated interpolation on the same line must not hide a literal",
+     "docker-compose.x.yml",
+     "      ODOO_MASTER_PASSWORD: admin   # next to ${FOO}\n", True),
+    ("a `#` INSIDE a value is not a comment in YAML",
+     "docker-compose.x.yml",
+     "      PASSWORD: ${DB_PASSWORD:-a#b}\n", True),
+    ("a default inside a longer string", "docker-compose.x.yml",
+     '      DSN: "user:${DB_PASSWORD:-odoo}@db/x"\n', True),
+    ("a credential at column 0, in an x- extension block",
+     "docker-compose.x.yml",
+     "x-shared: &shared\n"
+     "ADMIN_PASSWORD: admin\n", True),
+    ("a real trailing comment is still a comment", "docker-compose.x.yml",
+     "      POSTGRES_DB: odoo   # not a credential, and PASSWORD: admin here\n",
+     False),
+    ("a pair whose value defers to the environment", "docker-compose.x.yml",
+     "      PASSWORD: ${POSTGRES_PASSWORD}\n", False),
+    ("the refusal form, inside a flow mapping", "docker-compose.x.yml",
+     "    environment: {ODOO_MASTER_PASSWORD: ${ODOO_MASTER_PASSWORD:?set it}}\n",
      False),
 ]
 

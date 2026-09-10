@@ -36,6 +36,7 @@ Run with:
          --workers=0 --http-port=8099 --gevent-port=8098
 """
 import json
+import logging
 import uuid
 
 from odoo.tests import tagged
@@ -229,38 +230,95 @@ class TestCallbackReplayHttp(HttpCase, WorkflowCallbackFixture):
 
     # ── a replay writes nothing, and says what it therefore discarded ────
 
-    def test_a_repeat_carrying_a_late_payment_ref_is_not_swallowed_in_silence(self):
-        """The hole a verification pass found in the first version.
+    def test_a_repeat_carrying_a_late_payment_ref_records_it(self):
+        """Handoff 20 B1, and it used to be the opposite assertion.
 
-        The disposition compares `workflow_status` and nothing else, so a
-        SECOND `approved` carrying a `payment_ref` the first did not have was
-        discarded and answered `200` — and `payment_ref` is optional in both
-        published schemas, so a workflow engine that sends the approval when
-        it is granted and the payment reference when it clears is doing
-        nothing wrong. Rule 3: silent degradation is a defect even at 200.
-
-        It still writes nothing. What changed is that it no longer does so
-        quietly.
+        Handoff 18 closed the silence — the dropped reference was named in
+        the log and in the body — and left the ruling open: should it be
+        WRITTEN? It should. `payment_ref` is optional in both published
+        schemas, so a workflow engine that sends the approval when it is
+        granted and the reference when it clears is doing nothing wrong, and
+        a payment reference is exactly the thing somebody needs later and
+        cannot find. The DISPOSITION is untouched — this is still a replay,
+        the outcome is not applied twice — and the five effects a replay may
+        not have are asserted one at a time below.
         """
         self.assertEqual(self._post(outcome="approved").status_code, 200)
         after_first = self._footprint(self.req)
         self.env.invalidate_all()
         self.assertFalse(self.req.workflow_payment_ref)
 
-        with self.assertLogs(LOGGER, level="WARNING") as captured:
-            response = self._post_with(outcome="approved",
-                                       payment_ref="PAY-2026-04412")
+        response = self._post_with(outcome="approved",
+                                   payment_ref="PAY-2026-04412")
+
+        self.assertEqual(response.status_code, 200, response.text)
+        body = response.json()
+        self.assertTrue(body["replayed"],
+                        "storing a late reference must not turn a replay "
+                        "into an application")
+        self.assertEqual(body["stored_fields"], ["payment_ref"])
+        self.assertNotIn("discarded_fields", body,
+                         "a field that was recorded is not a discard")
+
+        self.env.invalidate_all()
+        self.assertEqual(self.req.workflow_payment_ref, "PAY-2026-04412")
+
+        # The five forbidden effects, one at a time rather than as a dict
+        # comparison, so a failure says WHICH of them the write produced.
+        after_second = self._footprint(self.req)
+        self.assertEqual(after_second["stage_id"], after_first["stage_id"],
+                         "1/5: the replay wrote a stage")
+        self.assertEqual(after_second["date_moved"], after_first["date_moved"],
+                         "2/5: the replay reset date_moved")
+        self.assertEqual(after_second["events"], after_first["events"],
+                         "3/5: the replay appended a request.event row")
+        self.assertEqual(after_second["messages"], after_first["messages"],
+                         "4/5: the replay posted to the chatter")
+        self.assertEqual(after_second["dispatch_rows"],
+                         after_first["dispatch_rows"],
+                         "5/5: the replay appended a workflow.dispatch.log row")
+        self.assertEqual(after_second["workflow_status"],
+                         after_first["workflow_status"])
+
+    def test_a_repeat_carrying_the_same_payment_ref_records_nothing(self):
+        """The idempotent half. A redelivery of an approval that already
+        carried its reference has nothing to add, and a body reporting a
+        store on every retry would make `stored_fields` mean "we saw a
+        payment_ref" rather than "we wrote one"."""
+        first = self._post_with(outcome="approved",
+                                payment_ref="PAY-2026-04412")
+        self.assertEqual(first.status_code, 200, first.text)
+        after_first = self._footprint(self.req)
+        self.env.invalidate_all()
+        self.assertEqual(self.req.workflow_payment_ref, "PAY-2026-04412")
+
+        response = self._post_with(outcome="approved",
+                                   payment_ref="PAY-2026-04412")
 
         self.assertEqual(response.status_code, 200, response.text)
         body = response.json()
         self.assertTrue(body["replayed"])
-        self.assertIn("payment_ref", body["discarded_fields"])
-        self.assertEqual(self._footprint(self.req), after_first,
-                         "a replay must still write nothing")
+        self.assertNotIn("stored_fields", body)
+        self.assertNotIn("discarded_fields", body)
+        self.assertEqual(self._footprint(self.req), after_first)
 
+    def test_a_stored_payment_ref_is_reported_at_info_not_warning(self):
+        """A field that is now KEPT is the feature working, and a WARNING on
+        the correct path is how a log stops being read. The discard warning
+        still exists — it fires on a decision replay carrying new prose,
+        which genuinely goes nowhere."""
+        self.assertEqual(self._post(outcome="approved").status_code, 200)
+
+        with self.assertLogs(LOGGER, level="INFO") as captured:
+            self._post_with(outcome="approved", payment_ref="PAY-2026-04412")
+
+        self.assertEqual(
+            [r.getMessage() for r in captured.records
+             if r.levelno >= logging.WARNING], [],
+            "a recorded payment reference warned")
         line = "\n".join(captured.output)
         self.assertIn("payment_ref", line)
-        self.assertIn("discarded", line)
+        self.assertIn("recorded", line)
 
     def test_a_repeat_carrying_nothing_new_does_not_cry_wolf(self):
         """The other half, and the one the first version got wrong.
@@ -288,12 +346,20 @@ class TestCallbackReplayHttp(HttpCase, WorkflowCallbackFixture):
         no_comment = self._post_with(outcome="approved", comment=None)
         self.assertNotIn("discarded_fields", no_comment.json())
 
-    def test_a_second_query_carrying_a_new_question_says_the_question_was_dropped(self):
-        """`queried` → `queried` is a replay, which means a genuinely NEW
-        question is discarded — the comment text is the only thing that
-        distinguishes a new question from a redelivery of the old one. That
-        is a consequence of the rule the handoff asked for, and it is
-        reported rather than hidden. Report 18 raises it for a ruling."""
+    def test_a_second_query_carrying_a_new_question_is_applied(self):
+        """Handoff 20 B2, and it used to assert the drop.
+
+        `current == outcome` alone made every second `queried` a replay, so a
+        genuinely NEW question was discarded — reported, after handoff 18, but
+        discarded. A decision arrives once; a question does not. WorkSpace can
+        ask about the cost centre, get an answer, and ask about the vendor
+        while the request is still `queried`.
+
+        The comparison is against `workflow.dispatch.log.workflow_comment`,
+        which holds the text verbatim. The chatter body wraps it in HTML, so
+        matching that made every ordinary redelivery look like a new question
+        — see `_last_recorded_comment`.
+        """
         self.assertEqual(self._post(outcome="queried",
                                     comment="which cost centre?").status_code,
                          200)
@@ -302,8 +368,48 @@ class TestCallbackReplayHttp(HttpCase, WorkflowCallbackFixture):
         response = self._post(outcome="queried", comment="and which vendor?")
 
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertIn("comment", response.json()["discarded_fields"])
-        self.assertEqual(self._footprint(self.req), queried)
+        body = response.json()
+        self.assertFalse(body["replayed"],
+                         "a second, different question was swallowed")
+        self.assertNotIn("discarded_fields", body)
+
+        after = self._footprint(self.req)
+        self.assertEqual(after["workflow_status"], "queried",
+                         "answering a second question must not move the "
+                         "request off `queried`")
+        self.assertGreater(after["messages"], queried["messages"],
+                           "the new question never reached the chatter")
+        self.assertGreater(after["dispatch_rows"], queried["dispatch_rows"])
+
+        self.env.invalidate_all()
+        self.assertEqual(self.req._last_recorded_comment(),
+                         "and which vendor?",
+                         "the dispatch log should still hold the SECOND question, which is the "
+            "one the apply just recorded")
+
+    def test_neither_query_case_cries_wolf(self):
+        """The acceptance criterion's last clause: *and neither warns on the
+        common case.* A redelivery is the common case and a second question
+        is the feature — a WARNING on either is a WARNING somebody switches
+        off, which is how the chatter-body comparison failed the first run of
+        this suite."""
+        self.assertEqual(self._post(outcome="queried",
+                                    comment="which cost centre?").status_code,
+                         200)
+
+        with self.assertLogs(LOGGER, level="INFO") as new_question:
+            self._post(outcome="queried", comment="and which vendor?")
+        self.assertEqual(
+            [r.getMessage() for r in new_question.records
+             if r.levelno >= logging.WARNING], [],
+            "a second, genuine question warned")
+
+        with self.assertLogs(LOGGER, level="INFO") as redelivery:
+            self._post(outcome="queried", comment="and which vendor?")
+        self.assertEqual(
+            [r.getMessage() for r in redelivery.records
+             if r.levelno >= logging.WARNING], [],
+            "an ordinary redelivery warned")
 
     # ── a replay that would CHANGE the outcome is a different animal ─────
 
@@ -355,7 +461,10 @@ class TestCallbackReplayHttp(HttpCase, WorkflowCallbackFixture):
         self.assertEqual(response.status_code, 409, response.text)
         self.assertEqual(self._footprint(self.req), approved)
 
-    def test_a_replayed_query_writes_nothing_either(self):
+    def test_a_redelivered_query_with_the_same_text_writes_nothing(self):
+        """The other side of B2. `queried` dedups on the PAIR, so identical
+        text is still a redelivery and still writes nothing — otherwise the
+        change would turn every retry into a second question."""
         self.assertEqual(self._post(outcome="queried",
                                     comment="please clarify").status_code, 200)
         queried = self._footprint(self.req)
@@ -364,7 +473,10 @@ class TestCallbackReplayHttp(HttpCase, WorkflowCallbackFixture):
         response = self._post(outcome="queried", comment="please clarify")
 
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertTrue(response.json()["replayed"])
+        body = response.json()
+        self.assertTrue(body["replayed"])
+        self.assertNotIn("stored_fields", body)
+        self.assertNotIn("discarded_fields", body)
         self.assertEqual(self._footprint(self.req), queried)
 
     # ── and the progressions that must keep working ──────────────────────
@@ -425,6 +537,8 @@ class TestCallbackDisposition(TransactionCase, WorkflowCallbackFixture):
         self.req = self._make_request()
 
     def test_the_disposition_table(self):
+        """Outcome only — the caller that passes no comment, which is the
+        default and must keep meaning exactly what it meant before B2."""
         Req = self.req
         cases = [
             ("not_sent", "approved", Req.CALLBACK_APPLY),
@@ -448,7 +562,159 @@ class TestCallbackDisposition(TransactionCase, WorkflowCallbackFixture):
                 self.req._workflow_callback_disposition(outcome), expected,
                 "%s + %s should be %s" % (current, outcome, expected))
 
+    def test_the_disposition_table_with_the_comment_dimension(self):
+        """Handoff 20 B2. The comment is a tie-breaker for `queried` ONLY.
+
+        A decision arrives once: a second `approved` is the same approval
+        redelivered, whatever note rides along with it, and treating a
+        different note as a new decision would re-apply a stage. A question
+        does not: the text is the only thing separating a second question
+        from a redelivery of the first, so for `queried` — and nowhere else —
+        it decides.
+
+        The recorded comment is a `workflow.dispatch.log` row, because that
+        is what `_last_recorded_comment` reads: verbatim text, not the
+        chatter body, which wraps it in HTML.
+        """
+        Req = self.req
+        recorded = "which cost centre?"
+        self.env["workflow.dispatch.log"].sudo().create({
+            "request_id": self.req.id,
+            "direction": "inbound",
+            "status": "queried",
+            "workflow_comment": recorded,
+        })
+
+        cases = [
+            # a redelivery of the question we already hold
+            ("queried", "queried", recorded, Req.CALLBACK_REPLAY),
+            # …and its two degenerate spellings, which carry no new text
+            ("queried", "queried", None, Req.CALLBACK_REPLAY),
+            ("queried", "queried", "", Req.CALLBACK_REPLAY),
+            # a second, genuinely different question
+            ("queried", "queried", "and which vendor?", Req.CALLBACK_APPLY),
+            # a decision is a decision; the note does not make a second one
+            ("approved", "approved", "a different note", Req.CALLBACK_REPLAY),
+            ("rejected", "rejected", "a different note", Req.CALLBACK_REPLAY),
+            # and a comment never turns a contradiction into anything else
+            ("approved", "queried", "and which vendor?",
+             Req.CALLBACK_CONFLICT),
+            ("rejected", "queried", "and which vendor?",
+             Req.CALLBACK_CONFLICT),
+            ("pending", "queried", "and which vendor?", Req.CALLBACK_APPLY),
+        ]
+        for current, outcome, comment, expected in cases:
+            self.req.workflow_status = current
+            self.assertEqual(
+                self.req._workflow_callback_disposition(outcome, comment),
+                expected,
+                "%s + %s carrying %r should be %s"
+                % (current, outcome, comment, expected))
+
+    # ── B1: a replay records what has somewhere to go ────────────────────
+
+    def test_a_replay_records_a_late_payment_ref_and_names_nothing_else(self):
+        """The model half of B1, where the twins meet.
+
+        Both controllers reach this one method, so what a late reference does
+        cannot drift between the legacy route and `/api/v1` — the same reason
+        `_workflow_callback_disposition` lives here.
+        """
+        self.req.workflow_status = "approved"
+
+        stored, discarded = self.req._record_replay_extras(
+            payment_ref="PAY-2026-04412", comment=None)
+
+        self.assertEqual(stored, ["payment_ref"])
+        self.assertEqual(discarded, [])
+        self.assertEqual(self.req.workflow_payment_ref, "PAY-2026-04412")
+
+    def test_a_replay_carrying_the_reference_already_held_records_nothing(self):
+        self.req.workflow_status = "approved"
+        self.req.workflow_payment_ref = "PAY-2026-04412"
+
+        stored, discarded = self.req._record_replay_extras(
+            payment_ref="PAY-2026-04412", comment=None)
+
+        self.assertEqual(stored, [])
+        self.assertEqual(discarded, [])
+
+    def test_a_decision_replay_carrying_new_prose_still_discards_it(self):
+        """What B2 did NOT change. A comment has nowhere to go on a replay —
+        recording it means a chatter post and a dispatch-log rewrite, two of
+        the five effects a replay is forbidden — so on a decision replay it
+        is still named and dropped. B2 narrowed the case to decisions; it did
+        not remove it."""
+        self.req.workflow_status = "approved"
+
+        stored, discarded = self.req._record_replay_extras(
+            payment_ref=None, comment="a different note")
+
+        self.assertEqual(stored, [])
+        self.assertEqual(discarded, ["comment"])
+
     # ── B1: the v1 twin never reconciled the outbound dispatch ───────────
+
+    def test_a_failed_re_dispatch_does_not_turn_a_redelivery_into_a_new_question(self):
+        """A verification-pass finding, and it is reachable in production.
+
+        `_send_to_workflow` creates its outbound row as `pending` BEFORE it
+        calls the adapter, and only promotes it to `sent` — and only resets
+        `workflow_status` to `pending` — inside the success branch. So a
+        re-dispatch whose adapter FAILS leaves behind a newer dispatch-log
+        row with an empty `workflow_comment` while the request still reads
+        `queried`.
+
+        `_last_recorded_comment` used to take the newest row whatever its
+        status, so it read that empty comment, and the very next ordinary
+        redelivery of the same question compared "Q1" against "" and was
+        applied: fresh chatter, the dispatch log rewritten. That is precisely
+        the "a warning that fires on the common case" failure the comment
+        comparison exists to avoid, arriving from the other side — and a
+        failed dispatch is not an exotic state.
+
+        Scoping the lookup to rows that recorded an ANSWER is the fix. This
+        test fails without it.
+        """
+        Log = self.env["workflow.dispatch.log"].sudo()
+        question = "which cost centre?"
+
+        # The question we already hold, recorded the way a real callback
+        # records it.
+        Log.create({
+            "request_id": self.req.id,
+            "direction": "inbound",
+            "status": "queried",
+            "workflow_comment": question,
+        })
+        self.req.sudo().write({"workflow_status": "queried"})
+
+        # A re-dispatch whose adapter failed: newer row, no comment, and the
+        # request's own status untouched because the reset lives in the
+        # success branch.
+        Log.create({
+            "request_id": self.req.id,
+            "direction": "outbound",
+            "status": "pending",
+        })
+        self.assertEqual(
+            self.req.workflow_status, "queried",
+            "the fixture is wrong if the failed dispatch moved the status")
+
+        self.assertEqual(
+            self.req._last_recorded_comment(), question,
+            "an unanswered dispatch row shadowed the last recorded question")
+        self.assertEqual(
+            self.req._workflow_callback_disposition("queried", question),
+            self.req.CALLBACK_REPLAY,
+            "a redelivery of the SAME question was treated as a new one "
+            "because a failed re-dispatch sat in front of it")
+
+        # …and a genuinely new question still applies, so the fix did not
+        # simply make the comparison unreachable.
+        self.assertEqual(
+            self.req._workflow_callback_disposition("queried", "and which vendor?"),
+            self.req.CALLBACK_APPLY)
 
     def test_a_callback_reconciles_the_outbound_dispatch_it_answers(self):
         """The legacy behaviour, now shared, and it is the right one.

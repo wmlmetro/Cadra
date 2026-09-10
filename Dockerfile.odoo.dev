@@ -1,6 +1,0 @@
-FROM odoo:15.0
-
-USER root
-RUN pip3 install --no-cache-dir html2text openpyxl
-USER odoo
-

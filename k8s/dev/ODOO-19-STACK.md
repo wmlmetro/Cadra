@@ -9,7 +9,7 @@ running as an instant rollback until the DNS flip.
 
 | Concern | 15 (live) | 19 (rebuild) |
 |---|---|---|
-| Image | `cadra-odoo` (`Dockerfile.odoo.k8s`, odoo:15) | `cadra-odoo-19` (`Dockerfile.odoo.19.k8s`, odoo:19) |
+| Image | `cadra-odoo` (`Dockerfile.odoo.k8s`, odoo:15 — **deleted in handoff 20**) | `cadra-odoo-19` (`Dockerfile.odoo.19.k8s`, odoo:19) |
 | Deployment / Service | `odoo` | `odoo-19` |
 | Odoo config | `odoo-config` | `odoo-config-19` (gevent_port, crnd-19/oca-19 addons) |
 | Bootstrap config | `odoo-bootstrap` | `odoo-bootstrap-19` (ported module set) |

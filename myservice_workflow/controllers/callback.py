@@ -248,40 +248,78 @@ class WorkflowCallbackController(http.Controller):
             # handlers because the dispatch-log row is written before they
             # are called. `_workflow_callback_disposition` is on the model
             # so that the `/api/v1` twin reaches the identical decision.
-            disposition = req._workflow_callback_disposition(outcome)
+            #
+            # The comment goes in because `queried` dedups on the PAIR: a
+            # decision arrives once, but WorkSpace can ask a second, genuinely
+            # different question while the first is still open, and comparing
+            # the outcome alone dropped it.
+            disposition = req._workflow_callback_disposition(outcome, comment)
 
             if disposition == req.CALLBACK_REPLAY:
                 # The caller replayed a request we honoured. Telling them so
-                # is the truth, and writing nothing is the whole point —
-                # handoff 06's "one physical act is one event", inbound.
+                # is the truth, and not applying the outcome a second time is
+                # the whole point — handoff 06's "one physical act is one
+                # event", inbound.
                 #
-                # But "writes nothing" must not mean "discards in silence".
-                # The disposition compares `workflow_status` and nothing
-                # else, so a second `approved` carrying a `payment_ref` the
-                # first did not have is dropped — and both fields are
-                # optional in the published schema, so a caller sending the
-                # approval first and the reference when it clears is doing
-                # nothing wrong. Rule 3. Anything discarded is named, in the
-                # log and in the body.
-                discarded = req._discarded_by_replay(payment_ref, comment)
+                # But "does not re-apply" must not mean "discards in silence",
+                # and it must not mean "names it and drops it" where the field
+                # has a home. The disposition compares the outcome (and, for
+                # `queried`, the text), so a second `approved` carrying a
+                # `payment_ref` the first did not have is still a replay — and
+                # both fields are optional in the published schema, so a
+                # caller sending the approval first and the reference when it
+                # clears is doing nothing wrong. The reference is RECORDED;
+                # anything with nowhere to go is named. Rule 3.
+                stored, discarded = req._record_replay_extras(
+                    payment_ref, comment)
+                if stored:
+                    # INFO, not WARNING. This is the feature working: the
+                    # caller sent something useful late and we kept it. A
+                    # level that says "look at this" on the correct path is
+                    # how a log stops being read.
+                    _logger.info(
+                        "Workflow callback: request %s is already '%s'; the "
+                        "outcome was NOT applied again and the repeat carried "
+                        "%s, which is now recorded on the request. "
+                        "(workspace_ref=%r) %s",
+                        ref, outcome, ', '.join(stored), workspace_ref,
+                        caller_ip_label())
                 if discarded:
+                    # WARNING is right here and only here: something the
+                    # caller sent has nowhere to go and is gone.
                     _logger.warning(
                         "Workflow callback: request %s is already '%s'; the "
                         "repeat was NOT applied and it carried %s, which is "
                         "therefore discarded. (workspace_ref=%r) %s",
                         ref, outcome, ', '.join(discarded), workspace_ref,
                         caller_ip_label())
-                else:
+                if not stored and not discarded:
                     _logger.info(
                         "Workflow callback: request %s is already '%s'; "
                         "replay ignored, nothing written (workspace_ref=%r). "
                         "%s", ref, outcome, workspace_ref, caller_ip_label())
+                if stored:
+                    # "nothing changed" stopped being true the moment a late
+                    # reference was recorded, and a body that says it anyway
+                    # is the silent degradation one sentence further on.
+                    message = ("Outcome '%s' was already applied to request "
+                               "'%s' and was not applied again; %s recorded"
+                               % (outcome, ref, ', '.join(stored)))
+                else:
+                    message = ("Outcome '%s' was already applied to request "
+                               "'%s'; nothing changed" % (outcome, ref))
                 body = {
                     'ok': True,
                     'replayed': True,
-                    'message': ("Outcome '%s' was already applied to request "
-                                "'%s'; nothing changed" % (outcome, ref)),
+                    'message': message,
                 }
+                # Additive, both of them. `discarded_fields` keeps exactly the
+                # meaning it shipped with — what the repeat carried that went
+                # nowhere — and `stored_fields` is a new key beside it, so a
+                # caller reading only the old one is never told a stored field
+                # was dropped.
+                if stored:
+                    body['stored_fields'] = stored
                 if discarded:
                     body['discarded_fields'] = discarded
                 return self._json_response(body)

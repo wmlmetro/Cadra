@@ -189,9 +189,22 @@ DOES bite in production: it is how two callers writing the same row both
 succeed. Handoff 15 added a clause re-raising all three, guarded by
 `tests/test_source_guards.py::test_the_envelope_lets_odoos_own_retries_through`.
 
-### The external suite's 27 skips are expected
+### The external suite's skips are expected — check the CATEGORIES, not the count
 
-Admin-scoped tests the suite's own token cannot reach, plus pagination tests that skip loudly when a tenant fits inside the record cap. A run reporting 27 skips is a healthy run.
+Admin-scoped tests the suite's own token cannot reach, plus pagination tests that skip loudly when a tenant fits inside the record cap.
+
+This said "a run reporting 27 skips is a healthy run", and a bare number is the wrong thing to check. The total moves with the **tenant**, not with the code: how many scopes that tenant's `test_client` holds, whether Turnstile is configured on it, whether any of its assets carries a SAP asset number, whether it has an active `workflow.config`. A Builder who treats the number as a constant either chases a phantom regression or, worse, stops reading the list.
+
+Measured on `jaizbankplc`, 2026-09-10, **28 skips**, every one named:
+
+| Count | Reason |
+|---|---|
+| 24 | the token lacks the `admin` scope (branding, depreciation settings, `/meta`) |
+| 2 | Turnstile is not configured on this deployment |
+| 1 | no asset on this tenant carries a SAP asset number yet |
+| 1 | this tenant has no active `workflow.config`, so the v1 callback refuses 503 |
+
+`pytest -rs` prints the reasons. A skip whose reason is not in that table is the thing to look at.
 
 ---
 
@@ -199,7 +212,9 @@ Admin-scoped tests the suite's own token cannot reach, plus pagination tests tha
 
 ### One Odoo registry serves every tenant, so schema moves before code
 
-Not a surprise so much as the rule everything else follows from, and it is in `docs/DEPLOYMENT.md` in full. Repeated here because it is the fact that makes a missed tenant an outage for all of them.
+Not a surprise so much as the rule everything else follows from, and `docs/DEPLOYMENT.md` now carries it in full — it did not when this line first claimed it did. Repeated here because it is the fact that makes a missed tenant an outage for all of them.
+
+Note what the runbook adds: on a **client's own server** this rule collapses to an ordinary migration. There is one database there, so "schema before code" is the usual ordering and the blast radius of a missed tenant is zero. The fan-out is a development obligation, not a property of the product.
 
 ### An asset-bundle change does not take effect on restart
 

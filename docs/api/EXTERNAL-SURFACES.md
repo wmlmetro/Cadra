@@ -200,7 +200,9 @@ that cannot be delegated away:
 | Response | bare `{"ok": true, …}` | PRD §10.7 envelope |
 | Idempotency | none | `X-Idempotency-Key` |
 | Dispatch log | **reconciles** the outbound `sent` row it answers | ~~always appends a new inbound row~~ — **fixed in handoff 18**: both now share `workflow.dispatch.log._reconcile_callback` |
-| Replay | fires on the transition; a replay writes nothing and answers `200 {"replayed": true}` | same decision, same model method, `"replayed": true` in `data` |
+| Replay | fires on the transition; a replay does not re-apply the outcome and answers `200 {"replayed": true}` | same decision, same model method, `"replayed": true` in `data` |
+| Late `payment_ref` on a replay | **recorded** on the request and reported as `stored_fields` (handoff 20) | same, as `data.stored_fields` |
+| Repeat `queried` | dedups on `(outcome, comment)`: the same question again is a replay, a NEW question **applies** (handoff 20) | same decision, same model method |
 | Contradiction | `409` naming both outcomes | `409 conflict`, `details.current_outcome` / `details.attempted_outcome` |
 | Unconfigured tenant | `503`, opaque body (handoff 15) | `503 server_misconfigured`, opaque body (**handoff 18**) |
 

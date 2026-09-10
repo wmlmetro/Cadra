@@ -12,7 +12,7 @@ the UI under SAP Sync Logs.
 Run via odoo shell (path resolved INSIDE the container — repo is mounted
 at /mnt/extra-addons):
 
-  docker compose -f docker-compose.dev.yml run --rm -T odoo bash -c \
+  docker compose -f docker-compose.yml -f docker-compose.19.yml run --rm -T odoo bash -c \
     "EMPLOYEE_XLSX=/mnt/extra-addons/docs/'temp firs.xlsx' \
      odoo shell -c /etc/odoo/odoo.conf -d odoo --no-http \
      <<< \"exec(open('/mnt/extra-addons/scripts/load_employees_xlsx.py').read())\""

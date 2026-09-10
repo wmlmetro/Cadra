@@ -1,8 +1,9 @@
 # Cadra Odoo 19 dev image — greenfield rebuild target (branch feat/rebuild-odoo-19).
 #
 # Paired with docker-compose.19.yml, which bind-mounts the repo into
-# /mnt/extra-addons for hot-reload (same pattern as Dockerfile.odoo.dev, but on
-# the Odoo 19.0 base — Python 3.12).
+# /mnt/extra-addons for hot-reload. It is now the ONLY dev image — the Odoo 15
+# one it was modelled on was deleted in handoff 20, because a Dockerfile nothing
+# references is the thing the next compose overlay points at.
 #
 #   docker compose -f docker-compose.yml -f docker-compose.19.yml up -d
 FROM odoo:19.0

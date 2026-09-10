@@ -243,7 +243,7 @@ class RequestRequest(models.Model):
     CALLBACK_REPLAY = 'replay'
     CALLBACK_CONFLICT = 'conflict'
 
-    def _workflow_callback_disposition(self, outcome):
+    def _workflow_callback_disposition(self, outcome, comment=None):
         """What this callback should do: apply, replay, or conflict.
 
         Consulted by BOTH controllers before either writes anything — the
@@ -258,45 +258,70 @@ class RequestRequest(models.Model):
                        Refused, not absorbed. See the controllers.
         - `apply`    — everything else, including `queried` → `approved`
                        and any outcome on a request still `pending`.
+
+        **`queried` dedups on the pair, not on the outcome alone.** A
+        DECISION arrives once — a second `approved` is the same approval
+        redelivered. A QUESTION does not: WorkSpace can legitimately ask a
+        second, different question while the first is still open, and
+        `current == outcome == 'queried'` swallowed it. The text is the only
+        thing that separates a new question from a redelivery of the old
+        one, so the text is what the comparison uses.
+
+        `comment` defaults to `None`, which reproduces the outcome-only
+        behaviour exactly — a caller that does not pass it gets today's
+        answer rather than a quietly different one.
         """
         self.ensure_one()
         current = self.workflow_status
         if current == outcome:
+            if (outcome == 'queried' and comment
+                    and comment != self._last_recorded_comment()):
+                return self.CALLBACK_APPLY
             return self.CALLBACK_REPLAY
         if current in self.WORKFLOW_DECISIONS:
             return self.CALLBACK_CONFLICT
         return self.CALLBACK_APPLY
 
-    def _discarded_by_replay(self, payment_ref=None, comment=None):
-        """What a repeat is carrying that this request does not already hold.
+    def _record_replay_extras(self, payment_ref=None, comment=None):
+        """Record what a repeat carries that has somewhere to go; name the rest.
 
-        A replay writes nothing, which is the point — and "writes nothing"
-        must not become "throws information away in silence". Rule 3: a thing
-        that silently degrades is a defect even when it returns 200, and this
-        was one. The disposition compares `workflow_status` and nothing else,
-        so a SECOND `approved` carrying a `payment_ref` the first did not have
-        was discarded and answered `200`. `payment_ref` is optional in both
-        published schemas, so a workflow engine that sends the approval first
-        and the payment reference when it clears is doing nothing wrong.
+        A replay writes nothing about the OUTCOME, which is the point — the
+        decision already stands and re-applying it is the defect handoff 18
+        closed. But "does not re-apply the outcome" must not become "throws
+        away everything else in silence" (rule 3), and it must not become
+        "names it and drops it" either where the field has a home.
 
-        Same for a second `queried` whose comment is a NEW question rather
-        than a redelivery of the old one — the text is the only thing that
-        distinguishes the two, and dropping it loses a question somebody
-        asked.
+        `payment_ref` has a home. A workflow engine that sends the approval
+        when it is granted and the payment reference when it clears is doing
+        nothing wrong — both fields are optional in both published schemas —
+        and a payment reference is the thing somebody looks for later and
+        does not find. Writing `workflow_payment_ref` alone produces none of
+        the five effects a replay is forbidden: no `stage_id` in the vals, so
+        `request.request.write` computes an empty `moved` set and neither
+        stamps `date_moved` nor logs a `stage_changed` event; the field is
+        not `tracking=True`, so `mail.thread` posts nothing; and no
+        dispatch-log row is written because this method does not touch the
+        log. The disposition stays `replay`.
 
-        Naming them is the minimum. Whether a late `payment_ref` should be
-        RECORDED on a replay is a contract decision and is in report 18's
-        open questions; what is not open is that it may not vanish quietly.
-        Returns a sorted list of field names, empty when the repeat carries
-        nothing new.
+        `comment` has nowhere to go on a replay. Recording it would mean a
+        chatter post and a dispatch-log rewrite, which are two of the five.
+        After `_workflow_callback_disposition` learned to compare the text,
+        the case narrows to a decision replay carrying new prose — a second
+        `approved` with a different note — because a second `queried` with
+        new text is no longer a replay at all. It is named and dropped.
+
+        Returns `(stored, discarded)`, both sorted lists of field names,
+        both empty when the repeat carries nothing new.
         """
         self.ensure_one()
+        stored = []
         discarded = []
         if payment_ref and payment_ref != self.workflow_payment_ref:
-            discarded.append('payment_ref')
+            self.write({'workflow_payment_ref': payment_ref})
+            stored.append('payment_ref')
         if comment and comment != self._last_recorded_comment():
             discarded.append('comment')
-        return sorted(discarded)
+        return sorted(stored), sorted(discarded)
 
     def _last_recorded_comment(self):
         """The comment the previous callback on this request carried.
@@ -311,10 +336,30 @@ class RequestRequest(models.Model):
         written by all three outcome handlers, so the comparison is a string
         against the same string. No row means nothing to compare against and
         any comment counts as new, which is the safe direction.
+
+        **The domain is scoped to rows that recorded an ANSWER**, and that is
+        load-bearing rather than tidy. It used to take the newest inbound-side
+        row whatever its status, and `_send_to_workflow` creates its outbound
+        row as `pending` BEFORE calling the adapter and only promotes it to
+        `sent` if the adapter succeeds — while the write that resets
+        `workflow_status` to `pending` sits inside that same success branch.
+        So a re-dispatch that FAILS leaves a newer row with an empty
+        `workflow_comment` and the request still reading `queried`. The next
+        ordinary redelivery of the SAME question then compared "Q1" against
+        "" , judged it a new question and applied it: fresh chatter, the
+        dispatch log rewritten. That is the "fires on the common case"
+        failure this method was written to avoid, reached from the other
+        side.
+
+        `pending`, `sent`, `acknowledged`, `error` and `dead` are all states
+        of a dispatch rather than answers to one, and none of them carries a
+        comment. Only the three outcomes do.
         """
         self.ensure_one()
         log = self.env['workflow.dispatch.log'].sudo().search(
-            [('request_id', '=', self.id), ('event_type', '=', False)],
+            [('request_id', '=', self.id),
+             ('event_type', '=', False),
+             ('status', 'in', ('approved', 'rejected', 'queried'))],
             limit=1, order='create_date desc, id desc')
         return log.workflow_comment or ''
 
