@@ -14,6 +14,7 @@ import {
   Wrench, ShieldAlert, Trash2, Sparkles, CheckCircle2, AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEnum, useEnumLabel } from "@/hooks/useEnums";
 
 const CONDITION_COLORS: Record<string, string> = {
   new:     "#22c55e",
@@ -87,6 +88,9 @@ export default function ITAssetsCommand() {
   );
 
   const d = itDash.data;
+  // The recent-assets table below prints `a.condition`, which is now the
+  // model's key. Spell it the model's way.
+  const conditionLabelOf = useEnumLabel("condition");
   const verifiedShare = d.total ? Math.max(0, d.total - d.unverified) : 0;
   const tiles = [
     { label: "Total IT",      value: d.total,                    icon: Monitor,        color: "text-foreground" },
@@ -188,13 +192,24 @@ export default function ITAssetsCommand() {
                         : <span className="text-muted-foreground">—</span>}
                     </td>
                     <td className="px-3 py-2">
+                      {/* Keyed on `nrs.asset.condition`, and `new` has its own
+                          row. This chain compared against the adapter's old
+                          four-word display union, so a `new` asset — 204 of
+                          them on jaizbankplc, 54 on nrs19, 24 on cadra19 —
+                          arrived here as "Good", matched the first clause, and
+                          was drawn in the green that means "in service and
+                          fine". The condition bars two panels up were counted
+                          server-side on these same keys and have always shown
+                          New separately, so this table was contradicting a
+                          chart on the same screen. */}
                       <span className={cn(
                         "inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-semibold border",
-                        a.condition === "Good" && "bg-green-50 dark:bg-green-950/30 border-green-200/70 text-green-700 dark:text-green-400",
-                        a.condition === "Fair" && "bg-amber-50 dark:bg-amber-950/30 border-amber-200/70 text-amber-700 dark:text-amber-400",
-                        a.condition === "Poor" && "bg-orange-50 dark:bg-orange-950/30 border-orange-200/70 text-orange-700 dark:text-orange-400",
-                        a.condition === "Decommissioned" && "bg-red-50 dark:bg-red-950/30 border-red-200/70 text-red-700 dark:text-red-400",
-                      )}>{a.condition}</span>
+                        a.condition === "new" && "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300/70 text-emerald-700 dark:text-emerald-300",
+                        a.condition === "good" && "bg-green-50 dark:bg-green-950/30 border-green-200/70 text-green-700 dark:text-green-400",
+                        a.condition === "fair" && "bg-amber-50 dark:bg-amber-950/30 border-amber-200/70 text-amber-700 dark:text-amber-400",
+                        a.condition === "poor" && "bg-orange-50 dark:bg-orange-950/30 border-orange-200/70 text-orange-700 dark:text-orange-400",
+                        a.condition === "decommissioned" && "bg-red-50 dark:bg-red-950/30 border-red-200/70 text-red-700 dark:text-red-400",
+                      )}>{conditionLabelOf(a.condition)}</span>
                     </td>
                     <td className="px-3 py-2 text-[12px] truncate max-w-[180px]">
                       {a.custodianName
@@ -215,13 +230,13 @@ export default function ITAssetsCommand() {
 // ─── Condition bars (no recharts dep — keeps the page in the light bundle) ──
 
 function ConditionBars({ data, total }: { data: CategoryDashboardData["byCondition"]; total: number }) {
-  const rows = [
-    { key: "new",     label: "New",     value: data.new },
-    { key: "good",    label: "Good",    value: data.good },
-    { key: "fair",    label: "Fair",    value: data.fair },
-    { key: "poor",    label: "Poor",    value: data.poor },
-    { key: "decommissioned", label: "Decommissioned", value: data.decommissioned },
-  ];
+  // Rows come from the model's set, in the model's order. They used to be
+  // five literals with their own labels — a copy of `nrs.asset.condition`
+  // that would have dropped a bar, silently, for any value the model gained.
+  const conditionOptions = useEnum("condition");
+  const rows = conditionOptions.map(o => ({
+    key: o.value, label: o.label, value: data[o.value] ?? 0,
+  }));
   const max = Math.max(1, ...rows.map(r => r.value));
   return (
     <ul className="space-y-2.5">

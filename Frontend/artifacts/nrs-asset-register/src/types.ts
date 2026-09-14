@@ -90,8 +90,31 @@ export interface Asset {
   systemDomain?: string;
   registrationNo?: string;
   engineNo?: string;
-  condition: "Good" | "Fair" | "Poor" | "Decommissioned";
-  lifecycleState?: "active" | "in_repair" | "disposed" | "transferred" | "missing";
+  /**
+   * `nrs.asset.condition` — the MODEL's key, verbatim: `new`, `good`, `fair`,
+   * `poor`, `decommissioned`. Not a display string, and deliberately not a
+   * union.
+   *
+   * It used to be the four-member union `"Good" | "Fair" | "Poor" |
+   * "Decommissioned"`, which is one value short of the set the model owns, and
+   * the adapter closed the gap by mapping `new` onto `"Good"`. So an asset
+   * stored as `condition=new` was labelled Good in the table and then left out
+   * of the results when the user filtered Condition = Good, because that filter
+   * sends `condition=good`. 204 assets on `jaizbankplc`, 54 on `nrs19` and 24
+   * on `cadra19` were invisible to the register's own Good filter while the
+   * same table called them Good. Nothing on screen said so.
+   *
+   * `string`, not a five-member union, is the point. A compile-time union over
+   * a server-owned set is the mechanism that rotted; widening it by one value
+   * rebuilds the mechanism a year further from the next change. The set lives
+   * in `lib/enums.ts`/`useEnum("condition")`, which reads it from the model at
+   * request time, and the label is rendered at the edges with
+   * `useEnumLabel("condition")`.
+   */
+  condition: string;
+  /** `nrs.asset.state`, as the model's key. A union here would be a third
+   *  opinion about a Selection the server owns — see `condition` above. */
+  lifecycleState?: string;
   isVerified?: boolean;
   custodianId?: number;
   custodianName?: string;
@@ -211,7 +234,26 @@ export interface IdentityRecord {
 // ─── FLEET ────────────────────────────────────────────────────────────────────
 export type VehicleType = "SUV" | "Sedan" | "Pickup" | "Bus" | "Van" | "Truck";
 export type VehicleStatus = "Active" | "In Maintenance" | "Grounded" | "Decommissioned";
-export type FuelType = "Petrol" | "Diesel" | "CNG";
+/**
+ * A `fleet.vehicle.fuel_type` KEY, exactly as the model stores it — `diesel`,
+ * `gasoline`, `full_hybrid`, `plug_in_hybrid_diesel`, `plug_in_hybrid_gasoline`,
+ * `cng`, `lpg`, `hydrogen`, `electric`.
+ *
+ * This used to be the union `"Petrol" | "Diesel" | "CNG"`: three display
+ * strings, none of which was a model key, standing in for nine model values.
+ * `mapFuelType` in dataProvider squeezed the nine onto the three with a regex,
+ * so `electric`, `lpg`, `full_hybrid` and both plug-in hybrids all reached the
+ * screen as **CNG**, and `hydrogen` as **Petrol**. A fleet manager reading the
+ * fuel type off that screen was told something untrue about the vehicle.
+ *
+ * It is deliberately `string` and not a new nine-member union. A compile-time
+ * union over a set the SERVER owns is exactly the mechanism that rotted here —
+ * the model gains a value, the union does not, and nothing says so. The live
+ * set comes from `useEnum("fuel_type")`; the guarded seed is `ENUM_SEED` in
+ * `lib/enums.ts`. Render the model's label with `useEnumLabel("fuel_type")` —
+ * never the bare key, and never a grouping of our own invention.
+ */
+export type FuelType = string;
 
 export interface FleetVehicle {
   id: string;

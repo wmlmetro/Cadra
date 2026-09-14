@@ -33,6 +33,134 @@ live at was never the point.
 
 ---
 
+## 2026-09-14 — handoff 22
+
+### BREAKING · A cursor we did not issue is refused, not silently restarted
+
+**Affects every paginated endpoint** — `GET /api/v1/assets`, `/locations`,
+`/requests`, `/identity/employees`, `/fleet/vehicles`, the disposal schedule
+report, and anything else taking `?cursor=`.
+
+A `cursor` that is not a token this API issued now answers
+**`400 invalid_request`**, naming the parameter and echoing the offending
+value in `details.cursor`.
+
+It used to answer `200` with the FIRST page. That was documented — `{}` meant
+"start from the beginning" — and it is being withdrawn anyway, because
+documented silent degradation is still silent degradation. A caller paging
+with a corrupted cursor restarted at page one *while believing it was on page
+three*: it walked the same records again, or read a later page as empty and
+concluded the register had ended. Nothing in the response distinguished that
+from a genuine answer. A client sending a cursor it did not get from us has a
+bug, and a refusal is the only way it finds out.
+
+Three inputs previously gave three different wrong answers and now give the
+same right one:
+
+| cursor | before | now |
+|---|---|---|
+| not decodable (`"not-a-cursor"`) | `200`, page one | `400 invalid_request` |
+| decodes to JSON that is not an object (`[1,2]`) | `200`, page one | `400 invalid_request` |
+| `{"last_id": "abc"}` | **`500 internal_error`** | `400 invalid_request` |
+
+**An absent or empty `cursor` is unchanged and still means "start at the
+beginning".** That is a different input and it keeps its answer; only a value
+we cannot read is refused.
+
+**What a consumer must do:** send back `pagination.next_cursor` byte for byte,
+or omit the parameter. Do not construct, decode, truncate or re-encode a
+cursor — it is opaque and its contents are not contract. Any client already
+doing that is correct and sees no change.
+
+### ADDITIVE · `GET /api/v1/meta/enums` — every Selection set, from the model
+
+New route. Any valid bearer token may call it; no particular scope.
+
+Returns each published Selection field as `[{value, label}]`, keyed by field
+name, **in the model's own order** — `priority`, `location_type`,
+`asset_level`, `domain`, `condition`, `asset_state`, `fuel_type`. The values
+are read off the live Odoo Selection at request time, so a value the model
+gains appears here the same day and a value it never had cannot appear at all.
+
+Until now the only way a client could learn a field's accepted values was to
+send a wrong one and read `allowed_values` off the 400 (handoff 21) — a
+refusal doing documentation's job, and useless for populating a control before
+the user types anything. The enums in `/api/v1/openapi.json` are hand-written
+literals in the route annotations rather than reads of the model, which is a
+copy with the same failure mode in a second place.
+
+`asset_state` rather than `state`: `state` is the most reused field name in
+this schema, and a client keying a cache on the bare name would collide the
+first time a second one were published.
+
+**Order is significant for `priority`** — its keys are the strings `"0"`–`"4"`
+and they read like a scale. `"2"` is **High**, and the model's default is
+`"1"`. A blank form must start on the default value, not on the middle of the
+list.
+
+### ADDITIVE · `POST /api/v1/home/quick-submit` publishes all five priorities
+
+Its `request_schema` declared `priority` as `["0","1","2","3"]` and described
+`3` as "urgent". The model declares `0=Low, 1=Normal, 2=High, 3=Critical,
+4=Very Urgent`. Both halves were wrong.
+
+Nothing changes about what the route accepts — `4` was always accepted by the
+ORM, so this corrects the document to match the behaviour. Per `CLAUDE.md`
+architecture rule 4 the model is the published surface: validating against the
+four would have been the breaking change, because it would have started
+refusing a `priority=4` the register already stores. Handoff 21 corrected the
+same defect in the `/api/v1/requests` annotations and did not reach this copy.
+
+---
+
+## 2026-09-10 — handoff 21
+
+> Written in handoff 22. Handoff 21 shipped the change below and did not
+> record it here, which is the gap this file exists to close — the rule is
+> whether a consumer could branch on it, and a consumer could branch on every
+> line of it.
+
+### BREAKING · A filter we cannot read is refused, not dropped
+
+**Affects roughly 26 query parameters across `GET /api/v1/assets`,
+`/locations`, `/requests`, `/identity/employees` and `/fleet/vehicles`.**
+
+A filter value the parser could not interpret used to append no domain term,
+so the caller received the list they would have received **with no filter at
+all**. Those values now answer `400 invalid_request`, naming the parameter and
+carrying the accepted set in `details.allowed_values`.
+
+- **Booleans** (`is_verified`, `has_sap_code`, `has_coordinates`,
+  `has_deadline`, `is_staff_bus`, …) — anything but `true`/`false` was
+  dropped, and the response was the whole register. This is the dangerous
+  half: an empty list reads as "no matches", **a full list reads as an
+  answer**, and `GET /assets?has_sap_code=false` is "which assets has finance
+  not booked". An auditor satisfying themselves from that list was handed a
+  false statement.
+- **Enums** (`state`, `condition`, `domain`, `asset_level`, `priority`,
+  `kanban_state`, `location_type`, `fuel_type`, …) — an unrecognised value
+  answered `200 []`, indistinguishable from a value that genuinely matched
+  nothing. `?sap_reconciliation_state=exceptions` — the plural, the natural
+  typo — is the worst of them.
+- **Foreign keys** (`category_id`, `location_id`, …) — sat inside
+  `except (TypeError, ValueError): pass`, so `?category_id=laptops` returned
+  every asset on the register.
+
+The accepted values are read off the model at request time, so a value the
+model gains is accepted by the filter that publishes it on the same day.
+
+**What a consumer must do:** send `true`/`false` for booleans (not `1`/`0`,
+not `yes`), integers for id filters, and a published value for enums — or read
+`details.allowed_values` off the refusal. A client already sending correct
+values sees no change.
+
+**The `limit` clamp is deliberately NOT part of this.** A `limit` above the
+caller's ceiling is still clamped silently rather than refused: the ceiling is
+per-credential, so a caller cannot know it in advance, and clamping and
+refusing are answers to different inputs.
+
+---
+
 ## 2026-09-10 — handoff 20
 
 ### ADDITIVE · A late `payment_ref` on a replay is recorded, and says so

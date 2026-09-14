@@ -1992,6 +1992,11 @@ class CadraAssetsV1(http.Controller):
                        "or before `to`",
                        details={"from": qs.get("from"), "to": qs.get("to")})
 
+        # At the door, BEFORE the report runs. A cursor we cannot read is a
+        # 400 (handoff 22) and there is no reason to make the caller wait for
+        # a full pass over the period to be told so.
+        cursor_data = decode_cursor(qs.get("cursor"))
+
         Asset = request.env["nrs.asset"].sudo()
         # ONE call. `summary`, `rows` and `unplaceable` come out of a single
         # pass, so the headline counts and the schedule cannot describe two
@@ -2015,18 +2020,13 @@ class CadraAssetsV1(http.Controller):
             rows = rows[:cap]
             flag_truncation(cap, total)
 
-        cursor_data = decode_cursor(qs.get("cursor"))
         if "last_id" in cursor_data:
-            try:
-                last_id = int(cursor_data["last_id"])
-            except (TypeError, ValueError):
-                # An unreadable cursor means "start from the beginning",
-                # which is `decode_cursor`'s own documented behaviour for a
-                # token that is not ours. Silently returning the LAST page
-                # would be the degradation.
-                last_id = None
-            if last_id is not None:
-                rows = [r for r in rows if r["asset_id"] > last_id]
+            # No coercion and no fallback: `decode_cursor` has already proved
+            # `last_id` is an int, or refused the request with a 400. The
+            # `except: last_id = None` that used to stand here restarted the
+            # walk at page one for a cursor the caller believed was page
+            # three — the defect handoff 22 removed.
+            rows = [r for r in rows if r["asset_id"] > cursor_data["last_id"]]
 
         limit = parse_limit(qs)
         page = rows[:limit]

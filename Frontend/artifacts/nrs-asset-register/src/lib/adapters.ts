@@ -164,10 +164,15 @@ export interface ApiAsset {
   coordinates: { latitude_display: string | null; longitude_display: string | null } | null;
   current_custodian: ApiRef | null;
   department: string | null;
-  // The accepted set is `nrs.asset.condition`; the backend refuses anything
-  // else with a 400.
-  condition: "new" | "good" | "fair" | "poor" | "decommissioned";
-  state: "active" | "in_repair" | "disposed" | "transferred" | "missing";
+  // Model keys, carried through verbatim. Deliberately NOT unions of the
+  // five values each: a compile-time copy of a Selection the server owns is
+  // the mechanism this handoff removed, and these two were a copy in the
+  // wire type specifically — the layer furthest from anyone who would notice
+  // it going stale. The set is read at request time by `useEnum(...)` and
+  // held against the model by `tests/test_frontend_enums.py`; the server
+  // refuses anything outside it with a 400 carrying `allowed_values`.
+  condition: string;
+  state: string;
   is_verified: boolean;
   notes: string | null;
 }
@@ -181,10 +186,6 @@ function bucketCategory(name: string | null | undefined): Asset["category"] {
   if (/vehicle|fleet|car|bus|truck|van|suv|sedan/.test(n)) return "Fleet / Vehicles";
   return "Furniture & Fittings";
 }
-
-const CONDITION_MAP: Record<ApiAsset["condition"], Asset["condition"]> = {
-  new: "Good", good: "Good", fair: "Fair", poor: "Poor", decommissioned: "Decommissioned",
-};
 
 // Backend `state` is lifecycle; frontend `status` is data-quality review queue.
 // Active+verified = Cleared; active+unverified is the only "review" we can
@@ -305,8 +306,33 @@ export function apiAssetToAsset(a: ApiAsset & ApiAssetExtras): Asset {
     manufacturer: a.manufacturer ?? "",
     model: a.model ?? "",
     serial: a.serial_number ?? "",
+    // NOT VERIFIED — flagged while removing the fuel-type mapper, left alone
+    // because fixing it is a product decision, not a rename.
+    //
+    // `a.domain` is `nrs.asset.domain`, the eight-value FM Selection
+    // (building / plant / plumbing / fleet / security / it / furniture /
+    // other). `Asset.systemDomain` is rendered by AssetDetail as "System
+    // Domain" on IT assets only, and the mock fills it with network
+    // identifiers like "ABJ-HQ-MST-233". They are not the same field. On a
+    // live tenant that row therefore reads `it` — the raw FM key, for every
+    // IT asset, which is both the wrong fact and an unlabelled key.
+    //
+    // Either the FM domain belongs somewhere else on the page under its own
+    // label (via `useEnumLabel("domain")`), or `systemDomain` needs a real
+    // backing field and this line should go. Do not "fix" it by dropping in
+    // a label lookup — that would make a wrong field read convincingly.
     systemDomain: a.domain ?? undefined,
-    condition: CONDITION_MAP[a.condition] ?? "Good",
+    // Carried through as the model's key. There was a `CONDITION_MAP` here
+    // that translated the five model values into a four-member display union,
+    // and the collapse it performed was `new -> "Good"`. That single entry cost
+    // an auditor 282 assets across the three live tenants (204 jaizbankplc, 54
+    // nrs19, 24 cadra19): each was labelled **Good** in the register, and each
+    // was then excluded when the same register's Condition = Good filter ran,
+    // because the filter sends `condition=good` to the API. The table and its
+    // own filter disagreed about the same rows, and neither said so. The label
+    // is now rendered at the edges from `useEnumLabel("condition")`, which
+    // reads the model's own labels, so no translation happens here at all.
+    condition: a.condition,
     lifecycleState: a.state,
     isVerified: a.is_verified,
     custodianId: a.current_custodian?.id ?? undefined,

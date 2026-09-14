@@ -6,9 +6,12 @@ import BarcodeScanner from "@/components/BarcodeScanner";
 import {
   fetchBarcodeKpis, fetchBarcodeRecentTags, lookupBarcode,
   fetchUntaggedAssets, generateBarcodes,
-  ASSET_DOMAINS, domainLabel,
   type BarcodeTag, type BarcodeLookupHit, type UntaggedAsset,
 } from "@/lib/dataProvider";
+// The FM domain set and its labels come from the server, not from a constant
+// in dataProvider. There used to be two identical hand-written copies of that
+// set in that one file; this screen imported one of them.
+import { useEnum, useEnumLabel } from "@/hooks/useEnums";
 import { CadraApiError } from "@/lib/api";
 import { printLabels, floorRoomFromTag, LABEL_SIZES, type LabelData, type LabelSize } from "@/lib/labels";
 import {
@@ -28,6 +31,14 @@ export default function BarcodeStation() {
     setTitle("Barcode Station");
     setSearchHandler(undefined);
   }, [setTitle, setSearchHandler]);
+
+  const domainOptions = useEnum("domain");
+  const domainLabelOf = useEnumLabel("domain");
+  // `condition` comes off the tag/asset payloads as the raw
+  // `nrs.asset.condition` key, so printing it straight put `decommissioned` in
+  // front of a tagging clerk. The model's labels are what the rest of the app
+  // shows; this screen now agrees with it.
+  const conditionLabelOf = useEnumLabel("condition");
 
   const kpis   = useQuery({ queryKey: ["barcode-kpis"],   queryFn: fetchBarcodeKpis,   staleTime: 30_000 });
   const recent = useQuery({ queryKey: ["barcode-recent"], queryFn: () => fetchBarcodeRecentTags({ limit: 200 }), staleTime: 30_000 });
@@ -329,10 +340,10 @@ export default function BarcodeStation() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-[11px]">
               <Field label="Asset code" value={hit.asset_code} mono />
               <Field label="Category"   value={hit.category} />
-              <Field label="Domain"     value={domainLabel(hit.domain)} />
+              <Field label="Domain"     value={domainLabelOf(hit.domain)} />
               <Field label="Location"   value={hit.location} />
               <Field label="Custodian"  value={hit.custodian} />
-              <Field label="Condition"  value={hit.condition} />
+              <Field label="Condition"  value={conditionLabelOf(hit.condition)} />
               <Field label="Last service" value={hit.last_service_date} />
               <Field label="Next service" value={hit.next_service_date} />
               <Field label="SAP number"   value={hit.sap_asset_number} mono />
@@ -489,7 +500,7 @@ export default function BarcodeStation() {
               className="px-2 py-1.5 text-[11px] border border-border rounded-xl bg-background"
             >
               <option value="">All domains</option>
-              {ASSET_DOMAINS.map((d) => (
+              {domainOptions.map((d) => (
                 <option key={d.value} value={d.value}>{d.label}</option>
               ))}
             </select>
@@ -561,6 +572,8 @@ export default function BarcodeStation() {
 function TagRow({ tag, checked, onToggle, onOpen }: {
   tag: BarcodeTag; checked: boolean; onToggle: () => void; onOpen: () => void;
 }) {
+  const domainLabelOf = useEnumLabel("domain");
+  const conditionLabelOf = useEnumLabel("condition");
   return (
     <tr className={cn("border-b border-border/40 hover:bg-muted/20", checked && "bg-primary/5")}>
       <td className="px-3 py-2">
@@ -574,8 +587,8 @@ function TagRow({ tag, checked, onToggle, onOpen }: {
       </td>
       <td onClick={onOpen} className="px-3 py-2 text-[12px] font-mono cursor-pointer">{tag.tag_number}</td>
       <td onClick={onOpen} className="px-3 py-2 text-[12px] truncate max-w-[200px] cursor-pointer">{tag.asset_name}</td>
-      <td onClick={onOpen} className="px-3 py-2 text-[12px] text-muted-foreground cursor-pointer">{domainLabel(tag.domain)}</td>
-      <td onClick={onOpen} className="px-3 py-2 text-[12px] cursor-pointer">{tag.condition}</td>
+      <td onClick={onOpen} className="px-3 py-2 text-[12px] text-muted-foreground cursor-pointer">{domainLabelOf(tag.domain)}</td>
+      <td onClick={onOpen} className="px-3 py-2 text-[12px] cursor-pointer">{conditionLabelOf(tag.condition)}</td>
       <td onClick={onOpen} className="px-3 py-2 text-[12px] truncate max-w-[180px] cursor-pointer">{tag.location}</td>
       <td onClick={onOpen} className="px-3 py-2 text-[11px] cursor-pointer">
         <span className={cn(
@@ -610,6 +623,8 @@ function Notice({ notice }: { notice: NonNullable<Notice> }) {
 function UntaggedRow({ asset, checked, onToggle, onOpen }: {
   asset: UntaggedAsset; checked: boolean; onToggle: () => void; onOpen: () => void;
 }) {
+  const domainLabelOf = useEnumLabel("domain");
+  const conditionLabelOf = useEnumLabel("condition");
   return (
     <tr className={cn("border-b border-border/40 hover:bg-muted/20", checked && "bg-primary/5")}>
       <td className="px-3 py-2">
@@ -623,9 +638,9 @@ function UntaggedRow({ asset, checked, onToggle, onOpen }: {
       </td>
       <td onClick={onOpen} className="px-3 py-2 text-[12px] font-mono cursor-pointer">{asset.asset_code || "—"}</td>
       <td onClick={onOpen} className="px-3 py-2 text-[12px] truncate max-w-[220px] cursor-pointer">{asset.asset_name}</td>
-      <td onClick={onOpen} className="px-3 py-2 text-[12px] text-muted-foreground truncate max-w-[140px] cursor-pointer">{asset.category || domainLabel(asset.domain)}</td>
+      <td onClick={onOpen} className="px-3 py-2 text-[12px] text-muted-foreground truncate max-w-[140px] cursor-pointer">{asset.category || domainLabelOf(asset.domain)}</td>
       <td onClick={onOpen} className="px-3 py-2 text-[12px] truncate max-w-[180px] cursor-pointer">{asset.location}</td>
-      <td onClick={onOpen} className="px-3 py-2 text-[12px] cursor-pointer">{asset.condition}</td>
+      <td onClick={onOpen} className="px-3 py-2 text-[12px] cursor-pointer">{conditionLabelOf(asset.condition)}</td>
     </tr>
   );
 }

@@ -18,6 +18,7 @@ import {
   flexRender, type SortingState, type ColumnDef,
 } from "@tanstack/react-table";
 import { cn } from "@/lib/utils";
+import { useEnum, useEnumLabel } from "@/hooks/useEnums";
 
 const CATEGORIES = ["IT Equipment", "Fleet / Vehicles", "Furniture & Fittings"] as const;
 const STATUSES = [
@@ -27,7 +28,13 @@ const STATUSES = [
   "Review — VIN not verifiable",
   "Review — possible duplicate",
 ] as const;
-const CONDITIONS = ["Good", "Fair", "Poor", "Decommissioned"] as const;
+// There is no CONDITIONS list here. It read ["Good", "Fair", "Poor",
+// "Decommissioned"] — four of the model's five `nrs.asset.condition` values,
+// missing `new`, so the Condition filter could not offer New at all and the
+// 282 assets stored that way (204 jaizbankplc, 54 nrs19, 24 cadra19) were
+// unreachable through this toolbar by any selection the user could make. The
+// options now come from `useEnum("condition")`, which reads the Selection off
+// the model at request time.
 const GROUP_BY_OPTIONS = ["None", "By Category", "By Zone", "By Status"] as const;
 
 const CATEGORY_CONFIG = {
@@ -241,13 +248,19 @@ function ListView({ assets, onSelect }: { assets: Asset[]; onSelect: (id: string
 
 // Custom dropdown component replacing native <select>
 function FilterDropdown({
-  label, value, options, onChange,
+  label, value, options, onChange, labelOf,
 }: {
   label: string;
   value: string;
   options: readonly string[];
   onChange: (v: string) => void;
+  /** Renders an option for display while `onChange` still hands back the raw
+   *  option. Category and Status are their own display strings and pass this
+   *  by; Condition's options are model keys (`good`, `decommissioned`) whose
+   *  labels belong to the model, so it passes `useEnumLabel("condition")`. */
+  labelOf?: (v: string) => string;
 }) {
+  const show = labelOf ?? ((v: string) => v);
   const [open, setOpen] = useState(false);
   const active = !!value;
 
@@ -263,7 +276,7 @@ function FilterDropdown({
         )}
         data-testid={`filter-${label.toLowerCase()}`}
       >
-        {active ? value.split(" —")[0] : label}
+        {active ? show(value).split(" —")[0] : label}
         <ChevronDown size={11} className={cn("transition-transform", open && "rotate-180")} />
       </button>
 
@@ -283,7 +296,7 @@ function FilterDropdown({
                 className={cn("w-full text-left px-3 py-2 text-xs transition-colors hover:bg-accent", value === o ? "font-semibold text-primary" : "text-muted-foreground")}
                 onClick={() => { onChange(o); setOpen(false); }}
               >
-                {o}
+                {show(o)}
               </button>
             ))}
           </div>
@@ -301,10 +314,17 @@ export default function AssetRegister() {
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
-  // Narrowed so the display->API condition map stays compile-checked; the
-  // dropdown is shared with the other filters and still hands back a string.
-  const [filterCondition, setFilterCondition] = useState<Asset["condition"] | "">("");
+  // A `nrs.asset.condition` key, or "" for no filter. It used to be narrowed to
+  // the display union to keep the display->API condition map compile-checked;
+  // that map is gone, and the narrowing it justified is what hid `new` from
+  // this dropdown in the first place.
+  const [filterCondition, setFilterCondition] = useState<string>("");
   const [groupBy, setGroupBy] = useState("None");
+  // The model's own condition Selection, live off /api/v1/meta/enums, with the
+  // seed in lib/enums.ts as the first-paint fallback. All five values, `new`
+  // included.
+  const conditionOptions = useEnum("condition");
+  const conditionLabelOf = useEnumLabel("condition");
 
   useEffect(() => {
     setTitle("Asset Register");
@@ -442,8 +462,10 @@ export default function AssetRegister() {
         {/* Filters */}
         <FilterDropdown label="Category" value={filterCategory} options={CATEGORIES} onChange={setFilterCategory} />
         <FilterDropdown label="Status" value={filterStatus} options={STATUSES} onChange={setFilterStatus} />
-        <FilterDropdown label="Condition" value={filterCondition} options={CONDITIONS}
-                        onChange={(v) => setFilterCondition(v as Asset["condition"] | "")} />
+        <FilterDropdown label="Condition" value={filterCondition}
+                        options={conditionOptions.map((o) => o.value)}
+                        labelOf={conditionLabelOf}
+                        onChange={setFilterCondition} />
 
         {hasFilters && (
           <button
@@ -491,7 +513,7 @@ export default function AssetRegister() {
           <div className="flex items-center gap-1.5 flex-wrap">
             {filterCategory && <FilterTag label={filterCategory} onRemove={() => setFilterCategory("")} />}
             {filterStatus && <FilterTag label={filterStatus} onRemove={() => setFilterStatus("")} />}
-            {filterCondition && <FilterTag label={filterCondition} onRemove={() => setFilterCondition("")} />}
+            {filterCondition && <FilterTag label={conditionLabelOf(filterCondition)} onRemove={() => setFilterCondition("")} />}
           </div>
         )}
       </div>

@@ -6,3 +6,4 @@ from . import v1_requests
 from . import v1_identity
 from . import v1_brand
 from . import v1_settings
+from . import v1_meta

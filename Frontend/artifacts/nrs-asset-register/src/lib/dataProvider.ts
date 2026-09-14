@@ -6,7 +6,6 @@ import type {
   FleetVehicle,
   VehicleType,
   VehicleStatus,
-  FuelType,
   FuelCard,
   FuelTransaction,
   BusRoute,
@@ -29,6 +28,7 @@ import {
 } from "../mock/staffBus";
 import { mockIdentityRecords } from "../mock/identity";
 import { apiConfigured, apiGet, apiPost, apiPatch, apiDelete, apiUpload, newIdempotencyKey } from "./api";
+import { ENUM_SEED } from "./enums";
 import {
   apiEmployeeToEmployee, type ApiEmployee,
   apiAssetToAsset, type ApiAsset,
@@ -42,7 +42,9 @@ import type { ServiceRequest } from "../types";
 export interface AssetFilters {
   category?: string;
   status?: string;
-  condition?: Asset["condition"];
+  /** A `nrs.asset.condition` key (`new`/`good`/…), passed to the API verbatim.
+   *  Never a display label — see the note above `fetchAssetsPage`. */
+  condition?: string;
   zone?: string;
   search?: string;
 }
@@ -71,16 +73,17 @@ export function getAsset(id: string): Asset | undefined {
 
 // ─── API-BACKED ASSETS ───────────────────────────────────────────────────────
 
-// Frontend filter values mapped to backend enum values. The accepted set is
-// `nrs.asset.condition` — new/good/fair/poor/decommissioned — and the backend
-// refuses anything else with a 400.
-// Keyed by both unions on purpose: an unmapped display value would yield
-// `undefined`, drop the filter, and hand back the UNFILTERED register, which
-// reads as an answer rather than as a broken filter. Typing it this way makes
-// that a compile error instead.
-const CONDITION_TO_API: Record<Asset["condition"], ApiAsset["condition"]> = {
-  Good: "good", Fair: "fair", Poor: "poor", Decommissioned: "decommissioned",
-};
+// There is no display->API condition map here any more, and there must not be
+// one again. `CONDITION_TO_API` used to translate a four-member display union
+// into `nrs.asset.condition`, which has FIVE values. Its own comment argued
+// that keying the record by the display union made a dropped filter a compile
+// error — and it did, but it made the missing fifth value invisible instead:
+// `new` had no display form, so the register could not offer it, and the
+// adapter had already relabelled every `new` asset as "Good". Selecting Good
+// sent `condition=good` and the API correctly returned only the `good` rows,
+// omitting 282 assets (204 jaizbankplc, 54 nrs19, 24 cadra19) that the very
+// same table was calling Good. The filter value is now the model's key, taken
+// straight from `useEnum("condition")`, and goes to the API untouched.
 
 export interface AssetsPage {
   assets: Asset[];
@@ -105,7 +108,7 @@ export async function fetchAssetsPage(
     undefined;
   const res = await apiGet<ApiAsset[]>("/api/v1/assets", {
     q: f?.search,
-    condition: f?.condition ? CONDITION_TO_API[f.condition] : undefined,
+    condition: f?.condition || undefined,
     is_verified: isVerifiedFilter,
     limit: 200,
     cursor,
@@ -212,8 +215,17 @@ export interface AssetWriteBody {
   location_id?: number | null;
   custodian_id?: number | null;
   department?: string | null;
-  condition?: "new" | "good" | "fair" | "poor" | "decommissioned";
-  state?: "active" | "in_repair" | "disposed" | "transferred" | "missing";
+  // Model keys, not unions. These two were hand-written copies of
+  // `nrs.asset.condition` and `nrs.asset.state` — the last pair of local
+  // declarations of a set the back end owns in the write path, and the same
+  // kind of copy that lost `new` on the read path. The sets are read from the
+  // model at request time via `useEnum`/`ENUM_SEED`, and `AssetForm` populates
+  // both fields from that published set, so narrowing them here would only
+  // re-create a second opinion about the model's own Selection. A value the
+  // model gains is accepted by this body the day it exists; an invalid one is
+  // refused by the API with a 400, which is where that judgement belongs.
+  condition?: string;
+  state?: string;
   currency_id?: number | null;
   purchase_date?: string | null;
   warranty_expiry?: string | null;
@@ -312,7 +324,11 @@ export interface CategoryDashboardData {
   inRepair: number;
   disposed: number;
   unverified: number;
-  byCondition: { new: number; good: number; fair: number; poor: number; decommissioned: number };
+  /** One count per `nrs.asset.condition` value, keyed by the model's own key.
+   *  Not a five-field object: that shape wrote the Selection out a sixth
+   *  time, so a value the model gained would have been dropped from the
+   *  dashboard without anybody being told. */
+  byCondition: Record<string, number>;
   recent: Asset[];
 }
 
@@ -336,9 +352,20 @@ async function fetchCategoryDashboard(categoryRegex: RegExp): Promise<CategoryDa
   const cat = await findCategoryByName(categoryRegex);
   if (!cat) return null;
   const id = cat.id;
+  // One count per condition, derived from the set rather than written out.
+  // These five calls used to be five literals — the last copy of
+  // `nrs.asset.condition` left in the front end after this handoff, and the
+  // quietest: a value the model gained would simply not have been counted,
+  // and a bar chart with a missing bar looks exactly like a bar chart.
+  //
+  // `ENUM_SEED` rather than `useEnum` because this is not a component and
+  // cannot call a hook. The seed is held against the model by
+  // `tests/test_frontend_enums.py`, so it is a guarded copy rather than a
+  // second opinion.
+  const conditions = ENUM_SEED.condition.map(o => o.value);
   const [
     total, active, inRepair, disposed, unverified,
-    cNew, cGood, cFair, cPoor, cDecommissioned,
+    conditionCounts,
     recentRes,
   ] = await Promise.all([
     countAssets({ category_id: id }),
@@ -346,18 +373,16 @@ async function fetchCategoryDashboard(categoryRegex: RegExp): Promise<CategoryDa
     countAssets({ category_id: id, state: "in_repair" }),
     countAssets({ category_id: id, state: "disposed" }),
     countAssets({ category_id: id, is_verified: false }),
-    countAssets({ category_id: id, condition: "new" }),
-    countAssets({ category_id: id, condition: "good" }),
-    countAssets({ category_id: id, condition: "fair" }),
-    countAssets({ category_id: id, condition: "poor" }),
-    countAssets({ category_id: id, condition: "decommissioned" }),
+    Promise.all(conditions.map(c => countAssets({ category_id: id, condition: c }))),
     apiGet<ApiAsset[]>("/api/v1/assets", { category_id: id, limit: 20 }),
   ]);
   return {
     categoryId: id,
     categoryName: cat.name,
     total, active, inRepair, disposed, unverified,
-    byCondition: { new: cNew, good: cGood, fair: cFair, poor: cPoor, decommissioned: cDecommissioned },
+    byCondition: Object.fromEntries(
+      conditions.map((c, i) => [c, conditionCounts[i]]),
+    ),
     recent: recentRes.data.map(apiAssetToAsset),
   };
 }
@@ -782,24 +807,24 @@ export interface BarcodeTag {
   asset_id: number; asset_name: string; domain: string; location: string; condition: string;
 }
 
-/** The `domain` values `recent-tags` returns are raw selection keys. */
-export const ASSET_DOMAINS: Array<{ value: string; label: string }> = [
-  { value: "building",  label: "Building Services" },
-  { value: "plant",     label: "Plant & Machinery" },
-  { value: "plumbing",  label: "Plumbing & Drainage" },
-  { value: "fleet",     label: "Fleet" },
-  { value: "security",  label: "Security & Safety" },
-  { value: "it",        label: "IT & Communications" },
-  { value: "furniture", label: "Furniture & Fittings" },
-  { value: "other",     label: "Other" },
-];
-
-const DOMAIN_LABELS: Record<string, string> = Object.fromEntries(
-  ASSET_DOMAINS.map((d) => [d.value, d.label]),
-);
-
-/** Selection key -> label. `lookup` already returns a label, so pass it through. */
-export const domainLabel = (d: string | null | undefined): string => (d ? DOMAIN_LABELS[d] ?? d : "");
+// The `domain` values `recent-tags` and `lookup` return are raw selection keys.
+//
+// `ASSET_DOMAINS`, `DOMAIN_LABELS` and `domainLabel` used to be declared here.
+// `ASSET_DOMAINS` was a hand-written copy of the Selection on
+// `nrs.asset.category.domain` — and 630 lines further down this same file,
+// `FM_DOMAINS` was a second, byte-identical copy of it, each carrying its own
+// comment claiming to mirror the model. Two copies of one server-owned set, in
+// one file, is not redundancy that pays for itself: it is two places to forget
+// when the model gains a ninth domain, and neither would have said a word.
+//
+// Both are gone. The set is read from `GET /api/v1/meta/enums` via
+// `useEnum("domain")`, seeded by `ENUM_SEED.domain` in `lib/enums.ts`, which a
+// pytest guard fails the build over when it disagrees with the model. Labels
+// come from `useEnumLabel("domain")` at the display site; a non-component
+// caller can use `enumLabel(ENUM_SEED.domain, key)` directly. There are none
+// today, which is why no non-hook `domainLabel` wrapper survives here — a
+// second label path that reads the seed instead of the live set would be the
+// beginning of the same drift.
 
 /**
  * `/barcode/lookup` answers 200 with `{found: false}` when nothing matches —
@@ -1071,8 +1096,12 @@ export function getFleetStats() {
 // ── API-backed fleet (falls back to the mock helpers above when no session) ──
 // The backend (fleet.vehicle) has fewer fields than the FleetVehicle view type,
 // so NRS-specific fields it doesn't track (engine no, insurance/road-worthiness
-// expiry, zone, fuel card) are mapped to empty defaults; vehicleType/status/fuel
-// are derived best-effort from the model name and lifecycle state.
+// expiry, zone, fuel card) are mapped to empty defaults; vehicleType/status are
+// derived best-effort from the model name and lifecycle state.
+//
+// `fuel_type` is NOT in that list and must never rejoin it. It is a real field
+// on fleet.vehicle with nine values, and the derivation that used to stand here
+// reported six of them as something else.
 interface ApiFleetVehicle {
   id: number;
   name: string;
@@ -1115,12 +1144,19 @@ function mapVehicleStatus(a: ApiFleetVehicle): VehicleStatus {
   return "Active";
 }
 
-function mapFuelType(ft: string): FuelType {
-  const s = (ft || "").toLowerCase();
-  if (/diesel/.test(s)) return "Diesel";
-  if (/cng|lpg|gas$|electric|hybrid/.test(s)) return "CNG";
-  return "Petrol";
-}
+// `mapFuelType` used to live here. It took the nine values of
+// `fleet.vehicle.fuel_type` and squeezed them onto three invented display
+// strings with a regex: anything matching /cng|lpg|gas$|electric|hybrid/ became
+// "CNG", so `electric`, `lpg`, `full_hybrid` and both plug-in hybrids were all
+// shown as CNG, and anything left over — `hydrogen` — became "Petrol". Nothing
+// in the UI hinted that a grouping had happened. That is not a lossy display
+// choice, it is the screen stating a fact about the vehicle that is false.
+//
+// There is no replacement mapper, because there was nothing to map: the key
+// now travels through untouched and the pages render the MODEL's label for it
+// via `useEnumLabel("fuel_type")`. `deriveVehicleType` and `mapVehicleStatus`
+// above stay, because those two really are derived — the API has no field for
+// either — whereas fuel type was sitting right there in the payload.
 
 function apiFleetToVehicle(a: ApiFleetVehicle): FleetVehicle {
   return {
@@ -1135,7 +1171,8 @@ function apiFleetToVehicle(a: ApiFleetVehicle): FleetVehicle {
     vin: a.vin_sn || "",
     engineNo: "",
     color: a.color || "",
-    fuelType: mapFuelType(a.fuel_type),
+    // The model's key, verbatim. Labelling happens at the display site.
+    fuelType: a.fuel_type || "",
     tankCapacity: 0,
     currentOdometer: a.odometer || 0,
     status: mapVehicleStatus(a),
@@ -1412,17 +1449,12 @@ export interface CategoryPolicy {
   salvage_rate: number | null;
 }
 
-/** FM domains — mirrors the Selection on nrs.asset.category. */
-export const FM_DOMAINS = [
-  { value: "building",  label: "Building Services" },
-  { value: "plant",     label: "Plant & Machinery" },
-  { value: "plumbing",  label: "Plumbing & Drainage" },
-  { value: "fleet",     label: "Fleet" },
-  { value: "security",  label: "Security & Safety" },
-  { value: "it",        label: "IT & Communications" },
-  { value: "furniture", label: "Furniture & Fittings" },
-  { value: "other",     label: "Other" },
-] as const;
+// `FM_DOMAINS` stood here: a second copy of the FM domain set, identical byte
+// for byte to `ASSET_DOMAINS` 630 lines above it, and claiming in its own
+// comment to mirror the Selection on `nrs.asset.category`. It did, at the time
+// somebody typed it. Both copies are now deleted in favour of the one live
+// set — see the note where `ASSET_DOMAINS` used to be. The settings screen
+// that filled its dropdown from this constant reads `useEnum("domain")`.
 
 export interface AssetCategoryConfig {
   id: number;

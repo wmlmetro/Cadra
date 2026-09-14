@@ -8,6 +8,7 @@ import {
   fetchRequest, assignRequest, transitionRequest, commentOnRequest, updateRequest,
 } from "@/lib/dataProvider";
 import { apiGet, CadraApiError } from "@/lib/api";
+import { useEnum } from "@/hooks/useEnums";
 import type { ServiceRequest } from "@/types";
 import {
   ArrowLeft, AlertCircle, Clock, Loader2, Send, ArrowRightLeft,
@@ -26,15 +27,21 @@ const searchUsers = async (q: string) => {
   return res.data.map(u => ({ id: u.id, label: u.name, sublabel: u.login }));
 };
 
-const PRIORITY_LABELS: Record<string, string> = {
-  "0": "Very low", "1": "Low", "2": "Normal", "3": "High", "4": "Urgent",
-};
+// PRIORITY_LABELS used to live here, hard-coded as
+// 0=Very low / 1=Low / 2=Normal / 3=High / 4=Urgent — every label one step
+// below the model's own (0=Low, 1=Normal, 2=High, 3=Critical, 4=Very Urgent).
+// This select wrote the raw key, so picking "High" on this screen set the
+// record to Critical. The set now comes from the model via
+// GET /api/v1/meta/enums; see lib/enums.ts.
 
 export default function RequestDetail() {
   const { id } = useParams<{ id: string }>();
   const [, nav] = useLocation();
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const qc = useQueryClient();
+
+  // Top-level, not inside the option map: useEnum is a hook.
+  const priorityOpts = useEnum("priority");
 
   const { data: req, isLoading, error } = useQuery<ServiceRequest | null, CadraApiError>({
     queryKey: ["request", id],
@@ -120,8 +127,8 @@ export default function RequestDetail() {
                 disabled={updatePriorityMut.isPending}
                 className="text-[11px] font-semibold border border-border rounded-lg px-2 py-0.5 bg-background"
               >
-                {["0","1","2","3","4"].map(p => (
-                  <option key={p} value={p}>Priority: {PRIORITY_LABELS[p]}</option>
+                {priorityOpts.map(o => (
+                  <option key={o.value} value={o.value}>Priority: {o.label}</option>
                 ))}
               </select>
             </div>

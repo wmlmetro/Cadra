@@ -62,8 +62,28 @@ def _refused(client, path, param, value):
 
 
 def _count(client, path, **params):
-    body = assert_envelope_ok(_list(client, path, **params))
-    return len(body["data"])
+    """How many records MATCH, not how many came back on this page.
+
+    `len(body["data"])` is bounded by `DEFAULT_PAGE_LIMIT` (50), so on any
+    endpoint with more than fifty rows every count here saturated at 50 and
+    the partition assertion below — the one the acceptance criterion actually
+    asks for — was gated out by its own `if unfiltered < 50` guard. Silently:
+    nothing skipped, nothing printed. On `/api/v1/assets`, which is every
+    tenant with real data, it never ran at all.
+
+    `pagination.total_estimate` is documented (`utils.paginate`) as ALWAYS a
+    `search_count` of the caller's own unclamped domain, on every path,
+    precisely so a caller is never told the size of a window and left to read
+    it as the size of the register. So the partition can be checked over the
+    register instead of over a page of it.
+    """
+    r = _list(client, path, limit=1, **params)
+    body = assert_envelope_ok(r)
+    total = (r.json().get("pagination") or {}).get("total_estimate")
+    assert total is not None, (
+        "%s reports no `pagination.total_estimate`, so this test would be "
+        "counting a page rather than the register" % path)
+    return total
 
 
 # ─── the five booleans, and the two the inventory missed ─────────────
@@ -134,6 +154,22 @@ def test_a_boolean_filter_can_no_longer_return_the_unfiltered_list(
         assert yes == default, (
             "omitting `active` on %s no longer means `active=true`, which is "
             "its documented default (%d vs %d)" % (path, default, yes))
+        # `no` used to be computed and never asserted on — a dead assignment
+        # whose only effect was proving `active=false` answers 200. That left
+        # the `false` branch with NO regression net, and report 21 calls it
+        # "arguably the worse failure of the two": an unfiltered list is
+        # conspicuously large, while a plausible active-only roster handed to
+        # somebody asking for the archived one invites no second look at all.
+        #
+        # So assert the thing that would actually catch it. `active=false`
+        # must not return the active set: if somebody reintroduced an
+        # unconditional `("active", "=", True)`, `no` would equal `yes` and
+        # the refusal test above would still pass.
+        assert no != yes or no == 0, (
+            "`%s=false` on %s returned the same count as `%s=true` (%d). "
+            "Either the false branch is not being applied, or this tenant "
+            "holds exactly as many archived records as live ones — check "
+            "before relaxing this." % (param, path, param, no))
         return
 
     unfiltered = _count(client, path)
@@ -162,15 +198,18 @@ def test_a_boolean_filter_can_no_longer_return_the_unfiltered_list(
             "the 400; this assertion needs both halves to exist."
             % (param, yes, param, no))
 
-    # Not `yes + no == unfiltered` unconditionally: a page is capped by
-    # `limit`, so the two halves only sum to the whole when the whole fits
-    # on one page.
-    if unfiltered < 50:
-        assert yes + no == unfiltered, (
-            "`%s=true` (%d) and `%s=false` (%d) do not partition the %d rows "
-            "of %s. One branch of the filter is missing, which is the "
-            "unfiltered-list defect wearing a 200."
-            % (param, yes, param, no, unfiltered, path))
+    # Unconditionally, now that `_count` reads `total_estimate` rather than a
+    # page length. This used to be gated behind `if unfiltered < 50` — which
+    # is "only check this on endpoints with fewer rows than one page" — so on
+    # `/api/v1/assets` it never ran. The gate was needed because the counts
+    # were page lengths; it is not needed against the register's own count,
+    # and leaving it would have kept the acceptance criterion unenforced on
+    # every endpoint that matters.
+    assert yes + no == unfiltered, (
+        "`%s=true` (%d) and `%s=false` (%d) do not partition the %d rows "
+        "of %s. One branch of the filter is missing, which is the "
+        "unfiltered-list defect wearing a 200."
+        % (param, yes, param, no, unfiltered, path))
 
 
 def test_has_deadline_partitions_a_register_that_actually_has_both(
