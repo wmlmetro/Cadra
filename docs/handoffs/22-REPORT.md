@@ -301,6 +301,26 @@ and for `CRITICAL`: neither appears. Run with `--workers=0` as CI does, so the
 `myservice_barcode_station` HttpCase actually executes rather than erroring in
 `setUpClass` and reporting green.
 
+### CI, green, checked on the denominator rather than the exit code
+
+```
+pytest              741 passed, 21 skipped in 22.80s
+Odoo in-registry    0 failed, 0 error(s) of 378 tests when loading database 'odoo'
+bootstrap-and-test  pass   ·  image-addons-complete  pass  ·  prod-compose-lint  pass
+```
+
+**378 in CI matches 378 locally.** Grepped the raw job log (10,037 lines) for
+`of 0 tests` and `CRITICAL`: **zero of each**. The Odoo step runs only if
+pytest passes first, so on the failed attempt it never executed at all — which
+is why the totals below are quoted from the green run and not carried over.
+
+One thing that looks alarming in the log and is not: ten `##[error] Exception:
+Opening a read/write test cursor from a readonly one` lines. That is Odoo's
+own read/write re-dispatch, logged and recovered — `cadra_endpoint` documents
+the same mechanism in this repo. It appears **exactly ten times in the green
+baseline run on this branch before any of my code changes, and exactly ten
+times in mine.** Unchanged, and not introduced here.
+
 ### CI failed the first run, on my own new test, and it was right to
 
 ```
