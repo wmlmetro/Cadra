@@ -33,6 +33,50 @@ live at was never the point.
 
 ---
 
+## 2026-09-14 — handoff 23
+
+### ADDITIVE · `GET /api/v1/reports/access-changes` — and the statement that it cannot answer the question as asked
+
+Specification §13.4's fourth standard report. Scope **`identity:read`**. `from` and `to` are required, both bounds inclusive of the whole day; a missing, unparseable or reversed period is a `400 invalid_request` naming the parameter.
+
+**Read `data.summary.statement` before `data.events`.** Cadra holds no record of group grants or removals, and this endpoint does not pretend otherwise. `res_groups_users_rel` is two integer columns with no timestamp and no actor; `res.users.group_ids` carries no tracking; `ir_logging` is empty on every tenant. No history is synthesised.
+
+- `summary.coverage` — `none` | `empty` | `partial`. **Branch on this, never on `statement`**, whose wording may be improved. `none` and `empty` are different: `empty` means the period holds no events, `none` means the record cannot hold them at all.
+- `summary.group_changes_in_period` — a **structural zero**, present in the payload so the absence is visible rather than inferred from a missing key.
+- `data.events` — what IS evidenced: `account_created` (`precision: exact`) and `account_modified` (`precision: last_write_only` — one write stamp covers every change ever made to the record, and it does not say which field moved). Each row names its `evidence`.
+- `data.roster` — present-tense access: each account's groups and, for an integration, its API scopes. Current state, never history.
+- `data.fidelity` — re-measured on **every request** rather than carried as a constant, so a deployment that grows an access history is described rather than misreported.
+
+`data` is an OBJECT, not an array, for the same reason the register snapshot's is: there is nowhere honest to put a boundary declaration on an array, and a boundary a consumer can miss by reading the obvious key is not a boundary.
+
+### ADDITIVE · `GET /api/v1/reports/configuration-changes` — thin, and it says so
+
+Specification §13.4's fifth standard report. Scope **`settings:read`** (new — see below). Same period semantics.
+
+For each key exactly three facts survive: the **current** value, the **last** writer, the **last** write time. Not the previous value, not the number of changes, and a deleted key leaves no tombstone. `res.config.settings` is transient and vacuumed, so a change made through the Settings screen leaves only the resulting parameter row. Measured estate-wide: **22 keys have ever been written after creation, 12 of them by a named human.**
+
+**Values whose KEY names a credential are redacted** — replaced by `[redacted] sha256:<16 hex>`, with no prefix, no last-four and no length. `ir_config_parameter` holds `myservice_api.jwt_secret`, the key every access token in the tenant is signed with. `value_is_redacted` marks the row; `summary.redacted_values` counts them. The rule matches the key name rather than a list of known secrets, so it over-redacts rather than under-redacts.
+
+### ADDITIVE · `POST /api/v1/assets/<id>/approve-disposal`
+
+Scope **`approvals:write`**, idempotent (`X-Idempotency-Key`), success `200`, and `409` is a declared response.
+
+Report 16 named this as a gap and it is now closed **without making the approver writable**. `disposal_approved_by` and `disposal_approved_date` remain absent from `_WRITABLE_FIELDS`; nothing about `PATCH` changes. The route records **the authenticated caller**, derived from the credential — since handoff 08 every API client acts as its own `res.users`, and Odoo 19's `sudo()` does not change `env.uid`.
+
+- **A body that names an approver is refused `400`, not ignored.** `disposal_approved_by`, `approved_by`, `approver`, `user_id` and six further spellings are rejected by name. Dropping them would return `200` to a caller that believes it appointed somebody, and the recorded approver would then not be the one in the caller's own logs.
+- **`409 conflict`** when the disposal is already approved, carrying who holds the approval and when. An approval is a one-time act; a second caller is told rather than quietly succeeding. Replaying with the same idempotency key still returns the original response.
+- **`400`** when the asset is not in `disposed` state, carrying the model's own words.
+
+`approvals:write` gated nothing asset-related before this, so granting it to a client is a deliberate act rather than something a broad credential already carries.
+
+### ADDITIVE · `settings:read`, and the `Auditor` group
+
+**`settings:read`** is a new scope. It gates the configuration change log only. A read scope rather than a reuse of `settings:write`, because an auditor whose only way to read the settings is to hold the right to change them is an auditor the control has been handed to. Granted by `myservice_asset_register.group_asset_manager` and by the new group below; it is in `ALL_SCOPES`, so it can be put on a client record.
+
+**`myservice_api.group_auditor`** is new — specification §3's `audit_viewer`, which INT-10 §4.3 had recorded as absent. Six READ scopes (`assets:read`, `locations:read`, `requests:read`, `identity:read`, `dashboards:read`, `settings:read`) and no write scope of any kind. Implied by nothing and implying nothing, deliberately: an auditor who is also an Asset Manager is not independent of what they are auditing.
+
+**No existing credential changes.** Every scope above is additive, and no route's existing scope was altered.
+
 ## 2026-09-14 — handoff 22
 
 ### BREAKING · A cursor we did not issue is refused, not silently restarted
