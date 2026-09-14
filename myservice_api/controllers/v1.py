@@ -2204,8 +2204,26 @@ class MyserviceApiV1(http.Controller):
                          "service_id": {"type": "integer", "nullable": True},
                          "location_id": {"type": "integer", "nullable": True,
                                          "description": "generic.location id"},
-                         "priority": {"type": "string", "enum": ["0", "1", "2", "3"],
-                                      "description": "0=low, 1=normal, 2=high, 3=urgent"},
+                         # FIVE values, and the labels are the model's. This
+                         # annotation published four and called `3` "urgent";
+                         # `request.request.priority` declares
+                         # 0=Low, 1=Normal, 2=High, 3=Critical, 4=Very Urgent.
+                         # Handoff 21 corrected the same defect in
+                         # `v1_requests._PRIORITY_VALUES` and did not reach
+                         # this copy — which is the argument for the copies
+                         # going away, not for correcting them one at a time.
+                         # `GET /api/v1/meta/enums` now publishes the live set.
+                         # Per CLAUDE.md rule 4 the model wins and the
+                         # document is what gets corrected: `4` has always
+                         # been accepted by the ORM, so widening the
+                         # annotation is additive, while validating against
+                         # the four would have started refusing a value the
+                         # register already stores.
+                         "priority": {"type": "string",
+                                      "enum": ["0", "1", "2", "3", "4"],
+                                      "description": ("0=Low, 1=Normal, 2=High, "
+                                                      "3=Critical, 4=Very Urgent. "
+                                                      "Default 1.")},
                          "description": {"type": "string"},
                          "reporter_name": {"type": "string", "nullable": True},
                          "reporter_contact": {"type": "string", "nullable": True,

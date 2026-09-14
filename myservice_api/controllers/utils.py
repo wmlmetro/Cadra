@@ -725,19 +725,63 @@ def encode_cursor(payload):
 
 
 def decode_cursor(token):
-    """Decode a cursor token, returning the payload dict. Returns {} on
-    invalid input rather than raising — callers treat empty as 'start
-    from beginning'."""
+    """Decode a cursor token, returning the payload dict.
+
+    Absent or empty → `{}`, which means "start at the beginning". That is a
+    different input and it keeps its answer.
+
+    **Anything else that is not a cursor we issued raises `BadFilter`, which
+    `cadra_endpoint` turns into a 400.** This used to return `{}` too, and
+    that is a BREAKING change made deliberately (docs/api/CHANGELOG.md,
+    handoff 22). The old behaviour meant a caller paging with a corrupted
+    cursor silently restarted at page one while believing it was on page
+    three — walking the same records again, or reading a later page as
+    empty and concluding the register had ended. It was documented, and
+    documented silent degradation is still silent degradation: an answer
+    that looks like an answer is worse than a refusal. A client sending a
+    cursor it did not get from us has a bug, and a 400 is the only way it
+    finds out.
+
+    The payload's SHAPE is checked here too, not just its encoding. A token
+    that decodes to valid JSON which is not an object — `[1,2]`, `"x"`, `7`
+    — used to reach `"last_id" in cursor_data`, where a list answered False
+    (another silent restart) and an int raised `TypeError` inside
+    `paginate` for a 500. And a `last_id` that is not an integer reached a
+    bare `int()` in the same place. Both are caller input and both are now
+    the same 400.
+    """
     if not token:
         return {}
     try:
-        return json.loads(_b64url_decode(token).decode("utf-8"))
+        payload = json.loads(_b64url_decode(token).decode("utf-8"))
     except (ValueError, TypeError):
         # A cursor is opaque caller input; anything that is not our own
-        # base64url JSON is a caller error and "start from the beginning"
-        # is the documented answer. Narrowed so it cannot also absorb a
-        # fault in `_b64url_decode` itself.
-        return {}
+        # base64url JSON is a caller error. Narrowed so it cannot also
+        # absorb a fault in `_b64url_decode` itself.
+        raise BadFilter(
+            "`cursor` is not a cursor this API issued. Omit it to start at "
+            "the beginning, or send back the `next_cursor` from your last "
+            "page unmodified.",
+            details={"cursor": token},
+        )
+    if not isinstance(payload, dict):
+        raise BadFilter(
+            "`cursor` is not a cursor this API issued. Omit it to start at "
+            "the beginning, or send back the `next_cursor` from your last "
+            "page unmodified.",
+            details={"cursor": token},
+        )
+    if "last_id" in payload:
+        try:
+            payload["last_id"] = int(payload["last_id"])
+        except (TypeError, ValueError):
+            raise BadFilter(
+                "`cursor` is not a cursor this API issued. Omit it to start "
+                "at the beginning, or send back the `next_cursor` from your "
+                "last page unmodified.",
+                details={"cursor": token},
+            )
+    return payload
 
 
 def _request_is_frontend():
@@ -927,7 +971,8 @@ def paginate(model, domain, *, limit, cursor=None, order="id", uncapped=False):
         flag_truncation(cap, total)
 
     if "last_id" in cursor_data:
-        effective_domain.append(("id", ">", int(cursor_data["last_id"])))
+        # Already an int: `decode_cursor` coerced it or refused the request.
+        effective_domain.append(("id", ">", cursor_data["last_id"]))
 
     # Fetch one extra to know if there's a next page
     records = model.search(effective_domain, order=order, limit=limit + 1)
@@ -1403,8 +1448,12 @@ def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
                 # integration to retry a request that can never succeed.
                 #
                 # **No rollback**, and that is the point rather than an
-                # omission. This is raised at the door, before the request
-                # has touched the database at all, so there is no
+                # omission. Every raiser is on a READ path and none of them
+                # writes: the parameter parsers are pure by construction
+                # (`query_params` imports nothing, enforced by
+                # `tests/test_query_param_guard.py`), and `decode_cursor`,
+                # which joined them in handoff 22, runs before the first
+                # query on every route that calls it. There is no
                 # transaction to undo — and rolling back a clean cursor is
                 # the exact behaviour that ruled `_selection_allowed_values`
                 # out of the read path in the first place

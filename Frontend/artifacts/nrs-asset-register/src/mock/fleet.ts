@@ -1,11 +1,21 @@
 import type { FleetVehicle, FuelCard, FuelTransaction } from "../types";
 
+// `fuelType` here is a `fleet.vehicle.fuel_type` KEY, the same as the live API
+// returns — `diesel`, `gasoline`, and the seven others in `ENUM_SEED.fuel_type`.
+// These rows used to carry the display strings "Diesel" and "Petrol" instead,
+// which is a third fuel vocabulary on top of the model's keys and the old
+// three-value front-end union: "Petrol" is not a model key at all (the model's
+// petrol is `gasoline`). Because the pages now label whatever key they are
+// handed, mock rows spelled that way would have rendered as the bare word
+// "Petrol" while the same screen on a live tenant rendered "Gasoline" — the
+// mock quietly disagreeing with the thing it stands in for. Keys only.
+
 export const mockFleetVehicles: FleetVehicle[] = [
   {
     id: "VEH-001", assetId: "AST-1002", assetTag: "NRS-FL-T-005",
     make: "Toyota", model: "Land Cruiser GX", year: 2020, vehicleType: "SUV",
     regNo: "ABJ-234-GH", vin: "VIN-JD89234798", engineNo: "ENG-88234-ZZ",
-    color: "White", fuelType: "Diesel", tankCapacity: 80, currentOdometer: 68420,
+    color: "White", fuelType: "diesel", tankCapacity: 80, currentOdometer: 68420,
     status: "Active", assignedDriverId: "EMP-020", assignedDriverName: "Bello Muhammed",
     zone: "NRS Headquarters", office: "Basement Parking, FCT", fuelCardId: "FC-001",
     lastServiceDate: "2026-03-15", nextServiceKm: 75000, isStaffBus: false,
@@ -16,7 +26,7 @@ export const mockFleetVehicles: FleetVehicle[] = [
     id: "VEH-002", assetId: "AST-1005", assetTag: "NRS-FL-P-012",
     make: "Innoson", model: "IVM G40 Pickup", year: 2021, vehicleType: "Pickup",
     regNo: "KNO-991-AB", vin: "VIN-INV882347", engineNo: "ENG-INV-001",
-    color: "White", fuelType: "Petrol", tankCapacity: 65, currentOdometer: 42180,
+    color: "White", fuelType: "gasoline", tankCapacity: 65, currentOdometer: 42180,
     status: "Active", assignedDriverId: "EMP-004", assignedDriverName: "Ibrahim Musa",
     zone: "North West", office: "Kano GBTO", fuelCardId: "FC-002",
     lastServiceDate: "2026-02-10", nextServiceKm: 50000, isStaffBus: false,
@@ -27,7 +37,7 @@ export const mockFleetVehicles: FleetVehicle[] = [
     id: "VEH-003", assetId: "AST-1008", assetTag: "NRS-FL-B-004",
     make: "Toyota", model: "Hiace High Roof", year: 2019, vehicleType: "Bus",
     regNo: "PHC-112-XY", vin: "VIN-TH882347", engineNo: "ENG-TH-882",
-    color: "White/Blue", fuelType: "Diesel", tankCapacity: 75, currentOdometer: 112600,
+    color: "White/Blue", fuelType: "diesel", tankCapacity: 75, currentOdometer: 112600,
     status: "Active", assignedDriverId: "EMP-006", assignedDriverName: "Samuel Peters",
     zone: "South South", office: "Port Harcourt MSTO", fuelCardId: "FC-003",
     lastServiceDate: "2026-01-28", nextServiceKm: 120000, isStaffBus: true, routeId: "RT-004",
@@ -38,7 +48,7 @@ export const mockFleetVehicles: FleetVehicle[] = [
     id: "VEH-004", assetId: "AST-1009", assetTag: "NRS-FL-S-001",
     make: "Toyota", model: "Hiace High Roof", year: 2022, vehicleType: "Bus",
     regNo: "ABJ-540-NK", vin: "VIN-TH992348", engineNo: "ENG-TH-992",
-    color: "White/Blue", fuelType: "Diesel", tankCapacity: 75, currentOdometer: 44200,
+    color: "White/Blue", fuelType: "diesel", tankCapacity: 75, currentOdometer: 44200,
     status: "Active", assignedDriverId: "EMP-014", assignedDriverName: "Yakubu Hassan",
     zone: "NRS Headquarters", office: "Basement Parking, FCT", fuelCardId: "FC-004",
     lastServiceDate: "2026-04-02", nextServiceKm: 60000, isStaffBus: true, routeId: "RT-001",
@@ -49,7 +59,7 @@ export const mockFleetVehicles: FleetVehicle[] = [
     id: "VEH-005", assetId: "AST-1010", assetTag: "NRS-FL-S-002",
     make: "Toyota", model: "Coaster Bus", year: 2021, vehicleType: "Bus",
     regNo: "LOS-881-PQ", vin: "VIN-TC110221", engineNo: "ENG-TC-110",
-    color: "White/Blue", fuelType: "Diesel", tankCapacity: 100, currentOdometer: 78900,
+    color: "White/Blue", fuelType: "diesel", tankCapacity: 100, currentOdometer: 78900,
     status: "Active", assignedDriverId: "EMP-020", assignedDriverName: "Bello Muhammed",
     zone: "South West", office: "Ikeja LSBO", fuelCardId: "FC-005",
     lastServiceDate: "2026-03-08", nextServiceKm: 85000, isStaffBus: true, routeId: "RT-002",
@@ -60,7 +70,7 @@ export const mockFleetVehicles: FleetVehicle[] = [
     id: "VEH-006", assetId: "AST-1011", assetTag: "NRS-FL-V-006",
     make: "Toyota", model: "Land Cruiser Prado", year: 2019, vehicleType: "SUV",
     regNo: "LOS-337-MN", vin: "VIN-LP99001", engineNo: "ENG-LP-099",
-    color: "Black", fuelType: "Diesel", tankCapacity: 87, currentOdometer: 93500,
+    color: "Black", fuelType: "diesel", tankCapacity: 87, currentOdometer: 93500,
     status: "In Maintenance", assignedDriverId: "EMP-003", assignedDriverName: "Oluwaseun Adebayo",
     zone: "South West", office: "Ikeja LSBO", fuelCardId: "FC-006",
     lastServiceDate: "2025-12-01", nextServiceKm: 100000, isStaffBus: false,
@@ -71,7 +81,7 @@ export const mockFleetVehicles: FleetVehicle[] = [
     id: "VEH-007", assetId: "AST-1012", assetTag: "NRS-FL-T-008",
     make: "Toyota", model: "HiLux Double Cab", year: 2020, vehicleType: "Pickup",
     regNo: "ENK-221-RS", vin: "VIN-HL220001", engineNo: "ENG-HL-220",
-    color: "White", fuelType: "Diesel", tankCapacity: 80, currentOdometer: 55710,
+    color: "White", fuelType: "diesel", tankCapacity: 80, currentOdometer: 55710,
     status: "Active", assignedDriverId: "EMP-010", assignedDriverName: "Emeka Nwosu",
     zone: "South East", office: "Enugu MSTO", fuelCardId: "FC-007",
     lastServiceDate: "2026-02-20", nextServiceKm: 65000, isStaffBus: false,
@@ -82,7 +92,7 @@ export const mockFleetVehicles: FleetVehicle[] = [
     id: "VEH-008", assetId: "AST-1013", assetTag: "NRS-FL-S-003",
     make: "Innoson", model: "IVM Bus G80", year: 2023, vehicleType: "Bus",
     regNo: "KNO-118-JK", vin: "VIN-IB880001", engineNo: "ENG-IB-001",
-    color: "White/Blue", fuelType: "Diesel", tankCapacity: 90, currentOdometer: 18300,
+    color: "White/Blue", fuelType: "diesel", tankCapacity: 90, currentOdometer: 18300,
     status: "Active", assignedDriverId: "EMP-004", assignedDriverName: "Ibrahim Musa",
     zone: "North West", office: "Kano GBTO", fuelCardId: "FC-008",
     lastServiceDate: "2026-04-01", nextServiceKm: 30000, isStaffBus: true, routeId: "RT-003",
@@ -93,7 +103,7 @@ export const mockFleetVehicles: FleetVehicle[] = [
     id: "VEH-009", assetId: "AST-1014", assetTag: "NRS-FL-V-009",
     make: "Honda", model: "CR-V", year: 2021, vehicleType: "SUV",
     regNo: "PHC-445-TU", vin: "VIN-HV210001", engineNo: "ENG-HV-210",
-    color: "Silver", fuelType: "Petrol", tankCapacity: 57, currentOdometer: 38200,
+    color: "Silver", fuelType: "gasoline", tankCapacity: 57, currentOdometer: 38200,
     status: "Active", assignedDriverId: "EMP-018", assignedDriverName: "Danladi Umar",
     zone: "North East", office: "Bauchi MSTO", fuelCardId: "FC-009",
     lastServiceDate: "2026-03-22", nextServiceKm: 45000, isStaffBus: false,
@@ -104,7 +114,7 @@ export const mockFleetVehicles: FleetVehicle[] = [
     id: "VEH-010", assetId: "AST-1015", assetTag: "NRS-FL-T-010",
     make: "Toyota", model: "Hilux Single Cab", year: 2018, vehicleType: "Pickup",
     regNo: "SOK-772-UV", vin: "VIN-TS180001", engineNo: "ENG-TS-180",
-    color: "White", fuelType: "Diesel", tankCapacity: 80, currentOdometer: 147200,
+    color: "White", fuelType: "diesel", tankCapacity: 80, currentOdometer: 147200,
     status: "Grounded", assignedDriverId: "EMP-016", assignedDriverName: "Kabir Abdullahi",
     zone: "North West", office: "Sokoto ASMTO", fuelCardId: "FC-010",
     lastServiceDate: "2025-11-10", nextServiceKm: 160000, isStaffBus: false,
@@ -115,7 +125,7 @@ export const mockFleetVehicles: FleetVehicle[] = [
     id: "VEH-011", assetId: "AST-1016", assetTag: "NRS-FL-S-004",
     make: "Toyota", model: "Hiace High Roof", year: 2022, vehicleType: "Bus",
     regNo: "IBA-330-WX", vin: "VIN-TH220003", engineNo: "ENG-TH-220",
-    color: "White/Blue", fuelType: "Diesel", tankCapacity: 75, currentOdometer: 31400,
+    color: "White/Blue", fuelType: "diesel", tankCapacity: 75, currentOdometer: 31400,
     status: "Active", assignedDriverId: "EMP-012", assignedDriverName: "Tunde Fashola",
     zone: "South West", office: "Ibadan MSTO", fuelCardId: "FC-011",
     lastServiceDate: "2026-04-10", nextServiceKm: 50000, isStaffBus: true, routeId: "RT-005",
@@ -138,16 +148,16 @@ export const mockFuelCards: FuelCard[] = [
 ];
 
 export const mockFuelTransactions: FuelTransaction[] = [
-  { id: "FT-001", fuelCardId: "FC-001", vehicleId: "VEH-001", vehicleName: "Toyota Land Cruiser GX", regNo: "ABJ-234-GH", driverName: "Bello Muhammed",  date: "2026-06-09", time: "08:34", station: "Total Energies HQ", locationName: "Abuja", litres: 60, pricePerLitre: 870, totalCost: 52200, odometerReading: 68300, fuelType: "Diesel", status: "Approved",              hasMeterPhoto: true, verifiedBy: "Yakubu Hassan" },
-  { id: "FT-002", fuelCardId: "FC-003", vehicleId: "VEH-003", vehicleName: "Toyota Hiace (PHC)",    regNo: "PHC-112-XY", driverName: "Samuel Peters",    date: "2026-06-09", time: "09:12", station: "Oando Station PH",  locationName: "Port Harcourt", litres: 70, pricePerLitre: 855, totalCost: 59850, odometerReading: 112540, fuelType: "Diesel", status: "Flagged",    flagReason: "Refuelled 18hrs after last fill — tank may not have been empty", hasMeterPhoto: false },
-  { id: "FT-003", fuelCardId: "FC-005", vehicleId: "VEH-005", vehicleName: "Toyota Coaster Bus",    regNo: "LOS-881-PQ", driverName: "Bello Muhammed",  date: "2026-06-08", time: "14:45", station: "MRS Oil Lagos",     locationName: "Lagos", litres: 95, pricePerLitre: 860, totalCost: 81700, odometerReading: 78800, fuelType: "Diesel", status: "Approved",              hasMeterPhoto: true, verifiedBy: "Ngozi Eze" },
-  { id: "FT-004", fuelCardId: "FC-002", vehicleId: "VEH-002", vehicleName: "Innoson IVM G40",       regNo: "KNO-991-AB", driverName: "Ibrahim Musa",     date: "2026-06-08", time: "07:20", station: "NNPC Kano",         locationName: "Kano", litres: 55, pricePerLitre: 840, totalCost: 46200, odometerReading: 42100, fuelType: "Petrol", status: "Pending Verification", hasMeterPhoto: true },
-  { id: "FT-005", fuelCardId: "FC-004", vehicleId: "VEH-004", vehicleName: "Toyota Hiace (ABJ)",    regNo: "ABJ-540-NK", driverName: "Yakubu Hassan",    date: "2026-06-07", time: "16:00", station: "Conoil Abuja",      locationName: "Abuja", litres: 72, pricePerLitre: 870, totalCost: 62640, odometerReading: 44100, fuelType: "Diesel", status: "Approved",              hasMeterPhoto: true, verifiedBy: "Bello Muhammed" },
-  { id: "FT-006", fuelCardId: "FC-007", vehicleId: "VEH-007", vehicleName: "Toyota HiLux Double Cab",regNo: "ENK-221-RS", driverName: "Emeka Nwosu",    date: "2026-06-07", time: "11:30", station: "Forte Oil Enugu",   locationName: "Enugu", litres: 75, pricePerLitre: 850, totalCost: 63750, odometerReading: 55640, fuelType: "Diesel", status: "Approved",              hasMeterPhoto: true, verifiedBy: "Chidinma Obi" },
-  { id: "FT-007", fuelCardId: "FC-003", vehicleId: "VEH-003", vehicleName: "Toyota Hiace (PHC)",    regNo: "PHC-112-XY", driverName: "Samuel Peters",    date: "2026-06-07", time: "10:15", station: "Total PH Airport",  locationName: "Port Harcourt", litres: 68, pricePerLitre: 855, totalCost: 58140, odometerReading: 112470, fuelType: "Diesel", status: "Flagged",    flagReason: "Location mismatch: card used 120km from vehicle's last known position", hasMeterPhoto: false },
-  { id: "FT-008", fuelCardId: "FC-009", vehicleId: "VEH-009", vehicleName: "Honda CR-V",            regNo: "PHC-445-TU", driverName: "Danladi Umar",    date: "2026-06-06", time: "15:22", station: "AP Gas Bauchi",     locationName: "Bauchi", litres: 45, pricePerLitre: 845, totalCost: 38025, odometerReading: 38150, fuelType: "Petrol", status: "Approved",              hasMeterPhoto: true, verifiedBy: "Hauwa Garba" },
-  { id: "FT-009", fuelCardId: "FC-005", vehicleId: "VEH-005", vehicleName: "Toyota Coaster Bus",    regNo: "LOS-881-PQ", driverName: "Bello Muhammed",  date: "2026-06-05", time: "09:05", station: "Mobil Victoria Is", locationName: "Lagos", litres: 98, pricePerLitre: 862, totalCost: 84476, odometerReading: 78700, fuelType: "Diesel", status: "Approved",              hasMeterPhoto: true, verifiedBy: "Ngozi Eze" },
-  { id: "FT-010", fuelCardId: "FC-001", vehicleId: "VEH-001", vehicleName: "Toyota Land Cruiser GX", regNo: "ABJ-234-GH", driverName: "Bello Muhammed", date: "2026-06-05", time: "11:45", station: "Total Wuse II",    locationName: "Abuja", litres: 65, pricePerLitre: 870, totalCost: 56550, odometerReading: 68220, fuelType: "Diesel", status: "Pending Verification", hasMeterPhoto: false },
-  { id: "FT-011", fuelCardId: "FC-008", vehicleId: "VEH-008", vehicleName: "Innoson Bus G80",       regNo: "KNO-118-JK", driverName: "Ibrahim Musa",    date: "2026-06-04", time: "08:00", station: "NNPC Kano Ring Rd", locationName: "Kano", litres: 85, pricePerLitre: 840, totalCost: 71400, odometerReading: 18230, fuelType: "Diesel", status: "Approved",              hasMeterPhoto: true, verifiedBy: "Fatima Bello" },
-  { id: "FT-012", fuelCardId: "FC-002", vehicleId: "VEH-002", vehicleName: "Innoson IVM G40",       regNo: "KNO-991-AB", driverName: "Ibrahim Musa",    date: "2026-06-03", time: "13:10", station: "Total Kano",        locationName: "Kano", litres: 60, pricePerLitre: 840, totalCost: 50400, odometerReading: 42030, fuelType: "Petrol", status: "Flagged",    flagReason: "Fuel volume (60L) exceeds tank capacity reported (55L) — possible siphoning", hasMeterPhoto: true },
+  { id: "FT-001", fuelCardId: "FC-001", vehicleId: "VEH-001", vehicleName: "Toyota Land Cruiser GX", regNo: "ABJ-234-GH", driverName: "Bello Muhammed",  date: "2026-06-09", time: "08:34", station: "Total Energies HQ", locationName: "Abuja", litres: 60, pricePerLitre: 870, totalCost: 52200, odometerReading: 68300, fuelType: "diesel", status: "Approved",              hasMeterPhoto: true, verifiedBy: "Yakubu Hassan" },
+  { id: "FT-002", fuelCardId: "FC-003", vehicleId: "VEH-003", vehicleName: "Toyota Hiace (PHC)",    regNo: "PHC-112-XY", driverName: "Samuel Peters",    date: "2026-06-09", time: "09:12", station: "Oando Station PH",  locationName: "Port Harcourt", litres: 70, pricePerLitre: 855, totalCost: 59850, odometerReading: 112540, fuelType: "diesel", status: "Flagged",    flagReason: "Refuelled 18hrs after last fill — tank may not have been empty", hasMeterPhoto: false },
+  { id: "FT-003", fuelCardId: "FC-005", vehicleId: "VEH-005", vehicleName: "Toyota Coaster Bus",    regNo: "LOS-881-PQ", driverName: "Bello Muhammed",  date: "2026-06-08", time: "14:45", station: "MRS Oil Lagos",     locationName: "Lagos", litres: 95, pricePerLitre: 860, totalCost: 81700, odometerReading: 78800, fuelType: "diesel", status: "Approved",              hasMeterPhoto: true, verifiedBy: "Ngozi Eze" },
+  { id: "FT-004", fuelCardId: "FC-002", vehicleId: "VEH-002", vehicleName: "Innoson IVM G40",       regNo: "KNO-991-AB", driverName: "Ibrahim Musa",     date: "2026-06-08", time: "07:20", station: "NNPC Kano",         locationName: "Kano", litres: 55, pricePerLitre: 840, totalCost: 46200, odometerReading: 42100, fuelType: "gasoline", status: "Pending Verification", hasMeterPhoto: true },
+  { id: "FT-005", fuelCardId: "FC-004", vehicleId: "VEH-004", vehicleName: "Toyota Hiace (ABJ)",    regNo: "ABJ-540-NK", driverName: "Yakubu Hassan",    date: "2026-06-07", time: "16:00", station: "Conoil Abuja",      locationName: "Abuja", litres: 72, pricePerLitre: 870, totalCost: 62640, odometerReading: 44100, fuelType: "diesel", status: "Approved",              hasMeterPhoto: true, verifiedBy: "Bello Muhammed" },
+  { id: "FT-006", fuelCardId: "FC-007", vehicleId: "VEH-007", vehicleName: "Toyota HiLux Double Cab",regNo: "ENK-221-RS", driverName: "Emeka Nwosu",    date: "2026-06-07", time: "11:30", station: "Forte Oil Enugu",   locationName: "Enugu", litres: 75, pricePerLitre: 850, totalCost: 63750, odometerReading: 55640, fuelType: "diesel", status: "Approved",              hasMeterPhoto: true, verifiedBy: "Chidinma Obi" },
+  { id: "FT-007", fuelCardId: "FC-003", vehicleId: "VEH-003", vehicleName: "Toyota Hiace (PHC)",    regNo: "PHC-112-XY", driverName: "Samuel Peters",    date: "2026-06-07", time: "10:15", station: "Total PH Airport",  locationName: "Port Harcourt", litres: 68, pricePerLitre: 855, totalCost: 58140, odometerReading: 112470, fuelType: "diesel", status: "Flagged",    flagReason: "Location mismatch: card used 120km from vehicle's last known position", hasMeterPhoto: false },
+  { id: "FT-008", fuelCardId: "FC-009", vehicleId: "VEH-009", vehicleName: "Honda CR-V",            regNo: "PHC-445-TU", driverName: "Danladi Umar",    date: "2026-06-06", time: "15:22", station: "AP Gas Bauchi",     locationName: "Bauchi", litres: 45, pricePerLitre: 845, totalCost: 38025, odometerReading: 38150, fuelType: "gasoline", status: "Approved",              hasMeterPhoto: true, verifiedBy: "Hauwa Garba" },
+  { id: "FT-009", fuelCardId: "FC-005", vehicleId: "VEH-005", vehicleName: "Toyota Coaster Bus",    regNo: "LOS-881-PQ", driverName: "Bello Muhammed",  date: "2026-06-05", time: "09:05", station: "Mobil Victoria Is", locationName: "Lagos", litres: 98, pricePerLitre: 862, totalCost: 84476, odometerReading: 78700, fuelType: "diesel", status: "Approved",              hasMeterPhoto: true, verifiedBy: "Ngozi Eze" },
+  { id: "FT-010", fuelCardId: "FC-001", vehicleId: "VEH-001", vehicleName: "Toyota Land Cruiser GX", regNo: "ABJ-234-GH", driverName: "Bello Muhammed", date: "2026-06-05", time: "11:45", station: "Total Wuse II",    locationName: "Abuja", litres: 65, pricePerLitre: 870, totalCost: 56550, odometerReading: 68220, fuelType: "diesel", status: "Pending Verification", hasMeterPhoto: false },
+  { id: "FT-011", fuelCardId: "FC-008", vehicleId: "VEH-008", vehicleName: "Innoson Bus G80",       regNo: "KNO-118-JK", driverName: "Ibrahim Musa",    date: "2026-06-04", time: "08:00", station: "NNPC Kano Ring Rd", locationName: "Kano", litres: 85, pricePerLitre: 840, totalCost: 71400, odometerReading: 18230, fuelType: "diesel", status: "Approved",              hasMeterPhoto: true, verifiedBy: "Fatima Bello" },
+  { id: "FT-012", fuelCardId: "FC-002", vehicleId: "VEH-002", vehicleName: "Innoson IVM G40",       regNo: "KNO-991-AB", driverName: "Ibrahim Musa",    date: "2026-06-03", time: "13:10", station: "Total Kano",        locationName: "Kano", litres: 60, pricePerLitre: 840, totalCost: 50400, odometerReading: 42030, fuelType: "gasoline", status: "Flagged",    flagReason: "Fuel volume (60L) exceeds tank capacity reported (55L) — possible siphoning", hasMeterPhoto: true },
 ];

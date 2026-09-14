@@ -1,5 +1,11 @@
 import type { Asset } from '../types';
 
+// `condition` here is the `nrs.asset.condition` KEY — `good`, not "Good" —
+// because that is what a live asset carries and what the offline path filters
+// on. These rows spelled the old display words, which meant the mock register
+// and the live one disagreed about the same field: the mock could never hold a
+// `new` asset, and the mock Condition filter compared display strings while the
+// live one sent model keys to the API.
 export const mockAssets: Asset[] = [
   {
     id: "AST-1001",
@@ -13,7 +19,7 @@ export const mockAssets: Asset[] = [
     model: "OptiPlex 7090",
     serial: "DL-908123-X",
     systemDomain: "ABJ-HQ-MST-233",
-    condition: "Good",
+    condition: "good",
     custodianName: "Amina Yusuf",
     custodianIR: "IR-9021",
     department: "Tax Operations",
@@ -39,7 +45,7 @@ export const mockAssets: Asset[] = [
     serial: "VIN-JD89234798",
     registrationNo: "ABJ-234-GH",
     engineNo: "ENG-88234-ZZ",
-    condition: "Fair",
+    condition: "fair",
     custodianName: "Chukwudi Okafor",
     custodianIR: "IR-4412",
     department: "Executive Management",
@@ -64,7 +70,7 @@ export const mockAssets: Asset[] = [
     manufacturer: "Julius Berger Furniture",
     model: "Exec-MD-01",
     serial: "N/A",
-    condition: "Good",
+    condition: "good",
     custodianName: "Oluwaseun Adebayo",
     custodianIR: "IR-8821",
     department: "Human Resources",
@@ -89,7 +95,7 @@ export const mockAssets: Asset[] = [
     model: "LaserJet Pro M404n",
     serial: "VNF-89234",
     systemDomain: "LAG-IKJ-PRN-02",
-    condition: "Decommissioned",
+    condition: "decommissioned",
     department: "Audit",
     location: {
       zone: "South West",
@@ -113,7 +119,7 @@ export const mockAssets: Asset[] = [
     serial: "VIN-INV882347",
     registrationNo: "KNO-991-AB",
     engineNo: "ENG-INV-001",
-    condition: "Good",
+    condition: "good",
     custodianName: "Ibrahim Musa",
     custodianIR: "IR-2201",
     department: "Field Operations",
@@ -139,7 +145,7 @@ export const mockAssets: Asset[] = [
     model: "ThinkPad T14",
     serial: "PF-29384",
     systemDomain: "KAN-GBTO-LTP-105",
-    condition: "Good",
+    condition: "good",
     custodianName: "Fatima Bello",
     custodianIR: "IR-5510",
     department: "Tax Audit",
@@ -163,7 +169,7 @@ export const mockAssets: Asset[] = [
     manufacturer: "Lifemate",
     model: "CONF-12",
     serial: "N/A",
-    condition: "Good",
+    condition: "good",
     department: "Administration",
     location: {
       zone: "South South",
@@ -187,7 +193,7 @@ export const mockAssets: Asset[] = [
     serial: "VIN-TH882347",
     registrationNo: "PHC-112-XY",
     engineNo: "ENG-TH-882",
-    condition: "Fair",
+    condition: "fair",
     custodianName: "Samuel Peters",
     custodianIR: "IR-1102",
     department: "Transport",

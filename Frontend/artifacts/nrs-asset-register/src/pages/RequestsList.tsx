@@ -4,23 +4,42 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import { fetchRequestsPage, type RequestsPage, type RequestFilters } from "@/lib/dataProvider";
 import { apiConfigured, CadraApiError } from "@/lib/api";
+import { useEnum, useEnumLabel } from "@/hooks/useEnums";
 import {
   Search, X, Inbox, Clock, AlertCircle,
   ArrowUpRight, ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const PRIORITY_LABEL: Record<string, string> = {
-  "0": "Low", "1": "Normal", "2": "Normal", "3": "High", "4": "Urgent",
+// PRIORITY_LABEL used to be declared here as
+// {"0":"Low","1":"Normal","2":"Normal","3":"High","4":"Urgent"} — two entries
+// reading "Normal", and 2/3/4 all naming the wrong level. The model is
+// 0=Low, 1=Normal, 2=High, 3=Critical, 4=Very Urgent. Labels now come from
+// the model via GET /api/v1/meta/enums (useEnumLabel below); a local copy of
+// a set the back end owns is exactly what drifted, silently, in five places.
+
+// The COLOURS stay local, because severity styling is this front end's own
+// choice and not something the API publishes. What was wrong about them was
+// the severity they encoded: "2" was painted the same calm blue as "1" while
+// it is in fact High, so the one badge on the list that should pull the eye
+// did not. Re-keyed to the model's real scale.
+const PRIORITY_COLOR: Record<string, string> = {
+  // Low — recedes; nothing to act on.
+  "0": "text-muted-foreground border-border bg-muted",
+  // Normal — the resting state of most of the desk.
+  "1": "text-blue-700 dark:text-blue-400 border-blue-200/70 bg-blue-50 dark:bg-blue-950/30",
+  // High.
+  "2": "text-amber-700 dark:text-amber-400 border-amber-200/70 bg-amber-50 dark:bg-amber-950/30",
+  // Critical.
+  "3": "text-red-700 dark:text-red-400 border-red-200/70 bg-red-50 dark:bg-red-950/30",
+  // Very Urgent — the top of the scale, and it has to be tellable apart from
+  // Critical at a glance, so it carries the heavier weight and the ring.
+  "4": "text-red-800 dark:text-red-300 border-red-400 dark:border-red-700 bg-red-100 dark:bg-red-900/50 ring-1 ring-red-400/60 font-extrabold",
 };
 
-const PRIORITY_COLOR: Record<string, string> = {
-  "0": "text-muted-foreground border-border bg-muted",
-  "1": "text-blue-700 dark:text-blue-400 border-blue-200/70 bg-blue-50 dark:bg-blue-950/30",
-  "2": "text-blue-700 dark:text-blue-400 border-blue-200/70 bg-blue-50 dark:bg-blue-950/30",
-  "3": "text-amber-700 dark:text-amber-400 border-amber-200/70 bg-amber-50 dark:bg-amber-950/30",
-  "4": "text-red-700 dark:text-red-400 border-red-200/70 bg-red-50 dark:bg-red-950/30",
-};
+// An unknown key falls back to the muted style, not to "2". A value the model
+// gains before this build would otherwise be painted High on no evidence.
+const PRIORITY_COLOR_UNKNOWN = "text-muted-foreground border-border bg-muted";
 
 const STAGE_COLOR: Record<string, string> = {
   draft:        "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
@@ -50,6 +69,12 @@ export default function RequestsList({
   const [search, setSearch] = useState("");
   const [priority, setPriority] = useState("");
   const [closedFilter, setClosedFilter] = useState<"open" | "closed" | "">("open");
+
+  // Both are hooks and must be called here, at the top of the component — the
+  // badge below renders inside a .map() and uses the returned lookup function,
+  // never the hook itself.
+  const priorityOpts = useEnum("priority");
+  const priorityLabel = useEnumLabel("priority");
 
   useEffect(() => {
     setTitle(title);
@@ -122,11 +147,11 @@ export default function RequestsList({
         </div>
         <select value={priority} onChange={e => setPriority(e.target.value)} className="text-xs border border-border rounded-xl px-2.5 py-1.5 bg-background">
           <option value="">Any priority</option>
-          <option value="4">Urgent</option>
-          <option value="3">High</option>
-          <option value="2">Normal</option>
-          <option value="1">Low</option>
-          <option value="0">Very low</option>
+          {/* Model order, ascending, as the Selection declares it. The old list
+              was hand-sorted Urgent-first on top of labels that were wrong. */}
+          {priorityOpts.map(o => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
         </select>
         <select value={closedFilter} onChange={e => setClosedFilter(e.target.value as typeof closedFilter)} className="text-xs border border-border rounded-xl px-2.5 py-1.5 bg-background">
           <option value="open">Open only</option>
@@ -182,8 +207,8 @@ export default function RequestsList({
                       )}>{r.stageName}</span>
                       <span className={cn(
                         "text-[10px] font-bold px-2 py-0.5 rounded-lg border",
-                        PRIORITY_COLOR[r.priority] ?? PRIORITY_COLOR["2"],
-                      )}>{PRIORITY_LABEL[r.priority] ?? "—"}</span>
+                        PRIORITY_COLOR[r.priority] ?? PRIORITY_COLOR_UNKNOWN,
+                      )}>{priorityLabel(r.priority) || "—"}</span>
                       {r.assignee && (
                         <span className="text-[10px] text-muted-foreground">→ {r.assignee.name}</span>
                       )}

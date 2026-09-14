@@ -247,18 +247,45 @@ def _list_domain(qs):
     # `?has_coordinates=1`. Report 05's inventory of the silent booleans did
     # not have this one.
     #
-    # The false branch is the exact negation of the true branch: De Morgan on
-    # `latitude != 0 AND longitude != 0` gives `latitude = 0 OR longitude =
-    # 0`, and Odoo already folds NULL into the `!=` side, so the two branches
-    # partition the register between them with nothing falling through.
-    # (0/0 is this model's unset marker — `latitude` and `longitude` are
-    # plain Floats defaulting to zero — and the point it names is open water
-    # in the Gulf of Guinea, so no real site can sit on it.)
+    # **Unset is NULL here, not 0.0, and that is the whole subtlety.**
+    #
+    # Handoff 21 wrote this pair as `latitude != 0 AND longitude != 0` against
+    # `latitude = 0 OR longitude = 0`, on the stated grounds that the two
+    # "partition the register between them with nothing falling through" —
+    # De Morgan, which is sound, plus the premise that these are "plain Floats
+    # defaulting to zero", which is not. `latitude` and `longitude` are
+    # declared with no `default=`, so a record created without them leaves the
+    # COLUMN NULL; nothing ever writes a literal 0.0. On `jaizbankplc`, 250 of
+    # 380 locations have NULL coordinates and **zero** have 0.0.
+    #
+    # Odoo renders `('latitude', '!=', 0.0)` as `(latitude != 0 OR latitude IS
+    # NULL)`, so the NULLs landed on the HAS-coordinates side:
+    #
+    #   ?has_coordinates=true  → 380 of 380, every unmapped site included
+    #   ?has_coordinates=false → 0, on a tenant where 250 sites are unmapped
+    #
+    # `?has_coordinates=false` is "which sites has nobody mapped". It answered
+    # **none** — an empty list, which reads as reassurance, to the one question
+    # the filter was added to make answerable. That is the same defect the
+    # handoff closed, surviving inside its own fix, because the negation was
+    # checked against the comment rather than against the column.
+    #
+    # Both branches now name NULL explicitly. `('f', '=', False)` is Odoo's
+    # `IS NULL` and `('f', '!=', False)` its `IS NOT NULL`; pairing each with
+    # the 0.0 test covers both spellings of unset. (0/0 is a real point in the
+    # Gulf of Guinea, so no genuine site sits on it either way.)
     has_coordinates = parse_bool("has_coordinates", qs.get("has_coordinates"))
     if has_coordinates is True:
-        domain += [("latitude", "!=", 0.0), ("longitude", "!=", 0.0)]
+        domain += [
+            ("latitude", "!=", False), ("latitude", "!=", 0.0),
+            ("longitude", "!=", False), ("longitude", "!=", 0.0),
+        ]
     elif has_coordinates is False:
-        domain += ["|", ("latitude", "=", 0.0), ("longitude", "=", 0.0)]
+        domain += [
+            "|", "|", "|",
+            ("latitude", "=", False), ("latitude", "=", 0.0),
+            ("longitude", "=", False), ("longitude", "=", 0.0),
+        ]
     return domain
 
 
@@ -360,9 +387,17 @@ class CadraLocationsV1(http.Controller):
         # the `parse_enum` call to know this parameter is validated at all.
         # A local `if x not in ALLOWED` is invisible to it, which is how a
         # deleted check goes unnoticed.
+        #
+        # `token.strip()` is applied to the value PASSED to `parse_enum`, not
+        # only to the emptiness test. It used to guard the filter and hand the
+        # raw token over, so `?include=children, ancestors` — the way a person
+        # types a list — was a 400 naming `" ancestors"` on this route while
+        # the identical parameter on `/assets` and `/requests` accepted it.
+        # One spelling of a published parameter working on two routes out of
+        # three is its own small lie.
         try:
             include = [
-                parse_enum("include", token, _INCLUDE_SECTIONS)
+                parse_enum("include", token.strip(), _INCLUDE_SECTIONS)
                 for token in (kwargs.get("include") or "").split(",")
                 if token.strip()
             ]

@@ -8,6 +8,7 @@ import {
 } from "@/lib/dataProvider";
 import { apiConfigured } from "@/lib/api";
 import type { FleetVehicle } from "@/types";
+import { useEnumLabel } from "@/hooks/useEnums";
 import {
   Car, Bus, Truck, Search, X, ChevronDown,
   MapPin, User, Fuel, ArrowUpRight, Wrench,
@@ -46,6 +47,10 @@ function serviceHealth(v: FleetVehicle): "good" | "warning" | "overdue" {
 
 function VehicleCard({ v, onClick }: { v: FleetVehicle; onClick: () => void }) {
   const health = serviceHealth(v);
+  // `v.fuelType` is the model's key (`plug_in_hybrid_diesel`, not "CNG"). The
+  // label is the model's too, read live, so a value fleet.vehicle gains shows
+  // up here spelled the way Odoo spells it rather than as a bare key.
+  const fuelLabel = useEnumLabel("fuel_type");
   return (
     <div onClick={onClick} className="bg-card border border-border rounded-2xl p-4 cursor-pointer hover:shadow-md hover:-translate-y-0.5 hover:border-primary/20 transition-all duration-150 flex flex-col gap-3 group">
       <div className="flex items-start gap-3">
@@ -77,7 +82,7 @@ function VehicleCard({ v, onClick }: { v: FleetVehicle; onClick: () => void }) {
         </div>
       </div>
       <div className="pt-2.5 border-t border-border/60 flex items-center justify-between">
-        <span className="text-[10px] text-muted-foreground">{v.year} · {v.fuelType}</span>
+        <span className="text-[10px] text-muted-foreground">{v.year} · {fuelLabel(v.fuelType)}</span>
         <div className={cn("flex items-center gap-1 text-[10px] font-semibold",
           health === "good" ? "text-green-600 dark:text-green-400" : health === "warning" ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"
         )}>
@@ -202,6 +207,7 @@ export function FleetDetail({ params }: { params: { id: string } }) {
     queryKey: ["fleet-vehicle", params.id],
     queryFn: () => getFleetVehicleApi(params.id),
   });
+  const fuelLabel = useEnumLabel("fuel_type");
   const asset = v && v.assetId ? getAsset(v.assetId) : undefined;
   const fuelTxns = v ? listFuelTransactions(v.id) : [];
   const health = v ? serviceHealth(v) : "good";
@@ -239,7 +245,7 @@ export function FleetDetail({ params }: { params: { id: string } }) {
             <span className="text-[12px] text-muted-foreground flex items-center gap-1.5"><User size={12} />{v.assignedDriverName ?? "Unassigned"}</span>
             <span className="text-[12px] text-muted-foreground flex items-center gap-1.5"><MapPin size={12} />{v.office}</span>
             <span className="text-[12px] text-muted-foreground flex items-center gap-1.5"><Gauge size={12} />{v.currentOdometer.toLocaleString()} km</span>
-            <span className="text-[12px] text-muted-foreground flex items-center gap-1.5"><Fuel size={12} />{v.fuelType} · {v.tankCapacity}L tank</span>
+            <span className="text-[12px] text-muted-foreground flex items-center gap-1.5"><Fuel size={12} />{fuelLabel(v.fuelType)} · {v.tankCapacity}L tank</span>
           </div>
         </div>
       </div>
@@ -287,7 +293,7 @@ export function FleetDetail({ params }: { params: { id: string } }) {
             ["VIN",              v.vin],
             ["Engine No",        v.engineNo],
             ["Color",            v.color],
-            ["Fuel Type",        v.fuelType],
+            ["Fuel Type",        fuelLabel(v.fuelType)],
             ["Tank Capacity",    `${v.tankCapacity}L`],
             ["Seating",          v.seatingCapacity ? `${v.seatingCapacity} seats` : "—"],
             ["Department",       v.department],

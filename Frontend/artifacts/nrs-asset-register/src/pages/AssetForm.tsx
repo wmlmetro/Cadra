@@ -1,7 +1,16 @@
 /**
  * Asset create/edit form. Used by both AssetCreate (/assets/new) and AssetEdit
- * (/assets/:id/edit). Mirrors the _WRITABLE_FIELDS allow-list in
- * myservice_api/controllers/v1_assets.py.
+ * (/assets/:id/edit).
+ *
+ * The set of FIELDS here mirrors the _WRITABLE_FIELDS allow-list in
+ * myservice_api/controllers/v1_assets.py. The set of VALUES each enum field may
+ * hold is no longer mirrored here at all: `useEnum` reads it from the live Odoo
+ * Selection via GET /api/v1/meta/enums. Three hand-written copies used to sit at
+ * the top of this file and two of them were wrong — `LEVELS` had no `group`, so
+ * opening a group-level asset showed a select with no matching option and
+ * demoted the record to `asset` the moment anybody touched the dropdown, and
+ * `domain` was not a select at all but a free-text box advertising `nrs.fcs`,
+ * which is not one of the model's eight values and is not even the right shape.
  *
  * Note on category/subcategory/asset-type pickers: the API does not yet expose
  * list endpoints for these FK lookups, so the form takes integer FK ids directly
@@ -18,12 +27,9 @@ import { apiGet, CadraApiError } from "@/lib/api";
 import type { ApiLocation } from "@/lib/adapters";
 import { ArrowLeft, AlertCircle, Loader2, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEnum } from "@/hooks/useEnums";
+import { ENUM_DEFAULT, withCurrent } from "@/lib/enums";
 
-// `nrs.asset.condition` in the model's own order. The backend refuses
-// anything else with a 400.
-const CONDITIONS = ["new", "good", "fair", "poor", "decommissioned"] as const;
-const STATES     = ["active", "in_repair", "disposed", "transferred", "missing"] as const;
-const LEVELS     = ["asset", "sub_asset", "component"] as const;
 
 type FormShape = {
   name: string;
@@ -36,8 +42,12 @@ type FormShape = {
   asset_level: string;
   domain: string;
   department: string;
-  condition: typeof CONDITIONS[number];
-  state: typeof STATES[number];
+  // Deliberately `string`, not a union. The set these two draw from lives in
+  // the Odoo model and is read at runtime, so a compile-time union here could
+  // only ever restate a stale guess about it — which is what the deleted
+  // `typeof CONDITIONS[number]` was.
+  condition: string;
+  state: string;
   // FK ids — stored as numbers when present
   category_id: number | null;
   subcategory_id: number | null;
@@ -62,11 +72,14 @@ type FormShape = {
   notes: string;
 };
 
+// The model's own defaults, by VALUE, out of ENUM_DEFAULT — not restated here
+// and not taken as "the first option in the list". `?? ""` is the unset case,
+// which toBody drops so the server applies whatever it considers default.
 const blank: FormShape = {
   name: "", asset_tag: "", legacy_asset_code: "", serial_number: "",
   make: "", model_name: "", manufacturer: "",
-  asset_level: "asset", domain: "", department: "",
-  condition: "good", state: "active",
+  asset_level: ENUM_DEFAULT.asset_level, domain: "", department: "",
+  condition: ENUM_DEFAULT.condition, state: ENUM_DEFAULT.asset_state,
   category_id: null, subcategory_id: null, asset_type_id: null,
   parent_id: null, building_id: null, floor_id: null, room_id: null,
   location_id: null, custodian_id: null, maintenance_vendor_id: null, currency_id: null,
@@ -93,8 +106,16 @@ function toBody(f: FormShape): AssetWriteBody {
   assignIfSet("asset_level", f.asset_level);
   assignIfSet("domain", f.domain);
   assignIfSet("department", f.department);
-  out.condition = f.condition;
-  out.state = f.state;
+  // Posted through assignIfSet like everything else now that their defaults
+  // come from ENUM_DEFAULT rather than a literal: if that map ever loses a key
+  // the field arrives here as "", and "" is not a member of either Selection —
+  // the server would refuse the whole write.
+  //
+  // The two casts that used to sit here are gone: `AssetWriteBody` narrowed
+  // `condition` and `state` to hand-written unions, and that narrowing has
+  // been widened to the model's keys, so there is nothing left to cast past.
+  assignIfSet("condition", f.condition);
+  assignIfSet("state", f.state);
   assignIfSet("category_id", f.category_id);
   assignIfSet("subcategory_id", f.subcategory_id);
   assignIfSet("asset_type_id", f.asset_type_id);
@@ -182,6 +203,15 @@ export default function AssetForm({ mode }: Props) {
   const [form, setForm] = useState<FormShape>(blank);
   const set = <K extends keyof FormShape>(k: K, v: FormShape[K]) => setForm(s => ({ ...s, [k]: v }));
 
+  // Read once, here. These are hooks, so they cannot be called from inside the
+  // .map()s that consume them further down. `state` is published as
+  // "asset_state" — a bare "state" key would collide with the several other
+  // models in the schema that have a field of that name.
+  const levelOptions     = useEnum("asset_level");
+  const domainOptions    = useEnum("domain");
+  const conditionOptions = useEnum("condition");
+  const stateOptions     = useEnum("asset_state");
+
   // Selected-pickers state (display + id)
   const [locPick, setLocPick] = useState<{ id: number; label: string } | null>(null);
   const [custPick, setCustPick] = useState<{ id: number; label: string } | null>(null);
@@ -213,11 +243,14 @@ export default function AssetForm({ mode }: Props) {
         make: (e.make as string) ?? "",
         model_name: (e.model as string) ?? "",
         manufacturer: (e.manufacturer as string) ?? "",
-        asset_level: (e.asset_level as string) ?? "asset",
+        // Taken verbatim. A stored value this build does not recognise is kept
+        // rather than coerced to a default — withCurrent() puts it in the
+        // select so the user can save the record back untouched.
+        asset_level: (e.asset_level as string) ?? ENUM_DEFAULT.asset_level,
         domain: (e.domain as string) ?? "",
         department: (e.department as string) ?? "",
-        condition: (e.condition as FormShape["condition"]) ?? "good",
-        state: (e.state as FormShape["state"]) ?? "active",
+        condition: (e.condition as string) ?? ENUM_DEFAULT.condition,
+        state: (e.state as string) ?? ENUM_DEFAULT.asset_state,
         category_id: ref(e.category),
         subcategory_id: ref(e.subcategory),
         asset_type_id: ref(e.asset_type),
@@ -344,11 +377,20 @@ export default function AssetForm({ mode }: Props) {
         </Field>
         <Field label="Asset level">
           <select className={inputCls} value={form.asset_level} onChange={e => set("asset_level", e.target.value)}>
-            {LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+            {withCurrent(levelOptions, form.asset_level).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </Field>
         <Field label="Domain">
-          <input className={inputCls} value={form.domain} onChange={e => set("domain", e.target.value)} placeholder="e.g. nrs.fcs" />
+          {/* Was a text input. `domain` is a Selection related onto
+              nrs.asset.category.domain with eight members, so every free-text
+              entry that was not one of the eight was refused by the server —
+              including the one the placeholder suggested. The blank entry is
+              real: the field has no model default and an uncategorised asset
+              legitimately has none. */}
+          <select className={inputCls} value={form.domain} onChange={e => set("domain", e.target.value)}>
+            <option value="">— None —</option>
+            {withCurrent(domainOptions, form.domain).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
         </Field>
         <Field label="Department">
           <input className={inputCls} value={form.department} onChange={e => set("department", e.target.value)} placeholder="e.g. Tax Operations" />
@@ -369,13 +411,16 @@ export default function AssetForm({ mode }: Props) {
 
       <Section title="Condition & state">
         <Field label="Condition">
-          <select className={inputCls} value={form.condition} onChange={e => set("condition", e.target.value as FormShape["condition"])}>
-            {CONDITIONS.map(c => <option key={c} value={c}>{c}</option>)}
+          <select className={inputCls} value={form.condition} onChange={e => set("condition", e.target.value)}>
+            {withCurrent(conditionOptions, form.condition).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </Field>
         <Field label="State">
-          <select className={inputCls} value={form.state} onChange={e => set("state", e.target.value as FormShape["state"])}>
-            {STATES.map(s => <option key={s} value={s}>{s}</option>)}
+          {/* These two matched the model's values, but displayed the raw keys:
+              "in_repair" where the model says "Under Repair". The label is the
+              model's now, along with the set. */}
+          <select className={inputCls} value={form.state} onChange={e => set("state", e.target.value)}>
+            {withCurrent(stateOptions, form.state).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </Field>
       </Section>

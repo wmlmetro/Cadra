@@ -1,6 +1,8 @@
 /**
- * Location create/edit form. Mirrors _WRITABLE_FIELDS in
- * myservice_api/controllers/v1_locations.py.
+ * Location create/edit form. The set of FIELDS mirrors _WRITABLE_FIELDS in
+ * myservice_api/controllers/v1_locations.py; the values `location_type` may
+ * take are read from the model at runtime and are not restated here — see
+ * hooks/useEnums.ts.
  *
  * Lat/lng are number inputs with a read-only NigeriaMap preview of the
  * typed coordinates. A click-to-pick map picker is a future enhancement.
@@ -18,8 +20,9 @@ import { apiGet, CadraApiError } from "@/lib/api";
 import type { ApiLocation } from "@/lib/adapters";
 import { ArrowLeft, AlertCircle, Loader2, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEnum } from "@/hooks/useEnums";
+import { withCurrent } from "@/lib/enums";
 
-const LOC_TYPES = ["zone", "state", "office", "building", "floor", "room"] as const;
 
 type FormShape = {
   name: string;
@@ -117,6 +120,8 @@ export default function LocationForm({ mode }: Props) {
 
   const [form, setForm] = useState<FormShape>(blank);
   const set = <K extends keyof FormShape>(k: K, v: FormShape[K]) => setForm(s => ({ ...s, [k]: v }));
+  // A hook, so it is read here and not inside the .map() that consumes it.
+  const typeOptions = useEnum("location_type");
   const [parentPick, setParentPick] = useState<{ id: number; label: string } | null>(null);
 
   const existing = useQuery({
@@ -139,6 +144,10 @@ export default function LocationForm({ mode }: Props) {
         description: l.description ?? "",
         active: l.active,
         parent_id: l.parent_id ?? null,
+        // Verbatim, and no fallback value: `location_type` has no model
+        // default and an unset one is a real state. A stored value this build
+        // does not recognise survives to withCurrent() below rather than being
+        // quietly dropped on the floor.
         location_type: l.location_type ?? "",
         street: l.address?.street ?? "",
         street2: l.address?.street2 ?? "",
@@ -233,9 +242,17 @@ export default function LocationForm({ mode }: Props) {
           <textarea className={inputCls} rows={2} value={form.description} onChange={e => set("description", e.target.value)} />
         </Field>
         <Field label="Type">
+          {/* The set is generic.location.location_type, read from the model via
+              GET /api/v1/meta/enums. The hard-coded list this replaces offered
+              `state` and `office`, which the model has never had — picking
+              either and saving raised — and omitted `wing`, which it does have.
+              The omission was the worse half: an existing wing loaded into a
+              select with no matching option, rendered blank, and could not be
+              saved back without changing its own type. The blank entry below is
+              genuine, though: the field has no model default and may be unset. */}
           <select className={inputCls} value={form.location_type} onChange={e => set("location_type", e.target.value)}>
             <option value="">— None —</option>
-            {LOC_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            {withCurrent(typeOptions, form.location_type).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </Field>
         <Field label="Zone code">

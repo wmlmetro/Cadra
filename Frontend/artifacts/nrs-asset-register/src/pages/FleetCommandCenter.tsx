@@ -9,6 +9,7 @@ import {
   Calendar, RefreshCw, Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEnumLabel } from "@/hooks/useEnums";
 
 export default function FleetCommandCenter() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
@@ -31,6 +32,11 @@ export default function FleetCommandCenter() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+
+  // `/fleet/dashboard` sends `fuel_type` as the raw selection key, and this
+  // table used to print it — a row reading `plug_in_hybrid_diesel`. The label
+  // is the model's own, read from /meta/enums.
+  const fuelLabel = useEnumLabel("fuel_type");
 
   const vehicles = useMemo(() => {
     const r = fleet.data?.vehicles ?? [];
@@ -182,7 +188,7 @@ export default function FleetCommandCenter() {
                       v.maint_status === "no_schedule" && "bg-muted border-border text-muted-foreground",
                     )}>{v.maint_status.replace("_", " ")}</span>
                   </td>
-                  <td className="px-3 py-2 text-[12px]">{v.fuel_type}</td>
+                  <td className="px-3 py-2 text-[12px]">{fuelLabel(v.fuel_type)}</td>
                   <td className="px-3 py-2 text-[12px] tabular-nums">{v.odometer.toLocaleString()}</td>
                 </tr>
               ))}

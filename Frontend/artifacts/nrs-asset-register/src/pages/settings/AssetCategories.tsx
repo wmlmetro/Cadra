@@ -4,8 +4,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import {
   fetchAssetCategories, updateAssetCategory, createAssetCategory, deleteAssetCategory,
-  FM_DOMAINS, type AssetCategoryConfig, type CategoryIdentity,
+  type AssetCategoryConfig, type CategoryIdentity,
 } from "@/lib/dataProvider";
+// Both FM domain dropdowns on this screen were filled from `FM_DOMAINS`, a
+// hand-written constant in dataProvider that had an identical twin 630 lines
+// above it in the same file. The set is `nrs.asset.category.domain` and the
+// server publishes it; read it rather than keeping a third copy.
+import { useEnum } from "@/hooks/useEnums";
 import { CadraApiError } from "@/lib/api";
 import BrandPill from "@/components/BrandPill";
 import {
@@ -38,6 +43,7 @@ function Row({
   };
   const [draft, setDraft] = useState<CategoryIdentity>(initial);
   useEffect(() => { setDraft(initial); /* eslint-disable-next-line */ }, [cat]);
+  const domains = useEnum("domain");
 
   const dirty = (Object.keys(initial) as (keyof CategoryIdentity)[])
     .some(k => draft[k] !== initial[k]);
@@ -56,7 +62,7 @@ function Row({
         <select className={inputCls} disabled={busy} value={draft.domain ?? ""}
                 onChange={e => setDraft({ ...draft, domain: e.target.value || null })}>
           <option value="">—</option>
-          {FM_DOMAINS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+          {domains.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
         </select>
       </td>
       <td className="py-2 pr-2 w-28">
@@ -116,6 +122,7 @@ export default function AssetCategoriesPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
   const [draftNew, setDraftNew] = useState<Partial<CategoryIdentity>>({ name: "" });
+  const domains = useEnum("domain");
 
   useEffect(() => {
     setTitle("Settings — Asset Categories");
@@ -243,7 +250,7 @@ export default function AssetCategoriesPage() {
               <select className={inputCls} value={draftNew.domain ?? ""}
                       onChange={e => setDraftNew({ ...draftNew, domain: e.target.value || null })}>
                 <option value="">—</option>
-                {FM_DOMAINS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                {domains.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
               </select>
             </div>
             <div>

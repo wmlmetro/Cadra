@@ -12,6 +12,8 @@ import { useLayoutCtx } from "@/components/layout/AppLayout";
 import RecordPicker from "@/components/RecordPicker";
 import { createRequest, updateRequest, fetchRequest, type RequestWriteBody } from "@/lib/dataProvider";
 import { apiGet, CadraApiError } from "@/lib/api";
+import { useEnum } from "@/hooks/useEnums";
+import { ENUM_DEFAULT } from "@/lib/enums";
 import type { ApiLocation } from "@/lib/adapters";
 import { ArrowLeft, AlertCircle, Loader2, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -47,9 +49,21 @@ type FormShape = {
   nrs_asset_id: number | null;
 };
 
+// The blank form starts on the MODEL's default priority, by value.
+// It used to start on the literal "2" — chosen because it is the middle of
+// five options — and "2" is High. The dropdown that shipped with it was
+// labelled one step low, so the screen said "Normal" while the record was
+// filed High, and nothing anywhere reported the discrepancy. A default is a
+// value the model owns, not a position in a list this file maintains.
+//
+// No `?? ""` fallback: an unset `priority` would render this select with no
+// matching option, so the browser would display the FIRST one — "Low" —
+// while a form submitted untouched recorded the model's default, "Normal".
+// That is the same defect one value along, so `ENUM_DEFAULT` is typed to
+// guarantee the key instead (`satisfies`, not an annotation).
 const blank: FormShape = {
   type_id: "", category_id: "",
-  priority: "2", impact: "", urgency: "",
+  priority: ENUM_DEFAULT.priority, impact: "", urgency: "",
   request_text: "", response_text: "",
   deadline_date: "",
   user_id: null, location_id: null, vehicle_id: "", nrs_asset_id: null,
@@ -103,6 +117,10 @@ export default function RequestForm({ mode }: { mode: "create" | "edit" }) {
   const [, nav] = useLocation();
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const qc = useQueryClient();
+
+  // The priority set is read from the model via GET /api/v1/meta/enums rather
+  // than declared here; see lib/enums.ts for why the local copy had to go.
+  const priorityOpts = useEnum("priority");
 
   const [form, setForm] = useState<FormShape>(blank);
   const set = <K extends keyof FormShape>(k: K, v: FormShape[K]) => setForm(s => ({ ...s, [k]: v }));
@@ -209,11 +227,9 @@ export default function RequestForm({ mode }: { mode: "create" | "edit" }) {
         </Field>
         <Field label="Priority">
           <select className={inputCls} value={form.priority} onChange={e => set("priority", e.target.value)}>
-            <option value="0">Very low</option>
-            <option value="1">Low</option>
-            <option value="2">Normal</option>
-            <option value="3">High</option>
-            <option value="4">Urgent</option>
+            {priorityOpts.map(o => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
           </select>
         </Field>
         <Field label="Deadline">

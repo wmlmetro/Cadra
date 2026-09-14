@@ -15,6 +15,7 @@ import {
   AlertCircle, ChevronRight, Edit3, ShieldCheck, AlertTriangle, Trash2, ArrowRightLeft, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEnumLabel } from "@/hooks/useEnums";
 
 const WORKFLOW_STEPS = ["Cleared", "In Review", "Disposed"];
 
@@ -67,6 +68,9 @@ export default function AssetDetail() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
 
   const qc = useQueryClient();
+  // `asset.condition` is the model's key (`good`, `decommissioned`), not a
+  // display word — it is spelled for the reader here and nowhere else.
+  const conditionLabelOf = useEnumLabel("condition");
   const { data: asset, isLoading, error } = useQuery<Asset | null, CadraApiError>({
     queryKey: ["asset", id],
     queryFn: () => fetchAsset(id ?? ""),
@@ -262,7 +266,7 @@ export default function AssetDetail() {
                   <DetailRow label="Category" value={asset.category} />
                   <DetailRow label="Subcategory" value={asset.subcategory} />
                   <DetailRow label="Asset Type" value={asset.assetType} />
-                  <DetailRow label="Condition" value={asset.condition} />
+                  <DetailRow label="Condition" value={conditionLabelOf(asset.condition)} />
                   <DetailRow label="Lifecycle State" value={asset.lifecycleState} />
                   <DetailRow label="Verified" value={asset.isVerified == null ? null : asset.isVerified ? "Yes" : "No"} />
                 </dl>

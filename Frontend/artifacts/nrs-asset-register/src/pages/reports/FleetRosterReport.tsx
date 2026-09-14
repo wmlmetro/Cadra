@@ -8,10 +8,14 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import BrandPill from "@/components/BrandPill";
+import { useEnum } from "@/hooks/useEnums";
+import { enumLabel } from "@/lib/enums";
 
 // Sortable columns over the fleet vehicle roster. The "fuel" column maps to
 // fuel_type because the backend doesn't expose per-vehicle fuel level — this
-// report is a roster, not a fuel-status view.
+// report is a roster, not a fuel-status view. It shows the model's LABEL for
+// the key the API sends; printing the key itself put `plug_in_hybrid_gasoline`
+// in an auditor-facing report.
 type SortKey = "license" | "name" | "driver" | "location" | "maint_status" | "fuel_type";
 
 export default function FleetRosterReport() {
@@ -27,6 +31,11 @@ export default function FleetRosterReport() {
     queryFn: fetchFleetDashboard,
     staleTime: 60_000,
   });
+
+  // `fuel_type` arrives as the raw selection key. The roster prints — and
+  // sorts by — the model's label, so the Fuel column orders the way the reader
+  // sees it rather than by a key they are never shown.
+  const fuelOptions = useEnum("fuel_type");
 
   const [search, setSearch] = useState("");
   const [maintFilter, setMaintFilter] = useState("");
@@ -44,14 +53,16 @@ export default function FleetRosterReport() {
              (v.driver ?? "").toLowerCase().includes(q) ||
              (v.location ?? "").toLowerCase().includes(q);
     });
+    const key = (v: FleetDashboard["vehicles"][number]) =>
+      sortKey === "fuel_type"
+        ? enumLabel(fuelOptions, v.fuel_type)
+        : ((v[sortKey] ?? "") as string);
     const sorted = [...filtered].sort((a, b) => {
-      const av = (a[sortKey] ?? "") as string;
-      const bv = (b[sortKey] ?? "") as string;
-      const cmp = av.localeCompare(bv);
+      const cmp = key(a).localeCompare(key(b));
       return sortDir === "asc" ? cmp : -cmp;
     });
     return sorted;
-  }, [fleet.data, search, maintFilter, sortKey, sortDir]);
+  }, [fleet.data, search, maintFilter, sortKey, sortDir, fuelOptions]);
 
   const driverCount = useMemo(() =>
     (fleet.data?.vehicles ?? []).filter(v => v.driver && v.driver.trim()).length,
@@ -199,7 +210,7 @@ export default function FleetRosterReport() {
                       v.maint_status === "no_schedule" && "bg-muted border-border text-muted-foreground",
                     )}>{v.maint_status.replace("_", " ")}</span>
                   </td>
-                  <td className="px-3 py-2 text-[12px]">{v.fuel_type || <span className="text-muted-foreground">—</span>}</td>
+                  <td className="px-3 py-2 text-[12px]">{enumLabel(fuelOptions, v.fuel_type) || <span className="text-muted-foreground">—</span>}</td>
                 </tr>
               ))}
               {rows.length > 300 && (
