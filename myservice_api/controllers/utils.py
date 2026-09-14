@@ -185,6 +185,13 @@ SCOPE_TAGGING_WRITE      = "tagging:write"
 # Carved out of `admin` so an Asset Manager can keep the Settings screens
 # without being handed a wildcard — see GROUP_SCOPES below.
 SCOPE_SETTINGS_WRITE     = "settings:write"
+# Reading the configuration change log (specification §13.4's fifth report).
+# A READ scope rather than reusing `settings:write`, because an auditor whose
+# only way to read what the settings are is to hold the right to change them
+# is an auditor the control has been handed to. It is granted by two groups
+# below, so it is not the "scope nothing grants" that the audit-report scope
+# ruling in `v1_assets.py` rightly rejects.
+SCOPE_SETTINGS_READ      = "settings:read"
 SCOPE_ADMIN              = "admin"
 
 ALL_SCOPES = frozenset({
@@ -199,6 +206,7 @@ ALL_SCOPES = frozenset({
     SCOPE_IDENTITY_READ,
     SCOPE_TAGGING_WRITE,
     SCOPE_SETTINGS_WRITE,
+    SCOPE_SETTINGS_READ,
     SCOPE_ADMIN,
 })
 
@@ -248,6 +256,10 @@ GROUP_SCOPES = (
         SCOPE_APPROVALS_WRITE,
         SCOPE_INGESTION_WRITE,
         SCOPE_SETTINGS_WRITE,
+        # Whoever may change the settings may read the log of who changed
+        # them; withholding it would leave the change log readable only by
+        # the auditor and not by the person answering to them.
+        SCOPE_SETTINGS_READ,
         # The SPA's Bulk Import page (nominal-roll xlsx -> employees) is in
         # the top-level nav and is the only thing that page does. Without
         # this an Asset Manager who imported a roll yesterday gets a 403
@@ -260,6 +272,28 @@ GROUP_SCOPES = (
     # label went onto the metal, or an affix record proves only that one
     # system said so twice.
     ("myservice_asset_register.group_tag_issuing_unit", (SCOPE_TAGGING_WRITE,)),
+
+    # The Auditor (specification §3's `audit_viewer`, INT-10 §4.3). READ
+    # scopes only, and every one of them already exists — the five §13.4
+    # reports are views of the register, the identity roster and the
+    # configuration, so they take those things' scopes rather than an
+    # `audit:read` of their own. `v1_assets.py` ruled that out and the
+    # reasoning holds: a scope no group grants makes a report unreachable on
+    # every tenant on the day it ships.
+    #
+    # Implied by nothing and implying nothing, like the Tag-Issuing Unit and
+    # for a related reason: an auditor who is also an Asset Manager is not
+    # independent of what they are auditing, and hanging this under either
+    # existing group would make that the default rather than a decision.
+    # Do not "tidy" it into the hierarchy.
+    ("myservice_api.group_auditor", (
+        SCOPE_ASSETS_READ,
+        SCOPE_LOCATIONS_READ,
+        SCOPE_REQUESTS_READ,
+        SCOPE_IDENTITY_READ,
+        SCOPE_DASHBOARDS_READ,
+        SCOPE_SETTINGS_READ,
+    )),
 
     # The employee roster and the SAP/spreadsheet imports that feed it.
     ("myservice_identity.group_identity_manager", (
@@ -315,6 +349,7 @@ SCOPE_GROUPS = {
     SCOPE_APPROVALS_WRITE:    ("myservice_asset_register.group_asset_manager",),
     SCOPE_INGESTION_WRITE:    ("myservice_asset_register.group_asset_manager",),
     SCOPE_SETTINGS_WRITE:     ("myservice_asset_register.group_asset_manager",),
+    SCOPE_SETTINGS_READ:      ("myservice_api.group_auditor",),
     # These three were load-bearing rather than documentary until handoff 09,
     # because the `myservice.dashboard` routes were the only ones in the API
     # that did not `sudo()`: `get_kpis` reads `fleet.vehicle` and
