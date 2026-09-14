@@ -172,6 +172,7 @@ done
 | 20 | What a client actually gets — every profile on Odoo 19 with two guards saying so · the 15 stack deleted · `docs/DEPLOYMENT.md` rewritten · a late `payment_ref` recorded · `queried` dedups on the pair · the prod bring-up refuses a default credential |
 | 21 | The filters that answer with everything — seven booleans, thirteen enums and nineteen foreign keys refuse what they cannot read · a pure validator at the door · `.gitlab-ci.yml` deleted · a newline-bearing credential refused |
 | 22 | The front end that lies to its own users — seven enum sets read from the model, not declared · `GET /api/v1/meta/enums` · a drift guard proved to fail first · a corrupt cursor is a 400 (BREAKING) · `?has_coordinates=false` stops answering zero · two partition tests that never ran |
+| 23 | **The last two audit reports — §13.4's five are complete.** The access log that does not exist, said in the response with the six places it could have been · the configuration log's 22 recoverable keys, credentials redacted by key name · the `Auditor` group, proved by acting · a disposal approved by whoever called · the CI series guard reads the file it was written for |
 
 ## Backlog — agreed, not yet scheduled
 
