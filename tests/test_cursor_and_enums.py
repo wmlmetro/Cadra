@@ -29,6 +29,7 @@ asserted is what a caller receives.
 """
 import base64
 import json
+import time
 
 import pytest
 
@@ -261,7 +262,47 @@ def _total(client, path, **params):
     return (r.json().get("pagination") or {}).get("total_estimate")
 
 
-def test_has_coordinates_true_and_false_sum_to_the_whole_register(client):
+@pytest.fixture(scope="module")
+def both_halves_exist(client):
+    """One mapped location and one unmapped one, created if absent.
+
+    The partition assertion below is worth having only if BOTH halves are
+    non-empty — a check that passes on an empty half is the thing this test
+    exists to prevent. But whether a half is empty is a fact about the
+    tenant's data, not about the code: `jaizbankplc` has 130 mapped and 250
+    unmapped, while CI's freshly-seeded database has **0 mapped and 480
+    unmapped**, because nothing in the seed carries a coordinate.
+
+    Skipping there would have been the easy answer and the wrong one: it
+    would mean this regression net never runs in CI, which is precisely the
+    "test that does not run" defect this handoff spent its time removing.
+    Two rows cost nothing and make the assertion real on any tenant.
+    """
+    ts = int(time.time())
+    created = []
+    for suffix, body in (
+        ("mapped", {"latitude": 9.0820, "longitude": 8.6753}),
+        ("unmapped", {}),
+    ):
+        r = client.post("/api/v1/locations", json={
+            "name": "pytest-coords-%s-%d" % (suffix, ts),
+            "description": "Created by tests/test_cursor_and_enums.py — "
+                           "guarantees both halves of the has_coordinates "
+                           "partition exist. Leave in dev DB.",
+            **body,
+        })
+        if r.status_code in (401, 403):
+            pytest.skip("this credential cannot create locations (%d)"
+                        % r.status_code)
+        assert r.status_code == 201, (
+            "could not create the %s fixture location: HTTP %d %s"
+            % (suffix, r.status_code, r.text[:300]))
+        created.append(r.json()["data"])
+    return created
+
+
+def test_has_coordinates_true_and_false_sum_to_the_whole_register(
+        client, both_halves_exist):
     """`?has_coordinates=false` is "which sites has nobody mapped".
 
     It used to answer **zero** on a tenant where 250 of 380 locations are
@@ -292,6 +333,9 @@ def test_has_coordinates_true_and_false_sum_to_the_whole_register(client):
     assert 0 < mapped < whole and 0 < unmapped < whole, (
         "the partition is degenerate: mapped=%d unmapped=%d whole=%d. One "
         "half is empty and the other is everything, which is how this filter "
-        "passed for the whole time it was broken. If this tenant genuinely "
-        "has no unmapped sites the fixture is wrong for this test, not the "
-        "code." % (mapped, unmapped, whole))
+        "passed for the whole time it was broken.\n"
+        "`both_halves_exist` creates one row on each side precisely so this "
+        "cannot happen, so a degenerate split here means the FILTER is "
+        "wrong, not the fixture — most likely that unset coordinates have "
+        "landed on the has-coordinates side again."
+        % (mapped, unmapped, whole))

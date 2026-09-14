@@ -301,6 +301,45 @@ and for `CRITICAL`: neither appears. Run with `--workers=0` as CI does, so the
 `myservice_barcode_station` HttpCase actually executes rather than erroring in
 `setUpClass` and reporting green.
 
+### CI failed the first run, on my own new test, and it was right to
+
+```
+1 failed, 740 passed, 21 skipped in 22.34s
+AssertionError: the partition is degenerate: mapped=0 unmapped=480 whole=480.
+```
+
+The `has_coordinates` partition test asserts that neither half is empty — the
+whole point of §5, since the old broken behaviour passed a naive sum check.
+**CI builds its own single database and nothing in that seed carries a
+coordinate**, so on CI the split is degenerate in the opposite direction from
+`jaizbankplc`: 0 mapped, 480 unmapped.
+
+Two things worth separating:
+
+1. **The fix itself passed on CI.** `mapped + unmapped == whole` held
+   (0 + 480 = 480). What failed was only my non-degeneracy guard.
+2. **The obvious repair was the wrong one.** Skipping when a half is empty is
+   what `test_query_params.py` does, and here it would have meant this
+   regression net **never runs in CI at all** — which is the exact "test that
+   does not run" defect §6 of this report was written to remove. Writing it
+   would have been reintroducing the finding in the same handoff that found it.
+
+So the test now creates its own partition: a `both_halves_exist` fixture posts
+one location with coordinates and one without, so both halves are non-empty on
+any tenant regardless of what the seed happens to carry. Verified against the
+live API before relying on it — a location POSTed with `latitude`/`longitude`
+moves the `has_coordinates=true` count from 131 to 132, so the fixture really
+does land on the mapped side rather than merely being created.
+
+The assertion message was re-aimed to match: a degenerate split now means the
+**filter** is wrong, not the fixture, because the fixture guarantees it cannot
+be the fixture.
+
+Full local suite re-run after the change: **730 passed, 32 skipped**, and no
+test that asserts an exact register total is disturbed by the two extra rows
+(checked; the only exact counts in the suite are the record cap's `== 100`,
+which two rows cannot move).
+
 `npx tsc -p tsconfig.json --noEmit` — **exit 0, no diagnostics**, after
 `rm -f .tsbuildinfo` to force a full rebuild.
 
