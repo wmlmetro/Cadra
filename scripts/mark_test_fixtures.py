@@ -57,7 +57,10 @@ with another does not."
 Fabricating a reversal would be the same defect as the fabricated approval,
 one step further on. Marking is the honest answer; erasing is not.
 
-Re-running is safe: both changes are idempotent.
+Re-running is safe: both changes are idempotent. Re-run it after handoff
+25 even if you ran it before — the credential half silently did nothing
+on any tenant where that credential is archived, which is every tenant
+measured so far.
 """
 
 DISCLOSURE = (
@@ -69,11 +72,29 @@ DISCLOSURE = (
 Client = env['myservice.api.client'].sudo()          # noqa: F821 — odoo shell
 Asset = env['nrs.asset'].sudo()                      # noqa: F821 — odoo shell
 
-approver = Client.search([('name', '=', 'Handoff23 Approver')])
+# `active_test=False`, and it is not a detail: on `jaizbankplc` this
+# credential is ARCHIVED, so the plain `search()` this line used to carry
+# returned an EMPTY recordset, the loop below never ran, and the script
+# printed nothing whatsoever about the credential while reporting success on
+# the disposals. It looked like a clean run. Handoff 25 found it by checking
+# the database afterwards rather than reading the output — the six disposals
+# were disclosed and the credential was still `is_test_credential = False`.
+#
+# An archived credential's artefacts are still artefacts, which is exactly
+# why `nrs.asset.custody._is_test_credential_user` searches the same way.
+approver = Client.with_context(active_test=False).search([
+    ('name', '=', 'Handoff23 Approver'),
+])
+if not approver:
+    # Says so, rather than succeeding silently. A step that can do nothing
+    # without a word is how the first version of this passed for a full run.
+    print("NOTE: no client named 'Handoff23 Approver' on this database — "
+          "nothing to flag. If you expected one, check the name.")
 for client in approver:
     if not client.is_test_credential:
         client.write({'is_test_credential': True})
-        print("marked credential %r as a test credential" % client.name)
+        print("marked credential %r (%s, active=%s) as a test credential"
+              % (client.name, client.client_id, client.active))
     else:
         print("credential %r already marked" % client.name)
 

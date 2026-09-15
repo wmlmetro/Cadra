@@ -152,7 +152,15 @@ All three are the lesson `token_scopes`' own docstring already carried, one leve
 
 ### Two things I checked rather than assumed
 
-**`mark_test_fixtures.py` has NOT been run.** `Handoff23 Approver` still reads `is_test_credential = False` and **0 of the 6** disposals carry the disclosure. The handoff asked me to verify if it had been; it has not.
+**`mark_test_fixtures.py` had not been run — and when the owner ran it, HALF of it silently did nothing.**
+
+The handoff asked me to verify rather than assume, and this is what that was for. After the run, the six disposals were correctly disclosed and **the credential was still `is_test_credential = False`**. The script printed nothing at all about it — not a failure, not a "not found", nothing — so the output read as a clean run.
+
+The cause: `Handoff23 Approver` is **archived** on `jaizbankplc`, and handoff 24's script searched for it with a plain `Client.search(...)`. Odoo's default `active_test` excludes archived records, so the search returned an empty recordset and the `for` loop never executed. Report 24 called both changes idempotent; one of them had never worked on this tenant and could not have.
+
+Fixed here: the search takes `active_test=False` — an archived credential's artefacts are still artefacts, which is exactly why `nrs.asset.custody._is_test_credential_user` already searched that way — and the script now says so out loud when it finds no such client. Re-run and verified: `Handoff23 Approver` → `is_test_credential = True`, 6 of 6 disposals disclosed.
+
+**This is the third instrument in two handoffs that reported success while doing nothing**, after report 23's unregistered test file and report 22's mutation proof asserting on a variable that never existed. The pattern is the same every time: a step that can find nothing and say nothing.
 
 **The residue grew after report 24 measured it.** Report 24 counted 3,584 fixture assets of 4,056 on 2026-09-15; the same day, after that report's own verification runs, the register holds 4,164 assets. Measuring the problem did not slow it down, because nothing did until this handoff.
 
