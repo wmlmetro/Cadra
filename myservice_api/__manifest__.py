@@ -1,6 +1,6 @@
 {
     'name': 'Cadra API (v1)',
-    'version': '19.0.3.8.0',
+    'version': '19.0.3.9.0',
     'summary': 'Cadra API-first layer (JWT, PRD envelope, idempotency, auto OpenAPI)',
     'author': 'WestMetro Limited',
     'website': 'https://westmetrong.com',
@@ -9,6 +9,14 @@
         'web',
         'base',
         'website',
+        # `cadra.test.fixture.mixin` (models/test_fixture.py) adds a stored
+        # column to `mail.message`, `res.partner`, `hr.employee` and
+        # `hr.department`. Inheriting a model whose module is only a
+        # TRANSITIVE dependency lets the graph order the column apart from
+        # the code that reads it, which is the failure `asset_custody.py`
+        # documents. Named explicitly.
+        'mail',
+        'hr',
         # API wrappers touch these models via env lookups
         'myservice_dashboard',
         'myservice_security',

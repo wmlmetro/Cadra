@@ -74,6 +74,11 @@ def serialize_location(loc, *, include=(), include_counts=False):
     data = {
         "id": loc.id,
         "name": loc.name,
+        # Derived from the credential that created the record, never
+        # declared (`myservice_api/models/test_fixture.py`). Additive and
+        # always present; FALSE on every record created before handoff 26,
+        # which is NOT the same statement as "this is a real record".
+        "is_test_fixture": loc.is_test_fixture,
         "type": {
             "id": loc.type_id.id,
             "name": loc.type_id.name,

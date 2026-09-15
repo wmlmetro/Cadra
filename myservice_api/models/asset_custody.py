@@ -12,7 +12,7 @@ produced by a single-module upgrade.
 
 Here, the column and the code that reads it ship together and move together.
 """
-from odoo import api, models, tools
+from odoo import api, models
 
 
 class NRSAssetCustody(models.Model):
@@ -48,25 +48,22 @@ class NRSAssetCustody(models.Model):
         return source
 
     @api.model
-    @tools.ormcache('user_id')
     def _is_test_credential_user(self, user_id):
-        """Is this the Odoo user behind a credential flagged as a test one?
+        """Delegate to the model that owns the column.
 
-        Cached on the user id because `_record` is called PER RECORD from
-        `nrs.asset.create` and `nrs.asset.write`, so an uncached lookup is
-        one `search_count` per row — ten thousand of them on a bulk import
-        with custodians, and one per asset when an employee leaves. The
-        answer depends only on the user and on a field an administrator
-        changes about once, so the cache is invalidated by writes to
-        `myservice.api.client` rather than by time.
+        The implementation moved to `myservice.api.client` in handoff 26,
+        which gave the derivation a SECOND consumer — `cadra.test.fixture.
+        mixin`, which stamps the same fact onto every other model the API can
+        create. Two copies of a safety derivation is how the two answers
+        start disagreeing, and this one is load-bearing for a chain that
+        refuses correction by design.
 
-        `active_test=False`: an archived credential's artefacts are still
-        artefacts.
+        The name stays here because `scripts/mark_test_fixtures.py`, the
+        docs and three reports cite it, and because the caching, the
+        `active_test=False` and the invalidation all live on the other side
+        unchanged. This is a forwarder, not a second opinion.
         """
         Client = self.env.get('myservice.api.client')
-        if Client is None or not user_id:
+        if Client is None:
             return False
-        return bool(Client.sudo().with_context(active_test=False).search_count([
-            ('user_id', '=', user_id),
-            ('is_test_credential', '=', True),
-        ]))
+        return Client._is_test_credential_user(user_id)

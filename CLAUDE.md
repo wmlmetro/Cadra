@@ -91,7 +91,7 @@ Cadra is one of three systems in the NRS integration programme, defined by *"End
 - **Tenancy is host-based.** With `ODOO_DBFILTER='^%d$'`, `http://localhost:8069` answers *"No database is selected"* and a database is reached as `http://<db>.localhost:8069`. Local databases: `cadra19`, `nrs19`, `gtb19`, `test19` (19-era) and `nrs`, `gtb`, `lasg`, `jaizbankplc` (15-era replicas now served by the 19 container, all at `base = 19.0.1.3`).
 - **`odoo` is not a database you can test against**, and `.env.example` names it (`POSTGRES_DB=odoo`, `ODOO_DBFILTER=^odoo$`). It is a genuine 15-era leftover that a 19 worker cannot load, and it fails with an error that names nothing relevant — see `docs/ENVIRONMENT-FACTS.md` for the exact text, which is not what you would guess. The defaults are right for CI, which creates its own single database, and wrong for every command in this file: export `ODOO_DBFILTER='^%d$'` and name a real tenant.
 - **Editing a bind-mounted config file breaks its mount.** `./config/odoo.19.conf` is mounted as a *single file*; anything that replaces the inode rather than writing in place (most editors, and every agent file tool) leaves the container with **no `/etc/odoo/odoo.conf` at all** — every `exec … odoo -c` then fails with a confusing `psycopg2.OperationalError` about a unix socket, because the defaults have no `db_host`. `docker compose … up -d --force-recreate odoo` after any config edit.
-- **A test will not run against a database that is not marked as a test database.** Since handoff 25, both suites read `cadra.database_class` from the target database and refuse unless it is `test`. **Absent refuses**, so a tenant nobody has classified is refused exactly as a production one is. There is no bypass flag and no override variable — if a database should accept test writes, mark it, and the refusal prints the command. Locally, `test19` is marked `test` and `jaizbankplc`/`nrs`/`lasg`/`gtb` are marked `client` and refuse; `cadra19`/`nrs19`/`gtb19` are unmarked and therefore also refuse.
+- **A test will not run against a database that is not marked as a test database.** Since handoff 25, both suites read `cadra.database_class` from the target database and refuse unless it is `test`. **Absent refuses**, so a tenant nobody has classified is refused exactly as a production one is. There is no bypass flag and no override variable — if a database should accept test writes, mark it, and the refusal prints the command. Locally, `test19` is marked `test` and `jaizbankplc`/`nrs`/`lasg`/`gtb` are marked `client` and refuse; `cadra19`/`nrs19`/`gtb19` are unmarked and therefore also refuse. **Handoff 26 measured all three and proposed a class for each** — `nrs19` and `cadra19` `client`, `gtb19` `test` — with the evidence in `docs/GO-LIVE.md` §7. **The owner marks them; a guess is a false record in the one place the system now trusts.**
   ```
   CADRA_API_BASE=http://test19.localhost:8069 tests/.venv/bin/python -m pytest tests/ -q
   ```
@@ -136,7 +136,7 @@ done
 ## Architecture rules
 
 1. **The API is a contract.** Every `@cadra_route` returns the PRD §10.7 envelope via `ok()` / `err()` — never raw dicts. Additive changes are safe; changing or removing a field, an enum value or an error code is breaking, and Vendra is downstream.
-2. **Model is the source of truth, the allow-list is the gate.** A field being on `nrs.asset` does not make it writable; `_WRITABLE_FIELDS` decides. When adding one, add it to the allow-list, the OpenAPI annotation and a test in the same change.
+2. **Model is the source of truth, the allow-list is the gate.** A field being on `nrs.asset` does not make it writable; `_WRITABLE_FIELDS` decides. When adding one, add it to the allow-list, the OpenAPI annotation and a test in the same change. **A DERIVED field is the exception that proves it**: `is_test_fixture` (`myservice_api/models/test_fixture.py`) is published and read-only — stamped from the acting credential at creation, overwritten rather than defaulted, refused by `write()` unconditionally, and in no allow-list. `tests/test_source_guards.py` fails if it is ever added to one, and fails if a model any first-party path can create carries no self-label at all.
 3. **Never let an integration guess.** Unknown fields are currently dropped with a 201 and reported only in `data._warnings.rejected_fields`. Anything that silently degrades — a dropped field, an ignored idempotency key — is a defect even when it returns 200.
 4. **Enums are published API surface.** If the model's selection values and the documented values disagree, the docs are wrong and must be fixed; do not add a value to the model to match a doc.
 5. **Idempotency is load-bearing.** `X-Idempotency-Key`, scoped `(key, path)`, 24h. An integration relies on replay being exact.
@@ -177,14 +177,23 @@ done
 | 23 | **The last two audit reports — §13.4's five are complete.** The access log that does not exist, said in the response with the six places it could have been · the configuration log's 22 recoverable keys, credentials redacted by key name · the `Auditor` group, proved by acting · a disposal approved by whoever called · the CI series guard reads the file it was written for, after its first fix exempted `ODOO_VERSION: '15.0'` |
 | 24 | The record starts now — group membership is an append-only fact with the actor and the instant it begins · the writer list corrected in three places (implication writes NO membership rows on 19) · what a test run writes into a client's register · `finance_viewer` ruled a sentence, not a group |
 | 25 | **Where the tests are allowed to write.** A test refuses any database not marked `cadra.database_class = test`, absent included — both suites, no bypass flag, CI stamped rather than exempted · the guard read through an ormcache and leaked 24 writing tests onto an unmarked database before it was made to read the row · a fixture can no longer mint a credential that lies about itself · the residue script, dry-run and trial-deleted, 3,779 of 3,894 removable and 115 refused · `fmDomain` gets its own name and row · `allowed_values` on three refusals (`allowed` DEPRECATED) · `workflow_payment_ref` published |
+| 26 | **A fixture says so on its face — and the last handoff.** `is_test_fixture` derived from the acting credential onto 14 models, unsettable and unclearable · a guard that fails on any creatable model with no self-label · 24 silent instruments found, 10 fixed including the production refusal that read through the ormcache · the three tenants measured and proposed · the open-items register in `docs/GO-LIVE.md` Part II |
 
-## Backlog — agreed, not yet scheduled
+## Backlog — see `docs/GO-LIVE.md` Part II
 
-- **Reconstructing access grants made BEFORE the record began.** Handoff 24 landed the forward record, so the unrecoverable period stopped growing; what is still open is whether NRS wants the period before it reconstructed, which cannot be done from the schema — see `docs/integrations/INT-10-audit-access.md` §2.10b. A decision for NRS rather than an engineering backlog item.
-- **Two owner-run scripts against `jaizbankplc`, neither yet run.** `scripts/mark_test_fixtures.py` (discloses the six fabricated approved disposals and flags the `Handoff23 Approver` credential — verified NOT run as of handoff 25) and `scripts/remove_test_residue.py` (dry run, every deletion trial-attempted and rolled back: 3,779 of 3,894 fixture assets and 255 of 368 fixture locations removable). The Builder's permission layer refuses a committing write to a client-derived tenant, which is the correct refusal.
-- **`cadra19`, `nrs19` and `gtb19` carry no `cadra.database_class`.** They refuse test runs, which is the safe default and needs no action — but nobody has actually decided what they are. Marking one on a guess would be a false record in the one place the system now trusts.
-- **The nine pre-envelope routes adopt `@cadra_route`** (`/auth/*`, `/openapi.json`, `/docs`, `/assets/export.csv`, `/integrations/employees/import`, `/brand`). They validate nothing and sit outside the standard envelope — and `/auth/token` is the first endpoint every integration touches. Refactor of the auth surface; after INT-03 is live.
-- **Per-session test artefact paths.** Two concurrent pytest sessions clobber each other's report and captures. Cosmetic.
+**Handoff 26 was the last handoff. There is no 27.** Everything outstanding —
+the two owner-run scripts, the three unclassified tenants with a proposed
+class and its evidence, the credentials, the nine pre-envelope routes, the
+silent-instrument sites that were found and not fixed, and the questions that
+belong to NRS rather than to engineering — is in the **open-items register at
+`docs/GO-LIVE.md` Part II**, one entry each, tagged `[open]` / `[verified]` /
+`[landed, keep it that way]`, each carrying its evidence and the report it
+came from. **That file is where the programme resumes from; this list is not
+maintained in parallel.**
+
+The one thing to read first if you read nothing else: **`admin` / `admin` is
+accepted on all eight local tenants** (verified 2026-09-15, §8.1), and the
+same bootstrap provisions the cluster.
 
 ## Decisions
 

@@ -240,7 +240,48 @@ def ensure_database_class():
             "CADRA_DATABASE_CLASS=%r is not one of %s"
             % (requested, ", ".join(_DATABASE_CLASSES)))
 
-    current = ICP.get_param(_DATABASE_CLASS_PARAM)
+    # Read with SQL, deliberately, and NOT through `ICP.get_param` — the same
+    # choice, for the same reason, as `database_class()` in
+    # `myservice_nrs_base/database_class.py` (read its docstring; this is the
+    # incident it was written up from). `get_param` is `@ormcache`d PER
+    # WORKER: during handoff 25's own proof run one worker reported the class
+    # as "client" for a database whose parameter row had been DELETED while a
+    # second worker answered "test" for the same instant.
+    #
+    # It matters HERE and not only in the guard, because `current` is the
+    # left-hand side of the downgrade interlock twenty lines below. A stale
+    # read of "test" waves through a re-mark that should have been refused; a
+    # stale read of "production" aborts a bootstrap that should have run. An
+    # interlock fed from a cache is an interlock about a state that has
+    # stopped being true, which is the whole reason the guard stopped using
+    # `get_param`.
+    #
+    # The SQL is duplicated rather than imported for the reason already
+    # recorded at the top of this file: importing
+    # `odoo.addons.myservice_nrs_base.database_class` executes that package's
+    # `__init__` (`from . import models`) on a database where the addon is not
+    # installed — which is every database this script is run against for the
+    # first time.
+    env.cr.execute(
+        "SELECT value FROM ir_config_parameter WHERE key = %s",
+        (_DATABASE_CLASS_PARAM,))
+    _row = env.cr.fetchone()
+    _raw_class = ((_row[0] if _row else "") or "").strip().lower()
+
+    # An unrecognised value is treated as ABSENT, exactly as `database_class()`
+    # treats it — otherwise bootstrap says "already marked 'Test '" and leaves
+    # it while the guard, which filters the same value through the same tuple,
+    # refuses every test run against that database. The two must not be able
+    # to disagree about whether a database is classified. And it is said out
+    # loud: a value nobody can act on, passed over in silence, is how a
+    # database ends up classified in nobody's opinion but its own.
+    if _raw_class and _raw_class not in _DATABASE_CLASSES:
+        _say("%s holds %r, which is not one of %s — treating this database as "
+             "UNCLASSIFIED, the same way myservice_nrs_base/database_class.py "
+             "does. Nothing reads that value."
+             % (_DATABASE_CLASS_PARAM, _raw_class, ", ".join(_DATABASE_CLASSES)),
+             level="WARNING")
+    current = _raw_class if _raw_class in _DATABASE_CLASSES else None
 
     # ── two interlocks, because `test` is the only value that opens a door ──
     #
@@ -295,6 +336,106 @@ def ensure_database_class():
     return None
 
 
+#: Env var by which an operator states, outright, that an ARCHIVED API client
+#: should be brought back. It names the `client_id` rather than being a bare
+#: boolean, for the same reason `CADRA_DATABASE_CLASS_DOWNGRADE` names the
+#: class it is overriding: a boolean gets typed into a CI file once and then
+#: covers every client forever. Comma-separated for the rare multi-client run.
+_REACTIVATE_ARCHIVED_ENV = "CADRA_REACTIVATE_ARCHIVED_CLIENT"
+
+
+def _find_api_client(Client, client_id):
+    """The client holding this `client_id`, ARCHIVED ONES INCLUDED, or empty.
+
+    WHAT THIS FIXES
+    ---------------
+    `myservice.api.client` carries `active` (`myservice_api/models/api_client.py`
+    line 17) and there is NO uniqueness constraint on `client_id`. Both
+    provisioning sites below used to search with Odoo's default
+    `active_test=True`, so an ARCHIVED client was invisible to them — and the
+    `if not rec: rec = Client.create(...)` that follows then minted a SECOND
+    row with the same `client_id` and printed a success line. Two rows, one
+    credential name, and `/auth/token` afterwards resolves whichever one the
+    ordering happens to hand back.
+
+    The rest of this repository already fixed this exact model against this
+    exact mistake — `myservice_api/migrations/19.0.3.2.0/post-migrate.py` line
+    45 and `19.0.3.3.0/post-migrate.py` line 48 both carry `active_test=False`
+    with the comment "an archived client must not be skipped and then start
+    minting the wrong uid". Bootstrap, the script that CREATES these records,
+    never got it.
+
+    WHY THIS REFUSES RATHER THAN QUIETLY REVIVING
+    ---------------------------------------------
+    Archiving is how an API credential is revoked in Odoo; there is no other
+    button. So an archived `tag_issuing_unit` is somebody's deliberate act,
+    and a deploy script that silently un-archives it is a deploy script that
+    re-opens a door a person closed — the same shape as the `group_system`
+    grant that used to be stripped by the next scope edit, run backwards. A
+    WARN line is not enough: nothing gates on a warning, and a bootstrap run
+    prints dozens of them past an operator who is watching for the
+    credentials block at the end.
+
+    So this raises, and the refusal NAMES the client_id it looked for and the
+    row it found. Reactivation is then stated outright:
+
+        CADRA_REACTIVATE_ARCHIVED_CLIENT=tag_issuing_unit scripts/bootstrap.sh
+
+    NOT A REGRESSION ON ANY CORRECT PATH, including `CADRA_PROFILE=prod`.
+    Where the client is active, or absent, the behaviour is what it always
+    was. The only runs that now stop are the ones that were previously
+    creating a duplicate row and calling it a success.
+    """
+    matches = Client.with_context(active_test=False).search(
+        [("client_id", "=", client_id)])
+
+    if len(matches) > 1:
+        # The duplicate the old search was capable of minting. Nothing here
+        # can tell which row is the real credential — they have the same
+        # client_id and each has its own secret hash — so it is named and
+        # handed to a person rather than resolved by ordering.
+        raise ValueError(
+            "%d API clients share client_id %r on this database: %s. Nothing "
+            "here can tell which is the real credential. This is the "
+            "duplicate the pre-fix bootstrap created: it searched without "
+            "`active_test=False`, could not see an archived row, and made a "
+            "second one beside it. Delete or re-id the wrong one under "
+            "Settings > Technical > API Clients, then re-run."
+            % (len(matches), client_id,
+               ", ".join("id=%d active=%s" % (c.id, c.active)
+                         for c in matches)))
+
+    if not matches:
+        # Legitimately zero, said deliberately: a first bootstrap of a fresh
+        # tenant has no client, and the caller creates one. This is the ONE
+        # empty result in this function that is not a fault.
+        return matches
+
+    rec = matches
+    if rec.active:
+        return rec
+
+    permitted = {name.strip() for name
+                 in os.environ.get(_REACTIVATE_ARCHIVED_ENV, "").split(",")
+                 if name.strip()}
+    if client_id not in permitted:
+        raise ValueError(
+            "API client %r exists on this database (id=%d) but is ARCHIVED. "
+            "Archiving is how a credential is revoked, so bootstrap will "
+            "neither reuse it silently nor create a second row beside it — "
+            "which is what it used to do, invisibly, leaving two clients with "
+            "this client_id. If this credential really should come back, say "
+            "so: %s=%s scripts/bootstrap.sh"
+            % (client_id, rec.id, _REACTIVATE_ARCHIVED_ENV, client_id))
+
+    rec.active = True
+    _say("REACTIVATED archived API client %r (id=%d) because %s names it. Its "
+         "stored secret hash survived the archiving and is preserved unless a "
+         "CADRA_*_SECRET is supplied; its scopes are re-synced below."
+         % (client_id, rec.id, _REACTIVATE_ARCHIVED_ENV), level="WARN")
+    return rec
+
+
 def ensure_test_client():
     """Create or rotate the smoke-test API client.
 
@@ -306,7 +447,10 @@ def ensure_test_client():
 
     all_scopes = _all_scopes()
 
-    rec = Client.search([("client_id", "=", client_id)], limit=1)
+    # `_find_api_client`, not a bare `search`: the default search cannot see
+    # an archived client, and this `if not rec: create(...)` would then mint a
+    # second row carrying the same client_id. See its docstring.
+    rec = _find_api_client(Client, client_id)
     if not rec:
         # No `user_id`: the model provisions the client its own res.users.
         # This used to be `base.user_admin`, which is why every tag affix in
@@ -414,7 +558,13 @@ def _ensure_scoped_client(*, name, default_client_id, scopes,
     client_id = os.environ.get(id_env, "").strip() or default_client_id
     requested_secret = os.environ.get(secret_env, "").strip()
 
-    rec = Client.search([("client_id", "=", client_id)], limit=1)
+    # `_find_api_client`, not a bare `search` — same reason as
+    # `ensure_test_client`, and it bites harder here: these are the two
+    # counterparty credentials (Vendra and the Tag-Issuing Unit) whose
+    # SEPARATION is the only thing that makes a tag affix evidence. A
+    # duplicate `tag_issuing_unit` row is two credentials answering to one
+    # name in the record that is supposed to tell them apart.
+    rec = _find_api_client(Client, client_id)
     if not rec:
         # No `user_id` — the model provisions this client its own res.users,
         # named for the client and holding only the groups its scopes justify.
@@ -538,8 +688,44 @@ def ensure_mail_server():
     if from_filter:
         vals["from_filter"] = from_filter
 
-    rec = Mail.search([("name", "=", vals["name"])], limit=1)
+    # `active_test=False`, same archived-record shape as `_find_api_client`.
+    #
+    # VERIFIED, not assumed: Odoo 19's `ir.mail_server` really does carry
+    # `active` — `active = fields.Boolean(default=True)` at line 197 of
+    # `odoo/addons/base/models/ir_mail_server.py`, read out of the running
+    # 19 container on 2026-09-15. Odoo core is not in this repository, and a
+    # `with_context(active_test=False)` against a model that has no `active`
+    # field would have been a no-op dressed up as a fix — which is the same
+    # defect as the one being closed here. There is no uniqueness constraint
+    # on `name` either, so the old default search hid an archived "Cadra
+    # Default SMTP" and this step created a SECOND one beside it: two servers,
+    # one name, both at sequence 10, and which one Odoo sends through is then
+    # an ordering accident.
+    #
+    # REPAIRED rather than refused, unlike an API client, and the difference
+    # is what the record IS. A mail server is configuration: nothing
+    # authenticates as it and re-enabling it grants nobody access. Archiving
+    # one means "stop sending through this", and an operator who has set
+    # SMTP_HOST on this run is saying the opposite in the same breath — so
+    # the write is what was asked for. It is still announced at WARN, because
+    # a mail server that was switched off and has just come back on is a fact
+    # somebody has to be able to find in the log afterwards.
+    matches = Mail.with_context(active_test=False).search(
+        [("name", "=", vals["name"])])
+    if len(matches) > 1:
+        _say(f"{len(matches)} ir.mail_server records are named "
+             f"{vals['name']!r} (ids {matches.ids}) — the pre-fix search could "
+             f"not see archived ones and created duplicates. Updating id="
+             f"{matches[0].id} and leaving the rest; delete the spares under "
+             f"Settings > Technical > Outgoing Mail Servers.", level="WARN")
+    rec = matches[:1]
     if rec:
+        if not rec.active:
+            vals["active"] = True
+            _say(f"ir.mail_server {rec.name!r} (id={rec.id}) was ARCHIVED and "
+                 f"is being re-enabled because SMTP_HOST is set ({host}). "
+                 f"Somebody switched this server off; this run switches it "
+                 f"back on.", level="WARN")
         rec.write(vals)
         _say(f"updated ir.mail_server {rec.name!r} → {host}:{port} ({encryption})")
     else:

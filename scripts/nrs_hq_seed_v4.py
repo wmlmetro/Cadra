@@ -29,9 +29,36 @@ def sep(title):
 # ─── STEP 1: TAG THE HQ ROOT AS A BUILDING ───────────────────────────────────
 sep('STEP 1: SET BUILDING METADATA ON NRS HEADQUARTERS')
 
-hq = Location.search([('name', '=', 'NRS Headquarters'), ('parent_id', '=', False)], limit=1)
+# `active_test=False`, because the question here is EXISTENCE, not visibility.
+# `generic.location` carries an `active` field (crnd-19/generic_location/models/
+# generic_location.py:54) and Odoo's default search silently excludes archived
+# records — so an archived HQ would be reported as missing and this seed would
+# have gone looking for a building it had just been told about. That is the
+# exact failure mark_test_fixtures.py hit on `jaizbankplc`: a plain search for
+# an ARCHIVED credential returned empty, the loop never ran, and the script
+# printed nothing whatsoever about it (docs/DECISIONS.md, 2026-09-15,
+# handoff 25 B).
+hq = Location.with_context(active_test=False).search(
+    [('name', '=', 'NRS Headquarters'), ('parent_id', '=', False)], limit=1)
 if not hq:
-    print('  ERROR: NRS Headquarters root location not found. Run v3 seed first.')
+    # STOP. This used to print an ERROR line and carry straight on. `hq.id` on
+    # an empty recordset is `False`, so the floor search in STEP 2 became
+    # ('parent_id', '=', False) — which matches every unrelated TOP-LEVEL
+    # location in the tenant. A miss here did not do nothing; it rewrote
+    # whatever else sat at the root as floors of a building that is not there.
+    #
+    # Raised rather than `SystemExit`: scripts/bootstrap.py `exec`s this file
+    # from run_seeds() inside `try/except Exception`, where one seed failing is
+    # logged with its label and the rest of provisioning continues. SystemExit
+    # is a BaseException, would escape that handler and both of main()'s, and
+    # would kill the whole bootstrap without even rolling back — a louder
+    # failure than the one being fixed, in the wrong place.
+    raise RuntimeError(
+        "nrs_hq_seed_v4: no generic.location named 'NRS Headquarters' with "
+        "parent_id = False in database %r. Searched with active_test=False, "
+        "so an archived one would have counted. This seed only ADDS metadata "
+        "to the hierarchy scripts/nrs_hq_seed.py (v3) creates — run that first."
+        % env.cr.dbname)
 else:
     hq.write({
         'location_type': 'building',
@@ -95,6 +122,10 @@ FLOOR_META = {
 
 floor_count = 0
 floor_recs = {}
+#: Floors named in FLOOR_META that no location under HQ answers to. Collected
+#: rather than only printed, so the summary can state the run's own shortfall
+#: instead of a register-wide total that hides it.
+floors_not_found = []
 for code, (label, fnum) in FLOOR_META.items():
     floor = Location.search([
         ('name', '=', label),
@@ -116,10 +147,12 @@ for code, (label, fnum) in FLOOR_META.items():
         floor_count += 1
         print(f'  + {code}  {label:25s}  floor_number={fnum}')
     else:
-        print(f'  SKIP: floor "{label}" not found under HQ')
+        floors_not_found.append((code, label))
+        print(f'  SKIP: floor "{label}" ({code}) not found under HQ')
 
 env.cr.commit()
-print(f'\n  Floors updated: {floor_count}')
+print(f'\n  Floors updated: {floor_count} of {len(FLOOR_META)} expected'
+      f'  ({len(floors_not_found)} not found)')
 
 # ─── STEP 3: TAG ALL ROOMS ───────────────────────────────────────────────────
 sep('STEP 3: SET ROOM METADATA')
@@ -154,14 +187,31 @@ FLOOR_ROOMS = [
     ('RF',  ['PR','OVH','EX']),
 ]
 
+#: Every room code FLOOR_ROOMS names, so "tagged N" can be read against what
+#: was asked for rather than against nothing.
+rooms_expected = sum(len(codes) for _, codes in FLOOR_ROOMS)
+
 room_count = 0
+#: (floor_code, room_code) for every room this run asked for and could not
+#: find. See the else-branch below — these used to vanish entirely.
+rooms_not_matched = []
+#: Floors STEP 3 could not work on because STEP 2 never found them.
+floors_skipped_in_rooms = []
+#: Locations that exist under the floors this run did reach, matched or not.
+#: Printed as the denominator: "tagged M of N present" is a fact about this
+#: run, where a bare M is a number with nothing to be wrong against.
+rooms_seen_under_floors = 0
+
 for floor_code, room_codes in FLOOR_ROOMS:
     floor_rec = floor_recs.get(floor_code)
     if not floor_rec:
-        print(f'  SKIP: floor {floor_code} not found')
+        floors_skipped_in_rooms.append(floor_code)
+        print(f'  SKIP: floor {floor_code} not found — its '
+              f'{len(room_codes)} rooms cannot be tagged')
         continue
     # Get all rooms under this floor
     rooms = Location.search([('parent_id', '=', floor_rec.id)])
+    rooms_seen_under_floors += len(rooms)
     # Build a name->room mapping for matching
     # The v3 seed used room names, so we match by position/description
     room_by_desc = {}
@@ -187,12 +237,28 @@ for floor_code, room_codes in FLOOR_ROOMS:
             })
             room_count += 1
         else:
-            # Try matching by room name directly under this floor
-            # This is a fallback
-            pass
+            # There is NO fallback, and there never was one. What used to sit
+            # here was the comment "Try matching by room name directly under
+            # this floor / This is a fallback" over a bare `pass` — a comment
+            # describing code nobody wrote. An unmatched room was therefore
+            # neither tagged, counted nor mentioned anywhere, while the summary
+            # went on printing a number that read as completeness.
+            #
+            # A room reaches this branch when no location under this floor has
+            # a `description` whose third ' / ' segment is this code: either v3
+            # never created it, or its description is shaped differently. Both
+            # are worth a person seeing. Neither is guessed at here — inventing
+            # a name-based match now would make a wrong tagging look confident,
+            # which is worse than the silence it replaces.
+            rooms_not_matched.append((floor_code, room_code))
 
 env.cr.commit()
-print(f'\n  Rooms updated: {room_count}')
+print(f'\n  Rooms updated: {room_count} of {rooms_expected} expected'
+      f'  ({rooms_seen_under_floors} locations seen under the floors reached)')
+if rooms_not_matched:
+    print(f'  Rooms NOT matched: {len(rooms_not_matched)}')
+    for floor_code, room_code in rooms_not_matched:
+        print(f'    - {floor_code} / {room_code}')
 
 # ─── STEP 4: BACKFILL building_id, floor_id, room_id ON EXISTING ASSETS ──────
 sep('STEP 4: BACKFILL ASSET LOCATION HIERARCHY')
@@ -233,18 +299,42 @@ print(f'  Assets backfilled: {updated} / {len(assets)}')
 # ─── SUMMARY ──────────────────────────────────────────────────────────────────
 sep('SEED V4 COMPLETE — SUMMARY')
 
+# WHAT THIS RUN DID, and separately what the register holds.
+#
+# These headings used to read "Buildings tagged / Floors tagged / Rooms
+# tagged" over four Location.search_count(...) calls taken across the whole
+# tenant. They measured the WORLD, not the RUN: a pass that matched nothing
+# still printed `1 / 19 / 232` — the previous run's work, read back as though
+# it were this one's, under a heading that says "tagged". The global figures
+# are kept because "the register now holds N floors" is genuinely useful
+# beside "this run touched M of them", but they are now labelled as what they
+# are and they are no longer the first thing the reader sees.
 building_count = Location.search_count([('location_type', '=', 'building')])
 floor_total = Location.search_count([('location_type', '=', 'floor')])
 room_total = Location.search_count([('location_type', '=', 'room')])
 assets_with_building = Asset.search_count([('building_id', '!=', False)])
 
-print(f'''
-  LOCATION METADATA
-    Buildings tagged          : {building_count}
-    Floors tagged             : {floor_total}
-    Rooms tagged              : {room_total}
+# Built outside the f-string deliberately: an expression spanning two lines
+# inside an f-string is a 3.12+ feature, and this file is run by whatever
+# Python the Odoo image ships.
+missing_floors = ' — ' + ', '.join(c for c, _ in floors_not_found) if floors_not_found else ''
+skipped_floors = ' — ' + ', '.join(floors_skipped_in_rooms) if floors_skipped_in_rooms else ''
 
-  ASSET BACKFILL
+print(f'''
+  THIS RUN
+    HQ building tagged        : 1 ({hq.name}, id={hq.id})
+    Floors tagged             : {floor_count} of {len(FLOOR_META)} expected
+    Floors not found under HQ : {len(floors_not_found)}{missing_floors}
+    Rooms tagged              : {room_count} of {rooms_expected} expected
+    Rooms not matched         : {len(rooms_not_matched)}
+    Floors skipped in STEP 3  : {len(floors_skipped_in_rooms)}{skipped_floors}
+    Locations seen under those floors : {rooms_seen_under_floors}
+    Assets backfilled         : {updated} of {len(assets)} that have a location
+
+  WHOLE REGISTER — context, NOT this run's work
+    Locations typed building  : {building_count}
+    Locations typed floor     : {floor_total}
+    Locations typed room      : {room_total}
     Assets with building_id   : {assets_with_building}
 
   HQ ADDRESS

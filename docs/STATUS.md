@@ -35,6 +35,11 @@ What is built, with the evidence and the measurements behind each item. Moved ou
 | The five §13.4 audit reports (handoff 23) | **complete** — the access-change and configuration-change reports close the set. The access report's honest answer is that no record exists: `res_groups_users_rel` is `(gid, uid)` with no timestamp or actor, `group_ids` carries no tracking, `mail_tracking_value` holds **0 rows** on `res.users`/`res.groups` on all eight tenants and `ir_logging` **0 rows** on all eight. Nothing synthesised; `group_changes_in_period` is a structural zero in the payload. The configuration report's ceiling is **22 keys estate-wide** written after creation, **12 by a named human** — `jaizbankplc` 7/5, `cadra19` 7/5, `nrs19` 2/1, `test19` 2/1, the other four 1/0. Both boundaries re-measured per request. Credential values redacted by key name (two-tier rule, 27 keys verified); `myservice_api.jwt_secret` proved never to leave the database. |
 | The `Auditor` group (handoff 23) | **built** — `myservice_api.group_auditor`, six read scopes, no write scope, implied by nothing. Specification §3's `audit_viewer`, which INT-10 §4.3 had recorded as absent; `Vendra Auditor` is a Frappe role and exists in the sibling repo only. **Proved by acting**: a user holding exactly this group logs in through `/auth/login` and opens all five reports (5×200), and the same token is refused on five writes. `settings:read` is new with it. Landed on all eight tenants. |
 | A disposal approved over the API (handoff 23) | **built** — `POST /assets/<id>/approve-disposal` under `approvals:write`, the gap report 16 named, closed without making the approver writable. Proved live on `jaizbankplc`: a body asking for approver uid 2 was refused `400`, the next call recorded uid **287** — the caller's own client user — and a third answered `409`. `disposal_approved_by` stays off `_WRITABLE_FIELDS`. |
+| The test suite knows where it is allowed to write (handoff 25) | **built** — both suites read `cadra.database_class` from the target database with SQL and refuse anything but `test`; **absent refuses**. No bypass flag. The first cut read it through `get_param`, which is `@ormcache`d per worker, and leaked **24 writing tests onto an unmarked database** during its own proof run. |
+| A record says it is a fixture, by derivation (handoff 26) | **built** — `is_test_fixture` on **14 models**, stamped from the acting credential at creation by `cadra.test.fixture.mixin`. Overwritten rather than defaulted, refused by `write()` unconditionally, in no `_WRITABLE_FIELDS`, published on the asset, location and request envelopes and annotated in OpenAPI. **Not retroactive, and documented as such in the field help, the changelog and the OpenAPI annotation.** Verified: 8 of 8 local tenants at 14 columns each; 8 in-registry tests including the ABSENT case (a record created under an unflagged credential must NOT be labelled) and the archived-credential case. |
+| A creatable model with no self-label fails the suite (handoff 26) | **built** — `test_every_model_a_first_party_path_creates_is_classified` enumerates every model any first-party path can create and fails unless it is labelled, labelled another way, or exempted **with a written reason**. The labelled set is PARSED out of `test_fixture.py`, not copied into the guard. Six mutation proofs cover the spellings that blinded the previous guard, including `Client = env[MODEL]` then `Client.create(...)` and `self._helper().create(...)`. |
+| The silent-instrument sweep (handoff 26) | **24 sites found, 10 fixed.** The worst was in the newest file: `remove_test_residue.py` read its production refusal through the ormcached `get_param` — the exact call the handoff that wrote that script had just proved unsafe. Also fixed: `bootstrap.py` minting a DUPLICATE API client because the existing one was archived (2 sites), `bootstrap.sh` turning a FAILED psql measurement into a confident "fresh DB" and running `odoo -i` against a populated database, `audit_report_fingerprint.sh` proving "nothing was written" by measuring nothing, and `seed_asset_costs.py` gating on a database NAME allowlist that did not contain `jaizbankplc`. The remaining 14 are listed with file and line in `docs/GO-LIVE.md` §10.2. |
+| The open-items register (handoff 26) | **built** — `docs/GO-LIVE.md` Part II, one entry per outstanding item, tagged `[open]` / `[verified]` / `[landed, keep it that way]`, each with its evidence and the report it came from. **`admin`/`admin` was verified accepted on all eight local tenants on 2026-09-15** — a statement about what bootstrap leaves behind, not about this laptop. |
 | Odoo 19 migration | in flight, separate track |
 
 ---
@@ -100,3 +105,25 @@ what made it false.**
 The 28 skips are all named: 24 admin-scope, 2 Turnstile-not-configured, 1 no
 SAP asset number on this tenant, 1 no active `workflow.config`. None comes
 from a file this handoff changed.
+
+---
+
+## Handoff 26 — the last handoff
+
+**Suites, in CI's order, against `test19`:**
+
+| Suite | Result |
+|---|---|
+| `pytest tests/` (first, as CI runs it) | **829 passed, 9 skipped, 0 failed** |
+| In-registry, `myservice_api` | **0 failed, 0 error(s) of 198 tests** |
+
+829 against report 25's 811: the difference is exactly the 18 tests this
+handoff added (7 in `test_fixture_patterns_agree.py`, 11 in
+`test_source_guards.py`) — checked, not assumed. The 9 skips are report 25's
+9, unchanged and from no file this handoff touched.
+
+**Where the programme resumes from: `docs/GO-LIVE.md` Part II.** There is no
+handoff 27. Contracted core scope was complete at handoff 23; what stands
+between this system and a delivered one is four servers, a test SAP
+environment, four answers from the NRS SAP team, a fixed-asset register
+extract and some credential rotations — none of it code.

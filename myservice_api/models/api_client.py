@@ -1,7 +1,7 @@
 import logging
 import secrets
 
-from odoo import _, api, fields, models
+from odoo import _, api, fields, models, tools
 from odoo.exceptions import ValidationError
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -178,6 +178,38 @@ class MyserviceApiClient(models.Model):
     # ── The client's own identity ─────────────────────────────────────
 
     CLIENT_USER_LOGIN_PREFIX = 'cadra_client_'
+
+    @api.model
+    @tools.ormcache('user_id')
+    def _is_test_credential_user(self, user_id):
+        """Is this the Odoo user behind a credential flagged as a test one?
+
+        The canonical reader, and it sits on the model that OWNS the column
+        rather than on one of its consumers. It used to live on
+        `nrs.asset.custody`, which was fine while custody was the only thing
+        asking; handoff 26 added `cadra.test.fixture.mixin`, and two copies
+        of a safety derivation is how the two answers start disagreeing.
+        `nrs.asset.custody._is_test_credential_user` now delegates here and
+        keeps its name, because `scripts/` and the docs cite it.
+
+        Cached on the user id because the mixin's `create` calls it once per
+        batch and custody's `_record` calls it once per ROW — ten thousand of
+        them on a bulk import with custodians. The answer depends only on the
+        user and on a field an administrator changes about once, so the cache
+        is invalidated by writes to this model (`create`, `write`, `unlink`
+        all call `registry.clear_cache()`) rather than by time.
+
+        `active_test=False`: an archived credential's artefacts are still
+        artefacts. `Handoff23 Approver` is archived on `jaizbankplc`, and a
+        plain `search` is what made `scripts/mark_test_fixtures.py` report a
+        clean run while doing nothing.
+        """
+        if not user_id:
+            return False
+        return bool(self.sudo().with_context(active_test=False).search_count([
+            ('user_id', '=', user_id),
+            ('is_test_credential', '=', True),
+        ]))
 
     @api.model
     def _provision_client_user(self, client_id, name=None, scopes=None):

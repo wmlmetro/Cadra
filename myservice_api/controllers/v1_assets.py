@@ -520,6 +520,11 @@ def serialize_asset(a, *, include=()):
         "tag": a.asset_tag or None,
         "legacy_asset_code": a.legacy_asset_code or None,
         "name": a.name,
+        # Derived from the credential that created the record, never
+        # declared (`myservice_api/models/test_fixture.py`). Additive and
+        # always present; FALSE on every record created before handoff 26,
+        # which is NOT the same statement as "this is a real record".
+        "is_test_fixture": a.is_test_fixture,
         "serial_number": a.serial_number or None,
         "make": a.make or None,
         "model": a.model_name or None,

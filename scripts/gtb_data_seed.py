@@ -81,17 +81,68 @@ def fix_asset_codes_and_tags(env):
     (NRS- → <brand>-). The asset module auto-generates both on create with a
     prefix; the brand-aware code only affects NEW records, so existing ones
     (seeded earlier) keep the old NRS- prefix and must be renamed in place."""
-    brand = env["ir.config_parameter"].sudo().get_param("cadra.brand_short_name", "NRS")
+    # No "NRS" default on the read: an UNSET parameter used to come back as
+    # "NRS" and take the early return below, so a GTB tenant whose brand module
+    # was never installed kept minting NRS- codes and this seed said nothing.
+    # The parameter is owned by cadra_brand_gtb/data/brand_params.xml, not by any seed.
+    brand = (env["ir.config_parameter"].sudo()
+             .get_param("cadra.brand_short_name") or "").strip()
+    if not brand:
+        # Loud, and only this step is skipped: nothing else in this seed needs
+        # the short code, so a missing brand module must not cost the tenant its
+        # staff/assets/fleet — it must stop being invisible.
+        print("  ✗ cadra.brand_short_name is NOT SET on this database — no tenant "
+              "short code to re-brand asset codes to, so asset_code / asset_tag "
+              "stay NRS- and every future asset mints NRS-AST-. The parameter is "
+              "owned by cadra_brand_gtb; install or upgrade it and re-run this seed.")
+        return
     if brand == "NRS":
-        return  # NRS tenant — already correct, nothing to re-brand
+        # A deliberate no-op, not a failure: on the NRS tenant NRS- codes ARE
+        # the right ones. Printed so it stays distinguishable from the unset
+        # case above, which is a provisioning fault wearing the same value.
+        print("  = brand_short_name is 'NRS' — asset codes already correct, "
+              "nothing to re-brand")
+        return
     old = "NRS-"
     new = f"{brand}-"
+    target = f"{brand}-AST-"
 
-    # asset_code sequence prefix (future codes)
-    seq = env["ir.sequence"].search([("code", "=", "nrs.asset")], limit=1)
-    if seq and (seq.prefix or "").startswith(old):
-        if _sp_write(env, seq, {"prefix": f"{brand}-AST-"}):
-            print(f"  ✓ asset_code sequence prefix → {brand}-AST-")
+    # asset_code sequence prefix (future codes). active_test=False because the
+    # question is whether this sequence EXISTS, not whether it is in use. The
+    # old `if seq and (seq.prefix or "").startswith(old)` made "no sequence on
+    # this database" indistinguishable from "already re-branded" — both fell
+    # through to the same silent nothing.
+    seq = env["ir.sequence"].with_context(active_test=False).search(
+        [("code", "=", "nrs.asset")], limit=1)
+    if not seq:
+        # Fatal, and fatal HERE rather than later: nrs.asset.create() raises
+        # when this sequence is missing, _sp_create swallows that per record,
+        # and the run would report "+0 new" for the 150 assets it never made.
+        raise RuntimeError(
+            "asset-code sequence missing: no ir.sequence with code 'nrs.asset' "
+            "on this database (searched archived-inclusive). It ships in "
+            "myservice_asset_register/data/asset_sequences.xml — install or "
+            f"upgrade that module so future assets can mint {target} codes.")
+    prefix = seq.prefix or ""
+    if prefix.startswith(old):
+        if not _sp_write(env, seq, {"prefix": target}):
+            raise RuntimeError(
+                f"asset-code sequence prefix write failed: ir.sequence id={seq.id} "
+                f"still reads {prefix!r} — every asset created after this seed "
+                f"would keep minting {old} codes.")
+        print(f"  ✓ asset_code sequence prefix {prefix} → {target}")
+    elif prefix == target:
+        print(f"  = asset_code sequence prefix already {target} — nothing to re-brand")
+    else:
+        # Someone set it by hand. Not ours to overwrite, but not a success
+        # either: future codes will be neither NRS- nor this tenant's.
+        print(f"  ! asset_code sequence prefix is {prefix!r} — neither {old} nor "
+              f"{target}; left as found, future asset codes will NOT be {target}")
+    if "active" in seq._fields and not seq.active:
+        # next_by_code() only searches ACTIVE sequences, so an archived one
+        # mints nothing however its prefix now reads.
+        print(f"  ! asset-code sequence id={seq.id} is ARCHIVED — no asset code "
+              f"can be generated from it until it is un-archived")
 
     # Rename existing codes/tags via RAW SQL. The ORM write() path was being
     # silently rolled back (a write hook/constraint on nrs.asset, swallowed by
@@ -111,7 +162,14 @@ def fix_asset_codes_and_tags(env):
         labels = cr.rowcount
     env.cr.commit()
     env.invalidate_all()
-    print(f"  ✓ re-branded via SQL → {brand}-  (asset_code:{codes} asset_tag:{tags} tag-labels:{labels})")
+    if codes or tags or labels:
+        print(f"  ✓ re-branded via SQL → {brand}-  (asset_code:{codes} asset_tag:{tags} tag-labels:{labels})")
+    else:
+        # A real zero, and a legitimate one on a re-run: every row already
+        # carries the tenant prefix. Printed WITHOUT a tick — a ✓ over three
+        # zeros read exactly like work that had happened.
+        print(f"  = no {old} rows left to re-brand "
+              f"(asset_code / asset_tag / tag-labels all 0)")
 
 
 def seed_employees(env, branches):
@@ -191,15 +249,30 @@ def wire_assets(env, branches, emps, by_branch):
     env.cr.commit()
 
     all_emps = list(emps)
-    wired = 0
+    # Two different outcomes, counted apart. `matched` is the intended one: a
+    # custodian who works at the asset's own branch. `fallback` is a random
+    # employee, used when the asset's branch has nobody mapped to it (staff are
+    # spread round-robin, so with more branches than employees some have none) or
+    # when the asset has no branch at all. The fallback is KEPT — a demo asset
+    # with no custodian is worse than one with an off-site custodian — but it is
+    # not the same thing, so it is never folded into a single "custodians wired"
+    # number again. The case where EVERY assignment was a fallback (no branches
+    # loaded) now fails at the foot of this script instead of reaching here.
+    matched = 0
+    fallback = 0
     if "custodian_id" in afields and all_emps:
         for a in Asset.search([("custodian_id", "=", False)]):
             pool = by_branch.get(a.location_id.name) if a.location_id else None
             cust = random.choice(pool) if pool else random.choice(all_emps)
             if _sp_write(env, a, {"custodian_id": cust.id}):
-                wired += 1
+                if pool:
+                    matched += 1
+                else:
+                    fallback += 1
         env.cr.commit()
-    print(f"  ✓ Assets: {Asset.search_count([])} (+{made} new) | custodians wired: {wired}")
+    print(f"  ✓ Assets: {Asset.search_count([])} (+{made} new) | custodians wired: "
+          f"{matched} at their own branch, {fallback} random "
+          f"(no staff mapped to that branch)")
 
 
 def wire_fleet(env, branches, emps, by_branch):
@@ -233,7 +306,12 @@ def wire_fleet(env, branches, emps, by_branch):
     env.cr.commit()
 
     all_emps = list(emps)
-    wired = 0
+    # Same split as the custodians above: a driver who works at the vehicle's
+    # own branch versus a random employee because that branch has no staff
+    # mapped to it. One number covering both hid a matching step that had
+    # fallen through entirely.
+    matched = 0
+    fallback = 0
     if "driver_id" in vfields and all_emps:
         Partner = env["res.partner"]
         for v in Veh.search([("driver_id", "=", False)]):
@@ -252,9 +330,14 @@ def wire_fleet(env, branches, emps, by_branch):
                 if partner and has_home:
                     _sp_write(env, emp, {"address_home_id": partner.id})
             if partner and _sp_write(env, v, {"driver_id": partner.id}):
-                wired += 1
+                if pool:
+                    matched += 1
+                else:
+                    fallback += 1
         env.cr.commit()
-    print(f"  ✓ Fleet: {Veh.search_count([])} (+{made} new) | drivers wired: {wired}")
+    print(f"  ✓ Fleet: {Veh.search_count([])} (+{made} new) | drivers wired: "
+          f"{matched} at their own branch, {fallback} random "
+          f"(no staff mapped to that branch)")
 
 
 def wire_request_assignees(env, officers):
@@ -304,7 +387,23 @@ _VEHICLES = [
 ]
 
 
-_branches = env["generic.location"].search([("latitude", "!=", False)])  # noqa: F821
+# active_test=False: the question is whether this tenant's branches EXIST, not
+# whether they are active — an archived branch still anchors the assets and
+# staff already seeded against it, so an empty result here has to mean absent.
+_branches = env["generic.location"].with_context(active_test=False).search(  # noqa: F821
+    [("latitude", "!=", False)])
+if not _branches:
+    # Every relationship this seed wires is keyed on this set: asset→branch,
+    # custodian→branch, vehicle→branch. Empty, the seed used to run to
+    # completion and print "across 0 branches" followed by full-success counts
+    # for assets placed nowhere and custodians drawn at random. Fail at the
+    # door instead, naming the step that should have produced them.
+    raise RuntimeError(
+        "no generic.location on this database has a latitude (searched "
+        "archived-inclusive) — the \"GTB Branches (122)\" step "
+        "(scripts/load_gtb_locations.py) has not run here, or ran and failed. "
+        "Run it first; without it assets get no branch and every custodian "
+        "and driver is a random employee.")
 print(f"  GTB demo data depth across {len(_branches)} branches:")
 fix_asset_codes_and_tags(env)                       # noqa: F821
 _emps, _officers, _by_branch = seed_employees(env, _branches)   # noqa: F821
