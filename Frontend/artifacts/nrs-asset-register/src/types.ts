@@ -87,7 +87,20 @@ export interface Asset {
   manufacturer: string;
   model: string;
   serial: string;
-  systemDomain?: string;
+  /**
+   * The FM domain — `nrs.asset.domain`, an eight-value Selection
+   * (building / plant / plumbing / fleet / security / it / furniture /
+   * other). Render its LABEL with `useEnumLabel("domain")`, never the key.
+   *
+   * This replaced `systemDomain` in handoff 25 (C1). That field was declared
+   * here and rendered as "System Domain" on IT assets, but nothing on
+   * `nrs.asset` backed it: the adapter quietly filled it from `domain`, so on
+   * a live tenant the row read `it` — the raw FM key — for every IT asset,
+   * while the mock filled it with network identifiers like "ABJ-HQ-MST-233"
+   * and made the page look right in development. A field with no backing
+   * column does not get a row.
+   */
+  fmDomain?: string;
   registrationNo?: string;
   engineNo?: string;
   /**

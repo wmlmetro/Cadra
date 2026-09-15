@@ -71,6 +71,10 @@ export default function AssetDetail() {
   // `asset.condition` is the model's key (`good`, `decommissioned`), not a
   // display word — it is spelled for the reader here and nowhere else.
   const conditionLabelOf = useEnumLabel("condition");
+  // Handoff 25 C1. The FM domain is rendered by its model LABEL, never
+  // its key — the row used to show the bare `it` under a heading that
+  // meant something else entirely.
+  const fmDomainLabel = useEnumLabel("domain");
   const { data: asset, isLoading, error } = useQuery<Asset | null, CadraApiError>({
     queryKey: ["asset", id],
     queryFn: () => fetchAsset(id ?? ""),
@@ -123,7 +127,6 @@ export default function AssetDetail() {
   }
 
   const isFleet = asset.category === "Fleet / Vehicles";
-  const isIT = asset.category === "IT Equipment";
 
   const currentStep = asset.status === "Cleared" ? 0 : 1;
 
@@ -254,7 +257,7 @@ export default function AssetDetail() {
                   <DetailRow label="Manufacturer" value={asset.manufacturer} />
                   <DetailRow label="Model" value={asset.model} />
                   <DetailRow label="Asset Type" value={asset.assetType} />
-                  {isIT && <DetailRow label="System Domain" value={asset.systemDomain} />}
+                  <DetailRow label="FM Domain" value={fmDomainLabel(asset.fmDomain)} />
                   {isFleet && <DetailRow label="Registration No." value={asset.registrationNo} />}
                   {isFleet && <DetailRow label="Engine No." value={asset.engineNo} />}
                 </dl>

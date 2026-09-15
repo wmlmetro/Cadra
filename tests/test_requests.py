@@ -132,3 +132,34 @@ def test_comment(client, test_request, capture):
     body = assert_envelope_ok(r)
     assert body["data"]["comment"]["id"] > 0
     assert body["data"]["comment"]["internal"] is True
+
+
+def test_request_publishes_the_workflow_payment_reference(
+        client, test_request, capture):
+    """Handoff 25 C3. The approval callback's references are readable.
+
+    `workflow_payment_ref` is written by the WorkSpace/Workflow APPROVAL
+    callback and tracked on the request form, and until now the API published
+    neither it nor `workspace_ref` — which is written by the OUTBOUND SEND
+    path, not the callback, and is measured at 0 of 407 requests. A Finance
+    Officer tracing a payment reference over the API could not, and neither
+    could an auditor — report 24 §8 listed it as a financial fact invisible to
+    every role.
+
+    The measurement decided it rather than a ruling: a column nothing writes
+    is dead and goes; a column the approval path writes belongs in the
+    serializer. It is additive, so no client breaks.
+    """
+    detail = client.get("/api/v1/requests/%s" % test_request["id"])
+    capture("requests/workflow-refs", detail)
+    assert detail.status_code == 200
+    data = detail.json()["data"]
+
+    assert "workflow" in data, \
+        "the request serializer must publish the workflow reference block"
+    block = data["workflow"]
+    assert set(block) == {"payment_ref", "workspace_ref"}, \
+        "unexpected keys in the workflow block: %s" % sorted(block)
+    for key, value in block.items():
+        assert value is None or isinstance(value, str), \
+            "%s must be a string or null, got %r" % (key, value)

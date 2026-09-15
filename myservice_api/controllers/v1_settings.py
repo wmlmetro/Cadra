@@ -132,9 +132,20 @@ class CadraConfigV1(http.Controller):
                                 "writable": sorted(_CATEGORY_WRITABLE)})
 
         if vals.get("domain") and vals["domain"] not in _FM_DOMAINS:
+            # Handoff 25 C2. Every other refusal in this API publishes the
+            # accepted set as `allowed_values`; this one alone said `allowed`,
+            # so a client keying on the standard name got nothing here and
+            # had no way to know it was the odd one out.
+            #
+            # BOTH keys, same list. Renaming outright would break any client
+            # reading `allowed` today, and a published details key is API
+            # surface like any other — so `allowed` is DEPRECATED rather than
+            # removed, and goes at the next major version. See
+            # docs/api/CHANGELOG.md for the date.
             return err(ERR_INVALID_REQUEST,
                        f"Unknown FM domain '{vals['domain']}'",
-                       details={"allowed": _FM_DOMAINS})
+                       details={"allowed_values": _FM_DOMAINS,
+                                "allowed": _FM_DOMAINS})
 
         cat.write(vals)
 
@@ -181,9 +192,12 @@ class CadraConfigV1(http.Controller):
         vals = {k: v for k, v in body.items() if k in _CATEGORY_WRITABLE}
         vals["name"] = name
         if vals.get("domain") and vals["domain"] not in _FM_DOMAINS:
+            # Handoff 25 C2, second of three sites. `allowed` is deprecated;
+            # both keys carry the same list until the next major version.
             return err(ERR_INVALID_REQUEST,
                        f"Unknown FM domain '{vals['domain']}'",
-                       details={"allowed": _FM_DOMAINS})
+                       details={"allowed_values": _FM_DOMAINS,
+                                "allowed": _FM_DOMAINS})
 
         cat = request.env["nrs.asset.category"].sudo().create(vals)
         return _serialize_category(cat)
@@ -310,9 +324,12 @@ class CadraConfigV1(http.Controller):
                            details={"chars": len(logo),
                                     "max_chars": self._LOGO_MAX_CHARS})
             if not logo.startswith(self._ALLOWED_LOGO_PREFIXES):
+                # Handoff 25 C2, third of three sites — the handoff named
+                # one. `allowed` is deprecated; both keys, same list.
                 return err(ERR_INVALID_REQUEST,
                            "Logo must be an image data: URI",
-                           details={"allowed": list(self._ALLOWED_LOGO_PREFIXES)})
+                           details={"allowed_values": list(self._ALLOWED_LOGO_PREFIXES),
+                                    "allowed": list(self._ALLOWED_LOGO_PREFIXES)})
 
         env = request.env
         icp = env["ir.config_parameter"].sudo()

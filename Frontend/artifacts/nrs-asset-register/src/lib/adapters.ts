@@ -306,22 +306,18 @@ export function apiAssetToAsset(a: ApiAsset & ApiAssetExtras): Asset {
     manufacturer: a.manufacturer ?? "",
     model: a.model ?? "",
     serial: a.serial_number ?? "",
-    // NOT VERIFIED — flagged while removing the fuel-type mapper, left alone
-    // because fixing it is a product decision, not a rename.
+    // Handoff 25 C1, ruled. This value was always `nrs.asset.domain`, the
+    // eight-value FM Selection; what was wrong was the NAME it arrived under.
+    // It was mapped to `systemDomain` and rendered as "System Domain" on IT
+    // assets, a field nothing on `nrs.asset` backs — so a live tenant showed
+    // the raw key `it` for every IT asset while the mock showed network
+    // identifiers and hid it in development.
     //
-    // `a.domain` is `nrs.asset.domain`, the eight-value FM Selection
-    // (building / plant / plumbing / fleet / security / it / furniture /
-    // other). `Asset.systemDomain` is rendered by AssetDetail as "System
-    // Domain" on IT assets only, and the mock fills it with network
-    // identifiers like "ABJ-HQ-MST-233". They are not the same field. On a
-    // live tenant that row therefore reads `it` — the raw FM key, for every
-    // IT asset, which is both the wrong fact and an unlabelled key.
-    //
-    // Either the FM domain belongs somewhere else on the page under its own
-    // label (via `useEnumLabel("domain")`), or `systemDomain` needs a real
-    // backing field and this line should go. Do not "fix" it by dropping in
-    // a label lookup — that would make a wrong field read convincingly.
-    systemDomain: a.domain ?? undefined,
+    // The fix is not a label lookup over the old name, which would only make
+    // a wrong field read convincingly. The field carries its own name now and
+    // AssetDetail renders it under its own label, for every asset rather than
+    // only IT ones — the FM domain is a fact about all of them.
+    fmDomain: a.domain ?? undefined,
     // Carried through as the model's key. There was a `CONDITION_MAP` here
     // that translated the five model values into a four-member display union,
     // and the collapse it performed was `new -> "Good"`. That single entry cost

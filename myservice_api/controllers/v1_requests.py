@@ -155,6 +155,35 @@ def serialize_request(r, *, include=()):
         "updated_at": _dt(r.write_date),
         "created_by": _ref(r.create_uid),
         "updated_by": _ref(r.write_uid),
+        # Handoff 25 C3. Both are on the request form and neither was
+        # readable over the API, so a Finance Officer tracing a payment
+        # reference could not, and neither could an auditor.
+        #
+        # They are written by DIFFERENT paths, and saying so matters because
+        # a published key is permanent:
+        #
+        #   payment_ref   `request_request.py:319` and `:386` — the
+        #                 WorkSpace/Workflow APPROVAL callback. This is the
+        #                 field C3 named, and the measurement is what decided
+        #                 it: a column nothing writes is dead and goes; one
+        #                 the approval path writes is a financial fact, and an
+        #                 invisible financial fact is the defect.
+        #
+        #   workspace_ref `request_request.py:115` — the OUTBOUND SEND path,
+        #                 not the callback. Published alongside because it is
+        #                 the same invisibility defect on the same form, but
+        #                 it is measured at **0 of 407** requests across all
+        #                 eight local tenants (`request_request.py:222`), so
+        #                 expect `null` and do not build on it.
+        #
+        # `_fields` guards because `myservice_workflow` is an optional module
+        # and the rest of this serializer already reads that way.
+        "workflow": {
+            "payment_ref": (r.workflow_payment_ref or None
+                            if "workflow_payment_ref" in r._fields else None),
+            "workspace_ref": (r.workspace_ref or None
+                              if "workspace_ref" in r._fields else None),
+        },
     }
 
     if "routes" in include:
