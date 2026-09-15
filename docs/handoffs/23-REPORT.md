@@ -115,6 +115,17 @@ git-based proof would *skip* in CI — and this file's own docstring says a skip
 guard that passes. A second test re-derives the bytes from history wherever the
 clone is deep enough, and skips only there.
 
+**The first version of this fix reopened the hole in a new shape, and the
+verification pass caught it.** The exemption searched for a `*_version:` key
+*anywhere on the line*, so **`ODOO_VERSION: '15.0'` — the single most natural
+spelling of the pin the guard exists to catch — was waved through because it
+contains the word `version`.** So were `ODOO_SERIES_VERSION`,
+`odoo_addons_version`, and every number on an inline-flow line that happened to
+carry a `python-version:` key elsewhere along it. The exemption is now anchored to
+the key the number is the value *of*, and a line naming `odoo` or `cadra` is exempt
+from nothing. **Ten must-flag and five must-not-flag lines are a parametrised
+table**, because a fix that reopens its own hole is exactly what a table is for.
+
 ---
 
 ## 4 · Part C — the disposal approval
@@ -132,6 +143,16 @@ Proved live on `jaizbankplc`, in this order:
 A body naming an approver is **refused, not ignored**: dropping it would return
 `200` to a caller that believes it appointed somebody, and the recorded approver
 would then disagree with the caller's own logs.
+
+**That was proved by hand and by nothing else, and the verification pass said so.**
+Every automated test of this route asserted a **403** — neither the pytest
+credential nor the Auditor holds `approvals:write` — so the 200 path, the approver
+actually written, the 400 and the 409 had **zero executed coverage**, and the
+acceptance criterion was being carried by a docstring. `test_approve_disposal_route.py`
+now mints a real client-credentials token for a client holding
+`assets:read approvals:write` and **reads the approver back through the ORM rather
+than out of the response**: the response is the thing under test and cannot be its
+own evidence. Six tests, all executed.
 
 ---
 
@@ -168,10 +189,20 @@ nothing else would have revealed.
 
 ---
 
-## 6 · What the verification pass found
+## 6 · What the verification passes found — fifteen defects, none of them mine to find
 
-Two agents wrote tests against code they had not written. **Between them they
-found seven defects in code an hour old, none of which I had found.**
+Three agents read code they had not written. **Between them they found fifteen
+defects, and I had found none of them.** Two were material.
+
+### The two that mattered
+
+- **The replacement CI guard exempted `ODOO_VERSION: '15.0'`** — §3. A fix that
+  reopened its own hole in a new shape, in the one file this handoff was written
+  about.
+- **Nothing proved a disposal approval records the caller** — §4. An acceptance
+  criterion standing on a docstring and a manual curl.
+
+### The first pass — seven, from the two test authors
 
 1. **Both reports declared `limit` and `cursor` and read neither.** `?limit=1` returned every row, `?limit=abc` answered `200` where the disposal report answers `400`, and there was no `pagination` block at all — a caller walking `next_cursor` read `None` on page one and stopped, correct by accident. **The roster was unbounded**, which is the uncapped-response shape the external record cap exists to prevent, reachable with a read-only scope. Both now page; a page of the access report is a window of **accounts**, and the route spells out its own `limit` description to say so, because `roster` and `events` are two views of one window.
 2. **`period` published `{from, to, bounds}`** where `DisposalReport` publishes `{date_from, date_to, inclusive}` — the same fact under two names, on reports an auditor reads side by side. Now matches the one that shipped first.
@@ -187,15 +218,35 @@ read `self._fields[field].tracking` directly and **500'd**, because a plain
 would have shipped and been wrong in silence** — which is the argument for
 measuring the boundary on every request rather than declaring it.
 
+### The second pass — eight more, from a reader who had written none of it
+
+Besides the two in §3 and §4:
+
+3. **`ACCESS_COVERAGE_EMPTY` was declared, returned nowhere, and published as contract in three places** — the changelog, the OpenAPI description and INT-10 §2.10 all told consumers that `empty` and `none` were different. The suite asserted only that `coverage` was *one of the three*, **so it passed on the broken contract**. The record cannot hold a group change in any period, so `empty` is deleted rather than made reachable, and a new guard reads the model's AST and fails on any coverage constant declared and never returned. **Proved to fail first** by reintroducing it: `these coverage values are declared and never returned: ['ACCESS_COVERAGE_EMPTY']`.
+4. **`identity:read` genuinely widened and the changelog said no credential changed.** It reached `hr.employee`; it now reaches every account's login, groups, creator and — for an integration — its API scopes. Every existing holder gained account enumeration and inter-client scope reconnaissance without anyone deciding to grant it. Now its own **WIDENING** section in the changelog, because "additive" was true of routes and misleading about credentials. No hash, secret or token is published in any field.
+5. **The fingerprints had no negative control.** The plumbing was right — flush, precommit, invalidate, per-table md5 — but nothing proved the mark *moves* on a write, and a `FINGERPRINTED` dict naming the wrong tables would have looked identical to a proof. Both suites now mutate a row and require the mark to move. `res_groups` and `myservice_api_client` were missing; the report searches the latter.
+6. **The model sorted events chronologically, the controller re-sorted by account id, and the model's test asserted chronological under the title *"a report an auditor reads top to bottom"*** — a claim about a layer it was not testing. The API's real order is now documented on the route and asserted on the wire; the model test says which layer it checks.
+7. **`partial` fired on any `res.users` tracking row**, so the day any module tracked a timezone the report would have told an auditor *"this deployment has grown an access history"* — a false statement in the opposite direction, on a report whose whole value is the accuracy of its boundary. Scoped to the groups field.
+8. **`information_schema.tables` unqualified** in the config model where the sibling qualifies it and explains why.
+
+**What the second pass confirmed, having tried to break it:** the fixture is
+byte-identical to git (`sha256 3abcbe03…`); the old guard really did report zero
+offenders on the real file; `_page`'s cap-then-cursor order drops no row and skips
+no cursor; **no credential is published in the clear on any tenant** — all 178
+config rows across all eight were dumped and run through the committed regexes;
+nothing leaks through `roster` or `events`; and every measured number in INT-10
+§2.10/§2.10a checks out against the databases. One drift corrected: `res_users_log`
+holds 6 rows on `jaizbankplc`, not the "1–5" the document claimed.
+
 ---
 
 ## 7 · Denominators, in CI's order
 
 | Run | Result |
 |---|---|
-| `pytest tests/` (full) | **753 passed, 32 skipped** — skip count unchanged from before this work |
-| `myservice_api` in-registry, `--workers=0` | **0 failed, 0 error(s) of 126 tests** |
-| CI's full eleven-module in-registry run | **0 failed, 0 error(s) of 452 tests** |
+| `pytest tests/` (full) | **770 passed, 32 skipped** — skip count unchanged from before this work |
+| `myservice_api` in-registry, `--workers=0` | **0 failed, 0 error(s) of 134 tests** |
+| CI's full eleven-module in-registry run | **0 failed, 0 error(s) of 460 tests** |
 
 No run collapsed to `of 0 tests`; no `CRITICAL`. The 117 `cannot execute INSERT in
 a read-only transaction` lines in the in-registry output are **pre-existing** —
@@ -231,11 +282,17 @@ a number I would be inventing.
 
 **The correction share was the highest of any handoff I have run, and all of it was
 worth it.** Six subagents: three read-only mapping agents whose output needed no
-correction, two test authors who between them found seven defects in my code, and
-one verification pass. **Every defect in §6 came from somebody who had not written
-the code**, and two of them — the unregistered acting proof and the unread `limit`
-— are the same shape as the four findings report 22 made about handoff 21: not
-mechanisms that are wrong, but evidence that is weaker than it looks.
+correction, two test authors, and one verification pass. **All fifteen defects in
+§6 came from somebody who had not written the code. I found none of them.**
+
+And the shape repeats: the unregistered acting proof, the unread `limit`, the
+unreachable `empty` asserted only for membership, the fingerprint with no negative
+control, and the approval route whose criterion rested on a docstring — **five of
+the fifteen are tests or contracts that pass without testing anything**, which is
+the exact sentence report 22 wrote about handoff 21 and which this handoff quoted
+back at me in its own opening. **Writing the guard is not the work; proving it
+fails first is the work**, and I did that for the series guard because the handoff
+told me to, and did not do it for the five things it had not thought to name.
 
 **The machine behaved.** No Postgres crash-restarts. Every `--stop-after-init` was
 serialised in the main session; eleven container restarts, each waited on with an
