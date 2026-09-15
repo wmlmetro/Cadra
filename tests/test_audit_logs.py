@@ -38,7 +38,9 @@ at: a disposed asset named `pytest-approval-<epoch>`, created by the
 `disposal_awaiting_approval` fixture. Nothing else here writes, and the
 access report's read-only test would fail if it did.
 """
+import base64
 import datetime
+import json
 import re
 import time
 
@@ -122,17 +124,51 @@ def history(client):
     return {"from": date_from, "to": date_to, "body": body, "data": data}
 
 
-@pytest.fixture(scope="module")
-def disposal_awaiting_approval(client, test_location):
-    """One disposed asset with no approver — approve-disposal's own subject.
+def token_scopes(token):
+    """The scopes this suite's own credential actually holds.
 
-    There are no disposed assets on any tenant, so the route's subject matter
-    has to be created before anything can be asked of it. Named
-    `pytest-approval-<epoch>` and left behind, the same trade
-    `test_audit_reports.disposed_assets` makes for the same reason.
+    **The scopes are a property of the TENANT, not of this suite**, and three
+    tests in this file learned that the expensive way. They asserted a `403`
+    on the reasoning that "this suite's credential does not hold
+    `settings:read`" — true of `jaizbankplc`, where they were written and
+    where they passed, and false in CI, whose `scripts/bootstrap.py` grants
+    its client `_all_scopes()` on purpose. CI answered `200` three times.
+
+    That is CLAUDE.md's own warning one level along: *a per-tenant number is
+    a fact about a demo, not about an estate.* It is just as true of a
+    per-tenant scope list.
+
+    So the tests below branch on what the credential really holds and assert
+    something real either way — the refusal where the scope is absent, the
+    contract where it is present. Deliberately NOT a skip: a skip is a guard
+    that passes, and the scope-gated routes are the ones where that matters
+    most.
+
+    Read without verifying: the signature is the server's business, and this
+    is reading the caller's own token to decide what to assert about it.
+    """
+    payload = token.split(".")[1]
+    payload += "=" * (-len(payload) % 4)
+    claims = json.loads(base64.urlsafe_b64decode(payload))
+    scopes = claims.get("scopes") or []
+    if isinstance(scopes, str):
+        scopes = scopes.split()
+    return set(scopes)
+
+
+def _make_disposed_asset(client, test_location):
+    """A disposed asset with no approver, freshly created every call.
+
+    **Function-scoped on purpose.** This was one module-scoped fixture, and
+    on a tenant whose credential holds `approvals:write` the approval test
+    approved it — after which the PATCH test, which needs a pristine
+    subject, found `approved_by` already set and failed on a state its own
+    assertions had not created. A fixture that one test mutates and another
+    depends on is an ordering coupling, and it reads as a real defect in the
+    code the second time somebody hits it.
     """
     r = client.post("/api/v1/assets", json={
-        "name": f"pytest-approval-{int(time.time())}",
+        "name": f"pytest-approval-{int(time.time() * 1000)}",
         "category_id": 1,
         "condition": "poor",
         "state": "disposed",
@@ -151,6 +187,12 @@ def disposal_awaiting_approval(client, test_location):
         "path wrote one, which is the control this whole route exists to "
         "keep")
     return data
+
+
+@pytest.fixture
+def disposal_awaiting_approval(client, test_location):
+    """One disposed asset with no approver — approve-disposal's own subject."""
+    return _make_disposed_asset(client, test_location)
 
 
 def _credential_keys(value, path=""):
@@ -660,33 +702,61 @@ def test_the_cursor_walks_the_whole_report_without_repeating(client, history):
 
 # ─── the configuration report · the scope that is not held ───────────
 
-def test_the_configuration_report_is_refused_without_settings_read(
-        client, capture):
-    """A real 403, not an inference from the contract.
+def test_the_configuration_report_answers_according_to_the_scope_held(
+        client, token, capture):
+    """Enforced where the scope is absent; correct where it is present.
 
-    This suite's credential does not hold `settings:read`, which makes this
-    the one place the scope can be proved ENFORCED rather than merely
-    DECLARED. The report reads `ir_config_parameter` — the table that holds
-    `myservice_api.jwt_secret` — so the gate being real is the point.
+    **Both branches assert, and neither skips.** This began as a one-sided
+    `403` test on the reasoning that "this suite's credential does not hold
+    `settings:read`" — true of `jaizbankplc` and false in CI, where
+    `scripts/bootstrap.py` grants its client every scope deliberately. It
+    answered `200` and the test failed on a tenant that was behaving
+    correctly. See `token_scopes`.
+
+    The report reads `ir_config_parameter` — the table holding
+    `myservice_api.jwt_secret` — so where the scope is missing the gate has
+    to be real, and where it is held the REDACTION has to be real. The two
+    branches are the two halves of the same control.
     """
     r = client.get(CONFIG, params={"from": "2000-01-01", "to": _iso(_today())})
-    capture("reports/configuration_changes_forbidden", r)
-    body = assert_envelope_err(r, 403, "forbidden")
-    details = body["error"]["details"]
+    capture("reports/configuration_changes_by_scope", r)
 
-    assert details["required_scopes"] == ["settings:read"], (
-        f"the 403 names {details.get('required_scopes')} as required; this "
-        "report is gated on `settings:read` and the error must say which "
-        "scope to ask for")
-    assert "settings:read" in body["error"]["message"], (
-        "the message does not name the missing scope, so an integrator has "
-        "to read the details block to learn what to request")
-    assert "granted_scopes" in details, (
-        "the 403 does not say what the caller DOES hold — the caller then "
-        "cannot tell a missing scope from a broken token")
-    assert "settings:read" not in details["granted_scopes"], (
-        "the token holds `settings:read` and was refused anyway — this test "
-        "is no longer proving the gate, it is proving a bug")
+    if "settings:read" not in token_scopes(token):
+        body = assert_envelope_err(r, 403, "forbidden")
+        details = body["error"]["details"]
+        assert details["required_scopes"] == ["settings:read"], (
+            f"the 403 names {details.get('required_scopes')} as required; "
+            "this report is gated on `settings:read` and the error must say "
+            "which scope to ask for")
+        assert "settings:read" in body["error"]["message"], (
+            "the message does not name the missing scope, so an integrator "
+            "has to read the details block to learn what to request")
+        assert "granted_scopes" in details, (
+            "the 403 does not say what the caller DOES hold — the caller "
+            "then cannot tell a missing scope from a broken token")
+        return
+
+    # The credential holds it, so prove the thing the scope protects.
+    data = assert_envelope_ok(r)["data"]
+    assert data["summary"]["coverage"] in {"empty", "no_modifications",
+                                           "last_write_only", "partial"}
+    assert data["summary"]["statement"]
+
+    secrets = [row for row in data["parameters"] if row["value_is_redacted"]]
+    assert len(secrets) == data["summary"]["redacted_values"]
+    for row in secrets:
+        assert row["current_value"].startswith("[redacted] sha256:"), (
+            f"{row['key']} is marked redacted and its value is not: "
+            f"{row['current_value'][:40]!r}")
+
+    # The one that matters: no key naming a credential is published in the
+    # clear, whatever the rule thinks. Asserted from the wire, not from the
+    # regex — the regex is the thing under test.
+    for row in data["parameters"]:
+        if _CREDENTIALISH.search(row["key"]):
+            assert row["value_is_redacted"], (
+                f"{row['key']} names a credential and its value is "
+                "published in the clear")
 
 
 def test_the_configuration_report_is_gated_on_settings_read(client):
@@ -740,36 +810,106 @@ def test_the_redaction_contract_is_documented_in_the_published_schema(client):
 
 # ─── approve-disposal · the scope that is not held ───────────────────
 
-def test_approve_disposal_is_refused_without_approvals_write(
-        client, disposal_awaiting_approval, capture):
-    """A real 403 naming `approvals:write`.
+def test_approve_disposal_answers_according_to_the_scope_held(
+        client, token, disposal_awaiting_approval, capture):
+    """Refused where the scope is absent; records the CALLER where it is held.
 
-    The scope gates nothing else asset-related, precisely so that granting
-    it is a deliberate act rather than something a broad credential already
-    carries — and this suite's credential is exactly such a broad credential:
-    it holds `assets:write`, and `assets:write` must not be enough to record
-    an approval.
+    **Both branches assert.** `approvals:write` gates nothing else
+    asset-related, precisely so that granting it is a deliberate act rather
+    than something a broad credential already carries — so on a narrow
+    credential the refusal is the proof, and on a broad one the recorded
+    approver is.
+
+    The in-registry `myservice_api/tests/test_approve_disposal_route.py` is
+    the thorough version of the second branch: it provisions its own client,
+    holds exactly `assets:read approvals:write`, and reads the approver back
+    through the ORM. This is the wire-level companion, and it exists because
+    whichever branch a given tenant takes, one of them runs.
     """
+    scopes = token_scopes(token)
     asset_id = disposal_awaiting_approval["id"]
     r = client.post(APPROVE.format(id=asset_id), json={})
-    capture("assets/approve_disposal_forbidden", r)
-    body = assert_envelope_err(r, 403, "forbidden")
-    details = body["error"]["details"]
+    capture("assets/approve_disposal_by_scope", r)
 
-    assert details["required_scopes"] == ["approvals:write"], (
-        f"the 403 names {details.get('required_scopes')}")
-    assert "approvals:write" in body["error"]["message"]
-    assert "granted_scopes" in details
-    assert "approvals:write" not in details["granted_scopes"]
-    assert "assets:write" in details["granted_scopes"], (
-        "this token does not hold `assets:write`, so the test above no "
-        "longer proves that a broad asset credential cannot approve")
+    if "approvals:write" not in scopes:
+        body = assert_envelope_err(r, 403, "forbidden")
+        details = body["error"]["details"]
+        assert details["required_scopes"] == ["approvals:write"], (
+            f"the 403 names {details.get('required_scopes')}")
+        assert "approvals:write" in body["error"]["message"]
+        assert "granted_scopes" in details
+        assert "assets:write" in details["granted_scopes"], (
+            "this token does not hold `assets:write` either, so the refusal "
+            "does not prove that a broad ASSET credential cannot approve")
 
-    # And the refusal wrote nothing.
+        after = assert_envelope_ok(
+            client.get(f"/api/v1/assets/{asset_id}"))["data"]["disposal"]
+        assert after["approved_by"] is None
+        assert after["approved_at"] is None
+        return
+
+    # The credential holds it: the approver must be the CALLER, and the
+    # identity is read back from a fresh GET rather than from the response
+    # under test.
+    approved = assert_envelope_ok(r)["data"]["disposal"]
+    assert approved["approved_by"], "a 200 recorded no approver at all"
+    assert approved["approved_at"]
+
+    whoami = assert_envelope_ok(client.get("/api/v1/auth/whoami"))["data"]
+    # `data.id` — asserted present rather than fetched with a default. The
+    # first version of this line read `data.user.id` with a fallback and got
+    # `None`, so the comparison below was skipped and the test passed while
+    # checking the one thing it exists to check. A missing key here is a
+    # failure, not a reason to stop asserting.
+    assert "id" in whoami, (
+        f"/auth/whoami no longer publishes `data.id`: {sorted(whoami)}. "
+        "This test cannot identify the caller, so it cannot prove the "
+        "approver is the caller.")
+    assert approved["approved_by"]["id"] == whoami["id"], (
+        f"the disposal names user {approved['approved_by']} and the call was "
+        f"made by user {whoami['id']}. The approver must come from the "
+        "credential, never from anywhere else.")
+
     after = assert_envelope_ok(
         client.get(f"/api/v1/assets/{asset_id}"))["data"]["disposal"]
-    assert after["approved_by"] is None
-    assert after["approved_at"] is None
+    assert after["approved_by"] == approved["approved_by"], (
+        "the response and a fresh read disagree about who approved it")
+
+    # A second approval is a one-time act refused 409, not a quiet success.
+    again = client.post(APPROVE.format(id=asset_id), json={})
+    assert_envelope_err(again, 409, "conflict")
+
+
+def test_a_body_naming_an_approver_is_refused_by_the_route(
+        client, token, disposal_awaiting_approval):
+    """The 400 branch, reachable only with the scope.
+
+    Refused rather than ignored: dropping the field would answer `200` to a
+    caller that believes it appointed somebody, and the approver in the
+    register would then disagree with the approver in that caller's own
+    logs. Where the credential cannot reach the route at all, the scope gate
+    is asserted instead — there is nothing weaker about that, it is simply
+    the other door.
+    """
+    asset_id = disposal_awaiting_approval["id"]
+    r = client.post(APPROVE.format(id=asset_id),
+                    json={"disposal_approved_by": 2, "approver": "someone"})
+
+    if "approvals:write" not in token_scopes(token):
+        assert_envelope_err(r, 403, "forbidden")
+        return
+
+    body = assert_envelope_err(r, 400, "invalid_request")
+    rejected = body["error"]["details"]["rejected_fields"]
+    assert "disposal_approved_by" in rejected and "approver" in rejected, (
+        f"the 400 does not name the fields it refused: {rejected}")
+
+    # And the refusal wrote nothing — proved by the record still being
+    # approvable afterwards.
+    after = assert_envelope_ok(
+        client.get(f"/api/v1/assets/{asset_id}"))["data"]["disposal"]
+    assert after["approved_by"] is None, (
+        "the refused call recorded an approver anyway")
 
 
 def test_approve_disposal_publishes_its_whole_contract(client):
