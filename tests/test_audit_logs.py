@@ -58,20 +58,42 @@ APPROVE_SPEC_PATH = "/api/v1/assets/{id}/approve-disposal"
 # is told to branch on this value rather than on the English beside it, so the
 # set is asserted explicitly rather than merely read.
 #
-# There is deliberately NO `empty` — the record cannot hold a group change in
-# any period, so a quiet quarter is not a different KIND of answer here. An
+# `recorded` was added in handoff 24 with the forward record that makes it
+# reachable: the three values are a statement about where the requested period
+# sits relative to the instant this tenant's access record BEGAN — `recorded`
+# for a period wholly inside it (the changes listed are complete), `partial`
+# for one that straddles it (the count is a lower bound), `none` for one that
+# ended before it or for a tenant that has recorded nothing yet.
+#
+# There is deliberately NO `empty` — a quiet period and an unrecorded one must
+# not look alike, which is exactly what `coverage` exists to distinguish. An
 # earlier draft declared `empty` in the model, returned it nowhere, and
 # published the distinction as contract in three places; this set contained it
 # and asserted only membership, so it passed on the broken contract. The
 # `test_no_unreachable_coverage_value_is_published` below is what stops that
-# recurring: a value in this set that the report can never return now fails.
-_COVERAGE = {"none", "partial"}
+# recurring: a value in this set that the report can never return now fails —
+# and, in the other direction, a value the model can return that is missing
+# from this set fails too, which is what carries `recorded` here.
+_COVERAGE = {"none", "partial", "recorded"}
 
 # Every key `access_change_fidelity()` promises. A boundary declaration with a
-# key missing is a boundary a consumer reads past.
+# key missing is a boundary a consumer reads past. `record_starts_at` and
+# `record_rows` are handoff 24's, and `record_starts_at` is the load-bearing
+# one: it is the instant the whole coverage verdict is computed against, it is
+# `null` until this tenant records its first change, and it is measured from
+# the earliest row held rather than from any migration date.
 _FIDELITY_KEYS = ("groups_field", "groups_field_tracked",
                   "membership_audit_columns", "tracking_rows",
-                  "logging_rows", "notes", "recoverable", "not_recoverable")
+                  "logging_rows", "notes", "recoverable", "not_recoverable",
+                  "record_starts_at", "record_rows")
+
+# The four facts the forward record makes answerable, and only from the instant
+# it begins. `access_change_fidelity` moves them between `recoverable` and
+# `not_recoverable` by MEASUREMENT, so the assertions below pin the RULE and
+# never the list — a suite that pinned either list would be asserting which
+# tenant it last ran against.
+_RECORDED_FACTS = {"group_granted", "group_removed", "group_change_actor",
+                   "group_change_timestamp"}
 
 # A key name that would mean a credential travelled in the roster. Matched on
 # the NAME, the same rule `audit_configuration._SECRET_KEY_RE` applies to
@@ -295,23 +317,74 @@ def test_no_unreachable_coverage_value_is_published(client):
         % (sorted(declared.values()), sorted(_COVERAGE)))
 
 
-def test_group_changes_in_period_is_a_structural_zero(client, history):
-    """`0` and PRESENT, not absent.
+def test_group_changes_in_period_is_present_and_measured(client, history):
+    """PRESENT always; `0` only where the record cannot answer.
 
     The key is in the payload precisely so a consumer reading counts SEES
     the absence rather than inferring it from a missing key — the same
     argument `omitted_asset_ids` makes on the register snapshot. A missing
-    key is indistinguishable from a consumer's own typo.
+    key is indistinguishable from a consumer's own typo. That half is
+    unchanged.
+
+    What changed in handoff 24 is the zero. This asserted `== 0` on the
+    reasoning that nothing in the database could produce a group change;
+    there is now a forward record that can, so the old assertion would fail
+    the day a tenant recorded its first grant — and the "fix" somebody would
+    reach for is deleting the test.
+
+    **It has to stay honest in both states, because every tenant is in the
+    first one today and will be in the second one tomorrow.** So the rule is
+    asserted rather than the number: with no record there can be no count and
+    `coverage` must not claim one; with a record the count is a real
+    measurement that cannot be smaller than the group events published
+    beside it. `coverage` is what tells a zero-because-nothing-happened from
+    a zero-because-the-record-does-not-reach-this-period, which is the
+    distinction the count alone cannot carry.
     """
     summary = history["data"]["summary"]
+    fidelity = history["data"]["fidelity"]
+
     assert "group_changes_in_period" in summary, (
-        "`group_changes_in_period` is absent. A structural zero that is not "
-        "in the payload is not a statement about the record — it is a key a "
+        "`group_changes_in_period` is absent. A count that is not in the "
+        "payload is not a statement about the record — it is a key a "
         "consumer will read as its own mistake.")
-    assert summary["group_changes_in_period"] == 0, (
-        "the report claims to have found group changes. Nothing in this "
-        "database can produce them: the membership table carries no "
-        "timestamp and no actor. A non-zero here is a synthesised history.")
+    assert "implication_changes_in_period" in summary, (
+        "`implication_changes_in_period` is absent. On Odoo 19 a group "
+        "implication moves effective access while writing no membership row "
+        "at all, so a consumer that only ever sees membership counts is "
+        "blind to the access change that leaves the least trace.")
+    count = summary["group_changes_in_period"]
+    assert isinstance(count, int) and not isinstance(count, bool)
+    assert count >= 0
+
+    if fidelity["record_starts_at"] is None:
+        assert count == 0, (
+            f"the report counted {count} group changes on a tenant whose "
+            "access record has not begun — `fidelity.record_starts_at` is "
+            "null, so there are no rows to have counted and this is a "
+            "synthesised history.")
+        assert summary["implication_changes_in_period"] == 0
+        assert summary["coverage"] != "recorded", (
+            "`coverage` is `recorded` on a tenant holding no access-change "
+            "rows. `recorded` means the listed changes are COMPLETE for the "
+            "period; with no record it is a claim of coverage that does not "
+            "exist.")
+        return
+
+    # The record has begun. The period runs from 2000-01-01 to today and the
+    # record cannot have begun before this code was written, so it begins
+    # part-way through: a lower bound, and the statement has to say so.
+    assert summary["coverage"] == "partial", (
+        f"a period from 2000 to today, on a tenant whose record began at "
+        f"{fidelity['record_starts_at']}, was answered "
+        f"{summary['coverage']!r}. It straddles the start of the record, so "
+        "the count is a lower bound and `partial` is the only honest answer.")
+    recorded_events = [e for e in history["data"]["events"]
+                       if e["event"] in ("granted", "removed")]
+    assert count >= len(recorded_events), (
+        f"the summary counts {count} group changes and {len(recorded_events)} "
+        "are published as events. The count covers the whole period and the "
+        "events are the page, so the count can be larger — never smaller.")
 
 
 def test_the_fidelity_block_publishes_every_key_it_promises(client, history):
@@ -337,19 +410,76 @@ def test_the_fidelity_block_publishes_every_key_it_promises(client, history):
     # and not recoverable is a boundary that says nothing.
     assert not (set(fidelity["recoverable"])
                 & set(fidelity["not_recoverable"]))
+    assert isinstance(fidelity["record_rows"], int)
+    assert fidelity["record_rows"] >= 0
+    # One measurement seen twice: `changed_at` is required on the model, so a
+    # tenant holding rows has an earliest one and a tenant holding none has no
+    # start. If these disagree, one of them has stopped being measured.
+    assert (fidelity["record_starts_at"] is None) == \
+        (fidelity["record_rows"] == 0), (
+            f"`record_starts_at` is {fidelity['record_starts_at']!r} while "
+            f"`record_rows` is {fidelity['record_rows']} — a row cannot exist "
+            "without a `changed_at`, so one of these is a constant rather "
+            "than a measurement")
+    assert "record_start" in fidelity["notes"], (
+        "the fidelity block measures when the access record begins and "
+        "publishes no English for it; the note is the half an auditor reads")
+
+
+def test_the_group_facts_move_with_the_record_not_with_the_code(
+        client, history):
+    """`recoverable` and `not_recoverable` are DYNAMIC, and this is the rule.
+
+    Group grants and removals were flatly not recoverable until handoff 24.
+    They are now recoverable **from the instant this tenant's record begins**
+    and not before — which is a property of the tenant, not of the deployed
+    code. A build that moved the four facts into `recoverable` because the
+    recorder is installed would be claiming coverage of every period in the
+    past, on a report whose entire value is that it does not do that.
+
+    Asserted as the rule so it holds in both states: every tenant holds zero
+    rows today, and the first grant on any of them flips this over without
+    anything else changing.
+    """
+    fidelity = history["data"]["fidelity"]
+    recoverable = set(fidelity["recoverable"])
+    not_recoverable = set(fidelity["not_recoverable"])
+
+    if fidelity["record_starts_at"]:
+        assert _RECORDED_FACTS <= recoverable, (
+            f"this tenant's record began at {fidelity['record_starts_at']} "
+            f"and {sorted(_RECORDED_FACTS - recoverable)} are still not "
+            "published as recoverable — the report is understating a record "
+            "it holds")
+        assert not (_RECORDED_FACTS & not_recoverable)
+    else:
+        assert _RECORDED_FACTS <= not_recoverable, (
+            f"this tenant holds no access-change rows and "
+            f"{sorted(_RECORDED_FACTS - not_recoverable)} are not named as "
+            "unrecoverable. Nothing can be answered about a grant here, and "
+            "a boundary that omits the four facts the whole report is about "
+            "is worse than no boundary.")
+        assert not (_RECORDED_FACTS & recoverable)
 
 
 def test_the_finding_itself_is_asserted_from_the_api(client, history):
     """The finding, read off the wire rather than off the docstring.
 
     `res_groups_users_rel` is `(gid, uid)` and nothing else, and
-    `res.users.group_ids` carries no tracking. Those are the two schema
-    facts that make a grant history impossible, and this asserts the report
-    MEASURED them rather than asserting them itself.
+    `res.users.group_ids` carries no tracking. Those are the two schema facts
+    that make a RECONSTRUCTED grant history impossible, and this asserts the
+    report MEASURED them rather than asserting them itself.
+
+    Handoff 24 did not change either fact and was not able to: the forward
+    record is a separate append-only table written as membership moves, which
+    is why it can only ever answer forwards. The past is still gone. That is
+    the distinction this test keeps visible — a reader who sees group changes
+    in the payload must still be able to check that they did not come from
+    the membership table, because nothing can come from the membership table.
 
     If this test ever fails because the values changed, the report is right
     and the test is out of date — somebody added tracking or an audit
-    module, and `coverage` should now be reading `partial`.
+    module, and `coverage` should now be reading `partial` on that account.
     """
     fidelity = history["data"]["fidelity"]
     assert fidelity["membership_audit_columns"] == [], (

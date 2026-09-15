@@ -1,9 +1,16 @@
 """The hooks that make group membership a recorded fact.
 
-Four overrides on two core models, because the membership relation is writable
-from four structurally different directions and only one of them is
+SIX overrides on two core models, because the membership relation is writable
+from six structurally different directions and only one of them is
 `res.users.write`. The enumeration and the evidence for each are in the module
 docstring of `access_change.py`; this file is the mechanism.
+
+**It said four until a review found two more**, both in this repository and
+both in the shape CLAUDE.md warns about — a claim of exclusivity that nobody
+had searched. `res.groups.create` populates a group and its implications in
+one operation (a cold install of `myservice_security`), and `res.groups.unlink`
+cascades membership away exactly as the user-side delete does. If you are about
+to add a seventh, the lesson is that this list has been wrong twice.
 
 Every hook has the same shape:
 
@@ -179,6 +186,77 @@ class ResGroupsAccessRecorder(models.Model):
             snapshot[group.id] = (members, implied)
         return snapshot
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Records a group created with members or implications already on it.
+
+        THE FIFTH WRITER, and it was missed on the first pass of this file —
+        the class docstring above claimed four and a review found this one, in
+        this repository, in the exact shape CLAUDE.md warns about: a security
+        XML record that creates the group AND fills it in a single operation.
+        `myservice_security/security/security_groups.xml` declares
+        `group_security_admin` with both `implied_ids` and `user_ids` on the
+        record, so on a cold module install the group arrives populated and
+        never passes through `write` at all.
+
+        Read from the created records rather than from `vals`, for the same
+        reason `res.users.create` does.
+        """
+        groups = super().create(vals_list)
+        after = groups._access_group_snapshot()
+        groups._access_record_group_diff({}, after)
+        return groups
+
+    def unlink(self):
+        """Records the removals a cascade is about to make invisible.
+
+        `res_groups_users_rel` has `ON DELETE CASCADE` on BOTH foreign keys,
+        not just the user one. Deleting a group erases every membership row
+        for it exactly as deleting a user does, and without this the record
+        ends mid-sentence in the group direction. The existing rows keep their
+        `group_name` snapshot so the past stays legible; what would otherwise
+        be invisible is the deletion itself.
+        """
+        before = self._access_group_snapshot()
+        self._access_record_group_diff(before, {g.id: (frozenset(), frozenset())
+                                                for g in self})
+        return super().unlink()
+
+    def _access_record_group_diff(self, before, after):
+        """Turn two group snapshots into rows. The only place events are
+        decided for the group side, shared by `create`, `write` and `unlink`
+        so the three cannot drift apart."""
+        if self.env.context.get(ACCESS_CHANGE_SKIP_KEY):
+            return
+        rows = []
+        Users = self.env['res.users'].sudo()
+        Groups = self.env['res.groups'].sudo()
+        for group_id, (after_users, after_implied) in after.items():
+            before_users, before_implied = before.get(
+                group_id, (frozenset(), frozenset()))
+            if (after_users == before_users
+                    and after_implied == before_implied):
+                continue
+            group = Groups.browse(group_id).exists()
+            for user in Users.browse(sorted(after_users - before_users)).exists():
+                rows.append({'event': ACCESS_EVENT_GRANTED, 'user': user,
+                             'group': group, 'source': 'group_write'})
+            for user in Users.browse(sorted(before_users - after_users)).exists():
+                rows.append({'event': ACCESS_EVENT_REMOVED, 'user': user,
+                             'group': group, 'source': 'group_write'})
+            for implied in Groups.browse(
+                    sorted(after_implied - before_implied)).exists():
+                rows.append({'event': ACCESS_EVENT_IMPLIED_ADDED,
+                             'group': group, 'implied_group': implied,
+                             'source': 'group_implied'})
+            for implied in Groups.browse(
+                    sorted(before_implied - after_implied)).exists():
+                rows.append({'event': ACCESS_EVENT_IMPLIED_REMOVED,
+                             'group': group, 'implied_group': implied,
+                             'source': 'group_implied'})
+        if rows:
+            self.env['myservice.api.access.change']._record_many(rows)
+
     def write(self, vals):
         """Records membership and implication changes made on a group.
 
@@ -204,33 +282,6 @@ class ResGroupsAccessRecorder(models.Model):
             (users_field and users_field in vals) or ('implied_ids' in vals))
         before = self._access_group_snapshot() if touches else None
         result = super().write(vals)
-        if touches and not self.env.context.get(ACCESS_CHANGE_SKIP_KEY):
-            after = self._access_group_snapshot()
-            rows = []
-            Users = self.env['res.users'].sudo()
-            Groups = self.env['res.groups'].sudo()
-            for group_id, (after_users, after_implied) in after.items():
-                before_users, before_implied = before.get(
-                    group_id, (frozenset(), frozenset()))
-                group = Groups.browse(group_id).exists()
-                for user in Users.browse(
-                        sorted(after_users - before_users)).exists():
-                    rows.append({'event': ACCESS_EVENT_GRANTED, 'user': user,
-                                 'group': group, 'source': 'group_write'})
-                for user in Users.browse(
-                        sorted(before_users - after_users)).exists():
-                    rows.append({'event': ACCESS_EVENT_REMOVED, 'user': user,
-                                 'group': group, 'source': 'group_write'})
-                for implied in Groups.browse(
-                        sorted(after_implied - before_implied)).exists():
-                    rows.append({'event': ACCESS_EVENT_IMPLIED_ADDED,
-                                 'group': group, 'implied_group': implied,
-                                 'source': 'group_implied'})
-                for implied in Groups.browse(
-                        sorted(before_implied - after_implied)).exists():
-                    rows.append({'event': ACCESS_EVENT_IMPLIED_REMOVED,
-                                 'group': group, 'implied_group': implied,
-                                 'source': 'group_implied'})
-            if rows:
-                self.env['myservice.api.access.change']._record_many(rows)
+        if touches:
+            self._access_record_group_diff(before, self._access_group_snapshot())
         return result

@@ -68,6 +68,19 @@ three places. Measured against Odoo 19 core, not assumed:
    Without a hook the record would end mid-sentence, which is the same defect
    in a different place.
 
+6. **`res.groups.create` with `user_ids` or `implied_ids`, and
+   `res.groups.unlink`.** Found by a review AFTER this docstring first claimed
+   the list was exhaustive at four — which is the failure CLAUDE.md describes,
+   committed in the file warning against it. A security XML record can create a
+   group already populated: `myservice_security/security/security_groups.xml`
+   declares `group_security_admin` with both `implied_ids` and `user_ids` on
+   the record, so on a cold install it never passes through `write`. And
+   `ON DELETE CASCADE` sits on BOTH foreign keys of the relation, so deleting a
+   group erases membership exactly as deleting a user does.
+
+   **The list has now been wrong twice. Treat a seventh as likely, not
+   impossible.**
+
 What is deliberately NOT covered, and cannot be: raw SQL against the relation
 table, and a direct `call_kw` from any client with RPC access. Both converge on
 the ORM m2m flush, so only a database trigger would catch them — and a trigger
@@ -206,6 +219,12 @@ class MyserviceApiAccessChange(models.Model):
     # False. The three are written together and never diverge.
     changed_by_id = fields.Many2one(
         'res.users', string='Changed By', ondelete='set null')
+    # The acting account's LOGIN, snapshotted for the same reason the subject's
+    # is: `changed_by_id` goes null when that account is deleted, and a display
+    # name is not unique. Without this the actor survives deletion less well
+    # than the person they acted on, which is the wrong way round on a record
+    # whose purpose is saying who did it.
+    changed_by_login = fields.Char(string='Changed By Login (as recorded)')
     actor = fields.Char(
         string='Actor (as recorded)', required=True, index=True,
         help="The acting user's name as it read at the time, or `__system__` "
@@ -259,7 +278,7 @@ class MyserviceApiAccessChange(models.Model):
 
     @api.model
     def _resolve_actor(self):
-        """Who to blame, honestly. Returns (user_id, label, attributable).
+        """Who to blame, honestly. Returns (user_id, label, attributable, login).
 
         `uid 1` is an upgrade, a cron or the CLI. It is never a person, and
         naming it "OdooBot" or "Administrator" would be an invention — so the
@@ -268,17 +287,18 @@ class MyserviceApiAccessChange(models.Model):
         """
         uid = self.env.uid
         if not uid or uid == SUPERUSER_ID:
-            return False, SYSTEM_ACTOR, False
+            return False, SYSTEM_ACTOR, False, False
         user = self.env['res.users'].sudo().browse(uid).exists()
         if not user:
-            return False, SYSTEM_ACTOR, False
-        return user.id, user.name or user.login or SYSTEM_ACTOR, True
+            return False, SYSTEM_ACTOR, False, False
+        return (user.id, user.name or user.login or SYSTEM_ACTOR, True,
+                user.login or False)
 
     @api.model
     def _record(self, event, *, user=None, group=None, implied_group=None,
                 source=None, changed_at=None):
         """Append one row. The only way a row is ever written."""
-        changed_by_id, actor, attributable = self._resolve_actor()
+        changed_by_id, actor, attributable, actor_login = self._resolve_actor()
         vals = {
             'event': event,
             'user_id': user.id if user else False,
@@ -291,6 +311,7 @@ class MyserviceApiAccessChange(models.Model):
                 self._group_label(implied_group) if implied_group else False) or False,
             'changed_at': changed_at or fields.Datetime.now(),
             'changed_by_id': changed_by_id,
+            'changed_by_login': actor_login,
             'actor': actor,
             'attributable': attributable,
             'source': source or self.env.context.get(
@@ -311,7 +332,7 @@ class MyserviceApiAccessChange(models.Model):
         """
         if not rows:
             return self.browse()
-        changed_by_id, actor, attributable = self._resolve_actor()
+        changed_by_id, actor, attributable, actor_login = self._resolve_actor()
         now = fields.Datetime.now()
         vals_list = []
         for row in rows:
@@ -330,6 +351,7 @@ class MyserviceApiAccessChange(models.Model):
                     self._group_label(implied) if implied else False) or False,
                 'changed_at': row.get('changed_at') or now,
                 'changed_by_id': changed_by_id,
+                'changed_by_login': actor_login,
                 'actor': actor,
                 'attributable': attributable,
                 'source': row.get('source') or 'direct',
@@ -347,7 +369,10 @@ class MyserviceApiAccessChange(models.Model):
         """
         if not group:
             return False
-        try:
-            return group.sudo().full_name or group.sudo().name
-        except Exception:
-            return group.sudo().name
+        group = group.sudo()
+        # `full_name` is a non-stored compute contributed by `base`; on a group
+        # whose category was deleted it can come back empty, which is a value
+        # problem rather than an exception. Narrow by design — handoff 15
+        # classified fifty broad handlers in this tree and 24 were hiding a
+        # live fault, so this one does not catch anything.
+        return group.full_name or group.name

@@ -517,7 +517,7 @@ class ResUsersAccessReport(models.Model):
         # MEANS, not who is in it), so forcing them into a list the controller
         # pages by user id would either drop them silently or break the page
         # contract. They are counted and stated separately instead.
-        group_changes, implication_changes = 0, 0
+        group_changes, implication_changes, unshown = 0, 0, 0
         Record = self.env.get('myservice.api.access.change')
         if Record is not None:
             rows = Record.sudo().search(
@@ -533,6 +533,7 @@ class ResUsersAccessReport(models.Model):
                     # under-report the period — but it cannot be attached to a
                     # page, so it is not invented into one.
                     if row.user_id.id not in known:
+                        unshown += 1
                         continue
                     events.append({
                         'event': row.event,
@@ -568,6 +569,14 @@ class ResUsersAccessReport(models.Model):
                 # two apart.
                 'group_changes_in_period': group_changes,
                 'implication_changes_in_period': implication_changes,
+                # Counted above but NOT in `events`: rows whose user has since
+                # been deleted, or is one of Odoo's structural accounts, have
+                # no roster row to page with. Published so that a reader who
+                # sees a count larger than the table has the explanation
+                # rather than an unexplained gap — an auditor reading
+                # `group_changes_in_period: 7` above five rows must not have
+                # to guess why.
+                'group_changes_not_shown': unshown,
                 'coverage': coverage,
                 'statement': statement,
             },
