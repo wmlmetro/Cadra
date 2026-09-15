@@ -336,11 +336,11 @@ Specification §7.6 requires *"every identity-related event in Cadra (login, rol
 | `ir_logging` | **0 rows on every tenant.** Odoo writes it only when `log_db` is set; it is not set in `config/odoo.19.conf` and never has been. |
 | An audit module | **None installed or vendored.** `oca-19/` carries one module and it is `web_responsive`; none of the 23 in `crnd-19/` is an audit log. |
 | `res_groups` / `ir_model_access` / `ir_rule` write stamps | Present, and **100% written by uid 1 `__system__`** — module install and upgrade churn. Not one ACL, group or rule in any tenant has ever been written by a human. |
-| `res_users_log` | 1–5 rows per tenant, garbage-collected. It records that a user was *active* at a time. No group, no model, no field. |
+| `res_users_log` | 1–6 rows per tenant, garbage-collected. It records that a user was *active* at a time. No group, no model, no field. |
 
 **So the report synthesises nothing.** What it returns instead:
 
-- **`summary.statement`** — the sentence, above the table, saying that group grants and removals are not recorded anywhere in this system and that this report can speak for no period on that question. Branch on `summary.coverage` (`none` / `empty` / `partial`), never on the wording.
+- **`summary.statement`** — the sentence, above the table, saying that group grants and removals are not recorded anywhere in this system and that this report can speak for no period on that question. Branch on `summary.coverage` (`none` / `partial`), never on the wording. There is deliberately no `empty`: the record cannot hold a group change in any period, so a quiet quarter is not a different *kind* of answer here — unlike the disposal report, where an empty period genuinely is.
 - **`summary.group_changes_in_period`** — a **structural zero**, present in the payload so a consumer reading counts sees the absence rather than inferring it from a missing key.
 - **`events`** — the access events that *are* evidenced: an account **created** (`precision: exact`, with its real timestamp and creator) and an account **last modified** (`precision: last_write_only`). Each row names the `evidence` it rests on. An `account_modified` row does not say which field changed — a timezone edit and a group grant are indistinguishable in `res_users.write_date`.
 - **`roster`** — the present-tense answer to the question an auditor asks next: who has access *now*, with each account's groups and, where it is an integration, its API scopes. Labelled as current state throughout, never presented as history.

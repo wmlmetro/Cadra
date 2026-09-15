@@ -51,12 +51,21 @@ from odoo import api, fields, models
 #: today and `partial` exists so that the day somebody adds tracking, the
 #: report can say so without a code change to the consumer.
 #:
-#: `empty` and `none` are different and the distinction is the same one the
-#: disposal report makes: `empty` means the period holds no events, `none`
-#: means the record cannot hold them at all. Collapsing the two would let a
-#: quiet quarter be rendered as "Cadra keeps no access log", and a deployment
-#: with no access log be rendered as "nothing happened".
-ACCESS_COVERAGE_EMPTY = 'empty'
+#: **There is deliberately no `empty` here**, and the disposal report's
+#: `sap_coverage` — which does have one — is why the question came up.
+#:
+#: There it is load-bearing: a period holding no disposals is a different
+#: fact from a period whose disposals reached no SAP. Here the two collapse,
+#: because the record cannot hold a group change in ANY period. A quiet
+#: quarter and a busy one give the same answer to the question 13.4 asks,
+#: and publishing `empty` for the quiet one would imply that some other
+#: period might have answered it. `none` covers both; the two statements
+#: below differ in wording without pretending to differ in kind.
+#:
+#: An earlier draft declared `empty`, returned it nowhere, and published the
+#: distinction as contract in the changelog, the OpenAPI description and
+#: INT-10. The test asserted only that `coverage` was one of the three, so
+#: it passed on the broken contract - one more guard that tested nothing.
 ACCESS_COVERAGE_NONE = 'none'
 ACCESS_COVERAGE_PARTIAL = 'partial'
 
@@ -114,17 +123,35 @@ class ResUsersAccessReport(models.Model):
 
     @api.model
     def _access_tracking_rows(self):
-        """How many chatter tracking rows exist on users and on groups.
+        """Chatter tracking rows for the GROUPS FIELD specifically.
 
         Zero on every tenant today. Counted rather than assumed, because a
         report whose stated limitation is a constant cannot notice the day
         the limitation is lifted.
+
+        Scoped to the one field rather than to the whole of `res.users`, and
+        that scoping is a correction. Counting every tracked field on the
+        model meant that the day any module tracked anything on a user — an
+        `active` flag, a timezone — this report would start telling an
+        auditor *"this deployment has grown an access history"*. That is a
+        false statement in the opposite direction, on a report whose entire
+        value is the accuracy of its boundary, and over-claiming a history
+        is worse than admitting there is none.
+
+        There is no `field`/`model` column on `mail_tracking_value` in Odoo
+        19, so the field is reached through `ir_model_fields` and the model
+        through `mail_message` — the same join `asset_snapshot.py` uses.
         """
+        field = self._access_groups_field()
+        if not field:
+            return 0
         self.env.cr.execute("""
             SELECT count(*) FROM mail_tracking_value tv
               JOIN mail_message m ON m.id = tv.mail_message_id
+              JOIN ir_model_fields f ON f.id = tv.field_id
              WHERE m.model IN ('res.users', 'res.groups')
-        """)
+               AND f.name = %s
+        """, (field,))
         return self.env.cr.fetchone()[0]
 
     @api.model
@@ -172,9 +199,12 @@ class ResUsersAccessReport(models.Model):
                    ", ".join(sorted(columns)) or 'none')),
             'tracking': (
                 "`res.users.%s` carries %s on this deployment, and there are "
-                "%d chatter tracking rows across `res.users` and `res.groups` "
-                "combined. Without tracking there is no history to roll back "
-                "the way the asset register snapshot rolls back a custodian."
+                "%d chatter tracking rows for THAT FIELD. Without tracking "
+                "there is no history to roll back the way the asset register "
+                "snapshot rolls back a custodian. The count is scoped to the "
+                "groups field deliberately: tracking on some other field of "
+                "`res.users` is not an access history, and reporting it as "
+                "one would overstate the record."
                 % (field or 'the groups field',
                    'tracking=True' if tracked else 'NO tracking',
                    tracking_rows)),

@@ -41,7 +41,7 @@ Specification §13.4's fourth standard report. Scope **`identity:read`**. `from`
 
 **Read `data.summary.statement` before `data.events`.** Cadra holds no record of group grants or removals, and this endpoint does not pretend otherwise. `res_groups_users_rel` is two integer columns with no timestamp and no actor; `res.users.group_ids` carries no tracking; `ir_logging` is empty on every tenant. No history is synthesised.
 
-- `summary.coverage` — `none` | `empty` | `partial`. **Branch on this, never on `statement`**, whose wording may be improved. `none` and `empty` are different: `empty` means the period holds no events, `none` means the record cannot hold them at all.
+- `summary.coverage` — `none` | `partial`. **Branch on this, never on `statement`**, whose wording may be improved. There is deliberately no `empty`: the record cannot hold a group change in any period, so a quiet quarter and a busy one give the same answer to the question §13.4 asks, and an `empty` would imply some other period might have answered it. `partial` is unreached today and exists so that a deployment which grows an access history is described rather than misreported.
 - `summary.group_changes_in_period` — a **structural zero**, present in the payload so the absence is visible rather than inferred from a missing key.
 - `data.events` — what IS evidenced: `account_created` (`precision: exact`) and `account_modified` (`precision: last_write_only` — one write stamp covers every change ever made to the record, and it does not say which field moved). Each row names its `evidence`.
 - `data.roster` — present-tense access: each account's groups and, for an integration, its API scopes. Current state, never history.
@@ -75,7 +75,19 @@ Report 16 named this as a gap and it is now closed **without making the approver
 
 **`myservice_api.group_auditor`** is new — specification §3's `audit_viewer`, which INT-10 §4.3 had recorded as absent. Six READ scopes (`assets:read`, `locations:read`, `requests:read`, `identity:read`, `dashboards:read`, `settings:read`) and no write scope of any kind. Implied by nothing and implying nothing, deliberately: an auditor who is also an Asset Manager is not independent of what they are auditing.
 
-**No existing credential changes.** Every scope above is additive, and no route's existing scope was altered.
+### WIDENING · what `identity:read` now reaches
+
+No route's scope changed and no scope was removed, but **`identity:read` reaches more data than it did**, and that is worth saying plainly rather than leaving inside "additive".
+
+Before this release it reached `hr.employee` only. `GET /api/v1/reports/access-changes` now returns, for **every account on the tenant**: `login`, `name`, `active`, the full Odoo group list, the creating and last-writing user, and — for an API client — its `api_scopes`.
+
+**Every existing holder of `identity:read` gained that**: Vendra's client, the demo clients, and any `group_asset_user` session. It is account enumeration plus inter-client scope reconnaissance, and nobody separately decided to grant it. It is the data §13.4's fourth report is *for*, and `identity:read` is the identity register's scope, so the grouping is right — but if that reach is wider than a deployment wants, the fix is to narrow which clients hold `identity:read`, not to expect the report to withhold it.
+
+No password hash, client secret or token is published in any field.
+
+### Summary
+
+**No existing credential loses anything.** Every scope above is additive, no route's existing scope was altered, and the one widening is the paragraph above.
 
 ## 2026-09-14 — handoff 22
 

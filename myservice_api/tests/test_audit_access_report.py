@@ -176,6 +176,10 @@ class TestTheReportWritesNothing(AccessReportCase):
     FINGERPRINTED = {
         "res_users": "t.id",
         "res_groups_users_rel": "t.gid, t.uid",
+        "res_groups": "t.id",
+        # The report searches this model to label a roster row as an
+        # integration; a write on that path would otherwise be invisible.
+        "myservice_api_client": "t.id",
         "mail_message": "t.id",
         "mail_tracking_value": "t.id",
         "ir_config_parameter": "t.id",
@@ -196,6 +200,53 @@ class TestTheReportWritesNothing(AccessReportCase):
                 "ORDER BY %s), '')) FROM %s t" % (order, table))
             marks[table] = self.env.cr.fetchone()
         return marks
+
+    def test_the_fingerprint_notices_a_write(self):
+        """The NEGATIVE CONTROL, and without it the two tests below are
+        decoration.
+
+        A `FINGERPRINTED` dict naming tables that do not exist, or an
+        `assertEqual` comparing two things neither of which moves, produces
+        an identical before and after on every run and looks exactly like a
+        proof that the report is read-only. Criterion 7 of the handoff asks
+        for guards proved to fail before they pass; the CI series guard in
+        this same branch got one and this did not, until the verification
+        pass said so.
+
+        So: mutate one row in each fingerprinted table the report could
+        plausibly touch, and require the mark to move. If this test ever
+        passes vacuously, the two below are worthless.
+        """
+        before = self._fingerprint()
+
+        user = self._user()
+        self._flush_tracking()
+        after_user = self._fingerprint()
+        self.assertNotEqual(
+            before["res_users"], after_user["res_users"],
+            "creating a user did not move the `res_users` fingerprint, so "
+            "this fingerprint cannot detect a write and every read-only "
+            "claim resting on it is unproven")
+
+        # The field the model itself probes for, so this test is not the
+        # place Odoo 19's `groups_id` -> `group_ids` rename gets pinned.
+        groups_field = self.env["res.users"]._access_groups_field()
+        user.write({groups_field: [(4, self.env.ref(
+            "base.group_no_one").id)]})
+        self._flush_tracking()
+        after_group = self._fingerprint()
+        self.assertNotEqual(
+            after_user["res_groups_users_rel"],
+            after_group["res_groups_users_rel"],
+            "a group grant did not move the membership fingerprint")
+
+        self.env["ir.config_parameter"].sudo().set_param(
+            "cadra.fingerprint_probe_%s" % self.marker, "1")
+        self._flush_tracking()
+        self.assertNotEqual(
+            after_group["ir_config_parameter"],
+            self._fingerprint()["ir_config_parameter"],
+            "a parameter write did not move the parameter fingerprint")
 
     def test_the_report_changes_nothing(self):
         created = self._user()
@@ -611,15 +662,28 @@ class TestTheEventsAreEvidenced(AccessReportCase):
         self.assertEqual(modified[0]["evidence"],
                          "res_users.write_date / write_uid")
 
-    def test_the_events_are_sorted_by_time(self):
-        """A report an auditor reads top to bottom."""
+    def test_the_model_sorts_by_time(self):
+        """Chronological — but only out of the MODEL, and say so.
+
+        This asserted chronological order under the title "a report an
+        auditor reads top to bottom", which was a claim about the published
+        report and was not true of it: `v1_audit.py` re-sorts by ascending
+        account id before publishing, because the cursor walks ascending ids
+        and a time-ordered list cannot be paged honestly with the cursor
+        this API issues. `/reports/disposals` makes the same trade.
+
+        So this test now says what it actually checks — the model's order —
+        and `tests/test_audit_logs.py` asserts the API's, which is the one a
+        consumer sees. A test whose title describes a different layer from
+        its assertion is how a contract comes to have two answers.
+        """
         self._user()
         self._user()
         self._flush_tracking()
         events = self._report()["events"]
         self.assertEqual(
             [e["at"] for e in events], sorted(e["at"] for e in events),
-            "the events are not in chronological order")
+            "the model no longer returns events in chronological order")
 
 
 # ═════════════════════════════════════════════════════════════════════

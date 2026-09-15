@@ -180,6 +180,24 @@ class TestTheReportWritesNothing(ConfigReportCase):
         "mail_tracking_value": "t.id",
     }
 
+    def test_the_fingerprint_notices_a_write(self):
+        """The NEGATIVE CONTROL — see the same test in the access report.
+
+        Without it, a `FINGERPRINTED` dict pointed at the wrong tables gives
+        an identical before and after on every run and reads exactly like a
+        proof that the report writes nothing.
+        """
+        before = self._fingerprint()
+        self.env["ir.config_parameter"].sudo().set_param(
+            "cadra.fingerprint_probe_%s" % self.marker, "1")
+        self._flush_tracking()
+        self.assertNotEqual(
+            before["ir_config_parameter"],
+            self._fingerprint()["ir_config_parameter"],
+            "a parameter write did not move the `ir_config_parameter` "
+            "fingerprint, so this fingerprint cannot detect a write and "
+            "every read-only claim resting on it is unproven")
+
     def _fingerprint(self):
         self._flush_tracking()
         self.env.invalidate_all()

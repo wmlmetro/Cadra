@@ -56,11 +56,14 @@ APPROVE_SPEC_PATH = "/api/v1/assets/{id}/approve-disposal"
 # is told to branch on this value rather than on the English beside it, so the
 # set is asserted explicitly rather than merely read.
 #
-# `empty` and `none` are deliberately BOTH here and they are not synonyms:
-# `empty` means the period holds no events, `none` means the record cannot
-# hold them at all. Collapsing them would let a quiet quarter render as
-# "Cadra keeps no access log".
-_COVERAGE = {"empty", "none", "partial"}
+# There is deliberately NO `empty` — the record cannot hold a group change in
+# any period, so a quiet quarter is not a different KIND of answer here. An
+# earlier draft declared `empty` in the model, returned it nowhere, and
+# published the distinction as contract in three places; this set contained it
+# and asserted only membership, so it passed on the broken contract. The
+# `test_no_unreachable_coverage_value_is_published` below is what stops that
+# recurring: a value in this set that the report can never return now fails.
+_COVERAGE = {"none", "partial"}
 
 # Every key `access_change_fidelity()` promises. A boundary declaration with a
 # key missing is a boundary a consumer reads past.
@@ -193,6 +196,61 @@ def test_the_statement_is_present_and_its_coverage_is_one_we_publish(
     # payload beside it.
     assert summary["events_in_period"] == len(history["data"]["events"])
     assert summary["accounts"] == len(history["data"]["roster"])
+
+
+def test_no_unreachable_coverage_value_is_published(client):
+    """A published enum value the code cannot return is a contract with a
+    hole in it, and asserting only membership passes straight over it.
+
+    The access report shipped declaring `empty`, returning it nowhere, and
+    documenting the `empty` / `none` distinction in the changelog, the
+    OpenAPI description and INT-10 §2.10. A consumer branching on `coverage`
+    would have written a dead arm and, worse, would have read a quiet period
+    as `empty` when the report was about to call it `none`.
+
+    So this reads the MODEL's declared constants and requires every one of
+    them to be reachable from `_access_change_coverage`, which is the only
+    place the value is decided. It is a source-level check because the wire
+    can only ever show the branch this tenant's data happens to take.
+    """
+    import ast
+    import pathlib
+
+    root = pathlib.Path(__file__).resolve().parent.parent
+    source = (root / "myservice_api" / "models" / "audit_access.py").read_text()
+    tree = ast.parse(source)
+
+    declared = {
+        node.targets[0].id: node.value.value
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and isinstance(node.targets[0], ast.Name)
+        and node.targets[0].id.startswith("ACCESS_COVERAGE_")
+        and isinstance(node.value, ast.Constant)
+    }
+    assert declared, "no ACCESS_COVERAGE_* constants found — did they move?"
+
+    returned = {
+        n.id for n in ast.walk(tree)
+        if isinstance(n, ast.Name) and n.id.startswith("ACCESS_COVERAGE_")
+    } - set(declared)  # the assignment targets themselves are not returns
+    used = {
+        n.id for n in ast.walk(tree)
+        if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load)
+        and n.id.startswith("ACCESS_COVERAGE_")
+    }
+
+    unreachable = sorted(set(declared) - used)
+    assert not unreachable, (
+        "these coverage values are declared and never returned: %s. A "
+        "published enum value the report cannot produce is a dead arm in "
+        "every consumer that branches on it — delete the constant, or make "
+        "it reachable." % unreachable)
+
+    assert set(declared.values()) == _COVERAGE, (
+        "the model declares %s and this suite publishes %s; the two must "
+        "agree or one of them is describing a contract that does not exist"
+        % (sorted(declared.values()), sorted(_COVERAGE)))
 
 
 def test_group_changes_in_period_is_a_structural_zero(client, history):
@@ -518,6 +576,34 @@ def test_the_report_honours_the_pagination_parameters_it_publishes(
     assert body["data"]["summary"]["accounts"] > 1, (
         "this tenant has one account, so the paging assertions above proved "
         "nothing")
+
+
+def test_the_published_event_order_is_ascending_account_id(client, history):
+    """The order a CONSUMER sees, which is not the order the model produces.
+
+    The model sorts `(at, user_id, event)`; the route re-sorts by ascending
+    account id before publishing, because the cursor walks ascending ids and
+    a chronological list cannot be paged honestly with the cursor this API
+    issues — the trade `/reports/disposals` documents. Nothing asserted the
+    published order at all until the verification pass noticed that the
+    model's own test claimed chronological under a title about what an
+    auditor reads.
+
+    Every event carries `at`, so a caller that has walked the whole period
+    can re-sort it; that is what makes the trade acceptable rather than a
+    loss.
+    """
+    body = assert_envelope_ok(client.get(ACCESS, params={
+        "from": history["from"], "to": history["to"], "limit": 100}))
+    events = body["data"]["events"]
+    assert len(events) > 1, "too few events to prove anything about order"
+    ids = [e["user_id"] for e in events]
+    assert ids == sorted(ids), (
+        "the published events are not in ascending account id, which is the "
+        "order the cursor walks: %s" % ids)
+    assert all("at" in e for e in events), (
+        "an event has no `at`, so a caller cannot re-sort chronologically "
+        "and the ordering trade is a straight loss")
 
 
 def test_an_unreadable_limit_or_cursor_is_refused_not_ignored(client, history):

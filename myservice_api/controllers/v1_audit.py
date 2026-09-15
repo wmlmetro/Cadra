@@ -206,6 +206,13 @@ class CadraAuditReportsV1(http.Controller):
         the statement above the table does not change under a reader who has
         paged; `pagination.total_estimate` counts accounts.
 
+        **Events come back in ascending ACCOUNT ID, then time** — not in
+        time order across the whole period. Cursor pagination walks
+        ascending ids, so a chronological list cannot be paged honestly with
+        the cursor this API issues; `/reports/disposals` makes the identical
+        trade for the identical reason. Every event carries `at`, so a
+        caller that has walked the period can sort it however it likes.
+
         ── Why `data` is an OBJECT ──
 
         The same reason the register snapshot's is. There is nowhere honest
@@ -238,9 +245,17 @@ class CadraAuditReportsV1(http.Controller):
         roster = sorted(report["roster"], key=lambda r: r["user_id"])
         page, pagination = _page(roster, lambda r: r["user_id"], qs,
                                  report["summary"]["accounts"])
+        # ROW ORDER IS ASCENDING ACCOUNT ID, not chronological. The model
+        # returns the events in `(at, user_id, event)` order; they are
+        # re-sorted here because the cursor walks ascending ids and a
+        # time-ordered list cannot be paged honestly with the cursor this
+        # API publishes — the same trade `/reports/disposals` makes and
+        # documents. Every event carries `at`, so a caller that has walked
+        # the whole period can order it however it likes.
         on_page = {r["user_id"] for r in page}
         events = [e for e in sorted(report["events"],
-                                    key=lambda e: (e["user_id"], e["event"]))
+                                    key=lambda e: (e["user_id"], e["at"],
+                                                   e["event"]))
                   if e["user_id"] in on_page]
 
         return ok(

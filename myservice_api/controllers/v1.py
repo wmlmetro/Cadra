@@ -1230,13 +1230,19 @@ class MyserviceApiV1(http.Controller):
                             "summary": {
                                 "type": "object",
                                 "description": (
-                                    "`coverage` is one of `none`, `empty`, "
-                                    "`partial` — branch on it, never on "
-                                    "`statement`, whose wording may be "
-                                    "improved. `none` and `empty` are "
-                                    "different: `empty` means the period "
-                                    "holds no events, `none` means the "
-                                    "record cannot hold them at all."),
+                                    "`coverage` is `none` or `partial` — "
+                                    "branch on it, never on `statement`, "
+                                    "whose wording may be improved. There "
+                                    "is deliberately no `empty`: the record "
+                                    "cannot hold a group change in ANY "
+                                    "period, so a quiet quarter and a busy "
+                                    "one give the same answer and an "
+                                    "`empty` would imply some other period "
+                                    "might have answered it. `partial` is "
+                                    "unreached today and exists so a "
+                                    "deployment that grows an access "
+                                    "history is described, not "
+                                    "misreported."),
                             },
                             "fidelity": {"type": "object"},
                             "events": {"type": "array",

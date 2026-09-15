@@ -317,19 +317,48 @@ _YAML_COMMENT_RE = re.compile(r"(?:^|\s)#.*$")
 #: conventions, and the mutation proof below exercises both of them in the
 #: same run that it rejects the real file.
 _ACTION_TAG_PREFIX_RE = re.compile(r"@v?$")
-_TOOL_VERSION_KEY_RE = re.compile(r"[\w-]*[-_]version\s*:", re.I)
+
+#: A runtime-version key, matched ONLY where it sits immediately before the
+#: number. `[\w-]*[-_]version\s*:` searched line-wide was the first attempt
+#: and it was a hole in the same shape as the one this guard was written to
+#: close: `ODOO_VERSION: '15.0'` — the single most likely spelling of the pin
+#: — was exempted BECAUSE IT CONTAINS THE WORD `version`. So was
+#: `ODOO_SERIES_VERSION`, and so was every `N.0` on any inline-flow line that
+#: happened to carry a `python-version:` key somewhere else along it.
+#:
+#: Anchored with `$` against the text before the match, so only the key this
+#: number is the value OF can exempt it — the discipline
+#: `_ACTION_TAG_PREFIX_RE` already had.
+_TOOL_VERSION_KEY_RE = re.compile(
+    r"[\w-]*[-_]version\s*:\s*[\'\"]?$", re.I)
+
+#: A line naming the runtime THIS repository ships is never exempt, whatever
+#: key the number hangs off. `odoo` for the obvious reason; `cadra` because
+#: our own modules are versioned `19.0.x` against the same major, so a
+#: `CADRA_VERSION: 16.0` in a pipeline is the same finding wearing our name.
+_OUR_OWN_RUNTIME_RE = re.compile(r"odoo|cadra", re.I)
 
 
 def _versions_a_tool_and_not_odoo(line, match):
     """True when this `<major>.0` pins something that is not an Odoo series.
 
     `line` is the comment-stripped line; `match` is the `_SERIES_RE` hit
-    inside it. The action-tag test reads what sits immediately BEFORE the
-    number, so `odoo:15.0` — prefix `:` — is never exempted by it.
+    inside it. Both tests read only what sits immediately BEFORE the number,
+    so `odoo:15.0` — prefix `:` — is never exempted by either.
+
+    And a line that mentions Odoo at all is exempted by NEITHER. That is the
+    belt to the anchor's braces: a key called `odoo_version` is a runtime
+    version by name and an Odoo series pin in fact, and there is no spelling
+    of this rule that gets that case right by pattern alone. A CI file
+    naming Odoo and a retired series on one line is the thing being looked
+    for, whatever the key is called.
     """
-    if _ACTION_TAG_PREFIX_RE.search(line[:match.start()]):
+    before = line[:match.start()]
+    if _OUR_OWN_RUNTIME_RE.search(line):
+        return False
+    if _ACTION_TAG_PREFIX_RE.search(before):
         return True
-    return bool(_TOOL_VERSION_KEY_RE.search(line))
+    return bool(_TOOL_VERSION_KEY_RE.search(before))
 
 
 def test_no_first_party_ci_config_pins_a_retired_odoo_series():
@@ -410,6 +439,61 @@ def test_the_ci_series_guard_reads_the_file_it_was_written_for(tmp_path):
     assert "setup-python" not in message, message
     assert "node-version" not in message, message
     assert "used to resolve" not in message, message
+
+
+#: Lines that MUST be flagged, and lines that must not. Every entry in the
+#: first list was exempted by the first version of this fix, which searched
+#: for a `*_version:` key anywhere on the line: `ODOO_VERSION: '15.0'` — the
+#: most natural spelling of the very pin this guard exists to catch — was
+#: waved through BECAUSE IT CONTAINS THE WORD `version`. A fix that reopens
+#: the hole it closed in a new shape is why these are a table and not a
+#: paragraph.
+_MUST_FLAG = (
+    "    ODOO_VERSION: '15.0'",
+    "    odoo_version: 15.0",
+    '    ODOO-VERSION: "15.0"',
+    "    ODOO_SERIES_VERSION: '15.0'",
+    "  odoo_addons_version: 15.0",
+    "    CADRA_VERSION: 16.0",
+    "  image: odoo:15.0",
+    "    SERIES_BRANCH: '15.0'",
+    '        - "15.0"',
+    # One `python-version:` elsewhere on an inline-flow line used to exempt
+    # every number on it, including the Odoo image beside it.
+    "  with: {python-version: '3.11.0', odoo-image: 'odoo:15.0'}",
+)
+
+_MUST_NOT_FLAG = (
+    "      - uses: actions/setup-python@v5.0",
+    "          node-version: '20.0'",
+    "        with: {python-version: '3.0'}",
+    "      - uses: docker/build-push-action@v6.0",
+    "    go-version: 21.0",
+)
+
+
+@pytest.mark.parametrize("line", _MUST_FLAG)
+def test_a_retired_series_cannot_hide_behind_a_version_key(line):
+    """Each of these is a way the pin has been, or could be, spelled."""
+    stripped = _YAML_COMMENT_RE.sub("", line)
+    flagged = [m for m in _SERIES_RE.finditer(stripped)
+               if int(m.group(1)) != EXPECTED_ODOO_MAJOR
+               and not _versions_a_tool_and_not_odoo(stripped, m)]
+    assert flagged, (
+        "this line pins a retired series and the guard exempts it: %r" % line)
+
+
+@pytest.mark.parametrize("line", _MUST_NOT_FLAG)
+def test_a_tool_version_is_not_read_as_an_odoo_series(line):
+    """The other direction. A guard that flags `setup-python@v5.0` is a
+    guard somebody switches off, and the real pins go with it."""
+    stripped = _YAML_COMMENT_RE.sub("", line)
+    flagged = [m for m in _SERIES_RE.finditer(stripped)
+               if int(m.group(1)) != EXPECTED_ODOO_MAJOR
+               and not _versions_a_tool_and_not_odoo(stripped, m)]
+    assert not flagged, (
+        "this line versions a tool and the guard reads it as an Odoo "
+        "series: %r" % line)
 
 
 def test_the_retired_ci_fixture_is_the_file_git_deleted():

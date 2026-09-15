@@ -152,9 +152,12 @@ class IrConfigParameterAuditReport(models.Model):
         both a finding in itself and a source this report would then owe the
         reader an answer about.
         """
+        # `current_schema()` for the reason `audit_access.py` gives at its
+        # own `information_schema` read: the claim is about THIS deployment.
         self.env.cr.execute("""
             SELECT count(*) FROM information_schema.tables
-             WHERE table_name = 'res_config_settings'""")
+             WHERE table_name = 'res_config_settings'
+               AND table_schema = current_schema()""")
         if not self.env.cr.fetchone()[0]:
             return None
         self.env.cr.execute("SELECT count(*) FROM res_config_settings")
