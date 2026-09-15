@@ -164,6 +164,10 @@ I found this because I built §D's marking against the sentence rather than agai
 
 I also had the arithmetic wrong in two documents: 4,164 − 3,894 is 270, not 381.
 
+**And a fourth, to three reports at once.** Reports 18, 20 and 21 all carry *"the two live-cutover credentials from report 17 §3 are still unrotated, and they are in git history"*. That reads as "a compromised key is live in a database". **It is not.** Measured across all eight local tenants: `myservice_identity.redhubs_api_key` and `myservice_identity.sap_webhook_secret` are **not set on any of them** — handoff 17 took the literals out of the source and both routes have refused ever since.
+
+What is actually open is the *other* half of that cutover: **nobody has issued replacements**, so Redhubs' asset-register export and SAP's inbound employee sync are both answering `Unauthorized` and have been since handoff 17. That is the announced behaviour, and it is also two external parties waiting on a value somebody has to generate and hand over. Recorded that way in `docs/GO-LIVE.md` §8.3, because "unrotated credential" and "integration switched off pending a new key" need very different actions from whoever reads the register.
+
 ---
 
 ## 7 · The one thing §A does not cover, found by measuring rather than by writing

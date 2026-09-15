@@ -356,7 +356,35 @@ instead of leaving the pod in `CreateContainerConfigError` with no logs.
 `tests/test_source_guards.py`'s credential readers, which grew a `pw` pattern
 in handoff 18 because `ODOO_ADMIN_PW` had matched nothing.
 
-### 8.3 · Credentials in git history — `[open]`
+### 8.3 · The two live-cutover credentials — `[verified]` 2026-09-15, and open in a different way than it reads
+
+Named in report 17 §3 and carried as unrotated by reports 18, 20 and 21.
+Both literals entered git history at `a4b505a` and **cannot be removed from
+it**:
+
+| parameter | compromised literal | what it guards | held by |
+|---|---|---|---|
+| `myservice_identity.redhubs_api_key` | `NRS_REDHUBS_KEY_2025` | `POST /api/myservice/assets/export` and the CSV twin — **a full dump of the asset register** | Redhubs |
+| `myservice_identity.sap_webhook_secret` | `NRS_SAP_WEBHOOK_SECRET_2025` | `POST /api/sap/employee-sync` — **inbound employee create/update** | SAP SuccessFactors / the NRS SAP team |
+
+**Measured on 2026-09-15: NEITHER PARAMETER IS SET ON ANY OF THE EIGHT LOCAL
+TENANTS.** So the state is not "a compromised key is live in a database" —
+handoff 17 took the literals out of the source and the routes have refused
+ever since.
+
+**What is actually open is the other half of the cutover: nobody has issued
+replacements.** Until an operator sets each parameter per tenant and gives
+the new value to Redhubs and to the NRS SAP team, **both integrations are
+down, answering `Unauthorized`** — which is the intended, announced behaviour
+and is also a thing somebody is presumably waiting on. Each rotates in
+exactly one place per tenant; report 17 verified independently that the
+literals appear in no ConfigMap, Secret, `.env`, seed script, compose file or
+workflow.
+
+**Do not re-use the old values.** They are retrievable from git by anyone who
+can read the repository.
+
+### 8.4 · `.env` in git history — `[open]`
 
 `.env` was tracked *and* gitignored until 2026-09-05 (handoff 04), so a real
 dev client secret sat one `git add .` from a commit and **is in the history**.
