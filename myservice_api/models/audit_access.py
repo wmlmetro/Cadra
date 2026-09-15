@@ -45,6 +45,12 @@ after.
 """
 from odoo import api, fields, models
 
+from .access_change import (
+    ACCESS_EVENT_GRANTED,
+    ACCESS_EVENT_REMOVED,
+    SYSTEM_ACTOR,
+)
+
 
 #: How much of the requested period this report can speak for, as one value a
 #: renderer can branch on. `none` is the honest answer on every deployment
@@ -68,6 +74,12 @@ from odoo import api, fields, models
 #: it passed on the broken contract - one more guard that tested nothing.
 ACCESS_COVERAGE_NONE = 'none'
 ACCESS_COVERAGE_PARTIAL = 'partial'
+#: The access record is live and the whole requested period falls at or
+#: after the instant it began, so grants and removals in that period are
+#: complete rather than absent. Added in handoff 24 with the record that
+#: makes it reachable — before that there was no period any tenant could
+#: have claimed it for.
+ACCESS_COVERAGE_RECORDED = 'recorded'
 
 #: An access event this report can evidence, and what the evidence IS.
 #: `precision` is the part an auditor needs: `exact` means the timestamp and
@@ -120,6 +132,32 @@ class ResUsersAccessReport(models.Model):
             "WHERE table_name = %s AND table_schema = current_schema()",
             (relation,))
         return {row[0] for row in self.env.cr.fetchall()}
+
+    @api.model
+    def _access_record_start(self):
+        """The instant this tenant's access record begins, or None.
+
+        MEASURED, never a constant and never the migration date. A tenant
+        upgraded and then left alone has a record that begins when something
+        first happened on it; claiming the upgrade instant would assert
+        coverage of a period in which nothing was being written down, which is
+        the same overstatement the rest of this block exists to avoid.
+
+        Read at request time because the honest answer changes the moment the
+        first change is recorded.
+        """
+        model = self.env.get('myservice.api.access.change')
+        if model is None:
+            return None
+        return model.record_starts_at()
+
+    @api.model
+    def _access_record_rows(self):
+        """How many access changes this tenant holds in total."""
+        model = self.env.get('myservice.api.access.change')
+        if model is None:
+            return 0
+        return model.sudo().search_count([])
 
     @api.model
     def _access_tracking_rows(self):
@@ -176,27 +214,63 @@ class ResUsersAccessReport(models.Model):
         tracking_rows = self._access_tracking_rows()
         logging_rows = self._access_logging_rows()
 
+        record_start = self._access_record_start()
+        record_rows = self._access_record_rows()
+
         recoverable = [
             'account_created', 'account_created_by', 'account_modified_at',
             'account_modified_by', 'account_active', 'current_group_membership',
             'current_api_scopes',
         ]
         not_recoverable = [
-            'group_granted', 'group_removed', 'group_change_actor',
-            'group_change_timestamp', 'which_field_a_modification_changed',
+            'which_field_a_modification_changed',
             'previous_values', 'deleted_accounts', 'password_changes',
             'login_history',
         ]
+        # The four facts the forward record makes answerable — but only from
+        # the instant it begins. They move between the lists by MEASUREMENT
+        # rather than being hard-coded into either, because on a tenant where
+        # nothing has been recorded yet the honest answer is still the old one,
+        # and a report that claimed otherwise on the strength of the code being
+        # deployed would be asserting coverage it does not have.
+        _recorded_facts = [
+            'group_granted', 'group_removed', 'group_change_actor',
+            'group_change_timestamp',
+        ]
+        if record_start:
+            recoverable.extend(_recorded_facts)
+        else:
+            not_recoverable.extend(_recorded_facts)
 
         notes = {
             'membership': (
                 "Group membership is stored in `%s`, whose columns on this "
                 "deployment are: %s. It carries no timestamp and no actor, so "
-                "a grant or a removal writes nothing that outlives it. This "
-                "is the reason the report lists no group changes, and it is a "
-                "property of the schema rather than of the query."
+                "a grant or a removal writes nothing that outlives it, and no "
+                "query against that table can produce a history. That is a "
+                "property of the schema rather than of the query, and it is "
+                "why the changes below come from a SEPARATE append-only "
+                "record written as they happen, not from the membership table."
                 % (field and self._fields[field].relation or 'unknown',
                    ", ".join(sorted(columns)) or 'none')),
+            'record_start': (
+                ("This tenant's access record begins at %s and holds %d "
+                 "row(s). Grants and removals from that instant onward are "
+                 "recorded as they happen, with the acting user. BEFORE that "
+                 "instant there is no record and none can be reconstructed — "
+                 "a period falling wholly before it is answered `none`, and "
+                 "one that straddles it is answered `partial`. The instant is "
+                 "measured from the earliest row held, not from a migration "
+                 "date, so it says when this tenant actually started being "
+                 "written down."
+                 % (record_start, record_rows))
+                if record_start else
+                ("This tenant holds NO access-change rows, so the record has "
+                 "not begun here and no period can be answered for group "
+                 "grants or removals. The recorder is installed and will "
+                 "write the first row the next time membership changes; until "
+                 "then this is an honest `none` rather than a claim that "
+                 "nothing happened.")),
             'tracking': (
                 "`res.users.%s` carries %s on this deployment, and there are "
                 "%d chatter tracking rows for THAT FIELD. Without tracking "
@@ -240,13 +314,18 @@ class ResUsersAccessReport(models.Model):
             'membership_audit_columns': audit_columns,
             'tracking_rows': tracking_rows,
             'logging_rows': logging_rows,
+            # The boundary, on the report's face. `None` until the first
+            # change is recorded on this tenant.
+            'record_starts_at': record_start and str(record_start) or None,
+            'record_rows': record_rows,
             'notes': notes,
         }
 
     # ── the statement above the table ───────────────────────────────
 
     @api.model
-    def _access_change_coverage(self, events, fidelity):
+    def _access_change_coverage(self, events, fidelity, start=None, end=None,
+                                group_changes=0):
         """One enum plus the English for it, correct in all three cases.
 
         Branch on `coverage`, never on `statement` — the wording may be
@@ -255,6 +334,46 @@ class ResUsersAccessReport(models.Model):
         user's language is not something a consumer can store, diff or
         reconcile against last quarter's run.
         """
+        # The forward record decides this first, because it is the only
+        # source that actually answers the §13.4 question. The three branches
+        # are a boundary, not a status: what separates them is where the
+        # requested period sits relative to the instant the record began.
+        record_start = fidelity.get('record_starts_at')
+        if record_start:
+            begins = fields.Datetime.to_datetime(record_start)
+            if end is not None and end < begins:
+                # A period that ended before the record began. This is the one
+                # an auditor will hit for the next twelve months, and the
+                # answer must stay `none` however much the record now holds —
+                # rows from after the period say nothing about the period.
+                return ACCESS_COVERAGE_NONE, (
+                    "Cadra's access record begins at %s, which is AFTER the "
+                    "end of the period you asked about. Nothing was being "
+                    "recorded then, and a grant or removal made before that "
+                    "instant left no trace that any query can recover. This "
+                    "report can say nothing about group changes in this "
+                    "period — that is a statement about the record, not about "
+                    "the estate, and an empty table here must not be read as "
+                    "'no access changed'." % record_start)
+            if start is not None and start < begins:
+                return ACCESS_COVERAGE_PARTIAL, (
+                    "Cadra's access record begins at %s, part-way through the "
+                    "period you asked about. Group changes from that instant "
+                    "to the end of the period are complete, with the acting "
+                    "user; anything before it was not being recorded and "
+                    "cannot be reconstructed. The %d group change(s) below "
+                    "are therefore a LOWER BOUND for this period."
+                    % (record_start, group_changes))
+            return ACCESS_COVERAGE_RECORDED, (
+                "Cadra's access record covers the whole of this period — it "
+                "begins at %s, at or before the start of what you asked "
+                "about. The %d group change(s) below are every grant and "
+                "removal made in the period, each with the user, the group "
+                "and the actor. A change made by an upgrade, a cron or the "
+                "command line is attributed to `%s` rather than to a person, "
+                "because it cannot honestly be attributed to one."
+                % (record_start, group_changes, SYSTEM_ACTOR))
+
         has_history = bool(
             fidelity['groups_field_tracked']
             or fidelity['membership_audit_columns']
@@ -274,9 +393,10 @@ class ResUsersAccessReport(models.Model):
                 "created or modified in this period either. Group grants and "
                 "removals are not recorded anywhere in this system: the "
                 "membership table stores no timestamp and no actor, and the "
-                "groups field carries no tracking. This report can speak for "
-                "NO period, and the empty table below is a statement about "
-                "the record rather than about the estate.")
+                "groups field carries no tracking, and this tenant holds no "
+                "access-change rows yet. This report can speak for NO period, "
+                "and the empty table below is a statement about the record "
+                "rather than about the estate.")
         return ACCESS_COVERAGE_NONE, (
             "Cadra holds no record of group grants or removals — the "
             "membership table stores no timestamp and no actor, and the "
@@ -335,11 +455,16 @@ class ResUsersAccessReport(models.Model):
             if c.user_id}
         events = []
         roster = []
+        # Reused by the group-change events below, so the membership shown
+        # beside a recorded change is the same list the roster row shows and
+        # the two can never disagree on one page.
+        membership = {}
         for user in users:
             member_of = sorted(
                 (user[groups_field] if groups_field else user.browse()
                  ).mapped('full_name' if 'full_name' in
                           self.env['res.groups']._fields else 'name'))
+            membership[user.id] = member_of
             client = clients_by_user.get(user.id)
             roster.append({
                 'user_id': user.id,
@@ -383,8 +508,53 @@ class ResUsersAccessReport(models.Model):
                     'groups_now': member_of,
                 })
 
+        # The §13.4 question, answered from the forward record rather than
+        # from the membership table — which, as `fidelity.notes.membership`
+        # says, physically cannot answer it.
+        #
+        # Membership events carry a user and join the paged `events` list.
+        # Implication events do not name a user at all (they move what a group
+        # MEANS, not who is in it), so forcing them into a list the controller
+        # pages by user id would either drop them silently or break the page
+        # contract. They are counted and stated separately instead.
+        group_changes, implication_changes = 0, 0
+        Record = self.env.get('myservice.api.access.change')
+        if Record is not None:
+            rows = Record.sudo().search(
+                [('changed_at', '>=', start), ('changed_at', '<=', end)],
+                order='changed_at, id')
+            known = set(users.ids)
+            for row in rows:
+                if row.event in (ACCESS_EVENT_GRANTED, ACCESS_EVENT_REMOVED):
+                    group_changes += 1
+                    # A row whose user has since been deleted, or who is a
+                    # structural account, has no roster row to page with. It
+                    # still counts above — dropping it from the count would
+                    # under-report the period — but it cannot be attached to a
+                    # page, so it is not invented into one.
+                    if row.user_id.id not in known:
+                        continue
+                    events.append({
+                        'event': row.event,
+                        'precision': 'exact',
+                        'at': row.changed_at,
+                        'actor': ({'id': row.changed_by_id.id,
+                                   'name': row.actor}
+                                  if row.attributable else
+                                  {'id': None, 'name': SYSTEM_ACTOR}),
+                        'user_id': row.user_id.id,
+                        'login': row.user_login,
+                        'evidence': 'myservice_api_access_change.id=%d' % row.id,
+                        'group': row.group_name,
+                        'attributable': row.attributable,
+                        'groups_now': membership.get(row.user_id.id, []),
+                    })
+                else:
+                    implication_changes += 1
+
         events.sort(key=lambda e: (e['at'], e['user_id'], e['event']))
-        coverage, statement = self._access_change_coverage(events, fidelity)
+        coverage, statement = self._access_change_coverage(
+            events, fidelity, start=start, end=end, group_changes=group_changes)
         return {
             'events': events,
             'roster': roster,
@@ -392,7 +562,12 @@ class ResUsersAccessReport(models.Model):
                 'accounts': len(roster),
                 'accounts_active': sum(1 for r in roster if r['active']),
                 'events_in_period': len(events),
-                'group_changes_in_period': 0,
+                # No longer a structural zero on a tenant where something has
+                # happened — and still exactly zero, honestly, on one where
+                # nothing has. `fidelity.record_starts_at` is what tells the
+                # two apart.
+                'group_changes_in_period': group_changes,
+                'implication_changes_in_period': implication_changes,
                 'coverage': coverage,
                 'statement': statement,
             },

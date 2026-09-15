@@ -2,3 +2,6 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_myservice_api_client_system,myservice.api.client system,model_myservice_api_client,base.group_system,1,1,1,1
 access_myservice_api_idempotency_system,myservice.api.idempotency system,model_myservice_api_idempotency,base.group_system,1,1,1,1
 access_myservice_api_refresh_token_system,myservice.api.refresh_token system,model_myservice_api_refresh_token,base.group_system,1,1,1,1
+access_myservice_api_access_change_employee,myservice.api.access.change employee,model_myservice_api_access_change,base.group_user,1,0,0,0
+access_myservice_api_access_change_auditor,myservice.api.access.change auditor,model_myservice_api_access_change,myservice_api.group_auditor,1,0,0,0
+access_myservice_api_access_change_system,myservice.api.access.change system,model_myservice_api_access_change,base.group_system,1,0,0,0
