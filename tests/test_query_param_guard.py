@@ -48,6 +48,24 @@ BULK_VALIDATOR = "int_filter_terms"
 #: `odoo`, which `v1.py` does at module scope.
 PAGINATION_PARAMS = ("limit", "cursor")
 
+#: `*_PERIOD_QUERY_PARAMS` in `v1_audit.py` expands to these — the inclusive
+#: `from`/`to` pair the two §13.4 log reports share. Same reason as above for
+#: writing it out, and the same rule applies: a splat this file cannot expand
+#: fails `test_the_reader_understands_every_route` rather than being skipped.
+PERIOD_PARAMS = ("from", "to")
+
+#: Every starred name this reader can expand, and what it expands to. A list
+#: rather than an `if/elif` chain so that adding one is a data change; the
+#: guard that a NEW splat must not pass silently is unaffected either way.
+EXPANDABLE_SPLATS = {
+    "PAGINATION_QUERY_PARAMS": PAGINATION_PARAMS,
+    "_PERIOD_QUERY_PARAMS": PERIOD_PARAMS,
+    # `v1_audit`'s access report re-spells `limit` and `cursor` so it can say
+    # a page is a window of ACCOUNTS. Same names, same parsers, different
+    # unit — the names are what this reader checks.
+    "_ACCOUNT_PAGE_QUERY_PARAMS": PAGINATION_PARAMS,
+}
+
 
 # ─── the inventory ───────────────────────────────────────────────────
 #
@@ -103,6 +121,13 @@ INVENTORY = {
     ("v1_assets", "include"): ("enum", ""),
     ("v1_assets", "as_of"): ("date", "_parse_report_date — 400 for unparseable, absent-but-required, and a future date"),
     ("v1_assets", "from"): ("date", "_parse_report_date"),
+    # The two §13.4 log reports. Same parser as the disposal report above —
+    # imported from `v1_assets` rather than re-implemented, so `from` and
+    # `to` cannot come to mean two different things on two audit reports.
+    ("v1_audit", "from"): ("date", "_parse_report_date — 400 for unparseable, absent-but-required, and a reversed period"),
+    ("v1_audit", "to"): ("date", "_parse_report_date"),
+    # `limit` and `cursor` are in SHARED_PARAMS and are not inventoried per
+    # module; `_page` runs them through `parse_limit` and `decode_cursor`.
     ("v1_assets", "to"): ("date", "_parse_report_date"),
 
     # ── v1_requests.py ────────────────────────────────────────────────
@@ -186,8 +211,8 @@ def _declared_params(tree):
             for element in getattr(kw.value, "elts", []):
                 if isinstance(element, ast.Starred):
                     source = ast.unparse(element.value)
-                    if source == "PAGINATION_QUERY_PARAMS":
-                        names.update(PAGINATION_PARAMS)
+                    if source in EXPANDABLE_SPLATS:
+                        names.update(EXPANDABLE_SPLATS[source])
                     else:
                         unresolved.add(source)
                     continue

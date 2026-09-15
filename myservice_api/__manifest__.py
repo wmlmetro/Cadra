@@ -1,6 +1,6 @@
 {
     'name': 'Cadra API (v1)',
-    'version': '19.0.3.6.0',
+    'version': '19.0.3.7.0',
     'summary': 'Cadra API-first layer (JWT, PRD envelope, idempotency, auto OpenAPI)',
     'author': 'WestMetro Limited',
     'website': 'https://westmetrong.com',
@@ -24,6 +24,9 @@
         'generic_location',
     ],
     'data': [
+        # BEFORE ir.model.access.csv: that file may reference a group by
+        # xmlid, and a cold install resolves data files in listed order.
+        'security/api_groups.xml',
         'security/ir.model.access.csv',
         'data/api_refresh_token_cron.xml',
         'views/api_client_views.xml',

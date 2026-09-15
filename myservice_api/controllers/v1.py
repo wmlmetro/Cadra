@@ -1201,6 +1201,82 @@ class MyserviceApiV1(http.Controller):
                             },
                         },
                     },
+                    "AccessChangeReport": {
+                        "type": "object",
+                        "description": (
+                            "Access events in a period (specification "
+                            "§13.4's fourth report, INT-10 §2.10). READ "
+                            "`summary.statement` FIRST. Cadra holds no "
+                            "record of group grants or removals: the "
+                            "membership table is two integer columns with no "
+                            "timestamp and no actor, and the groups field "
+                            "carries no tracking, so no query against this "
+                            "database can produce them and none is "
+                            "synthesised. `summary.group_changes_in_period` "
+                            "is a STRUCTURAL zero, present so that a "
+                            "consumer sees the absence rather than inferring "
+                            "it from a missing key. What IS evidenced — "
+                            "accounts created, accounts last modified — is "
+                            "at `data.events`, each row carrying `precision` "
+                            "and the `evidence` it rests on. `data.roster` "
+                            "is CURRENT access, never history. "
+                            "`data.fidelity` is re-measured on every request "
+                            "rather than carried as a constant, so the day "
+                            "this deployment grows an access history the "
+                            "report says so instead of publishing a "
+                            "limitation that has stopped being true."),
+                        "properties": {
+                            "period": {"type": "object"},
+                            "summary": {
+                                "type": "object",
+                                "description": (
+                                    "`coverage` is `none` or `partial` — "
+                                    "branch on it, never on `statement`, "
+                                    "whose wording may be improved. There "
+                                    "is deliberately no `empty`: the record "
+                                    "cannot hold a group change in ANY "
+                                    "period, so a quiet quarter and a busy "
+                                    "one give the same answer and an "
+                                    "`empty` would imply some other period "
+                                    "might have answered it. `partial` is "
+                                    "unreached today and exists so a "
+                                    "deployment that grows an access "
+                                    "history is described, not "
+                                    "misreported."),
+                            },
+                            "fidelity": {"type": "object"},
+                            "events": {"type": "array",
+                                       "items": {"type": "object"}},
+                            "roster": {"type": "array",
+                                       "items": {"type": "object"}},
+                        },
+                    },
+                    "ConfigurationChangeReport": {
+                        "type": "object",
+                        "description": (
+                            "Configuration parameters created or written in "
+                            "a period (specification §13.4's fifth report, "
+                            "INT-10 §2.10). For each key exactly three facts "
+                            "survive — the CURRENT value, the LAST writer, "
+                            "the LAST write time. The previous value, the "
+                            "number of changes and any deleted key are not "
+                            "recoverable; `fidelity.not_recoverable` names "
+                            "them. VALUES WHOSE KEY NAMES A CREDENTIAL ARE "
+                            "REDACTED and replaced by a truncated sha256, so "
+                            "two deployments can be compared without either "
+                            "revealing what it holds — `value_is_redacted` "
+                            "marks the row and `summary.redacted_values` "
+                            "counts them. An actor of `__system__` means a "
+                            "module upgrade, a cron or the command line, not "
+                            "a person."),
+                        "properties": {
+                            "period": {"type": "object"},
+                            "summary": {"type": "object"},
+                            "fidelity": {"type": "object"},
+                            "parameters": {"type": "array",
+                                           "items": {"type": "object"}},
+                        },
+                    },
                     "DisposalReport": {
                         "type": "object",
                         "description": (

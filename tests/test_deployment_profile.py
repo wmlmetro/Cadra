@@ -297,6 +297,69 @@ _SERIES_RE = re.compile(r"(?<![\d.])(\d+)\.0(?![\d])")
 #: deletes the explanation to satisfy.
 _YAML_COMMENT_RE = re.compile(r"(?:^|\s)#.*$")
 
+#: The two shapes a `<major>.0` takes in a first-party CI file when it is NOT
+#: an Odoo series, both of them GitHub Actions conventions:
+#:
+#:     - uses: actions/setup-python@v5.0      a marketplace action, tag-pinned
+#:       with: {node-version: '20.0'}         a runtime for the runner itself
+#:
+#: Everything else in these files that reads `<major>.0` is a series pin.
+#:
+#: That the exemptions are an ALLOW-list is the whole of the fix. This guard
+#: used to demand the word `odoo` somewhere on the line before it would look
+#: at the version — and the pin it was written to catch, `SERIES_BRANCH:
+#: '15.0'`, does not carry it. Neither do the two bare `- "15.0"` refs beside
+#: it. The guard read the real file, found nothing, and reported success;
+#: only the proof's invented `ODOO_SERIES_BRANCH` ever tripped it.
+#:
+#: A deny-list of other people's version keys would be a list of guesses that
+#: grows every time somebody adds a tool. These two exemptions are fixed
+#: conventions, and the mutation proof below exercises both of them in the
+#: same run that it rejects the real file.
+_ACTION_TAG_PREFIX_RE = re.compile(r"@v?$")
+
+#: A runtime-version key, matched ONLY where it sits immediately before the
+#: number. `[\w-]*[-_]version\s*:` searched line-wide was the first attempt
+#: and it was a hole in the same shape as the one this guard was written to
+#: close: `ODOO_VERSION: '15.0'` — the single most likely spelling of the pin
+#: — was exempted BECAUSE IT CONTAINS THE WORD `version`. So was
+#: `ODOO_SERIES_VERSION`, and so was every `N.0` on any inline-flow line that
+#: happened to carry a `python-version:` key somewhere else along it.
+#:
+#: Anchored with `$` against the text before the match, so only the key this
+#: number is the value OF can exempt it — the discipline
+#: `_ACTION_TAG_PREFIX_RE` already had.
+_TOOL_VERSION_KEY_RE = re.compile(
+    r"[\w-]*[-_]version\s*:\s*[\'\"]?$", re.I)
+
+#: A line naming the runtime THIS repository ships is never exempt, whatever
+#: key the number hangs off. `odoo` for the obvious reason; `cadra` because
+#: our own modules are versioned `19.0.x` against the same major, so a
+#: `CADRA_VERSION: 16.0` in a pipeline is the same finding wearing our name.
+_OUR_OWN_RUNTIME_RE = re.compile(r"odoo|cadra", re.I)
+
+
+def _versions_a_tool_and_not_odoo(line, match):
+    """True when this `<major>.0` pins something that is not an Odoo series.
+
+    `line` is the comment-stripped line; `match` is the `_SERIES_RE` hit
+    inside it. Both tests read only what sits immediately BEFORE the number,
+    so `odoo:15.0` — prefix `:` — is never exempted by either.
+
+    And a line that mentions Odoo at all is exempted by NEITHER. That is the
+    belt to the anchor's braces: a key called `odoo_version` is a runtime
+    version by name and an Odoo series pin in fact, and there is no spelling
+    of this rule that gets that case right by pattern alone. A CI file
+    naming Odoo and a retired series on one line is the thing being looked
+    for, whatever the key is called.
+    """
+    before = line[:match.start()]
+    if _OUR_OWN_RUNTIME_RE.search(line):
+        return False
+    if _ACTION_TAG_PREFIX_RE.search(before):
+        return True
+    return bool(_TOOL_VERSION_KEY_RE.search(before))
+
 
 def test_no_first_party_ci_config_pins_a_retired_odoo_series():
     """The same argument as the Dockerfile above, one file type along.
@@ -318,46 +381,159 @@ def test_no_first_party_ci_config_pins_a_retired_odoo_series():
             text = path.read_text(encoding="utf-8", errors="replace")
             for raw_line in text.splitlines():
                 line = _YAML_COMMENT_RE.sub("", raw_line)
-                # Only lines that are talking about Odoo. A `python-3.11.0`
-                # or an `actions/checkout@v4.0` is not a series pin, and a
-                # guard that flags them is a guard somebody switches off.
-                if "odoo" not in line.lower():
-                    continue
                 for m in _SERIES_RE.finditer(line):
-                    if int(m.group(1)) != EXPECTED_ODOO_MAJOR:
-                        offenders.append("%s: %s" % (
-                            path.relative_to(REPO_ROOT), line.strip()))
+                    if int(m.group(1)) == EXPECTED_ODOO_MAJOR:
+                        continue
+                    if _versions_a_tool_and_not_odoo(line, m):
+                        continue
+                    offenders.append("%s: %s" % (
+                        path.relative_to(REPO_ROOT), line.strip()))
     assert not offenders, (
         "These CI configurations name an Odoo series this repository no "
         "longer supports:\n  " + "\n  ".join(offenders))
 
 
-def test_the_ci_series_guard_reads_the_file_it_was_written_for(tmp_path):
-    """Mutation proof: restore the deleted file and the guard must fail.
+#: `.gitlab-ci.yml` as it stood the moment before `d8e6d98` deleted it, byte
+#: for byte. Evidence, not a sketch — see the two tests below.
+RETIRED_CI_FIXTURE = REPO_ROOT / "tests" / "fixtures" / "retired-gitlab-ci.yml"
 
-    Without this, `test_no_first_party_ci_config_pins_a_retired_odoo_series`
-    passes because there is no `.gitlab-ci.yml` left to read, which is
-    indistinguishable from passing because it reads one and approves of it.
+
+def test_the_ci_series_guard_reads_the_file_it_was_written_for(tmp_path):
+    """Mutation proof against THE REAL FILE, not one this test invented.
+
+    The previous version of this proof wrote `ODOO_SERIES_BRANCH: '15.0'` and
+    passed. The deleted file actually said `SERIES_BRANCH: '15.0'` — no
+    `odoo` anywhere on the line — so the guard, which required that word
+    before it would look, read the real file and found nothing. Restoring it
+    here would have been a green run either way. Report 22 counted four
+    guards that pass without testing anything; this was one of them, and the
+    proof is the part that was wrong.
+
+    So the input is now `tests/fixtures/retired-gitlab-ci.yml`, which is the
+    file git deleted and is asserted to be exactly that by
+    `test_the_retired_ci_fixture_is_the_file_git_deleted`.
     """
     (tmp_path / ".github" / "workflows").mkdir(parents=True)
-    (tmp_path / ".gitlab-ci.yml").write_text(
-        "variables:\n"
-        "    ODOO_SERIES_BRANCH: '15.0'\n"
-        "    CI_JOB_TOKEN_GIT_HOST: 'gitlab.crnd.pro'\n")
-    # And the two shapes that must NOT trip it: a version that is not Odoo's,
-    # and a comment explaining the history this guard exists because of.
+    (tmp_path / ".gitlab-ci.yml").write_bytes(RETIRED_CI_FIXTURE.read_bytes())
+    # And the three shapes that must NOT trip it: an action pinned by tag, a
+    # runtime for the runner, and a comment explaining the history this guard
+    # exists because of. Both exemptions get exercised on every run.
     (tmp_path / ".github" / "workflows" / "ci.yml").write_text(
         "jobs:\n  build:\n    steps:\n"
         "      # `prod` used to resolve to cadra-odoo:15.0-dev\n"
         "      - uses: actions/setup-python@v5.0\n"
-        "        with: {python-version: '3.11.0'}\n")
+        "        with:\n"
+        "          python-version: '3.11.0'\n"
+        "          node-version: '20.0'\n")
 
     with _repo_root_at(tmp_path):
         with pytest.raises(AssertionError) as exc:
             test_no_first_party_ci_config_pins_a_retired_odoo_series()
-    assert "ODOO_SERIES_BRANCH" in str(exc.value)
-    assert "setup-python" not in str(exc.value)
-    assert "used to resolve" not in str(exc.value)
+    message = str(exc.value)
+    # The pin itself, named in the words the file uses.
+    assert "SERIES_BRANCH: '15.0'" in message, message
+    # And the branch refs beside it, which carry the series and no `odoo`
+    # either. Three offenders, not one.
+    assert message.count("15.0") >= 3, message
+    # None of the exempt shapes.
+    assert "setup-python" not in message, message
+    assert "node-version" not in message, message
+    assert "used to resolve" not in message, message
+
+
+#: Lines that MUST be flagged, and lines that must not. Every entry in the
+#: first list was exempted by the first version of this fix, which searched
+#: for a `*_version:` key anywhere on the line: `ODOO_VERSION: '15.0'` — the
+#: most natural spelling of the very pin this guard exists to catch — was
+#: waved through BECAUSE IT CONTAINS THE WORD `version`. A fix that reopens
+#: the hole it closed in a new shape is why these are a table and not a
+#: paragraph.
+_MUST_FLAG = (
+    "    ODOO_VERSION: '15.0'",
+    "    odoo_version: 15.0",
+    '    ODOO-VERSION: "15.0"',
+    "    ODOO_SERIES_VERSION: '15.0'",
+    "  odoo_addons_version: 15.0",
+    "    CADRA_VERSION: 16.0",
+    "  image: odoo:15.0",
+    "    SERIES_BRANCH: '15.0'",
+    '        - "15.0"',
+    # One `python-version:` elsewhere on an inline-flow line used to exempt
+    # every number on it, including the Odoo image beside it.
+    "  with: {python-version: '3.11.0', odoo-image: 'odoo:15.0'}",
+)
+
+_MUST_NOT_FLAG = (
+    "      - uses: actions/setup-python@v5.0",
+    "          node-version: '20.0'",
+    "        with: {python-version: '3.0'}",
+    "      - uses: docker/build-push-action@v6.0",
+    "    go-version: 21.0",
+)
+
+
+@pytest.mark.parametrize("line", _MUST_FLAG)
+def test_a_retired_series_cannot_hide_behind_a_version_key(line):
+    """Each of these is a way the pin has been, or could be, spelled."""
+    stripped = _YAML_COMMENT_RE.sub("", line)
+    flagged = [m for m in _SERIES_RE.finditer(stripped)
+               if int(m.group(1)) != EXPECTED_ODOO_MAJOR
+               and not _versions_a_tool_and_not_odoo(stripped, m)]
+    assert flagged, (
+        "this line pins a retired series and the guard exempts it: %r" % line)
+
+
+@pytest.mark.parametrize("line", _MUST_NOT_FLAG)
+def test_a_tool_version_is_not_read_as_an_odoo_series(line):
+    """The other direction. A guard that flags `setup-python@v5.0` is a
+    guard somebody switches off, and the real pins go with it."""
+    stripped = _YAML_COMMENT_RE.sub("", line)
+    flagged = [m for m in _SERIES_RE.finditer(stripped)
+               if int(m.group(1)) != EXPECTED_ODOO_MAJOR
+               and not _versions_a_tool_and_not_odoo(stripped, m)]
+    assert not flagged, (
+        "this line versions a tool and the guard reads it as an Odoo "
+        "series: %r" % line)
+
+
+def test_the_retired_ci_fixture_is_the_file_git_deleted():
+    """The fixture is evidence, so it has to be the bytes git is holding.
+
+    A fixture that drifts from the file it claims to be is how the proof
+    above goes hollow a second time. This re-derives it from history rather
+    than trusting the copy.
+
+    It is the one test here allowed to skip, and only where history is not
+    present to check against: `actions/checkout@v4` clones at depth 1, so in
+    CI the deleting commit's parent simply is not in the object store. The
+    skip is safe because nothing else depends on it — the mutation proof
+    reads the committed bytes and fails on them, shallow clone or not.
+    """
+    import subprocess
+
+    def git(*args):
+        return subprocess.run(("git",) + args, cwd=str(REPO_ROOT),
+                              capture_output=True)
+
+    probe = git("rev-parse", "--is-inside-work-tree")
+    if probe.returncode != 0:
+        pytest.skip("not a git work tree")
+
+    deleted_in = git("log", "--diff-filter=D", "--format=%H", "-1",
+                     "--", ".gitlab-ci.yml")
+    commit = deleted_in.stdout.decode().strip()
+    if deleted_in.returncode != 0 or not commit:
+        pytest.skip("the deleting commit is not in this clone (shallow)")
+
+    blob = git("show", commit + "^:.gitlab-ci.yml")
+    if blob.returncode != 0:
+        pytest.skip("the deleting commit's parent is not in this clone")
+
+    assert blob.stdout == RETIRED_CI_FIXTURE.read_bytes(), (
+        "tests/fixtures/retired-gitlab-ci.yml is no longer the file deleted "
+        "in %s. Restore it with:\n"
+        "  git show %s^:.gitlab-ci.yml > tests/fixtures/"
+        "retired-gitlab-ci.yml" % (commit[:12], commit[:12]))
 
 
 def test_every_compose_overlay_is_covered_by_a_profile():

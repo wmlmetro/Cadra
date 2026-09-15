@@ -75,10 +75,10 @@ Eleven questions, drawn from specification §13.4, PRD §5.11 and §8.14, and fr
 | Custodianship chain for any asset | **Built** — handoff 14. §2.3 |
 | Asset register snapshot at any historical date | **Built, with a published boundary** — handoff 16. §2.5 |
 | Disposal report with documentation refs, per period | **Built** — handoff 16. §2.9 |
-| Access changes for any user, per period | **Not built.** No log exists to build it from. §2.10 |
-| Configuration change log | **Not built.** §2.10 |
+| Access changes for any user, per period | **Built, and its honest answer is that the record does not exist** — handoff 23. §2.10 |
+| Configuration change log | **Built, and thin — 22 recoverable keys estate-wide** — handoff 23. §2.10a |
 
-The two that remain are the two log-shaped ones, and they are not reports missing from an existing record — **there is no record**. That is the work, not the endpoint.
+**All five are now built.** The two log-shaped ones were never reports missing from an existing record — there was no record — and that has not changed. What handoff 23 built is the endpoint that says so, in the response, in words, with the measurement behind it. §2.10 is now the answer rather than the gap; §2.10b is what it would take to make the answer a different one.
 
 Legend: **Yes** · **Partly** — answerable but incomplete or degraded, and the caller is not told · **No**.
 
@@ -319,9 +319,79 @@ Four things worth knowing before reading one:
 
 ### 2.10 "Who had access to what, and when did that change?"
 
-**No.** Specification §7.6 requires *"every identity-related event in Cadra (login, role change, account creation, deactivation) recorded in Cadra's audit log with reference to the upstream IdP event"*, and §13.4 requires *"access changes for any user (per period)"*.
+**Partly, and the endpoint tells you which part before it tells you anything else.**
 
-There is no such log. Group membership changes are Odoo's own `res.users` writes; API client scope changes are writes to `myservice.api.client`; neither is exposed, and neither is tracked in a form an auditor can query. There is one specific hazard worth recording: `_provision_client_user` writes a client user's groups with `(6, 0, …)` — a full replace — on every scope change, so a group granted to a client user by hand is destroyed the next time the scope list grows, silently.
+```
+GET /api/v1/reports/access-changes?from=2026-01-01&to=2026-03-31    # identity:read
+```
+
+Specification §7.6 requires *"every identity-related event in Cadra (login, role change, account creation, deactivation) recorded in Cadra's audit log with reference to the upstream IdP event"*, and §13.4 requires *"access changes for any user (per period)"*. **Cadra records no role changes, and no query against these databases can produce them.** That is not a reporting gap that better SQL would close; it is a property of the schema.
+
+#### What makes it unrecoverable, measured rather than asserted
+
+| Where a grant could have left a trace | What is actually there |
+|---|---|
+| `res_groups_users_rel` — the membership table | **Two integer columns, `(gid, uid)`.** No `create_date`, no `create_uid`, no `write_date`, no `write_uid`. Odoo models group membership as pure present tense, so a grant writes nothing that outlives it. Even accepting "current state plus timestamps" instead of a history gets nothing. |
+| `res.users.group_ids` tracking → `mail.tracking.value` | **No `tracking=` in Odoo core**, first-party code, `crnd-19/` or `oca-19/`. **0 tracking rows** on `res.users` and `res.groups` across all eight tenants. |
+| `ir_logging` | **0 rows on every tenant.** Odoo writes it only when `log_db` is set; it is not set in `config/odoo.19.conf` and never has been. |
+| An audit module | **None installed or vendored.** `oca-19/` carries one module and it is `web_responsive`; none of the 23 in `crnd-19/` is an audit log. |
+| `res_groups` / `ir_model_access` / `ir_rule` write stamps | Present, and **100% written by uid 1 `__system__`** — module install and upgrade churn. Not one ACL, group or rule in any tenant has ever been written by a human. |
+| `res_users_log` | 1–6 rows per tenant, garbage-collected. It records that a user was *active* at a time. No group, no model, no field. |
+
+**So the report synthesises nothing.** What it returns instead:
+
+- **`summary.statement`** — the sentence, above the table, saying that group grants and removals are not recorded anywhere in this system and that this report can speak for no period on that question. Branch on `summary.coverage` (`none` / `partial`), never on the wording. There is deliberately no `empty`: the record cannot hold a group change in any period, so a quiet quarter is not a different *kind* of answer here — unlike the disposal report, where an empty period genuinely is.
+- **`summary.group_changes_in_period`** — a **structural zero**, present in the payload so a consumer reading counts sees the absence rather than inferring it from a missing key.
+- **`events`** — the access events that *are* evidenced: an account **created** (`precision: exact`, with its real timestamp and creator) and an account **last modified** (`precision: last_write_only`). Each row names the `evidence` it rests on. An `account_modified` row does not say which field changed — a timezone edit and a group grant are indistinguishable in `res_users.write_date`.
+- **`roster`** — the present-tense answer to the question an auditor asks next: who has access *now*, with each account's groups and, where it is an integration, its API scopes. Labelled as current state throughout, never presented as history.
+- **`fidelity`** — the table above, re-derived **on every request** rather than carried as a constant. It reads `information_schema` for the membership table's real columns and counts the tracking and logging rows live. The day somebody adds tracking or installs an audit module, `coverage` becomes `partial` and the report says the record has grown, instead of continuing to publish a limitation that has stopped being true.
+
+One specific hazard is still worth recording: `_provision_client_user` writes a client user's groups with `(6, 0, …)` — a full replace — on every scope change, so a group granted to a client user by hand is destroyed the next time the scope list grows, silently.
+
+### 2.10a "Who changed what setting, and when?"
+
+**Partly, and the ceiling is low.**
+
+```
+GET /api/v1/reports/configuration-changes?from=2026-01-01&to=2026-03-31   # settings:read
+```
+
+`ir.config_parameter` does carry real audit columns — `create_uid`, `create_date`, `write_uid`, `write_date` — unlike the membership table. But it is **last-write-wins and untracked**, so for each key exactly three facts survive:
+
+> the **current** value · the **last** writer · the **last** write time
+
+Not the previous value. Not how many times it changed. A key modified five times is one row showing the fifth.
+
+**The measurement, taken across all eight local tenants:**
+
+| | keys |
+|---|---|
+| Parameters present per tenant | 21–26 |
+| **Written after they were created** (the whole recoverable change set) | **22, estate-wide** |
+| Of those, attributable to a named human | **12** |
+| Of those, `__system__` — cron, CLI or module upgrade | 10 |
+
+Per tenant: `jaizbankplc` 7 (5 human), `cadra19` 7 (5), `nrs19` 2 (1), `test19` 2 (1), `gtb19`/`nrs`/`lasg`/`gtb` 1 each (0 human).
+
+**And the Settings screen writes to a table that self-destructs.** `res.config.settings` is a `TransientModel` and its rows are vacuumed — **0 rows on every tenant**. A change made through the settings form leaves only the resulting parameter row: who opened the form, what else they changed in the same save, and what the form showed them are all gone. That is the single biggest reason this report is thin and the one an auditor is least likely to guess, so `fidelity.notes.settings_screen` says it in the payload.
+
+**Values whose key names a credential are redacted.** `ir_config_parameter` is where `myservice_api.jwt_secret` lives — the key every access token in the tenant is signed with — alongside `database.secret` and the relay, webhook and API keys the identity modules read. A configuration report that published values verbatim would hand the token-signing secret to every holder of the read scope, and an audit credential is exactly the broad, long-lived, widely-shared credential that must not be carrying it.
+
+The redaction replaces the value with `[redacted] sha256:<16 hex>` — no prefix, no last-four, no length, because a truncated secret is still a head start and a published length narrows a brute force. The fingerprint answers the only legitimate question a redacted value has: *is this the same value as the one over there.* `value_is_redacted` marks the row and `summary.redacted_values` counts them. **The rule matches the key NAME, not a list of known secrets** — a deny-list of the six that exist today is a deny-list that misses the seventh. It over-redacts in one known case (`auth_signup.reset_password`, whose value is a boolean), and that direction is the correct one to err in.
+
+**Out of scope, named rather than reported:** views, crons, server actions, ACLs and record rules also change what the system does, and all carry a write stamp. On every tenant measured, **every one of those stamps is `__system__`** — the 800 "changed" `ir_ui_view` rows on `jaizbankplc` are module-upgrade churn, not human edits. A table of 1,634 view rows nobody edited would bury the handful of parameters somebody did.
+
+### 2.10b What it would take to close the access-change gap
+
+Nothing here is retroactive. **No query, no tool and no forensic step against the existing databases will recover a single day of group-change history**, and the honest thing to tell an auditor is that the record begins on the day something below is done — not to produce a reconstruction.
+
+| Option | What it buys | Cost |
+|---|---|---|
+| `tracking=True` on a `res.users` override of `group_ids` | Every future grant and removal lands in `mail.tracking.value` with actor and timestamp, and the existing snapshot-style rollback machinery can read it. | Small. One field override plus a module upgrade. **The tracking value for a many2many is a different shape from the m2o/selection/boolean cases `_snapshot_decode` handles**, so the reader is the real work, not the declaration. |
+| An audit module (OCA `auditlog` or equivalent) | A general model-level change log, not just users. | Larger, and a vendored tree to carry through every upgrade. |
+| Set `log_db` in the server configuration | Populates `ir_logging`. | Cheap, but it is a *log*, not a queryable change record, and it grows without bound. |
+
+**Recommendation: the first.** It is the smallest change that makes §13.4's fourth report answerable, it reuses machinery that already exists for the register snapshot, and it degrades honestly in the meantime — the report already says `partial` the moment tracking rows appear.
 
 ### 2.11 "Give me the whole register." — and why every answer above is capped
 
@@ -428,13 +498,29 @@ Five scopes, no writes. As an **API client** this works today and is genuinely r
 
 As a **human session** it does not work. Session scopes derive from Odoo groups, and the group that grants the five read scopes — `group_asset_user` — **also grants `requests:write`**, because the group's own description is "view assets, log verifications, raise requests" and raising one is a write. So an auditor logging in through the SPA cannot currently be given read-only.
 
-**There is no read-only-everything scope**, and there should probably not be one — `admin` is what happens when a scope means "everything", and the whole point of the scope table is that it is enumerable. A named `audit:read` that is explicitly the union of the five is the better shape, because it makes the audit credential visible in `whoami` and in the client list as what it is.
+**There is no read-only-everything scope**, and there should not be one — `admin` is what happens when a scope means "everything", and the whole point of the scope table is that it is enumerable. This section previously proposed a named `audit:read` that was the union of the five. **Handoff 23 built the role and rejected that scope**, for the reason §4.3 now sets out: an audit credential is made visible by the GROUP it holds, which is what `whoami` and the client list show, and a scope nothing else grants makes a report unreachable the day it ships.
 
 ### 4.3 What the specification asks for and Cadra does not have
 
-Specification §3 names two roles: `Auditor` / `audit_viewer` (*"read-only access to audit logs"*) and `Finance Officer` / `finance_viewer` (*"read-only access to asset financial data"*), federated from SuccessFactors / Active Directory. **Neither group exists in Cadra.** The groups that ship are `group_asset_user`, `group_asset_manager`, `group_tag_issuing_unit`, `group_identity_manager` and the three security groups. `audit_viewer` appears nowhere in the codebase.
+Specification §3 names two roles: `Auditor` / `audit_viewer` (*"read-only access to audit logs"*) and `Finance Officer` / `finance_viewer` (*"read-only access to asset financial data"*), federated from SuccessFactors / Active Directory.
 
-Adding `group_auditor` → `audit:read` in the scope table is small and closes §4.2's session gap. Note the standing constraint on the other direction: `SCOPE_GROUPS` is deliberately **not** the inverse of `GROUP_SCOPES`, and `admin` maps to no group at all, so that a scope string typed into a form can never provision a system administrator. An `audit:read` scope must map to `group_auditor` and nothing else.
+**`Auditor` now exists — `myservice_api.group_auditor`, handoff 23.** `Finance Officer` still does not.
+
+**The `audit:read` scope this section used to propose was NOT built, and the reasoning changed.** A single scope meaning "the audit reports" would have been a scope that no existing client holds and no group granted on the day it shipped — which is the argument `v1_assets.py` already used to keep the register snapshot and the disposal report on `assets:read`. The five §13.4 reports are views of three different things: the register, the identity roster and the configuration. They take those things' scopes.
+
+So `group_auditor` grants six READ scopes and nothing else:
+
+```
+assets:read  locations:read  requests:read  identity:read  dashboards:read  settings:read
+```
+
+Five of the six already existed. **`settings:read` is new**, and it is a read scope rather than a reuse of `settings:write` for a reason worth stating: an auditor whose only way to read what the settings are is to hold the right to change them is an auditor the control has been handed to.
+
+The group is **implied by nothing and implies nothing**, deliberately — an auditor who is also an Asset Manager is not independent of what they are auditing, and hanging it under an existing group would make that the default rather than a decision. It carries the same "do not tidy this into the hierarchy" instruction as the Tag-Issuing Unit.
+
+**Proved by acting, not by reading permission rows.** `myservice_api/tests/test_auditor_access.py` creates a user holding exactly this group, logs in through `POST /api/v1/auth/login`, takes the real token, and opens all five reports with it; then attempts five writes with the same token and asserts each is refused. Reading the configuration would not have been enough: in the sibling Vendra repository a role was named in a report's own roles table and the report was still unopenable, because of a second gate nobody had read. A configuration test passed. An acting test caught it.
+
+The standing constraint on the other direction is unchanged: `SCOPE_GROUPS` is deliberately **not** the inverse of `GROUP_SCOPES`, and `admin` maps to no group at all, so a scope string typed into a form can never provision a system administrator. `settings:read` maps to `group_auditor` and nothing else.
 
 ### 4.4 The segregation that is already right
 

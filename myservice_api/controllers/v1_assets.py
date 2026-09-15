@@ -26,9 +26,11 @@ from odoo import fields as odoo_fields, http
 from odoo.http import request
 
 from .utils import (
+    ERR_CONFLICT,
     ERR_INVALID_REQUEST,
     ERR_NOT_FOUND,
     ERR_VALIDATION_FAILED,
+    SCOPE_APPROVALS_WRITE,
     SCOPE_ASSETS_READ,
     SCOPE_ASSETS_WRITE,
     SCOPE_DASHBOARDS_READ,
@@ -873,11 +875,25 @@ _WRITABLE_FIELDS = {
 # `nrs.asset.custody.source = 'tracking_backfill'` exists to prevent. It is
 # `readonly=True` on the model and written by the migration and nothing else.
 #
-# All three are published read-only under `data.disposal`. There is no API
-# route that records a disposal approval today: `action_approve_disposal` is
-# reachable from the Odoo form only. That is a gap rather than a control, and
-# it is named in report 16 — but the gap is the safe side of this trade, and
-# closing it needs its own scope decision rather than an allow-list entry.
+# All three are published read-only under `data.disposal`, and they stay that
+# way now that the gap report 16 named is closed. `POST /api/v1/assets/<id>/
+# approve-disposal` (handoff 23) records a disposal approval over the API
+# WITHOUT any of them becoming writable: the approver is the user behind the
+# bearer token, never a value in the body, so the route records who called it
+# rather than who the caller says approved. The scope decision that closing
+# it needed is `approvals:write`, which gates nothing else asset-related — so
+# granting it is a deliberate act rather than something a broad credential
+# already carries.
+
+#: Every spelling a caller might reach for when it thinks it can name the
+#: approver. The route refuses the request rather than dropping the key:
+#: dropping it returns `200` to a client that believes it appointed somebody,
+#: and the recorded approver is then not the one in the caller's own logs.
+_APPROVER_CLAIM_FIELDS = frozenset({
+    "disposal_approved_by", "disposal_approved_date", "disposal_approved_at",
+    "approved_by", "approved_date", "approved_at", "approver", "approver_id",
+    "approved_by_id", "approver_name", "user_id", "uid",
+})
 
 # The `sap_*` fields are deliberately ABSENT for the same reason `asset_tag`
 # is. They are written by the SAP integration (`_set_sap_master`, INT-07) and
@@ -1600,6 +1616,118 @@ class CadraAssetsV1(http.Controller):
             "asset": serialize_asset(rec),
             "tagging": _serialize_tagging(rec),
         }
+
+    # ── Approve a disposal: POST /api/v1/assets/<id>/approve-disposal ──
+
+    @cadra_route("/api/v1/assets/<int:id>/approve-disposal", method="POST",
+                 summary="Record that the authenticated caller authorised "
+                         "this disposal",
+                 scopes=[SCOPE_APPROVALS_WRITE],
+                 idempotent=True,
+                 error_statuses=(409,),
+                 response_schema={
+                     "type": "object",
+                     "properties": {
+                         "asset": {"$ref": "#/components/schemas/Asset"},
+                         "disposal": {
+                             "$ref": "#/components/schemas/AssetDisposal"},
+                     },
+                 },
+                 request_schema={
+                     "type": "object",
+                     "description": (
+                         "No body is required, and none is read. The approver "
+                         "is the user behind the bearer token. A body naming "
+                         "an approver or an approval date is REFUSED 400 "
+                         "rather than ignored."),
+                     "properties": {},
+                 },
+                 request_example={})
+    def approve_disposal(self, id, **kwargs):
+        """Approve a disposal as whoever is holding the credential.
+
+        The approver is **derived from the token and never read from the
+        body.** That is the whole design and it is the reason this route did
+        not exist until now: `disposal_approved_by` is deliberately absent
+        from `_WRITABLE_FIELDS`, because a client able to name the approver
+        could create a disposal and appoint any user in the tenant as the
+        authority for it in the same request — turning the disposal report's
+        `no_approver` finding into a clean row with nobody having authorised
+        anything. The control stays; what changes is that an integration can
+        now approve **as itself**.
+
+        That works without any code here because of handoff 08: every API
+        client has its own `res.users`, `require_jwt` puts the token's `uid`
+        on the request env, and Odoo 19's `sudo()` does not change `env.uid`.
+        So `action_approve_disposal`, which writes `self.env.uid`, records the
+        integration rather than `Administrator`.
+
+        `approvals:write` gates nothing else asset-related, so granting it is
+        a deliberate act somebody has to perform rather than something a broad
+        credential already carries.
+
+        Three answers other than success, and none of them silent:
+
+        * **400** — the body tries to name an approver or a date. Ignoring it
+          would return `200` to a caller who believes it set the approver,
+          which is the "answer that looks like an answer" this codebase
+          refuses everywhere else.
+        * **400** — the asset is not disposed of. An approval recorded
+          against an asset still on the register authorises nothing.
+        * **409** — already approved. An approval is a one-time act, so a
+          second caller is told who holds it rather than quietly succeeding.
+          Replaying with the same `X-Idempotency-Key` still returns the
+          original response; a genuinely new request does not.
+        """
+        rec, error = _browse_or_404(id)
+        if error:
+            return error
+
+        body = get_params()
+        if isinstance(body, dict):
+            claimed = sorted(k for k in body if k in _APPROVER_CLAIM_FIELDS)
+            if claimed:
+                return err(
+                    ERR_INVALID_REQUEST,
+                    "The approver is taken from the credential that made this "
+                    "call and cannot be supplied: remove %s and call again as "
+                    "the approving user." % ", ".join("`%s`" % k
+                                                      for k in claimed),
+                    details={"asset_id": rec.id, "rejected_fields": claimed})
+
+        # Reported, not acted on — the same contract PATCH publishes. A key
+        # this route does not read is a caller misunderstanding, and it is
+        # told so rather than left to infer it from an unchanged record.
+        ignored = sorted(body) if isinstance(body, dict) else []
+
+        if rec.disposal_approved_by:
+            return err(
+                ERR_CONFLICT,
+                "This disposal was already approved by %s%s. An approval "
+                "records who authorised the disposal and is not re-taken."
+                % (rec.disposal_approved_by.name,
+                   " on %s" % _date(rec.disposal_approved_date)
+                   if rec.disposal_approved_date else ""),
+                status=409,
+                details={
+                    "asset_id": rec.id,
+                    "approved_by": _ref(rec.disposal_approved_by,
+                                        name_field="name"),
+                    "approved_at": _date(rec.disposal_approved_date),
+                })
+
+        # `state != 'disposed'` raises UserError inside the action, which the
+        # endpoint decorator turns into a 400 carrying the model's own words.
+        # Not re-checked here: one statement of the rule, on the model.
+        rec.action_approve_disposal()
+
+        payload = {
+            "asset": serialize_asset(rec),
+            "disposal": _serialize_disposal(rec),
+        }
+        if ignored:
+            payload["_warnings"] = {"rejected_fields": ignored}
+        return payload
 
     # ── Register report: GET /api/v1/reports/depreciation ──────────
 

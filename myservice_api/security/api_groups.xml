@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!--
+            The Auditor. Specification §3's roles table names an `Auditor` /
+            `audit_viewer` with "read-only access to audit logs"; INT-10 §4.3
+            recorded that no such group existed in Cadra, and handoff 23's
+            acceptance criterion — that the five §13.4 reports be openable by
+            an auditor, PROVED BY ACTING — could not be met without one.
+
+            It grants six READ scopes and no write scope of any kind. That is
+            the whole design: in Cadra every API route runs `sudo()`, so an
+            Odoo group is not the gate and cannot be; the SCOPE is the gate.
+            A group that grants only read scopes therefore produces a session
+            token that cannot write, which is a property of the token rather
+            than of a permission row somebody can edit.
+
+            Implied by nothing and implying nothing, deliberately. An auditor
+            who is also an Asset Manager is not independent of what they are
+            auditing. Do not hang this under an existing group to "tidy" the
+            hierarchy — the same instruction the Tag-Issuing Unit carries,
+            for a related reason.
+
+            `myservice_api/tests/test_auditor_access.py` proves both halves by
+            acting: every one of the five reports opens for a user holding
+            exactly this group, and every write is refused.
+        -->
+        <record id="group_auditor" model="res.groups">
+            <field name="name">Auditor</field>
+            <field name="comment">Read-only access for internal and external audit (specification §3, §13.4; INT-10). Grants the six read scopes the five standard audit reports need and no write scope of any kind. Independent of Asset Manager by design.</field>
+        </record>
+    </data>
+</odoo>
