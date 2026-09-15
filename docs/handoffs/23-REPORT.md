@@ -244,9 +244,41 @@ holds 6 rows on `jaizbankplc`, not the "1–5" the document claimed.
 
 | Run | Result |
 |---|---|
-| `pytest tests/` (full) | **770 passed, 32 skipped** — skip count unchanged from before this work |
+| `pytest tests/` locally, **narrow** credential | **771 passed, 32 skipped** |
+| `pytest tests/` locally, **broad** credential (CI's shape) | **771 passed, 32 skipped** |
 | `myservice_api` in-registry, `--workers=0` | **0 failed, 0 error(s) of 134 tests** |
-| CI's full eleven-module in-registry run | **0 failed, 0 error(s) of 460 tests** |
+| CI's full eleven-module in-registry run, locally | **0 failed, 0 error(s) of 460 tests** |
+| **CI, `pytest tests/`** | **781 passed, 22 skipped** |
+| **CI, all three jobs** | **green** (run `34942337006`) |
+
+### CI failed first, and the reason is worth more than the fix
+
+**Three tests failed in CI and passed locally**, and the stack was behaving
+correctly in both places. They asserted a `403` on the reasoning that *"this
+suite's credential does not hold `settings:read`"* — true of `jaizbankplc`, where
+they were written, and false in CI, whose `scripts/bootstrap.py` grants its client
+`_all_scopes()` **on purpose**. CI answered `200` three times.
+
+That is CLAUDE.md's own warning one level along: *a per-tenant number is a fact
+about a demo, not about an estate.* **It is exactly as true of a per-tenant scope
+list**, and nothing in the file said so. The two scope tests now read the token's
+real scopes and assert **both** branches — the refusal where the scope is absent,
+and the thing the scope protects where it is held. Deliberately not a skip: a skip
+is a guard that passes, and these are the routes where that matters most.
+
+A third failure was an ordering coupling of mine: one module-scoped disposed asset,
+which the approval test approved on a broad credential, leaving the PATCH test to
+find an approver its own assertions had not set. Function-scoped now.
+
+**And one more guard passing without testing anything, in code written an hour
+earlier.** The approver comparison read `data.user.id` from `/auth/whoami`, which
+publishes `data.id`. It got `None` and the comparison was skipped behind an
+`if ... is not None`. That is the sixth instance of this exact shape in one handoff.
+The key is now asserted present and the comparison **proved to execute by
+mutation** — it fails naming user 18.
+
+Verified by widening the local credential to CI's shape, running the full suite,
+and restoring it: **771 passed on both**.
 
 No run collapsed to `of 0 tests`; no `CRITICAL`. The 117 `cannot execute INSERT in
 a read-only transaction` lines in the in-registry output are **pre-existing** —
@@ -269,6 +301,7 @@ schema migration. Both reports verified on a second tenant (`nrs19`: 2 modified,
 - **An API client provisioned with `settings:read` is placed in `group_auditor`** by `SCOPE_GROUPS`, since that is the only group granting the scope. Intended and consistent with every other scope, but it means "member of `group_auditor`" is not the same population as "a person doing audit work". Named, not changed.
 - **`Finance Officer` / `finance_viewer`** (specification §3) still does not exist.
 - **Nothing about the access gap is retroactive.** `INT-10` §2.10b carries the three options and the recommendation; the record begins the day one is done, and that is NRS's decision rather than a backlog item.
+- **CI does not guard the DENOMINATOR of the in-registry run.** It gates on Odoo's non-zero exit for a failed assertion report, which is real — but a run whose database died before the test phase reports `of 0 tests` and **exits 0**, and nothing in `.github/workflows/ci.yml` greps for it. `CLAUDE.md` makes the point at length and then relies on a human doing it by hand. Named, not fixed: it is one `grep` in the workflow and it is the Architect's call whether it belongs in this branch. Given this handoff found five guards that pass without testing anything, the one guarding the guards seems worth having.
 
 ---
 
