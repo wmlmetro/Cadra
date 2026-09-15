@@ -20,7 +20,7 @@ So **the authoritative definition of INT-10 is not available to the Builder**, a
 - **`Cadra_at_NRS_Specification_v0.1.docx` §13.4, "Audit and compliance reports"** — the closest thing to an INT-10 requirement list, and the spine of §2 below:
   > *"Standard audit reports available: Asset register snapshot at any historical date (point-in-time view); Custodianship chain for any asset (full history); Disposal report with documentation refs (per period); Access changes for any user (per period); Configuration change log (who changed what setting when). These support internal audit, external audit (AGF, etc.), and any regulatory inquiry."*
 - **§13.3** — two delivery patterns offered, both marked `[NRS INPUT REQUIRED]`: webhook event subscription, or *"scheduled bulk extract — daily snapshot of asset register, location register, request register exported to warehouse via secure file transfer."*
-- **§3 roles table** — `Auditor` / `audit_viewer` / *"Read-only access to audit logs"*, and `Finance Officer` / `finance_viewer` / *"Read-only access to asset financial data"*. **Neither role exists in Cadra** (§4).
+- **§3 roles table** — `Auditor` / `audit_viewer` / *"Read-only access to audit logs"*, and `Finance Officer` / `finance_viewer` / *"Read-only access to asset financial data"*. **`Auditor` was built in handoff 23 and `finance_viewer` was ruled to be the same role under another name in handoff 24** (§4.3).
 - **§8.6** — likely webhook consumers include *"NRS audit system — subscribes to all events for audit retention."* §8.7, the subscription registry, is a `[TBD]` placeholder.
 - **§15** — *"Audit logging: every action logged with actor, timestamp, action, result; 7-year retention."*
 - **`Cadra_Platform_PRD_v0.4.docx` §8.14** — *"Every change to an asset is logged. The audit trail includes who, when, what changed (before/after values), and the source (which API call, which user or system)."*
@@ -504,7 +504,24 @@ As a **human session** it does not work. Session scopes derive from Odoo groups,
 
 Specification §3 names two roles: `Auditor` / `audit_viewer` (*"read-only access to audit logs"*) and `Finance Officer` / `finance_viewer` (*"read-only access to asset financial data"*), federated from SuccessFactors / Active Directory.
 
-**`Auditor` now exists — `myservice_api.group_auditor`, handoff 23.** `Finance Officer` still does not.
+**`Auditor` now exists — `myservice_api.group_auditor`, handoff 23.** **`Finance Officer` / `finance_viewer` will not be built as a second group, because it is `group_auditor` under another name — handoff 24.**
+
+"Asset financial data" resolves to four blocks of the asset serializer — `financial` (including the whole `depreciation` sub-block), `sap`, `disposal` and `provenance` — plus `GET /reports/depreciation` and `GET /settings/depreciation`. Every one of them is reached by `assets:read`, `dashboards:read` or `settings:read`, and `group_auditor` grants all three.
+
+**There is no field-level access control anywhere in Cadra, and that is what decides this.** Three things were measured rather than assumed:
+
+- `grep -rn "groups=" --include="*.py"` across every first-party module returns **nothing** — no field definition is gated.
+- `serialize_asset` (`myservice_api/controllers/v1_assets.py:502`) has the signature `def serialize_asset(a, *, include=())`. It takes **no scope argument**. `include` is an additive embed selector the CALLER chooses, not an allow-list, and the `financial`, `sap`, `disposal` and `provenance` blocks are emitted unconditionally on every response.
+- Every route runs `.sudo()` (§4.4), so an Odoo group cannot subtract from what a scope already grants.
+
+The finest cut this platform can make is **route × scope**, and financial fields are not a route — they are nested blocks riding on `assets:read`, which is indivisible. So a `finance_viewer` built honestly today would be `group_auditor` minus `locations:read`, `requests:read` and `identity:read` — **a narrower auditor, not a finance role**, since not one of those three scopes is financial. A genuinely field-scoped role needs machinery that does not exist, and building it would be a breaking change to a serializer Vendra builds against.
+
+**A finance user who needs read-only access to asset financial data is placed in `myservice_api.group_auditor`.**
+
+Two things this ruling does not cover, flagged rather than closed:
+
+- **Specification §3.4 and §3.5 cast Finance as a disposal *approver*** — the disposal flow is "Asset Manager approval → Finance Director approval". That is `approvals:write`, the opposite of a read-only row, and handoff 23 built that route. If an approver is what NRS actually wants, it is a different question with a different answer, and the §3.6 row is not the place it was asked.
+- **`workflow_payment_ref` (`myservice_workflow/models/request_request.py:27`) and `workflow.dispatch.log.payment_ref` (`:82`) are stored and serialised by nothing.** A Finance Officer expecting to trace a payment reference over the API cannot, and neither can an auditor. That is a real gap and it is not closed by any group.
 
 **The `audit:read` scope this section used to propose was NOT built, and the reasoning changed.** A single scope meaning "the audit reports" would have been a scope that no existing client holds and no group granted on the day it shipped — which is the argument `v1_assets.py` already used to keep the register snapshot and the disposal report on `assets:read`. The five §13.4 reports are views of three different things: the register, the identity roster and the configuration. They take those things' scopes.
 
