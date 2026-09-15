@@ -30,6 +30,13 @@ import pytest
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 SCRIPTS = REPO_ROOT / "scripts"
 
+#: Odoo wraps a `like` value in `%...%`. These four are therefore SUBSTRING
+#: matches however the pattern is written, and `=like` / `=ilike` are not.
+#: Shared between the guard and its mutation proof ON PURPOSE — the first
+#: version of the proof re-implemented the check in its own body, so
+#: narrowing this set would have left the proof passing over the narrowing.
+UNANCHORED_OPERATORS = ("like", "ilike", "not like", "not ilike")
+
 #: Both scripts, and the tuple names they must both declare.
 PEERS = ("mark_test_fixtures.py", "remove_test_residue.py")
 TUPLES = ("ASSET_PATTERNS", "LOCATION_PATTERNS")
@@ -111,7 +118,7 @@ def test_a_fixture_name_is_matched_with_anchored_like(script):
             continue
         if not isinstance(operator, ast.Constant):
             continue
-        if operator.value in ("like", "ilike", "not like", "not ilike"):
+        if operator.value in UNANCHORED_OPERATORS:
             offenders.append((node.lineno, operator.value))
     assert not offenders, (
         "%s matches a record NAME with an unanchored operator at %s.\n"
@@ -147,6 +154,14 @@ def test_the_anchoring_guard_catches_the_spelling_it_was_written_for(tmp_path):
     )
 
     def offenders(source):
+        """Exercise the SHIPPED rule, not a copy of it.
+
+        The first version of this proof defined its own operator tuple here.
+        Narrowing the guard — dropping `"like"`, say — would then have left
+        this proof green while the real check stopped catching the very bug
+        it is named after. It reads `UNANCHORED_OPERATORS` now, so the two
+        cannot drift apart.
+        """
         tree = ast.parse(source)
         found = []
         for node in ast.walk(tree):
@@ -155,10 +170,13 @@ def test_the_anchoring_guard_catches_the_spelling_it_was_written_for(tmp_path):
             field, operator, _ = node.elts
             if (isinstance(field, ast.Constant) and field.value == "name"
                     and isinstance(operator, ast.Constant)
-                    and operator.value in ("like", "ilike",
-                                           "not like", "not ilike")):
+                    and operator.value in UNANCHORED_OPERATORS):
                 found.append(node.lineno)
         return found
+
+    assert "like" in UNANCHORED_OPERATORS and "=like" not in UNANCHORED_OPERATORS, (
+        "the shared operator set no longer describes the rule this proof "
+        "exists for: %r" % (UNANCHORED_OPERATORS,))
 
     assert offenders(shipped) == [3, 3], (
         "the guard does not flag the two unanchored matches in the code "

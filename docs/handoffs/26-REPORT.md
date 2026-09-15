@@ -138,11 +138,11 @@ Everything else in the register is a decision someone can take calmly. That one 
 
 | Suite | Result |
 |---|---|
-| `pytest tests/` (first, as CI runs it) — `test19` | **836 passed, 9 skipped, 0 failed** |
+| `pytest tests/` (first, as CI runs it) — `test19` | **840 passed, 9 skipped, 0 failed** |
 | In-registry, CI's 11 modules, `test19` | **0 failed, 0 error(s) of 524 tests** |
-| `tests/test_source_guards.py` + `test_fixture_patterns_agree.py`, standalone, no instance | **206 passed** |
+| `tests/test_source_guards.py` + `test_fixture_patterns_agree.py`, standalone, no instance | **210 passed** |
 
-**Both denominators checked, not the exit codes.** 524 against report 25's 516 is exactly the 8 in-registry tests added here. 836 against 811 is exactly the 25 pytest tests added (7 pattern-parity, 13 source-guard, 5 published-label). Neither run contains `of 0 tests` and neither contains a `CRITICAL`.
+**Both denominators checked, not the exit codes.** 524 against report 25's 516 is exactly the 8 in-registry tests added here. 840 against 811 is exactly the 29 pytest tests added (7 pattern-parity, 17 source-guard, 5 published-label) — four of the source-guard tests were added by the verification pass below. Neither run contains `of 0 tests` and neither contains a `CRITICAL`.
 
 The 9 skips are report 25's 9, unchanged, none from a file this handoff touched.
 
@@ -205,3 +205,38 @@ The 460 requests are the permanent residue. 417 of them point at a fixture-named
 ---
 
 ## 9 · Wall-clock, and the correction share
+**Roughly 2h30m**, most of it serialised against a stack that cannot take two registry loads at once. Three script-fixing agents ran in parallel on disjoint files; everything touching the database or a registry ran one at a time in the main session.
+
+**Correction share: about 60%, and the highest of any handoff so far — for the same reason report 25's was.** The fresh verification pass at the end found **thirteen defects in work I had already called finished**, and the four worst would have shipped a handoff that failed on its own subject.
+
+### What the verification pass caught
+
+| | Found | Why it mattered |
+|---|---|---|
+| 1 | **My own correction to report 25 introduced a NEW false claim.** I wrote that all 17 refused locations hold an asset "pinned by a custody row". Measured over exactly those 17 pairs: **10 request, 5 disposal, 2 custody.** | This is the one thing I explicitly asked it to check, and I had got it wrong in two files. A correction nobody measures is how the original sentence got there. |
+| 2 | **The allow-list guard matched one spelling.** `endswith("_WRITABLE_FIELDS")` missed `_CATEGORY_WRITABLE` and `_SETTINGS_WRITABLE` — and `_CATEGORY_WRITABLE` gates `nrs.asset.category`, a model that CARRIES the mixin. | A guard blind to one spelling of the thing it protects — report 25's credential-guard defect, reproduced inside the guard written to close it. |
+| 3 | **The resolver answered confidently wrong on three shapes.** A name bound to two models in one file collapsed to the last binding, with **nothing reported unresolved** — a model silently invisible to the guard. | The guard's whole value is that it fails on what it cannot see. It was failing on unresolved calls and quietly guessing on ambiguous ones. |
+| 4 | **`ir.config_parameter` was in no classification at all** — `set_param` was not a recognised create. | The guard's own docstring claimed to enumerate every model first-party code can create. |
+| 5 | **The mixin described a mechanism the guard does not have** — "walks every `@cadra_route` … reachable from a route handler". It has no route awareness whatsoever. | A confident sentence about a protection, in the file that protection guards. Report 25 finding 9 again, mine. |
+| 6 | **The new reference guard could not see the reference that prompted it.** The one in `test_fixture.py` is wrapped across two comment lines; the regex required the name to follow `::` immediately, so it found **zero** references in that file and passed. | A guard blind to its own headline case. It was passing by seeing nothing — the exact shape of §B. |
+| 7 | **The `=like` mutation proof re-implemented the rule** in its own body instead of calling it. Narrowing the shipped operator set would have left the proof green. | Report 22's failure mode, one level along: a proof that tests a copy. |
+| 8 | **`bootstrap.sh`'s stderr fix overshot into the value.** `out=$(db_query … 2>&1)` folds any docker or psql warning into the string compared against `t`/`f`, falling to the catch-all and **aborting a deploy that used to succeed** — on the production path. | The fix for a swallowed measurement put the diagnosis where the value is read. |
+| 9 | **`330` custody rows is `352`**, in five files in one commit — and `mark_test_fixtures.py`'s header carried three more figures all taken hours earlier the same day. | A fixture count is a rate, not a constant. Every one had gone UP between two measurements taken the same day. |
+| 10 | The CHANGELOG said the three response objects "all declare `additionalProperties: true`". **Only `Asset` has a schema at all**; there is no `Location` or `ServiceRequest` in the document. | The additive conclusion held; the supporting sentence did not. |
+| 11 | `docs/GO-LIVE.md`'s header still scoped the whole file to the DOKS cluster, which Part II contradicts. | |
+| 12 | cadra19's "1,272 seeded assets" is 1,285 non-fixture of 1,335. | |
+| 13 | §11.1's labelling counts (111/13/111/2) no longer reproduced — they climb with every suite run. | Now stated as an **invariant** (everything credential-created is labelled; everything unlabelled is `create_uid = 1`) rather than a snapshot, which is the form that stays true. |
+
+All thirteen are fixed. Four gained a test or a mutation proof of their own: the widened allow-list matcher is proved against the two real names it used to miss; ambiguous bindings are proved to fail loudly on the three shapes the pass constructed; the reference matcher is proved on the **real file**, wrapped, rather than on a synthetic string; and the `=like` proof now reads the shipped operator tuple.
+
+Three findings were judged and **left alone**, each recorded in `docs/GO-LIVE.md` §12 rather than fixed: the blast radius of `bootstrap.py`'s new archived-client refusal, the brand seeds' `RuntimeError` aborting a whole seed file rather than one step, and the two latent divergences between the fixture scripts that the parity guard does not cover (they agree on `jaizbankplc` today; the divergence would appear on a different tenant).
+
+### And the repo caught me itself, once
+
+Writing this register, I pasted the two burnt cutover credentials into a table. **`test_the_compromised_literals_are_gone_from_first_party_source` failed the run** — handoff 17's guard, doing exactly what it was built for, against the handoff documenting the credential it protects. The literals are named in report 17 §3 and are not reproduced in the register.
+
+### The lesson, and it is the same one two reports running
+
+Report 25 ended on it: the guard was sound and everything wrong was a claim ABOUT it. That happened again here, in a handoff whose entire subject is instruments that describe themselves wrongly — **including in the correction I wrote to fix exactly that defect in report 25.** I measured the 17 locations, established that the request rule was not what refused them, and then asserted a replacement cause without measuring it.
+
+The thing that works is not care. It is somebody who did not write it reading it against the database.

@@ -4,7 +4,9 @@ WHY THIS EXISTS
 ---------------
 Report 24 measured a client-derived register at 88% test fixtures and could
 identify almost none of them from the records themselves. What it could
-identify, it identified because of a DERIVATION: 330 chain-of-custody rows
+identify, it identified because of a DERIVATION: 352 chain-of-custody rows
+(on `jaizbankplc`, 2026-09-15 — it was 330 when handoff 24 first measured
+it, and it grows with every test run, which is rather the point)
 carry `source = 'test'` because `nrs.asset.custody._resolve_source` reads
 `myservice.api.client.is_test_credential` off the acting user and stamps the
 answer into the row. Nobody curates that. Nobody remembers to type it.
@@ -101,11 +103,18 @@ class CadraTestFixtureMixin(models.AbstractModel):
         __system__` and derive `False` here — correctly, since there is no
         credential left in the environment to read.
 
-        Measured on `test19` on 2026-09-15: of everything created after this
-        field landed, 111/111 assets, 13/13 locations, 111/111 tag labels and
-        2/2 transfers were labelled, and every unlabelled record — 2
-        requests, 2 request events, 22 chatter messages — came through that
-        single line. It is the only `with_user(SUPERUSER_ID)` in any
+        Measured on `test19` on 2026-09-15, as an INVARIANT rather than a
+        count — the counts climb with every test run, and quoting one is how
+        a figure goes stale between two readings of the same page:
+
+          * every record created after this field landed through a
+            CREDENTIAL is labelled — assets, locations, tag labels and
+            transfers all at 100%, no exceptions;
+          * every UNLABELLED record has `create_uid = 1`, and they are
+            requests, request events and the chatter hanging off them.
+
+        Both halves re-checked after several further suite runs and both
+        still held. It is the only `with_user(SUPERUSER_ID)` in any
         first-party module.
 
         Left alone on purpose: the same handler serves an `auth='public'`
@@ -150,10 +159,19 @@ class CadraTestFixtureMixin(models.AbstractModel):
 # This list is not curated by hand and kept honest by hope:
 # `tests/test_source_guards.py::
 # test_every_model_a_first_party_path_creates_is_classified`
-# walks every `@cadra_route` in `myservice_api/controllers/`, resolves every
-# `.create(` reachable from a route handler, and fails if a model turns up
-# that is neither declared here, nor labelled by its own older mechanism
-# (`nrs.asset.custody.source`), nor listed as operational with a reason.
+# walks EVERY first-party Python file (`myservice_*`, `cadra_brand_*`,
+# excluding `tests/`), resolves every create-shaped call it finds to a model,
+# and fails if one turns up that is neither declared here, nor labelled by
+# its own older mechanism (`nrs.asset.custody.source`), nor listed as
+# unreachable-from-a-credential with a reason.
+#
+# **It does NOT do route reachability**, and an earlier version of this
+# comment claimed it did — that it "walks every `@cadra_route` and resolves
+# every `.create(` reachable from a route handler". It has no route
+# awareness at all. The error was in the safe direction (it enumerates more
+# than routes reach, not less), but a confident sentence about a protection,
+# in the file that protection guards, is the thing this handoff exists to
+# stop. Caught by the verification pass, not by me.
 #
 # A model added next year turns the suite red on the day it is added.
 #

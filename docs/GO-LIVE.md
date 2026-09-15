@@ -5,9 +5,14 @@ in the wrong one. This is the Cadra half of the ordering; the Vendra repository
 carries its own copy, because a deployment order that breaks another system's
 write path is not a Cadra-only fact.
 
-This file is about the **DOKS `cadra-dev` cluster** (staging.app.cadra.ng and
-the tenant hostnames). For the Docker Compose profiles see
-[DEPLOYMENT.md](DEPLOYMENT.md).
+**Part I** (below) is about the **DOKS `cadra-dev` cluster**
+(staging.app.cadra.ng and the tenant hostnames). For the Docker Compose
+profiles see [DEPLOYMENT.md](DEPLOYMENT.md).
+
+**Part II is not.** It is the programme-wide open-items register added by
+handoff 26 — scripts, tenants, credentials and decisions, most of them about
+the local estate or about nothing machine-specific at all. Read the two as
+separate documents that happen to share a file.
 
 ---
 
@@ -280,7 +285,8 @@ repository references it — a full-text search found it only in `CLAUDE.md`,
 in four frontend comments quoting asset counts, and in one migration comment.
 
 **The argument for `client`, which is why the proposal is `client`:** its
-1,272 seeded assets come from `scripts/nrs_hq_seed.py`, whose own header
+seeded assets (1,285 of the 1,335 carry no fixture name) come from
+`scripts/nrs_hq_seed.py`, whose own header
 names its sources as **real client documents** — Baron Architecture drawings
 A400–A485, the Unecon Associates M&E completion schedule, and the *FIRS HQ
 Furniture Inventory* dated 11/02/2026 — mapped to a real 19-floor, 232-room
@@ -362,10 +368,18 @@ Named in report 17 §3 and carried as unrotated by reports 18, 20 and 21.
 Both literals entered git history at `a4b505a` and **cannot be removed from
 it**:
 
-| parameter | compromised literal | what it guards | held by |
-|---|---|---|---|
-| `myservice_identity.redhubs_api_key` | `NRS_REDHUBS_KEY_2025` | `POST /api/myservice/assets/export` and the CSV twin — **a full dump of the asset register** | Redhubs |
-| `myservice_identity.sap_webhook_secret` | `NRS_SAP_WEBHOOK_SECRET_2025` | `POST /api/sap/employee-sync` — **inbound employee create/update** | SAP SuccessFactors / the NRS SAP team |
+| parameter | what it guards | held by |
+|---|---|---|
+| `myservice_identity.redhubs_api_key` | `POST /api/myservice/assets/export` and the CSV twin — **a full dump of the asset register** | Redhubs |
+| `myservice_identity.sap_webhook_secret` | `POST /api/sap/employee-sync` — **inbound employee create/update** | SAP SuccessFactors / the NRS SAP team |
+
+The burnt literals themselves are **deliberately not reproduced here.**
+`tests/test_source_guards.py::test_the_compromised_literals_are_gone_from_first_party_source`
+refuses any file in this repository that resolves to either value, and it
+**failed this handoff's own test run** when the first draft of this section
+pasted them into the table. The guard is right: they are in git history and
+nothing should make them easier to find. Report 17 §3 names them if you need
+to recognise one.
 
 **Measured on 2026-09-15: NEITHER PARAMETER IS SET ON ANY OF THE EIGHT LOCAL
 TENANTS.** So the state is not "a compromised key is live in a database" —
@@ -565,12 +579,18 @@ elevated privileges while keeping it. So a service request created through
 is written as `__system__`, and `is_test_fixture` correctly derives `False`
 because there is no credential in the environment to read.
 
-**Measured on `test19`, 2026-09-15**, over everything created after the field
-landed: 111 of 111 assets, 13 of 13 locations, 111 of 111 tag labels and 2 of
-2 transfers were labelled, and **every single unlabelled record — 2 requests,
-2 request events and 22 chatter messages — had `create_uid = __system__`**
-and came through this one line. It is the only `with_user(SUPERUSER_ID)` in
-any first-party module.
+**Measured on `test19`, 2026-09-15.** Stated as an invariant rather than a
+count, because the counts climb with every suite run and a snapshot goes
+stale between two readings of this page:
+
+- **every record created through a CREDENTIAL after the field landed is
+  labelled** — assets, locations, tag labels and transfers, 100%, no
+  exceptions;
+- **every unlabelled record has `create_uid = __system__`**, and they are
+  service requests, their request events, and the chatter hanging off them.
+
+Both halves were re-checked after several further suite runs and both still
+held. It is the only `with_user(SUPERUSER_ID)` in any first-party module.
 
 **Not changed, deliberately.** The same handler serves the `auth='public'`
 twin at `/api/myservice/quick-submit`, where the acting user is the public
@@ -596,3 +616,70 @@ covering what depends on it.
 **This is a pre-existing audit-trail defect that handoff 26 exposed rather
 than introduced** — the actor was being discarded long before there was a
 label to lose.
+
+---
+
+## 12 · Three things the verification pass found that were left as they are
+
+Each is a real behaviour change or a latent divergence that handoff 26
+introduced or exposed and chose not to chase. None is urgent; all three are
+here so nobody rediscovers them from a symptom.
+
+### 12.1 · `bootstrap.py`'s archived-client refusal stops the whole bootstrap — `[open]`
+
+`_find_api_client` now raises when it finds an archived client with the
+`client_id` it was about to create, instead of silently creating a duplicate
+row and printing a success line. That is the right refusal.
+
+**What its docstring does not say is the blast radius.** It raises from
+`ensure_test_client` / `_ensure_scoped_client`, inside `main()`'s outer `try`,
+which **re-raises** — so re-bootstrapping a tenant whose credential somebody
+deliberately revoked by archiving now also skips the mail-server step, the
+seeds and the credential capture. It used to finish, wrongly. It now finishes
+nothing, loudly.
+
+Probably the right trade — a revoked credential is a decision a deploy script
+must not paper over — but it is a behavioural change on the production path
+that nothing records. **If it bites, the remedy already exists:**
+`CADRA_REACTIVATE_ARCHIVED_CLIENT=<client_id>` names the specific credential
+to revive.
+
+### 12.2 · The brand seeds' new `RuntimeError` aborts the whole seed file — `[open]`
+
+`fix_asset_codes_and_tags(env)` is the **first** module-level call in each of
+`gtb_data_seed.py` / `jaiz_data_seed.py` / `lasg_data_seed.py`;
+`seed_employees`, `wire_assets` and `wire_fleet` follow it. A missing
+`nrs.asset` sequence used to fall through silently and let branches,
+employees and fleet seed anyway. It now raises, and **none of them run**.
+
+Contained: `run_seeds` catches it (`bootstrap.py`), so it degrades to one
+`✗ <tenant> Demo Data failed` line and provisioning continues to the next
+seed. Loud beats silent — but "one step failed" became "no step ran", and
+that scope change is recorded nowhere else.
+
+### 12.3 · The two fixture scripts still diverge in two ways the parity guard does not cover — `[open]`
+
+`tests/test_fixture_patterns_agree.py` compares the NAME PATTERNS and the
+anchoring. Two behavioural disagreements sit outside it:
+
+1. **`active_test`.** `mark_test_fixtures.py` searches locations with
+   `with_context(active_test=False)`; `remove_test_residue.py` uses a plain
+   `search()`. So the marking script marks archived fixture locations the
+   removal script never even considers.
+2. **`_asset_stays` does not know about the database's own refusals.**
+   `remove_test_residue.py` builds `removable_asset_ids` from assets that
+   passed the rules **and survived a trial `unlink`** — report 25 measured 96
+   locations failing on a foreign key no reading of the model files predicted.
+   `mark_test_fixtures.py`'s `_asset_stays` knows only the three declared
+   rules. An asset that passes all three and is then refused by the DATABASE
+   stays in the register, and the location holding it would go unmarked.
+
+**On `jaizbankplc` today the two agree exactly** — the marking script's
+selection reproduces the removal script's 17 refused locations, verified in
+SQL. The divergence is latent, and it is the kind that appears on a different
+tenant rather than on this one.
+
+**Why it was not fixed:** the honest fix is for the marking script to perform
+the same trial-unlink measurement the removal script does, which means a
+marking script that attempts deletions. That is a bigger change than §D asked
+for, on a script the owner runs against a client's register.

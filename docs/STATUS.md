@@ -114,14 +114,19 @@ from a file this handoff changed.
 
 | Suite | Result |
 |---|---|
-| `pytest tests/` (first, as CI runs it) | **836 passed, 9 skipped, 0 failed** |
+| `pytest tests/` (first, as CI runs it) | **840 passed, 9 skipped, 0 failed** |
 | In-registry, CI's 11 modules | **0 failed, 0 error(s) of 524 tests** |
 
-**Both denominators checked, not the exit codes.** 836 against report 25's
-811 is exactly the 25 pytest tests this handoff added (7 pattern-parity, 13
+**Both denominators checked, not the exit codes.** 840 against report 25's
+811 is exactly the 29 pytest tests this handoff added (7 pattern-parity, 17
 source-guard, 5 published-label); 524 against its 516 is exactly the 8
 in-registry tests added. Neither run contains `of 0 tests` or a `CRITICAL`.
 The 9 skips are report 25's 9, unchanged, from no file this handoff touched.
+
+**The verification pass found thirteen defects in work already called
+finished**, four of them serious enough to have failed this handoff on its
+own subject — including a correction I wrote to report 25 that replaced one
+false claim with another. All thirteen fixed; report 26 §9 lists them.
 
 **Where the programme resumes from: `docs/GO-LIVE.md` Part II.** There is no
 handoff 27. Contracted core scope was complete at handoff 23; what stands

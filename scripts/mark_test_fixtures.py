@@ -18,11 +18,17 @@ answer, on this machine:
   * It has no teardown, by documented policy, and it could not have one: the
     API publishes exactly one DELETE route (asset categories) and none for
     assets, locations, requests, custody links or disposals.
-  * Measured on 2026-09-15: 3,584 of 4,056 assets (88%) named `pytest-*`,
-    accumulating daily since 2026-08-26; 413 of 569 chain-of-custody rows on
-    fixture assets; 354 of 420 entries in the PUBLIC homepage location
-    dropdown; and six fabricated approved disposals sitting in the
-    auditor-facing disposal report.
+  * Measured by handoff 24 on 2026-09-15: 3,584 of 4,056 assets (88%) named
+    `pytest-*`, accumulating daily since 2026-08-26; 413 of 569
+    chain-of-custody rows on fixture assets; 354 of 420 entries in the PUBLIC
+    homepage location dropdown; and six fabricated approved disposals sitting
+    in the auditor-facing disposal report.
+  * **Re-measured later the same day, after handoff 26's own verification
+    runs: 3,894 of 4,164 assets, 435 of 591 custody rows, 368 of 440 dropdown
+    entries.** Every one of those figures went UP between two measurements
+    taken hours apart, because nothing stopped the accumulation until handoff
+    25 landed the database-class guard. Quote these with the date attached or
+    do not quote them — a fixture count is a rate, not a constant.
 
 No real asset carries a fabricated approval or a fabricated custody link, and
 nothing ever reached the production host — every captured response in
@@ -37,7 +43,7 @@ classified `production` or on one carrying no class at all.
    already has the right convention for this — `myservice.api.client.
    is_test_credential` drives `nrs.asset.custody.source = 'test'`, so links
    written under a test credential say so on their face. The custody chain is
-   honest because of it: 330 of its rows self-label. That credential was
+   honest because of it: 352 of its rows self-label. That credential was
    created with the flag off, which is why the approvals it authorised are the
    one class of artefact a reader cannot identify from the record itself.
 
@@ -269,9 +275,18 @@ unremovable_assets = held_by_custody | held_by_request | held_by_disposal
 # likewise". The 17 is right and the "likewise" is not: measured on
 # `jaizbankplc` on 2026-09-15, **zero** requests on that tenant set
 # `generic_location_id` at all. All 17 are refused by the removal script's
-# OTHER location rule — they hold an asset the script will not remove — and
-# every one of those assets is itself a fixture held in place by a custody
-# row. The script was right; the sentence describing it was not.
+# OTHER location rule — they hold an asset the script will not remove.
+#
+# Which rule holds that asset, measured over exactly those 17 pairs in the
+# script's own elif-chain order: **10 because a service request points at the
+# ASSET, 5 because the asset carries an approved disposal, 2 because of a
+# custody row.** Disjoint, summing to 17.
+#
+# The script was right and the sentence describing it was not — and handoff
+# 26's FIRST correction of that sentence, written on this line, was also
+# wrong: it said all 17 were pinned by custody rows, which is 2 of them.
+# Both errors are the same shape as everything else this handoff is about,
+# one level up: a claim ABOUT the code, asserted without measuring.
 #
 # Both rules are applied here anyway. The request rule is empty on this
 # tenant and is not empty by construction, and a marking step that quietly

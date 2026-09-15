@@ -4088,7 +4088,7 @@ def test_the_test_base_guard_covers_the_modules_we_think_it_does():
 #
 # Handoff 25 §A. `is_test_credential` is what makes a fixture identifiable
 # after the fact: it drives `nrs.asset.custody.source = 'test'`, which is why
-# 330 custody rows in `jaizbankplc` self-label without anyone curating them.
+# 352 custody rows in `jaizbankplc` self-label without anyone curating them.
 #
 # Handoff 23 minted `Handoff23 Approver` with a direct `create()` and the flag
 # defaulted off. The six disposals it approved are the ONE class of artefact in
@@ -4452,7 +4452,7 @@ def test_the_credentials_gate_is_actually_wired():
 # Handoff 26 §A — every model the API can create labels itself
 #
 # `nrs.asset.custody` has carried a derived `source = 'test'` since handoff
-# 24, which is why 330 of its rows self-identify with nobody curating
+# 24, which is why 352 of its rows self-identify with nobody curating
 # anything. Every other model relied on a NAME PREFIX, which is a convention
 # — a thing somebody remembers to type — and `request.request` never had one
 # at all, so the 460 requests on `jaizbankplc` can never be found again.
@@ -4480,10 +4480,22 @@ _TRANSPARENT_CHAIN = frozenset({
 #: credential guard could not see `Client = env[MODEL]` followed by
 #: `Client.create(...)`, which was verbatim the spelling it had just removed
 #: from four files.
-_CREATE_ALIASES = {"create": None, "copy": None, "message_post": "mail.message"}
+#: `set_param` writes an `ir.config_parameter` row, creating it when absent.
+#: It was invisible to the first version of this guard, so that model
+#: appeared in NO classification while the guard's own docstring claimed to
+#: enumerate every model any first-party path can create. Found by the
+#: verification pass.
+_CREATE_ALIASES = {"create": None, "copy": None,
+                   "message_post": "mail.message",
+                   "set_param": "ir.config_parameter"}
 
 #: Sentinel for a helper that returns `self` rather than a named model.
 _SELF = object()
+
+#: Sentinel for a name bound to more than one model in the same file. Any
+#: create through such a name is reported UNRESOLVED, which fails the guard,
+#: rather than silently resolved to whichever binding came last.
+_AMBIGUOUS = object()
 
 
 def _strip_chain(node):
@@ -4550,6 +4562,16 @@ def _created_models(path):
     """
     tree = ast.parse(path.read_text(encoding="utf-8"), str(path))
 
+    # These maps are flow- and scope-INSENSITIVE: `ast.walk` flattens the
+    # whole module, so a name bound in two functions collapses to one entry.
+    # Last-write-wins would make the resolver answer CONFIDENTLY WRONG and
+    # report nothing unresolved — a model silently invisible to the guard,
+    # which is the failure this whole file exists to stop.
+    #
+    # So a name bound to two DIFFERENT models is marked ambiguous, and any
+    # create through it is reported as unresolved, which FAILS the guard.
+    # Loud and over-strict beats quiet and wrong: the remedy is to spell the
+    # model at the create site.
     consts, env_names = {}, {}
     for node in ast.walk(tree):
         if not (isinstance(node, ast.Assign) and len(node.targets) == 1
@@ -4557,14 +4579,22 @@ def _created_models(path):
             continue
         target = node.targets[0].id
         if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
-            consts[target] = node.value.value
+            if target in consts and consts[target] != node.value.value:
+                consts[target] = _AMBIGUOUS
+            elif consts.get(target) is not _AMBIGUOUS:
+                consts[target] = node.value.value
     for node in ast.walk(tree):
         if not (isinstance(node, ast.Assign) and len(node.targets) == 1
                 and isinstance(node.targets[0], ast.Name)):
             continue
         model = _env_subscript_model(node.value, consts)
-        if model:
-            env_names[node.targets[0].id] = model
+        if not model or model is _AMBIGUOUS:
+            continue
+        target = node.targets[0].id
+        if target in env_names and env_names[target] != model:
+            env_names[target] = _AMBIGUOUS
+        elif env_names.get(target) is not _AMBIGUOUS:
+            env_names[target] = model
 
     # Single-`return` helpers that hand back a recordset, e.g.
     # `def _dispatch(self): return self.sudo().with_context(...)`. Odoo code
@@ -4582,12 +4612,21 @@ def _created_models(path):
         if len(body) != 1 or not isinstance(body[0], ast.Return) or body[0].value is None:
             continue
         model = _env_subscript_model(body[0].value, consts)
-        if model:
-            aliases[node.name] = model
+        resolved = None
+        if model and model is not _AMBIGUOUS:
+            resolved = model
+        else:
+            inner = _strip_chain(body[0].value)
+            if isinstance(inner, ast.Name) and inner.id == "self":
+                resolved = _SELF
+        if resolved is None:
             continue
-        inner = _strip_chain(body[0].value)
-        if isinstance(inner, ast.Name) and inner.id == "self":
-            aliases[node.name] = _SELF
+        # Two classes in one file each defining `_target` would otherwise
+        # collapse to whichever came last. Same rule as above.
+        if node.name in aliases and aliases[node.name] is not resolved:
+            aliases[node.name] = _AMBIGUOUS
+        elif aliases.get(node.name) is not _AMBIGUOUS:
+            aliases[node.name] = resolved
 
     enclosing = {}
 
@@ -4635,8 +4674,16 @@ def _created_models(path):
                     helper = called.id
                 if helper in aliases:
                     resolved = aliases[helper]
-                    model = owner if resolved is _SELF else resolved
-        if model:
+                    if resolved is _AMBIGUOUS:
+                        model = None
+                    elif resolved is _SELF:
+                        model = owner
+                    else:
+                        model = resolved
+        # A sentinel is not a model name. `_AMBIGUOUS` must land in
+        # `unresolved` (which fails the guard), never in `found` (which would
+        # put an object() in the classification set and pass).
+        if isinstance(model, str) and model:
             found.add(model)
         else:
             unresolved.append((path.name, node.lineno))
@@ -4677,7 +4724,7 @@ def _models_carrying_the_mixin():
 ALREADY_LABELLED = {
     "nrs.asset.custody":
         "`source = 'test'`, derived in myservice_api/models/asset_custody.py "
-        "from the same credential flag. 330 rows on jaizbankplc self-label "
+        "from the same credential flag. 352 rows on jaizbankplc self-label "
         "because of it — this is the mechanism the mixin generalises.",
 }
 
@@ -4708,6 +4755,12 @@ NOT_CREDENTIAL_REACHABLE = {
     "nrs.asset.import.line":
         "A line of the asset-import wizard (nrs.asset.import), which is an "
         "Odoo form flow with no route. The ASSETS it produces are labelled.",
+    "ir.config_parameter":
+        "Tenant CONFIGURATION, not register data — a key/value row, written "
+        "through `set_param` by the settings routes and the depreciation "
+        "recompute. Labelling one would be labelling a setting, and the "
+        "configuration-change report (handoff 23) is what identifies who "
+        "wrote a parameter and when.",
     "security.incident":
         "Created by the PUBLIC incident portal "
         "(myservice_security/controllers/portal.py), which authenticates "
@@ -4889,6 +4942,88 @@ def test_the_resolver_sees_every_spelling(tmp_path, label, source, expected):
     assert not unresolved, "%s: resolver could not resolve %s" % (label, unresolved)
 
 
+
+def _is_allow_list_name(name):
+    """Does this module-level name look like a writable-field allow-list?
+
+    NOT `endswith("_WRITABLE_FIELDS")`, which is what the first version of
+    this guard tested and which was blind to the two that do not use that
+    spelling: `_CATEGORY_WRITABLE` and `_SETTINGS_WRITABLE`
+    (`myservice_api/controllers/v1_settings.py:49` and `:57`).
+    `_CATEGORY_WRITABLE` gates `nrs.asset.category` — a model that CARRIES the
+    mixin — on both the create and the write path, so `is_test_fixture`
+    landing there would have left this guard green while the write path
+    raised `UserError` out of a route.
+
+    A guard that matches one spelling of the thing it protects is the exact
+    defect report 25 found in the credential guard, reproduced in the guard
+    written to close it. Matched on the shape of the name instead.
+    """
+    return "WRITABLE" in name or "ALLOWED_FIELDS" in name
+
+
+@pytest.mark.parametrize("label,source", [
+    (
+        "one name bound to two different models in one file",
+        "class A(models.Model):\n"
+        "    _name = 'a.b'\n"
+        "    def f(self):\n"
+        "        Rec = self.env['brand.new.unlabelled']\n"
+        "        Rec.create({})\n"
+        "    def g(self):\n"
+        "        Rec = self.env['nrs.asset']\n"
+        "        Rec.create({})\n",
+    ),
+    (
+        "a module constant rebound to a second model",
+        "MODEL = 'brand.new.unlabelled'\n"
+        "MODEL = 'nrs.asset'\n"
+        "class A(models.Model):\n"
+        "    _name = 'a.b'\n"
+        "    def f(self):\n"
+        "        self.env[MODEL].create({})\n",
+    ),
+    (
+        "two classes in one file each defining the same helper name",
+        "class A(models.Model):\n"
+        "    _name = 'a.b'\n"
+        "    def _target(self):\n"
+        "        return self.env['brand.new.unlabelled']\n"
+        "    def f(self):\n"
+        "        self._target().create({})\n"
+        "class B(models.Model):\n"
+        "    _name = 'c.d'\n"
+        "    def _target(self):\n"
+        "        return self.sudo()\n",
+    ),
+])
+def test_an_ambiguous_binding_fails_rather_than_resolving_wrongly(
+        tmp_path, label, source):
+    """The dangerous half of a flow-insensitive resolver.
+
+    `ast.walk` flattens the module, so a name bound twice would otherwise
+    collapse to whichever binding came last — and the resolver would answer
+    CONFIDENTLY WRONG with nothing in `unresolved`, hiding a model from the
+    guard entirely. Found by the verification pass, which built exactly these
+    three shapes and watched `brand.new.unlabelled` disappear.
+
+    The fix is not to resolve them correctly — that needs real scope
+    analysis — but to refuse to guess. An ambiguous binding is reported
+    unresolved, and an unresolved create FAILS
+    `test_every_model_a_first_party_path_creates_is_classified`.
+    """
+    path = tmp_path / "probe.py"
+    path.write_text(source, encoding="utf-8")
+    found, unresolved = _created_models(path)
+    assert unresolved, (
+        "%s: the resolver reported nothing unresolved, so it guessed. "
+        "found=%s" % (label, sorted(found)))
+    assert all(isinstance(m, str) for m in found), (
+        "%s: a sentinel leaked into the resolved set: %r" % (label, found))
+    assert "brand.new.unlabelled" not in found or unresolved, (
+        "%s: resolved the shadowed model without flagging ambiguity" % label)
+
+
 def test_the_derived_label_is_not_writable_over_the_api():
     """`is_test_fixture` in a `_WRITABLE_FIELDS` would make it a convention.
 
@@ -4898,23 +5033,55 @@ def test_the_derived_label_is_not_writable_over_the_api():
     caller can send is a label that says whatever the caller wants.
     """
     offenders = []
-    for path in sorted((REPO_ROOT / "myservice_api" / "controllers").glob("*.py")):
+    for path in _first_party_python_files():
         tree = ast.parse(path.read_text(encoding="utf-8"), str(path))
         for node in ast.walk(tree):
             if not (isinstance(node, ast.Assign) and len(node.targets) == 1
                     and isinstance(node.targets[0], ast.Name)):
                 continue
-            if not node.targets[0].id.endswith("_WRITABLE_FIELDS"):
+            if not _is_allow_list_name(node.targets[0].id):
                 continue
             for literal in ast.walk(node.value):
                 if isinstance(literal, ast.Constant) \
                         and literal.value == "is_test_fixture":
-                    offenders.append("%s:%d" % (path.name, node.lineno))
+                    offenders.append("%s:%d"
+                                     % (path.relative_to(REPO_ROOT), node.lineno))
     assert not offenders, (
         "`is_test_fixture` was added to a writable-field allow-list at %s. "
         "It is DERIVED from the acting credential; a caller able to send it "
         "can mint a real-looking record by omitting it, or slander a real "
         "one by sending it." % ", ".join(offenders))
+
+
+def test_the_allow_list_guard_sees_the_two_it_used_to_miss():
+    """Mutation proof, on the two REAL names the first version was blind to.
+
+    Not a synthetic case: `_CATEGORY_WRITABLE` and `_SETTINGS_WRITABLE` are
+    in `v1_settings.py` today, neither ends in `_WRITABLE_FIELDS`, and
+    `_CATEGORY_WRITABLE` gates a model that carries the mixin.
+    """
+    for name in ("_CATEGORY_WRITABLE", "_SETTINGS_WRITABLE", "_WRITABLE_FIELDS"):
+        assert _is_allow_list_name(name), "%s is not recognised" % name
+    for name in ("_FM_DOMAINS", "_PRIORITY_VALUES", "ALL_SCOPES"):
+        assert not _is_allow_list_name(name), (
+            "%s is matched as an allow-list; the name test is too broad and "
+            "the guard will flag things that are not allow-lists" % name)
+
+    # And the scan must actually REACH the file those two live in.
+    settings = REPO_ROOT / "myservice_api" / "controllers" / "v1_settings.py"
+    assert settings in set(_first_party_python_files()), (
+        "v1_settings.py is outside the scanned set, so widening the NAME "
+        "test bought nothing")
+    found = set()
+    tree = ast.parse(settings.read_text(encoding="utf-8"), str(settings))
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.Assign) and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and _is_allow_list_name(node.targets[0].id)):
+            found.add(node.targets[0].id)
+    assert {"_CATEGORY_WRITABLE", "_SETTINGS_WRITABLE"} <= found, (
+        "the guard does not find the two allow-lists in v1_settings.py; it "
+        "found %s" % sorted(found))
 
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -4940,7 +5107,23 @@ def test_the_derived_label_is_not_writable_over_the_api():
 # VALID_MIGRATE_PARAMS` points into Odoo core, which is not in this repo.
 # ═════════════════════════════════════════════════════════════════════════
 
-_PY_REF = re.compile(r"([A-Za-z0-9_/]+\.py)::([A-Za-z0-9_]+)")
+#: `::` may be followed by a line break and a comment/docstring continuation
+#: before the name — which is how the very reference that prompted this guard
+#: was written, after it was wrapped to fit the column width:
+#:
+#:     # `tests/test_source_guards.py::
+#:     # test_every_model_a_first_party_path_creates_is_classified`
+#:
+#: The first version required the name to follow `::` immediately, so it
+#: found ZERO references in the one file whose broken reference prompted it,
+#: and passed. A guard blind to its own headline case is the defect, not a
+#: detail of it.
+_PY_REF = re.compile(
+    r"([A-Za-z0-9_/]+\.py)::"          # the file
+    r"(?:\s*\n\s*[#*]?\s*)?"           # an optional wrap: newline, indent,
+                                       # and a leading `#` or `*` if the
+                                       # continuation line carries one
+    r"([A-Za-z0-9_]+)")                # the name
 
 
 def _python_files_to_scan():
@@ -5039,10 +5222,28 @@ def test_the_reference_guard_catches_the_sentence_that_prompted_it(tmp_path):
         "the guard this proof calls RIGHT is gone from %s, so the guard it "
         "protects is asserting on nothing" % real.name)
 
-    # And the matcher must actually pull the name out of a prose sentence.
-    sentence = ("# `tests/test_source_guards.py::%s`\n"
+    # And the matcher must actually pull the name out of a prose sentence —
+    # on ONE line, and WRAPPED across two, which is how the reference that
+    # prompted this guard is really written.
+    one_line = ("# `tests/test_source_guards.py::%s`\n"
                 "# walks every route and fails if a model has no label.\n" % wrong)
-    found = _PY_REF.findall(sentence)
-    assert found == [("tests/test_source_guards.py", wrong)], (
-        "the reference matcher did not extract the name from the sentence it "
-        "was written for; it found %r" % (found,))
+    assert _PY_REF.findall(one_line) == [("tests/test_source_guards.py", wrong)], (
+        "the matcher did not extract the name from a single-line reference")
+
+    wrapped = ("# `tests/test_source_guards.py::\n"
+               "# %s`\n" % wrong)
+    assert _PY_REF.findall(wrapped) == [("tests/test_source_guards.py", wrong)], (
+        "the matcher cannot see a reference wrapped across two comment lines "
+        "— which is exactly how the reference in "
+        "myservice_api/models/test_fixture.py is written, so the guard would "
+        "find nothing in the one file that prompted it")
+
+    # Not a hypothetical: assert it on the real file.
+    mixin = REPO_ROOT / "myservice_api" / "models" / "test_fixture.py"
+    refs = _PY_REF.findall(mixin.read_text(encoding="utf-8"))
+    assert refs, (
+        "the guard finds NO `<file>.py::<name>` reference in %s, which "
+        "carries one. It is passing by seeing nothing." % mixin.name)
+    assert (real.relative_to(REPO_ROOT).as_posix(), right) in refs, (
+        "the reference in %s no longer resolves to the guard it names; "
+        "found %r" % (mixin.name, refs))

@@ -218,14 +218,27 @@ db_probe_failed() {
     exit 1
 }
 
+# stderr is captured to a FILE, never merged into the value.
+#
+# The first version of this fix wrote `out=$(db_query "$sql" 2>&1)`, which
+# fixes the swallowed-stderr defect and creates a new one: on the SUCCESS
+# path any warning docker or psql prints (an unset-variable WARN, a
+# deprecation notice, a daemon auth warning) is folded into the string that
+# is then compared against `t`/`f`, falls through to the catch-all, and
+# ABORTS A DEPLOY THAT USED TO SUCCEED. This is the production path.
+#
+# So: value on stdout, diagnosis on stderr, and the two never mixed.
+_probe_err=$(mktemp)
+trap 'rm -f "$_probe_err"' EXIT
+
 probe_sql="SELECT 1"
-if ! probe_out=$(db_query "$probe_sql" 2>&1); then
-    db_probe_failed "$probe_sql" "$probe_out"
+if ! probe_out=$(db_query "$probe_sql" 2>"$_probe_err"); then
+    db_probe_failed "$probe_sql" "$(cat "$_probe_err")"
 fi
 
 table_sql="SELECT to_regclass('public.ir_module_module') IS NOT NULL"
-if ! table_out=$(db_query "$table_sql" 2>&1); then
-    db_probe_failed "$table_sql" "$table_out"
+if ! table_out=$(db_query "$table_sql" 2>"$_probe_err"); then
+    db_probe_failed "$table_sql" "$(cat "$_probe_err")"
 fi
 table_present=$(printf '%s' "$table_out" | tr -d ' \n\r')
 
@@ -239,8 +252,8 @@ case "$table_present" in
         ;;
     t)
         count_sql="SELECT count(*) FROM ir_module_module WHERE state='installed'"
-        if ! count_out=$(db_query "$count_sql" 2>&1); then
-            db_probe_failed "$count_sql" "$count_out"
+        if ! count_out=$(db_query "$count_sql" 2>"$_probe_err"); then
+            db_probe_failed "$count_sql" "$(cat "$_probe_err")"
         fi
         installed_count=$(printf '%s' "$count_out" | tr -d ' \n\r')
         # A count that is not a number is a failed measurement wearing a

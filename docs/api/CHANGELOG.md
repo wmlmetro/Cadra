@@ -67,9 +67,16 @@ chatter messages); those three are the ones with a published serializer.
 `nrs.asset.custody` keeps its own older mechanism, `source = 'test'`, which
 is unchanged and still the value to read on a custody row.
 
-**Not breaking.** Purely additive: a new key in three response objects, all
-of which already declare `additionalProperties: true`. No field changed
-meaning, no enum moved, no error code moved.
+**Not breaking.** Purely additive: a new key in three response objects. No
+field changed meaning, no enum moved, no error code moved, and no existing
+key was removed or renamed.
+
+A consumer validating strictly against the published schema should note that
+only `Asset` is described in `components.schemas` at all — it declares
+`additionalProperties: true` and now documents `is_test_fixture` explicitly.
+There is no `Location` or `ServiceRequest` schema in the OpenAPI document, so
+those two responses were never schema-constrained and a new key cannot
+violate a constraint they do not have.
 
 ---
 

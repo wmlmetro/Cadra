@@ -1,6 +1,6 @@
 """`is_test_fixture` is derived from the credential, and cannot be talked out of.
 
-Handoff 26 §A. The chain of custody is honest because 330 of its rows DERIVE
+Handoff 26 §A. The chain of custody is honest because 352 of its rows DERIVE
 `source = 'test'` from `myservice.api.client.is_test_credential` — nobody
 curates it, nobody remembers to type it. Everything else leaned on a name
 prefix, which is a convention, and `request.request` never had one at all:
