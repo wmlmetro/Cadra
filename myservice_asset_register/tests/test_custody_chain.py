@@ -21,10 +21,11 @@ Run with:
          --test-tags /myservice_asset_register --stop-after-init
 """
 from odoo.exceptions import UserError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 
-class CustodyCase(TransactionCase):
+class CustodyCase(CadraTransactionCase):
 
     def setUp(self):
         super().setUp()

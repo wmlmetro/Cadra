@@ -49,6 +49,13 @@ jobs:
           export CADRA_PROFILE=dev19
           # Pin CI run time by skipping the slow fleet seed.
           export CADRA_SEED_PROFILE=core
+          # The database this job creates is a throwaway, and it says so IN
+          # ITSELF. Both test suites refuse to run against a database not
+          # marked `test` (handoff 25) — this is how CI satisfies that guard
+          # without an exemption in it. There is no CI branch anywhere in the
+          # guard: an exemption is how a guard acquires its first hole, and
+          # the honest statement is that this database really is a test one.
+          export CADRA_DATABASE_CLASS=test
           ./scripts/bootstrap.sh
 
       - name: No dead _sql_constraints reached the registry
@@ -85,6 +92,21 @@ jobs:
           fi
           # Print the file with secret values masked.
           sed -E 's/(SECRET=.{8}).+/\1...REDACTED.../' "$CREDS"
+
+      - name: The database CI built is marked as a test database
+        run: |
+          # If this is missing, every suite below refuses and the failure
+          # reads as a broken guard rather than an unstamped database. Check
+          # it here, where the message can say which it is.
+          DB=$(grep -E '^POSTGRES_DB=' .env.example | cut -d= -f2-)
+          got=$(docker compose -f docker-compose.yml -f docker-compose.19.yml \
+                exec -T db psql -U odoo -d "$DB" -tAc \
+                "SELECT value FROM ir_config_parameter WHERE key = 'cadra.database_class'")
+          if [ "$got" != "test" ]; then
+            echo "::error::database '$DB' is marked '${got:-(unset)}', not 'test' — scripts/bootstrap.py ensure_database_class() did not stamp it. The suites will refuse."
+            exit 1
+          fi
+          echo "database '$DB' is marked 'test'"
 
       - name: Run the pytest API suite
         run: pytest tests/ -v

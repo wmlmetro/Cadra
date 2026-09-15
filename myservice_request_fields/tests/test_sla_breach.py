@@ -22,12 +22,13 @@ Run with:
 """
 from datetime import timedelta
 
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 from odoo.tests.common import freeze_time
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestSlaBreachRefresh(TransactionCase):
+class TestSlaBreachRefresh(CadraTransactionCase):
 
     def setUp(self):
         super().setUp()

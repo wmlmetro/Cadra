@@ -26,7 +26,8 @@ Run with:
 """
 import ast
 
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 # The names a `state='code'` server action is evaluated with, and what each one
 # is bound to, from ir_actions.py::IrActionsServer._get_eval_context:
@@ -52,7 +53,7 @@ _CHAINABLE = frozenset({
 
 
 @tagged("post_install", "-at_install")
-class TestScheduledActions(TransactionCase):
+class TestScheduledActions(CadraTransactionCase):
 
     # ── the walker, shared by the guard and by its own proof ─────────────
 

@@ -178,6 +178,29 @@ def token_scopes(token):
     return set(scopes)
 
 
+
+def token_grants(token, scope):
+    """Does this credential reach `scope` — including via the `admin` wildcard?
+
+    `admin` is a wildcard in `require_jwt`
+    (`myservice_api/controllers/utils.py:236` says so in as many words), so a
+    credential holding `admin` reaches every scope-gated route without ever
+    listing the specific scope. Asking `scope in token_scopes(token)` is
+    therefore not the same question the server answers, and the difference is
+    invisible on any tenant whose credential happens to hold the named scope.
+
+    Handoff 25 found it the way `token_scopes` itself was found: by pointing
+    the suite at a different tenant. `test19`'s client holds `admin` but NOT
+    `settings:read`, so the configuration report answered 200 while the test
+    was still expecting the 403 branch — a tenant behaving correctly and a
+    test asserting the wrong half.
+
+    Same lesson one level along again: a scope list is a fact about a tenant,
+    and so is the wildcard that shortcuts it.
+    """
+    scopes = token_scopes(token)
+    return scope in scopes or "admin" in scopes
+
 def _make_disposed_asset(client, test_location):
     """A disposed asset with no approver, freshly created every call.
 
@@ -799,7 +822,13 @@ def test_an_unreadable_limit_or_cursor_is_refused_not_ignored(client, history):
 def test_the_cursor_walks_the_whole_report_without_repeating(client, history):
     """A cursor that drops or repeats an account is a report with a hole.
 
-    Walked at `limit=3` so the walk takes several pages on a real tenant.
+    Walked at `limit=1`, the smallest page the route accepts, so the walk
+    takes more than one page on ANY register holding at least two accounts.
+    It used to walk at `limit=3` and assert that more than one page came
+    back, which made the proof a function of how many users the tenant
+    happened to have — it failed on the marked test tenant handoff 25 moved
+    the suite onto, where the whole roster fits in three rows. The property
+    under test is the cursor, not the size of the register.
     Asserts ascending order, no duplicate, and that the walk totals exactly
     what `pagination.total_estimate` promised — the same three properties
     `test_the_snapshot_pages_forwards_without_repeating` asserts.
@@ -807,7 +836,7 @@ def test_the_cursor_walks_the_whole_report_without_repeating(client, history):
     seen, cursor, pages = [], None, 0
     total = None
     while pages < 60:
-        params = {"from": history["from"], "to": history["to"], "limit": 3}
+        params = {"from": history["from"], "to": history["to"], "limit": 1}
         if cursor:
             params["cursor"] = cursor
         body = assert_envelope_ok(client.get(ACCESS, params=params))
@@ -851,7 +880,7 @@ def test_the_configuration_report_answers_according_to_the_scope_held(
     r = client.get(CONFIG, params={"from": "2000-01-01", "to": _iso(_today())})
     capture("reports/configuration_changes_by_scope", r)
 
-    if "settings:read" not in token_scopes(token):
+    if not token_grants(token, "settings:read"):
         body = assert_envelope_err(r, 403, "forbidden")
         details = body["error"]["details"]
         assert details["required_scopes"] == ["settings:read"], (
@@ -956,12 +985,11 @@ def test_approve_disposal_answers_according_to_the_scope_held(
     through the ORM. This is the wire-level companion, and it exists because
     whichever branch a given tenant takes, one of them runs.
     """
-    scopes = token_scopes(token)
     asset_id = disposal_awaiting_approval["id"]
     r = client.post(APPROVE.format(id=asset_id), json={})
     capture("assets/approve_disposal_by_scope", r)
 
-    if "approvals:write" not in scopes:
+    if not token_grants(token, "approvals:write"):
         body = assert_envelope_err(r, 403, "forbidden")
         details = body["error"]["details"]
         assert details["required_scopes"] == ["approvals:write"], (
@@ -1025,7 +1053,7 @@ def test_a_body_naming_an_approver_is_refused_by_the_route(
     r = client.post(APPROVE.format(id=asset_id),
                     json={"disposal_approved_by": 2, "approver": "someone"})
 
-    if "approvals:write" not in token_scopes(token):
+    if not token_grants(token, "approvals:write"):
         assert_envelope_err(r, 403, "forbidden")
         return
 

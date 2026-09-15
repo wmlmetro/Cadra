@@ -11,12 +11,22 @@ the local docker stack.
    `localhost` answers *"No database is selected"*:
 
    ```bash
-   CADRA_API_BASE=http://jaizbankplc.localhost:8069 \
+   CADRA_API_BASE=http://test19.localhost:8069 \
      tests/.venv/bin/python -m pytest tests/ -q
    ```
 
+   **It must be a database marked as a test database.** Since handoff 25 the
+   suite reads `cadra.database_class` from the target and refuses unless it is
+   `test`; a database nobody has classified is refused too. There is no bypass
+   flag. `jaizbankplc` is a replica of a live client's register, is marked
+   `client`, and now refuses — it accumulated 3,888 `pytest-*` assets over 154
+   sessions before anything stopped it. The refusal names the database, its
+   class, and the command that marks one.
+
 3. **Credentials for that tenant** at `docs/api/.creds.<tenant>` — e.g.
-   `docs/api/.creds.jaizbankplc`. `scripts/bootstrap.sh` writes it for whichever
+   `docs/api/.creds.test19`. The credential must be flagged
+   `is_test_credential`; the suite refuses otherwise, because records written
+   under an unflagged credential cannot be identified as fixtures afterwards. `scripts/bootstrap.sh` writes it for whichever
    database it bootstrapped — which is `POSTGRES_DB` from `.env`, not an
    argument, so bootstrapping a *different* tenant means changing `.env` first.
 
@@ -52,8 +62,12 @@ pytest tests/ -v
 `CADRA_API_BASE` selects both the host and, through it, the tenant and its
 credentials file.
 
-Note: ~25 admin-scoped tests skip when the tenant's client does not hold the
-`admin` scope. That is expected, not a failure.
+Note: the skip count is a property of the TENANT, not of the code — how many
+scopes its client holds, whether Turnstile is configured, whether any asset
+carries a SAP asset number. On `test19` it is 9 and none of them is
+admin-scoped, because that tenant's client holds `admin`. Run `pytest -rs` to
+see the reasons; `docs/ENVIRONMENT-FACTS.md` carries the breakdown. Check the
+categories, not the count.
 
 ## Outputs (gitignored)
 
@@ -87,8 +101,15 @@ Note: ~25 admin-scoped tests skip when the tenant's client does not hold the
 | `test_idempotency.py` | X-Idempotency-Key cached-response behaviour |
 
 Tests create their own resources (one location, one asset, one request per
-session) and **leave them in the dev DB** — same convention as
-`docs/api/smoke_test.py`. No teardown.
+session) and **leave them in the database** — same convention as
+`docs/api/smoke_test.py`. No teardown, and there could not be one: the API
+publishes exactly one `DELETE` route, for asset categories.
+
+That is precisely why the target database must be marked `test`. Everything
+this suite writes is permanent, so the only control that matters is *which
+database it is allowed to write to* — see `myservice_nrs_base/database_class.py`.
+`scripts/remove_test_residue.py` clears up after the years when there was no
+such control; it is dry-run by default.
 
 ## Relationship to docs/api/smoke_test.py
 

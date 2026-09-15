@@ -53,7 +53,8 @@ Run with:
 import os
 import re
 
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 JS_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -109,7 +110,7 @@ def _parse_calls(source):
 
 
 @tagged("post_install", "-at_install")
-class TestSecurityTabsFields(TransactionCase):
+class TestSecurityTabsFields(CadraTransactionCase):
 
     def setUp(self):
         super().setUp()

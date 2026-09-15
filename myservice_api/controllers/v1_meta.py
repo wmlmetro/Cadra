@@ -43,6 +43,8 @@ new dropdown is added, which is a place a reviewer will see it.
 from odoo import http
 from odoo.http import request
 
+from odoo.addons.myservice_nrs_base.database_class import TEST, database_class
+
 from .utils import selection_values
 from .v1 import cadra_route
 
@@ -164,4 +166,100 @@ class MyserviceApiV1Meta(http.Controller):
             name: _labelled(model, field,
                             selection_values(model, field, fallback))
             for name, model, field, fallback in _PUBLISHED_ENUMS
+        }
+
+    @cadra_route(
+        "/api/v1/meta/database", method="GET",
+        summary="Which database this token is talking to, and whether it may be written to by a test",
+        scopes=(),
+        response_schema={
+            "type": "object",
+            "properties": {
+                "database": {
+                    "type": "string",
+                    "description": "The database name this request was routed to.",
+                },
+                "database_class": {
+                    "type": ["string", "null"],
+                    "enum": ["test", "client", "production", None],
+                    "description": (
+                        "What a person has recorded this database as. `null` "
+                        "means nobody has classified it, which a test run "
+                        "must treat exactly as it treats `production`."
+                    ),
+                },
+                "accepts_test_writes": {
+                    "type": "boolean",
+                    "description": (
+                        "True only when `database_class` is `test`. Derived "
+                        "here so a client cannot get the policy wrong by "
+                        "re-deriving it."
+                    ),
+                },
+                "credential_is_test": {
+                    "type": "boolean",
+                    "description": (
+                        "Whether the credential making this call is flagged "
+                        "`is_test_credential`. Records written under it "
+                        "self-label — `nrs.asset.custody.source = 'test'`."
+                    ),
+                },
+            },
+        },
+    )
+    def meta_database(self, **kwargs):
+        """Which database am I about to write to, and is that allowed?
+
+        A test suite's most important question, and until handoff 25 there was
+        no way to ask it. The HTTP suite read `CADRA_API_BASE` and wrote
+        wherever it pointed; report 24 §B measured the result as 3,584
+        `pytest-*` assets in a register derived from a live client's data,
+        six fabricated approved disposals among them.
+
+        **The answer comes from the database, not from the request.** The
+        class is a system parameter someone set deliberately on THIS database
+        (`cadra.database_class`), so it survives a restore into a
+        reassuringly-named host and it cannot be talked out of by an
+        environment variable, a hostname or a branch. Absent is not "probably
+        fine" — `accepts_test_writes` is false for it, exactly as for
+        `production`.
+
+        `credential_is_test` is the second half of the same question. A test
+        that mints a credential without the flag writes records that cannot
+        be identified as fixtures afterwards, which is precisely how six
+        approved disposals in `jaizbankplc` ended up unidentifiable while 330
+        custody rows self-labelled correctly.
+
+        Any valid bearer token may call this, with no scope. It says nothing
+        about records and nothing an integration could not learn by reading
+        the host it just connected to — and a guard a caller cannot reach
+        without a privilege it may not have is a guard that gets skipped.
+        """
+        env = request.env
+        found = database_class(env)
+
+        # The CALLING credential, by its `sub` claim — not "the first client
+        # sitting on this user". `_mint_access` sets `sub = client.client_id`
+        # (v1.py:595), so the token names the credential exactly, and
+        # `api_client.write()`'s own docstring says clients deliberately
+        # pointed at a shared user are supported. Searching by `user_id` and
+        # taking `limit=1` therefore answers about whichever client sorts
+        # first by name — so a user carrying an unflagged `A probe` and a
+        # flagged `Z test probe` would report `credential_is_test: true` while
+        # the suite authenticated as the unflagged one, and every record the
+        # run wrote would be unlabelled. That is the `Handoff23 Approver`
+        # failure with extra steps.
+        claims = getattr(request, "jwt_claims", {}) or {}
+        sub = claims.get("sub")
+        client = env["myservice.api.client"].sudo().with_context(
+            active_test=False,
+        ).search([("client_id", "=", sub)], limit=1) if sub else None
+        return {
+            "database": env.cr.dbname,
+            "database_class": found,
+            "accepts_test_writes": found == TEST,
+            # A session token (a human login) carries no client_id, so
+            # `sub` names a login and matches nothing here. False is the
+            # correct answer: a person is not a test credential.
+            "credential_is_test": bool(client and client.is_test_credential),
         }

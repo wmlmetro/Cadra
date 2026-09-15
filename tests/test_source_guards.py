@@ -3897,3 +3897,552 @@ def test_the_credential_guard_is_not_fooled(tmp_path, label, source, should_flag
     flagged = bool(_credential_defaults(path))
     assert flagged is should_flag, (
         "%s: expected flagged=%s, got %s" % (label, should_flag, flagged))
+
+
+# ─── every Odoo test class asks which database it is in ──────────────
+#
+# Handoff 25. The in-registry suites write, and until now nothing stopped one
+# from writing into a client-derived register: report 24 §B measured 88% of
+# `jaizbankplc`'s assets as `pytest-*` fixtures. The fix is a guarded base
+# class whose `setUpClass` refuses unless `cadra.database_class = test` is set
+# in the target database — see `myservice_nrs_base/tests/common.py`.
+#
+# A guard that lives in a base class is only as good as the discipline of
+# using it, and that discipline is exactly the thing that erodes. So the
+# discipline is a test: a class deriving straight from a core base escapes the
+# refusal, and this fails on it.
+
+#: The core bases that carry no guard. `SingleTransactionCase` is unused in
+#: first-party code today and is listed anyway — the point of a drift guard is
+#: to be right about the file somebody adds next year.
+_UNGUARDED_TEST_BASES = frozenset({
+    "TransactionCase", "HttpCase", "SingleTransactionCase",
+    # `odoo.addons.base.tests.common`. Real, env-carrying, and unguarded —
+    # listed because the point of a drift guard is to be right about the file
+    # somebody adds next year, not only about the ones here today.
+    "TransactionCaseWithUserDemo", "HttpCaseWithUserDemo",
+})
+
+#: Ours. Every one wraps a core base with the database-class assertion.
+_GUARDED_TEST_BASES = frozenset({
+    "CadraTransactionCase", "CadraHttpCase", "CadraSingleTransactionCase",
+})
+
+
+def _base_name(node):
+    """The trailing name of a base expression, however it is spelled.
+
+    `TransactionCase`, `common.TransactionCase` and
+    `odoo.tests.common.TransactionCase` are the same base reached three ways,
+    and a guard that only knows the bare spelling is a guard with two holes.
+    """
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        return node.attr
+    return None
+
+
+def _unguarded_test_classes(path):
+    """Test classes in `path` that derive from a core base directly.
+
+    Also resolves `from odoo.tests import TransactionCase as Base`: an alias
+    is a rename, not an exemption, and a matcher comparing three literal
+    strings is blind to it.
+    """
+    try:
+        source = path.read_text(encoding="utf-8") if hasattr(path, "read_text") else path
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+
+    aliases = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ImportFrom) or "odoo" not in (node.module or ""):
+            continue
+        for alias in node.names:
+            if alias.name in _UNGUARDED_TEST_BASES and alias.asname:
+                aliases[alias.asname] = alias.name
+
+    found = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ClassDef):
+            continue
+        for base in node.bases:
+            name = _base_name(base)
+            name = aliases.get(name, name)
+            if name in _UNGUARDED_TEST_BASES:
+                found.append((node.lineno, node.name, name))
+    return found
+
+
+def _first_party_odoo_test_files():
+    """`<module>/tests/*.py` for our own modules only.
+
+    `myservice_nrs_base/tests/common.py` is where the guarded bases are
+    DEFINED, so it is the one file that must name the core bases.
+    """
+    for glob in FIRST_PARTY_GLOBS:
+        for module_dir in sorted(REPO_ROOT.glob(glob)):
+            if not (module_dir / "__manifest__.py").exists():
+                continue
+            tests_dir = module_dir / "tests"
+            if not tests_dir.is_dir():
+                continue
+            # rglob, not glob: `tests/sub/test_x.py` is reachable through
+            # `tests/__init__.py` and a top-level-only scan never sees it.
+            for path in sorted(tests_dir.rglob("*.py")):
+                if path.name == "common.py" and module_dir.name == "myservice_nrs_base":
+                    continue
+                yield path
+
+
+def test_every_odoo_test_class_derives_from_a_guarded_base():
+    """No in-registry test class may skip the database-class refusal."""
+    offenders = []
+    for path in _first_party_odoo_test_files():
+        for lineno, cls, base in _unguarded_test_classes(path):
+            offenders.append(
+                "%s:%d  class %s(%s)"
+                % (path.relative_to(REPO_ROOT), lineno, cls, base))
+    assert not offenders, (
+        "These test classes derive from a core Odoo base and therefore never "
+        "ask which database they are about to write to:\n  "
+        + "\n  ".join(offenders)
+        + "\n\nDerive from the guarded base instead:\n"
+          "  from odoo.addons.myservice_nrs_base.tests.common import "
+          "CadraTransactionCase, CadraHttpCase\n"
+          "See myservice_nrs_base/database_class.py for why there is no "
+          "opt-out.")
+
+
+def test_the_test_base_guard_would_have_caught_an_unguarded_class(tmp_path):
+    """Proved to fail first, in both directions.
+
+    CLAUDE.md's standing rule: a guard nobody has watched fail is a guard that
+    passes. Report 22 shipped one whose mutation proof asserted on a name that
+    never existed, so it was green against a file it could not read.
+    """
+    guarded = tmp_path / "test_guarded.py"
+    guarded.write_text(
+        "from odoo.addons.myservice_nrs_base.tests.common import "
+        "CadraTransactionCase\n"
+        "class TestFine(CadraTransactionCase):\n"
+        "    pass\n", encoding="utf-8")
+    assert _unguarded_test_classes(guarded) == []
+
+    for label, source in (
+        ("bare name",
+         "from odoo.tests import TransactionCase\n"
+         "class TestBad(TransactionCase):\n    pass\n"),
+        ("module-qualified",
+         "from odoo.tests import common\n"
+         "class TestBad(common.HttpCase):\n    pass\n"),
+        ("fully qualified",
+         "import odoo\n"
+         "class TestBad(odoo.tests.common.TransactionCase):\n    pass\n"),
+        ("a core base sitting SECOND, behind a guarded one",
+         # The shape the first pass of handoff 25 actually missed, on two real
+         # classes in myservice_workflow/tests/test_callback_replay.py. The
+         # first version of this proof wrote `class TestBad(HttpCase, Mixin)`
+         # — core base FIRST — which the matcher caught for the wrong reason
+         # and which proved nothing about the case it was labelled for. Same
+         # failure mode as report 22's guard asserting on a variable name that
+         # never existed.
+         "class TestBad(CadraHttpCase, TransactionCase):\n    pass\n"),
+        ("a core base second, module-qualified",
+         "class TestBad(CadraHttpCase, common.HttpCase):\n    pass\n"),
+        ("aliased on import",
+         "from odoo.tests import TransactionCase as Base\n"
+         "class TestBad(Base):\n    pass\n"),
+    ):
+        path = tmp_path / "test_bad.py"
+        path.write_text(source, encoding="utf-8")
+        assert _unguarded_test_classes(path), "missed the %s case" % label
+
+
+def test_the_test_base_guard_covers_the_modules_we_think_it_does():
+    """The guard reads real files, and enough of them.
+
+    A scan whose file list quietly went empty passes every assertion in it.
+    The numbers are floors, not equalities — adding a test module must not
+    fail this.
+    """
+    files = list(_first_party_odoo_test_files())
+    modules = {p.parent.parent.name for p in files}
+    assert len(modules) >= 13, (
+        "expected in-registry tests in at least 13 first-party modules, found "
+        "%d: %s" % (len(modules), sorted(modules)))
+    assert len(files) >= 36, (
+        "expected at least 36 first-party Odoo test files, found %d"
+        % len(files))
+    guarded = sum(
+        1 for p in files
+        if any(b in p.read_text(encoding="utf-8") for b in _GUARDED_TEST_BASES))
+    assert guarded >= 36, (
+        "only %d of %d first-party Odoo test files name a guarded base"
+        % (guarded, len(files)))
+
+
+# ─── a fixture may not mint a credential that lies about itself ──────
+#
+# Handoff 25 §A. `is_test_credential` is what makes a fixture identifiable
+# after the fact: it drives `nrs.asset.custody.source = 'test'`, which is why
+# 330 custody rows in `jaizbankplc` self-label without anyone curating them.
+#
+# Handoff 23 minted `Handoff23 Approver` with a direct `create()` and the flag
+# defaulted off. The six disposals it approved are the ONE class of artefact in
+# that register a reader cannot identify from the record itself — they had to
+# be found by name pattern and marked by hand afterwards. One unset boolean is
+# the whole difference between a fixture that discloses itself and a fabricated
+# approval sitting unlabelled in an auditor-facing report.
+#
+# So there is one way to mint a credential in a test — `create_api_client`,
+# which forces the flag — and this fails on any other.
+
+_API_CLIENT_MODEL = "myservice.api.client"
+
+
+def _direct_credential_creations(path):
+    """Calls that `create()` an API client other than through the fixture.
+
+    Matched on the AST rather than on text: the model name and the `.create`
+    can sit on different lines, `.sudo()` may or may not be in between, and a
+    regex over the source gets both wrong.
+    """
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+    except SyntaxError:
+        return []
+    # Names bound to this model anywhere in the file:
+    #     Client = cls.env["myservice.api.client"]
+    #     Client = self.env["myservice.api.client"].sudo()
+    handles = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+            continue
+        target = node.targets[0]
+        if not isinstance(target, ast.Name):
+            continue
+        cur = node.value
+        while True:
+            if isinstance(cur, ast.Call):
+                cur = cur.func
+            elif isinstance(cur, ast.Attribute):
+                cur = cur.value
+            else:
+                break
+        if (isinstance(cur, ast.Subscript)
+                and isinstance(cur.slice, ast.Constant)
+                and cur.slice.value == _API_CLIENT_MODEL):
+            handles.add(target.id)
+
+    found = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if not isinstance(func, ast.Attribute) or func.attr != "create":
+            continue
+        # Walk back down the chain to whatever the call hangs off, stepping
+        # over `.sudo()`, `.with_context(...)` and friends.
+        cur = func.value
+        while True:
+            if isinstance(cur, ast.Call):
+                cur = cur.func
+            elif isinstance(cur, ast.Attribute):
+                cur = cur.value
+            else:
+                break
+        if isinstance(cur, ast.Subscript):
+            key = cur.slice
+            if isinstance(key, ast.Constant) and key.value == _API_CLIENT_MODEL:
+                found.append((node.lineno, _API_CLIENT_MODEL))
+        elif isinstance(cur, ast.Name) and cur.id in handles:
+            # `Client = cls.env["myservice.api.client"]` on one line and
+            # `Client.create({...})` on another. This is not hypothetical: it
+            # is VERBATIM the shape that stood in test_auth_failure_causes.py,
+            # test_pagination_cap.py, test_custody_is_not_capped.py and
+            # test_limit_change_revokes.py until handoff 25 rewrote them, and
+            # the first cut of this guard could not see the very spelling it
+            # had just finished removing.
+            found.append((node.lineno, _API_CLIENT_MODEL))
+    return found
+
+
+def test_no_test_mints_a_credential_outside_the_fixture():
+    """Every test credential says it is one."""
+    offenders = []
+    for path in _first_party_odoo_test_files():
+        for lineno, model in _direct_credential_creations(path):
+            offenders.append(
+                "%s:%d  create() on %s"
+                % (path.relative_to(REPO_ROOT), lineno, model))
+    assert not offenders, (
+        "These tests mint an API credential directly, so `is_test_credential` "
+        "takes its default and anything written under the credential cannot "
+        "be identified as a fixture afterwards:\n  "
+        + "\n  ".join(offenders)
+        + "\n\nUse the fixture instead, which forces the flag:\n"
+          "  cls.create_api_client({...})\n"
+          "(myservice_nrs_base/tests/common.py). A test that needs an "
+          "UNFLAGGED credential to prove the flag's own behaviour should "
+          "toggle it on a record it already holds — "
+          "test_custody_is_not_capped.py does exactly that.")
+
+
+def test_the_credential_minting_guard_would_have_caught_handoff_23(tmp_path):
+    """Proved against the real shape that got through, and against its cousins.
+
+    The first case below is `test_approve_disposal_route.py:72` as handoff 23
+    actually wrote it. A guard that cannot flag the line it was written for is
+    report 22's CI-series guard again.
+    """
+    for label, source, should_flag in (
+        ("handoff 23, verbatim",
+         'cls.client_rec = cls.env["myservice.api.client"].sudo().create({\n'
+         '    "name": "Approver probe", "scopes": "approvals:write"})\n', True),
+        ("no sudo",
+         'x = self.env["myservice.api.client"].create({"name": "p"})\n', True),
+        ("via with_context",
+         'x = self.env["myservice.api.client"].with_context(a=1).create({})\n', True),
+        ("through the fixture",
+         'x = cls.create_api_client({"name": "p"})\n', False),
+        ("bound to a local first — the shape handoff 25 removed",
+         'Client = cls.env["myservice.api.client"]\n'
+         'cls.live = Client.create({"name": "auth probe live"})\n', True),
+        ("bound to a local with .sudo() in the chain",
+         'C = self.env["myservice.api.client"].sudo()\n'
+         'C.create({"name": "p"})\n', True),
+        ("a different model entirely",
+         'x = self.env["nrs.asset"].sudo().create({"name": "a"})\n', False),
+        ("a local bound to a different model",
+         'Asset = self.env["nrs.asset"]\nAsset.create({"name": "a"})\n', False),
+        ("writing the flag on a record already held",
+         'self.client_test.is_test_credential = False\n', False),
+    ):
+        path = tmp_path / "sample.py"
+        path.write_text(source, encoding="utf-8")
+        flagged = bool(_direct_credential_creations(path))
+        assert flagged is should_flag, (
+            "%s: expected flagged=%s, got %s" % (label, should_flag, flagged))
+
+
+# ─── the database-class guard may not read through a cache ───────────
+#
+# Handoff 25. The first cut of `database_class()` used
+# `ir.config_parameter.get_param`, which is `@ormcache`d PER WORKER. During
+# its own proof run the route reported `database_class = "client"` for a
+# database whose parameter row had been deleted, while the suite — pointed at
+# a database carrying no mark at all — ran 24 writing tests to a green pass.
+#
+# A guard served from a stale cache says yes about a state that has stopped
+# being true. This fails if the cached reader comes back.
+
+_DATABASE_CLASS_MODULE = REPO_ROOT / "myservice_nrs_base" / "database_class.py"
+
+
+def _reads_through_a_cache(source):
+    """True if `database_class()` resolves the mark through `get_param`.
+
+    Returns None if the function is absent — a caller asserting on the live
+    module should notice that rather than read it as a pass.
+    """
+    tree = ast.parse(source)
+    func = next((n for n in tree.body
+                 if isinstance(n, ast.FunctionDef) and n.name == "database_class"),
+                None)
+    if func is None:
+        return None
+    # The docstring EXPLAINS why `get_param` is wrong, so scanning the whole
+    # function would flag the explanation. Read the statements only.
+    statements = [n for n in func.body
+                  if not (isinstance(n, ast.Expr)
+                          and isinstance(n.value, ast.Constant)
+                          and isinstance(n.value.value, str))]
+    body = "\n".join(ast.get_source_segment(source, n) or "" for n in statements)
+    return "get_param" in body or not ("ir_config_parameter" in body
+                                       and "execute" in body)
+
+
+def test_the_database_class_is_read_from_the_database_not_a_cache():
+    verdict = _reads_through_a_cache(
+        _DATABASE_CLASS_MODULE.read_text(encoding="utf-8"))
+    assert verdict is not None, (
+        "database_class() is gone from %s — the guard is asserting on nothing."
+        % _DATABASE_CLASS_MODULE)
+    assert verdict is False, (
+        "database_class() resolves the mark through `get_param`, which is "
+        "ormcached per worker and can answer with a mark the database no "
+        "longer holds. Read the row with SQL — see that module's docstring "
+        "for the run where this leaked 24 writing tests onto an unmarked "
+        "database.")
+
+
+def test_the_cache_guard_would_have_caught_the_first_cut(tmp_path):
+    """Proved against the exact code that leaked, and against its cousins."""
+    for label, source, should_flag in (
+        ("the first cut, verbatim",
+         'def database_class(env):\n'
+         '    raw = env["ir.config_parameter"].sudo().get_param(PARAM)\n'
+         '    return raw\n', True),
+        ("get_param hidden behind a local",
+         'def database_class(env):\n'
+         '    icp = env["ir.config_parameter"].sudo()\n'
+         '    return icp.get_param(PARAM)\n', True),
+        ("neither cached nor a direct read — a third way in",
+         'def database_class(env):\n'
+         '    return SOME_MODULE.lookup(PARAM)\n', True),
+        ("the SQL read that replaced it",
+         'def database_class(env):\n'
+         '    env.cr.execute("SELECT value FROM ir_config_parameter '
+         'WHERE key = %s", (PARAM,))\n'
+         '    return env.cr.fetchone()\n', False),
+        ("prose about get_param is not a use of it",
+         'def database_class(env):\n'
+         '    """Not get_param, deliberately."""\n'
+         '    env.cr.execute("SELECT value FROM ir_config_parameter '
+         'WHERE key = %s", (PARAM,))\n'
+         '    return env.cr.fetchone()\n', False),
+    ):
+        assert _reads_through_a_cache(source) is should_flag, (
+            "%s: expected flagged=%s" % (label, should_flag))
+
+    assert _reads_through_a_cache("def something_else():\n    pass\n") is None
+
+
+# ─── the guarded base only runs if the subclass lets it ──────────────
+#
+# Handoff 25. `CadraTransactionCase.setUpClass` is where the database-class
+# refusal happens, so a subclass that defines `setUpClass` and does not call
+# `super().setUpClass()` silently skips it.
+#
+# `myservice_nrs_base/tests/common.py` claimed this was "enforced by
+# tests/test_source_guards.py" before anything enforced it. A docstring
+# asserting a protection the repository does not have is the exact class of
+# claim CLAUDE.md's standard is about, so the claim is made true here rather
+# than softened.
+
+
+def _setupclass_without_super(path):
+    """Test classes overriding `setUpClass` without calling super()."""
+    try:
+        source = path.read_text(encoding="utf-8") if hasattr(path, "read_text") else path
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+    offenders = []
+    for cls in (n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)):
+        for fn in cls.body:
+            if not isinstance(fn, ast.FunctionDef) or fn.name != "setUpClass":
+                continue
+            calls_super = any(
+                isinstance(c, ast.Call)
+                and isinstance(c.func, ast.Attribute)
+                and c.func.attr == "setUpClass"
+                and isinstance(c.func.value, ast.Call)
+                and isinstance(c.func.value.func, ast.Name)
+                and c.func.value.func.id == "super"
+                for c in ast.walk(fn)
+            )
+            if not calls_super:
+                offenders.append((fn.lineno, cls.name))
+    return offenders
+
+
+def test_every_setupclass_calls_super():
+    """Otherwise the class skips the database-class refusal entirely."""
+    offenders = []
+    for path in _first_party_odoo_test_files():
+        for lineno, cls in _setupclass_without_super(path):
+            offenders.append("%s:%d  %s.setUpClass"
+                             % (path.relative_to(REPO_ROOT), lineno, cls))
+    assert not offenders, (
+        "These classes override setUpClass without calling "
+        "super().setUpClass(), so the database-class guard in "
+        "CadraTransactionCase never runs for them:\n  "
+        + "\n  ".join(offenders))
+
+
+def test_the_setupclass_guard_would_have_caught_a_skipped_super(tmp_path):
+    """Proved in both directions."""
+    for label, source, should_flag in (
+        ("no super() at all",
+         "class T(CadraTransactionCase):\n"
+         "    @classmethod\n"
+         "    def setUpClass(cls):\n"
+         "        cls.x = 1\n", True),
+        ("calls a DIFFERENT super method",
+         "class T(CadraTransactionCase):\n"
+         "    @classmethod\n"
+         "    def setUpClass(cls):\n"
+         "        super().setUp()\n", True),
+        ("calls super().setUpClass()",
+         "class T(CadraTransactionCase):\n"
+         "    @classmethod\n"
+         "    def setUpClass(cls):\n"
+         "        super().setUpClass()\n"
+         "        cls.x = 1\n", False),
+        ("does not override setUpClass at all",
+         "class T(CadraTransactionCase):\n    pass\n", False),
+    ):
+        assert bool(_setupclass_without_super(source)) is should_flag, label
+
+
+# ─── nothing but the guard may read the raw credentials ──────────────
+#
+# Handoff 25. `tests/conftest.py` hands out `creds` only after
+# `database_accepts_test_writes` has cleared the target database;
+# `_creds_unchecked` exists solely so the guard can read the file without
+# depending on its own output.
+#
+# This guard exists because gating `token` alone was NOT enough: four tests
+# took `api_base` + `creds` and POSTed to `/auth/token` with bare `requests`,
+# so `pytest tests/test_auth.py` against a client-derived register ran green
+# without the guard ever being instantiated. Gating the credentials closed
+# that by construction — this stops the private fixture becoming the new door.
+
+def test_only_conftest_reads_the_unchecked_credentials():
+    offenders = []
+    for path in sorted((REPO_ROOT / "tests").rglob("*.py")):
+        if path.name == "conftest.py":
+            continue
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+        # AST, not text: this very file NAMES the fixture in its own comments
+        # and assertion messages, and a substring scan flags the explanation —
+        # the same trap the cache guard fell into one section above. A comment
+        # is not a use; a parameter or a reference is.
+        used = any(
+            (isinstance(n, ast.Name) and n.id == "_creds_unchecked")
+            or (isinstance(n, ast.arg) and n.arg == "_creds_unchecked")
+            for n in ast.walk(tree)
+        )
+        if used:
+            offenders.append(str(path.relative_to(REPO_ROOT)))
+    assert not offenders, (
+        "These test modules reach for `_creds_unchecked`, which bypasses the "
+        "database-class guard:\n  " + "\n  ".join(offenders)
+        + "\n\nUse the `creds` fixture, which is the same value handed out "
+          "only after the target database has been cleared.")
+
+
+def test_the_credentials_gate_is_actually_wired():
+    """`creds` must depend on the guard, or the gate is decorative.
+
+    Asserted on the signature rather than trusted: this is a fixture
+    dependency, and a fixture dependency that gets dropped in a refactor
+    fails nothing and reopens the second door silently.
+    """
+    source = (REPO_ROOT / "tests" / "conftest.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    fn = next((n for n in tree.body
+               if isinstance(n, ast.FunctionDef) and n.name == "creds"), None)
+    assert fn is not None, "the `creds` fixture is gone from tests/conftest.py"
+    args = [a.arg for a in fn.args.args]
+    assert "database_accepts_test_writes" in args, (
+        "`creds` no longer depends on `database_accepts_test_writes`, so "
+        "any test taking `creds` can authenticate against an unmarked "
+        "database. Its arguments are: %s" % args)

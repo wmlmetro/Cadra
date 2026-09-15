@@ -42,8 +42,9 @@ from datetime import timedelta
 
 from lxml import etree
 
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 from odoo.tests.common import freeze_time
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 
 class _KanbanValue:
@@ -67,7 +68,7 @@ class _KanbanRecord:
 
 
 @tagged("post_install", "-at_install")
-class TestTriageKanbanBadges(TransactionCase):
+class TestTriageKanbanBadges(CadraTransactionCase):
 
     XMLID = "myservice_request_fields.view_request_triage_kanban"
 

@@ -52,7 +52,7 @@ import uuid
 from datetime import date, datetime, timedelta
 
 from odoo import fields
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 from odoo.addons.myservice_api.models.audit_configuration import (
     CONFIG_COVERAGE_EMPTY,
@@ -63,6 +63,7 @@ from odoo.addons.myservice_api.models.audit_configuration import (
     _OPAQUE_KEYS,
     _REDACTED,
 )
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 WIDE_FROM = date(2000, 1, 1)
 WIDE_TO = date(2099, 12, 31)
@@ -98,7 +99,7 @@ PUBLIC_KEYS = (
 )
 
 
-class ConfigReportCase(TransactionCase):
+class ConfigReportCase(CadraTransactionCase):
 
     def setUp(self):
         super().setUp()

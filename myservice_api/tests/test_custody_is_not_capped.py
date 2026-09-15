@@ -24,11 +24,11 @@ import json
 import uuid
 
 from odoo.tests import tagged
-from odoo.tests.common import HttpCase
+from odoo.addons.myservice_nrs_base.tests.common import CadraHttpCase
 
 
 @tagged("post_install", "-at_install")
-class TestCustodyIsNotCapped(HttpCase):
+class TestCustodyIsNotCapped(CadraHttpCase):
 
     #: Small on purpose. The cap only has to BITE; building a hundred-link
     #: chain would prove the same thing and cost a hundred writes.
@@ -61,15 +61,14 @@ class TestCustodyIsNotCapped(HttpCase):
         for i in range(cls.LINKS):
             cls.asset.write({"custodian_id": cls.employees[i % 2].id})
 
-        Client = cls.env["myservice.api.client"]
-        cls.client_capped = Client.create({
+        cls.client_capped = cls.create_api_client({
             "name": "custody probe capped",
             "client_id": "custodyprobe_capped_%s" % marker,
             "scopes": "assets:read",
             "max_page_limit": cls.CAP,
             "total_record_cap": cls.CAP,
         })
-        cls.client_test = Client.create({
+        cls.client_test = cls.create_api_client({
             "name": "custody probe test credential",
             "client_id": "custodyprobe_test_%s" % marker,
             "scopes": "assets:read assets:write",

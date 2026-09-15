@@ -86,10 +86,28 @@ def test_patch_category_rejects_unknown_fields(client, admin_scope, a_category):
 
 
 def test_patch_category_rejects_an_unknown_fm_domain(client, admin_scope, a_category):
+    """Handoff 25 C2. The refusal names the accepted set under BOTH keys.
+
+    Every other refusal in this API publishes `allowed_values`; the three
+    refusals in `v1_settings.py` published `allowed` alone, so a client keying
+    on the standard name got nothing from them and had no way to know these
+    were the odd ones out. The handoff named one site; a search found three.
+
+    Both keys carry the same list. `allowed` is DEPRECATED, not removed — a
+    published details key is API surface, and renaming it outright would break
+    any client reading it today. It goes at the next major version; see
+    `docs/api/CHANGELOG.md` for the date.
+    """
     r = client.patch(f"/api/v1/asset-categories/{a_category['id']}",
                      json={"domain": "nonsense"})
     assert r.status_code == 400
-    assert "allowed" in r.json()["error"]["details"]
+    details = r.json()["error"]["details"]
+    assert details.get("allowed_values"), (
+        "the refusal carries no `allowed_values`, which is the key every "
+        "other refusal in this API uses")
+    assert details.get("allowed") == details["allowed_values"], (
+        "`allowed` is deprecated but must keep answering with the same list "
+        "until it is removed at the next major version")
 
 
 # ── Create / delete ──────────────────────────────────────────────────────────

@@ -122,6 +122,20 @@ Stopping the long-running server first is what makes the difference: it is three
 
 CI is unaffected because it creates the database fresh. **The command `CLAUDE.md` documents cannot be run verbatim on a developer machine**; use `test19`, which also carries the post-install test set (133 tests against CI's 72).
 
+### `ir.config_parameter.get_param` can answer with a value the database no longer holds
+
+It is `@ormcache`d **per worker**, and `config/odoo.19.conf` sets `workers = 2`. The invalidation signal does not reliably reach a worker sitting between requests, so two workers can disagree about the same parameter at the same instant, and both can disagree with the row.
+
+Measured while proving handoff 25's database-class guard. The parameter row was deleted; the route — hitting one worker — kept answering `"test"`, and the suite ran **24 writing tests to a green pass against a database carrying no mark at all**. A moment later the same route on the other worker answered `"client"`, a value that had been set and then removed.
+
+**So anything a safety decision turns on must read the row, not the cache:**
+
+```python
+env.cr.execute("SELECT value FROM ir_config_parameter WHERE key = %s", (key,))
+```
+
+`get_param` remains right for everything else — a brand colour served one request stale costs nothing. The rule is about what the answer is *used for*, not about the parameter.
+
 ### Any `HttpCase` needs `--workers=0`
 
 Not in the documented command. Found in handoff 12.
@@ -130,9 +144,17 @@ Not in the documented command. Found in handoff 12.
 
 ## The test suites
 
-### The HTTP suite writes into a client's register, and nothing stops it
+### The suites refuse any database not marked as a test database — and this is what they used to do instead
 
-**`CADRA_API_BASE` is the only thing deciding which database the pytest suite writes to, and there is no guard of any kind** — no allowlist, no refusal, no confirmation, no dry run. The suite reads that one variable and writes wherever it points.
+**CLOSED by handoff 25.** Both suites now read `cadra.database_class` from the target database and refuse unless it is `test`; absent refuses too. There is no bypass flag. Run against `test19`:
+
+```
+CADRA_API_BASE=http://test19.localhost:8069 tests/.venv/bin/python -m pytest tests/ -q
+```
+
+`jaizbankplc`, `nrs`, `lasg` and `gtb` are marked `client` and refuse. `cadra19`, `nrs19` and `gtb19` are unmarked and therefore also refuse. To mark a database of your own, run the command the refusal prints.
+
+**What it did before, because the measurement is the reason the guard exists.** `CADRA_API_BASE` was the only thing deciding which database the pytest suite wrote to, and there was no guard of any kind — no allowlist, no refusal, no confirmation, no dry run. The suite read that one variable and wrote wherever it pointed.
 
 In practice it points at `jaizbankplc`, because that is the only tenant carrying a full `CLIENT_ID`/`CLIENT_SECRET` pair (`docs/api/.creds.jaizbankplc`); `.creds.nrs19` holds two scoped clients and fails the fixture's own check. `jaizbankplc` is a replica of a live client's register.
 
@@ -149,7 +171,9 @@ Measured on 2026-09-15, after roughly 154 sessions accumulating since 2026-08-26
 
 **What it is not.** It is not a production incident: every captured response in `docs/api/test-responses/` names `jaizbankplc.localhost:8069`, so nothing has ever reached the production host, and no *real* asset carries a fabricated approval or custody link. CI is unaffected — it creates its own throwaway `odoo` database on a runner that is discarded.
 
-**What to do about it.** The chain of custody already handles this correctly and is the pattern: `myservice.api.client.is_test_credential` drives `nrs.asset.custody.source = 'test'`, so 330 of its rows self-label and a reader can tell. Nothing equivalent exists for assets or disposals. `scripts/mark_test_fixtures.py` marks the artefacts that are already there.
+**The residue is still there.** `scripts/remove_test_residue.py` is dry-run by default and measured 3,779 of 3,894 fixture assets removable and 115 refused — 99 carrying chain-of-custody rows (`ondelete='restrict'`, so the asset cannot be released at all), 6 carrying approved disposals, 10 pointed at by a service request. 96 fixture LOCATIONS are refused by the database itself on a foreign key from the transfer log. Both it and `scripts/mark_test_fixtures.py` are owner-run — the Builder's permission layer refuses a committing write to a client-derived tenant. **Neither had been run as of handoff 25**, verified rather than assumed.
+
+**The pattern that worked, and why.** The chain of custody already handles this correctly: `myservice.api.client.is_test_credential` drives `nrs.asset.custody.source = 'test'`, so 330 of its rows self-label and a reader can tell. Nothing equivalent exists for assets or disposals. `scripts/mark_test_fixtures.py` marks the artefacts that are already there.
 
 **Disposal approval cannot be undone.** There is no `action_unapprove_disposal`, a second approval is a published 409, and the approver fields are read-only over the API. It is correctable only by a human on the Odoo form, under tracking — by design.
 
@@ -218,7 +242,9 @@ Admin-scoped tests the suite's own token cannot reach, plus pagination tests tha
 
 This said "a run reporting 27 skips is a healthy run", and a bare number is the wrong thing to check. The total moves with the **tenant**, not with the code: how many scopes that tenant's `test_client` holds, whether Turnstile is configured on it, whether any of its assets carries a SAP asset number, whether it has an active `workflow.config`. A Builder who treats the number as a constant either chases a phantom regression or, worse, stops reading the list.
 
-Measured on `jaizbankplc`, 2026-09-10, **28 skips**, every one named:
+**The default tenant changed in handoff 25**, and with it the skip list: the suite now runs against `test19`, whose credential holds `admin`, so the admin-scope category is **empty** and those tests actually execute. Measured on `test19`, 2026-09-15, **9 skips**: 2 Turnstile-not-configured, 4 partition-data-absent (`is_verified`, `is_staff_bus`, `has_sap_code`, `closed`), 1 no active `workflow.config`, 1 no asset carrying a SAP asset number, 1 documented `is_tagged`. A run reporting ~28 skips is a run against the old tenant.
+
+The earlier measurement, kept because it is the one that shows the total is a tenant fact — `jaizbankplc`, 2026-09-10, **28 skips**, every one named:
 
 | Count | Reason |
 |---|---|

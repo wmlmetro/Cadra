@@ -22,13 +22,14 @@ Run with:
     odoo -c /etc/odoo/odoo.conf -d <db> -u myservice_nrs_base \\
          --test-enable --stop-after-init --http-port=8099 --gevent-port=8098
 """
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 from odoo.addons.myservice_nrs_base.models.generic_location import (
     GEOCODE_SOURCE_APPROXIMATE,
     GEOCODE_SOURCE_SELECTION,
     GEOCODE_SOURCE_STRATEGIES,
 )
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 # The literal values the two shell geocoders write. Spelled out here rather
 # than imported, deliberately: importing the constants would make this test
@@ -45,7 +46,7 @@ _APPROXIMATION_THE_SCRIPTS_WRITE = 'state_capital_approx'
 
 
 @tagged("post_install", "-at_install")
-class TestGeocodeSource(TransactionCase):
+class TestGeocodeSource(CadraTransactionCase):
 
     def test_the_field_exists_and_is_stored(self):
         """A coordinate must be able to carry its provenance in the database.

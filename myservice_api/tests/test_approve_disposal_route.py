@@ -42,11 +42,12 @@ back.
 import json
 import uuid
 
-from odoo.tests import HttpCase, tagged
+from odoo.tests import tagged
+from odoo.addons.myservice_nrs_base.tests.common import CadraHttpCase
 
 
 @tagged("post_install", "-at_install")
-class TestApproveDisposalRoute(HttpCase):
+class TestApproveDisposalRoute(CadraHttpCase):
 
     @classmethod
     def setUpClass(cls):
@@ -68,7 +69,7 @@ class TestApproveDisposalRoute(HttpCase):
         # holding both would prove the route works for somebody who could
         # have PATCHed the record anyway.
         cls.secret = uuid.uuid4().hex
-        cls.client_rec = cls.env["myservice.api.client"].sudo().create({
+        cls.client_rec = cls.create_api_client({
             "name": "Approver probe %s" % cls.marker,
             "client_id": cls.marker,
             "scopes": "assets:read approvals:write",
@@ -260,7 +261,7 @@ class TestApproveDisposalRoute(HttpCase):
         attributable to the scope rather than to whatever that tenant's
         credential happened to hold.
         """
-        narrowed = self.env["myservice.api.client"].sudo().create({
+        narrowed = self.create_api_client({
             "name": "Narrow probe %s" % self.marker,
             "client_id": "%s-narrow" % self.marker,
             "scopes": "assets:read assets:write",

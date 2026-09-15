@@ -21,11 +21,11 @@ import json
 from datetime import date, timedelta
 
 from odoo.tests import tagged
-from odoo.tests.common import HttpCase
+from odoo.addons.myservice_nrs_base.tests.common import CadraHttpCase
 
 
 @tagged("post_install", "-at_install")
-class TestFmDashboardCounts(HttpCase):
+class TestFmDashboardCounts(CadraHttpCase):
 
     #: Past the 500-row window the KPIs used to be taken from. 300 of them
     #: are in one category and 220 in another, so the per-category SLA rows

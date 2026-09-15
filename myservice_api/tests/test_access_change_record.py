@@ -56,7 +56,7 @@ from datetime import date, datetime, timedelta
 
 from odoo import fields
 from odoo.exceptions import UserError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 from odoo.addons.myservice_api.models.access_change import (
     ACCESS_EVENT_GRANTED,
@@ -70,6 +70,7 @@ from odoo.addons.myservice_api.models.audit_access import (
     ACCESS_COVERAGE_PARTIAL,
     ACCESS_COVERAGE_RECORDED,
 )
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 #: The two membership events, as opposed to the two implication events. The
 #: report counts them in separate keys and several tests below assert that the
@@ -82,7 +83,7 @@ MEMBERSHIP_EVENTS = (ACCESS_EVENT_GRANTED, ACCESS_EVENT_REMOVED)
 RECORD_BEGINS = datetime(2024, 3, 15, 9, 30, 0)
 
 
-class AccessChangeCase(TransactionCase):
+class AccessChangeCase(CadraTransactionCase):
 
     def setUp(self):
         super().setUp()

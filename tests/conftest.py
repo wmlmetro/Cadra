@@ -44,6 +44,33 @@ CREDS_DIR = REPO_ROOT / "docs" / "api"
 RESPONSES_DIR = REPO_ROOT / "docs" / "api" / "test-responses"
 REPORT_FILE = REPO_ROOT / "docs" / "api" / "test-report.md"
 
+# Printed verbatim inside a refusal. An error naming a remedy the reader then
+# has to go and look up is worse than one naming none, because it implies the
+# lookup will be quick.
+_ODOO_SHELL = (
+    "docker compose -f docker-compose.yml -f docker-compose.19.yml exec -T odoo \\\n"
+    "  odoo shell -c /etc/odoo/odoo.conf -d %s --no-http \\\n"
+    "  --http-port=8099 --gevent-port=8098 <<< \\\n"
+    "  \"%s\""
+)
+
+_MARK_COMMAND = _ODOO_SHELL % (
+    "%s",
+    "env['ir.config_parameter'].sudo().set_param("
+    "'cadra.database_class', 'test'); env.cr.commit()",
+)
+
+#: Targets the ONE credential that failed, by client_id. The first version
+#: said `search([])` — flag everything — which on a test tenant also carrying
+#: a copied integration credential would relabel that credential's records as
+#: test artefacts: a false self-label in the one mechanism this guard defends.
+_FLAG_COMMAND = _ODOO_SHELL % (
+    "%s",
+    "env['myservice.api.client'].sudo().with_context(active_test=False)"
+    ".search([('client_id','=','%s')])"
+    ".write({'is_test_credential': True}); env.cr.commit()",
+)
+
 # Collected at session end into the markdown report.
 _test_results = []           # list of {nodeid, outcome, duration, method, path, status, capture_path}
 _session_started_at = None
@@ -81,7 +108,7 @@ def _parse_creds(path):
 
 
 @pytest.fixture(scope="session")
-def creds(api_base):
+def _creds_unchecked(api_base):
     """Credentials for the tenant `CADRA_API_BASE` points at.
 
     Secrets are per-database — one Odoo process serves them all, but each
@@ -163,7 +190,13 @@ def creds(api_base):
 
 @pytest.fixture(scope="session")
 def token(api_base, creds):
-    """Mint a JWT once per test session and cache it."""
+    """Mint a JWT once per test session and cache it.
+
+    Depends on `database_accepts_test_writes` so that no test can hold a
+    bearer token for a database that has not been marked as a test
+    database. Every writing path in the suite reaches the API through
+    `client`, and `client` reaches it through here.
+    """
     try:
         r = requests.post(
             f"{api_base}/api/v1/auth/token",
@@ -186,6 +219,152 @@ def token(api_base, creds):
         )
     body = r.json()
     return body["data"]["access_token"]
+
+
+# ─── which database is this, and may we write to it? ─────────────────
+
+@pytest.fixture(scope="session")
+def database_accepts_test_writes(api_base, _creds_unchecked):
+    """Refuse the whole session unless the target database is marked `test`.
+
+    WHY THIS IS THE FIRST THING THAT HAPPENS
+    ----------------------------------------
+    Handoff 24 §B measured what this suite writes and where. On 2026-09-15,
+    in `jaizbankplc` — a register derived from a live client's data — 3,584 of
+    4,056 assets were named `pytest-*`, 354 of 420 entries in the PUBLIC
+    homepage location dropdown were fixtures, and six fabricated approved
+    disposals sat in the auditor-facing disposal report. Accumulated over 154
+    sessions.
+
+    The only control was `CADRA_API_BASE`: this suite read one environment
+    variable and wrote wherever it pointed, with no teardown — the API
+    publishes exactly one DELETE route in total, so nothing it creates can be
+    removed afterwards. Nothing reached production, and that was luck.
+
+    So the question is asked of the DATABASE, which is the only party to it
+    that survives a restore: `cadra.database_class`, a system parameter a
+    person set deliberately. Not the name — `test19` reads safe and `cadra19`
+    does not, and both are wrong the day a client dump lands in one. Not the
+    environment variable, which is the control that failed.
+
+    **Absent refuses.** A database nobody classified is a database nobody
+    thought about.
+
+    **`creds` depends on THIS fixture**, so nothing in the suite can
+    authenticate without passing through it — see that fixture's docstring
+    for the second door this closes.
+
+    **What it writes before it can refuse, stated rather than glossed.**
+    Classifying the database needs a bearer token, and `POST /auth/token`
+    is NOT a read: `_session_payload` issues a refresh token, which
+    `myservice.api.refresh_token._issue` CREATEs and the request commits. So
+    one refresh-token row lands in the target database before the refusal
+    prints, and handoff 25's acceptance criterion — "refuses before writing
+    anything" — is met for the register and NOT met literally.
+
+    Closing it completely needs an unauthenticated classification route, and
+    `cadra_route` has no public mode: auth is enforced in `cadra_endpoint`
+    for every route in the API without exception. Adding one is a change to
+    the central auth decorator, which is the "nine pre-envelope routes"
+    backlog item's territory and not something to do in passing in a handoff
+    about test safety. The row is operational, indistinguishable from any
+    integration authenticating, and carries no fixture data — but it is a
+    write, and calling it a read (which this docstring did until a review
+    caught it) is exactly the kind of convenient sentence this repository
+    keeps finding in its own comments.
+
+    It is deliberately NOT `autouse`. An autouse session fixture also
+    fires for the static suites — `test_source_guards.py`,
+    `test_deployment_profile.py` — which assert things about the source
+    and are documented to run with no instance up. Gating authentication
+    rather than gating every test keeps that true while covering strictly
+    more: an unauthenticated test cannot write.
+
+    **This fails, it does not skip.** Report 23 §3 established the rule for
+    this repository: a skip is a guard that passes, and a suite that quietly
+    skips its way to green against a client's register is the failure it was
+    written to stop.
+    """
+    probe = requests.post(
+        f"{api_base}/api/v1/auth/token",
+        json={"client_id": _creds_unchecked["CLIENT_ID"],
+              "client_secret": _creds_unchecked["CLIENT_SECRET"]},
+        timeout=10,
+    )
+    if probe.status_code != 200:
+        pytest.exit(
+            "\nREFUSED: could not authenticate against %s to establish "
+            "which database it is.\n\n  POST /api/v1/auth/token -> HTTP "
+            "%s\n  %s\n" % (api_base, probe.status_code, probe.text[:300]),
+            returncode=1)
+
+    r = ApiClient(api_base, probe.json()["data"]["access_token"]).get(
+        "/api/v1/meta/database")
+    if r.status_code != 200:
+        pytest.exit(
+            "\nREFUSED: cannot establish which database %s is.\n\n"
+            "  GET /api/v1/meta/database -> HTTP %s\n  %s\n\n"
+            "This suite will not write to a database it cannot classify. If "
+            "the server predates handoff 25 the route does not exist yet; "
+            "upgrade `myservice_api` on that database.\n"
+            % (api_base, r.status_code, r.text[:300]),
+            returncode=1)
+
+    info = r.json()["data"]
+    if not info["accepts_test_writes"]:
+        pytest.exit(
+            "\nREFUSED: the HTTP test suite will not run against database "
+            "%r (%s).\n\n"
+            "  cadra.database_class = %s\n\n"
+            "Every record this suite creates stays: there is no teardown and "
+            "the API publishes one DELETE route in total. If %r is a "
+            "throwaway database, mark it once:\n\n"
+            "%s\n\n"
+            "There is no bypass flag, deliberately.\n"
+            % (info["database"], api_base,
+               info["database_class"] or "not set",
+               info["database"], _MARK_COMMAND % info["database"]),
+            returncode=1)
+
+    if not info["credential_is_test"]:
+        pytest.exit(
+            "\nREFUSED: the credential this suite authenticates with is not "
+            "flagged `is_test_credential`.\n\n"
+            "  database: %s   credentials: %s\n\n"
+            "The flag is what makes a fixture identifiable afterwards — it "
+            "drives `nrs.asset.custody.source = 'test'`, which is why the "
+            "chain of custody self-labels without anyone curating it. "
+            "Handoff 23 minted one credential without it and its six approved "
+            "disposals are the only artefacts in that register a reader "
+            "cannot identify from the record itself.\n\n"
+            "Flag it:\n\n%s\n"
+            % (info["database"], _creds_unchecked["_source"],
+               _FLAG_COMMAND % (info["database"], _creds_unchecked["CLIENT_ID"])),
+            returncode=1)
+
+    return info
+
+
+@pytest.fixture(scope="session")
+def creds(_creds_unchecked, database_accepts_test_writes):
+    """The tenant's credentials — handed out only once the database is cleared.
+
+    **This is the gate, and it is here rather than on `token` for a reason
+    a review found the hard way.** Gating `token` looked sufficient, because
+    every writing path reaches the API through `client` and `client` through
+    `token`. It was not: four tests take `api_base` + `creds` and POST to
+    `/api/v1/auth/token` with bare `requests` — `test_auth.py` three times
+    and `test_negative.py` once — so `pytest tests/test_auth.py` against a
+    client-derived register ran green, never instantiated the guard, and
+    wrote a refresh-token row per call.
+
+    Gating the CREDENTIALS closes that by construction: there is no way to
+    authenticate against this API without them, so there is no second door to
+    find. `tests/test_source_guards.py` fails on any test module that reaches
+    for `_creds_unchecked`, which exists only so the guard itself can read the
+    file without depending on its own output.
+    """
+    return _creds_unchecked
 
 
 class ApiClient:
@@ -331,6 +510,32 @@ def _extract_path(url):
 
 
 # ─── shared test resources (created once per session) ────────────────
+
+@pytest.fixture(scope="session")
+def any_location(client):
+    """The id of a location that EXISTS in this register, whatever it is.
+
+    Four location tests used to ask for `/api/v1/locations/1` outright. That
+    passed for as long as the suite was pointed at one richly-seeded register
+    and broke the moment handoff 25 moved it onto a marked test tenant, where
+    row 1 is not a location. The id of a row is not a fact about the API — it
+    is a fact about one database's insert order — so the tests now read one
+    off the register instead of assuming it.
+
+    Falls back to the fixture location, so this works on an empty tenant too.
+    """
+    r = client.get("/api/v1/locations", params={"limit": 1})
+    if r.status_code == 200:
+        items = r.json().get("data") or []
+        if items:
+            return items[0]["id"]
+    created = client.post("/api/v1/locations",
+                          json={"name": "pytest-any-location"})
+    if created.status_code != 201:
+        pytest.fail("no location exists and one could not be created: HTTP %s %s"
+                    % (created.status_code, created.text[:200]))
+    return created.json()["data"]["id"]
+
 
 @pytest.fixture(scope="session")
 def test_location(client):

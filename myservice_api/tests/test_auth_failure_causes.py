@@ -17,21 +17,20 @@ import json
 import uuid
 
 from odoo.tests import tagged
-from odoo.tests.common import HttpCase
+from odoo.addons.myservice_nrs_base.tests.common import CadraHttpCase
 
 
 @tagged("post_install", "-at_install")
-class TestAuthFailureCauses(HttpCase):
+class TestAuthFailureCauses(CadraHttpCase):
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        Client = cls.env["myservice.api.client"]
-        cls.live = Client.create({
+        cls.live = cls.create_api_client({
             "name": "auth probe live", "client_id": "authprobe_live",
             "scopes": "assets:read"})
         cls.live_secret = cls.live.rotate_secret()
-        cls.archived = Client.create({
+        cls.archived = cls.create_api_client({
             "name": "auth probe archived", "client_id": "authprobe_archived",
             "scopes": "assets:read"})
         cls.archived_secret = cls.archived.rotate_secret()

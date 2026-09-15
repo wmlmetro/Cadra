@@ -49,6 +49,15 @@ _logger = logging.getLogger(__name__)
 
 # ─── helpers ────────────────────────────────────────────────────────
 
+#: Mirrors myservice_nrs_base/database_class.py. Duplicated rather than
+#: imported because this script runs inside `odoo shell`, where the addons
+#: path is available but importing a module for two constants would make
+#: bootstrap fail on a database where that addon is not installed yet —
+#: which is every database this script is run against for the first time.
+_DATABASE_CLASS_PARAM = "cadra.database_class"
+_DATABASE_CLASSES = ("test", "client", "production")
+
+
 def _say(msg, level="INFO"):
     """Stdout banner that the host-side orchestrator can grep."""
     print(f"[bootstrap:{level:>5}] {msg}", flush=True)
@@ -192,6 +201,98 @@ def _all_scopes():
             "locations:write requests:read requests:write tagging:write "
             "webhooks:admin"
         )
+
+
+def ensure_database_class():
+    """Record what kind of database this is, so a test can ask.
+
+    `cadra.database_class` is read by the guard in
+    `myservice_nrs_base/database_class.py`: a test suite refuses to run
+    against any database not marked `test`. Absent refuses, so a database
+    nobody classified is never written to by a test.
+
+    **This script is also the PRODUCTION deploy path** — README §Deploy is
+    `CADRA_PROFILE=prod scripts/bootstrap.sh` — so stamping `test`
+    unconditionally here would mark every client's live database as safe to
+    write fixtures into. That is the exact inversion of the control, so the
+    class is never guessed from anything but an explicit statement:
+
+      * `CADRA_DATABASE_CLASS` names it outright. CI sets `test` when it
+        builds its throwaway database, which is how CI stays green with no
+        exemption in the guard — the database CI creates really is a test
+        database, and it says so.
+      * Failing that, a `prod` profile stamps `production`. Marking a
+        production deploy as production is the one inference that cannot make
+        the guard weaker.
+      * Failing both, NOTHING is written. Fail-closed: a developer's fresh
+        tenant refuses test runs until they mark it, and the refusal prints
+        the command.
+
+    Idempotent, and it never downgrades silently: an existing mark is left
+    alone unless `CADRA_DATABASE_CLASS` explicitly asks for a different one.
+    """
+    ICP = env["ir.config_parameter"].sudo()
+    requested = os.environ.get("CADRA_DATABASE_CLASS", "").strip().lower()
+    profile = os.environ.get("CADRA_PROFILE", "").strip().lower()
+
+    if requested and requested not in _DATABASE_CLASSES:
+        raise ValueError(
+            "CADRA_DATABASE_CLASS=%r is not one of %s"
+            % (requested, ", ".join(_DATABASE_CLASSES)))
+
+    current = ICP.get_param(_DATABASE_CLASS_PARAM)
+
+    # ── two interlocks, because `test` is the only value that opens a door ──
+    #
+    # Both exist because `bootstrap.sh` does `set -a; . ./.env` (line 66) —
+    # so ANY value in a `.env` is exported into this run, and a `.env` is
+    # routinely copied from a developer's machine onto a server. A developer
+    # who put `CADRA_DATABASE_CLASS=test` in theirs and then deployed with
+    # `CADRA_PROFILE=prod scripts/bootstrap.sh` would otherwise stamp a
+    # client's live database `test`, and every guard in the system would then
+    # say yes. A warning line is not enough: nothing gates on a warning.
+
+    if requested == "test" and profile.startswith("prod"):
+        raise ValueError(
+            "refusing to mark a database `test` on a `prod` profile "
+            "(CADRA_PROFILE=%r). One of the two is wrong, and marking a "
+            "production database as a test database is the failure this "
+            "parameter exists to prevent. Unset CADRA_DATABASE_CLASS to "
+            "have a prod bootstrap record `production`, or run this "
+            "bootstrap without the prod profile." % profile)
+
+    if (requested == "test" and current in ("client", "production")
+            and os.environ.get("CADRA_DATABASE_CLASS_DOWNGRADE", "").strip() != current):
+        raise ValueError(
+            "refusing to re-mark a database currently recorded as %r as "
+            "`test`. Somebody classified it deliberately and a test run "
+            "writes fixtures that cannot be removed. If this database really "
+            "has been rebuilt and is now a throwaway, say so explicitly by "
+            "also setting CADRA_DATABASE_CLASS_DOWNGRADE=%s."
+            % (current, current))
+
+    if requested:
+        if current and current != requested:
+            _say("database class %r -> %r (CADRA_DATABASE_CLASS)"
+                 % (current, requested), level="WARNING")
+        ICP.set_param(_DATABASE_CLASS_PARAM, requested)
+        _say("database marked %r" % requested)
+        return requested
+
+    if current:
+        _say("database already marked %r; leaving it" % current)
+        return current
+
+    if profile.startswith("prod"):
+        ICP.set_param(_DATABASE_CLASS_PARAM, "production")
+        _say("database marked 'production' (CADRA_PROFILE=%s)" % profile)
+        return "production"
+
+    _say("database is NOT classified: test suites will refuse to run against "
+         "it. Set CADRA_DATABASE_CLASS=test before bootstrap, or mark it "
+         "afterwards with set_param(%r, 'test')." % _DATABASE_CLASS_PARAM,
+         level="WARNING")
+    return None
 
 
 def ensure_test_client():
@@ -639,6 +740,7 @@ def run_seeds():
 def main():
     _say("Cadra bootstrap starting")
     try:
+        ensure_database_class()
         jwt_secret = ensure_jwt_secret()
         ensure_turnstile_secret()
         ensure_admin_groups()

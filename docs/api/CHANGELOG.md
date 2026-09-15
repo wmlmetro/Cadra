@@ -33,6 +33,67 @@ live at was never the point.
 
 ---
 
+## 2026-09-15 — handoff 25
+
+**`GET /api/v1/meta/database` — new route (ADDITIVE).** Answers with the
+database this token was routed to, what class of database a person has
+recorded it as (`test` / `client` / `production`, or `null` when nobody has),
+whether it accepts test writes, and whether the calling credential is flagged
+as a test credential. Any valid bearer token; no scope. It exists so a test
+suite can ask *which database am I about to write to* before it writes —
+until now nothing could, and the answer had been wrong for 154 sessions.
+
+```json
+{"database": "test19", "database_class": "test",
+ "accepts_test_writes": true, "credential_is_test": true}
+```
+
+`accepts_test_writes` is derived server-side and is true only for `test`. Do
+not re-derive it from `database_class`: a client that computes the policy
+itself is a client that can disagree with the server about which databases
+are safe.
+
+**`workflow` block on the request serializer (ADDITIVE).**
+`GET /api/v1/requests/<id>` and the list route now publish:
+
+```json
+"workflow": {"payment_ref": "PAY-2026-04412", "workspace_ref": null}
+```
+
+Both sit on the request form and neither had ever been readable over the API.
+A Finance Officer tracing a payment reference could not, and neither could an
+auditor — report 24 §8 listed it as a financial fact invisible to every role.
+
+**They are written by different paths.** `payment_ref` is written by the
+WorkSpace/Workflow **approval callback** — that is the field the measurement
+was about. `workspace_ref` is written by the **outbound send** path, and is
+measured at **0 of 407** requests across every local tenant, so a consumer
+should expect `null` there and not build on it. Either key may be `null`.
+
+**`allowed_values` joins `allowed` on three settings refusals (ADDITIVE, with
+a DEPRECATION).** The two unknown-FM-domain refusals on `/api/v1/asset-categories`
+(POST and PATCH) and the logo-prefix refusal on the brand settings route
+published the accepted set as `details.allowed`, where every other refusal in
+this API uses `details.allowed_values`. A client keying on the standard name
+got nothing from these three and had no way to know they were the odd ones
+out.
+
+Both keys now carry the same list.
+
+> **DEPRECATED: `details.allowed`.** Read `details.allowed_values` instead.
+> `allowed` keeps answering with the identical list until the next major
+> version of this API, at which point it is removed. A published details key
+> is API surface like any other, so renaming it outright would break any
+> client reading it today — which is why this is two keys and a date rather
+> than a rename.
+
+**Not a published change, but worth an integrator's attention.** Both test
+suites now refuse to run against any database not explicitly marked
+`cadra.database_class = test`, and absent refuses. That is a change to how
+Cadra is developed rather than to what it serves, and no route behaves
+differently because of it — but if you run this repository's suite against
+your own deployment, mark your database first. The refusal prints the command.
+
 ## 2026-09-14 — handoff 23
 
 ### ADDITIVE · `GET /api/v1/reports/access-changes` — and the statement that it cannot answer the question as asked
