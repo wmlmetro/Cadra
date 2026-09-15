@@ -48,7 +48,7 @@ Run with:
 """
 from datetime import date, datetime
 
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 from odoo.addons.myservice_asset_register.models.asset_snapshot import (
     SNAPSHOT_AS_OF_TODAY,
@@ -56,6 +56,7 @@ from odoo.addons.myservice_asset_register.models.asset_snapshot import (
     SNAPSHOT_ROLLED_BACK,
     snapshot_cutoff,
 )
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 # The date every test asks about, and the two sides of its cutoff.
 # `snapshot_cutoff(AS_OF)` is 2020-06-30 23:00:00 UTC — the end of 30 June in
@@ -69,7 +70,7 @@ AFTER_CUTOFF = "2021-03-01 09:00:00"
 LATER_STILL = "2022-03-01 09:00:00"
 
 
-class SnapshotCase(TransactionCase):
+class SnapshotCase(CadraTransactionCase):
 
     def setUp(self):
         super().setUp()

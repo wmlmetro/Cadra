@@ -21,12 +21,13 @@ Run with:
 """
 from datetime import date
 
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 from odoo.tests.common import freeze_time
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestMaintenanceStatusRefresh(TransactionCase):
+class TestMaintenanceStatusRefresh(CadraTransactionCase):
 
     def setUp(self):
         super().setUp()

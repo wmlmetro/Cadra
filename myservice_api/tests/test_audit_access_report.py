@@ -70,7 +70,7 @@ import uuid
 from datetime import date, datetime, timedelta
 
 from odoo import fields
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 from odoo.addons.myservice_api.models.access_change import (
     ACCESS_EVENT_GRANTED,
@@ -85,6 +85,7 @@ from odoo.addons.myservice_api.models.audit_access import (
     ACCESS_EVENT_MODIFIED,
     _STRUCTURAL_LOGINS,
 )
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 #: Wide enough to hold anything a test dates deliberately. Tests that are
 #: ABOUT a boundary name their own period instead of using this.
@@ -110,7 +111,7 @@ RECORDED_FACTS = frozenset((
     'group_change_timestamp'))
 
 
-class AccessReportCase(TransactionCase):
+class AccessReportCase(CadraTransactionCase):
 
     def setUp(self):
         super().setUp()

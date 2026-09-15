@@ -20,7 +20,8 @@ from unittest.mock import patch
 
 from odoo import fields
 from odoo.tools import mute_logger
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 SAP_LOGGER = 'odoo.addons.myservice_workflow.models.sap_asset_events'
 
@@ -62,7 +63,7 @@ def fail_result(status=503, retryable=True):
 
 
 @tagged('post_install', '-at_install')
-class TestSAPAssetEvents(TransactionCase):
+class TestSAPAssetEvents(CadraTransactionCase):
 
     def setUp(self):
         super().setUp()

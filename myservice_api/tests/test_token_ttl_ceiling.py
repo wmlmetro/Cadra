@@ -21,18 +21,18 @@ refusals — it is the proof that nothing in production changes today.
 """
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestTokenTtlCeiling(TransactionCase):
+class TestTokenTtlCeiling(CadraTransactionCase):
 
     def _make(self, suffix, **overrides):
         vals = {"name": f"ttl ceiling probe {suffix}",
                 "client_id": f"ttlprobe_{suffix}",
                 "scopes": "assets:read"}
         vals.update(overrides)
-        record = self.env["myservice.api.client"].create(vals)
+        record = self.create_api_client(vals)
         record.flush_recordset()
         return record
 

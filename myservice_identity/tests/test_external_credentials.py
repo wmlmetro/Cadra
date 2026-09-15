@@ -45,9 +45,9 @@ import json
 import os
 
 from odoo.tests import tagged
-from odoo.tests.common import HttpCase
 
 from odoo.addons.myservice_identity.controllers import redhubs_api, sap_webhook
+from odoo.addons.myservice_nrs_base.tests.common import CadraHttpCase
 
 REDHUBS_LOGGER = redhubs_api._logger.name
 SAP_LOGGER = sap_webhook._logger.name
@@ -67,7 +67,7 @@ CSV_HEADER = 'Asset Code'
 
 
 @tagged('post_install', '-at_install')
-class TestExternalCredentials(HttpCase):
+class TestExternalCredentials(CadraHttpCase):
 
     def setUp(self):
         super().setUp()

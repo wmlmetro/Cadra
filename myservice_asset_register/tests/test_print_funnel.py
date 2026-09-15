@@ -34,13 +34,14 @@ Run with:
 from unittest.mock import patch
 
 from odoo.exceptions import UserError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 MEDIUM = 'myservice_asset_register.report_asset_tag_label'
 SHEET = 'myservice_asset_register.report_asset_tag_label_sheet'
 
 
-class PrintFunnelCase(TransactionCase):
+class PrintFunnelCase(CadraTransactionCase):
 
     def setUp(self):
         super().setUp()

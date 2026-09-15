@@ -22,11 +22,11 @@ myservice_request_core` in CI's Odoo step is what runs it.
 import uuid
 
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestStageWriteIsATransition(TransactionCase):
+class TestStageWriteIsATransition(CadraTransactionCase):
 
     def setUp(self):
         super().setUp()

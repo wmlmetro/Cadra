@@ -65,7 +65,7 @@ from datetime import timedelta
 
 from odoo import fields
 from odoo.tests import tagged
-from odoo.tests.common import HttpCase
+from odoo.addons.myservice_nrs_base.tests.common import CadraHttpCase
 
 
 #: The scopes `myservice_api.group_auditor` is expected to grant, pinned here
@@ -87,7 +87,7 @@ AUDITOR_GROUP_XMLID = "myservice_api.group_auditor"
 
 
 @tagged("post_install", "-at_install")
-class TestAuditorAccess(HttpCase):
+class TestAuditorAccess(CadraHttpCase):
 
     @classmethod
     def setUpClass(cls):

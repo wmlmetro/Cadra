@@ -22,11 +22,11 @@ return values off the same method.
 from unittest.mock import patch
 
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestSapPayloadRowIsolation(TransactionCase):
+class TestSapPayloadRowIsolation(CadraTransactionCase):
 
     GOOD_A = "IR-H15-ISO-A"
     BAD_B = "IR-H15-ISO-B"

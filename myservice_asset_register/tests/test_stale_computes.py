@@ -32,8 +32,9 @@ Run with:
 """
 from datetime import date, timedelta
 
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 from odoo.tests.common import freeze_time
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 # One verification, and three vantage points on it. Every date below is a
 # literal so the arithmetic is checkable by eye:
@@ -45,7 +46,7 @@ LONG_AFTER = "2027-06-01"        # 457 days on: past 365
 
 
 @tagged("post_install", "-at_install")
-class TestVerificationExpires(TransactionCase):
+class TestVerificationExpires(CadraTransactionCase):
     """nrs.asset.is_verified — published API surface: it is serialised by
     GET /api/v1/assets and accepted as an `is_verified=` filter. It must
     expire, on a per-category window with a tenant-wide default.
@@ -248,7 +249,7 @@ class TestVerificationExpires(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
-class TestOverdueRefreshes(TransactionCase):
+class TestOverdueRefreshes(CadraTransactionCase):
     """nrs.asset.pm.is_overdue — the same shape, backing a live menu whose
     entire domain is `[('is_overdue','=',True)]`.
     """
@@ -429,7 +430,7 @@ class TestOverdueRefreshes(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
-class TestTheCronsAreWiredUp(TransactionCase):
+class TestTheCronsAreWiredUp(CadraTransactionCase):
     """A method nothing calls is the same defect as a cron with no method,
     pointed the other way. Rows for both of these once existed in two tenant
     databases with no code behind them; these assert the pairing in the

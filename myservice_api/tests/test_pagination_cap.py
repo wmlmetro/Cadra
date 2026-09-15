@@ -21,11 +21,11 @@ import json
 import uuid
 
 from odoo.tests import tagged
-from odoo.tests.common import HttpCase
+from odoo.addons.myservice_nrs_base.tests.common import CadraHttpCase
 
 
 @tagged("post_install", "-at_install")
-class TestPaginationCap(HttpCase):
+class TestPaginationCap(CadraHttpCase):
 
     #: More than EXTERNAL_TOTAL_CAP, so the cap has something to bite on.
     ASSET_COUNT = 105
@@ -55,15 +55,14 @@ class TestPaginationCap(HttpCase):
             for i in range(cls.ASSET_COUNT)
         ])
 
-        Client = cls.env["myservice.api.client"]
-        cls.client_default = Client.create({
+        cls.client_default = cls.create_api_client({
             "name": "cap probe default", "client_id": "capprobe_default",
             "scopes": "assets:read"})
-        cls.client_uncapped = Client.create({
+        cls.client_uncapped = cls.create_api_client({
             "name": "cap probe uncapped", "client_id": "capprobe_uncapped",
             "scopes": "assets:read", "total_record_cap": -1,
             "max_page_limit": -1})
-        cls.client_500 = Client.create({
+        cls.client_500 = cls.create_api_client({
             "name": "cap probe 500", "client_id": "capprobe_500",
             "scopes": "assets:read", "max_page_limit": 500,
             "total_record_cap": 500})

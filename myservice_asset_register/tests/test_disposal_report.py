@@ -42,13 +42,14 @@ from datetime import date, datetime, timedelta
 
 from odoo import fields
 from odoo.exceptions import UserError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 from odoo.addons.myservice_asset_register.models.asset_disposal import (
     DEFAULT_SAP_DISPOSAL_TYPE,
     PROCEEDS_EXPECTED_METHODS,
     SAP_DISPOSAL_TYPE,
 )
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 # A period wide enough to hold anything a test dates deliberately, and
 # narrow enough that it is obviously a choice. Individual tests that are
@@ -57,7 +58,7 @@ WIDE_FROM = date(2000, 1, 1)
 WIDE_TO = date(2099, 12, 31)
 
 
-class DisposalCase(TransactionCase):
+class DisposalCase(CadraTransactionCase):
 
     def setUp(self):
         super().setUp()

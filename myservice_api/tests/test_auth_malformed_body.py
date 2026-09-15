@@ -26,7 +26,7 @@ import json
 import uuid
 
 from odoo.tests import tagged
-from odoo.tests.common import HttpCase
+from odoo.addons.myservice_nrs_base.tests.common import CadraHttpCase
 
 
 # Values a JSON body can legally carry where our code expects a string. Each
@@ -37,7 +37,7 @@ NON_STRINGS = ({"$ne": None}, 12345, ["vendra"], 3.5, True)
 
 
 @tagged("post_install", "-at_install")
-class TestAuthMalformedBody(HttpCase):
+class TestAuthMalformedBody(CadraHttpCase):
 
     @classmethod
     def setUpClass(cls):

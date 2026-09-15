@@ -19,11 +19,12 @@ from psycopg2 import IntegrityError
 
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools import mute_logger
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 from odoo.addons.myservice_workflow.models.workflow_config import (
     WorkflowRestAdapter,
 )
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 
 class FakeAdapter:
@@ -54,7 +55,7 @@ def fail_result(status=503, retryable=True):
 
 
 @tagged('post_install', '-at_install')
-class TestOutboundTagEvents(TransactionCase):
+class TestOutboundTagEvents(CadraTransactionCase):
 
     def setUp(self):
         super().setUp()

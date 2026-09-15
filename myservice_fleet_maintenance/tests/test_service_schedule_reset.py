@@ -24,11 +24,12 @@ Run with:
 """
 from datetime import date
 
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestServiceScheduleReset(TransactionCase):
+class TestServiceScheduleReset(CadraTransactionCase):
 
     def setUp(self):
         super().setUp()

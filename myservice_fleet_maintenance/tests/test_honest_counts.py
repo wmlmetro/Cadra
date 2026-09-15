@@ -12,11 +12,11 @@ is why this survived being read.
 import json
 
 from odoo.tests import tagged
-from odoo.tests.common import HttpCase
+from odoo.addons.myservice_nrs_base.tests.common import CadraHttpCase
 
 
 @tagged("post_install", "-at_install")
-class TestFleetDashboardCounts(HttpCase):
+class TestFleetDashboardCounts(CadraHttpCase):
 
     #: Past the 100-row window the breakdowns were tallied over.
     VEHICLES = 130

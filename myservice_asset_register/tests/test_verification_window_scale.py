@@ -33,7 +33,8 @@ Two things are asserted, and only one of them is a clock:
 import logging
 import time
 
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 _logger = logging.getLogger(__name__)
 
@@ -56,7 +57,7 @@ MAX_UPDATES = 64
 
 
 @tagged('post_install', '-at_install')
-class TestCategoryWindowAtScale(TransactionCase):
+class TestCategoryWindowAtScale(CadraTransactionCase):
 
     def _population(self):
         """The largest real category here, topped up to FLOOR if it is small.

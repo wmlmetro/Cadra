@@ -40,7 +40,10 @@ import logging
 import uuid
 
 from odoo.tests import tagged
-from odoo.tests.common import HttpCase, TransactionCase
+from odoo.addons.myservice_nrs_base.tests.common import (
+    CadraHttpCase,
+    CadraTransactionCase,
+)
 
 CALLBACK_URL = "/myservice/workflow/callback"
 TOKEN = "h18-callback-replay-secret"
@@ -132,7 +135,7 @@ class WorkflowCallbackFixture:
 
 
 @tagged("post_install", "-at_install")
-class TestCallbackReplayHttp(HttpCase, WorkflowCallbackFixture):
+class TestCallbackReplayHttp(CadraHttpCase, WorkflowCallbackFixture):
     """The published route, over real HTTP, twice."""
 
     def setUp(self):
@@ -521,7 +524,7 @@ class TestCallbackReplayHttp(HttpCase, WorkflowCallbackFixture):
 
 
 @tagged("post_install", "-at_install")
-class TestCallbackDisposition(TransactionCase, WorkflowCallbackFixture):
+class TestCallbackDisposition(CadraTransactionCase, WorkflowCallbackFixture):
     """The decision itself, and the log row both controllers now share.
 
     These are ORM tests rather than HTTP ones on purpose: `/api/v1`'s twin

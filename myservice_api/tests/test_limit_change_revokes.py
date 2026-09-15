@@ -14,17 +14,16 @@ import json
 import uuid
 
 from odoo.tests import tagged
-from odoo.tests.common import HttpCase
+from odoo.addons.myservice_nrs_base.tests.common import CadraHttpCase
 
 
 @tagged("post_install", "-at_install")
-class TestLimitChangeRevokesFamilies(HttpCase):
+class TestLimitChangeRevokesFamilies(CadraHttpCase):
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        Client = cls.env["myservice.api.client"]
-        cls.client_rec = Client.create({
+        cls.client_rec = cls.create_api_client({
             "name": "limit probe", "client_id": "limitprobe",
             "scopes": "assets:read", "total_record_cap": 500})
         cls.secret = cls.client_rec.rotate_secret()
@@ -94,7 +93,7 @@ class TestLimitChangeRevokesFamilies(HttpCase):
         self.assertEqual(self._refresh(refresh_token).status_code, 200)
 
     def test_another_clients_family_is_untouched(self):
-        other = self.env["myservice.api.client"].create({
+        other = self.create_api_client({
             "name": "limit probe bystander", "client_id": "limitprobe_other",
             "scopes": "assets:read"})
         other_secret = other.rotate_secret()

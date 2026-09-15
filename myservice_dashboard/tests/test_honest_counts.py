@@ -20,12 +20,12 @@ A `TransactionCase`: these are model methods and touch no `request`.
 from unittest.mock import patch
 
 from odoo import fields
-from odoo.tests.common import TransactionCase
 from odoo.tests import tagged
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestVendorCount(TransactionCase):
+class TestVendorCount(CadraTransactionCase):
 
     #: More than the six-row sample, so the old ceiling is visible.
     APPROVED = 9
@@ -96,7 +96,7 @@ class TestVendorCount(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
-class TestFleetCommandPanels(TransactionCase):
+class TestFleetCommandPanels(CadraTransactionCase):
     """The panels either answer or admit they did not.
 
     Handoff 15. `get_fleet_command()` is a seven-panel aggregator served both

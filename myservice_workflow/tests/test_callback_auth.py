@@ -34,7 +34,7 @@ import json
 import uuid
 
 from odoo.tests import tagged
-from odoo.tests.common import HttpCase
+from odoo.addons.myservice_nrs_base.tests.common import CadraHttpCase
 
 CALLBACK_URL = "/myservice/workflow/callback"
 TOKEN = "h17-callback-shared-secret"
@@ -43,7 +43,7 @@ LOGGER = "odoo.addons.myservice_workflow.controllers.callback"
 
 
 @tagged("post_install", "-at_install")
-class TestCallbackAuth(HttpCase):
+class TestCallbackAuth(CadraHttpCase):
 
     def setUp(self):
         super().setUp()

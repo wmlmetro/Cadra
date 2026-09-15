@@ -60,11 +60,12 @@ test appends `?context={"force_report_rendering": true}`, which
 """
 import json
 
-from odoo.tests import HttpCase, tagged
+from odoo.tests import tagged
+from odoo.addons.myservice_nrs_base.tests.common import CadraHttpCase
 
 
 @tagged('post_install', '-at_install')
-class TestPrintUrlRendersAndStamps(HttpCase):
+class TestPrintUrlRendersAndStamps(CadraHttpCase):
 
     def setUp(self):
         super().setUp()

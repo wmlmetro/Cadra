@@ -41,12 +41,13 @@ def test_list_pagination_cursor(client, capture):
     assert not (ids1 & ids2), f"page 1 and page 2 overlap: {ids1 & ids2}"
 
 
-def test_get_by_id(client, capture):
+def test_get_by_id(client, any_location, capture):
     """GET /api/v1/locations/<id> — single record."""
-    r = client.get("/api/v1/locations/1", params={"include": "children,ancestors"})
+    r = client.get(f"/api/v1/locations/{any_location}",
+                   params={"include": "children,ancestors"})
     capture("locations/get_by_id", r)
     body = assert_envelope_ok(r)
-    assert body["data"]["id"] == 1
+    assert body["data"]["id"] == any_location
     assert "children" in body["data"]
     assert "ancestors" in body["data"]
 
@@ -93,30 +94,31 @@ def test_patch(client, test_location, capture):
     assert body["data"]["description"] == "patched by test_locations.test_patch"
 
 
-def test_children(client, capture):
+def test_children(client, any_location, capture):
     """GET /api/v1/locations/<id>/children — direct children."""
-    r = client.get("/api/v1/locations/1/children")
+    r = client.get(f"/api/v1/locations/{any_location}/children")
     capture("locations/children", r)
     body = assert_envelope_ok(r)
     assert isinstance(body["data"], list)
 
 
-def test_ancestors(client, capture):
+def test_ancestors(client, any_location, capture):
     """GET /api/v1/locations/<id>/ancestors — root → parent chain."""
     # Pick a deep-enough location for ancestors to be non-empty
     list_r = client.get("/api/v1/locations", params={"limit": 100})
     deep = next((it for it in list_r.json()["data"]
                  if it.get("parent_path") and it["parent_path"].count("/") >= 3), None)
-    target_id = deep["id"] if deep else 1
+    target_id = deep["id"] if deep else any_location
     r = client.get(f"/api/v1/locations/{target_id}/ancestors")
     capture("locations/ancestors", r)
     body = assert_envelope_ok(r)
     assert isinstance(body["data"], list)
 
 
-def test_descendants(client, capture):
+def test_descendants(client, any_location, capture):
     """GET /api/v1/locations/<id>/descendants — paginated descendant tree."""
-    r = client.get("/api/v1/locations/1/descendants", params={"limit": 5})
+    r = client.get(f"/api/v1/locations/{any_location}/descendants",
+                   params={"limit": 5})
     capture("locations/descendants", r)
     body = assert_envelope_ok(r)
     assert isinstance(body["data"], list)

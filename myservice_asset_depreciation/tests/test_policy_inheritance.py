@@ -10,11 +10,12 @@ Run with:
          --test-tags /myservice_asset_depreciation --stop-after-init
 """
 from odoo.exceptions import ValidationError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
+from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestPolicyInheritance(TransactionCase):
+class TestPolicyInheritance(CadraTransactionCase):
 
     def setUp(self):
         super().setUp()
