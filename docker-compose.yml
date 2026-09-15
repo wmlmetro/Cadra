@@ -57,6 +57,14 @@ services:
       CADRA_TEST_CLIENT_SECRET: ${CADRA_TEST_CLIENT_SECRET:-}
       CADRA_BOOTSTRAP_MODULES: ${CADRA_BOOTSTRAP_MODULES:-}
       CADRA_SEED_PROFILE: ${CADRA_SEED_PROFILE:-core}
+      # Handoff 25. `bootstrap.py` records what kind of database it is
+      # provisioning (`cadra.database_class`), and both test suites
+      # refuse any database not marked `test`. These two decide it, and
+      # they are read INSIDE the container — `docker compose run`
+      # forwards only what this block names, so omitting them makes
+      # `ensure_database_class()` dead code on every path that matters.
+      CADRA_DATABASE_CLASS: ${CADRA_DATABASE_CLASS:-}
+      CADRA_PROFILE: ${CADRA_PROFILE:-}
       # Optional HTTPS email relay (for DO clusters where SMTP egress is
       # blocked). Both blank → ir.mail_server uses native SMTP.
       CADRA_EMAIL_RELAY_URL: ${CADRA_EMAIL_RELAY_URL:-}
