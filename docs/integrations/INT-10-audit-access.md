@@ -75,10 +75,10 @@ Eleven questions, drawn from specification §13.4, PRD §5.11 and §8.14, and fr
 | Custodianship chain for any asset | **Built** — handoff 14. §2.3 |
 | Asset register snapshot at any historical date | **Built, with a published boundary** — handoff 16. §2.5 |
 | Disposal report with documentation refs, per period | **Built** — handoff 16. §2.9 |
-| Access changes for any user, per period | **Built, and its honest answer is that the record does not exist** — handoff 23. §2.10 |
+| Access changes for any user, per period | **Built** — handoff 23. Its honest answer was that no record existed; **handoff 24 started one**, so the report now answers for the period from `fidelity.record_starts_at` onward and still says `none` for anything before it. §2.10, §2.10c |
 | Configuration change log | **Built, and thin — 22 recoverable keys estate-wide** — handoff 23. §2.10a |
 
-**All five are now built.** The two log-shaped ones were never reports missing from an existing record — there was no record — and that has not changed. What handoff 23 built is the endpoint that says so, in the response, in words, with the measurement behind it. §2.10 is now the answer rather than the gap; §2.10b is what it would take to make the answer a different one.
+**All five are now built.** The two log-shaped ones were never reports missing from an existing record — there was no record. What handoff 23 built is the endpoint that says so, in the response, in words, with the measurement behind it. **Handoff 24 then built the record itself for access changes** (§2.10c): grants, removals and implication changes are now written append-only as they happen, with the acting user, so the fourth report answers rather than only explaining. The configuration log remains as handoff 23 left it. §2.10b is what it would take to recover the period *before* the record began, and it remains NRS's decision.
 
 Legend: **Yes** · **Partly** — answerable but incomplete or degraded, and the caller is not told · **No**.
 
@@ -391,7 +391,37 @@ Nothing here is retroactive. **No query, no tool and no forensic step against th
 | An audit module (OCA `auditlog` or equivalent) | A general model-level change log, not just users. | Larger, and a vendored tree to carry through every upgrade. |
 | Set `log_db` in the server configuration | Populates `ir_logging`. | Cheap, but it is a *log*, not a queryable change record, and it grows without bound. |
 
-**Recommendation: the first.** It is the smallest change that makes §13.4's fourth report answerable, it reuses machinery that already exists for the register snapshot, and it degrades honestly in the meantime — the report already says `partial` the moment tracking rows appear.
+**Recommendation at the time: the first.** ~~It is the smallest change that makes §13.4's fourth report answerable, it reuses machinery that already exists for the register snapshot, and it degrades honestly in the meantime.~~
+
+### ⚠️ 2.10c The forward record exists — handoff 24, and it is NOT the option recommended above
+
+**The gap is closed forward. It is still not closed backward, and it never will be.**
+
+`myservice.api.access.change` is an append-only record of grants, removals and implication changes, written as they happen with the acting user. `write` and `unlink` raise unconditionally so the guard holds under `sudo()`; rows are written only as a side effect of membership actually moving.
+
+**The recommendation above was not followed, and the reason is the whole point.** `tracking=True` on `res.users.group_ids` would have recorded only what passes through `res.users.write` — and the writers were enumerated before the hooks were placed, which found that to be **about half** of them. Measured against Odoo 19 core:
+
+| Writer | Passes `res.users.write`? |
+|---|---|
+| `res.users.write` with `group_ids` — including the admin user form, which on 19 submits the real field because the reified `sel_groups_*` pseudo-fields were deleted | yes |
+| `res.users.create` — every seed script, the API-client provisioner, and `auth_signup`'s template `copy()`; also `_default_groups()`, which puts a user in a group a create never mentioned | **no** |
+| `res.groups.write` with `user_ids` — `scripts/bootstrap.py` and eight security XML files that re-apply on **every module upgrade**, not only install | **no** |
+| `res.groups.write` with `implied_ids` — and `res.config.settings` group toggles, which are this case | **no** |
+| `res.users.unlink` — `ON DELETE CASCADE` erases every membership row | **no** |
+
+The last of those is the one that most changes the picture. **On Odoo 19 group implication writes no membership rows at all**: `res.groups.all_implied_ids` is declared `compute=` with no `store=True`, so adding an implication grants every member of that group the rights of another group while `res_groups_users_rel` is untouched. There are no "implied rows" to record — only an implication edge, which is recorded here as its own event because it moves what a group *means* rather than who is in it.
+
+**What the report now publishes.** `data.fidelity.record_starts_at` is the instant this tenant's record begins, measured from the earliest row it holds at request time — never a migration date, and `null` until the first change is recorded. `summary.group_changes_in_period` is a real count. `summary.coverage` gains a third value:
+
+| `coverage` | Meaning |
+|---|---|
+| `recorded` | The record covers the whole requested period. The changes listed are every grant and removal in it. |
+| `partial` | The period straddles the start. The count is a **lower bound**. |
+| `none` | The period ended before the record began, or no record exists on this tenant yet. **Nothing can be said about it** — and an empty table here must not be read as "no access changed". |
+
+**A change nobody can attribute says so.** A grant made by a module upgrade, a cron or the command line arrives as `uid 1` and is recorded with the actor `__system__` and `attributable: false`, never a person's name. Report 23 measured 100% of this estate's ACL stamps as `uid 1`; a record rendering those as "the administrator granted this" would invent somebody.
+
+**Still open, and still NRS's decision:** the reconstruction of grants made *before* the record began. The three options in the table above remain the options, and none of them is retroactive. What has changed is that the clock has started, so the unrecoverable period stops growing.
 
 ### 2.11 "Give me the whole register." — and why every answer above is capped
 
