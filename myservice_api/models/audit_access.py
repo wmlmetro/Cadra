@@ -71,7 +71,9 @@ ACCESS_EVENT_MODIFIED = 'account_modified'
 #: by default because an auditor asking "who has access" is not asking about
 #: the ORM's own uid 1, and four rows of framework plumbing at the top of
 #: every answer is how a report teaches its reader to skim.
-_STRUCTURAL_LOGINS = ('__system__', 'public', 'portaltemplate', 'default')
+#: Verified present on these tenants rather than assembled from memory — a
+#: list that reads as measured has to be.
+_STRUCTURAL_LOGINS = ('__system__', 'public', 'portaltemplate')
 
 
 class ResUsersAccessReport(models.Model):
@@ -100,9 +102,14 @@ class ResUsersAccessReport(models.Model):
         if not field:
             return set()
         relation = self._fields[field].relation
+        # `current_schema()`, because the claim is about THIS deployment's
+        # table. Without it the query answers about any table anywhere in
+        # the database named `res_groups_users_rel`, which is a broader
+        # statement than the note built on it makes.
         self.env.cr.execute(
             "SELECT column_name FROM information_schema.columns "
-            "WHERE table_name = %s", (relation,))
+            "WHERE table_name = %s AND table_schema = current_schema()",
+            (relation,))
         return {row[0] for row in self.env.cr.fetchall()}
 
     @api.model
@@ -277,10 +284,25 @@ class ResUsersAccessReport(models.Model):
         # Inclusive of the whole closing day: a period given as dates must
         # not silently exclude everything that happened on its last one.
         start = fields.Datetime.to_datetime(date_from)
+        # `microsecond=999999` is not fussiness. Without it the closing
+        # instant is 23:59:59.000000 and everything in the last second of a
+        # period documented as "inclusive of the whole closing day" falls
+        # outside it — a one-second hole at the top of every period, on a
+        # report whose whole value is that its bounds are what they say.
         end = fields.Datetime.to_datetime(date_to).replace(
-            hour=23, minute=59, second=59)
+            hour=23, minute=59, second=59, microsecond=999999)
 
         groups_field = fidelity['groups_field']
+        # ONE search, not one per user. This ran a `myservice.api.client`
+        # search inside the loop; on a tenant with a few thousand accounts
+        # that is a few thousand queries on a read-only report, and the
+        # per-tenant account counts this was written against are a fixture,
+        # not an estate.
+        clients_by_user = {
+            c.user_id.id: c
+            for c in self.env['myservice.api.client'].sudo().search(
+                [('user_id', 'in', users.ids)])
+            if c.user_id}
         events = []
         roster = []
         for user in users:
@@ -288,8 +310,7 @@ class ResUsersAccessReport(models.Model):
                 (user[groups_field] if groups_field else user.browse()
                  ).mapped('full_name' if 'full_name' in
                           self.env['res.groups']._fields else 'name'))
-            client = self.env['myservice.api.client'].sudo().search(
-                [('user_id', '=', user.id)], limit=1)
+            client = clients_by_user.get(user.id)
             roster.append({
                 'user_id': user.id,
                 'login': user.login,

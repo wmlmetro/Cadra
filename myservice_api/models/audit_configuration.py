@@ -46,9 +46,26 @@ import re
 from odoo import api, fields, models
 
 
-#: Same three-way distinction the disposal report's `sap_coverage` makes.
+#: How much of the question this report can answer, as one value a renderer
+#: can branch on — the same contract `sap_coverage` and the access report's
+#: `coverage` publish, and it must carry the same weight.
+#:
+#: There were three branches and two values here, so a consumer obeying the
+#: published rule — *branch on `coverage`, never on `statement`* — could not
+#: tell "parameters in the period, none of them modified" from "parameters
+#: modified, and we hold only the last write". It had to fall back to reading
+#: `summary.modified_after_create`, which is exactly the "a client rendering
+#: its own sentence off two raw counts" failure the disposal report's
+#: `sap_coverage` docstring exists to prevent. Four values, one per answer.
 CONFIG_COVERAGE_EMPTY = 'empty'
+CONFIG_COVERAGE_NO_MODIFICATIONS = 'no_modifications'
 CONFIG_COVERAGE_LAST_WRITE_ONLY = 'last_write_only'
+#: Reachable only if this deployment grows a value history. Unreachable today
+#: and deliberately present: the access report's whole future-proofing story
+#: is that a deployment which grows a history is DESCRIBED rather than
+#: misreported, and a sibling report that can never say so would keep
+#: publishing `last_write_only` for ever while the database held more.
+CONFIG_COVERAGE_PARTIAL = 'partial'
 
 #: Odoo stamps `create_date` and `write_date` in the same transaction, so a
 #: parameter that has never been touched since it was seeded still shows the
@@ -67,9 +84,30 @@ CONFIG_SAME_TRANSACTION_SECONDS = 2
 #: Deliberately a NAME rule and not a list of the keys that exist today. The
 #: keys that exist today are the ones somebody remembered; the rule has to
 #: cover the one added next month by a person who never reads this file.
-_SECRET_KEY_RE = re.compile(
-    r"(?:^|[._-])(secret|password|passwd|pwd|token|api_?key|private_?key|"
-    r"credential|salt|signature|cert|jwt)(?:$|[._-])", re.IGNORECASE)
+#: Distinctive enough to match ANYWHERE in the key, delimiters or not. This
+#: tier exists because the first version required a delimiter on both sides,
+#: which quietly failed to redact `database.secretkey`, `cadra.jwtSecret` and
+#: `myservice_api.apikey` — and the person who writes `jwtSecret` is exactly
+#: the person the rule claims to cover without their having read this file.
+#: None of these words appears inside an ordinary English word.
+_SECRET_SUBSTRING_RE = re.compile(
+    r"secret|password|passwd|api_?key|private_?key|credential|jwt",
+    re.IGNORECASE)
+
+#: Common English fragments. `cert` sits inside `concert` and `salt` inside
+#: `salted`, so these need a real boundary — a rule that redacts
+#: `cadra.concert_hall` is a rule somebody switches off, and then the real
+#: secrets go with it. Two shapes, kept separate because they need different
+#: case sensitivity:
+_SECRET_DELIMITED_RE = re.compile(
+    r"(?:^|[._-])(?:pwd|token|salt|signature|cert|key)(?=$|[._-])",
+    re.IGNORECASE)
+
+#: ...and the camelCase hump, which must be case-SENSITIVE. Folding case here
+#: is what made the first version fire on `concert_hall`: with `re.I` the
+#: lowercase `cert` after `con` looks exactly like a hump.
+_SECRET_CAMEL_RE = re.compile(
+    r"(?<=[a-z0-9])(?:Pwd|Token|Salt|Signature|Cert|Key)(?=$|[A-Za-z._-])")
 
 #: Values that are structurally identifying rather than secret, but which
 #: nothing outside the deployment has any business reading.
@@ -85,7 +123,10 @@ class IrConfigParameterAuditReport(models.Model):
 
     @api.model
     def _is_secret_key(self, key):
-        return bool(_SECRET_KEY_RE.search(key or '')) or key in _OPAQUE_KEYS
+        key = key or ''
+        return bool(_SECRET_SUBSTRING_RE.search(key)
+                    or _SECRET_DELIMITED_RE.search(key)
+                    or _SECRET_CAMEL_RE.search(key)) or key in _OPAQUE_KEYS
 
     @api.model
     def _redact(self, key, value):
@@ -133,9 +174,13 @@ class IrConfigParameterAuditReport(models.Model):
         """Re-measured each request, for the reason `audit_access.py` gives."""
         transient_rows = self._config_transient_settings_rows()
         tracking_rows = self._config_tracking_rows()
-        # `getattr` for the reason `audit_access.py` gives at the same line.
-        tracked = any(getattr(f, 'tracking', False)
-                      for f in self._fields.values())
+        # The `value` field specifically, not "any field on the model".
+        # `any(...)` over every field was true the moment ANOTHER module
+        # added a tracked field of its own, and the report would then claim
+        # a value history it does not have — a fidelity block that overstates
+        # is worse than one that is merely thin. `getattr` because `tracking`
+        # is contributed by `mail` only to the field types that support it.
+        tracked = bool(getattr(self._fields.get('value'), 'tracking', False))
 
         return {
             'recoverable': [
@@ -200,13 +245,28 @@ class IrConfigParameterAuditReport(models.Model):
     # ── the statement above the table ───────────────────────────────
 
     @api.model
-    def _config_change_coverage(self, rows, changed):
+    def _config_change_coverage(self, rows, changed, fidelity=None):
+        """One enum plus the English for it, correct in all four cases.
+
+        Branch on the enum, never on the wording. Deliberately NOT run
+        through `_()`, for the reason the disposal report gives: a published
+        payload string that changes with the acting user's language is not
+        something a consumer can store, diff or reconcile.
+        """
+        if fidelity and (fidelity.get('tracked')
+                         or fidelity.get('tracking_rows')):
+            return CONFIG_COVERAGE_PARTIAL, (
+                "This deployment has grown a configuration history since "
+                "this report was written — see `fidelity`. The rows below "
+                "still carry the LAST write only; the new source is not yet "
+                "read, and until it is this report understates what the "
+                "database holds.")
         if not rows:
             return CONFIG_COVERAGE_EMPTY, (
                 "No configuration parameter was created or written in this "
                 "period.")
         if not changed:
-            return CONFIG_COVERAGE_LAST_WRITE_ONLY, (
+            return CONFIG_COVERAGE_NO_MODIFICATIONS, (
                 "%d parameter(s) fall in this period and none of them was "
                 "modified after it was created — every row is a parameter "
                 "being set for the first time. Cadra stores no previous "
@@ -234,8 +294,9 @@ class IrConfigParameterAuditReport(models.Model):
         """
         fidelity = self.configuration_change_fidelity()
         start = fields.Datetime.to_datetime(date_from)
+        # `microsecond=999999` — see the same line in `audit_access.py`.
         end = fields.Datetime.to_datetime(date_to).replace(
-            hour=23, minute=59, second=59)
+            hour=23, minute=59, second=59, microsecond=999999)
 
         params = self.sudo().search([], order='key')
         rows = []
@@ -250,6 +311,12 @@ class IrConfigParameterAuditReport(models.Model):
                 > CONFIG_SAME_TRANSACTION_SECONDS)
             value, redacted = self._redact(param.key, param.value)
             row = {
+                # The cursor walks ascending ids, so the id is published:
+                # a report ordered by `key` cannot be paged honestly with
+                # the cursor this API issues. Rows still carry `key`, so a
+                # caller that has walked the period can sort it however it
+                # likes — the trade `/reports/disposals` documents.
+                'id': param.id,
                 'key': param.key,
                 'current_value': value,
                 'value_is_redacted': redacted,
@@ -265,7 +332,8 @@ class IrConfigParameterAuditReport(models.Model):
             if was_changed:
                 changed.append(row)
 
-        coverage, statement = self._config_change_coverage(rows, changed)
+        coverage, statement = self._config_change_coverage(
+            rows, changed, fidelity)
         by_human = [r for r in changed
                     if r['last_written_by']
                     and r['last_written_by']['id'] != self.env.ref(

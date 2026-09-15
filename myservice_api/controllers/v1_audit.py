@@ -35,9 +35,14 @@ from .utils import (
     ERR_INVALID_REQUEST,
     SCOPE_IDENTITY_READ,
     SCOPE_SETTINGS_READ,
+    decode_cursor,
+    encode_cursor,
     err,
+    flag_truncation,
     get_params,
     ok,
+    parse_limit,
+    record_cap,
 )
 from .v1 import PAGINATION_QUERY_PARAMS, cadra_route
 # Imported rather than re-implemented, underscore and all. `from` and `to`
@@ -63,6 +68,72 @@ _PERIOD_QUERY_PARAMS = (
                      "bound would silently lose everything that happened on "
                      "31 March.")},
 )
+
+
+#: `limit` and `cursor` for the access report, spelled out rather than taken
+#: from `PAGINATION_QUERY_PARAMS`. The names and the parsing are identical —
+#: `parse_limit` and `decode_cursor`, same clamping, same 400 on a cursor we
+#: did not issue — but the UNIT is not a row, it is an ACCOUNT, and the
+#: shared description says "page size" without saying of what.
+#:
+#: That distinction is the whole reason this list exists: `?limit=1` returns
+#: one account and BOTH of that account's events, which reads as the
+#: parameter being ignored unless the contract says what a page is made of.
+#: A published parameter whose behaviour surprises its reader is the same
+#: defect as one that does nothing.
+_ACCOUNT_PAGE_QUERY_PARAMS = (
+    {"name": "limit", "schema": {"type": "integer", "default": 50,
+                                 "minimum": 1},
+     "description": (
+         "Page size in ACCOUNTS, default 50 — not in events. One page is a "
+         "window of accounts; `roster` is that window and `events` is every "
+         "event belonging to it, so a page of one account may carry two "
+         "events. `pagination.total_estimate` counts accounts for the same "
+         "reason. Silently clamped to the ceiling for your credential.")},
+    {"name": "cursor", "schema": {"type": "string"},
+     "description": (
+         "Opaque cursor from a previous response's `pagination.next_cursor`, "
+         "walking ascending account id. A cursor this API did not issue is a "
+         "400 rather than a silent restart at page one. A null "
+         "`next_cursor` means either the end or that your credential's "
+         "record cap is exhausted — `_warnings.truncated` tells them "
+         "apart.")},
+)
+
+
+def _page(rows, key, qs, total):
+    """Cap, then cursor, then limit — the disposal report's order exactly.
+
+    The cap is applied FIRST and to the whole period, so the window a capped
+    credential sees is stable across pages rather than shifting as it walks.
+    `flag_truncation` is what makes `ok()` say so; a shortened schedule that
+    does not announce itself is the defect the record cap exists to avoid
+    creating.
+
+    `key` reads the ascending integer every row is ordered by. Cursor
+    pagination walks ascending ids, so these reports order by id and not by
+    timestamp — the same trade `/reports/disposals` makes, and for the same
+    reason. Every row carries its own `at`/`last_written_at`, so a caller
+    that has walked the whole period can order it however it likes.
+    """
+    cap = record_cap()
+    if cap is not None:
+        rows = rows[:cap]
+        flag_truncation(cap, total)
+
+    cursor_data = decode_cursor(qs.get("cursor"))
+    if "last_id" in cursor_data:
+        # No coercion and no fallback: `decode_cursor` has already proved
+        # `last_id` is an int or refused the request with a 400 (handoff 22).
+        rows = [r for r in rows if key(r) > cursor_data["last_id"]]
+
+    limit = parse_limit(qs)
+    page = rows[:limit]
+    next_cursor = None
+    if page and len(rows) > limit:
+        next_cursor = encode_cursor({"last_id": key(page[-1])})
+    return page, {"next_cursor": next_cursor, "previous_cursor": None,
+                  "total_estimate": total}
 
 
 def _period(qs):
@@ -96,7 +167,7 @@ class CadraAuditReportsV1(http.Controller):
                  response_schema={
                      "$ref": "#/components/schemas/AccessChangeReport"},
                  query_params=[*_PERIOD_QUERY_PARAMS,
-                               *PAGINATION_QUERY_PARAMS])
+                               *_ACCOUNT_PAGE_QUERY_PARAMS])
     def access_changes_report(self, **kwargs):
         """*"Who was granted or removed from what, when, and by whom?"*
 
@@ -121,6 +192,20 @@ class CadraAuditReportsV1(http.Controller):
         It is labelled as current state throughout and is never presented as
         history.
 
+        ── A page is a window of ACCOUNTS, and both lists describe it ──
+
+        `roster` and `events` are two views of the SAME accounts, paged
+        together on one cursor over ascending account id. Paging them
+        independently would let a caller hold an event for an account whose
+        roster row is three pages away, and there is no honest way to name
+        that state. So `?limit=1` returns one account and every event
+        belonging to it — which is why this route spells out its own `limit`
+        and `cursor` descriptions instead of taking the shared ones.
+
+        `summary` and `fidelity` describe the WHOLE PERIOD on every page, so
+        the statement above the table does not change under a reader who has
+        paged; `pagination.total_estimate` counts accounts.
+
         ── Why `data` is an OBJECT ──
 
         The same reason the register snapshot's is. There is nowhere honest
@@ -144,14 +229,31 @@ class CadraAuditReportsV1(http.Controller):
 
         report = request.env["res.users"].sudo().access_change_report(
             date_from, date_to)
-        return ok(data={
-            "period": {"from": str(date_from), "to": str(date_to),
-                       "bounds": "inclusive"},
-            "summary": report["summary"],
-            "fidelity": report["fidelity"],
-            "events": report["events"],
-            "roster": report["roster"],
-        })
+
+        # ONE window of users, two views of it. `roster` and `events`
+        # describe the SAME page — paging them independently would let a
+        # caller hold an event for a user whose roster row is three pages
+        # away, and there is no honest way to name that state. `summary` and
+        # `fidelity` describe the whole period on every page.
+        roster = sorted(report["roster"], key=lambda r: r["user_id"])
+        page, pagination = _page(roster, lambda r: r["user_id"], qs,
+                                 report["summary"]["accounts"])
+        on_page = {r["user_id"] for r in page}
+        events = [e for e in sorted(report["events"],
+                                    key=lambda e: (e["user_id"], e["event"]))
+                  if e["user_id"] in on_page]
+
+        return ok(
+            data={
+                "period": {"date_from": str(date_from), "date_to": str(date_to),
+                           "inclusive": "both"},
+                "summary": report["summary"],
+                "fidelity": report["fidelity"],
+                "events": events,
+                "roster": page,
+            },
+            pagination=pagination,
+        )
 
     # ── Configuration: GET /api/v1/reports/configuration-changes ───
 
@@ -192,10 +294,17 @@ class CadraAuditReportsV1(http.Controller):
 
         report = request.env["ir.config_parameter"].sudo(
         ).configuration_change_report(date_from, date_to)
-        return ok(data={
-            "period": {"from": str(date_from), "to": str(date_to),
-                       "bounds": "inclusive"},
-            "summary": report["summary"],
-            "fidelity": report["fidelity"],
-            "parameters": report["rows"],
-        })
+        rows = sorted(report["rows"], key=lambda r: r["id"])
+        page, pagination = _page(rows, lambda r: r["id"], qs,
+                                 report["summary"]["parameters_in_period"])
+
+        return ok(
+            data={
+                "period": {"date_from": str(date_from), "date_to": str(date_to),
+                           "inclusive": "both"},
+                "summary": report["summary"],
+                "fidelity": report["fidelity"],
+                "parameters": page,
+            },
+            pagination=pagination,
+        )

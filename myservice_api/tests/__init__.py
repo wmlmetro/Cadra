@@ -4,3 +4,6 @@ from . import test_limit_change_revokes
 from . import test_token_ttl_ceiling
 from . import test_auth_malformed_body
 from . import test_custody_is_not_capped
+from . import test_audit_access_report
+from . import test_audit_configuration_report
+from . import test_auditor_access
