@@ -38,7 +38,7 @@ What is built, with the evidence and the measurements behind each item. Moved ou
 | The test suite knows where it is allowed to write (handoff 25) | **built** — both suites read `cadra.database_class` from the target database with SQL and refuse anything but `test`; **absent refuses**. No bypass flag. The first cut read it through `get_param`, which is `@ormcache`d per worker, and leaked **24 writing tests onto an unmarked database** during its own proof run. |
 | A record says it is a fixture, by derivation (handoff 26) | **built** — `is_test_fixture` on **14 models**, stamped from the acting credential at creation by `cadra.test.fixture.mixin`. Overwritten rather than defaulted, refused by `write()` unconditionally, in no `_WRITABLE_FIELDS`, published on the asset, location and request envelopes and annotated in OpenAPI. **Not retroactive, and documented as such in the field help, the changelog and the OpenAPI annotation.** Verified: 8 of 8 local tenants at 14 columns each; 8 in-registry tests including the ABSENT case (a record created under an unflagged credential must NOT be labelled) and the archived-credential case. |
 | A creatable model with no self-label fails the suite (handoff 26) | **built** — `test_every_model_a_first_party_path_creates_is_classified` enumerates every model any first-party path can create and fails unless it is labelled, labelled another way, or exempted **with a written reason**. The labelled set is PARSED out of `test_fixture.py`, not copied into the guard. Six mutation proofs cover the spellings that blinded the previous guard, including `Client = env[MODEL]` then `Client.create(...)` and `self._helper().create(...)`. |
-| The silent-instrument sweep (handoff 26) | **24 sites found, 10 fixed.** The worst was in the newest file: `remove_test_residue.py` read its production refusal through the ormcached `get_param` — the exact call the handoff that wrote that script had just proved unsafe. Also fixed: `bootstrap.py` minting a DUPLICATE API client because the existing one was archived (2 sites), `bootstrap.sh` turning a FAILED psql measurement into a confident "fresh DB" and running `odoo -i` against a populated database, `audit_report_fingerprint.sh` proving "nothing was written" by measuring nothing, and `seed_asset_costs.py` gating on a database NAME allowlist that did not contain `jaizbankplc`. The remaining 14 are listed with file and line in `docs/GO-LIVE.md` §10.2. |
+| The silent-instrument sweep (handoff 26) | **24 sites found, 13 fixed.** The worst was in the newest file: `remove_test_residue.py` read its production refusal through the ormcached `get_param` — the exact call the handoff that wrote that script had just proved unsafe. Also fixed: `bootstrap.py` minting a DUPLICATE API client because the existing one was archived (2 sites), `bootstrap.sh` turning a FAILED psql measurement into a confident "fresh DB" and running `odoo -i` against a populated database, `audit_report_fingerprint.sh` proving "nothing was written" by measuring nothing, and `seed_asset_costs.py` gating on a database NAME allowlist that did not contain `jaizbankplc`. The remaining 11 are listed with file and line in `docs/GO-LIVE.md` §10.2. |
 | The open-items register (handoff 26) | **built** — `docs/GO-LIVE.md` Part II, one entry per outstanding item, tagged `[open]` / `[verified]` / `[landed, keep it that way]`, each with its evidence and the report it came from. **`admin`/`admin` was verified accepted on all eight local tenants on 2026-09-15** — a statement about what bootstrap leaves behind, not about this laptop. |
 | Odoo 19 migration | in flight, separate track |
 
@@ -114,13 +114,14 @@ from a file this handoff changed.
 
 | Suite | Result |
 |---|---|
-| `pytest tests/` (first, as CI runs it) | **829 passed, 9 skipped, 0 failed** |
-| In-registry, `myservice_api` | **0 failed, 0 error(s) of 198 tests** |
+| `pytest tests/` (first, as CI runs it) | **836 passed, 9 skipped, 0 failed** |
+| In-registry, CI's 11 modules | **0 failed, 0 error(s) of 524 tests** |
 
-829 against report 25's 811: the difference is exactly the 18 tests this
-handoff added (7 in `test_fixture_patterns_agree.py`, 11 in
-`test_source_guards.py`) — checked, not assumed. The 9 skips are report 25's
-9, unchanged and from no file this handoff touched.
+**Both denominators checked, not the exit codes.** 836 against report 25's
+811 is exactly the 25 pytest tests this handoff added (7 pattern-parity, 13
+source-guard, 5 published-label); 524 against its 516 is exactly the 8
+in-registry tests added. Neither run contains `of 0 tests` or a `CRITICAL`.
+The 9 skips are report 25's 9, unchanged, from no file this handoff touched.
 
 **Where the programme resumes from: `docs/GO-LIVE.md` Part II.** There is no
 handoff 27. Contracted core scope was complete at handoff 23; what stands

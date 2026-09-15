@@ -443,7 +443,8 @@ it should be put to them in those terms.
 
 Handoff 26 §B swept `scripts/` and every maintenance path for one shape: **a
 step that operates on a named thing, finds no such thing, and treats zero as
-done.** It found **24 distinct sites**. Ten were fixed; the rest are recorded
+done.** It found **24 distinct sites**. **Thirteen were fixed** and one more was
+documented in place; the remaining eleven are recorded
 here because they are real and none of them is urgent.
 
 ### 10.1 · Fixed in handoff 26 — `[landed, keep it that way]`
