@@ -3017,8 +3017,11 @@ _CREDENTIAL_EVASIONS = [
 # body to the unauthenticated inbound employee endpoint got a 500.
 #
 # It is a guard rather than a fix note because the attribute is real on Odoo
-# 15 (`dist/`), the 15 stack is still production, and anyone reading a 15
-# controller for a pattern will copy a line that works there and 500s here.
+# 15 in `dist/`, and anyone reading a 15 controller for a pattern will copy a
+# line that works there and 500s here. The reason used to read "the 15 stack
+# is still production" — handoff 20 deleted that stack and every profile now
+# resolves to 19, so `dist/` being readable source in the tree is the whole of
+# what keeps this guard earning its place. Corrected in handoff 24.
 # `request.get_json_data()` is the replacement.
 _DEAD_REQUEST_ATTRS = {
     "jsonrequest": "an attribute of the JSON-RPC dispatcher, not of request; "

@@ -23,15 +23,29 @@ tests are organised around the ways it could rot:
    nobody has ever executed is not future-proofing, it is a comment. All
    three of its disjuncts are driven directly here.
 
-3. **`group_changes_in_period` is a STRUCTURAL zero.** It is in the payload
-   so that a consumer counting access changes sees the absence rather than
-   inferring it from a key that is not there. A key that vanishes when the
-   count is zero is exactly the defect.
+3. **`group_changes_in_period` is a real count that is PRESENT at zero.**
+   It was a structural zero until handoff 24 gave this system a forward
+   record (`myservice.api.access.change`), and the half of that argument
+   which was always the point survives: the key is in the payload whether or
+   not it is zero, so a consumer counting access changes sees the absence
+   rather than inferring it from a key that is not there.
 
-4. **It writes nothing.** Fingerprinted by md5 over the five tables it could
+   The half that had to go is the ZERO ITSELF. A grant made inside the
+   period is now counted, so a test pinning `== 0` over a live period would
+   be pinning the absence of the feature — and would pass or fail on
+   whatever the tenant happened to hold, which is the defect this suite is
+   scoped against everywhere else. So the zero is asserted over a period the
+   record cannot reach, and the counting is asserted as a DELTA across a
+   grant the test makes itself. `coverage` is what tells a
+   zero-because-nothing-happened from a zero-because-the-record-does-not-
+   reach-this-period.
+
+4. **It writes nothing.** Fingerprinted by md5 over the tables it could
    plausibly touch, before and after, with the precommit callbacks run on
    both sides so a tracked write cannot hide behind "tracking rows are not
-   written until commit".
+   written until commit". The access record itself is one of them, and it is
+   the one that matters most: a report that appended to the record it
+   reports on would be manufacturing its own evidence.
 
 **Every assertion about events and roster membership here is SCOPED to
 records this test created.** `myservice_api/tests` runs in CI after
@@ -58,9 +72,15 @@ from datetime import date, datetime, timedelta
 from odoo import fields
 from odoo.tests import TransactionCase, tagged
 
+from odoo.addons.myservice_api.models.access_change import (
+    ACCESS_EVENT_GRANTED,
+    ACCESS_EVENT_REMOVED,
+    SYSTEM_ACTOR,
+)
 from odoo.addons.myservice_api.models.audit_access import (
     ACCESS_COVERAGE_NONE,
     ACCESS_COVERAGE_PARTIAL,
+    ACCESS_COVERAGE_RECORDED,
     ACCESS_EVENT_CREATED,
     ACCESS_EVENT_MODIFIED,
     _STRUCTURAL_LOGINS,
@@ -79,6 +99,15 @@ DEAD_TO = date(2001, 12, 31)
 #: The columns whose presence on the membership table would turn `none` into
 #: something better. Mirrors the set `access_change_fidelity` intersects on.
 AUDIT_COLUMNS = {'create_date', 'create_uid', 'write_date', 'write_uid'}
+
+#: The four facts the forward record makes answerable, and only from the
+#: instant it begins. `access_change_fidelity` moves them between
+#: `recoverable` and `not_recoverable` by MEASUREMENT, so every test below
+#: asserts the RULE — which list they are in, given `record_starts_at` — and
+#: never the frozen list they happened to be in the day it was written.
+RECORDED_FACTS = frozenset((
+    'group_granted', 'group_removed', 'group_change_actor',
+    'group_change_timestamp'))
 
 
 class AccessReportCase(TransactionCase):
@@ -104,6 +133,33 @@ class AccessReportCase(TransactionCase):
             {"name": "Audit access test %s" % login, "login": login}, **vals))
         self._made = (getattr(self, "_made", []) or []) + [user]
         return user
+
+    def _group(self, name=None):
+        """A group this test owns, which no account can already be in.
+
+        A brand-new group rather than `base.group_no_one`: a grant only
+        reaches the record when membership genuinely MOVES, so a test that
+        granted a group the account already held would write nothing and
+        would then prove the opposite of what it says.
+        """
+        seq = len(getattr(self, "_groups", []) or [])
+        name = name or "Audit access test group %s-%d" % (self.marker, seq)
+        group = self.env["res.groups"].create({"name": name})
+        self._groups = (getattr(self, "_groups", []) or []) + [group]
+        return group
+
+    def _grant(self, user, group=None):
+        """Change real membership — the ONLY way a row reaches the record.
+
+        `myservice.api.access.change.create` refuses a hand-written row, so a
+        test that needs the record to hold something has to cause the thing
+        the record is about. That is the point of the model and it is the
+        point of this helper.
+        """
+        group = group or self._group()
+        user.write({self.Users._access_groups_field(): [(4, group.id)]})
+        self._flush_tracking()
+        return group
 
     # ── plumbing ────────────────────────────────────────────────────
 
@@ -164,10 +220,15 @@ class TestTheReportWritesNothing(AccessReportCase):
     repairs what it finds can never honestly report zero, and the run after
     the repair reports a cleanliness it manufactured itself.
 
-    Five tables, because those are the five a read of this shape could
-    plausibly disturb: the accounts, their group membership, the two chatter
-    tables a tracked write would land in, and the parameter table the sibling
-    report reads.
+    Every table the report READS is fingerprinted, because a read is where
+    an accidental write comes from: the accounts, their group membership, the
+    two chatter tables a tracked write would land in, the parameter table the
+    sibling report reads, the client table the roster labels from — and, since
+    handoff 24, the access record itself. That last one is not one more table.
+    The report now reads the append-only record of who was granted what, and a
+    report that appended to it while reading it would be manufacturing the
+    evidence it then cites; the model refuses a hand-written row, and this
+    proves the report never finds a way to ask for one.
     """
 
     #: table -> the ORDER BY that makes `string_agg` deterministic.
@@ -180,6 +241,11 @@ class TestTheReportWritesNothing(AccessReportCase):
         # The report searches this model to label a roster row as an
         # integration; a write on that path would otherwise be invisible.
         "myservice_api_client": "t.id",
+        # The forward access record (handoff 24). The report reads it for the
+        # group-change events, for `record_starts_at` and for `record_rows`.
+        # It is append-only and the report is a reader: a row appearing across
+        # a read is the worst write this fingerprint could catch.
+        "myservice_api_access_change": "t.id",
         "mail_message": "t.id",
         "mail_tracking_value": "t.id",
         "ir_config_parameter": "t.id",
@@ -216,6 +282,11 @@ class TestTheReportWritesNothing(AccessReportCase):
         So: mutate one row in each fingerprinted table the report could
         plausibly touch, and require the mark to move. If this test ever
         passes vacuously, the two below are worthless.
+
+        The access record is driven the only way it can be — by changing real
+        membership, since the model refuses a hand-written row — which is the
+        same write that drives the membership fingerprint, so one grant proves
+        both marks live.
         """
         before = self._fingerprint()
 
@@ -239,6 +310,26 @@ class TestTheReportWritesNothing(AccessReportCase):
             after_user["res_groups_users_rel"],
             after_group["res_groups_users_rel"],
             "a group grant did not move the membership fingerprint")
+        # The same grant, in the record that now reports it. Asserted here
+        # rather than in a test of its own because a fingerprint over a table
+        # that NOTHING in this test writes is exactly the vacuous proof this
+        # negative control exists to rule out: `myservice_api_access_change`
+        # would then compare equal on every run and the two read-only tests
+        # below would be resting on a table they never proved they could see.
+        self.assertNotEqual(
+            after_user["myservice_api_access_change"],
+            after_group["myservice_api_access_change"],
+            "a group grant wrote no row to `myservice_api_access_change`, so "
+            "either the recorder is not installed or this fingerprint cannot "
+            "see the access record — and the read-only proofs below, which "
+            "now cover the table the report reads its group changes FROM, "
+            "are unproven")
+        self.assertGreater(
+            after_group["myservice_api_access_change"][0],
+            after_user["myservice_api_access_change"][0],
+            "the access record did not GROW across a grant; a moved md5 with "
+            "an unchanged row count would mean a row was rewritten rather "
+            "than appended, on a model that refuses both")
 
         self.env["ir.config_parameter"].sudo().set_param(
             "cadra.fingerprint_probe_%s" % self.marker, "1")
@@ -394,6 +485,114 @@ class TestTheBoundaryIsMeasured(AccessReportCase):
             "mail.tracking.value — so it is understating what the database "
             "holds and audit_access.py owes the reader that history.")
 
+    def _assert_the_four_facts_follow_the_record(self, fidelity):
+        """The rule, asserted in whatever state this tenant is actually in.
+
+        `recoverable` and `not_recoverable` stopped being frozen lists in
+        handoff 24: the four facts the forward record answers sit in one list
+        or the other according to whether the record has BEGUN here. Pinning
+        either list literally would make this test a statement about the
+        tenant it last ran on — and would pass, wrongly, on a tenant that has
+        never recorded anything simply because that is the older shape.
+        """
+        recoverable = set(fidelity["recoverable"])
+        not_recoverable = set(fidelity["not_recoverable"])
+        self.assertFalse(
+            recoverable & not_recoverable,
+            "a fact is published as both recoverable and not recoverable: %s"
+            % sorted(recoverable & not_recoverable))
+        if fidelity["record_starts_at"]:
+            self.assertTrue(
+                RECORDED_FACTS <= recoverable,
+                "this tenant's access record has begun (%s) and these facts "
+                "are still not published as recoverable: %s. The report is "
+                "understating a record it holds."
+                % (fidelity["record_starts_at"],
+                   sorted(RECORDED_FACTS - recoverable)))
+            self.assertFalse(
+                RECORDED_FACTS & not_recoverable,
+                "the record has begun and these facts are still named as NOT "
+                "recoverable: %s"
+                % sorted(RECORDED_FACTS & not_recoverable))
+        else:
+            self.assertTrue(
+                RECORDED_FACTS <= not_recoverable,
+                "this tenant holds no access-change rows, so nothing can be "
+                "answered about grants — and these facts are published as "
+                "recoverable anyway: %s. Claiming coverage the record does "
+                "not have is the one failure mode this report exists to "
+                "prevent." % sorted(RECORDED_FACTS - not_recoverable))
+            self.assertFalse(RECORDED_FACTS & recoverable)
+
+    def test_the_record_start_is_measured_and_published(self):
+        """`record_starts_at` and `record_rows` are one measurement seen twice.
+
+        `changed_at` is required on the model, so a tenant holding rows has an
+        earliest one and a tenant holding none has no start. If those two ever
+        disagree, one of them has stopped being measured — and the one that
+        matters is `record_starts_at`, which is the instant the whole coverage
+        verdict is computed against.
+        """
+        fidelity = self.Users.access_change_fidelity()
+        for key in ("record_starts_at", "record_rows"):
+            self.assertIn(
+                key, fidelity,
+                "`%s` is absent from the fidelity block; the report measured "
+                "the boundary of its own record and did not publish it" % key)
+        self.assertIsInstance(fidelity["record_rows"], int)
+        self.assertGreaterEqual(fidelity["record_rows"], 0)
+        self.assertEqual(
+            fidelity["record_starts_at"] is None,
+            fidelity["record_rows"] == 0,
+            "`record_starts_at` is %r while `record_rows` is %d. A row cannot "
+            "exist without a `changed_at` — the field is required — so these "
+            "two cannot disagree unless one of them is a constant."
+            % (fidelity["record_starts_at"], fidelity["record_rows"]))
+        note = fidelity["notes"]["record_start"]
+        self.assertTrue(note, "the record-start note is empty")
+        if fidelity["record_starts_at"]:
+            self.assertIn(
+                str(fidelity["record_rows"]), note,
+                "the record-start note does not quote the row count it "
+                "measured, so a reader cannot tell a measurement from a "
+                "boilerplate sentence")
+            self.assertIn(str(fidelity["record_starts_at"]), note)
+        else:
+            self.assertIn(
+                "NO access-change rows", note,
+                "this tenant holds no access-change rows and the note does "
+                "not say so; a reader is left to assume the record covers "
+                "the period")
+
+    def test_a_recorded_grant_moves_the_four_facts_into_recoverable(self):
+        """Driven, because the branch that matters is the one no tenant has
+        taken yet.
+
+        The rule is asserted first in whatever state the tenant arrived in,
+        then a real grant is made and it is asserted again on the other side
+        of the boundary. Without the drive this test would only ever exercise
+        the `not_recoverable` arm, which is the arm that was already true.
+        """
+        self._assert_the_four_facts_follow_the_record(
+            self.Users.access_change_fidelity())
+
+        user = self._user()
+        self._grant(user)
+
+        after = self.Users.access_change_fidelity()
+        self.assertIsNotNone(
+            after["record_starts_at"],
+            "a grant was made in this transaction and the record still "
+            "reports no start, so either the recorder did not fire or "
+            "`record_starts_at` is not measuring the rows it claims to")
+        self.assertGreaterEqual(after["record_rows"], 1)
+        self._assert_the_four_facts_follow_the_record(after)
+        self.assertTrue(
+            RECORDED_FACTS <= set(after["recoverable"]),
+            "the record has begun and the four facts it answers are not in "
+            "`recoverable`: %s"
+            % sorted(RECORDED_FACTS - set(after["recoverable"])))
+
     def test_the_tracking_and_logging_counts_are_integers_not_claims(self):
         """Both are COUNTED on every request. A limitation published as a
         constant is a limitation that goes stale silently, which is the whole
@@ -413,40 +612,204 @@ class TestTheBoundaryIsMeasured(AccessReportCase):
 
 # ═════════════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install")
-class TestTheStructuralZero(AccessReportCase):
-    """`group_changes_in_period` is 0 and it is PRESENT.
+class TestTheGroupChangeCount(AccessReportCase):
+    """`group_changes_in_period` is a real count, and it is PRESENT at zero.
 
-    A count that disappears when it is zero is how a consumer ends up
+    It was a structural zero until handoff 24 put a forward record behind it.
+    The half of that argument which was always the point survives unchanged:
+    a count that disappears when it is zero is how a consumer ends up
     inferring "the key is missing, so this report does not cover group
-    changes" — or worse, not noticing at all. The zero is the statement.
+    changes" — or worse, not noticing at all.
+
+    The half that had to go is the zero itself, and these tests are the ones
+    that had to change shape rather than be relaxed. `assertEqual(count, 0)`
+    over a live period is no longer a statement about the design: it is a
+    statement about whether anybody has been granted anything on this tenant,
+    which this suite is scoped against asserting everywhere else. So:
+
+    * the ZERO is asserted over a period the record cannot reach (2001), where
+      it is structural again and for a reason that is now stated — the record
+      did not exist then and no row can carry a `changed_at` inside it;
+    * the COUNTING is asserted as a delta across a grant this test makes
+      itself, which is exact regardless of what the tenant already held.
+
+    A grant is made by moving real membership, never by writing a row: the
+    model refuses a hand-written create, which is what makes the count
+    evidence rather than a number somebody typed.
     """
 
-    def test_group_changes_in_period_is_present_and_zero(self):
-        summary = self._report()["summary"]
+    def test_the_key_is_present_and_zero_for_a_period_before_the_record(self):
+        """The presence guarantee, over the one period where the zero is still
+        structural. The record began, at the earliest, when handoff 24 shipped;
+        a row dated 2001 cannot exist, because `changed_at` is stamped when the
+        membership moves and nothing backdates it."""
+        summary = self._report(DEAD_FROM, DEAD_TO)["summary"]
         self.assertIn(
             "group_changes_in_period", summary,
-            "the structural zero is missing from the summary. A consumer "
-            "counting access changes now sees no key rather than a zero, and "
-            "the absence of group-change reporting becomes something they "
+            "the count is missing from the summary. A consumer counting "
+            "access changes now sees no key rather than a zero, and the "
+            "absence of group changes in the period becomes something they "
             "have to infer.")
-        self.assertEqual(summary["group_changes_in_period"], 0)
+        self.assertEqual(
+            summary["group_changes_in_period"], 0,
+            "a period in 2001 reports group changes. No row can carry a "
+            "`changed_at` before the record existed, so this is either the "
+            "period filter not filtering or a count taken over the whole "
+            "table.")
         self.assertIsInstance(summary["group_changes_in_period"], int)
+        self.assertIn("implication_changes_in_period", summary)
+        self.assertEqual(summary["implication_changes_in_period"], 0)
 
-    def test_it_stays_zero_when_the_period_is_full_of_events(self):
-        """The zero is structural, not incidental. A period with real access
-        events still reports no group changes, because there is nothing to
-        report them FROM — not because the period was quiet."""
-        self._user()
-        self._user()
+    def test_a_grant_moves_the_count_by_exactly_one(self):
+        """The count is a measurement, asserted as a DELTA.
+
+        One grant is one change. Measured either side of the grant rather
+        than against a literal, because the tenant's own history is not this
+        test's business and an absolute assertion would be a claim about it.
+        """
+        user = self._user()
         self._flush_tracking()
+        before = self._report()["summary"]["group_changes_in_period"]
+
+        self._grant(user)
+
+        after = self._report()["summary"]["group_changes_in_period"]
+        self.assertEqual(
+            after, before + 1,
+            "one group grant moved `group_changes_in_period` from %d to %d. "
+            "It is now a real count over the forward record: one grant is "
+            "exactly one change, and a delta of anything else means the "
+            "report is either missing rows or double-counting them."
+            % (before, after))
+
+    def test_the_grant_is_an_event_with_exact_precision_and_its_evidence(self):
+        """A recorded grant is the FIRST access event this report can publish
+        with `precision: exact` and an actor that is not a create stamp. The
+        evidence string names the row, so an auditor can go and read it."""
+        user = self._user()
+        self._flush_tracking()
+        group = self._grant(user)
+        label = group.full_name or group.name
+
+        # Scoped to THIS group, not to every grant the account has. Creating
+        # an account is itself recorded — `_default_groups()` puts it in
+        # `base.group_user` — so a filter on the event type alone would count
+        # the create's grants too and this assertion would be about how many
+        # groups a new user lands in.
+        granted = [e for e in self._events_for(self._report(), user)
+                   if e["event"] == ACCESS_EVENT_GRANTED
+                   and e["group"] == label]
+        self.assertEqual(
+            len(granted), 1,
+            "a single grant of %r produced %d `granted` events"
+            % (label, len(granted)))
+        event = granted[0]
+        self.assertEqual(
+            event["precision"], "exact",
+            "a recorded grant is the one access event whose timestamp and "
+            "actor are its own; publishing it as `last_write_only` would "
+            "throw away the only precise group evidence this report has")
+        self.assertEqual(event["group"], label)
+        self.assertIn(
+            "myservice_api_access_change.id=", event["evidence"],
+            "the event does not name the row it came from, so the reader "
+            "cannot check it")
+        self.assertIn("attributable", event)
+        self.assertIsInstance(event["attributable"], bool)
+        if not event["attributable"]:
+            # An upgrade, a cron or the test runner acting as SUPERUSER. The
+            # record says so rather than naming a person — asserted as the
+            # RULE, not as a claim about who happens to run this suite.
+            self.assertEqual(event["actor"]["name"], SYSTEM_ACTOR)
+            self.assertIsNone(event["actor"]["id"])
+        else:
+            self.assertTrue(event["actor"]["id"])
+            self.assertNotEqual(event["actor"]["name"], SYSTEM_ACTOR)
+
+    def test_a_grant_today_is_absent_from_a_period_before_the_record(self):
+        """The count and the events are both period-filtered, and the failure
+        this catches is the one an auditor hits for the next twelve months: a
+        report that answered a 2001 question with 2026 rows would be the exact
+        opposite of the boundary this report is built to state."""
+        user = self._user()
+        self._flush_tracking()
+        self._grant(user)
+
+        self.assertGreater(
+            self._report()["summary"]["group_changes_in_period"], 0,
+            "the grant this test just made is not counted in a period that "
+            "contains today, so the assertion below proves nothing")
+        dead = self._report(DEAD_FROM, DEAD_TO)
+        self.assertEqual(dead["summary"]["group_changes_in_period"], 0)
+        self.assertEqual(
+            [e for e in self._events_for(dead, user)
+             if e["event"] in (ACCESS_EVENT_GRANTED, ACCESS_EVENT_REMOVED)],
+            [],
+            "a grant made today appears in a period ending in 2001")
+
+    def test_a_removal_is_counted_as_well_as_a_grant(self):
+        """A removal is the half that leaves NOTHING behind in the membership
+        table — the row is deleted and the only evidence it ever existed is
+        the forward record. If only grants were counted, the register would
+        drift upwards forever and nobody could tell."""
+        user = self._user()
+        group = self._grant(user)
+        before = self._report()["summary"]["group_changes_in_period"]
+
+        user.write({self.Users._access_groups_field(): [(3, group.id)]})
+        self._flush_tracking()
+
         report = self._report()
-        self.assertTrue(report["events"], "the fixture produced no events")
-        self.assertEqual(report["summary"]["group_changes_in_period"], 0)
+        self.assertEqual(
+            report["summary"]["group_changes_in_period"], before + 1,
+            "a removal did not move the count. The membership row is gone and "
+            "the forward record is the only place it is written down.")
+        label = group.full_name or group.name
+        removed = [e for e in self._events_for(report, user)
+                   if e["event"] == ACCESS_EVENT_REMOVED
+                   and e["group"] == label]
+        self.assertEqual(
+            len(removed), 1,
+            "a single removal of %r produced %d `removed` events"
+            % (label, len(removed)))
+
+    def test_an_implication_change_is_counted_separately(self):
+        """What a group MEANS is not who is in it, and the two are not summed.
+
+        On Odoo 19 `res.groups.all_implied_ids` is an unstored compute, so
+        adding an implication moves effective access while writing zero rows
+        to the membership table. It is counted in its own key and deliberately
+        kept out of `events`, which the controller pages by user id and an
+        implication names no user — folding it in would either drop it
+        silently or break the page contract.
+        """
+        holder, implied = self._group(), self._group()
+        before = self._report()["summary"]
+
+        holder.write({"implied_ids": [(4, implied.id)]})
+        self._flush_tracking()
+
+        after = self._report()["summary"]
+        self.assertEqual(
+            after["implication_changes_in_period"],
+            before["implication_changes_in_period"] + 1,
+            "an implication edge was added and "
+            "`implication_changes_in_period` did not move. That change "
+            "grants every member of one group the rights of another while "
+            "writing no membership row, so a report that does not count it "
+            "is blind to the access change that leaves the least trace.")
+        self.assertEqual(
+            after["group_changes_in_period"],
+            before["group_changes_in_period"],
+            "an implication change was counted as a group MEMBERSHIP change. "
+            "They are different facts and a reader counting grants must never "
+            "be silently handed an implication edge.")
 
     def test_the_summary_carries_the_counts_a_consumer_branches_on(self):
         report = self._report()
         for key in ("accounts", "accounts_active", "events_in_period",
-                    "group_changes_in_period", "coverage", "statement"):
+                    "group_changes_in_period", "implication_changes_in_period",
+                    "coverage", "statement"):
             self.assertIn(key, report["summary"])
         self.assertEqual(report["summary"]["events_in_period"],
                          len(report["events"]))
@@ -455,31 +818,49 @@ class TestTheStructuralZero(AccessReportCase):
 # ═════════════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install")
 class TestTheCoverageEnum(AccessReportCase):
-    """All three branches, driven directly with synthetic inputs.
+    """Every branch, driven directly with synthetic inputs.
 
-    Driven directly and not through the report on purpose. Two of the three
-    branches are unreachable on any tenant that exists today — `partial`
-    needs an access history nobody has, and the distinction between the two
-    `none` wordings needs a period both empty and non-empty. Waiting for a
-    deployment to exercise them is waiting forever, and `partial` is the
-    entire future-proofing mechanism: if it has never executed, it is a
-    comment rather than a feature.
+    Driven directly and not through the report on purpose. Most of these
+    branches are unreachable on any tenant that exists today — the record has
+    just started on all of them, `partial` from a grown history needs one
+    nobody has, and the distinction between the two `none` wordings needs a
+    period both empty and non-empty. Waiting for a deployment to exercise them
+    is waiting forever.
+
+    Handoff 24 added the three that matter most, because they are now the
+    ones a real request takes: where the requested period sits relative to the
+    instant this tenant's record BEGAN. `none` for a period that ended before
+    it, `partial` for one that straddles it, `recorded` for one wholly inside
+    it. The first is the answer an auditor will get for the next twelve
+    months and it must stay `none` however much the record has since filled
+    up — rows from after a period say nothing about the period.
 
     Branch on `coverage`, never on `statement` — so the enum is asserted
     first in every case and the wording second.
     """
 
+    #: A record that began at a known instant, so the three period cases can
+    #: be placed either side of it.
+    RECORD_BEGAN = "2026-01-01 00:00:00"
+
     def _fidelity(self, **overrides):
         """The shape `_access_change_coverage` actually reads, and only that.
 
         Deliberately a hand-built dict rather than the real fidelity block: a
-        tenant that grew one tracking row would otherwise flip these tests to
-        `partial` and they would stop testing what they say they test.
+        tenant that grew one tracking row — or that has since recorded its
+        first grant — would otherwise flip these tests to another branch and
+        they would stop testing what they say they test.
+
+        `record_starts_at` is stated as `None` rather than left out. The model
+        reads it with `.get`, so an absent key and a null one behave alike
+        today; spelling it means these tests say which world they are in
+        instead of relying on that.
         """
         return dict({
             "groups_field_tracked": False,
             "membership_audit_columns": [],
             "tracking_rows": 0,
+            "record_starts_at": None,
         }, **overrides)
 
     def test_no_history_and_no_events_says_nothing_happened_either(self):
@@ -539,6 +920,106 @@ class TestTheCoverageEnum(AccessReportCase):
             self._fidelity(tracking_rows=5))
         self.assertEqual(coverage, ACCESS_COVERAGE_PARTIAL)
         self.assertNotIn("1 event(s)", statement)
+
+    # ── the three the forward record decides ────────────────────────
+
+    def test_a_period_that_ended_before_the_record_began_is_still_none(self):
+        """The answer an auditor gets for the next twelve months, and the one
+        that must not drift.
+
+        A record that now holds ten thousand rows says nothing about a quarter
+        that closed before it began. If this ever answers `recorded` or
+        `partial` because the record is healthy TODAY, the report is citing
+        rows from outside the period as coverage of it — which is the precise
+        overstatement the whole fidelity block exists to prevent.
+        """
+        coverage, statement = self.Users._access_change_coverage(
+            [{"event": ACCESS_EVENT_CREATED}],
+            self._fidelity(record_starts_at=self.RECORD_BEGAN),
+            start=datetime(2025, 1, 1),
+            end=datetime(2025, 12, 31, 23, 59, 59, 999999),
+            group_changes=0)
+        self.assertEqual(
+            coverage, ACCESS_COVERAGE_NONE,
+            "a period that ended before the access record began was answered "
+            "%r. Nothing was being written down then and nothing can be "
+            "reconstructed; any other answer claims coverage of a period the "
+            "record does not reach." % coverage)
+        self.assertIn(self.RECORD_BEGAN, statement)
+        self.assertIn("AFTER the end of the period", statement)
+        self.assertIn(
+            "must not be read as", statement,
+            "the statement does not warn that an empty table here is a "
+            "statement about the record rather than about the estate")
+
+    def test_a_period_straddling_the_record_start_is_a_partial_lower_bound(
+            self):
+        """Half the quarter is recorded and half of it never can be, and the
+        count below is therefore a floor rather than a total. A consumer that
+        read it as a total would reconcile against a number that is missing
+        exactly the part nobody can produce."""
+        coverage, statement = self.Users._access_change_coverage(
+            [], self._fidelity(record_starts_at=self.RECORD_BEGAN),
+            start=datetime(2025, 6, 1),
+            end=datetime(2026, 6, 30, 23, 59, 59, 999999),
+            group_changes=3)
+        self.assertEqual(coverage, ACCESS_COVERAGE_PARTIAL)
+        self.assertIn(self.RECORD_BEGAN, statement)
+        self.assertIn(
+            "LOWER BOUND", statement,
+            "a straddling period publishes a count that is missing everything "
+            "before the record began, and the statement does not say so")
+        self.assertIn("3 group change(s)", statement)
+
+    def test_a_period_wholly_inside_the_record_is_recorded(self):
+        """`recorded` — the answer that did not exist before handoff 24, and
+        the first time this report can say the table below is COMPLETE.
+
+        Driven with `tracking_rows=5` as well, so it also proves the forward
+        record wins over the grown-history disjunct. Those two arms disagree:
+        `partial` would tell an auditor the report understates what the
+        database holds, which is false once the record covers the period, and
+        the one that is actually READ has to be the one that decides.
+        """
+        coverage, statement = self.Users._access_change_coverage(
+            [], self._fidelity(record_starts_at=self.RECORD_BEGAN,
+                               tracking_rows=5),
+            start=datetime(2026, 2, 1),
+            end=datetime(2026, 2, 28, 23, 59, 59, 999999),
+            group_changes=2)
+        self.assertEqual(
+            coverage, ACCESS_COVERAGE_RECORDED,
+            "a period lying wholly after the record began was answered %r. "
+            "`recorded` is the only value that says the group changes listed "
+            "are every grant and removal in the period, and it is the whole "
+            "point of having written the record." % coverage)
+        self.assertIn("2 group change(s)", statement)
+        self.assertIn(
+            SYSTEM_ACTOR, statement,
+            "the `recorded` statement does not warn that a change made by an "
+            "upgrade, a cron or the command line is attributed to "
+            "`%s` rather than to a person — which is the one caveat that "
+            "survives a complete record" % SYSTEM_ACTOR)
+
+    def test_the_record_decides_before_the_grown_history_disjuncts(self):
+        """Stated as its own test because it is an ORDERING, and an ordering
+        is the kind of thing a later edit reverses without noticing. Every one
+        of the three `partial`-from-history disjuncts must lose to a record
+        that covers the period."""
+        for override in ({"groups_field_tracked": True},
+                         {"membership_audit_columns": ["create_date"]},
+                         {"tracking_rows": 12}):
+            coverage, _statement = self.Users._access_change_coverage(
+                [], self._fidelity(record_starts_at=self.RECORD_BEGAN,
+                                   **override),
+                start=datetime(2026, 2, 1),
+                end=datetime(2026, 2, 28, 23, 59, 59, 999999))
+            self.assertEqual(
+                coverage, ACCESS_COVERAGE_RECORDED,
+                "%s flipped a fully recorded period to %r. The forward record "
+                "is the source this report actually READS; a hint that some "
+                "other history exists must not downgrade a period the record "
+                "covers." % (sorted(override), coverage))
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -623,13 +1104,24 @@ class TestTheEventsAreEvidenced(AccessReportCase):
                               today + timedelta(days=1))
 
         events = self._events_for(report, user)
+        kinds = [e["event"] for e in events]
+        # The `granted` rows a create writes are filtered out rather than
+        # tolerated. `_default_groups()` puts every new account in
+        # `base.group_user`, and since handoff 24 that is RECORDED — so a
+        # brand-new account legitimately carries create-time grant events and
+        # this list is no longer only the create. What must still be exactly
+        # the create is everything that comes from the user row's own stamps,
+        # which is what the two-second rule governs; the grant events are
+        # asserted in their own right in `TestTheGroupChangeCount`.
         self.assertEqual(
-            [e["event"] for e in events], [ACCESS_EVENT_CREATED],
+            [k for k in kinds
+             if k not in (ACCESS_EVENT_GRANTED, ACCESS_EVENT_REMOVED)],
+            [ACCESS_EVENT_CREATED],
             "an account that was created and never touched again reported "
             "%s. `write_date` equals `create_date` on a fresh row, so any "
             "`account_modified` here is the two-second tolerance failing and "
             "every account in the tenant is now reported as modified."
-            % [e["event"] for e in events])
+            % kinds)
 
     def test_a_genuinely_later_write_is_a_last_write_only_event(self):
         """The tolerance must not swallow a real modification either.
@@ -830,8 +1322,12 @@ class TestTheStatementIsNotTranslated(AccessReportCase):
     """
 
     def _fidelity(self):
+        # `record_starts_at: None` pins these to the no-record branch: the
+        # wordings pinned below are that branch's, and a tenant that has begun
+        # recording would otherwise be compared against a different sentence.
         return {"groups_field_tracked": False,
-                "membership_audit_columns": [], "tracking_rows": 0}
+                "membership_audit_columns": [], "tracking_rows": 0,
+                "record_starts_at": None}
 
     def test_the_statement_is_a_plain_string(self):
         _coverage, statement = self.Users._access_change_coverage(
@@ -869,9 +1365,22 @@ class TestTheStatementIsNotTranslated(AccessReportCase):
 
     def test_the_report_publishes_that_same_statement(self):
         """The statement a consumer receives is the one these tests pin, and
-        not a second copy that drifted."""
+        not a second copy that drifted.
+
+        Recomputed from the SAME inputs the report used. `start`, `end` and
+        `group_changes` became arguments in handoff 24, and they are not
+        optional to this comparison: on a tenant that has begun recording,
+        calling the helper without them answers `recorded` for a period the
+        report itself called `partial`, and the test would be comparing the
+        published statement against the answer to a different question — then
+        failing, or worse, being "fixed" by loosening it.
+        """
         report = self._report()
+        start = fields.Datetime.to_datetime(WIDE_FROM)
+        end = fields.Datetime.to_datetime(WIDE_TO).replace(
+            hour=23, minute=59, second=59, microsecond=999999)
         expected = self.Users._access_change_coverage(
-            report["events"], report["fidelity"])
+            report["events"], report["fidelity"], start=start, end=end,
+            group_changes=report["summary"]["group_changes_in_period"])
         self.assertEqual(report["summary"]["coverage"], expected[0])
         self.assertEqual(report["summary"]["statement"], expected[1])

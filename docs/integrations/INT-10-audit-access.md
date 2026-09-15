@@ -20,7 +20,7 @@ So **the authoritative definition of INT-10 is not available to the Builder**, a
 - **`Cadra_at_NRS_Specification_v0.1.docx` §13.4, "Audit and compliance reports"** — the closest thing to an INT-10 requirement list, and the spine of §2 below:
   > *"Standard audit reports available: Asset register snapshot at any historical date (point-in-time view); Custodianship chain for any asset (full history); Disposal report with documentation refs (per period); Access changes for any user (per period); Configuration change log (who changed what setting when). These support internal audit, external audit (AGF, etc.), and any regulatory inquiry."*
 - **§13.3** — two delivery patterns offered, both marked `[NRS INPUT REQUIRED]`: webhook event subscription, or *"scheduled bulk extract — daily snapshot of asset register, location register, request register exported to warehouse via secure file transfer."*
-- **§3 roles table** — `Auditor` / `audit_viewer` / *"Read-only access to audit logs"*, and `Finance Officer` / `finance_viewer` / *"Read-only access to asset financial data"*. **Neither role exists in Cadra** (§4).
+- **§3 roles table** — `Auditor` / `audit_viewer` / *"Read-only access to audit logs"*, and `Finance Officer` / `finance_viewer` / *"Read-only access to asset financial data"*. **`Auditor` was built in handoff 23 and `finance_viewer` was ruled to be the same role under another name in handoff 24** (§4.3).
 - **§8.6** — likely webhook consumers include *"NRS audit system — subscribes to all events for audit retention."* §8.7, the subscription registry, is a `[TBD]` placeholder.
 - **§15** — *"Audit logging: every action logged with actor, timestamp, action, result; 7-year retention."*
 - **`Cadra_Platform_PRD_v0.4.docx` §8.14** — *"Every change to an asset is logged. The audit trail includes who, when, what changed (before/after values), and the source (which API call, which user or system)."*
@@ -75,10 +75,10 @@ Eleven questions, drawn from specification §13.4, PRD §5.11 and §8.14, and fr
 | Custodianship chain for any asset | **Built** — handoff 14. §2.3 |
 | Asset register snapshot at any historical date | **Built, with a published boundary** — handoff 16. §2.5 |
 | Disposal report with documentation refs, per period | **Built** — handoff 16. §2.9 |
-| Access changes for any user, per period | **Built, and its honest answer is that the record does not exist** — handoff 23. §2.10 |
+| Access changes for any user, per period | **Built** — handoff 23. Its honest answer was that no record existed; **handoff 24 started one**, so the report now answers for the period from `fidelity.record_starts_at` onward and still says `none` for anything before it. §2.10, §2.10c |
 | Configuration change log | **Built, and thin — 22 recoverable keys estate-wide** — handoff 23. §2.10a |
 
-**All five are now built.** The two log-shaped ones were never reports missing from an existing record — there was no record — and that has not changed. What handoff 23 built is the endpoint that says so, in the response, in words, with the measurement behind it. §2.10 is now the answer rather than the gap; §2.10b is what it would take to make the answer a different one.
+**All five are now built.** The two log-shaped ones were never reports missing from an existing record — there was no record. What handoff 23 built is the endpoint that says so, in the response, in words, with the measurement behind it. **Handoff 24 then built the record itself for access changes** (§2.10c): grants, removals and implication changes are now written append-only as they happen, with the acting user, so the fourth report answers rather than only explaining. The configuration log remains as handoff 23 left it. §2.10b is what it would take to recover the period *before* the record began, and it remains NRS's decision.
 
 Legend: **Yes** · **Partly** — answerable but incomplete or degraded, and the caller is not told · **No**.
 
@@ -341,7 +341,7 @@ Specification §7.6 requires *"every identity-related event in Cadra (login, rol
 **So the report synthesises nothing.** What it returns instead:
 
 - **`summary.statement`** — the sentence, above the table, saying that group grants and removals are not recorded anywhere in this system and that this report can speak for no period on that question. Branch on `summary.coverage` (`none` / `partial`), never on the wording. There is deliberately no `empty`: the record cannot hold a group change in any period, so a quiet quarter is not a different *kind* of answer here — unlike the disposal report, where an empty period genuinely is.
-- **`summary.group_changes_in_period`** — a **structural zero**, present in the payload so a consumer reading counts sees the absence rather than inferring it from a missing key.
+- **`summary.group_changes_in_period`** — **a real count since handoff 24** (§2.10c), read from the append-only access record. It was a structural zero when this was written, and a zero still means one of two things — nothing happened, or the record does not reach the period. `summary.coverage` and `fidelity.record_starts_at` are what tell those apart.
 - **`events`** — the access events that *are* evidenced: an account **created** (`precision: exact`, with its real timestamp and creator) and an account **last modified** (`precision: last_write_only`). Each row names the `evidence` it rests on. An `account_modified` row does not say which field changed — a timezone edit and a group grant are indistinguishable in `res_users.write_date`.
 - **`roster`** — the present-tense answer to the question an auditor asks next: who has access *now*, with each account's groups and, where it is an integration, its API scopes. Labelled as current state throughout, never presented as history.
 - **`fidelity`** — the table above, re-derived **on every request** rather than carried as a constant. It reads `information_schema` for the membership table's real columns and counts the tracking and logging rows live. The day somebody adds tracking or installs an audit module, `coverage` becomes `partial` and the report says the record has grown, instead of continuing to publish a limitation that has stopped being true.
@@ -391,7 +391,37 @@ Nothing here is retroactive. **No query, no tool and no forensic step against th
 | An audit module (OCA `auditlog` or equivalent) | A general model-level change log, not just users. | Larger, and a vendored tree to carry through every upgrade. |
 | Set `log_db` in the server configuration | Populates `ir_logging`. | Cheap, but it is a *log*, not a queryable change record, and it grows without bound. |
 
-**Recommendation: the first.** It is the smallest change that makes §13.4's fourth report answerable, it reuses machinery that already exists for the register snapshot, and it degrades honestly in the meantime — the report already says `partial` the moment tracking rows appear.
+**Recommendation at the time: the first.** ~~It is the smallest change that makes §13.4's fourth report answerable, it reuses machinery that already exists for the register snapshot, and it degrades honestly in the meantime.~~
+
+### ⚠️ 2.10c The forward record exists — handoff 24, and it is NOT the option recommended above
+
+**The gap is closed forward. It is still not closed backward, and it never will be.**
+
+`myservice.api.access.change` is an append-only record of grants, removals and implication changes, written as they happen with the acting user. `write` and `unlink` raise unconditionally so the guard holds under `sudo()`; rows are written only as a side effect of membership actually moving.
+
+**The recommendation above was not followed, and the reason is the whole point.** `tracking=True` on `res.users.group_ids` would have recorded only what passes through `res.users.write` — and the writers were enumerated before the hooks were placed, which found that to be **about half** of them. Measured against Odoo 19 core:
+
+| Writer | Passes `res.users.write`? |
+|---|---|
+| `res.users.write` with `group_ids` — including the admin user form, which on 19 submits the real field because the reified `sel_groups_*` pseudo-fields were deleted | yes |
+| `res.users.create` — every seed script, the API-client provisioner, and `auth_signup`'s template `copy()`; also `_default_groups()`, which puts a user in a group a create never mentioned | **no** |
+| `res.groups.write` with `user_ids` — `scripts/bootstrap.py` and eight security XML files that re-apply on **every module upgrade**, not only install | **no** |
+| `res.groups.write` with `implied_ids` — and `res.config.settings` group toggles, which are this case | **no** |
+| `res.users.unlink` — `ON DELETE CASCADE` erases every membership row | **no** |
+
+The last of those is the one that most changes the picture. **On Odoo 19 group implication writes no membership rows at all**: `res.groups.all_implied_ids` is declared `compute=` with no `store=True`, so adding an implication grants every member of that group the rights of another group while `res_groups_users_rel` is untouched. There are no "implied rows" to record — only an implication edge, which is recorded here as its own event because it moves what a group *means* rather than who is in it.
+
+**What the report now publishes.** `data.fidelity.record_starts_at` is the instant this tenant's record begins, measured from the earliest row it holds at request time — never a migration date, and `null` until the first change is recorded. `summary.group_changes_in_period` is a real count. `summary.coverage` gains a third value:
+
+| `coverage` | Meaning |
+|---|---|
+| `recorded` | The record covers the whole requested period. The changes listed are every grant and removal in it. |
+| `partial` | The period straddles the start. The count is a **lower bound**. |
+| `none` | The period ended before the record began, or no record exists on this tenant yet. **Nothing can be said about it** — and an empty table here must not be read as "no access changed". |
+
+**A change nobody can attribute says so.** A grant made by a module upgrade, a cron or the command line arrives as `uid 1` and is recorded with the actor `__system__` and `attributable: false`, never a person's name. Report 23 measured 100% of this estate's ACL stamps as `uid 1`; a record rendering those as "the administrator granted this" would invent somebody.
+
+**Still open, and still NRS's decision:** the reconstruction of grants made *before* the record began. The three options in the table above remain the options, and none of them is retroactive. What has changed is that the clock has started, so the unrecoverable period stops growing.
 
 ### 2.11 "Give me the whole register." — and why every answer above is capped
 
@@ -504,7 +534,24 @@ As a **human session** it does not work. Session scopes derive from Odoo groups,
 
 Specification §3 names two roles: `Auditor` / `audit_viewer` (*"read-only access to audit logs"*) and `Finance Officer` / `finance_viewer` (*"read-only access to asset financial data"*), federated from SuccessFactors / Active Directory.
 
-**`Auditor` now exists — `myservice_api.group_auditor`, handoff 23.** `Finance Officer` still does not.
+**`Auditor` now exists — `myservice_api.group_auditor`, handoff 23.** **`Finance Officer` / `finance_viewer` will not be built as a second group, because it is `group_auditor` under another name — handoff 24.**
+
+"Asset financial data" resolves to four blocks of the asset serializer — `financial` (including the whole `depreciation` sub-block), `sap`, `disposal` and `provenance` — plus `GET /reports/depreciation` and `GET /settings/depreciation`. Every one of them is reached by `assets:read`, `dashboards:read` or `settings:read`, and `group_auditor` grants all three.
+
+**There is no field-level access control anywhere in Cadra, and that is what decides this.** Three things were measured rather than assumed:
+
+- `grep -rn "groups=" --include="*.py"` across every first-party module returns **nothing** — no field definition is gated.
+- `serialize_asset` (`myservice_api/controllers/v1_assets.py:502`) has the signature `def serialize_asset(a, *, include=())`. It takes **no scope argument**. `include` is an additive embed selector the CALLER chooses, not an allow-list, and the `financial`, `sap`, `disposal` and `provenance` blocks are emitted unconditionally on every response.
+- Every route runs `.sudo()` (§4.4), so an Odoo group cannot subtract from what a scope already grants.
+
+The finest cut this platform can make is **route × scope**, and financial fields are not a route — they are nested blocks riding on `assets:read`, which is indivisible. So a `finance_viewer` built honestly today would be `group_auditor` minus `locations:read`, `requests:read` and `identity:read` — **a narrower auditor, not a finance role**, since not one of those three scopes is financial. A genuinely field-scoped role needs machinery that does not exist, and building it would be a breaking change to a serializer Vendra builds against.
+
+**A finance user who needs read-only access to asset financial data is placed in `myservice_api.group_auditor`.**
+
+Two things this ruling does not cover, flagged rather than closed:
+
+- **Specification §3.4 and §3.5 cast Finance as a disposal *approver*** — the disposal flow is "Asset Manager approval → Finance Director approval". That is `approvals:write`, the opposite of a read-only row, and handoff 23 built that route. If an approver is what NRS actually wants, it is a different question with a different answer, and the §3.6 row is not the place it was asked.
+- **`workflow_payment_ref` (`myservice_workflow/models/request_request.py:27`) and `workflow.dispatch.log.payment_ref` (`:82`) are stored and serialised by nothing.** A Finance Officer expecting to trace a payment reference over the API cannot, and neither can an auditor. That is a real gap and it is not closed by any group.
 
 **The `audit:read` scope this section used to propose was NOT built, and the reasoning changed.** A single scope meaning "the audit reports" would have been a scope that no existing client holds and no group granted on the day it shipped — which is the argument `v1_assets.py` already used to keep the register snapshot and the disposal report on `assets:read`. The five §13.4 reports are views of three different things: the register, the identity roster and the configuration. They take those things' scopes.
 

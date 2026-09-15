@@ -130,6 +130,29 @@ Not in the documented command. Found in handoff 12.
 
 ## The test suites
 
+### The HTTP suite writes into a client's register, and nothing stops it
+
+**`CADRA_API_BASE` is the only thing deciding which database the pytest suite writes to, and there is no guard of any kind** — no allowlist, no refusal, no confirmation, no dry run. The suite reads that one variable and writes wherever it points.
+
+In practice it points at `jaizbankplc`, because that is the only tenant carrying a full `CLIENT_ID`/`CLIENT_SECRET` pair (`docs/api/.creds.jaizbankplc`); `.creds.nrs19` holds two scoped clients and fails the fixture's own check. `jaizbankplc` is a replica of a live client's register.
+
+**It also has no teardown, by documented policy** (`tests/README.md`: *"leave them in the dev DB"*) — and it could not have one if it wanted: the API publishes exactly one `DELETE` route, for asset categories. There is none for assets, locations, requests, custody links or disposals.
+
+Measured on 2026-09-15, after roughly 154 sessions accumulating since 2026-08-26:
+
+| | |
+|---|---|
+| assets named `pytest-*` | **3,584 of 4,056 (88%)** |
+| chain-of-custody rows on fixture assets | **413 of 569 (73%)** |
+| entries in the **public homepage** location dropdown | **354 of 420 (84%)** |
+| fabricated approved disposals in the auditor-facing report | **6** |
+
+**What it is not.** It is not a production incident: every captured response in `docs/api/test-responses/` names `jaizbankplc.localhost:8069`, so nothing has ever reached the production host, and no *real* asset carries a fabricated approval or custody link. CI is unaffected — it creates its own throwaway `odoo` database on a runner that is discarded.
+
+**What to do about it.** The chain of custody already handles this correctly and is the pattern: `myservice.api.client.is_test_credential` drives `nrs.asset.custody.source = 'test'`, so 330 of its rows self-label and a reader can tell. Nothing equivalent exists for assets or disposals. `scripts/mark_test_fixtures.py` marks the artefacts that are already there.
+
+**Disposal approval cannot be undone.** There is no `action_unapprove_disposal`, a second approval is a published 409, and the approver fields are read-only over the API. It is correctable only by a human on the Odoo form, under tracking — by design.
+
 ### A `TransactionCase` that writes a tracked field finds no tracking row
 
 Odoo 19 defers tracking to `cr.precommit` — `addons/mail/models/mail_thread.py:534`

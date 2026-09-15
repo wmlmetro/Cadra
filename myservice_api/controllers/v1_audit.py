@@ -181,10 +181,17 @@ class CadraAuditReportsV1(http.Controller):
         What IS evidenced is reported: an account created, with its exact
         timestamp and creator; an account last modified, with the caveat that
         one write stamp covers every change ever made to the record and this
-        is the most recent of them. `summary.group_changes_in_period` is `0`
-        and it is a STRUCTURAL zero — it is in the payload precisely so that
-        a consumer reading counts sees the absence rather than inferring it
-        from a missing key.
+        is the most recent of them.
+
+        `summary.group_changes_in_period` is a REAL COUNT since handoff 24,
+        read from the append-only access record rather than from the
+        membership table — which, being two integer columns, can never be
+        queried for a history. A zero therefore means one of two different
+        things, and the count alone cannot tell them apart: nothing happened
+        in the period, or the record does not reach back to it. `coverage`
+        is what separates them, and `fidelity.record_starts_at` is the
+        instant the record begins on this tenant — `null` until the first
+        change is recorded here.
 
         `data.roster` is the present-tense answer to the adjacent question
         the auditor will ask next — *who has access now* — carrying each
