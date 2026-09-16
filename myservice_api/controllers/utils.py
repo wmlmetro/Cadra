@@ -964,7 +964,8 @@ def truncation_warning():
 CAP_EXEMPT_REASON_CUSTODY = "a chain of custody is complete or it is evidence of nothing"
 
 
-def paginate(model, domain, *, limit, cursor=None, order="id", uncapped=False):
+def paginate(model, domain, *, limit, cursor=None, order="id", uncapped=False,
+             descending=False):
     """Cursor-paginate `model.search(domain)`.
 
     Returns (records, next_cursor_or_None, total_estimate).
@@ -989,9 +990,62 @@ def paginate(model, domain, *, limit, cursor=None, order="id", uncapped=False):
     exactly one caller today — see CAP_EXEMPT_REASON_CUSTODY above, which is
     where the reasoning lives, not here. It does NOT touch `total_estimate`,
     which is the true count on every path.
+
+    `descending=True` walks the same keyset backwards — newest id first —
+    for a caller that asked for it. Three things move together and none of
+    them can move alone:
+
+      * the ORDER becomes `id desc`;
+      * the CURSOR COMPARATOR becomes `<` rather than `>`, because a keyset
+        walk reads "everything after the last row I saw" and which side that
+        is depends on the direction;
+      * the cursor PAYLOAD gains `desc: True`, so a token says which walk
+        issued it.
+
+    That third one is why a direction is not simply a query parameter the
+    route reads and forgets. A cursor from an ascending walk replayed
+    against a descending one is a request nobody can answer honestly: the
+    comparator would page AWAY from the rows the caller has not seen and the
+    response would look like a short, complete list. So a mismatch is a
+    `BadFilter` — a 400 — and never a best guess.
+
+    An ascending token is byte-for-byte what it has always been: `desc` is
+    added only on the descending path, so every cursor already in flight,
+    and every cursor an existing integration holds, keeps working unchanged.
+
+    Descending is defined for the DEFAULT `id` keyset only. Passing it with
+    a custom `order` raises, rather than silently ordering one way and
+    paging the other — no caller does this today and the assertion is here
+    so none starts by accident.
     """
+    if descending and order != "id":
+        raise ValueError(
+            "paginate(descending=True) is defined for the default `id` "
+            "keyset only; got order=%r. Ordering one way and paging the "
+            "other returns a page that is neither." % (order,))
+
     cursor_data = decode_cursor(cursor) if cursor else {}
     effective_domain = list(domain)
+
+    # The direction the TOKEN was issued for, against the direction this
+    # request asked for. Absent means ascending: that is what every cursor
+    # issued before this parameter existed means, and it is why the
+    # ascending payload stays unchanged.
+    if cursor and bool(cursor_data.get("desc")) != bool(descending):
+        raise BadFilter(
+            "`cursor` was issued for a %s walk and this request asks for a "
+            "%s one. Restart the walk without a cursor, or keep `sort` the "
+            "same for every page of it."
+            % ("descending" if cursor_data.get("desc") else "ascending",
+               "descending" if descending else "ascending"),
+            details={"cursor": cursor,
+                     "cursor_direction":
+                         "descending" if cursor_data.get("desc") else "ascending",
+                     "requested_direction":
+                         "descending" if descending else "ascending"},
+        )
+
+    effective_order = "id desc" if descending else order
 
     total = model.search_count(domain)
 
@@ -999,7 +1053,12 @@ def paginate(model, domain, *, limit, cursor=None, order="id", uncapped=False):
     # cap survives across pages.
     cap = None if uncapped else record_cap()
     if cap is not None:
-        allowed = model.search(domain, order=order, limit=cap)
+        # Descending, this window is the NEWEST `cap` records rather than
+        # the oldest. That is the same sentence as before — "the first N
+        # records of the domain, sorted by `order`" — read in the direction
+        # the caller asked for, and it is the right half to give them: a
+        # capped client walking newest-first wants the recent end.
+        allowed = model.search(domain, order=effective_order, limit=cap)
         if not allowed:
             return model.browse([]), None, total
         effective_domain.append(("id", "in", allowed.ids))
@@ -1007,10 +1066,13 @@ def paginate(model, domain, *, limit, cursor=None, order="id", uncapped=False):
 
     if "last_id" in cursor_data:
         # Already an int: `decode_cursor` coerced it or refused the request.
-        effective_domain.append(("id", ">", cursor_data["last_id"]))
+        # The comparator follows the direction — see the docstring.
+        effective_domain.append(
+            ("id", "<" if descending else ">", cursor_data["last_id"]))
 
     # Fetch one extra to know if there's a next page
-    records = model.search(effective_domain, order=order, limit=limit + 1)
+    records = model.search(effective_domain, order=effective_order,
+                           limit=limit + 1)
     # capped-count-ok: `records` IS the page. This asks how many rows
     # came back from the fetch, not how many exist — `total` above is
     # the count of the register and is the number the caller is given.
@@ -1019,7 +1081,12 @@ def paginate(model, domain, *, limit, cursor=None, order="id", uncapped=False):
 
     next_cursor = None
     if has_more and page:
-        next_cursor = encode_cursor({"last_id": page[-1].id})
+        payload = {"last_id": page[-1].id}
+        if descending:
+            # Added ONLY here. An ascending token keeps the exact shape it
+            # has always had, so nothing already holding one is affected.
+            payload["desc"] = True
+        next_cursor = encode_cursor(payload)
 
     return page, next_cursor, total
 

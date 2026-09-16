@@ -100,6 +100,13 @@ _ASSET_CONDITIONS = ("new", "good", "fair", "poor", "decommissioned")
 # INT-06 §8 publishes to SAP.
 _ASSET_LEVELS = ("group", "asset", "sub_asset", "component")
 
+# `?sort` on the listing. Deliberately NOT read off the model the way the
+# field enums are (handoff 22): this is a property of the LISTING, there is
+# no `nrs.asset` field behind it, and so there is nothing for it to drift
+# from. `oldest` is the default and is spelled out so a caller can say it
+# rather than rely on it.
+_LIST_SORT_VALUES = ("newest", "oldest")
+
 # nrs.asset.domain — the FM domain. The field is `related='category_id.domain'`,
 # so the Selection is declared on `nrs.asset.category`; the related field
 # carries it, which is why reading `nrs.asset.domain` off the registry gets the
@@ -1051,6 +1058,23 @@ class CadraAssetsV1(http.Controller):
                           "the SAP posting is not yet due. A value outside "
                           "the enum is a 400 `invalid_request` carrying "
                           "`details.allowed_values`, not an empty list.")},
+                     {"name": "sort",
+                      "schema": {"type": "string",
+                                 "enum": list(_LIST_SORT_VALUES),
+                                 "default": "oldest"},
+                      "description": (
+                          "Row order. `oldest` (the default, and what this "
+                          "endpoint has always returned) walks ascending "
+                          "asset id — oldest first. `newest` walks the same "
+                          "keyset backwards, so the most recently created "
+                          "asset is the first row of page one. A value "
+                          "outside the enum is a 400 `invalid_request` "
+                          "carrying `details.allowed_values`.\n\n"
+                          "**Keep it the same for every page of one walk.** "
+                          "A `cursor` records the direction it was issued "
+                          "for; replaying it against the other direction is "
+                          "a 400 rather than a page that silently skips the "
+                          "rows you have not seen.")},
                      *PAGINATION_QUERY_PARAMS,
                  ])
     def list_assets(self, **kwargs):
@@ -1061,9 +1085,18 @@ class CadraAssetsV1(http.Controller):
         except BadFilter as e:
             return err(ERR_INVALID_REQUEST, str(e), details=e.details)
         limit = parse_limit(qs)
+        # Inside the same `try` as the domain builder: `parse_enum` refuses
+        # an unknown value with a `BadFilter` carrying `allowed_values`, and
+        # this route answers that as a 400 beside its other bad filters
+        # rather than leaning on the decorator's floor.
+        try:
+            sort = parse_enum("sort", qs.get("sort"), _LIST_SORT_VALUES)
+        except BadFilter as e:
+            return err(ERR_INVALID_REQUEST, str(e), details=e.details)
         page, next_cursor, total = paginate(
             Asset, domain,
             limit=limit, cursor=qs.get("cursor"),
+            descending=(sort == "newest"),
         )
         return ok(
             data=[serialize_asset(a) for a in page],

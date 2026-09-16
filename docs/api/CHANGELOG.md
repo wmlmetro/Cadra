@@ -33,6 +33,43 @@ live at was never the point.
 
 ---
 
+## 2026-09-16 — `?sort` on the asset listing
+
+**`GET /api/v1/assets?sort=newest|oldest` (ADDITIVE — nothing changes unless
+you ask for it).** The listing has always walked ascending asset id, so the
+register's most recently created asset sits on its LAST page. `sort=newest`
+walks the same keyset backwards, putting it first.
+
+**The default has not moved and the default walk is byte-for-byte what it
+was.** `sort` absent means `oldest`, which is the order this endpoint has
+always returned, and an ascending cursor still decodes to exactly
+`{"last_id": N}` — no new key, no new shape. A consumer that ignores this
+entry is unaffected in every respect, which is why this is additive rather
+than a behaviour change. `oldest` is published as an explicit value so a
+caller can state the order it wants instead of relying on a default.
+
+**Keep `sort` the same for every page of one walk.** A keyset cursor means
+"everything after the last row I saw", and which side that is depends on the
+direction. A descending cursor therefore records its direction, and replaying
+a cursor against the other direction is a **400 `invalid_request`** carrying
+`details.cursor_direction` and `details.requested_direction`. It is not a
+best guess: the comparator would page *away* from the rows you have not seen
+and hand you a short list that looks complete — the same silent-degradation
+shape handoff 22 refused to keep for corrupt cursors.
+
+**An unknown value is a 400** carrying `details.allowed_values`, not an
+unsorted list and not an empty one.
+
+**If your credential is record-capped**, the capped window under
+`sort=newest` is the NEWEST N records rather than the oldest N. Same
+sentence as before — "the first N records of the domain, sorted by `order`"
+— read in the direction you asked for. `pagination.total_estimate` is the
+true count of the register on every path, as always.
+
+Only `/api/v1/assets` takes `sort` today. The other listings are unchanged.
+
+---
+
 ## 2026-09-15 — handoff 26
 
 **`is_test_fixture` on assets, locations and service requests (ADDITIVE).**
