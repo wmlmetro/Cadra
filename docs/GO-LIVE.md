@@ -15,13 +15,18 @@ the local estate or about nothing machine-specific at all. Read the two as
 separate documents that happen to share a file.
 
 **The close-out (2026-09-16) ruled on three of Part II's open items and
-closed four others.** §7, §11.1 and §8.3 now carry decisions rather than
-questions. **§10.2's eleven remaining silent-instrument sites and §12's three
-judged-and-left findings are ACCEPTED as they stand and are not to be
-reopened** — they are recorded stopping points with file and line, not
-pending work, and `docs/DECISIONS.md` carries the reasoning. An item still
-marked `[open]` below is genuinely open; one marked `[ruled]` needs
-implementing, not re-deciding.
+accepted several others as they stand.** §7, §11.1 and §8.3 now carry
+`[ruled]` decisions rather than questions — **implement them, do not
+re-decide them.**
+
+**§10.2's eleven remaining silent-instrument sites and §12's three
+judged-and-left findings stay tagged `[open]`, and that is correct: they are
+genuinely not fixed.** What the close-out settled is the separate question of
+whether to chase them — **it ruled not to, and they are not to be reopened as
+decisions.** The two are different things: `[open]` describes the code, the
+acceptance describes the argument. Anyone may still fix one; nobody needs to
+re-litigate whether it should have been fixed in handoff 26.
+`docs/DECISIONS.md` carries the reasoning under *2026-09-16 — close-out*.
 
 ---
 
@@ -137,6 +142,10 @@ Every item below is tagged:
   much to trust it.
 - **`[landed, keep it that way]`** — built and working. It is here because
   the easiest way to break it is not to know it exists.
+- **`[ruled]`** — added by the close-out, 2026-09-16. The Architect has
+  DECIDED it; it is not yet built. **Implement it, do not re-decide it.** A
+  `[ruled]` item is still outstanding work — the tag says the argument is
+  over, not that the code exists. `docs/DECISIONS.md` carries the reasoning.
 
 **An item is not ticked because it sounds right.** Everything here carries
 either a measurement or the report it came from.
@@ -144,6 +153,10 @@ either a measurement or the report it came from.
 **There are no questions in this register, only decisions to make.** Where
 handoff 26 would have asked the Architect something, the options are written
 out instead, so whoever picks this up reads a choice rather than a cliffhanger.
+**Three of those choices were then made** — §7, §11.1 and §8.3 — and carry
+`[ruled]` rather than options. The options they were chosen from are kept
+beside each ruling, because a decision whose alternatives are not written
+down gets re-argued.
 
 ---
 
@@ -306,14 +319,40 @@ done
 That is the state these three commands change, and the five existing marks
 confirm the register matches the databases.
 
-**`gtb19` is the one mark that WEAKENS a guard** — it moves that database
-from refusing test writes to accepting them, and it is the only one of the
-three that does. It was therefore re-verified against the database on
-2026-09-16 rather than taken from §7.3: 156 assets, 6 fixture-named, 61
-employees, 149 locations and company *Guaranty Trust Bank* all match, the
-sampled employees are the synthetic alphabetical-by-surname set §7.3 names,
-and the sampled assets are the seed script's generic bank equipment. **The
-live `gtb` is separately marked `client`**, so the two are not confusable.
+#### All three marks weaken a guard. They do not weaken the same one.
+
+**Correction, caught by the close-out's own verification pass.** A first
+draft of this block said `gtb19` was the only one of the three that weakens
+anything, on the reasoning that `client` and absent both refuse. **That is
+true of the test suites and false of the two owner-run scripts**, and it is
+wrong in the permissive direction — it tells you the two marks on
+client-derived registers are consequence-free when they are the more
+consequential two. What each mark actually changes:
+
+| mark | test suites (§ handoff 25) | the two owner-run scripts (§5) |
+|---|---|---|
+| `gtb19` → `test` | **refuse → ACCEPT.** The suite may now write here. | refuse → accept |
+| `nrs19` → `client` | refuse → refuse (no change) | **refuse → ACCEPT** |
+| `cadra19` → `client` | refuse → refuse (no change) | **refuse → ACCEPT** |
+
+Both scripts gate on `db_class not in (TEST, CLIENT)` —
+`scripts/remove_test_residue.py:164` and `scripts/mark_test_fixtures.py:116`
+— so **`client` is allowed on purpose**, because `jaizbankplc` is marked
+`client` and is the register they were written for. The consequence nobody
+should discover later: once `nrs19` is marked, `remove_test_residue.py` under
+`CADRA_APPLY=1` will delete fixture-named rows from **the database holding a
+real NRS staff extract and 11,942 assets** — and that script's own comment
+(`remove_test_residue.py:155-159`) names `nrs19` as the reason the
+absent-refusal exists at all. The ruling stands; marking is still right. **It
+is the delete script, not the marks, that now needs the care.**
+
+**`gtb19` was additionally re-verified against the database** on 2026-09-16
+rather than taken from §7.3, because it is the mark that opens a database to
+the test suite: 156 assets, 6 fixture-named, 61 employees, 149 locations and
+company *Guaranty Trust Bank* all match, the sampled employees are the
+synthetic alphabetical-by-surname set §7.3 names, and the sampled assets are
+the seed script's generic bank equipment. **The live `gtb` is separately
+marked `client`**, so the two are not confusable.
 
 ### 7.1 · `nrs19` → **`client`** — `[ruled]` 2026-09-16
 
@@ -355,7 +394,7 @@ carries a fixture employee, it has no custody chain, and nothing outside this
 repository references it — a full-text search found it only in `CLAUDE.md`,
 in four frontend comments quoting asset counts, and in one migration comment.
 
-**The argument for `client`, which is why the proposal is `client`:** its
+**The argument for `client`, which is why the ruling is `client`:** its
 seeded assets (1,285 of the 1,335 carry no fixture name) come from
 `scripts/nrs_hq_seed.py`, whose own header
 names its sources as **real client documents** — Baron Architecture drawings
