@@ -14,6 +14,20 @@ handoff 26 — scripts, tenants, credentials and decisions, most of them about
 the local estate or about nothing machine-specific at all. Read the two as
 separate documents that happen to share a file.
 
+**The close-out (2026-09-16) ruled on three of Part II's open items and
+accepted several others as they stand.** §7, §11.1 and §8.3 now carry
+`[ruled]` decisions rather than questions — **implement them, do not
+re-decide them.**
+
+**§10.2's eleven remaining silent-instrument sites and §12's three
+judged-and-left findings stay tagged `[open]`, and that is correct: they are
+genuinely not fixed.** What the close-out settled is the separate question of
+whether to chase them — **it ruled not to, and they are not to be reopened as
+decisions.** The two are different things: `[open]` describes the code, the
+acceptance describes the argument. Anyone may still fix one; nobody needs to
+re-litigate whether it should have been fixed in handoff 26.
+`docs/DECISIONS.md` carries the reasoning under *2026-09-16 — close-out*.
+
 ---
 
 ## 1 · Every tenant is upgraded at or before the image roll
@@ -128,6 +142,10 @@ Every item below is tagged:
   much to trust it.
 - **`[landed, keep it that way]`** — built and working. It is here because
   the easiest way to break it is not to know it exists.
+- **`[ruled]`** — added by the close-out, 2026-09-16. The Architect has
+  DECIDED it; it is not yet built. **Implement it, do not re-decide it.** A
+  `[ruled]` item is still outstanding work — the tag says the argument is
+  over, not that the code exists. `docs/DECISIONS.md` carries the reasoning.
 
 **An item is not ticked because it sounds right.** Everything here carries
 either a measurement or the report it came from.
@@ -135,6 +153,10 @@ either a measurement or the report it came from.
 **There are no questions in this register, only decisions to make.** Where
 handoff 26 would have asked the Architect something, the options are written
 out instead, so whoever picks this up reads a choice rather than a cliffhanger.
+**Three of those choices were then made** — §7, §11.1 and §8.3 — and carry
+`[ruled]` rather than options. The options they were chosen from are kept
+beside each ruling, because a decision whose alternatives are not written
+down gets re-argued.
 
 ---
 
@@ -236,27 +258,107 @@ truth about itself on 2026-09-15 and says nothing about the day before.
 
 ---
 
-## 7 · The three unclassified tenants — `[open]`, with a proposal each
+## 7 · The three unclassified tenants — `[ruled]` 2026-09-16: mark all three
 
-`cadra19`, `nrs19` and `gtb19` carry no `cadra.database_class`. **Nothing is
-unsafe today** — absent refuses, so both test suites and both scripts already
-decline to touch them. What is missing is a decision, and *unknown* is a
+`cadra19`, `nrs19` and `gtb19` carried no `cadra.database_class`. **Nothing
+was unsafe** — absent refuses, so both test suites and both scripts already
+declined to touch them. What was missing was a decision, and *unknown* is a
 state somebody eventually resolves by guessing.
 
 **The rule when it is genuinely ambiguous is `client`.** A test database
 wrongly marked `client` costs somebody an afternoon. A client database
 wrongly marked `test` costs a register.
 
-The command is printed by any refused run, and is:
+**Ruled by the Architect in the close-out, 2026-09-16 — `nrs19` →
+`client`, `cadra19` → `client`, `gtb19` → `test`. Mark all three, including
+the safe one.** Unmarked refuses, so nothing is unsafe either way, but **a
+database whose class is recorded only in a report is the shape of thing this
+programme has spent three handoffs fixing.** The parameter is where the
+decision lives; this section is only where it is explained.
+
+#### NEEDS THE OWNER — the three marks are not applied
+
+**The close-out asked the Builder to set these. The permission layer refused
+the write**, as it has twice before, so the decision is recorded here and
+**the parameter is still absent on all three.** Run these three commands, one
+at a time — each loads a registry, and this host does not tolerate two at
+once (`docs/ENVIRONMENT-FACTS.md`):
 
 ```
 docker compose -f docker-compose.yml -f docker-compose.19.yml exec -T odoo \
-  odoo shell -c /etc/odoo/odoo.conf -d <db> --no-http \
+  odoo shell -c /etc/odoo/odoo.conf -d nrs19 --no-http \
   --http-port=8099 --gevent-port=8098 <<< \
-  "env['ir.config_parameter'].sudo().set_param('cadra.database_class','<class>'); env.cr.commit()"
+  "env['ir.config_parameter'].sudo().set_param('cadra.database_class','client'); env.cr.commit()"
+
+docker compose -f docker-compose.yml -f docker-compose.19.yml exec -T odoo \
+  odoo shell -c /etc/odoo/odoo.conf -d cadra19 --no-http \
+  --http-port=8099 --gevent-port=8098 <<< \
+  "env['ir.config_parameter'].sudo().set_param('cadra.database_class','client'); env.cr.commit()"
+
+docker compose -f docker-compose.yml -f docker-compose.19.yml exec -T odoo \
+  odoo shell -c /etc/odoo/odoo.conf -d gtb19 --no-http \
+  --http-port=8099 --gevent-port=8098 <<< \
+  "env['ir.config_parameter'].sudo().set_param('cadra.database_class','test'); env.cr.commit()"
 ```
 
-### 7.1 · `nrs19` → **`client`.** Confidence: high.
+**Verify with a read that does not go through `get_param`** — the ormcache is
+what leaked in handoff 25, and `odoo shell` would read through the same cache
+a worker does:
+
+```
+for db in cadra19 nrs19 gtb19 test19 nrs lasg gtb jaizbankplc; do
+  printf '%-14s ' "$db"
+  docker compose -f docker-compose.yml -f docker-compose.19.yml exec -T db \
+    psql -U odoo -d "$db" -tAc \
+    "SELECT value FROM ir_config_parameter WHERE key='cadra.database_class'"
+done
+```
+
+**Measured 2026-09-16, before the marks:** `test19` = `test`; `nrs`, `lasg`,
+`gtb`, `jaizbankplc` = `client`; **`cadra19`, `nrs19`, `gtb19` = absent.**
+That is the state these three commands change, and the five existing marks
+confirm the register matches the databases.
+
+#### All three marks weaken a guard. They do not weaken the same one.
+
+**Correction, caught by the close-out's own verification pass.** A first
+draft of this block said `gtb19` was the only one of the three that weakens
+anything, on the reasoning that `client` and absent both refuse. **That is
+true of the test suites and false of the two owner-run scripts**, and it is
+wrong in the permissive direction — it tells you the two marks on
+client-derived registers are consequence-free when they are the more
+consequential two. What each mark actually changes:
+
+| mark | test suites (§ handoff 25) | the two owner-run scripts (§5) |
+|---|---|---|
+| `gtb19` → `test` | **refuse → ACCEPT.** The suite may now write here. | refuse → accept |
+| `nrs19` → `client` | refuse → refuse (no change) | **refuse → ACCEPT** |
+| `cadra19` → `client` | refuse → refuse (no change) | **refuse → ACCEPT** |
+
+Both scripts gate on `db_class not in (TEST, CLIENT)` —
+`scripts/remove_test_residue.py:164` and `scripts/mark_test_fixtures.py:116`
+— so **`client` is allowed on purpose**, because `jaizbankplc` is marked
+`client` and is the register they were written for. The consequence nobody
+should discover later: once `nrs19` is marked, `remove_test_residue.py` under
+`CADRA_APPLY=1` will delete fixture-named rows from **the database holding a
+real NRS staff extract and 11,942 assets** — and that script's own comment
+(`remove_test_residue.py:155-159`) names `nrs19` as the reason the
+absent-refusal exists at all. The ruling stands; marking is still right. **It
+is the delete script, not the marks, that now needs the care.**
+
+**`gtb19` was additionally re-verified against the database** on 2026-09-16
+rather than taken from §7.3, because it is the mark that opens a database to
+the test suite: 156 assets, 6 fixture-named, 61 employees, 149 locations and
+company *Guaranty Trust Bank* all match, the sampled employees are the
+synthetic alphabetical-by-surname set §7.3 names, and the sampled assets are
+the seed script's generic bank equipment. **The live `gtb` is separately
+marked `client`**, so the two are not confusable.
+
+### 7.1 · `nrs19` → **`client`** — `[ruled]` 2026-09-16
+
+**Agreed without reservation:** a real NRS staff extract naming serving
+officials, and the register another organisation measures against. The
+evidence the ruling rests on:
 
 Measured 2026-09-15: **11,942 assets, 11,386 employees, 1,154 locations, 0
 fixture-named records.** The employee list is a real NRS staff extract — it
@@ -273,7 +375,15 @@ working tenant for integration and demo work"*. Marking this `test` would
 point the writing test suite at real NRS personal data and at the register
 another organisation is building against.
 
-### 7.2 · `cadra19` → **`client`.** Confidence: medium — this is the one worth a second opinion.
+### 7.2 · `cadra19` → **`client`** — `[ruled]` 2026-09-16
+
+**The second opinion was asked for and given, and provenance decides it.**
+Assets derived from a named architect's drawings, a named consultancy's
+completion schedule and a dated FIRS HQ furniture inventory, describing a
+real 19-floor building, **are client-derived content whatever the tenant is
+used for**. The argument that settles it is the closing one below: `test19`
+already exists, is marked, and has a credential pair — **a second test tenant
+is a thing to make, not a thing to reclassify.** The evidence:
 
 Measured 2026-09-15: **1,335 assets, 754 locations, 80 requests, 2
 employees** (one of them named `Py Test`), **50 fixture-named assets**, 0
@@ -284,7 +394,7 @@ carries a fixture employee, it has no custody chain, and nothing outside this
 repository references it — a full-text search found it only in `CLAUDE.md`,
 in four frontend comments quoting asset counts, and in one migration comment.
 
-**The argument for `client`, which is why the proposal is `client`:** its
+**The argument for `client`, which is why the ruling is `client`:** its
 seeded assets (1,285 of the 1,335 carry no fixture name) come from
 `scripts/nrs_hq_seed.py`, whose own header
 names its sources as **real client documents** — Baron Architecture drawings
@@ -298,7 +408,15 @@ read as real.
 one**, not to reclassify this. `test19` already exists, is marked, and has a
 credential pair.
 
-### 7.3 · `gtb19` → **`test`.** Confidence: medium-high, and it is the only `test` proposal here.
+### 7.3 · `gtb19` → **`test`** — `[ruled]` 2026-09-16
+
+**Agreed, and it is the only `test` ruling here.** This is the one place
+*"when ambiguous, client"* is deliberately **not** applied, because it is not
+ambiguous: every category of content is traced to a source and none of it is
+client-supplied — synthetic employees, seed-script equipment, and locations
+from a JSON file that marks every row as public OpenStreetMap data. **The
+caution below about the two GitHub workflows is carried with the mark**, not
+resolved by it. The evidence:
 
 Measured 2026-09-15: **156 assets, all created on 2026-08-06**, 149
 locations, 61 employees, and **6 fixture-named assets already in it**
@@ -314,6 +432,15 @@ Every category of its content is reproducible and none of it is client-supplied:
 - the 122 branch locations come from `scripts/gtb_locations.json`, which
   marks every row `"source": "OSM (real)"` — **public OpenStreetMap data**,
   not a client extract.
+
+**One addition §7.3 did not carry, found on re-verification 2026-09-16:**
+`gtb19` holds **152 `nrs.asset.custody` rows**, which this section did not
+mention and which matter because custody is append-only and marking the
+database `test` lets the suite write into it. They are **not a record of
+anything real**: all 152 carry `source = 'tracking_backfill'` and all 152
+were created on one day, 2026-09-09 — a backfill over the seeded assets, not
+a chain of custody anybody handed over. The ruling is unaffected; the count
+is recorded so the next reader does not rediscover it as a surprise.
 
 **The real GTB tenant is `gtb`, which is already marked `client`.**
 `k8s/dev/60-ingress.yaml:82` records that the live database *"was renamed
@@ -397,6 +524,20 @@ workflow.
 
 **Do not re-use the old values.** They are retrievable from git by anyone who
 can read the repository.
+
+**Carried by the Architect, 2026-09-16 (close-out §3).** The correction above
+matters outside this repository and has been acted on: *"two unrotated
+credentials in git history"* had been in the Architect's own status reporting
+for weeks, and **it was wrong in the direction that lets something sit.**
+Neither key is set on any tenant and both routes have refused since handoff
+17, so there is no live compromised credential to chase — but **Redhubs'
+asset-register export and SAP's inbound employee sync have been answering
+`Unauthorized` since then, and two external parties are waiting on values
+somebody has to generate and hand over.**
+
+**It goes to NRS as a switched-off integration awaiting a credential, not as
+a security item** — the two need different people, and filing it as the
+second is how it stays unactioned. This section's phrasing stands as written.
 
 ### 8.4 · `.env` in git history — `[open]`
 
@@ -565,7 +706,7 @@ every read. All eight local tenants were upgraded and verified at 14 columns
 each on 2026-09-15; on the cluster the `cadra-upgrade` Job must fan out the
 same way — see §1 of this file.
 
-### 11.1 · One route discards the actor before creating, so its records are never labelled — `[open]`
+### 11.1 · One route discards the actor before creating, so its records are never labelled — `[ruled]` 2026-09-16, not yet implemented
 
 `myservice_website_theme/controllers/api.py:198`:
 
@@ -599,7 +740,9 @@ user rather than a credential, so swapping in `.sudo()` changes what
 unauthenticated path, made in a handoff about test labelling, with no test
 covering what depends on it.
 
-**The decision to make.** Three options:
+**The options handoff 26 weighed**, kept because the ruling below refers to
+them and because a decision whose alternatives are not written down gets
+re-argued:
 
 1. **Swap `with_user(SUPERUSER_ID)` for `.sudo()`.** Smallest change, and it
    improves the audit trail generally — `create_uid` would name the real
@@ -613,6 +756,38 @@ covering what depends on it.
 3. **Fold it into the pre-envelope-routes refactor** (§9.1), which is already
    going to touch how these routes establish identity.
 
+**Ruled by the Architect in the close-out, 2026-09-16. This is a ruling, not
+an open question — whoever picks it up implements it, and nobody needs to
+re-decide it.**
+
+**Split the two paths rather than choosing one behaviour for both.**
+
+- **On the authenticated route** (`POST /api/v1/home/quick-submit`), **use
+  `.sudo()`**. It elevates privileges *and keeps the actor* — that difference
+  is the entire reason the actor is being lost here, and keeping it is what
+  fixes the defect. `create_uid` then names the real actor instead of
+  `__system__`, and `is_test_fixture` derives correctly because there is a
+  credential in the environment to read.
+- **On the public twin** (`/api/myservice/quick-submit`, `auth='public'`),
+  **`with_user(SUPERUSER_ID)` stays exactly as it is.** There is no actor to
+  keep, so there is nothing to gain — and **the public path does not change
+  at all.**
+
+The reasoning: of the three options above, none was taken whole — splitting
+applies option 1 to the authenticated route and option 2 to the public one,
+and it is **the only arrangement that fixes the defect without touching
+unauthenticated behaviour.** The
+objection that blocked the change in handoff 26 — that swapping in `.sudo()`
+alters what `env.user` is during a create on a PUBLIC route, decided in a
+handoff about test labelling with no test covering it — is answered by not
+making that change on the public route at all, rather than by covering it
+with a test.
+
+Not folded into the §9.1 pre-envelope refactor: that refactor is a
+prerequisite for nothing here, and this is a smaller change than waiting for
+it.
+
+**Handoff 26 was right not to change it** inside a handoff about labelling.
 **This is a pre-existing audit-trail defect that handoff 26 exposed rather
 than introduced** — the actor was being discarded long before there was a
 label to lose.

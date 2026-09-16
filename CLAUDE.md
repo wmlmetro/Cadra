@@ -91,7 +91,7 @@ Cadra is one of three systems in the NRS integration programme, defined by *"End
 - **Tenancy is host-based.** With `ODOO_DBFILTER='^%d$'`, `http://localhost:8069` answers *"No database is selected"* and a database is reached as `http://<db>.localhost:8069`. Local databases: `cadra19`, `nrs19`, `gtb19`, `test19` (19-era) and `nrs`, `gtb`, `lasg`, `jaizbankplc` (15-era replicas now served by the 19 container, all at `base = 19.0.1.3`).
 - **`odoo` is not a database you can test against**, and `.env.example` names it (`POSTGRES_DB=odoo`, `ODOO_DBFILTER=^odoo$`). It is a genuine 15-era leftover that a 19 worker cannot load, and it fails with an error that names nothing relevant — see `docs/ENVIRONMENT-FACTS.md` for the exact text, which is not what you would guess. The defaults are right for CI, which creates its own single database, and wrong for every command in this file: export `ODOO_DBFILTER='^%d$'` and name a real tenant.
 - **Editing a bind-mounted config file breaks its mount.** `./config/odoo.19.conf` is mounted as a *single file*; anything that replaces the inode rather than writing in place (most editors, and every agent file tool) leaves the container with **no `/etc/odoo/odoo.conf` at all** — every `exec … odoo -c` then fails with a confusing `psycopg2.OperationalError` about a unix socket, because the defaults have no `db_host`. `docker compose … up -d --force-recreate odoo` after any config edit.
-- **A test will not run against a database that is not marked as a test database.** Since handoff 25, both suites read `cadra.database_class` from the target database and refuse unless it is `test`. **Absent refuses**, so a tenant nobody has classified is refused exactly as a production one is. There is no bypass flag and no override variable — if a database should accept test writes, mark it, and the refusal prints the command. Locally, `test19` is marked `test` and `jaizbankplc`/`nrs`/`lasg`/`gtb` are marked `client` and refuse; `cadra19`/`nrs19`/`gtb19` are unmarked and therefore also refuse. **Handoff 26 measured all three and proposed a class for each** — `nrs19` and `cadra19` `client`, `gtb19` `test` — with the evidence in `docs/GO-LIVE.md` §7. **The owner marks them; a guess is a false record in the one place the system now trusts.**
+- **A test will not run against a database that is not marked as a test database.** Since handoff 25, both suites read `cadra.database_class` from the target database and refuse unless it is `test`. **Absent refuses**, so a tenant nobody has classified is refused exactly as a production one is. There is no bypass flag and no override variable — if a database should accept test writes, mark it, and the refusal prints the command. Locally, `test19` is marked `test` and `jaizbankplc`/`nrs`/`lasg`/`gtb` are marked `client` and refuse; `cadra19`/`nrs19`/`gtb19` are unmarked and therefore also refuse. **Ruled in the close-out, 2026-09-16: `nrs19` → `client`, `cadra19` → `client`, `gtb19` → `test`**, on handoff 26's evidence in `docs/GO-LIVE.md` §7 — where the three exact commands are. **The marks are NOT applied yet** (the Builder's permission layer refused the write), so all three still refuse, which is the safe state. **The owner runs them.** **All three marks weaken a guard, and not the same one:** `gtb19` → `test` opens that database to the TEST SUITES, while `nrs19`/`cadra19` → `client` open theirs to the two OWNER-RUN SCRIPTS, which accept `client` on purpose — so `remove_test_residue.py` under `CADRA_APPLY=1` would then delete from `nrs19`, which holds a real NRS staff extract. The live GTB tenant is `gtb`, separately marked `client`.
   ```
   CADRA_API_BASE=http://test19.localhost:8069 tests/.venv/bin/python -m pytest tests/ -q
   ```
@@ -190,6 +190,14 @@ belong to NRS rather than to engineering — is in the **open-items register at
 `[landed, keep it that way]`, each carrying its evidence and the report it
 came from. **That file is where the programme resumes from; this list is not
 maintained in parallel.**
+
+**The close-out (2026-09-16) settled three of those entries and closed four.**
+`docs/GO-LIVE.md` §7 (the three tenants), §11.1 (the quick-submit actor) and
+§8.3 (the two cutover credentials) now carry `[ruled]` decisions rather than
+questions — **implement them, do not re-decide them** — and §10.2's eleven
+remaining silent-instrument sites and §12's three judged-and-left findings
+are accepted as they stand and are not to be reopened. The reasoning for all
+of it is in `docs/DECISIONS.md` under *2026-09-16 — close-out*.
 
 The one thing to read first if you read nothing else: **`admin` / `admin` is
 accepted on all eight local tenants** (verified 2026-09-15, §8.1), and the
