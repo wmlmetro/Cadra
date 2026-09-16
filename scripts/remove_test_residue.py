@@ -123,8 +123,25 @@ def trial_unlink(records):
         return False, "%s: %s" % (type(exc).__name__, str(exc).strip()[:160])
 
 
-ICP = env["ir.config_parameter"].sudo()              # noqa: F821
-db_class = (ICP.get_param("cadra.database_class") or "").strip().lower()
+# The class is read with SQL through the repo's own helper, and NOT with
+# `ir.config_parameter.get_param`.
+#
+# This line used to be `ICP.get_param("cadra.database_class")`, which is the
+# exact call handoff 25 had just finished proving unsafe — written INTO this
+# script by the handoff that found the leak. `get_param` is `@ormcache`d per
+# worker, and under the committed `workers = 2` it answered `"client"` for a
+# database whose parameter row had been DELETED while a second worker
+# answered `"test"` for the same instant. `myservice_nrs_base/
+# database_class.py` carries the measurement.
+#
+# Everywhere else that mattered had already been moved off it. Here — the one
+# guard standing between `CADRA_APPLY=1` and a real client's register — it
+# survived, because nobody re-read the new script against the rule the same
+# handoff had just written down.
+from odoo.addons.myservice_nrs_base.database_class import (  # noqa: E402
+    CLIENT, PRODUCTION, TEST, database_class)
+
+db_class = database_class(env)                       # noqa: F821 — odoo shell
 print("database   : %s" % env.cr.dbname)             # noqa: F821
 print("class      : %s" % (db_class or "(not set)"))
 print("mode       : %s" % ("APPLY — records will be deleted" if APPLY
@@ -132,10 +149,32 @@ print("mode       : %s" % ("APPLY — records will be deleted" if APPLY
                                 "rolled back"))
 print()
 
-if db_class == "production":
-    print("REFUSED: this database is marked `production`. Nothing was read or "
-          "changed.")
-    raise SystemExit(0)
+# Absent refuses, and that is a TIGHTENING over the first version, which
+# refused only `production`.
+#
+# This script deletes rows from an asset register. An unmarked database is
+# not a safe one, it is an unclassified one — and `cadra19`, `nrs19` and
+# `gtb19` are all unmarked on this machine today, with `nrs19` holding a real
+# NRS staff extract and eleven thousand assets. Letting the blank through
+# would mean the one database nobody has thought about is the one the
+# delete runs against without a word.
+#
+# `client` is allowed on purpose: `jaizbankplc` is marked `client` and is
+# precisely the register this script was written to clean.
+if db_class not in (TEST, CLIENT):
+    print("REFUSED: this database's class is %s. Nothing was read or changed."
+          % ("`%s`" % db_class if db_class else
+             "NOT SET — an unclassified database, not a safe one"))
+    print()
+    print("This script deletes register rows. It runs only against a database")
+    print("that has been classified `%s` or `%s`; `%s` and an absent or"
+          % (TEST, CLIENT, PRODUCTION))
+    print("unrecognised value both refuse.")
+    print()
+    print("If this database should be classified, classify it deliberately —")
+    print("the command is printed by any refused test run, and the decision")
+    print("belongs to whoever knows what is in here, not to this script.")
+    raise SystemExit(1)
 
 Asset = env["nrs.asset"].sudo()                      # noqa: F821
 Custody = env["nrs.asset.custody"].sudo()            # noqa: F821

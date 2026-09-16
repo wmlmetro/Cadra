@@ -155,13 +155,123 @@ fi
 echo ""
 echo "▶ Detecting Odoo DB state..."
 
-# A fresh postgres has the `odoo` DB but no ir_module_module table.
-# An initialised Odoo DB has it. Use that as the discriminator.
-installed_count=$(docker compose "${COMPOSE_FILES[@]}" exec -T db \
-    psql -U "$ODOO_USER_DB" -d "$ODOO_DB" -tAc \
-    "SELECT count(*) FROM ir_module_module WHERE state='installed'" 2>/dev/null \
-    || echo "0")
-installed_count=$(echo "$installed_count" | tr -d ' \n')
+# THREE questions, and there used to be one. This was:
+#
+#     installed_count=$(docker compose ... exec -T db psql ... -tAc \
+#         "SELECT count(*) FROM ir_module_module WHERE state='installed'" \
+#         2>/dev/null || echo "0")
+#
+# and it leaned on psql FAILING. On a genuinely fresh database there is no
+# `ir_module_module`, psql exits non-zero, and `|| echo "0"` turned that into
+# the answer "no modules installed" — which is true. But so is every OTHER
+# reason psql exits non-zero, and `2>/dev/null` threw away the only thing that
+# could tell them apart. A `POSTGRES_USER` that does not match the volume it
+# is pointed at, a `POSTGRES_DB` typo, a role without CONNECT on that
+# database, a db container still finishing its start-up: each of them produced
+# a confident "  fresh DB — installing ..." and then ran `odoo -i "$MODULES"`
+# against a database nothing had actually read. A failed MEASUREMENT became a
+# positive FINDING, which is the defect class this whole change is about.
+#
+# The step-2 wait above does NOT already cover this, and it is worth being
+# exact about why: `pg_isready` reports that the SERVER is accepting
+# connections. It returns 0 even when the credentials it was handed would be
+# rejected and even when the named database does not exist — so "postgres
+# ready" has never been evidence that this user can read this database. That
+# gap is precisely what the swallowed stderr was hiding.
+#
+# So ask three questions, and let only the middle two mean "fresh":
+#   1. can this user reach this database at all?   no -> abort, naming the query
+#   2. does `ir_module_module` exist?              no -> fresh, install
+#   3. how many modules are installed?              0 -> fresh, install
+#
+# `to_regclass()` answers question 2 WITHOUT erroring on a missing table.
+# That is the whole mechanism: it turns "the table is not there" from an
+# exception indistinguishable from a connection failure into a value.
+#
+# BOTH PROFILES RUN THIS. `docker-compose.prod.yml` declares its own `db`
+# service just as the dev overlay does, so `exec -T db` is a valid address on
+# the prod path too — this does not assume a service only development has.
+# And no run that used to SUCCEED now aborts: every new exit is a case where
+# the old code was about to install modules over a database it had never
+# managed to read.
+
+db_query() {
+    docker compose "${COMPOSE_FILES[@]}" exec -T db \
+        psql -U "$ODOO_USER_DB" -d "$ODOO_DB" -tAc "$1"
+}
+
+# Abort naming WHAT WAS ASKED and what came back. An operator who is told only
+# "could not detect DB state" has to reconstruct the query before they can
+# begin; the credentials are named by the .env key that sets them, because
+# that is the file they will be editing.
+db_probe_failed() {
+    echo "" >&2
+    echo "FATAL: could not read the Odoo module state out of the database." >&2
+    echo "       query : $1" >&2
+    echo "       db    : ${ODOO_DB}        (POSTGRES_DB in .env)" >&2
+    echo "       user  : ${ODOO_USER_DB}   (POSTGRES_USER in .env)" >&2
+    echo "       psql  : $2" >&2
+    echo "" >&2
+    echo "       This used to be discarded and read as 'fresh DB', which then" >&2
+    echo "       ran 'odoo -i \$MODULES' over whatever that database actually" >&2
+    echo "       holds. Refusing to guess." >&2
+    exit 1
+}
+
+# stderr is captured to a FILE, never merged into the value.
+#
+# The first version of this fix wrote `out=$(db_query "$sql" 2>&1)`, which
+# fixes the swallowed-stderr defect and creates a new one: on the SUCCESS
+# path any warning docker or psql prints (an unset-variable WARN, a
+# deprecation notice, a daemon auth warning) is folded into the string that
+# is then compared against `t`/`f`, falls through to the catch-all, and
+# ABORTS A DEPLOY THAT USED TO SUCCEED. This is the production path.
+#
+# So: value on stdout, diagnosis on stderr, and the two never mixed.
+_probe_err=$(mktemp)
+trap 'rm -f "$_probe_err"' EXIT
+
+probe_sql="SELECT 1"
+if ! probe_out=$(db_query "$probe_sql" 2>"$_probe_err"); then
+    db_probe_failed "$probe_sql" "$(cat "$_probe_err")"
+fi
+
+table_sql="SELECT to_regclass('public.ir_module_module') IS NOT NULL"
+if ! table_out=$(db_query "$table_sql" 2>"$_probe_err"); then
+    db_probe_failed "$table_sql" "$(cat "$_probe_err")"
+fi
+table_present=$(printf '%s' "$table_out" | tr -d ' \n\r')
+
+case "$table_present" in
+    f)
+        # Connected, authenticated, answered — and the table genuinely is not
+        # there. THIS is the fresh-database case, stated rather than inferred
+        # from a discarded stderr.
+        installed_count=0
+        echo "  read $ODOO_DB as $ODOO_USER_DB — no ir_module_module table: fresh database"
+        ;;
+    t)
+        count_sql="SELECT count(*) FROM ir_module_module WHERE state='installed'"
+        if ! count_out=$(db_query "$count_sql" 2>"$_probe_err"); then
+            db_probe_failed "$count_sql" "$(cat "$_probe_err")"
+        fi
+        installed_count=$(printf '%s' "$count_out" | tr -d ' \n\r')
+        # A count that is not a number is a failed measurement wearing a
+        # number's clothes — an empty answer, a NOTICE, a psql banner. The one
+        # thing it must not do is fall through to the `= "0"` test below.
+        case "$installed_count" in
+            ''|*[!0-9]*)
+                db_probe_failed "$count_sql" \
+                    "expected a count, got: ${installed_count:-<empty>}"
+                ;;
+        esac
+        echo "  read $ODOO_DB as $ODOO_USER_DB — ir_module_module holds $installed_count installed module(s)"
+        ;;
+    *)
+        db_probe_failed "$table_sql" \
+            "expected 't' or 'f', got: ${table_present:-<empty>}"
+        ;;
+esac
 
 # ─── step 4: install or update modules ───────────────────────────────
 
@@ -194,7 +304,22 @@ BOOT_OUTPUT=$(docker compose "${COMPOSE_FILES[@]}" run --rm -T odoo bash -c \
     "odoo shell -c /etc/odoo/odoo.conf -d $ODOO_DB --no-http <<< \"exec(open('/mnt/extra-addons/scripts/bootstrap.py').read())\"" 2>&1)
 docker compose "${COMPOSE_FILES[@]}" up -d odoo >/dev/null
 
-# Print the bootstrap [bootstrap:...] lines for visibility
+# Print the bootstrap [bootstrap:...] lines for visibility.
+#
+# The `|| true` is LOAD-BEARING and stays. This line is display only: under
+# `set -euo pipefail` a grep that matches nothing exits 1 and would abort the
+# script HERE — after bootstrap.py has already committed the tenant's
+# credentials into the database, and before step 6 below has written them to
+# ${CREDS_FILE}. That is the worst available outcome: a tenant that really was
+# provisioned, with secrets that now exist only as hashes nobody can read back.
+#
+# And a no-match is not the check anyway. `$BOOT_OUTPUT` is captured whole and
+# the thing that actually decides whether bootstrap.py did its job is the
+# `[ -z "$CREDS" ]` test in step 6, which prints the tail of the real output
+# when the sentinel block is missing. Suppressing an exit code on a line whose
+# only job is to echo is not the swallowed-failure defect; suppressing it on
+# the line that MEASURES something is, which is why step 3 above no longer
+# does.
 echo "$BOOT_OUTPUT" | grep -E "^\[bootstrap:" || true
 
 # ─── step 6: capture credentials ─────────────────────────────────────

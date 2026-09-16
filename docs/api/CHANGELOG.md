@@ -33,6 +33,53 @@ live at was never the point.
 
 ---
 
+## 2026-09-15 — handoff 26
+
+**`is_test_fixture` on assets, locations and service requests (ADDITIVE).**
+Every asset, location and request envelope now carries a boolean
+`is_test_fixture`. It is TRUE when the record was created through an API
+credential flagged as a test credential, and it is **derived from the acting
+credential at creation** — never from the request body.
+
+Three things a consumer needs to know about it:
+
+* **Sending it is refused.** `is_test_fixture` is in no writable-field
+  allow-list, so a payload carrying it gets a 201 with the field listed in
+  `data._warnings.rejected_fields`, and the stored value is whatever the
+  credential implies. A caller cannot mark its own records as fixtures, and
+  cannot mark them as real. There is no route that changes the value after
+  creation.
+* **FALSE does not mean "real".** The field arrived in `myservice_api`
+  19.0.3.9.0 and is NOT retroactive — nothing about a record created before
+  it can be reconstructed. Every pre-existing record reads FALSE whatever it
+  actually is. **Treat TRUE as conclusive and FALSE as unknown** for anything
+  created before this version. `GET /api/v1/meta/database` tells you what
+  class of database you are reading.
+* **It is a statement about the CREDENTIAL, not about the data.** A real
+  record created while somebody was testing with a flagged credential is
+  labelled a fixture, and that is the intended reading: it says how the
+  record came to exist.
+
+The same label is stamped on eleven further models the API can cause to be
+created (tag labels, transfers, asset categories, request events, employees,
+departments, partners, import jobs, SAP sync logs, workflow dispatch logs and
+chatter messages); those three are the ones with a published serializer.
+`nrs.asset.custody` keeps its own older mechanism, `source = 'test'`, which
+is unchanged and still the value to read on a custody row.
+
+**Not breaking.** Purely additive: a new key in three response objects. No
+field changed meaning, no enum moved, no error code moved, and no existing
+key was removed or renamed.
+
+A consumer validating strictly against the published schema should note that
+only `Asset` is described in `components.schemas` at all — it declares
+`additionalProperties: true` and now documents `is_test_fixture` explicitly.
+There is no `Location` or `ServiceRequest` schema in the OpenAPI document, so
+those two responses were never schema-constrained and a new key cannot
+violate a constraint they do not have.
+
+---
+
 ## 2026-09-15 — handoff 25
 
 **`GET /api/v1/meta/database` — new route (ADDITIVE).** Answers with the

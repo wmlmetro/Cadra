@@ -118,6 +118,11 @@ def serialize_request(r, *, include=()):
     data = {
         "id": r.id,
         "reference": r.name,
+        # Derived from the credential that created the record, never
+        # declared (`myservice_api/models/test_fixture.py`). Additive and
+        # always present; FALSE on every record created before handoff 26,
+        # which is NOT the same statement as "this is a real record".
+        "is_test_fixture": r.is_test_fixture,
         "type": _ref(r.type_id),
         "category": _ref(r.category_id),
         "stage": {

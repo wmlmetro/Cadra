@@ -803,6 +803,25 @@ class MyserviceApiV1(http.Controller):
                                     "the number. Read-only: it is absent "
                                     "from the writable-field allow-list."),
                             },
+                            "is_test_fixture": {
+                                "type": "boolean",
+                                "description": (
+                                    "TRUE when this record was created "
+                                    "through an API credential flagged as a "
+                                    "test credential. DERIVED from the "
+                                    "acting credential at creation and never "
+                                    "from the request body: sending it is "
+                                    "refused into `_warnings.rejected_"
+                                    "fields`, and it cannot be changed "
+                                    "afterwards by any route. "
+                                    "FALSE does NOT mean 'this is real "
+                                    "data' — the field arrived in "
+                                    "19.0.3.9.0 and is not retroactive, so "
+                                    "every record created before it reads "
+                                    "FALSE whatever it is. Treat TRUE as "
+                                    "conclusive and FALSE as unknown for "
+                                    "anything created earlier."),
+                            },
                             "provenance": {"$ref": "#/components/schemas/AssetProvenance"},
                             "tagging": {"$ref": "#/components/schemas/AssetTagging"},
                             "sap": {"$ref": "#/components/schemas/AssetSap"},

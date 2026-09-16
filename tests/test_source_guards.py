@@ -4088,7 +4088,7 @@ def test_the_test_base_guard_covers_the_modules_we_think_it_does():
 #
 # Handoff 25 §A. `is_test_credential` is what makes a fixture identifiable
 # after the fact: it drives `nrs.asset.custody.source = 'test'`, which is why
-# 330 custody rows in `jaizbankplc` self-label without anyone curating them.
+# 352 custody rows in `jaizbankplc` self-label without anyone curating them.
 #
 # Handoff 23 minted `Handoff23 Approver` with a direct `create()` and the flag
 # defaulted off. The six disposals it approved are the ONE class of artefact in
@@ -4446,3 +4446,804 @@ def test_the_credentials_gate_is_actually_wired():
         "`creds` no longer depends on `database_accepts_test_writes`, so "
         "any test taking `creds` can authenticate against an unmarked "
         "database. Its arguments are: %s" % args)
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# Handoff 26 §A — every model the API can create labels itself
+#
+# `nrs.asset.custody` has carried a derived `source = 'test'` since handoff
+# 24, which is why 352 of its rows self-identify with nobody curating
+# anything. Every other model relied on a NAME PREFIX, which is a convention
+# — a thing somebody remembers to type — and `request.request` never had one
+# at all, so the 460 requests on `jaizbankplc` can never be found again.
+#
+# `cadra.test.fixture.mixin` (`myservice_api/models/test_fixture.py`) makes
+# the derivation general. THIS guard closes the class rather than the
+# instance: it enumerates every model any first-party code path can create
+# and fails on one that is neither labelled, nor labelled by its own older
+# mechanism, nor classified as unreachable-from-a-credential WITH A REASON.
+#
+# A model added next year turns the suite red on the day it is added.
+# ═════════════════════════════════════════════════════════════════════════
+
+#: Receiver methods whose presence in an attribute chain does not change
+#: which MODEL is being addressed. `Client.sudo().with_context(...).create()`
+#: still creates a `myservice.api.client`.
+_TRANSPARENT_CHAIN = frozenset({
+    "sudo", "with_context", "with_user", "with_company", "with_env",
+    "browse", "search", "exists", "filtered", "sorted", "ensure_one",
+})
+
+#: `message_post` is a `mail.message` create wearing a different name. It is
+#: resolved explicitly because the whole point of this guard is that a create
+#: spelled unusually is exactly the one that gets missed — report 25's
+#: credential guard could not see `Client = env[MODEL]` followed by
+#: `Client.create(...)`, which was verbatim the spelling it had just removed
+#: from four files.
+#: `set_param` writes an `ir.config_parameter` row, creating it when absent.
+#: It was invisible to the first version of this guard, so that model
+#: appeared in NO classification while the guard's own docstring claimed to
+#: enumerate every model any first-party path can create. Found by the
+#: verification pass.
+_CREATE_ALIASES = {"create": None, "copy": None,
+                   "message_post": "mail.message",
+                   "set_param": "ir.config_parameter"}
+
+#: Sentinel for a helper that returns `self` rather than a named model.
+_SELF = object()
+
+#: Sentinel for a name bound to more than one model in the same file. Any
+#: create through such a name is reported UNRESOLVED, which fails the guard,
+#: rather than silently resolved to whichever binding came last.
+_AMBIGUOUS = object()
+
+
+def _strip_chain(node):
+    """Peel `.sudo()`, `.with_context(...)` and friends off a receiver."""
+    while True:
+        if isinstance(node, ast.Call):
+            node = node.func
+            continue
+        if isinstance(node, ast.Attribute) and node.attr in _TRANSPARENT_CHAIN:
+            node = node.value
+            continue
+        return node
+
+
+def _env_subscript_model(node, consts):
+    """`self.env['x']`, `env['x']`, `self.env[CONST]` → `'x'`, else None."""
+    inner = _strip_chain(node)
+    if not isinstance(inner, ast.Subscript):
+        return None
+    base = _strip_chain(inner.value)
+    is_env = ((isinstance(base, ast.Attribute) and base.attr == "env")
+              or (isinstance(base, ast.Name) and base.id == "env"))
+    if not is_env:
+        return None
+    key = inner.slice
+    if isinstance(key, ast.Constant) and isinstance(key.value, str):
+        return key.value
+    if isinstance(key, ast.Name):
+        return consts.get(key.id)
+    return None
+
+
+def _model_of_class(node):
+    """The model a `class` addresses: `_name` wins, else the first `_inherit`."""
+    name = inherit = None
+    for stmt in node.body:
+        if not (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1):
+            continue
+        target = stmt.targets[0]
+        if not isinstance(target, ast.Name) or target.id not in ("_name", "_inherit"):
+            continue
+        value = stmt.value
+        if isinstance(value, ast.Constant) and isinstance(value.value, str):
+            resolved = value.value
+        elif (isinstance(value, (ast.List, ast.Tuple)) and value.elts
+              and isinstance(value.elts[0], ast.Constant)):
+            resolved = value.elts[0].value
+        else:
+            resolved = None
+        if target.id == "_name":
+            name = resolved
+        else:
+            inherit = resolved
+    return name or inherit
+
+
+def _created_models(path):
+    """Every model a `create`-shaped call in `path` addresses.
+
+    Resolves four spellings, because the fifth one is always the one that
+    bites: a string literal subscript, a module-level string CONSTANT used as
+    a subscript, a NAME bound earlier to `env['x']`, and bare `self` inside a
+    model class. `super().create(...)` is skipped — it is the same model.
+    """
+    tree = ast.parse(path.read_text(encoding="utf-8"), str(path))
+
+    # These maps are flow- and scope-INSENSITIVE: `ast.walk` flattens the
+    # whole module, so a name bound in two functions collapses to one entry.
+    # Last-write-wins would make the resolver answer CONFIDENTLY WRONG and
+    # report nothing unresolved — a model silently invisible to the guard,
+    # which is the failure this whole file exists to stop.
+    #
+    # So a name bound to two DIFFERENT models is marked ambiguous, and any
+    # create through it is reported as unresolved, which FAILS the guard.
+    # Loud and over-strict beats quiet and wrong: the remedy is to spell the
+    # model at the create site.
+    consts, env_names = {}, {}
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Assign) and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)):
+            continue
+        target = node.targets[0].id
+        if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+            if target in consts and consts[target] != node.value.value:
+                consts[target] = _AMBIGUOUS
+            elif consts.get(target) is not _AMBIGUOUS:
+                consts[target] = node.value.value
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Assign) and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)):
+            continue
+        model = _env_subscript_model(node.value, consts)
+        if not model or model is _AMBIGUOUS:
+            continue
+        target = node.targets[0].id
+        if target in env_names and env_names[target] != model:
+            env_names[target] = _AMBIGUOUS
+        elif env_names.get(target) is not _AMBIGUOUS:
+            env_names[target] = model
+
+    # Single-`return` helpers that hand back a recordset, e.g.
+    # `def _dispatch(self): return self.sudo().with_context(...)`. Odoo code
+    # is full of these, and `self._dispatch().create(...)` is a create the
+    # resolver would otherwise have to give up on — and a create it gives up
+    # on is a model nobody has to classify, which is the hole.
+    #: name -> model string, or the sentinel `_SELF` meaning "the enclosing
+    #: class's own model".
+    aliases = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        body = [st for st in node.body if not (isinstance(st, ast.Expr)
+                and isinstance(st.value, ast.Constant))]
+        if len(body) != 1 or not isinstance(body[0], ast.Return) or body[0].value is None:
+            continue
+        model = _env_subscript_model(body[0].value, consts)
+        resolved = None
+        if model and model is not _AMBIGUOUS:
+            resolved = model
+        else:
+            inner = _strip_chain(body[0].value)
+            if isinstance(inner, ast.Name) and inner.id == "self":
+                resolved = _SELF
+        if resolved is None:
+            continue
+        # Two classes in one file each defining `_target` would otherwise
+        # collapse to whichever came last. Same rule as above.
+        if node.name in aliases and aliases[node.name] is not resolved:
+            aliases[node.name] = _AMBIGUOUS
+        elif aliases.get(node.name) is not _AMBIGUOUS:
+            aliases[node.name] = resolved
+
+    enclosing = {}
+
+    def _descend(parent, current):
+        for child in ast.iter_child_nodes(parent):
+            here = child if isinstance(child, ast.ClassDef) else current
+            enclosing[child] = here
+            _descend(child, here)
+
+    _descend(tree, None)
+
+    found, unresolved = set(), []
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)):
+            continue
+        if node.func.attr not in _CREATE_ALIASES:
+            continue
+        fixed = _CREATE_ALIASES[node.func.attr]
+        if fixed:
+            found.add(fixed)
+            continue
+        receiver = node.func.value
+        # Checked BEFORE stripping: `_strip_chain` unwraps any Call to its
+        # func, so `super().create(...)` arrives here as a bare Name and the
+        # obvious `isinstance(inner, ast.Call)` test never fires.
+        if isinstance(receiver, ast.Call) and isinstance(receiver.func, ast.Name) \
+                and receiver.func.id == "super":
+            continue
+        model = _env_subscript_model(receiver, consts)
+        if model is None:
+            inner = _strip_chain(receiver)
+            owner = (_model_of_class(enclosing.get(node))
+                     if isinstance(enclosing.get(node), ast.ClassDef) else None)
+            if isinstance(inner, ast.Name) and inner.id in env_names:
+                model = env_names[inner.id]
+            elif isinstance(inner, ast.Name) and inner.id == "self":
+                model = owner
+            else:
+                # `self._helper().create(...)` / `_helper().create(...)`
+                called = receiver.func if isinstance(receiver, ast.Call) else None
+                helper = None
+                if isinstance(called, ast.Attribute):
+                    helper = called.attr
+                elif isinstance(called, ast.Name):
+                    helper = called.id
+                if helper in aliases:
+                    resolved = aliases[helper]
+                    if resolved is _AMBIGUOUS:
+                        model = None
+                    elif resolved is _SELF:
+                        model = owner
+                    else:
+                        model = resolved
+        # A sentinel is not a model name. `_AMBIGUOUS` must land in
+        # `unresolved` (which fails the guard), never in `found` (which would
+        # put an object() in the classification set and pass).
+        if isinstance(model, str) and model:
+            found.add(model)
+        else:
+            unresolved.append((path.name, node.lineno))
+    return found, unresolved
+
+
+#: Where the labelled set comes from: the mixin module itself, parsed. Not a
+#: list copied into this file — a copied list is a convention, and a
+#: convention is the thing this whole handoff is about.
+_MIXIN_FILE = REPO_ROOT / "myservice_api" / "models" / "test_fixture.py"
+_MIXIN = "cadra.test.fixture.mixin"
+
+
+def _models_carrying_the_mixin():
+    tree = ast.parse(_MIXIN_FILE.read_text(encoding="utf-8"), str(_MIXIN_FILE))
+    carrying = set()
+    for node in tree.body:
+        if not isinstance(node, ast.ClassDef):
+            continue
+        name = inherits = None
+        for stmt in node.body:
+            if not (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1
+                    and isinstance(stmt.targets[0], ast.Name)):
+                continue
+            if stmt.targets[0].id == "_name" and isinstance(stmt.value, ast.Constant):
+                name = stmt.value.value
+            if stmt.targets[0].id == "_inherit" and isinstance(stmt.value, (ast.List, ast.Tuple)):
+                inherits = [e.value for e in stmt.value.elts
+                            if isinstance(e, ast.Constant)]
+        if name and inherits and _MIXIN in inherits:
+            carrying.add(name)
+    return carrying
+
+
+#: Labelled by an OLDER mechanism that predates the mixin and is not worth
+#: migrating: the value is a Selection, not a boolean, and three reports and
+#: a script cite it by name.
+ALREADY_LABELLED = {
+    "nrs.asset.custody":
+        "`source = 'test'`, derived in myservice_api/models/asset_custody.py "
+        "from the same credential flag. 352 rows on jaizbankplc self-label "
+        "because of it — this is the mechanism the mixin generalises.",
+}
+
+#: Models a create-shaped call addresses that an API CREDENTIAL cannot cause
+#: to be created, each with the reason. Not a convenience list: adding an
+#: entry here is a claim somebody can check, and the test below fails if a
+#: model is in two classifications at once.
+NOT_CREDENTIAL_REACHABLE = {
+    "myservice.api.refresh_token":
+        "Operational. One row per token mint, GC'd by its own cron. It is "
+        "the row report 25 could not avoid writing before its refusal — "
+        "authenticating is a write — and it carries no register data.",
+    "myservice.api.idempotency":
+        "Operational. One row per idempotent request, autovacuumed after "
+        "24h. Keyed on (key, path); holds a response body, not a record.",
+    "myservice.api.access.change":
+        "Written only by the res.users / res.groups recorders "
+        "(models/access_recorder.py), which no /api/v1 route reaches — no "
+        "route creates or re-groups a user. It is itself an append-only "
+        "audit record; labelling an audit record from the credential that "
+        "triggered it would put a derived claim inside evidence.",
+    "res.users":
+        "Created only by myservice.api.client._provision_client_user, which "
+        "has no route. A credential cannot mint a user.",
+    "mail.mail":
+        "The outgoing-email queue row, not register data. It is a delivery "
+        "attempt; the message it delivers IS labelled (mail.message).",
+    "nrs.asset.import.line":
+        "A line of the asset-import wizard (nrs.asset.import), which is an "
+        "Odoo form flow with no route. The ASSETS it produces are labelled.",
+    "ir.config_parameter":
+        "Tenant CONFIGURATION, not register data — a key/value row, written "
+        "through `set_param` by the settings routes and the depreciation "
+        "recompute. Labelling one would be labelling a setting, and the "
+        "configuration-change report (handoff 23) is what identifies who "
+        "wrote a parameter and when.",
+    "security.incident":
+        "Created by the PUBLIC incident portal "
+        "(myservice_security/controllers/portal.py), which authenticates "
+        "nobody — there is no credential to derive a label from. A member of "
+        "the public filing an incident is not a test fixture.",
+    "hr.department":
+        None,   # placeholder — replaced below if the mixin carries it
+}
+# `hr.department` is labelled by the mixin; drop the placeholder rather than
+# let a stale entry claim an exemption the code does not take.
+NOT_CREDENTIAL_REACHABLE.pop("hr.department", None)
+
+
+def _first_party_module_python():
+    for pattern in FIRST_PARTY_GLOBS:
+        for module in sorted(REPO_ROOT.glob(pattern)):
+            if not module.is_dir():
+                continue
+            for path in sorted(module.rglob("*.py")):
+                if "/tests/" in str(path) or "__pycache__" in str(path):
+                    continue
+                yield path
+
+
+def test_every_model_a_first_party_path_creates_is_classified():
+    """The class, not the instance.
+
+    Fails when first-party code gains a create of a model that nobody has
+    said whether a test credential should be able to mint. The remedy is one
+    of three deliberate acts — add it to the mixin, note that it is labelled
+    another way, or write down why a credential cannot reach it — and all
+    three are cheaper than finding out from a register two years later.
+    """
+    created = set()
+    unresolved = []
+    for path in _first_party_module_python():
+        models, misses = _created_models(path)
+        created |= models
+        unresolved += misses
+
+    labelled = _models_carrying_the_mixin()
+    classified = labelled | set(ALREADY_LABELLED) | set(NOT_CREDENTIAL_REACHABLE)
+    unclassified = sorted(created - classified)
+
+    assert not unclassified, (
+        "these models are created by first-party code and carry no "
+        "self-label:\n  %s\n\n"
+        "Every record a test credential creates must say so on its face — a "
+        "name prefix is a convention and conventions are what left 460 "
+        "unidentifiable service requests on a client's register.\n"
+        "Do one of three things, deliberately:\n"
+        "  1. add the model to myservice_api/models/test_fixture.py so it "
+        "carries `cadra.test.fixture.mixin` (and upgrade EVERY tenant — a "
+        "stored field is a multi-tenant migration);\n"
+        "  2. record it in ALREADY_LABELLED here if it labels itself some "
+        "other way, naming the field;\n"
+        "  3. record it in NOT_CREDENTIAL_REACHABLE here WITH THE REASON a "
+        "credential cannot create it."
+        % "\n  ".join(unclassified))
+
+    assert not unresolved, (
+        "the resolver could not work out which model these create-shaped "
+        "calls address, so the enumeration above is incomplete and this "
+        "guard is weaker than it reads:\n  %s"
+        % "\n  ".join("%s:%d" % u for u in unresolved))
+
+
+def test_every_exemption_names_a_reason():
+    """An exemption with no reason is a list entry, not a decision."""
+    for mapping, label in ((ALREADY_LABELLED, "ALREADY_LABELLED"),
+                           (NOT_CREDENTIAL_REACHABLE,
+                            "NOT_CREDENTIAL_REACHABLE")):
+        for model, reason in mapping.items():
+            assert reason and len(reason.strip()) > 30, (
+                "%s[%r] carries no usable reason. Say why a credential "
+                "cannot create it, or why it labels itself another way."
+                % (label, model))
+
+
+def test_no_model_is_classified_twice():
+    """Labelled AND exempt is a contradiction somebody must resolve."""
+    labelled = _models_carrying_the_mixin()
+    for mapping, label in ((ALREADY_LABELLED, "ALREADY_LABELLED"),
+                           (NOT_CREDENTIAL_REACHABLE,
+                            "NOT_CREDENTIAL_REACHABLE")):
+        clash = sorted(labelled & set(mapping))
+        assert not clash, (
+            "%s claims %s, but test_fixture.py gives them the mixin. One of "
+            "the two is a leftover." % (label, ", ".join(clash)))
+    both = sorted(set(ALREADY_LABELLED) & set(NOT_CREDENTIAL_REACHABLE))
+    assert not both, "classified twice: %s" % ", ".join(both)
+
+
+def test_the_mixin_still_declares_models():
+    """Report 22 and 25's lesson: assert the subject exists first."""
+    assert _MIXIN_FILE.exists(), (
+        "myservice_api/models/test_fixture.py is gone — this guard and the "
+        "label it enforces are both asserting on nothing.")
+    carrying = _models_carrying_the_mixin()
+    assert len(carrying) >= 10, (
+        "only %d model(s) carry %s. Handoff 26 gave it to fourteen; a "
+        "collapse to nearly none is how a label silently stops existing "
+        "while its guard goes on passing. Found: %s"
+        % (len(carrying), _MIXIN, sorted(carrying)))
+    assert "request.request" in carrying, (
+        "`request.request` lost the mixin. It is THE measured hole — its "
+        "name is a sequence, so without a derived label a test-created "
+        "request is indistinguishable from a real one forever.")
+
+
+@pytest.mark.parametrize("label,source,expected", [
+    (
+        "literal subscript",
+        "class A(models.Model):\n"
+        "    _name = 'a.b'\n"
+        "    def f(self):\n"
+        "        self.env['some.model'].create({})\n",
+        {"some.model"},
+    ),
+    (
+        # VERBATIM the spelling report 25's credential guard could not see.
+        "name bound to env[...] then .create()",
+        "MODEL = 'some.model'\n"
+        "class A(models.Model):\n"
+        "    _name = 'a.b'\n"
+        "    def f(self):\n"
+        "        Thing = self.env[MODEL]\n"
+        "        Thing.create({})\n",
+        {"some.model"},
+    ),
+    (
+        "sudo/with_context in the chain",
+        "class A(models.Model):\n"
+        "    _name = 'a.b'\n"
+        "    def f(self):\n"
+        "        self.env['some.model'].sudo().with_context(x=1).create({})\n",
+        {"some.model"},
+    ),
+    (
+        "bare self.create inside the model class",
+        "class A(models.Model):\n"
+        "    _name = 'some.model'\n"
+        "    def f(self):\n"
+        "        self.create({})\n",
+        {"some.model"},
+    ),
+    (
+        "message_post is a mail.message create",
+        "class A(models.Model):\n"
+        "    _name = 'a.b'\n"
+        "    def f(self):\n"
+        "        self.message_post(body='x')\n",
+        {"mail.message"},
+    ),
+    (
+        "super().create is the SAME model, not a new one",
+        "class A(models.Model):\n"
+        "    _name = 'a.b'\n"
+        "    def create(self, vals):\n"
+        "        return super().create(vals)\n",
+        set(),
+    ),
+])
+def test_the_resolver_sees_every_spelling(tmp_path, label, source, expected):
+    """Mutation proof, against the spellings that blinded the last guard.
+
+    Report 25 found that the guard written to stop direct credential creates
+    could not see `Client = env[MODEL]` then `Client.create(...)` — verbatim
+    the spelling it had just removed from four files. A guard is only worth
+    what its hardest case proves, so each case here is one that a regex or a
+    naive AST walk gets wrong.
+    """
+    path = tmp_path / "probe.py"
+    path.write_text(source, encoding="utf-8")
+    found, unresolved = _created_models(path)
+    assert found == expected, (
+        "%s: resolver returned %s, expected %s" % (label, sorted(found),
+                                                   sorted(expected)))
+    assert not unresolved, "%s: resolver could not resolve %s" % (label, unresolved)
+
+
+
+def _is_allow_list_name(name):
+    """Does this module-level name look like a writable-field allow-list?
+
+    NOT `endswith("_WRITABLE_FIELDS")`, which is what the first version of
+    this guard tested and which was blind to the two that do not use that
+    spelling: `_CATEGORY_WRITABLE` and `_SETTINGS_WRITABLE`
+    (`myservice_api/controllers/v1_settings.py:49` and `:57`).
+    `_CATEGORY_WRITABLE` gates `nrs.asset.category` — a model that CARRIES the
+    mixin — on both the create and the write path, so `is_test_fixture`
+    landing there would have left this guard green while the write path
+    raised `UserError` out of a route.
+
+    A guard that matches one spelling of the thing it protects is the exact
+    defect report 25 found in the credential guard, reproduced in the guard
+    written to close it. Matched on the shape of the name instead.
+    """
+    return "WRITABLE" in name or "ALLOWED_FIELDS" in name
+
+
+@pytest.mark.parametrize("label,source", [
+    (
+        "one name bound to two different models in one file",
+        "class A(models.Model):\n"
+        "    _name = 'a.b'\n"
+        "    def f(self):\n"
+        "        Rec = self.env['brand.new.unlabelled']\n"
+        "        Rec.create({})\n"
+        "    def g(self):\n"
+        "        Rec = self.env['nrs.asset']\n"
+        "        Rec.create({})\n",
+    ),
+    (
+        "a module constant rebound to a second model",
+        "MODEL = 'brand.new.unlabelled'\n"
+        "MODEL = 'nrs.asset'\n"
+        "class A(models.Model):\n"
+        "    _name = 'a.b'\n"
+        "    def f(self):\n"
+        "        self.env[MODEL].create({})\n",
+    ),
+    (
+        "two classes in one file each defining the same helper name",
+        "class A(models.Model):\n"
+        "    _name = 'a.b'\n"
+        "    def _target(self):\n"
+        "        return self.env['brand.new.unlabelled']\n"
+        "    def f(self):\n"
+        "        self._target().create({})\n"
+        "class B(models.Model):\n"
+        "    _name = 'c.d'\n"
+        "    def _target(self):\n"
+        "        return self.sudo()\n",
+    ),
+])
+def test_an_ambiguous_binding_fails_rather_than_resolving_wrongly(
+        tmp_path, label, source):
+    """The dangerous half of a flow-insensitive resolver.
+
+    `ast.walk` flattens the module, so a name bound twice would otherwise
+    collapse to whichever binding came last — and the resolver would answer
+    CONFIDENTLY WRONG with nothing in `unresolved`, hiding a model from the
+    guard entirely. Found by the verification pass, which built exactly these
+    three shapes and watched `brand.new.unlabelled` disappear.
+
+    The fix is not to resolve them correctly — that needs real scope
+    analysis — but to refuse to guess. An ambiguous binding is reported
+    unresolved, and an unresolved create FAILS
+    `test_every_model_a_first_party_path_creates_is_classified`.
+    """
+    path = tmp_path / "probe.py"
+    path.write_text(source, encoding="utf-8")
+    found, unresolved = _created_models(path)
+    assert unresolved, (
+        "%s: the resolver reported nothing unresolved, so it guessed. "
+        "found=%s" % (label, sorted(found)))
+    assert all(isinstance(m, str) for m in found), (
+        "%s: a sentinel leaked into the resolved set: %r" % (label, found))
+    assert "brand.new.unlabelled" not in found or unresolved, (
+        "%s: resolved the shadowed model without flagging ambiguity" % label)
+
+
+def test_the_derived_label_is_not_writable_over_the_api():
+    """`is_test_fixture` in a `_WRITABLE_FIELDS` would make it a convention.
+
+    The mixin's `create` derives the value and its `write` refuses to move
+    it, so the ORM is closed. This closes the allow-list: a field that
+    reaches `_filter_writable` is one an integration can send, and a label a
+    caller can send is a label that says whatever the caller wants.
+    """
+    offenders = []
+    for path in _first_party_python_files():
+        tree = ast.parse(path.read_text(encoding="utf-8"), str(path))
+        for node in ast.walk(tree):
+            if not (isinstance(node, ast.Assign) and len(node.targets) == 1
+                    and isinstance(node.targets[0], ast.Name)):
+                continue
+            if not _is_allow_list_name(node.targets[0].id):
+                continue
+            for literal in ast.walk(node.value):
+                if isinstance(literal, ast.Constant) \
+                        and literal.value == "is_test_fixture":
+                    offenders.append("%s:%d"
+                                     % (path.relative_to(REPO_ROOT), node.lineno))
+    assert not offenders, (
+        "`is_test_fixture` was added to a writable-field allow-list at %s. "
+        "It is DERIVED from the acting credential; a caller able to send it "
+        "can mint a real-looking record by omitting it, or slander a real "
+        "one by sending it." % ", ".join(offenders))
+
+
+def test_the_allow_list_guard_sees_the_two_it_used_to_miss():
+    """Mutation proof, on the two REAL names the first version was blind to.
+
+    Not a synthetic case: `_CATEGORY_WRITABLE` and `_SETTINGS_WRITABLE` are
+    in `v1_settings.py` today, neither ends in `_WRITABLE_FIELDS`, and
+    `_CATEGORY_WRITABLE` gates a model that carries the mixin.
+    """
+    for name in ("_CATEGORY_WRITABLE", "_SETTINGS_WRITABLE", "_WRITABLE_FIELDS"):
+        assert _is_allow_list_name(name), "%s is not recognised" % name
+    for name in ("_FM_DOMAINS", "_PRIORITY_VALUES", "ALL_SCOPES"):
+        assert not _is_allow_list_name(name), (
+            "%s is matched as an allow-list; the name test is too broad and "
+            "the guard will flag things that are not allow-lists" % name)
+
+    # And the scan must actually REACH the file those two live in.
+    settings = REPO_ROOT / "myservice_api" / "controllers" / "v1_settings.py"
+    assert settings in set(_first_party_python_files()), (
+        "v1_settings.py is outside the scanned set, so widening the NAME "
+        "test bought nothing")
+    found = set()
+    tree = ast.parse(settings.read_text(encoding="utf-8"), str(settings))
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.Assign) and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and _is_allow_list_name(node.targets[0].id)):
+            found.add(node.targets[0].id)
+    assert {"_CATEGORY_WRITABLE", "_SETTINGS_WRITABLE"} <= found, (
+        "the guard does not find the two allow-lists in v1_settings.py; it "
+        "found %s" % sorted(found))
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# A comment that names a test must name one that exists
+#
+# Handoff 26 wrote, in the mixin's own header, that the enumeration guard in
+# this file was named `test_every_api_creatable_model_self_labels`. No such
+# function was ever written — the guard is
+# `test_every_model_a_first_party_path_creates_is_classified`. The sentence
+# was wrong the moment it was typed, and nothing would have caught it.
+#
+# (That claim is deliberately NOT written here in the `<file>.py::<name>`
+# form this guard matches on, or the guard would flag its own explanation.
+# The mutation proof below exercises the real form on a temporary string.)
+#
+# That is report 25 finding 9 again ("a docstring asserting a protection the
+# repo did not have") and it is the §B shape in prose: a reference that names
+# a thing, the thing does not exist, and nobody hears about it. A reader who
+# goes looking for the named test and cannot find it has to work out whether
+# the guard was renamed, moved, or never existed.
+#
+# Only FIRST-PARTY references are checked. `odoo/modules/migration.py::
+# VALID_MIGRATE_PARAMS` points into Odoo core, which is not in this repo.
+# ═════════════════════════════════════════════════════════════════════════
+
+#: `::` may be followed by a line break and a comment/docstring continuation
+#: before the name — which is how the very reference that prompted this guard
+#: was written, after it was wrapped to fit the column width:
+#:
+#:     # `tests/test_source_guards.py::
+#:     # test_every_model_a_first_party_path_creates_is_classified`
+#:
+#: The first version required the name to follow `::` immediately, so it
+#: found ZERO references in the one file whose broken reference prompted it,
+#: and passed. A guard blind to its own headline case is the defect, not a
+#: detail of it.
+_PY_REF = re.compile(
+    r"([A-Za-z0-9_/]+\.py)::"          # the file
+    r"(?:\s*\n\s*[#*]?\s*)?"           # an optional wrap: newline, indent,
+                                       # and a leading `#` or `*` if the
+                                       # continuation line carries one
+    r"([A-Za-z0-9_]+)")                # the name
+
+
+def _python_files_to_scan():
+    yield from _first_party_python_files()
+    for path in sorted((REPO_ROOT / "tests").glob("*.py")):
+        yield path
+    for path in sorted((REPO_ROOT / "scripts").glob("*.py")):
+        yield path
+
+
+def _resolve_referenced_file(relpath, source_path):
+    """Find the file a `<path>.py::<name>` reference means, or None."""
+    candidates = [REPO_ROOT / relpath, source_path.parent / relpath]
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    # A bare or partial path — match on the tail, but only if it is unique.
+    tail = relpath.split("/")[-1]
+    matches = [p for p in REPO_ROOT.rglob(tail)
+               if "__pycache__" not in str(p)
+               and "/dist/" not in str(p)
+               and "/node_modules/" not in str(p)
+               and ".venv" not in str(p)]
+    return matches[0] if len(matches) == 1 else None
+
+
+def _defined_names(path):
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"), str(path))
+    except (SyntaxError, UnicodeDecodeError):
+        return None
+    names = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            names.add(node.name)
+        elif isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    names.add(target.id)
+    return names
+
+
+def test_a_comment_that_names_a_test_names_one_that_exists():
+    broken = []
+    for path in _python_files_to_scan():
+        try:
+            source = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        for relpath, name in _PY_REF.findall(source):
+            if relpath.startswith("odoo/") or "/dist-packages/" in relpath:
+                continue          # Odoo core, not in this repository
+            target = _resolve_referenced_file(relpath, path)
+            if target is None:
+                # A BARE filename that resolves to nothing points outside
+                # this repository — `ir_actions.py::IrActionsServer` is Odoo
+                # core, which is not vendored here and cannot be checked. A
+                # reference carrying DIRECTORIES is ours, and a miss there is
+                # a real breakage.
+                if "/" in relpath:
+                    broken.append("%s → %s::%s (no such file in this repo)"
+                                  % (path.relative_to(REPO_ROOT), relpath, name))
+                continue
+            defined = _defined_names(target)
+            if defined is None:
+                continue
+            if name not in defined:
+                broken.append(
+                    "%s → %s::%s (file exists; that name is not defined in it)"
+                    % (path.relative_to(REPO_ROOT), relpath, name))
+    assert not broken, (
+        "these comments name something that does not exist:\n  %s\n\n"
+        "A reference that names a thing which is not there is the §B shape in "
+        "prose — the reader cannot tell a rename from a guard that was never "
+        "written. Fix the reference, or write the thing."
+        % "\n  ".join(broken))
+
+
+def test_the_reference_guard_catches_the_sentence_that_prompted_it(tmp_path):
+    """Mutation proof, on the exact sentence handoff 26 shipped and corrected.
+
+    Not a synthetic example: this is verbatim what
+    `myservice_api/models/test_fixture.py` said before the verification pass,
+    naming a function that was never written.
+    """
+    real = REPO_ROOT / "tests" / "test_source_guards.py"
+    defined = _defined_names(real)
+    assert defined is not None
+
+    wrong = "test_every_api_creatable_model_self_labels"
+    right = "test_every_model_a_first_party_path_creates_is_classified"
+    assert wrong not in defined, (
+        "the name this proof calls WRONG now exists, so the proof no longer "
+        "distinguishes anything — pick another")
+    assert right in defined, (
+        "the guard this proof calls RIGHT is gone from %s, so the guard it "
+        "protects is asserting on nothing" % real.name)
+
+    # And the matcher must actually pull the name out of a prose sentence —
+    # on ONE line, and WRAPPED across two, which is how the reference that
+    # prompted this guard is really written.
+    one_line = ("# `tests/test_source_guards.py::%s`\n"
+                "# walks every route and fails if a model has no label.\n" % wrong)
+    assert _PY_REF.findall(one_line) == [("tests/test_source_guards.py", wrong)], (
+        "the matcher did not extract the name from a single-line reference")
+
+    wrapped = ("# `tests/test_source_guards.py::\n"
+               "# %s`\n" % wrong)
+    assert _PY_REF.findall(wrapped) == [("tests/test_source_guards.py", wrong)], (
+        "the matcher cannot see a reference wrapped across two comment lines "
+        "— which is exactly how the reference in "
+        "myservice_api/models/test_fixture.py is written, so the guard would "
+        "find nothing in the one file that prompted it")
+
+    # Not a hypothetical: assert it on the real file.
+    mixin = REPO_ROOT / "myservice_api" / "models" / "test_fixture.py"
+    refs = _PY_REF.findall(mixin.read_text(encoding="utf-8"))
+    assert refs, (
+        "the guard finds NO `<file>.py::<name>` reference in %s, which "
+        "carries one. It is passing by seeing nothing." % mixin.name)
+    assert (real.relative_to(REPO_ROOT).as_posix(), right) in refs, (
+        "the reference in %s no longer resolves to the guard it names; "
+        "found %r" % (mixin.name, refs))
