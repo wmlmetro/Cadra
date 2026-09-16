@@ -26,7 +26,20 @@ class NRSAsset(models.Model):
     _name = 'nrs.asset'
     _description = 'Fixed Asset'
     _inherit = ['mail.thread', 'mail.activity.mixin']
-    _order = 'asset_code'
+    # DESCENDING, and the `desc` is the whole point. `asset_code` is a
+    # zero-padded `ir.sequence` (`NRS-AST-000001`), so lexical order IS
+    # creation order — and ascending put every newly created asset on the
+    # last page of the list, which is where a user who had just created one
+    # went looking for it. Sorting the sequence backwards buys newest-first
+    # AND keeps the register ordered by code; `create_date desc` would have
+    # given the first and lost the second.
+    #
+    # This is the model default, so it reaches list, kanban and every other
+    # view at once. It does NOT reach the API: `paginate()` sorts on `id`
+    # explicitly (`myservice_api/controllers/utils.py`) rather than falling
+    # back to `_order`, so `GET /api/v1/assets` and its cursor are unaffected
+    # and this is not a change Vendra can observe.
+    _order = 'asset_code desc'
 
     # ── Identity ─────────────────────────────────────────────
     name = fields.Char('Asset Name', required=True, tracking=True)
