@@ -4,3 +4,4 @@ from . import test_verification_window_scale
 from . import test_custody_chain
 from . import test_snapshot_rollback
 from . import test_disposal_report
+from . import test_asset_default_order
