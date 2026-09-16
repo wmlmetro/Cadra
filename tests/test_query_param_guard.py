@@ -119,6 +119,7 @@ INVENTORY = {
     ("v1_assets", "has_sap_code"): ("bool", ""),
     ("v1_assets", "sap_reconciliation_state"): ("enum", ""),
     ("v1_assets", "include"): ("enum", ""),
+    ("v1_assets", "sort"): ("enum", ""),
     ("v1_assets", "as_of"): ("date", "_parse_report_date — 400 for unparseable, absent-but-required, and a future date"),
     ("v1_assets", "from"): ("date", "_parse_report_date"),
     # The two §13.4 log reports. Same parser as the disposal report above —

@@ -47,6 +47,15 @@ export interface AssetFilters {
   condition?: string;
   zone?: string;
   search?: string;
+  /** Register-wide row order, passed straight to `GET /api/v1/assets?sort`.
+   *  `newest` walks descending asset id so the most recently created asset is
+   *  the first row of page one; `oldest` is the API's own default and the
+   *  order this list used to show. NOT a filter — it never clears with them.
+   *
+   *  Whatever sets this MUST include it in the react-query key: the API
+   *  records the direction in the cursor and refuses one replayed against
+   *  the other, so changing it has to restart the walk from page one. */
+  sort?: "newest" | "oldest";
 }
 export function listAssets(f?: AssetFilters): Asset[] {
   let r = allMockAssets;
@@ -110,6 +119,12 @@ export async function fetchAssetsPage(
     q: f?.search,
     condition: f?.condition || undefined,
     is_verified: isVerifiedFilter,
+    // Newest-first unless the caller says otherwise. The API's own default
+    // is `oldest` and stays that way for every other consumer — this is the
+    // register UI choosing its order, not the contract changing under
+    // anyone. Only this listing passes it; the count and lookup helpers
+    // below fetch by id or ask for `limit: 1`, where order means nothing.
+    sort: f?.sort ?? "newest",
     limit: 200,
     cursor,
   });

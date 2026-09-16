@@ -320,6 +320,15 @@ export default function AssetRegister() {
   // this dropdown in the first place.
   const [filterCondition, setFilterCondition] = useState<string>("");
   const [groupBy, setGroupBy] = useState("None");
+  // Register-wide order, served by the API, NOT a filter — it is deliberately
+  // absent from `hasFilters`/`clearFilters`, because "clear filters" should
+  // not silently reorder the list. Newest-first by default: an asset that has
+  // just arrived from Vendra used to land on the last page of the walk.
+  //
+  // Distinct from the column-header sorting further up this file, which
+  // reorders only the rows already fetched. That one cannot reach a row the
+  // walk has not loaded yet; this one is the order the register is READ in.
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   // The model's own condition Selection, live off /api/v1/meta/enums, with the
   // seed in lib/enums.ts as the first-paint fallback. All five values, `new`
   // included.
@@ -344,10 +353,17 @@ export default function AssetRegister() {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery<AssetsPage, CadraApiError>({
-    queryKey: ["assets", { search, filterCondition }],
+    // `sortOrder` is in the key on purpose: the API records the walk
+    // direction inside the cursor and answers 400 to a cursor replayed
+    // against the other direction. A changed key starts a fresh query with
+    // `initialPageParam: undefined` — no cursor — which is exactly the
+    // restart that contract requires. Dropping it from the key would send
+    // the held cursor into the opposite walk and 400 the page.
+    queryKey: ["assets", { search, filterCondition, sortOrder }],
     queryFn: ({ pageParam }) => fetchAssetsPage(pageParam as string | undefined, {
       search: search || undefined,
       condition: filterCondition || undefined,
+      sort: sortOrder,
     }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
@@ -466,6 +482,18 @@ export default function AssetRegister() {
                         options={conditionOptions.map((o) => o.value)}
                         labelOf={conditionLabelOf}
                         onChange={setFilterCondition} />
+
+        <button
+          onClick={() => setSortOrder(sortOrder === "newest" ? "oldest" : "newest")}
+          title={sortOrder === "newest"
+            ? "Newest first — most recently created asset at the top"
+            : "Oldest first — the order the register was built in"}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-border bg-card text-foreground hover:border-primary/30 hover:shadow-sm transition-all"
+          data-testid="button-sort-order"
+        >
+          {sortOrder === "newest" ? <ArrowDown size={13} /> : <ArrowUp size={13} />}
+          {sortOrder === "newest" ? "Newest first" : "Oldest first"}
+        </button>
 
         {hasFilters && (
           <button
