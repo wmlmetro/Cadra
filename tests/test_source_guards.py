@@ -18,6 +18,7 @@ A data-integrity guarantee that can disappear without a sound is exactly the
 thing to have a test for.
 """
 import ast
+import functools
 import pathlib
 
 import pytest
@@ -5134,19 +5135,60 @@ def _python_files_to_scan():
         yield path
 
 
+@functools.lru_cache(maxsize=1)
+def _files_a_bare_name_may_resolve_to():
+    """basename → the governed files carrying it.
+
+    The universe is `_python_files_to_scan()` — the first-party modules plus
+    `tests/` and `scripts/` — and NOT the whole working tree. That is the
+    difference between a guard that says the same thing everywhere and one
+    that does not.
+
+    **It used to `rglob` the repository**, excluding `__pycache__`, `/dist/`,
+    `node_modules` and `.venv`, and resolve when exactly one file survived.
+    Two things were wrong with that, and the second is the one that bit:
+
+    1. It could resolve a bare name onto a VENDORED tree — `crnd-19/`,
+       `oca-19/` — which this guard does not govern and whose contents we do
+       not control. A reference is then checked against a file nobody here
+       wrote.
+    2. The answer depended on files that are not in the repository. The
+       working tree carries `_upgrade/`, which is untracked scratch, and it
+       holds a second `ir_actions.py`. Locally that made TWO matches, so the
+       reference resolved to None and was skipped; in a clean CI checkout
+       `_upgrade/` does not exist, ONE match survived, and the same commit
+       failed on a name that file does not define. **The test passed on
+       every developer's machine and failed in CI, because an untracked
+       directory was load-bearing in a guard about references.**
+
+    Restricting the universe fixes both at once and restores the documented
+    intent: `ir_actions.py::IrActionsServer` is Odoo core, it is not
+    vendored here, so nothing governed carries that basename, it resolves to
+    None, and a BARE unresolved name is skipped rather than failed — exactly
+    what the comment in the caller has always said should happen.
+    """
+    index = {}
+    for path in _python_files_to_scan():
+        index.setdefault(path.name, []).append(path)
+    return index
+
+
 def _resolve_referenced_file(relpath, source_path):
-    """Find the file a `<path>.py::<name>` reference means, or None."""
+    """Find the file a `<path>.py::<name>` reference means, or None.
+
+    An explicit path — one carrying directories — is still resolved wherever
+    it points, vendored trees included. That is deliberate: it is a statement
+    about a specific file rather than a guess, and a miss there is a real
+    breakage the caller reports. Only the BARE-name fallback is restricted.
+    """
     candidates = [REPO_ROOT / relpath, source_path.parent / relpath]
     for candidate in candidates:
         if candidate.is_file():
             return candidate
-    # A bare or partial path — match on the tail, but only if it is unique.
+    # A bare or partial path — match on the tail, but only if it is unique
+    # among the files this guard governs.
     tail = relpath.split("/")[-1]
-    matches = [p for p in REPO_ROOT.rglob(tail)
-               if "__pycache__" not in str(p)
-               and "/dist/" not in str(p)
-               and "/node_modules/" not in str(p)
-               and ".venv" not in str(p)]
+    matches = _files_a_bare_name_may_resolve_to().get(tail, ())
     return matches[0] if len(matches) == 1 else None
 
 
@@ -5247,3 +5289,60 @@ def test_the_reference_guard_catches_the_sentence_that_prompted_it(tmp_path):
     assert (real.relative_to(REPO_ROOT).as_posix(), right) in refs, (
         "the reference in %s no longer resolves to the guard it names; "
         "found %r" % (mixin.name, refs))
+
+
+def test_a_bare_reference_resolves_only_against_files_this_guard_governs():
+    """The resolver, proved in both directions.
+
+    `test_a_comment_that_names_a_test_names_one_that_exists` passed on every
+    developer's machine and failed in CI on the same commit, because the
+    resolver used to `rglob` the WORKING TREE: locally the untracked
+    `_upgrade/` scratch directory held a second `ir_actions.py`, two matches
+    meant "ambiguous, skip", and a clean checkout had only the `crnd-19/` one
+    — which resolved, and does not define `IrActionsServer`. An untracked
+    directory was load-bearing in a guard about references.
+
+    So this asserts the property that makes the answer the same everywhere:
+    a BARE name resolves only against the files this guard governs.
+    """
+    index = _files_a_bare_name_may_resolve_to()
+
+    # 1. Nothing vendored or scratch is in the universe. These are the trees
+    #    whose contents we do not control, and `dist/` is off every addons
+    #    path entirely.
+    for tail, paths in index.items():
+        for path in paths:
+            rel = path.relative_to(REPO_ROOT).as_posix()
+            assert not rel.startswith(("dist/", "crnd-19/", "oca-19/",
+                                       "_upgrade/", "Frontend/")), (
+                "%s is resolvable by bare name but is not a file this guard "
+                "governs" % rel)
+
+    # 2. The reference that started this: `ir_actions.py` is Odoo core. It is
+    #    not vendored in anything we govern, so it must resolve to nothing —
+    #    which is what makes the caller skip it, exactly as its comment says.
+    assert "ir_actions.py" not in index, (
+        "`ir_actions.py` is resolvable again, so `ir_actions.py::"
+        "IrActionsServer` — an Odoo core reference — will be checked against "
+        "a file that is not Odoo core. That is the CI failure this fixed.")
+    assert _resolve_referenced_file("ir_actions.py", REPO_ROOT / "x.py") is None
+
+    # 3. The guard has NOT been turned off: a bare name that names a governed
+    #    file still resolves to it.
+    real = REPO_ROOT / "myservice_api" / "models" / "test_fixture.py"
+    assert index.get(real.name) == [real], (
+        "expected `%s` to be uniquely resolvable among governed files; got %r"
+        % (real.name, index.get(real.name)))
+    assert _resolve_referenced_file(real.name, REPO_ROOT / "x.py") == real
+
+    # 4. And it still FAILS on a reference that names something absent — the
+    #    mutation proof. Without this, 1-3 are satisfied by a resolver that
+    #    returns None for everything.
+    defined = _defined_names(real)
+    missing = "IrActionsServer"          # real class name, wrong file
+    assert missing not in defined, (
+        "pick another absent name: %r now exists in %s" % (missing, real.name))
+    target = _resolve_referenced_file(real.name, REPO_ROOT / "x.py")
+    assert target is not None and missing not in _defined_names(target), (
+        "the resolver no longer reaches a governed file, so the guard that "
+        "reports broken references is asserting on nothing")
