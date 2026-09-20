@@ -244,6 +244,8 @@ This said "a run reporting 27 skips is a healthy run", and a bare number is the 
 
 **The default tenant changed in handoff 25**, and with it the skip list: the suite now runs against `test19`, whose credential holds `admin`, so the admin-scope category is **empty** and those tests actually execute. Measured on `test19`, 2026-09-15, **9 skips**: 2 Turnstile-not-configured, 4 partition-data-absent (`is_verified`, `is_staff_bus`, `has_sap_code`, `closed`), 1 no active `workflow.config`, 1 no asset carrying a SAP asset number, 1 documented `is_tagged`. A run reporting ~28 skips is a run against the old tenant.
 
+**Re-measured on `test19`, 2026-09-20, 8 skips — and the difference is an instance of the rule, not an exception to it.** The `is_verified` partition skip went: handoff 27's Playwright spec clicks **Verify** on a `test19` asset, so `?is_verified=true` matches a row for the first time and the test runs. The same run was 9 skips an hour earlier, before that spec had ever been pointed at this tenant. Remaining partition-data-absent skips: `is_staff_bus`, `has_sap_code`, `closed`. Anything that writes to the test tenant — the e2e suite included — can move this number without touching `tests/`.
+
 The earlier measurement, kept because it is the one that shows the total is a tenant fact — `jaizbankplc`, 2026-09-10, **28 skips**, every one named:
 
 | Count | Reason |

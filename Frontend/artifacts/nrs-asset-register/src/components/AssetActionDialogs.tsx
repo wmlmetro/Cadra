@@ -57,6 +57,7 @@ export function AssetMoveDialog({ assetId, open, onOpenChange }: MoveProps) {
     mutationFn: () => moveAsset(assetId, target!.id, reason || undefined),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["asset", assetId] });
+      qc.invalidateQueries({ queryKey: ["asset-history", assetId] });
       qc.invalidateQueries({ queryKey: ["assets"] });
       onOpenChange(false);
       setTarget(null);
@@ -71,7 +72,10 @@ export function AssetMoveDialog({ assetId, open, onOpenChange }: MoveProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><MapPin size={16} /> Move asset</DialogTitle>
           <DialogDescription>
-            Creates an immutable transfer record (nrs.asset.transfer) and updates the current location.
+            {/* Said "immutable" until handoff 27. It is not: an asset manager can
+                edit or delete a transfer record, and the asset's history grades
+                a move accordingly. The dialog must not promise more than that. */}
+            Updates the current location and records the move as a transfer. The transfer record can be edited or deleted later by an asset manager.
           </DialogDescription>
         </DialogHeader>
 
@@ -146,6 +150,7 @@ export function CustodyTransferDialog({ assetId, open, onOpenChange }: MoveProps
     mutationFn: () => transferCustody(assetId, target!.id, reason || undefined),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["asset", assetId] });
+      qc.invalidateQueries({ queryKey: ["asset-history", assetId] });
       qc.invalidateQueries({ queryKey: ["assets"] });
       qc.invalidateQueries({ queryKey: ["employee-assets"] });
       onOpenChange(false);
@@ -161,7 +166,7 @@ export function CustodyTransferDialog({ assetId, open, onOpenChange }: MoveProps
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><ArrowRightLeft size={16} /> Transfer custody</DialogTitle>
           <DialogDescription>
-            Assigns this asset to a different employee. Audit trail recorded via mail.thread.
+            Assigns this asset to a different employee. The change is added to the asset's chain of custody, which cannot be edited or deleted afterwards.
           </DialogDescription>
         </DialogHeader>
 
@@ -241,6 +246,7 @@ export function CondemnAssetDialog({ assetId, open, onOpenChange }: CondemnProps
     mutationFn: () => condemnAsset(assetId, reason),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["asset", assetId] });
+      qc.invalidateQueries({ queryKey: ["asset-history", assetId] });
       qc.invalidateQueries({ queryKey: ["assets"] });
       onOpenChange(false);
       setReason("");

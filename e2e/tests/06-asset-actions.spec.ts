@@ -34,6 +34,101 @@ test("detail tabs switch", async ({ page, api }) => {
   }
 });
 
+/**
+ * Handoff 27. NRS opened Audit & Review expecting an asset's history and got
+ * a status pill and empty space — and "detail tabs switch" above was green the
+ * whole time, because it clicks the tab and never reads it. These two read it.
+ */
+test("audit & review says in words when there is no history", async ({ page, api }) => {
+  const id = await createAsset(api, "HistoryEmpty");
+  await gotoApp(page, `/assets/${id}`);
+  await expectShell(page);
+  await page.getByTestId("tab-audit-review").click();
+  await expect(page.getByTestId("asset-history-empty")).toContainText(
+    "There is no recorded history for this asset",
+  );
+  // The registration is still shown, the list says where it begins, and what
+  // is never recorded is named — an empty history is not an empty panel.
+  await expect(page.getByTestId("asset-history-event").first()).toBeVisible();
+  await expect(page.getByTestId("asset-history-begins")).toBeVisible();
+  await expect(page.getByTestId("asset-history-not-recorded")).toContainText("does not record");
+});
+
+test("audit & review shows a verification, newest first, with what its record is worth", async ({ page, api }) => {
+  const id = await createAsset(api, "HistoryVerify");
+  await gotoApp(page, `/assets/${id}`);
+  await expectShell(page);
+  await page.getByTestId("button-verify").click();
+  await expect
+    .poll(async () => (await api.get(`/api/v1/assets/${id}`))?.is_verified, { timeout: 15_000 })
+    .toBeTruthy();
+  await page.getByTestId("tab-audit-review").click();
+  const rows = page.getByTestId("asset-history-event");
+  // Newest first: the verification just made is above the registration, and
+  // the mutation invalidated the history so no reload was needed to see it.
+  await expect(rows.first()).toContainText("Verified");
+  // Verify is a PATCH of a date: a message-log line is ALL that records it.
+  await expect(rows.first()).toContainText("Message log only");
+  await expect(rows.last()).toContainText("Registered");
+  await expect(page.getByTestId("asset-history-empty")).toHaveCount(0);
+});
+
+test("audit & review carries a reconstruction and a blank actor all the way to the screen", async ({ page, api }) => {
+  // Canned, because no test tenant holds a `tracking_backfill` link or a
+  // record that names nobody — and those are the two rows an auditor is most
+  // misled by if the adapter or the component quietly drops the distinction.
+  // The builder's side of both is asserted in-registry; this is the last hop.
+  const id = await createAsset(api, "HistoryCanned");
+  await page.route(`**/api/v1/assets/${id}/history*`, (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        meta: { request_id: "e2e", timestamp: "2026-09-20T00:00:00Z", version: "v1" },
+        data: {
+          asset: { id: Number(id), asset_code: "E2E", name: "canned" },
+          order: "newest_first",
+          summary: { events: 2, events_after_registration: 1, by_evidence: {}, reconstructed_events: 1,
+                     statement: "1 recorded event(s) since registration." },
+          fidelity: {
+            registered_at: "2026-08-06T09:00:00", earliest_event_after_registration_at: "2026-08-10T09:00:00",
+            custody: { recording_began_at: "2026-09-09T16:12:06", links: 1, reconstructed_links: 1,
+                       first_link_at: "2026-08-10T09:00:00", custodian_held_before_first_link: true,
+                       statement: "This asset was already held by somebody when custody recording reached it." },
+            evidence_grades: [{ grade: "append_only", meaning: "Cannot be edited or deleted." }],
+            not_recorded: [{ event: "financial_change", statement: "A change to a cost." }],
+            verification: "", undated_records_omitted: 0,
+          },
+          events: [
+            { id: "custody_changed:nrs.asset.custody:1", type: "custody_changed", title: "Custodian changed",
+              summary: "unassigned → Ada", at: "2026-08-10T09:00:00", at_precision: "second",
+              actor: null, actor_name: null, evidence: "append_only", reconstructed: true,
+              source: "tracking_backfill", record: { model: "nrs.asset.custody", id: 1 }, detail: {} },
+            { id: "a_type_from_the_future:x:2", type: "a_type_from_the_future", title: "Something new",
+              summary: "An event this build has never heard of", at: "2026-08-06", at_precision: "day",
+              actor: { id: 2, name: "Ada" }, actor_name: "Ada", evidence: "a_grade_from_the_future",
+              reconstructed: false, source: null, record: { model: "x", id: 2 }, detail: {} },
+          ],
+        },
+      }),
+    }),
+  );
+  await gotoApp(page, `/assets/${id}`);
+  await expectShell(page);
+  await page.getByTestId("tab-audit-review").click();
+  const rows = page.getByTestId("asset-history-event");
+  await expect(rows).toHaveCount(2);
+  await expect(rows.first()).toContainText("Reconstructed");
+  await expect(rows.first()).toContainText("No person recorded");
+  await expect(rows.first()).not.toContainText("System");
+  // An unknown type and an unknown grade still render, from the server's words.
+  await expect(rows.last()).toContainText("Something new");
+  await expect(rows.last()).toContainText("a_grade_from_the_future");
+  await expect(rows.last()).toContainText("2026-08-06");
+  await expect(rows.last()).not.toContainText("00:00");
+  // Held by somebody the chain never saw arrive: a notice, not muted text.
+  await expect(page.getByTestId("asset-history-begins")).toContainText("already held by somebody");
+});
+
 test("mark verified (UI)", async ({ page, api }) => {
   const id = await createAsset(api, "Verify");
   await gotoApp(page, `/assets/${id}`);

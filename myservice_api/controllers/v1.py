@@ -83,6 +83,11 @@ from .utils import (
     turnstile_error,
 )
 from .query_params import parse_enum, parse_int
+# The history's two published enums, read from where they are defined rather
+# than copied here. A hand-copied list matched on the day it was written and
+# nothing would have said when it stopped; `myservice_api/__init__.py` imports
+# `models` before `controllers`, so the order is guaranteed.
+from ..models.asset_history import EVENT_TYPES, EVIDENCE_GRADES
 
 
 # Auth outcomes go to their own logger so `--log-handler cadra.auth:DEBUG` and
@@ -1508,6 +1513,150 @@ class MyserviceApiV1(http.Controller):
                                     "they say what they are rather than "
                                     "passing as history."),
                             },
+                        },
+                    },
+                    "AssetHistory": {
+                        "type": "object",
+                        "description": (
+                            "Everything recorded about one asset, on one "
+                            "clock (`GET /assets/<id>/history`). READ "
+                            "`summary.statement` AND EACH EVENT'S `evidence` "
+                            "FIRST: the records this merges are not worth "
+                            "the same, and the list says which is which "
+                            "rather than presenting a deletable note and an "
+                            "append-only link as the same kind of line. An "
+                            "object, not an array, so the boundary "
+                            "statements arrive with the events."),
+                        "properties": {
+                            "asset": {"type": "object"},
+                            "order": {"type": "string",
+                                      "enum": ["newest_first",
+                                               "oldest_first"]},
+                            "summary": {
+                                "type": "object",
+                                "description": (
+                                    "`statement` is the history in one "
+                                    "sentence, and says in words when there "
+                                    "is nothing after registration. "
+                                    "`by_evidence` counts events per grade; "
+                                    "`reconstructed_events` counts those "
+                                    "recovered after the fact.")},
+                            "fidelity": {
+                                "type": "object",
+                                "description": (
+                                    "What the list can and cannot say. "
+                                    "`not_recorded` names the events Cadra "
+                                    "never writes down — their absence from "
+                                    "`events` is NOT evidence they did not "
+                                    "happen. `custody.recording_began_at` is "
+                                    "when changes of custodian began to be "
+                                    "recorded on this system, and "
+                                    "`custody.custodian_held_before_first_"
+                                    "link` is true when this asset was "
+                                    "already held by somebody the chain "
+                                    "never saw arrive. `evidence_grades` "
+                                    "defines each grade by what somebody "
+                                    "can do to the record.")},
+                            "events": {
+                                "type": "array",
+                                "items": {"$ref": "#/components/schemas/"
+                                                  "AssetHistoryEvent"}},
+                        },
+                    },
+                    "AssetHistoryEvent": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "string",
+                                   "description": "Stable within one asset: "
+                                                  "`<type>:<model>:<id>`."},
+                            "type": {
+                                "type": "string",
+                                "enum": list(EVENT_TYPES),
+                                "description": (
+                                    "A closed set that may GROW: a new type "
+                                    "is an additive change announced in the "
+                                    "changelog, and every event carries a "
+                                    "human `title`, so a consumer can "
+                                    "display a type it does not know. A "
+                                    "tracked field with no type of its "
+                                    "own is `details_changed`, so a field "
+                                    "that becomes tracked appears here "
+                                    "rather than being silently absent. "
+                                    "`disposal_recorded` includes a REWRITE "
+                                    "of who approved a disposal. "
+                                    "`transfer_recorded` is a transfer that "
+                                    "is NOT done — raised, approved or "
+                                    "rejected — and is not a move.")},
+                            "title": {"type": "string"},
+                            "summary": {"type": "string"},
+                            "at": {
+                                "type": "string",
+                                "description": (
+                                    "ISO 8601, naive (server time). A bare "
+                                    "date when `at_precision` is `day`; "
+                                    "such an event sorts at the start of "
+                                    "its day, which is a placement and not "
+                                    "a claim.")},
+                            "at_precision": {"type": "string",
+                                             "enum": ["second", "day"]},
+                            "actor": {
+                                "type": "object", "nullable": True,
+                                "description": (
+                                    "The user THE RECORD names. Null where "
+                                    "the record names nobody — never "
+                                    "inferred, and never filled from a "
+                                    "created-by field that means something "
+                                    "else.")},
+                            "actor_name": {
+                                "type": "string", "nullable": True,
+                                "description": (
+                                    "On a `custody_changed` event, the name "
+                                    "AS RECORDED at the time, which outlives "
+                                    "the user. On every other event the "
+                                    "record holds a user and no name, so "
+                                    "this is that user's name today.")},
+                            "evidence": {
+                                "type": "string",
+                                "enum": [g for g, _ in EVIDENCE_GRADES],
+                                "description": (
+                                    "How much the record behind this event "
+                                    "is worth, strongest first. Only "
+                                    "`append_only` cannot be edited or "
+                                    "deleted through the application. "
+                                    "`chatter` is a line in the message log "
+                                    "that anyone able to edit the asset can "
+                                    "delete without trace. Meanings are "
+                                    "published in `fidelity.evidence_"
+                                    "grades`.")},
+                            "reconstructed": {
+                                "type": "boolean",
+                                "description": (
+                                    "TRUE when the event was recovered "
+                                    "after the fact rather than recorded "
+                                    "when it happened — a custody link "
+                                    "whose `source` is `tracking_backfill`. "
+                                    "A reconstruction read as a "
+                                    "contemporaneous record is worse than "
+                                    "no record.")},
+                            "source": {
+                                "type": "string", "nullable": True,
+                                "description": "`AssetCustody.source`, on a "
+                                               "`custody_changed` event; "
+                                               "null otherwise."},
+                            "record": {
+                                "type": "object",
+                                "description": "`{model, id}` of the row "
+                                               "this event was read from."},
+                            "detail": {
+                                "type": "object",
+                                "description": (
+                                    "Type-specific. A tracked change "
+                                    "carries `changes: [{field, label, old, "
+                                    "new}]`; a `location_moved` carries "
+                                    "`transfer` (null when the move left "
+                                    "only a message-log line) and "
+                                    "`records`, the models it was read "
+                                    "from.")},
                         },
                     },
                     "AssetTagging": {

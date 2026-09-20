@@ -133,3 +133,62 @@ handoff 27. Contracted core scope was complete at handoff 23; what stands
 between this system and a delivered one is four servers, a test SAP
 environment, four answers from the NRS SAP team, a fixed-asset register
 extract and some credential rotations — none of it code.
+
+## Handoff 27 — what has happened to this asset (the cycle reopened by a client)
+
+**What was built.** `GET /api/v1/assets/<id>/history` — one ordered history
+of an asset, merged server-side (`nrs.asset.asset_history()`,
+`myservice_api/models/asset_history.py`) from seven places a record is kept: the
+registration stamp, the tag label's issue/print/affix stamps, the chain of
+custody, transfer rows joined to the chatter row of the move they recorded,
+every other tracked field change, the disposal approval, the integration
+outbox, and maintenance requests. Rendered in the asset's *Audit & Review*
+tab, below the approval status and review flags that were already there. No
+stored field was added, so there was no migration and no tenant fan-out.
+
+**What it measured first (§A), in one table.** "Can it be altered" means
+through the application, by whom.
+
+| Event | Record | Real time + actor? | Can it be altered afterwards? | Reaches back to |
+|---|---|---|---|---|
+| Custodian changed | `nrs.asset.custody` | yes / yes | **No — refused to everyone, sudo included** (Python; no DB trigger) | recorder live 2026-09-09; earlier links reconstructed from chatter and marked so |
+| Registered | `create_date` / `create_uid` | yes / yes (the API client itself since handoff 08) | not editable; gone if the asset is deleted | always |
+| Tag issued | label row's `create_date` | yes / yes | label row deletable by an asset manager | always |
+| Tag printed / affixed | stamps on the label row | yes / yes | guarded by a context key a caller can set; only the LAST print is kept | handoff 03 / 10 |
+| Disposal approved | two columns on the asset | yes / yes | not API-writable, **but both are inputs on the Odoo form**; a rewrite leaves a chatter line, which the history lists | handoff 23 |
+| Sent to SAP / Tag unit | `workflow.dispatch.log` | yes / yes | no unlink ACL; delivery fields editable by workflow admin | handoff 06 / 07 |
+| **Location moved** | `nrs.asset.transfer` **only via `POST /move` or a completed transfer**; otherwise chatter alone | date only on the row (instant = its `create_date`) / no mover on the row | **Yes — edit and delete by any asset manager, no trace; cascades away with the asset** | `nrs19`: 1,146 tracked moves, **1** transfer row |
+| Status / condition changed | chatter only | yes / yes | **Yes — deletable by anyone who can edit the asset** | since the field was tracked |
+| Verified | chatter only (one overwritten date on the asset) | yes / whoever saved the date | **Yes**; the app's Verify button records no verifier at all | — |
+| Disposal executed | date on the asset | date / **no person** | tracked | handoff 16 |
+| Cost, SAP field, GRN/PO reference changed | **nothing** | — | — | — |
+| Maintenance performed | one overwritten date | date / no person | yes | — |
+
+**In plain words:** of everything NRS watched in the demonstration, the
+change of custodian is the only step with a record nobody can alter. The
+location move they watched is recorded on a row an asset manager can edit or
+delete. The history shows both — and grades them differently on their face.
+
+**Suites, in CI's order, against `test19`:**
+
+| Suite | Result |
+|---|---|
+| `pytest tests/` (first, as CI runs it) | **861 passed, 8 skipped, 0 failed** |
+| In-registry, CI's 11 modules, `--workers=0` | **0 failed, 0 error(s) of 561 tests** |
+| Playwright, the four Audit & Review specs | **4 passed** |
+| Front end `tsc --noEmit` / `vite build` | clean / built |
+
+**Both denominators reconcile.** 869 collected = report 26's 849 + 10 added
+by PRs #74/#75 and the guard fix merged since + the 10 in
+`tests/test_asset_history.py`. 561 = 524 + the 4 in PR #74's
+`test_asset_default_order.py` + the 33 in
+`myservice_api/tests/test_asset_history.py`. Neither run contains `of 0
+tests` or a `CRITICAL`. **The skips went from 9 to 8 during the handoff** —
+its own Playwright spec verified a `test19` asset, which gave the
+`is_verified` partition test the data it had been skipping for want of. The
+tenant changed; the suite did not. `docs/ENVIRONMENT-FACTS.md` has it.
+
+**One test was proved to fail first.**
+`test_nothing_sorts_before_the_registration_it_followed` was run with the
+fix disabled and failed with `'custody_changed' != 'registered'` — the
+defect exactly as it had appeared on the screen — before it was trusted.

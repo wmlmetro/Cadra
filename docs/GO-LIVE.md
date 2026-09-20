@@ -858,3 +858,143 @@ tenant rather than on this one.
 the same trial-unlink measurement the removal script does, which means a
 marking script that attempts deletions. That is a bigger change than §D asked
 for, on a script the owner runs against a client's register.
+
+---
+
+## 13 · The cycle reopened — handoff 27, 2026-09-20
+
+**Part II's opening says there is no 27. There is one, and the sentence is
+left as it was written because it was true when written.** Handoff 27 did not
+reopen the quality work this register closes; it came out of a live
+demonstration to NRS, who opened *Audit & Review* on an asset expecting its
+history and found a screen that had never asked for one. What was built is in
+`docs/STATUS.md`; what it FOUND is below, because a history endpoint is an
+instrument for seeing which events have no record, and it found several.
+
+### 13.1 · Client request: should a location move need an approver? — `[open]`, NRS's and the owner's decision
+
+**Asked by NRS during the demonstration, recorded 2026-09-20.** Having
+watched an asset moved between locations on one person's say-so, NRS asked
+whether a move should require an approver. **This is a process question, not
+a defect, and nothing was built or designed for it.** Whoever takes the
+conversation up starts from these facts, each read from the code in handoff 27:
+
+**Who can move an asset today.**
+
+- **Over the API and in the Cadra app:** any credential or login holding
+  `assets:write`. For a person, that scope is derived from one Odoo group —
+  `group_asset_manager` (`myservice_api/controllers/utils.py`, the scope
+  map). The app's **Move** button calls `POST /api/v1/assets/<id>/move`.
+- **In Odoo:** `group_asset_manager` only. `group_asset_user` and plain
+  employees hold read on `nrs.asset` and nothing else
+  (`myservice_asset_register/security/ir.model.access.csv`).
+- **There is no second person anywhere on the path.** `POST /move` creates
+  its `nrs.asset.transfer` row directly at `state = done` and moves the asset
+  in the same request; `approved_by` and `approved_date` stay empty — measured
+  2026-09-20, no transfer on `test19` (0 of 18) or on `jaizbankplc` (0 of
+  103) has an approver. The single transfer on `nrs19` does: it went through
+  the Odoo flow described next. A `PATCH` of `location_id` moves the asset with no transfer row at all.
+
+**What an approval flow would not have to invent.** `nrs.asset.transfer`
+already has `draft → approved → done` (plus `rejected`), an **Approve** button
+restricted to `group_asset_manager` that stamps `approved_by` and
+`approved_date` from the acting user, and a **Complete** step that performs
+the move. It is reachable only from the Odoo interface and nothing in the API
+or the app uses it. Note that requester and approver would today be drawn
+from the SAME group, so "needs an approver" as NRS means it also needs an
+answer to *who may not approve their own request* — that is the business
+decision, and it is not engineering's.
+
+**What is recorded when an asset is moved today** — see §13.2, which is the
+more uncomfortable half of the answer.
+
+### 13.2 · A location move has no durable record — `[open]`, measured 2026-09-20
+
+**In plain words: NRS watched an asset being moved, and nothing the system
+wrote down about that move is protected from being edited or deleted.**
+
+- `POST /move` and a completed transfer write an `nrs.asset.transfer` row.
+  `group_asset_manager` holds write AND unlink on it, no record rule narrows
+  that, nothing records an edit, and `asset_id` is `ondelete='cascade'` — so
+  deleting the asset deletes its moves. It holds `transfer_date` as a DATE;
+  the instant survives only as the row's `create_date`.
+- Every other writer of `location_id` — `PATCH /assets/<id>`, the Odoo form
+  and its building/floor/room onchanges, `asset_import.py` — leaves a
+  `mail.message` tracking row and nothing else. Anyone with write on the
+  asset can delete that message, which is the same group that can move it.
+- **Measured:** `nrs19` holds **1,146** tracked location changes and **1**
+  transfer row. `jaizbankplc`: 103 and 103, because there the moves were made
+  through `/move`.
+
+Compare custody, which NRS also watched: `nrs.asset.custody` refuses `write`
+and `unlink` to everyone including sudo, and refuses deletion of the asset
+beneath it. **The fix has the same shape** — record in `nrs.asset.write`,
+where every writer of `location_id` passes, append-only — and it is a stored
+model and therefore a fan-out across every tenant. It was NOT built in
+handoff 27, whose instruction was *"an ordering and a merge, not a new
+record"*. The history endpoint grades a move `editable_record` or `chatter`
+and never more, so the gap is visible on the screen rather than papered over.
+If §13.1 is answered *yes*, this comes first: an approval recorded on a row
+an asset manager can delete is not an approval record.
+
+### 13.3 · What else the measurement found — `[open]`
+
+One line each; the evidence is handoff 27's report §A, and INT-10 §2.4 and
+§3.2 already carry the field lists.
+
+1. **Verification records a date and, from the app, nobody.** The app's
+   **Verify** button is `PATCH {last_verified_date: today}`. `action_verify`
+   is the only writer of `last_verified_by` and the app never calls it; the
+   field is untracked, and a second verification overwrites the first. The
+   history shows each change to the date, graded `chatter`, naming whoever
+   saved it. No record anywhere says a physical check was made.
+2. **A changed cost, SAP field or GRN/PO/vendor reference leaves nothing.**
+   Already in INT-10 §2.4. New here: the comment at `v1_assets.py` beside the
+   provenance block of `_WRITABLE_FIELDS` says a later change *"is tracked on
+   the asset's mail.thread"*. **It is not** — none of the six carries
+   `tracking=True`. The comment is wrong, not the model; it was left for the
+   Architect to rule on rather than edited in passing.
+3. **`include=transfers` is capped at the last 20 and carries no actor.**
+   Handoff 27 described it as *built, tested and correct*. It is built and
+   tested. `/history` is uncapped and reads the transfer rows directly, so
+   nothing depends on the embed; whether the embed's cap should be said in
+   the response, as every other cap now is, is open.
+4. **The custody chain's append-only guarantee is Python.** No trigger, no
+   constraint. `scripts/nrs_hq_seed.py` deletes from the table by raw SQL
+   under `CADRA_SEED_DESTROY_CUSTODY=1`, and says so. The history's
+   `append_only` grade states this rather than implying a database guarantee.
+5. **6,643 assets on `nrs19` are held by somebody and no link says how** —
+   every one assigned at creation on 2026-08-06, before the recorder
+   (2026-09-09). Not a defect in the chain; it does not reach back. The
+   history says so per asset (`custodian_held_before_first_link`).
+6. **`action_mark_retrieved` declares no custody source**, so an employee
+   exit clearing a custodian reads `direct`, the same as an Odoo form save.
+7. **The "guarded" stamps are guarded by a context key the caller
+   supplies** — `cadra_tag_capture` (the label's print and affix stamps),
+   `cadra_event_dispatch` (the outbox's event fields), `cadra_sap_int07`
+   (`sap_code_source`, `sap_synced_at`). Over XML-RPC a user with write on
+   the model can set it. This is why `tag_printed`, `tag_affixed` and outbox
+   events grade `guarded_record` and not `append_only`. **The disposal
+   approval is not guarded at all:** `disposal_approved_by` and
+   `disposal_approved_date` have no `write` guard and are inputs on the Odoo
+   form; only the API refuses them. The history grades the approval
+   `editable_record` and lists any rewrite of the approver.
+8. **The `Legacy Data` tab says *"Migrated from FIRS legacy system · March
+   2024"* on every asset**, hardcoded in `AssetDetail.tsx`, including the 63
+   `nrs19` assets registered from Vendra this month. Same class of defect as
+   the blank tab, one tab along; not touched by handoff 27.
+9. **`RequestDetail.tsx` prints `"System"` for a message with no author**
+   (`m.author?.name ?? "System"`) — an invented actor on a client-facing
+   screen. The asset history prints *No person recorded* instead and
+   deliberately did not copy the idiom; the request screen still has it.
+10. **The app calls six API routes before anyone has logged in** and collects
+    six 401s on every cold load (`/locations`, `/identity/employees`,
+    `/assets` twice, `/dashboard/map`, `/dashboard/kpis`). Harmless, noisy,
+    and it makes a real 401 harder to spot in the console.
+11. **`e2e/tests/06-asset-actions.spec.ts` opens by describing Move and
+    Transfer custody as broken in the UI.** `moveAsset` and `transferCustody`
+    were since fixed to read `res.data.asset`; the header was not.
+12. **A route cannot see its caller's scopes.** `require_jwt` checks them and
+    discards them. The history therefore cannot publish a maintenance
+    request's reference only to holders of `requests:read`, and publishes it
+    to nobody.

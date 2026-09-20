@@ -10,6 +10,7 @@ import type { Asset } from "@/types";
 import StatusPill from "@/components/StatusPill";
 import ConditionBadge from "@/components/ConditionBadge";
 import DepreciationCard from "@/components/DepreciationCard";
+import AssetHistoryTimeline from "@/components/AssetHistoryTimeline";
 import {
   ArrowLeft, Monitor, Car, Sofa, User, MapPin, Clock,
   AlertCircle, ChevronRight, Edit3, ShieldCheck, AlertTriangle, Trash2, ArrowRightLeft, Loader2,
@@ -85,7 +86,12 @@ export default function AssetDetail() {
   const [moveOpen, setMoveOpen] = useState(false);
   const [custodyOpen, setCustodyOpen] = useState(false);
   const [condemnOpen, setCondemnOpen] = useState(false);
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["asset", id] });
+  // Verifying an asset or marking it missing is itself an event, so the
+  // history goes stale with the asset. The prefix matches both sort orders.
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["asset", id] });
+    qc.invalidateQueries({ queryKey: ["asset-history", id] });
+  };
   const verifyMut = useMutation({ mutationFn: () => markAssetVerified(id ?? ""), onSuccess: invalidate });
   const missingMut = useMutation({ mutationFn: () => markAssetMissing(id ?? ""), onSuccess: invalidate });
 
@@ -452,6 +458,7 @@ export default function AssetDetail() {
                 )}
               </div>
 
+              <AssetHistoryTimeline assetId={asset.id} />
             </div>
           ),
         },

@@ -33,6 +33,41 @@ live at was never the point.
 
 ---
 
+## 2026-09-20 — handoff 27: `GET /assets/<id>/history`
+
+**`GET /api/v1/assets/<id>/history` (ADDITIVE — a new route; nothing existing
+changes).** One ordered history of an asset, merged server-side from the
+registration, the tag's issue/print/affix, the chain of custody, location
+moves, tracked field changes, the disposal approval, outbound integration
+events and maintenance requests. Scope `assets:read`. Newest first;
+`?sort=oldest` reverses it; any other `sort` is a 400 `invalid_request` with
+`details.allowed_values`. Not paged and not capped, for the reason
+`/assets/<id>/custody` is exempt from the record cap.
+
+**Every event carries `evidence`, and a consumer should branch on it.** The
+records behind the list are not worth the same: `append_only` (a change of
+custodian, and nothing else), `system_stamp`, `guarded_record`,
+`editable_record`, `chatter`. The grades are defined in the response at
+`data.fidelity.evidence_grades`. **A location move is never better than
+`editable_record`, and a move made by `PATCH location_id` is `chatter`** —
+only `POST /assets/<id>/move` writes a transfer row. If your integration
+needs a move to be evidenced, call `/move`, not PATCH.
+
+**`disposal_approved` is `editable_record`.** No API client can name its own
+approver, but both columns are inputs on the Odoo form; a rewrite of the
+approver since is its own `disposal_recorded` event, with the old name and
+the new.
+
+`reconstructed: true` marks an event recovered after the fact (a custody link
+with `source: tracking_backfill`). `actor` is null where the record names
+nobody and is never inferred. `data.fidelity.not_recorded` names the events
+Cadra never writes down — a changed cost, SAP field or GRN reference — on
+every response. An asset with nothing after registration says so in
+`data.summary.statement`.
+
+`include=custody` and `include=transfers` are unchanged. Reference:
+`docs/api/cadra_api_endpoint_reference.md` §3.7.2.
+
 ## 2026-09-16 — `?sort` on the asset listing
 
 **`GET /api/v1/assets?sort=newest|oldest` (ADDITIVE — nothing changes unless
