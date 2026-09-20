@@ -192,3 +192,60 @@ tenant changed; the suite did not. `docs/ENVIRONMENT-FACTS.md` has it.
 `test_nothing_sorts_before_the_registration_it_followed` was run with the
 fix disabled and failed with `'custody_changed' != 'registered'` — the
 defect exactly as it had appeared on the screen — before it was trusted.
+
+## Handoff 28 — where a thing has been
+
+**What was built.** `nrs.asset.movement` — an append-only record of every
+change of an asset's location, written by `nrs.asset.write` and
+`nrs.asset.create` underneath every writer, with the same guards as the chain
+of custody. The asset history reads it, so a move made from now on is graded
+`append_only`. Also: `POST /assets/<id>/verify`, which records who verified;
+tracking on the six provenance fields and on the verifier, with the instant
+it began stamped per database; and three screens that stopped saying what the record does not.
+**A stored model, so a fan-out:** migration `19.0.1.15.0` on all eight local
+tenants, one at a time, each verified by reading its own database (version,
+table, six tracked fields, its own stamp).
+
+**Every writer of `nrs.asset.location_id`, and whether the record sees it.**
+Searched for, not taken from the handoff.
+
+| Writer | Through the ORM? | Recorded? | `source` |
+|---|---|---|---|
+| `POST /api/v1/assets` | `create` | yes | `api_write` |
+| `PATCH /api/v1/assets/<id>` — the quiet door, left open | `write` | yes | `api_write` |
+| `POST /api/v1/assets/<id>/move` | `write` | yes, linked to its transfer | `api_move` |
+| `nrs.asset.transfer.action_complete` | `write` | yes, linked to its transfer | `transfer` |
+| The bulk importer, new and update lines | `create` / `write` | yes | `direct` |
+| `load()` — `scripts/seed_nrs_assets.py`, ~11.9k rows | `create` / `write` | yes | `direct` |
+| The seed scripts (`nrs_hq_seed`, gtb, jaiz, lasg, `seeds/nrs_asset_seed`) | `create` | yes | `direct` |
+| Odoo **Duplicate** | `copy` → `create` | yes, the twin's own opening row — *but Duplicate itself fails today on the tag rule, see GO-LIVE §13.4* | `direct` |
+| A shell or XML-RPC `write` | `write` | yes | `direct` |
+| **The Odoo form** | — | **it was never a writer.** Readonly with no `force_save`, so the client discarded it on save. Now saved, and recorded. | `direct` |
+| **Deleting a location** (`ON DELETE SET NULL`, cascading from a parent) | **no — the database does it** | yes, via `generic.location.unlink`, before the delete | `location_deleted` |
+| Any API credential flagged as a test credential | as above | yes | `test` |
+| Raw SQL · `_write()` · a database restore | no | **NO.** None exists in first-party code today; nothing in Python can stop one. The guarantee has no trigger under it. | — |
+
+Not a writer, though it looks like one: `PATCH {"building_id": …}` — it
+changes the building and leaves `location_id` where it was (GO-LIVE §13.4).
+
+**The recorder is the innermost link** of both override chains
+(`test_fixture` → `sap_asset_events` → `asset_depreciation` → `asset_sap` →
+`asset.py`), so every module above it has finished with `vals` before it
+reads them, and it compares the stored value before and after `super()`.
+
+**Suites, in CI's order, against `test19`:**
+
+| Suite | Result |
+|---|---|
+| `pytest tests/` (first, as CI runs it) | **872 passed, 8 skipped, 0 failed** |
+| In-registry, CI's 11 modules, `--workers=0` | **0 failed, 0 error(s) of 614 tests** |
+| Playwright, `06-asset-actions.spec.ts` | **10 passed, 3 skipped** — the three MOVE specs need two *building* locations, which `test19` lacks; the move path was driven by hand instead |
+| Front end `tsc --noEmit` / `BASE_PATH=/app/ vite build` | clean / built |
+
+**Both denominators reconcile.** 880 collected = handoff 27's 869 + 11 new. 614 = 561 + 53 new. Neither run contains `of 0 tests` or a `CRITICAL`; the 8 skips are handoff 27's 8.
+
+**GitHub CI has not run this.** Every workflow on `wmlmetro` has been refused
+by GitHub since 2026-09-18 14:13 UTC — *"recent account payments have failed
+or your spending limit needs to be increased"* — with zero steps executed. A
+red X on this handoff's PR means *never started*, not *failed*. The results
+above are local, on this machine, and are not a substitute for CI.

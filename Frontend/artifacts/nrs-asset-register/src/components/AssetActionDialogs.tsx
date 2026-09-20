@@ -72,10 +72,14 @@ export function AssetMoveDialog({ assetId, open, onOpenChange }: MoveProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><MapPin size={16} /> Move asset</DialogTitle>
           <DialogDescription>
-            {/* Said "immutable" until handoff 27. It is not: an asset manager can
-                edit or delete a transfer record, and the asset's history grades
-                a move accordingly. The dialog must not promise more than that. */}
-            Updates the current location and records the move as a transfer. The transfer record can be edited or deleted later by an asset manager.
+            {/* Three versions, and the history of them is the point. It said
+                "creates an immutable transfer record" until handoff 27 — false:
+                an asset manager can edit or delete a transfer. Handoff 27 said
+                so, which was true and, from handoff 28, only half of it: the
+                MOVE is now appended to the asset's movement record, which
+                nobody can alter, and the transfer is the paperwork beside it.
+                Two records of different worth, and the dialog names both. */}
+            Updates the current location. The move is added to the asset's movement record, which cannot be edited or deleted afterwards. A transfer document is also created; that one can be edited later by an asset manager.
           </DialogDescription>
         </DialogHeader>
 

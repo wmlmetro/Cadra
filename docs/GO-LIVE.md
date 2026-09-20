@@ -908,10 +908,32 @@ decision, and it is not engineering's.
 **What is recorded when an asset is moved today** — see §13.2, which is the
 more uncomfortable half of the answer.
 
-### 13.2 · A location move has no durable record — `[open]`, measured 2026-09-20
+### 13.2 · A location move has no durable record — `[landed, keep it that way]` handoff 28; what follows is how it stood
 
-**In plain words: NRS watched an asset being moved, and nothing the system
-wrote down about that move is protected from being edited or deleted.**
+**CLOSED GOING FORWARD by handoff 28.** Every change of `location_id` is now
+appended to `nrs.asset.movement` — by `nrs.asset.write`/`create`, underneath
+every writer, append-only on the model, `ondelete='restrict'` on the asset.
+**It is here, tagged *keep it that way*, because of how easy it is to undo
+without noticing:** a new writer that goes round the ORM (raw SQL, `_write`);
+an ACL line granting write on the model (the model refuses anyway — that is
+why the guard is on the model); a view that shows `location_id` readonly
+without `force_save`, which is how the Odoo form came to display a location
+it never stored; a foreign key that changes the column by itself, which is
+how deleting a location emptied every asset in it with no record at all.
+`myservice_asset_register/tests/test_movement_record.py` holds the last
+three; `tests/test_recorder_bypass_guard.py` holds the first, by scanning
+first-party code for raw SQL against `nrs_asset` that sets a recorded field
+and for `_write()`. **Neither can see a writer outside this repository** — a
+DBA's query, a restore, another system with database access. The guarantee
+is Python, and says so wherever it is published.
+**Every move made BEFORE handoff 28 is still exactly as described below.**
+Nothing was backfilled — see §13.4 for why that is a decision and not an
+omission. **And §13.1's prerequisite is now met:** an approval can be
+recorded against something nobody can delete.
+
+**As it stood, in plain words: NRS watched an asset being moved, and nothing
+the system wrote down about that move was protected from being edited or
+deleted.**
 
 - `POST /move` and a completed transfer write an `nrs.asset.transfer` row.
   `group_asset_manager` holds write AND unlink on it, no record rule narrows
@@ -924,7 +946,9 @@ wrote down about that move is protected from being edited or deleted.**
   asset can delete that message, which is the same group that can move it.
 - **Measured:** `nrs19` holds **1,146** tracked location changes and **1**
   transfer row. `jaizbankplc`: 103 and 103, because there the moves were made
-  through `/move`.
+  through `/move`. **Read §13.4 before quoting the first figure: 1,145 of
+  those 1,146 are one six-second script on the day the register was loaded,
+  not moves.**
 
 Compare custody, which NRS also watched: `nrs.asset.custody` refuses `write`
 and `unlink` to everyone including sudo, and refuses deletion of the asset
@@ -994,7 +1018,103 @@ One line each; the evidence is handoff 27's report §A, and INT-10 §2.4 and
 11. **`e2e/tests/06-asset-actions.spec.ts` opens by describing Move and
     Transfer custody as broken in the UI.** `moveAsset` and `transferCustody`
     were since fixed to read `res.data.asset`; the header was not.
-12. **A route cannot see its caller's scopes.** `require_jwt` checks them and
-    discards them. The history therefore cannot publish a maintenance
-    request's reference only to holders of `requests:read`, and publishes it
-    to nobody.
+12. *Moved to §14 — it is an architectural fact, not a to-do.*
+
+### 13.4 · What handoff 28 found — `[open]`, measured 2026-09-20
+
+0. **A caller can label their own custody link.** `nrs.asset.custody.
+   _resolve_source` reads the source from the context, and a context is
+   something an RPC caller supplies — so anybody able to change a custodian
+   can file the link under `test`, or `tracking_backfill`, and have a real
+   change of custodian read as an artefact. The custody docstring says the
+   label is *"decided from the acting user and never from anything the
+   caller sends"*; the credential-derived `test` is, the context-declared
+   rest is not. **Closed for `nrs.asset.movement`** in handoff 28 (only
+   `api_move`, `api_write`, `transfer` and `direct` may be claimed, and
+   `transfer` only with a transfer of the asset's own). **Left open on
+   custody**, which handoff 28 did not touch; the same four lines close it.
+   Likewise both models' `create` guard is a context flag: what stops a
+   hand-written row is that flag AND an ACL granting `create` to nobody.
+
+1. **The 1,146 is a seed, not a scale.** Report 27 measured *1,146 tracked
+   location changes against 1 transfer row* on `nrs19` and offered it as the
+   size of the problem. It is a true count of rows. **1,145 of them were
+   written by Administrator within six seconds** (2026-08-06
+   15:34:24–15:34:30), sixteen minutes after the register was loaded, one per
+   asset: `FCT → North Central / FCT`, `Lagos → South West / Lagos`. A script
+   re-mapping locations onto a hierarchy. The one remaining row is OdooBot's,
+   on 2026-09-06. **The structural finding is untouched** — it is proven by
+   test that a PATCH left no durable record — but nobody should quote 1,146
+   as moves NRS made that went unrecorded. Report 27's author did not look
+   inside the number; report 28 did.
+2. **A location backfill from chatter — NOT done, by ruling, and the
+   measurement argues against it.** It would recover the instant, the
+   author, and both locations BY NAME AS THEY READ THEN, for every tracked
+   change whose message survives. It would NOT recover: a first placement
+   (Odoo writes no tracking row on `create` — 10,439 of `nrs19`'s 11,585
+   located assets have no location tracking row of any kind); a reason;
+   whether the author was the mover or a script; or anything whose message
+   was deleted. **On `nrs19` it would mint 1,145 PERMANENT movement records
+   of assets that never moved.** On `jaizbankplc` all 103 rows are matched by
+   a transfer row and 45 were written by the test client. Custody's backfill
+   was worth it because a custodian change is a person's act; here the
+   chatter is mostly data loading, and an append-only table is the wrong
+   place to find that out afterwards.
+3. **`PATCH {"building_id": …}` moves nothing and says nothing.**
+   `building_id`, `floor_id` and `room_id` are in `_WRITABLE_FIELDS`;
+   `location_id` is derived from them ONLY by a form onchange, which never
+   runs for the API, `load()` or a script. So an integration that sets a
+   building leaves `location_id` pointing at the old place, and the movement
+   record correctly reports no move. Latent today: three of four measured
+   tenants never use those fields, and on `nrs` all 1,272 agree. Either the
+   derivation belongs in `write`, or the three fields should not be writable.
+4. **Odoo's *Duplicate* fails on every asset.** `asset_tag` is copied and
+   then collides with `_check_unique_active`. Pre-existing; found when a test
+   tried it. `copy=False` on `asset_tag` would fix it.
+5. **Every fixture asset created from now on is permanent.** An asset created
+   at a location carries a movement from birth, and the record restricts the
+   delete — by design, as custody does. `remove_test_residue.py` and
+   `mark_test_fixtures.py` now refuse on it BY NAME; `nrs_hq_seed.py` refuses
+   the wipe and offers `CADRA_SEED_DESTROY_MOVEMENTS=1`, deliberately NOT the
+   custody flag. The 3,779 removable fixtures report 25 measured on
+   `jaizbankplc` predate the recorder and are unaffected.
+6. **The e2e suite is outside the database-class guard and defaults to
+   `jaizbankplc`.** `pytest` and the in-registry suites refuse a database not
+   marked `test`; Playwright does not ask. `E2E_ORIGIN` must be set by hand.
+7. **More screens that say what the record does not** — found by the
+   front-end pass, NOT fixed (handoff 28 §C named three; these are beside
+   them): the top bar prints *"Admin User / Administrator"* for every
+   session, so the screen names somebody other than the verifier it now
+   records · an untagged asset shows its asset CODE under *"Asset Tag"* ·
+   every category is folded into one of three, so a generator reads
+   *Furniture & Fittings* · the *Approval Status* pill and the *Cleared → In
+   Review → Disposed* stepper are derived from `state` and `is_verified`;
+   there is no approval record · the employee screen prints *Permanent*,
+   *Male*, *Not Enrolled* and NIN *Verified/Pending* for fields the API never
+   sends · *Custodian Match Score* exists only in mock data · *Mark missing*
+   promises it is reversible and nothing shown reverses it.
+
+---
+
+## 14 · Architectural facts — not to-dos
+
+Things true of this system's shape that a future change must know about.
+They are not defects to be scheduled; they are constraints to design within.
+
+### 14.1 · A route cannot see what its caller is allowed to do
+
+`require_jwt` (`myservice_api/controllers/utils.py`) checks the token's scopes
+against the route's list and **discards them**. Nothing is left on the request
+for the handler. So a route is all-or-nothing per scope: it cannot return one
+shape to a holder of `assets:read` and a fuller one to a holder of
+`requests:read` as well.
+
+**That forecloses per-scope shaping anywhere in this API.** Where a response
+would cross a scope boundary, the only tool is to REMOVE the field for
+everybody — which is what `GET /assets/<id>/history` does with a maintenance
+request's reference (handoff 27), and why that was a removal and not a filter.
+Changing it means carrying the scopes from `require_jwt` onto the request,
+for every route, which is a change to the authentication path and should be
+made as one, deliberately, not as a side effect of wanting one richer
+response.
+

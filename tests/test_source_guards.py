@@ -4727,6 +4727,14 @@ ALREADY_LABELLED = {
         "`source = 'test'`, derived in myservice_api/models/asset_custody.py "
         "from the same credential flag. 352 rows on jaizbankplc self-label "
         "because of it — this is the mechanism the mixin generalises.",
+    "nrs.asset.movement":
+        "`source = 'test'`, derived in myservice_api/models/asset_movement.py "
+        "from the same credential flag and by the same one derivation on "
+        "`myservice.api.client` — custody's mechanism, for the append-only "
+        "record of where an asset has been (handoff 28). Measured on test19 "
+        "the day it landed: 63 of 63 rows written under the test credential "
+        "say `test`, and the one written by a person logged in says "
+        "`api_move`. tests/test_asset_history.py holds it over HTTP.",
 }
 
 #: Models a create-shaped call addresses that an API CREDENTIAL cannot cause

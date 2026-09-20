@@ -581,8 +581,18 @@ acurl -X PATCH $API/api/v1/assets/99999999 \
 
 ## 3.6 POST `/api/v1/assets/<id>/move` — move to a new location
 
-Scope: `assets:write`. Success: **200**. Creates an
-`nrs.asset.transfer` row (audit trail) as a side-effect.
+Scope: `assets:write`. Success: **200**. Idempotent.
+
+**A move leaves two records, and they are not worth the same.** The MOVE is
+appended to `nrs.asset.movement`, which nobody can edit or delete — that is
+the audit trail, and it is written by the asset model underneath every writer
+of `location_id`, so a `PATCH` of `location_id` is recorded too. This route
+additionally creates an `nrs.asset.transfer` row: a process document, in
+state `done`, which an asset manager can edit or delete afterwards. It used
+to be described here as the audit trail. It never was.
+
+`reason`, when sent, must be a string (400 `invalid_request` otherwise), and
+**every refusal on this route happens before anything is written.**
 
 ### Request
 
@@ -601,13 +611,16 @@ acurl -X POST $API/api/v1/assets/124/move \
 {
   "data": {
     "asset": { "id": 124, "asset_code": "NRS-EV-FAL-FAP-00001", "current_location": { "id": 905, "name": "HQ - 1F - Server Room" }, "condition": "good", "state": "active", "...": "full asset record" },
-    "transfer": { "id": 17, "from_location": { "id": 891, "name": "HQ - GF - Mail Room" }, "to_location": { "id": 905, "name": "HQ - 1F - Server Room" }, "reason": "Reshuffle after Q2 audit", "created_at": "2026-06-08T10:00:02" }
+    "transfer": { "id": 17, "reference": "TRF/2026/0017", "from_location": { "id": 891, "name": "HQ - GF - Mail Room" }, "to_location": { "id": 905, "name": "HQ - 1F - Server Room" }, "movement_id": 3301 }
   },
   "meta": { "request_id": "…", "timestamp": "…", "version": "v1" }
 }
 ```
 
-### Error — `422 unprocessable` (same-location move forbidden)
+### Error — `400 invalid_request` (same-location move forbidden)
+
+*This section said `422 unprocessable` until handoff 28 and had never been
+true: the route has always answered 400. Corrected against a live response.*
 
 ```bash
 # Asset 124 is already at location 891 — move-to-self rejected
@@ -617,8 +630,52 @@ acurl -X POST $API/api/v1/assets/124/move \
 ```
 
 ```json
-{ "error": { "code": "unprocessable", "message": "Asset is already at this location", "request_id": "…", "details": { "http_status": 422 } } }
+{ "error": { "code": "invalid_request", "message": "Asset is already at the requested location", "request_id": "…", "details": { "current_location_id": 891, "http_status": 400 } } }
 ```
+
+## 3.6.1 POST `/api/v1/assets/<id>/verify` — record a verification, and who made it
+
+Scope: `assets:write`. Success: **200**. Idempotent.
+
+```bash
+acurl -X POST $API/api/v1/assets/124/verify \
+  -H 'Content-Type: application/json' \
+  -d '{"notes": "Sighted at desk 4F-12, tag intact"}'
+```
+
+```json
+{
+  "data": {
+    "asset": { "id": 124, "is_verified": true, "last_verified_by": { "id": 31, "name": "Adaobi Eze" }, "...": "full asset record" },
+    "verification": { "verified_on": "2026-09-20", "verified_by": { "id": 31, "name": "Adaobi Eze" }, "notes": "Sighted at desk 4F-12, tag intact" }
+  },
+  "meta": { "request_id": "…", "timestamp": "…", "version": "v1" }
+}
+```
+
+**It takes no date and no verifier.** The date is today and the verifier is
+the ACTING user — the person logged in, or the API client's own user. `notes`
+is optional and describes THIS verification: when absent,
+`verification_notes` is cleared rather than left carrying the previous
+verifier's words.
+
+**Why this exists beside `PATCH`.** `last_verified_date` is writable by
+`PATCH`, and `last_verified_by` deliberately is not: a verifier a client can
+name is a claim, not evidence. So a `PATCH` of the date records a day and
+nobody — **and clears any verifier already there**, because a date that
+arrives without a person has none, and leaving the old name beside the new
+date would say somebody checked who did not. Until handoff 28 that PATCH is
+what the Cadra app's own Verify button sent. Use `PATCH` to carry a verification made in another system; use this
+route to make one.
+
+**What it does not buy.** The asset holds ONE verifier, overwritten by the
+next verification. Both the date and the verifier are tracked, so each change
+is a `verified` event in the history — a line in the message log
+(`evidence: "chatter"`), deletable by anyone who can edit the asset. It records who; it is not an append-only
+record of verifications, and nothing here says it is.
+
+`last_verified_by` is published on every asset. **Null means nobody is
+recorded, not that nobody checked.**
 
 ## 3.7 POST `/api/v1/assets/<id>/transfer-custody` — reassign custodian
 
@@ -834,11 +891,11 @@ which it rests on. The grades are defined in the response
 
 | `evidence` | Meaning | Events |
 |---|---|---|
-| `append_only` | the application refuses to edit or delete it, for anyone | `custody_changed` — **and nothing else** |
+| `append_only` | the application refuses to edit or delete it, for anyone | `custody_changed`, and — for a move made since handoff 28 — `location_moved` |
 | `system_stamp` | stamped when the row was created; gone if the row is deleted | `registered`, `tag_issued` |
 | `guarded_record` | written from the acting user and refused to an ordinary edit; a privileged user can still rewrite it, and a tag label can be deleted by an asset manager | `tag_printed`, `tag_affixed`, `integration_event` |
-| `editable_record` | an asset manager can edit or delete it, without trace | `location_moved` **when a transfer row exists**, `transfer_recorded`, `maintenance_request`, `tag_scrapped`, **`disposal_approved`** |
-| `chatter` | a line in the message log that anyone able to edit the asset can delete, without trace | `status_changed`, `condition_changed`, `verified`, `disposal_recorded`, `details_changed`, and `location_moved` **when no transfer row exists** |
+| `editable_record` | an asset manager can edit or delete it, without trace | `location_moved` **made before handoff 28, when a transfer row exists**, `transfer_recorded`, `maintenance_request`, `tag_scrapped`, **`disposal_approved`** |
+| `chatter` | a line in the message log that anyone able to edit the asset can delete, without trace | `status_changed`, `condition_changed`, `verified`, `disposal_recorded`, `provenance_changed`, `details_changed`, and `location_moved` **made before handoff 28, when no transfer row exists** |
 
 **`disposal_approved` is `editable_record`, not more.** The approver and the
 instant are absent from `_WRITABLE_FIELDS`, so no API client can name its own
@@ -847,11 +904,29 @@ columns as they stand now (`detail.is_current_value`), and **a rewrite of the
 approver since is listed as its own `disposal_recorded` event** carrying the
 old and the new name, graded `chatter`.
 
-**A location move is `editable_record` at best.** Only `POST /assets/<id>/move`
-and a completed transfer write a transfer row. A `PATCH` of `location_id`
-moves the asset and leaves a message-log line only — that move comes back as
-`location_moved` with `evidence: "chatter"` and `detail.transfer: null`. If
-the move has to be evidenced, use `/move`.
+**A location move is `append_only` — if it was made after handoff 28.** Every
+change of `location_id` is appended to `nrs.asset.movement` by the asset
+model itself, so `POST /move`, a `PATCH` of `location_id`, a completed
+transfer, the Odoo form, an import and the deletion of a location all come
+back as `location_moved` with `evidence: "append_only"` and a `source` saying
+which door it came through. `detail.transfer` is the transfer document where
+the move had one and **null where it did not — a move is not always a
+transfer**, and `PATCH` still creates none. Where the document was deleted
+since, `detail.transfer.id` is null and `detail.transfer.reference` is the
+reference recorded with the move.
+
+**A move made BEFORE that is reported as it always was:** `editable_record`
+if a transfer row holds it, `chatter` if only the message log does. Nothing
+was backfilled. `fidelity.location.recording_began_at` is the boundary, and
+`fidelity.location.located_before_first_movement` is true for an asset that
+was already somewhere when recording reached it — which, on a register
+loaded before this release, is nearly every asset in it.
+
+An asset created at a location opens its record there: a `location_moved`
+with no `from`, summarised *"Placed at …"*. It is listed, and it is not
+counted in `summary.events_after_registration` — nor is the tag or the
+custody link written by the same `create`. That is the asset's opening
+state, not something that happened to it.
 
 ### What the other keys promise
 

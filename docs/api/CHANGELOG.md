@@ -33,6 +33,97 @@ live at was never the point.
 
 ---
 
+## 2026-09-20 — handoff 28: a move is recorded, a verification names somebody
+
+**Nothing here removes or renames a field, an enum value or an error code.**
+Two entries are marked BEHAVIOUR CHANGE; read those.
+
+**Every change of an asset's location is now recorded append-only (BEHAVIOUR
+CHANGE in what `/history` reports; no request changes).** `nrs.asset.movement`
+is written by the asset model itself, underneath every writer of
+`location_id` — `POST /assets`, `PATCH /assets/<id>`, `POST
+/assets/<id>/move`, a completed transfer, the Odoo form, an import, and the
+deletion of a location. **`PATCH location_id` still works exactly as it did
+and still writes no transfer document.** What changed is that it is no longer
+the quiet way to move an asset: the move is recorded either way.
+
+In `GET /assets/<id>/history`, a `location_moved` event for a move made from
+now on has `evidence: "append_only"` (it was `editable_record` via `/move`,
+`chatter` via PATCH), `record.model: "nrs.asset.movement"`, a `source`
+(`api_move`, `api_write`, `transfer`, `direct`, `location_deleted`, `test`),
+and `detail.reason`. `detail.transfer` is null when the move had no transfer
+document; where it had one, **`detail.transfer.id` can now be null** — the
+document was deleted since, and `detail.transfer.reference` is the reference
+recorded WITH the move, which survives that. A move made BEFORE this release
+is reported exactly as before, graded `editable_record` or `chatter`. An
+asset created at a location gains an opening `location_moved` event (*"Placed
+at …"*, no `from`); it is listed and is not counted in
+`summary.events_after_registration`.
+
+**The opening state is not history (BEHAVIOUR CHANGE to a number shipped in
+handoff 27).** Whatever the `create` that made an asset also wrote — its tag,
+its first placement, **and its first custody link when it was created
+already assigned** — is listed and is NOT counted in
+`summary.events_after_registration` or in
+`fidelity.earliest_event_after_registration_at`. Handoff 27 counted that
+custody link; an asset created assigned and never touched since now reads
+*"There is no recorded history for this asset…"*, which is what it has.
+Inside an `append_only` move, `detail.transfer.evidence` is
+`"editable_record"`: only `transfer.reference` was recorded with the move,
+and the rest of that block — the approver included — is read live from a
+document an asset manager can edit.
+
+**`POST /assets/<id>/move` (ADDITIVE, and one BEHAVIOUR CHANGE).**
+`data.transfer.movement_id` is the append-only record the call produced —
+the same shape as `custody_change.custody_id`. **A `reason` that is not a
+string is now a 400 `invalid_request`**, as it already was on
+`transfer-custody`; it used to be stored as whatever was sent.
+
+**`POST /assets/<id>/verify` (NEW ROUTE).** Scope `assets:write`, idempotent,
+optional body `{"notes": "…"}`. Takes no date and no verifier: the date is
+today and the verifier is the ACTING user. Returns `{asset, verification:
+{verified_on, verified_by, notes}}`. `notes` describe THIS verification: a
+call that sends none clears `verification_notes` rather than leaving the
+previous verifier's in place.
+
+**`PATCH {"last_verified_date": …}` now CLEARS `last_verified_by` (BEHAVIOUR
+CHANGE).** It still works, and it still cannot name a verifier — but it used
+to leave the PREVIOUS one standing beside the new date, so an asset verified
+by Alice in January and PATCHed with a June date read *"verified in June, by
+Alice"*. A date that arrives without a verifier now has none. Use PATCH to
+carry a verification made elsewhere, and `/verify` to make one.
+
+**`last_verified_by` on the asset (ADDITIVE, read-only).** `{id, name}` or
+null. Null means nobody is recorded, not that nobody checked: every
+verification made through the Cadra app before this release is null. Sending
+it is refused and reported in `_warnings.rejected_fields`, as for any field
+outside the allow-list.
+
+**Seven fields are now tracked (ADDITIVE in `/history`).** Six provenance
+fields — `grn_reference`, `purchase_order_reference`, `purchase_vendor`,
+`import_source`, `import_date`, `import_ref` — and `last_verified_by`, so
+that a verifier being replaced or cleared is a `verified` event of its own: a
+second verification on one day changes no date, and used to change the
+verifier without a line anywhere. A change to one is a new
+`/history` event type, **`provenance_changed`**, graded `chatter` — visible,
+which it was not, and not protected. `fidelity.not_recorded` keeps the key
+`provenance_change`; its sentence now says *before tracking began* rather
+than *never*. **New in `fidelity`:** `provenance_tracked_from` (the instant,
+per database; null = since the first asset) and `location` (when move
+recording began, and `located_before_first_movement`), the twin of `custody`.
+`fidelity.verification` was reworded, because the Verify button no longer
+does what it said.
+
+**`GET /reports/asset-register` (BEHAVIOUR CHANGE in `data.fidelity`).** The
+six provenance fields move from `fidelity.as_of_today` to
+`fidelity.rolled_back`, and `last_verified_by` — until now
+`not_recoverable` and unpublished — joins them and IS NOW A KEY ON EVERY ROW — **but
+only for an `as_of` at or after `fidelity.tracked_from.since`.** For an
+earlier date they stay in `as_of_today`, exactly where they were, because a
+change made before tracking began left nothing to roll back to. So the two
+lists now depend on the date asked for. `fidelity.tracked_from: {fields,
+since}` and `fidelity.notes.tracked_from` are new. No row shape changed.
+
 ## 2026-09-20 — handoff 27: `GET /assets/<id>/history`
 
 **`GET /api/v1/assets/<id>/history` (ADDITIVE — a new route; nothing existing

@@ -142,6 +142,26 @@ Not in the documented command. Found in handoff 12.
 
 ---
 
+### A plain `npm run build` silently breaks the locally served app
+
+**Build the front end for local serving with `BASE_PATH=/app/ npm run build`, never a bare `npm run build`.**
+
+`Frontend/artifacts/nrs-asset-register/.env.local` sets `BASE_PATH=/`, so a bare build emits asset URLs under `/assets/…`. The dev proxy bind-mounts that same `dist/public` (`docker-compose.19.yml`) and `config/nginx.dev.conf` serves it under **`/app/`** — where `/assets/…` is not the bundle at all: it falls through to Odoo and 404s. `http://<tenant>.localhost:8069/app/` then loads a blank page, with nothing in any log that mentions a base path. `dist/` is gitignored, so it never shows in a diff, and the person it breaks is whoever opens the app next.
+
+An environment variable beats `.env.local` in Vite's `loadEnv`, which is why the prefix works. Check the result, not the exit code:
+
+```
+grep -o 'src="[^"]*"' dist/public/index.html | head -1     # must begin /app/assets/
+```
+
+`npm run typecheck` writes nothing and is always safe. `Dockerfile` sets `BASE_PATH=/app/` itself, so an image build was never affected — only a local one. Measured in handoff 27, when a verification build did exactly this; it is also the reason to give any subagent the full command rather than "run the build".
+
+**And look at the screen.** Typecheck and build prove the bundle compiles. Two defects in two consecutive handoffs — an asset changing hands before it was registered (27), and a dialog whose wording had gone stale (28) — passed every test and were found by driving the real page. `e2e/` has Playwright installed: `E2E_ORIGIN=http://test19.localhost:8069 npx playwright test …`. **Its default origin is `jaizbankplc`, a client-marked database, and the e2e suite is NOT covered by the database-class guard** — name `test19` explicitly.
+
+### Three move specs in `e2e/tests/06-asset-actions.spec.ts` skip on `test19`
+
+They need two locations of type *building* (`api.twoBuildings()`), and `test19` has none, so *"move persists server-side"*, *"move via UI"* and *"move to the same location is rejected"* report `skipped`, not `passed`. That is a fact about the tenant, the same kind as the pytest skips below. The move path was verified by hand in handoff 28 for that reason; a test tenant with two buildings would let those specs run.
+
 ## The test suites
 
 ### The suites refuse any database not marked as a test database — and this is what they used to do instead

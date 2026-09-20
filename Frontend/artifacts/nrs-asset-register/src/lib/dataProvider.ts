@@ -405,11 +405,28 @@ async function fetchCategoryDashboard(categoryRegex: RegExp): Promise<CategoryDa
 
 export const fetchITAssetsDashboard = () => fetchCategoryDashboard(/IT|computer|laptop|server/i);
 
-// Convenience PATCHes — the Odoo asset form has "Mark Verified / Mark Missing /
-// Condemn" as one-click buttons. Same endpoint, different bodies.
-export const markAssetVerified = (id: string) =>
-  updateAsset(id, { last_verified_date: new Date().toISOString().slice(0, 10) });
+// NOT a PATCH, and it used to be one. `PATCH {last_verified_date}` records a
+// date and NO PERSON — `last_verified_by` is deliberately not writable, because
+// a verifier the client can name is a claim rather than evidence — so every
+// verification made from this button left a government register unable to say
+// who had checked the asset. `POST /assets/<id>/verify` takes no date and no
+// verifier: the date is the server's today and the verifier is whoever is
+// logged in. It also stops this browser's clock deciding the date.
+export async function markAssetVerified(id: string): Promise<Asset> {
+  // Like /move, the route returns an envelope { asset, verification }.
+  const res = await apiPost<{
+    asset: ApiAsset;
+    verification: { verified_on: string | null; verified_by: { id: number; name: string } | null; notes: string | null };
+  }>(
+    `/api/v1/assets/${id}/verify`,
+    {},
+    { idempotencyKey: newIdempotencyKey() },
+  );
+  return apiAssetToAsset(res.data.asset);
+}
 
+// Convenience PATCHes — the Odoo asset form has "Mark Missing / Condemn" as
+// one-click buttons. Same endpoint, different bodies.
 export const markAssetMissing = (id: string) =>
   updateAsset(id, { state: "missing" });
 

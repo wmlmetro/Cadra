@@ -80,9 +80,29 @@ def ok(created, name):
 import os
 
 CUSTODY_ESCAPE_FLAG = 'CADRA_SEED_DESTROY_CUSTODY'
+MOVEMENT_ESCAPE_FLAG = 'CADRA_SEED_DESTROY_MOVEMENTS'
+custody_links = movement_rows = 0
 
 sep('STEP 0: WIPE EXISTING nrs.asset RECORDS')
 
+# THE MOVEMENT RECORD — the same refusal, and deliberately its OWN flag.
+#
+# `nrs.asset.movement` (handoff 28) is append-only and `ondelete='restrict'`
+# exactly as custody is, and since it landed EVERY asset created at a location
+# carries at least one row. So without this block the wipe below fails on
+# every tenant, on a raw foreign-key violation that names a constraint and
+# nothing an operator could act on.
+#
+# A SEPARATE flag, not a second meaning for the custody one: somebody with
+# `CADRA_SEED_DESTROY_CUSTODY=1` sitting in an old command line agreed to
+# destroy the chain of custody. They did not agree to destroy a record that
+# did not exist when they typed it, and a flag that quietly widens is how
+# that happens.
+#
+# BOTH refusals are decided before EITHER deletion. Checked one after the
+# other, a run with the custody flag set and this one unset would DELETE the
+# chain of custody and only then be refused for the movements — saved by
+# nothing but the absence of a commit in between.
 if 'nrs.asset.custody' in env:
     custody_links = env['nrs.asset.custody'].sudo().search_count([])
     if custody_links:
@@ -98,15 +118,44 @@ if 'nrs.asset.custody' in env:
                 f'  If you genuinely mean to discard them, re-run with '
                 f'{CUSTODY_ESCAPE_FLAG}=1 set.\n'
             )
-        print(f'  {CUSTODY_ESCAPE_FLAG} is set. DESTROYING {custody_links} '
-              f'chain-of-custody link(s) on tenant {env.cr.dbname!r}.')
-        print(f'  This goes around nrs.asset.custody\'s own append-only '
-              f'guard. It is not recoverable.')
-        _logger.warning(
-            'nrs_hq_seed: %s set — deleting %s chain-of-custody link(s) on %s',
-            CUSTODY_ESCAPE_FLAG, custody_links, env.cr.dbname)
-        env.cr.execute('DELETE FROM nrs_asset_custody')
-        print(f'  - Removed {custody_links} chain-of-custody links')
+
+if 'nrs.asset.movement' in env:
+    movement_rows = env['nrs.asset.movement'].sudo().search_count([])
+    if movement_rows:
+        print(f'  Movement record on {env.cr.dbname!r}: '
+              f'{movement_rows} row(s).')
+        if os.environ.get(MOVEMENT_ESCAPE_FLAG, '').strip() not in ('1', 'true', 'TRUE', 'yes'):
+            raise SystemExit(
+                f'\n  REFUSED. Wiping the register would destroy '
+                f'{movement_rows} movement record(s) on tenant '
+                f'{env.cr.dbname!r}.\n'
+                f'  These are the append-only record of where each asset has '
+                f'been: once gone there is nothing left to say they existed.\n'
+                f'  If you genuinely mean to discard them, re-run with '
+                f'{MOVEMENT_ESCAPE_FLAG}=1 set.\n'
+            )
+
+if 'nrs.asset.custody' in env and custody_links:
+    print(f'  {CUSTODY_ESCAPE_FLAG} is set. DESTROYING {custody_links} '
+          f'chain-of-custody link(s) on tenant {env.cr.dbname!r}.')
+    print(f'  This goes around nrs.asset.custody\'s own append-only '
+          f'guard. It is not recoverable.')
+    _logger.warning(
+        'nrs_hq_seed: %s set — deleting %s chain-of-custody link(s) on %s',
+        CUSTODY_ESCAPE_FLAG, custody_links, env.cr.dbname)
+    env.cr.execute('DELETE FROM nrs_asset_custody')
+    print(f'  - Removed {custody_links} chain-of-custody links')
+
+if 'nrs.asset.movement' in env and movement_rows:
+    print(f'  {MOVEMENT_ESCAPE_FLAG} is set. DESTROYING {movement_rows} '
+          f'movement record(s) on tenant {env.cr.dbname!r}.')
+    print(f'  This goes around nrs.asset.movement\'s own append-only '
+          f'guard. It is not recoverable.')
+    _logger.warning(
+        'nrs_hq_seed: %s set — deleting %s movement record(s) on %s',
+        MOVEMENT_ESCAPE_FLAG, movement_rows, env.cr.dbname)
+    env.cr.execute('DELETE FROM nrs_asset_movement')
+    print(f'  - Removed {movement_rows} movement records')
 
 existing = env['nrs.asset'].search([])
 cats     = env['nrs.asset.category'].search([])

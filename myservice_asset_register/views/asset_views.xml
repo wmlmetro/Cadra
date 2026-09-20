@@ -71,7 +71,20 @@
                                    invisible="building_id == False"/>
                             <field name="room_id"
                                    invisible="floor_id == False"/>
-                            <field name="location_id" readonly="1"/>
+                            <!-- `force_save`, since handoff 28. This field is
+                                 readonly and is filled in by the room/floor/
+                                 building onchange, and Odoo's web client DROPS
+                                 a readonly field from the save unless it
+                                 carries this (`record.js`, `_getChanges`). So
+                                 for as long as this form has existed, picking
+                                 a room showed a new Location on screen, saved
+                                 the room, and threw the location away. No
+                                 tenant was damaged by it, only because three
+                                 of four never used building/floor/room and
+                                 the fourth was seeded. With it, the location
+                                 the form shows is the location it stores, and
+                                 `nrs.asset.write` records the move. -->
+                            <field name="location_id" readonly="1" force_save="1"/>
                             <field name="floor_room" readonly="1"/>
                             <separator string="Address (from building)"/>
                             <field name="address_display" readonly="1" nolabel="1"
@@ -196,6 +209,24 @@
                                     <field name="to_custodian_name"/>
                                     <field name="changed_by_name"/>
                                     <field name="source"/>
+                                    <field name="reason"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Movement Record" name="movements">
+                            <!-- Append-only, as the chain of custody above
+                                 is, and for the same reason the attributes
+                                 are off: the model is the control. This is
+                                 the FACT that the asset moved. The Transfers
+                                 page is the paperwork, which is editable. -->
+                            <field name="movement_ids" readonly="1">
+                                <list create="false" edit="false" delete="false">
+                                    <field name="moved_at"/>
+                                    <field name="from_location_name"/>
+                                    <field name="to_location_name"/>
+                                    <field name="moved_by_name"/>
+                                    <field name="source"/>
+                                    <field name="transfer_reference"/>
                                     <field name="reason"/>
                                 </list>
                             </field>

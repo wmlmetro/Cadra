@@ -786,6 +786,16 @@ class MyserviceApiV1(http.Controller):
                         "additionalProperties": True,
                         "properties": {
                             "id": {"type": "integer"},
+                            "last_verified_by": {
+                                "type": "object", "nullable": True,
+                                "description": (
+                                    "WHO verified the asset. Read-only: "
+                                    "written only by `POST /assets/<id>/"
+                                    "verify`, from the acting user. NULL "
+                                    "where `dates.last_verified_date` was "
+                                    "set by PATCH, which records a date and "
+                                    "no person — null means nobody is "
+                                    "recorded, not that nobody checked.")},
                             "asset_code": {"type": "string",
                                            "description": "Cadra's own asset "
                                                           "identity. Unique "
@@ -1554,9 +1564,19 @@ class MyserviceApiV1(http.Controller):
                                     "`custody.custodian_held_before_first_"
                                     "link` is true when this asset was "
                                     "already held by somebody the chain "
-                                    "never saw arrive. `evidence_grades` "
-                                    "defines each grade by what somebody "
-                                    "can do to the record.")},
+                                    "never saw arrive. `location` is its "
+                                    "twin for moves — `recording_began_at` "
+                                    "and `located_before_first_movement`, "
+                                    "true when the asset was already "
+                                    "somewhere when the recording of moves "
+                                    "reached it, which on a register loaded "
+                                    "before handoff 28 is nearly every "
+                                    "asset. `provenance_tracked_from` is the "
+                                    "instant a change to the GRN, PO, vendor "
+                                    "and import fields began to be listed. "
+                                    "`evidence_grades` defines each grade "
+                                    "by what somebody can do to the "
+                                    "record.")},
                             "events": {
                                 "type": "array",
                                 "items": {"$ref": "#/components/schemas/"
@@ -1653,10 +1673,18 @@ class MyserviceApiV1(http.Controller):
                                     "Type-specific. A tracked change "
                                     "carries `changes: [{field, label, old, "
                                     "new}]`; a `location_moved` carries "
-                                    "`transfer` (null when the move left "
-                                    "only a message-log line) and "
-                                    "`records`, the models it was read "
-                                    "from.")},
+                                    "`transfer` (null when the move had no "
+                                    "transfer document — a move is not "
+                                    "always a transfer) and `records`, the "
+                                    "models it was read from. INSIDE an "
+                                    "`append_only` move, `transfer.evidence` "
+                                    "is `editable_record`: only "
+                                    "`transfer.reference` was recorded with "
+                                    "the move, the rest — the approver "
+                                    "included — is read live from a "
+                                    "document an asset manager can edit, "
+                                    "and `transfer.id` is null once that "
+                                    "document is gone.")},
                         },
                     },
                     "AssetTagging": {

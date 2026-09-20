@@ -83,8 +83,8 @@ def test_the_boundary_arrives_with_the_events(client, test_asset):
     assert [g["grade"] for g in fidelity["evidence_grades"]] == _GRADES
     assert all(g["meaning"] for g in fidelity["evidence_grades"])
     named = {n["event"] for n in fidelity["not_recorded"]}
-    assert {"financial_change", "sap_change", "provenance_change",
-            "deleted_records"} <= named
+    assert {"financial_change", "sap_change",
+            "provenance_change", "deleted_records"} <= named
     assert fidelity["custody"]["statement"]
     assert fidelity["registered_at"]
 
@@ -132,9 +132,20 @@ def test_a_custody_transfer_is_an_append_only_event(client, test_location):
     assert not data["summary"]["statement"].startswith("There is no")
 
 
+def _real_moves(data):
+    """Moves, not the opening "Placed at" — which has no `from`."""
+    return [e for e in data["events"] if e["type"] == "location_moved"
+            and e["detail"]["from_location"]]
+
+
 def test_a_move_is_one_event_and_says_what_its_record_is_worth(
         client, test_location, any_location):
-    """`POST /move` leaves a transfer row AND a chatter row: one line."""
+    """`POST /move` leaves a movement, a transfer AND a chatter row: one line.
+
+    Handoff 27 asserted `editable_record` here, because a transfer row was
+    the best record a move had. Since handoff 28 the move has a record of its
+    own, written underneath every writer, and THAT is what it rests on.
+    """
     if any_location == test_location["id"]:
         pytest.skip("tenant has no second location to move to")
     asset = _new_asset(client, test_location, "pytest-history-move")
@@ -142,23 +153,33 @@ def test_a_move_is_one_event_and_says_what_its_record_is_worth(
                     json={"to_location_id": any_location,
                           "reason": "test_asset_history.move"})
     transfer = assert_envelope_ok(r)["data"]["transfer"]
+    # Additive on the route: the append-only record this call produced.
+    assert transfer["movement_id"]
     _, data = _history(client, asset["id"])
-    moves = [e for e in data["events"] if e["type"] == "location_moved"]
+    moves = _real_moves(data)
     assert len(moves) == 1
     move = moves[0]
-    # NOT append_only. A transfer row is editable and deletable by any
-    # asset manager, and the history must not dress it as more.
-    assert move["evidence"] == "editable_record"
+    assert move["evidence"] == "append_only"
+    assert move["record"] == {"model": "nrs.asset.movement",
+                              "id": transfer["movement_id"]}
+    # See test_custody.py: `test` is `api_move` relabelled by the credential.
+    assert move["source"] in ("api_move", "test")
+    assert move["detail"]["reason"] == "test_asset_history.move"
     assert move["detail"]["transfer"]["reference"] == transfer["reference"]
-    assert move["detail"]["transfer"]["reason"] == "test_asset_history.move"
-    assert move["detail"]["records"] == ["nrs.asset.transfer", "mail.message"]
+    assert move["detail"]["records"] == [
+        "nrs.asset.movement", "nrs.asset.transfer", "mail.message"]
     assert move["actor"] is not None
     _assert_registration_is_oldest(client, asset["id"])
 
 
-def test_a_patched_location_is_a_move_with_only_a_message_behind_it(
+def test_a_patched_location_is_recorded_like_any_other_move(
         client, test_location, any_location):
-    """`location_id` is PATCH-writable and PATCH writes no transfer row."""
+    """The quiet door. PATCH still writes no transfer row — and need not.
+
+    Handoff 27 asserted `chatter` here: PATCH moved an asset and left a
+    message-log line and nothing else. Handoff 28 did NOT close this door
+    and did NOT make it write a transfer; it recorded underneath every door.
+    """
     if any_location == test_location["id"]:
         pytest.skip("tenant has no second location to move to")
     asset = _new_asset(client, test_location, "pytest-history-patch-move")
@@ -166,12 +187,17 @@ def test_a_patched_location_is_a_move_with_only_a_message_behind_it(
                      json={"location_id": any_location})
     assert_envelope_ok(r)
     _, data = _history(client, asset["id"])
-    moves = [e for e in data["events"] if e["type"] == "location_moved"]
+    moves = _real_moves(data)
     assert len(moves) == 1
-    assert moves[0]["evidence"] == "chatter"
+    assert moves[0]["evidence"] == "append_only"
+    assert moves[0]["source"] in ("api_write", "test")
+    # A move is not always a transfer, and none is invented for this one.
     assert moves[0]["detail"]["transfer"] is None
+    # A LATER request is a later transaction: this is history, not the
+    # opening state, and an in-registry test cannot show that — everything
+    # there shares one transaction.
+    assert data["summary"]["events_after_registration"] >= 1
     _assert_registration_is_oldest(client, asset["id"])
-    assert data["summary"]["by_evidence"]["chatter"] >= 1
 
 
 def test_sort_oldest_is_the_exact_reverse(client, test_asset):
@@ -201,3 +227,176 @@ def test_the_history_has_no_write_endpoint(client, test_asset):
     """It is a reading of other records. There is nothing to POST."""
     r = client.post(f"/api/v1/assets/{test_asset['id']}/history", json={})
     assert r.status_code in (404, 405)
+
+
+def test_the_history_says_where_the_movement_record_begins(client, test_asset):
+    _, data = _history(client, test_asset["id"])
+    location = data["fidelity"]["location"]
+    assert location["statement"]
+    assert location["recording_began_at"], (
+        "this suite has moved assets on this tenant, so recording has begun")
+    # Created by this session, at a location, under the recorder: its record
+    # opens where it was placed, so nothing about it predates the record.
+    assert location["located_before_first_movement"] is False
+    assert location["movements"] >= 1
+
+
+def test_verify_records_who_verified(client, test_location, capture):
+    """POST /api/v1/assets/<id>/verify — a date AND a person.
+
+    `PATCH {"last_verified_date": …}` has always been able to mark an asset
+    verified, and it records no person: `last_verified_by` is not writable,
+    on purpose. Until handoff 28 that PATCH was what the Cadra app's own
+    Verify button sent.
+    """
+    asset = _new_asset(client, test_location, "pytest-history-verify")
+    assert asset["last_verified_by"] is None
+    r = client.post(f"/api/v1/assets/{asset['id']}/verify",
+                    json={"notes": "test_asset_history.verify"})
+    capture("assets/verify", r)
+    data = assert_envelope_ok(r)["data"]
+    assert data["verification"]["verified_by"] is not None
+    assert data["verification"]["verified_on"]
+    assert data["verification"]["notes"] == "test_asset_history.verify"
+    assert data["asset"]["last_verified_by"] == data["verification"]["verified_by"]
+    assert data["asset"]["is_verified"] is True
+    _, history = _history(client, asset["id"])
+    verified = [e for e in history["events"] if e["type"] == "verified"]
+    assert len(verified) == 1
+    assert verified[0]["actor"]["id"] == data["verification"]["verified_by"]["id"]
+    # Still a line in the message log. The route records WHO; it does not
+    # make the record of it any harder to delete, and must not say it does.
+    assert verified[0]["evidence"] == "chatter"
+
+
+def test_a_patched_verification_date_clears_the_old_verifier(
+        client, test_location):
+    """VERIFY FIRST, then PATCH. The order is the whole test.
+
+    This test's first version PATCHed a never-verified asset and asserted the
+    verifier was null — which it was before the PATCH, so it proved nothing.
+    Meanwhile the real sequence left the PREVIOUS verifier standing beside
+    the new date: "verified in June, by Alice", who checked nothing in June.
+    Caught by the verification pass, with three published sentences already
+    saying it could not happen.
+    """
+    asset = _new_asset(client, test_location, "pytest-history-verify-patch")
+    r = client.post(f"/api/v1/assets/{asset['id']}/verify", json={})
+    assert assert_envelope_ok(r)["data"]["asset"]["last_verified_by"]
+    r = client.patch(f"/api/v1/assets/{asset['id']}",
+                     json={"last_verified_date": "2026-01-15"})
+    data = assert_envelope_ok(r)["data"]
+    assert data["dates"]["last_verified_date"] == "2026-01-15"
+    assert data["last_verified_by"] is None, (
+        "a date that arrived without a verifier kept the previous one")
+    # …and the clearing is itself a line in the history, not a silence.
+    _, history = _history(client, asset["id"])
+    cleared = [c for e in history["events"] if e["type"] == "verified"
+               for c in e["detail"].get("changes", [])
+               if c["field"] == "last_verified_by" and c["new"] is None]
+    assert cleared, "the verifier was cleared and the history does not say so"
+
+
+def test_a_second_verification_on_one_day_is_not_invisible(
+        client, test_location):
+    """Two verifications on one day change no DATE. The verifier's notes do
+    not carry over either: they describe a verification, not an asset."""
+    asset = _new_asset(client, test_location, "pytest-history-verify-twice")
+    client.post(f"/api/v1/assets/{asset['id']}/verify",
+                json={"notes": "first check"})
+    r = client.post(f"/api/v1/assets/{asset['id']}/verify", json={})
+    data = assert_envelope_ok(r)["data"]
+    assert data["verification"]["notes"] is None, (
+        "a note-less verification returned the previous verifier's notes")
+
+
+def test_a_client_cannot_name_its_own_verifier(client, test_location):
+    asset = _new_asset(client, test_location, "pytest-history-verify-claim")
+    r = client.patch(f"/api/v1/assets/{asset['id']}",
+                     json={"last_verified_by": 1, "notes": "claim"})
+    data = assert_envelope_ok(r)["data"]
+    assert data["last_verified_by"] is None
+    assert "last_verified_by" in data["_warnings"]["rejected_fields"]
+
+
+def test_a_changed_grn_reference_is_now_visible_and_is_only_chatter(
+        client, test_location):
+    """Tracked since handoff 28. Visible — which it was not. Not protected."""
+    r = client.post("/api/v1/assets", json={
+        "name": "pytest-history-provenance", "category_id": 1,
+        "location_id": test_location["id"], "grn_reference": "GRN-BEFORE"})
+    asset = assert_envelope_ok(r, expected_status=201)["data"]
+    r = client.patch(f"/api/v1/assets/{asset['id']}",
+                     json={"grn_reference": "GRN-AFTER"})
+    assert_envelope_ok(r)
+    _, data = _history(client, asset["id"])
+    changed = [e for e in data["events"] if e["type"] == "provenance_changed"]
+    assert len(changed) == 1
+    assert changed[0]["evidence"] == "chatter"
+    change = changed[0]["detail"]["changes"][0]
+    assert (change["field"], change["old"], change["new"]) == (
+        "grn_reference", "GRN-BEFORE", "GRN-AFTER")
+    assert changed[0]["actor"] is not None
+    named = {n["event"] for n in data["fidelity"]["not_recorded"]}
+    # The KEY is unchanged from handoff 27 — renaming a published key is a
+    # breaking change. What changed is what it says: no longer "never
+    # recorded", but "not recorded before tracking began".
+    entry = next(n for n in data["fidelity"]["not_recorded"]
+                 if n["event"] == "provenance_change")
+    assert "before those fields began to be tracked" in entry["statement"]
+    # Present on every database: an upgrade stamps it by migration and a
+    # fresh install — which is what CI builds — by `post_init_hook`.
+    assert data["fidelity"]["provenance_tracked_from"]
+
+
+def test_a_movement_this_suite_wrote_says_so(client, test_location, any_location):
+    """The suite moves real assets, and the record of a move is PERMANENT.
+
+    Same argument as `test_custody.test_a_link_this_suite_wrote_says_so`: that
+    is accepted, because a test that does not exercise the recorder proves
+    nothing about whether a move is recorded at all. What is not acceptable
+    is a reader being unable to tell. `tests/test_source_guards.py` lists
+    `nrs.asset.movement` as self-labelling on the strength of this.
+    """
+    if any_location == test_location["id"]:
+        pytest.skip("tenant has no second location to move to")
+    asset = _new_asset(client, test_location, "pytest-history-move-label")
+    r = client.post(f"/api/v1/assets/{asset['id']}/move",
+                    json={"to_location_id": any_location})
+    assert_envelope_ok(r)
+    _, data = _history(client, asset["id"])
+    sources = {e["source"] for e in data["events"]
+               if e["type"] == "location_moved"}
+    if sources == {"api_write", "api_move"}:
+        pytest.skip("this credential is not flagged `is_test_credential`; "
+                    "its movements are labelled by route, not as artefacts")
+    assert sources == {"test"}, (
+        "a movement written by the test suite came back as %s. These rows "
+        "are permanent and append-only; a reader who was never told this "
+        "suite exists must still be able to see that they are artefacts."
+        % sorted(sources))
+
+
+def test_a_refused_move_leaves_nothing_behind(client, test_location, any_location):
+    """A 400 must not write. An error RESPONSE does not roll anything back.
+
+    The first draft of handoff 28 checked `reason` after the transfer
+    document had been created, so this exact request returned 400 and left a
+    transfer in state `done` for a move that never happened.
+    """
+    if any_location == test_location["id"]:
+        pytest.skip("tenant has no second location to move to")
+    asset = _new_asset(client, test_location, "pytest-history-refused-move")
+    r = client.post(f"/api/v1/assets/{asset['id']}/move",
+                    json={"to_location_id": any_location, "reason": 7})
+    assert_envelope_err(r, 400, "invalid_request")
+    after = assert_envelope_ok(client.get(
+        f"/api/v1/assets/{asset['id']}",
+        params={"include": "transfers"}))["data"]
+    assert after["current_location"]["id"] == test_location["id"]
+    assert after["transfers"] == [], (
+        "a refused move left a transfer document behind")
+    _, history = _history(client, asset["id"])
+    assert _real_moves(history) == []
+    assert not [e for e in history["events"]
+                if e["type"] == "transfer_recorded"]

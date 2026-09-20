@@ -6,14 +6,19 @@ import { markedName, recordCreated } from "../fixtures/marker";
 /**
  * Asset lifecycle actions from the detail page.
  *
- * WORKS in the UI: tabs, Mark verified, Mark missing (native confirm), Condemn.
- * BROKEN in the UI (confirmed bugs, encoded as test.fail): Move and Transfer
- * custody — moveAsset()/transferCustody() map the {asset, transfer|custody_change}
- * envelope through apiAssetToAsset() as if it were a bare asset, so
- * buildAssetLocation() dereferences an undefined location_hierarchy and throws
- * "Cannot read properties of undefined (reading 'building')". The dialog stays
- * open with a red error even though the server-side change DID persist (proven
- * by the API-level tests below). See the report's confirmed-findings section.
+ * Everything here is expected to PASS; there is no `test.fail` in this file.
+ * Covered in the UI: the detail tabs, the Audit & Review history (live and
+ * canned), Mark verified, Mark missing (native confirm), Condemn, Move and
+ * Transfer custody. Move and Transfer custody each also have an API-level
+ * twin, so a UI failure can be told apart from a server one.
+ *
+ * This header used to say Move and Transfer custody were BROKEN in the UI and
+ * encoded as `test.fail`. They were — moveAsset()/transferCustody() mapped the
+ * {asset, transfer|custody_change} envelope through apiAssetToAsset() as if it
+ * were a bare asset — and that was fixed: both now read `res.data.asset`, and
+ * the two UI specs below assert the dialog closes and the change persists.
+ * Mark verified is the same envelope shape (`POST /assets/<id>/verify` returns
+ * {asset, verification}) and is read the same way.
  */
 
 async function createAsset(api: ApiClient, label: string, extra: Record<string, unknown> = {}): Promise<string> {
@@ -27,11 +32,20 @@ test("detail tabs switch", async ({ page, api }) => {
   const id = await createAsset(api, "Tabs");
   await gotoApp(page, `/assets/${id}`);
   await expectShell(page);
-  for (const tab of ["tab-details", "tab-custodian-assignment", "tab-audit-review", "tab-legacy-data"]) {
+  // "Provenance" was "Legacy Data" until handoff 28: the tab printed a
+  // migration source and date as literals on every asset, and now prints only
+  // what the record holds — so it is no longer about legacy data.
+  for (const tab of ["tab-details", "tab-custodian-assignment", "tab-audit-review", "tab-provenance"]) {
     const t = page.getByTestId(tab);
     await expect(t, `${tab} present`).toBeVisible();
     await t.click();
   }
+  // Left on the last tab. An asset made through the API has a registration
+  // instant and a registering user at the very least, so the panel has rows —
+  // and neither of the two sentences the old tab invented.
+  await expect(page.getByTestId("asset-provenance")).toContainText("Registered");
+  await expect(page.getByTestId("asset-provenance")).not.toContainText("FIRS legacy system");
+  await expect(page.getByTestId("asset-provenance")).not.toContainText("March 2024");
 });
 
 /**
@@ -67,8 +81,11 @@ test("audit & review shows a verification, newest first, with what its record is
   // Newest first: the verification just made is above the registration, and
   // the mutation invalidated the history so no reload was needed to see it.
   await expect(rows.first()).toContainText("Verified");
-  // Verify is a PATCH of a date: a message-log line is ALL that records it.
+  // The button is `POST /assets/<id>/verify` since handoff 28, which records
+  // WHO on the asset — but the EVENT is still a tracked change in the message
+  // log, so that is still all its record is worth, and the row still says so.
   await expect(rows.first()).toContainText("Message log only");
+  await expect(rows.first()).not.toContainText("No person recorded");
   await expect(rows.last()).toContainText("Registered");
   await expect(page.getByTestId("asset-history-empty")).toHaveCount(0);
 });
@@ -129,6 +146,75 @@ test("audit & review carries a reconstruction and a blank actor all the way to t
   await expect(page.getByTestId("asset-history-begins")).toContainText("already held by somebody");
 });
 
+test("audit & review says where the location record begins, and a tapped label explains itself", async ({ page, api }) => {
+  // Canned so the assertion does not depend on which assets a tenant holds.
+  // (NOT because none exists: since the recorder landed, every located asset
+  // that predates it is one, on every tenant.) The spec above
+  // sends NO `fidelity.location` and proves the screen tolerates an older
+  // server; this one sends it, with the flag that turns it into a notice.
+  const id = await createAsset(api, "HistoryLocation");
+  const MEANING = "Recorded when it happened, and refused to every edit afterwards.";
+  const LOCATED = "This asset was already at a location when movement recording reached it.";
+  await page.route(`**/api/v1/assets/${id}/history*`, (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        meta: { request_id: "e2e", timestamp: "2026-09-20T00:00:00Z", version: "v1" },
+        data: {
+          asset: { id: Number(id), asset_code: "E2E", name: "canned" },
+          order: "newest_first",
+          summary: { events: 1, events_after_registration: 1, by_evidence: {}, reconstructed_events: 0,
+                     statement: "1 recorded event(s) since registration." },
+          fidelity: {
+            registered_at: "2026-08-06T09:00:00", earliest_event_after_registration_at: "2026-09-19T09:00:00",
+            custody: { recording_began_at: "2026-09-09T16:12:06", links: 0, reconstructed_links: 0,
+                       first_link_at: null, custodian_held_before_first_link: false,
+                       statement: "No custodian has been recorded for this asset." },
+            location: { recording_began_at: "2026-09-19T08:00:00", movements: 1, reconstructed_movements: 0,
+                        first_movement_at: "2026-09-19T09:00:00", located_before_first_movement: true,
+                        statement: LOCATED },
+            evidence_grades: [
+              { grade: "append_only", meaning: MEANING },
+              { grade: "chatter", meaning: "A change noted in the message log and nowhere else." },
+            ],
+            not_recorded: [], verification: "", undated_records_omitted: 0,
+          },
+          events: [
+            // The transfer document has since been deleted: `id` is null and
+            // the reference, recorded with the move, is all that is left.
+            { id: "location_moved:nrs.asset.movement:1", type: "location_moved", title: "Moved",
+              summary: "HQ → Annex", at: "2026-09-19T09:00:00", at_precision: "second",
+              actor: { id: 2, name: "Ada" }, actor_name: "Ada", evidence: "append_only", reconstructed: false,
+              source: "test", record: { model: "nrs.asset.movement", id: 1 },
+              detail: { transfer: { id: null, reference: "TRF/E2E/0001" } } },
+          ],
+        },
+      }),
+    }),
+  );
+  await gotoApp(page, `/assets/${id}`);
+  await expectShell(page);
+  await page.getByTestId("tab-audit-review").click();
+
+  // Already somewhere the record never saw it arrive: a notice, not muted text.
+  await expect(page.getByTestId("asset-history-begins")).toContainText(LOCATED);
+  await expect(page.getByTestId("asset-history-location-notice")).toContainText(LOCATED);
+
+  const row = page.getByTestId("asset-history-event").first();
+  await expect(row).toContainText("TRF/E2E/0001");
+  await expect(row).toContainText("Test data");
+
+  // The legend is on the page and collapsed; the meaning is not yet readable.
+  const legend = page.getByTestId("asset-history-legend");
+  await expect(page.getByTestId("toggle-history-legend")).toHaveAttribute("aria-expanded", "false");
+  await expect(legend).not.toContainText(MEANING);
+  // A tap on the pill — no hover involved — opens it.
+  await row.getByTestId("history-evidence-pill").click();
+  await expect(page.getByTestId("toggle-history-legend")).toHaveAttribute("aria-expanded", "true");
+  await expect(legend).toContainText(MEANING);
+  await expect(legend).toBeInViewport();
+});
+
 test("mark verified (UI)", async ({ page, api }) => {
   const id = await createAsset(api, "Verify");
   await gotoApp(page, `/assets/${id}`);
@@ -137,6 +223,12 @@ test("mark verified (UI)", async ({ page, api }) => {
   await expect
     .poll(async () => (await api.get(`/api/v1/assets/${id}`))?.is_verified, { timeout: 15_000 })
     .toBeTruthy();
+  // A verification with a date and no person is a date. The button used to
+  // PATCH the date and leave this null.
+  const fresh = await api.get(`/api/v1/assets/${id}`);
+  expect(fresh?.last_verified_by?.name, "the verifier is recorded").toBeTruthy();
+  await expect(page.getByText("Verified By")).toBeVisible();
+  await expect(page.getByText("No person recorded")).toHaveCount(0);
 });
 
 test("mark missing via native confirm (UI)", async ({ page, api }) => {

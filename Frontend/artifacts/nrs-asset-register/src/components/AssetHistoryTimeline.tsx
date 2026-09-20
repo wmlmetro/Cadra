@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Activity, AlertCircle, AlertTriangle, ArrowDown, ArrowRightLeft, ArrowUp,
   CheckCircle2, ChevronDown, ChevronRight, CircleDot, Clock, Edit3, FilePlus,
-  FileText, Gauge, Info, MapPin, Printer, Send, ShieldCheck, Tag, Trash2, Wrench,
+  FileSearch, FileText, Gauge, Info, MapPin, Printer, Send, ShieldCheck, Tag,
+  Trash2, Wrench,
   type LucideIcon,
 } from "lucide-react";
 import { fetchAssetHistory } from "@/lib/dataProvider";
@@ -33,14 +34,20 @@ const EVENT_ICON: Record<string, LucideIcon> = {
   disposal_approved: CheckCircle2,
   disposal_recorded: Trash2,
   details_changed: Edit3,
+  provenance_changed: FileSearch,
   integration_event: Send,
   maintenance_request: Wrench,
 };
 const EVENT_ICON_UNKNOWN: LucideIcon = CircleDot;
 
 // Short words for the five evidence grades. The grade's full meaning is the
-// server's sentence (`fidelity.evidence_grades`) and rides on the pill's
-// title; a grade this build does not know renders as its own key.
+// server's sentence (`fidelity.evidence_grades`), printed in the legend above
+// the list; a grade this build does not know renders as its own key.
+//
+// The meaning used to ride on the pill's `title` and nowhere else, which is a
+// mouse hover — and this screen is shown to the client on a tablet. A label
+// whose qualification cannot be reached says more than the record does, so
+// the pill is a button that opens the legend, and the legend is on the page.
 const EVIDENCE_LABEL: Record<string, string> = {
   append_only: "Cannot be altered",
   system_stamp: "System-stamped",
@@ -77,7 +84,16 @@ function changeValue(v: AssetHistoryChange["old"]) {
   return String(v);
 }
 
-function EventRow({ e, meanings }: { e: AssetHistoryEvent; meanings: Record<string, string> }) {
+function evidenceLabel(grade: string) {
+  return EVIDENCE_LABEL[grade] ?? grade;
+}
+
+function EventRow({ e, meanings, onExplain }: {
+  e: AssetHistoryEvent;
+  meanings: Record<string, string>;
+  /** Open the legend and bring it into view. */
+  onExplain: () => void;
+}) {
   const Icon = EVENT_ICON[e.type] ?? EVENT_ICON_UNKNOWN;
   return (
     <li
@@ -87,12 +103,21 @@ function EventRow({ e, meanings }: { e: AssetHistoryEvent; meanings: Record<stri
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <Icon size={12} className="text-muted-foreground shrink-0" />
         <span className="text-[12px] font-semibold text-foreground">{e.title}</span>
-        <span
-          className={cn(PILL, EVIDENCE_TONE[e.evidence] ?? PILL_NEUTRAL)}
+        {/* A real <button>: reachable by Tab, fired by Enter and Space, and
+            by a finger. The `title` stays for whoever does have a mouse. */}
+        <button
+          type="button"
+          onClick={onExplain}
+          className={cn(
+            PILL, EVIDENCE_TONE[e.evidence] ?? PILL_NEUTRAL,
+            "cursor-pointer hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+          )}
           title={meanings[e.evidence]}
+          aria-label={`${evidenceLabel(e.evidence)} — what this label means`}
+          data-testid="history-evidence-pill"
         >
-          {EVIDENCE_LABEL[e.evidence] ?? e.evidence}
-        </span>
+          {evidenceLabel(e.evidence)}
+        </button>
         {e.reconstructed && (
           <span className={cn(PILL, PILL_AMBER)} title={RECONSTRUCTED_TITLE}>Reconstructed</span>
         )}
@@ -143,6 +168,24 @@ export default function AssetHistoryTimeline({ assetId }: { assetId: string }) {
   const [sort, setSort] = useState<"newest" | "oldest">("newest");
   // Unset until the reader chooses; until then it follows `isEmpty` below.
   const [showNotRecorded, setShowNotRecorded] = useState<boolean>();
+  // Collapsed by default: five sentences above every history would bury the
+  // history. Any evidence pill opens it.
+  const [showLegend, setShowLegend] = useState(false);
+  const legendRef = useRef<HTMLDivElement>(null);
+  // Bumped by a pill; the scroll waits for the render that opens the legend,
+  // so the sentences are on the page by the time it moves.
+  const [explainTick, setExplainTick] = useState(0);
+  useEffect(() => {
+    if (explainTick === 0) return;
+    legendRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    // Focus follows, so a keyboard reader lands on the thing they asked for
+    // rather than being left on the pill with the answer somewhere above.
+    legendRef.current?.querySelector("button")?.focus({ preventScroll: true });
+  }, [explainTick]);
+  const explain = () => {
+    setShowLegend(true);
+    setExplainTick(t => t + 1);
+  };
 
   const q = useQuery({
     // `sort` is in the key so that flipping it refetches; invalidating
@@ -219,10 +262,50 @@ export default function AssetHistoryTimeline({ assetId }: { assetId: string }) {
               </p>
             )}
 
+            {/* What the pills mean, in the server's sentences and the
+                server's order — strongest first. Above the list, because a
+                label should be explained before it is read fifty times. */}
+            {h.evidenceGrades.length > 0 && (
+              <div
+                ref={legendRef}
+                className="mb-4 pb-3 border-b border-border scroll-mt-4"
+                data-testid="asset-history-legend"
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowLegend(!showLegend)}
+                  aria-expanded={showLegend}
+                  aria-controls="asset-history-legend-list"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold
+                             text-muted-foreground hover:text-foreground"
+                  data-testid="toggle-history-legend"
+                >
+                  {showLegend ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                  What these labels mean
+                </button>
+                {showLegend && (
+                  <dl id="asset-history-legend-list" className="mt-2 space-y-2">
+                    {h.evidenceGrades.map(g => (
+                      <div key={g.grade} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+                        <dt className="shrink-0 sm:w-32">
+                          <span className={cn(PILL, EVIDENCE_TONE[g.grade] ?? PILL_NEUTRAL)}>
+                            {evidenceLabel(g.grade)}
+                          </span>
+                        </dt>
+                        <dd className="text-[11px] text-muted-foreground">{g.meaning}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+              </div>
+            )}
+
             {h.events.length > 0 ? (
               // Dimmed while it is still the previous order's list.
               <ol className={cn("space-y-3", q.isPlaceholderData && "opacity-60")}>
-                {h.events.map(e => <EventRow key={e.id} e={e} meanings={h.evidenceMeanings} />)}
+                {h.events.map(e => (
+                  <EventRow key={e.id} e={e} meanings={h.evidenceMeanings} onExplain={explain} />
+                ))}
               </ol>
             ) : (
               <p className="text-[12px] text-muted-foreground">
@@ -249,6 +332,27 @@ export default function AssetHistoryTimeline({ assetId }: { assetId: string }) {
                 <p className="text-[11px] text-muted-foreground">
                   {h.custody.statement}
                 </p>
+              )}
+              {/* The same question asked of where it has been. Same rule: a
+                  notice when the asset was already somewhere the record never
+                  saw it arrive, muted text otherwise — and nothing at all
+                  from a server that does not keep the movement record. */}
+              {h.location && (
+                h.location.locatedBeforeFirstMovement ? (
+                  <div
+                    className="mt-2 flex items-start gap-2 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-lg px-3 py-2.5"
+                    data-testid="asset-history-location-notice"
+                  >
+                    <AlertTriangle size={12} className="text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                    <p className="text-xs text-amber-800 dark:text-amber-300">
+                      {h.location.statement}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-[11px] text-muted-foreground" data-testid="asset-history-location-statement">
+                    {h.location.statement}
+                  </p>
+                )
               )}
             </div>
 
