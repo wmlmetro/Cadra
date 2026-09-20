@@ -774,6 +774,129 @@ be told from a complete chain and is therefore the one answer an auditor
 cannot use. Use the paginated route above for a chain long enough to want
 paging.
 
+## 3.7.2 GET `/api/v1/assets/<id>/history` — what has happened to this asset
+
+Scope: **`assets:read`**. Success: **200**. Not paged, not capped.
+
+One ordered history of the asset, merged server-side from every place its
+life leaves a mark: registration, the tag's issue, print and affix, the chain
+of custody (§3.7.1), location moves, tracked field changes, the disposal
+approval, events sent to SAP and the Tag-Issuing Unit, and maintenance
+requests. Newest first; `?sort=oldest` reads it forwards. A `sort` outside
+`newest|oldest` is a 400 `invalid_request` carrying `details.allowed_values`.
+
+```bash
+acurl "$API/api/v1/assets/124/history"
+```
+
+```jsonc
+{
+  "data": {
+    "asset":   { "id": 124, "asset_code": "NRS-IT-000124", "name": "Dell Latitude 5440" },
+    "order":   "newest_first",
+    "summary": {
+      "events": 6, "events_after_registration": 4,
+      "by_evidence": { "append_only": 1, "system_stamp": 2, "guarded_record": 1, "editable_record": 1, "chatter": 1 },
+      "reconstructed_events": 0,
+      "statement": "4 recorded event(s) since registration on 2026-09-02. 1 of them rest on a record that nobody can edit or delete; the rest can be altered or removed afterwards, and each event says what its record is worth. This history is a lower bound on what happened, not a complete account of it."
+    },
+    "fidelity": {
+      "registered_at": "2026-09-02T10:14:07.120331",
+      "earliest_event_after_registration_at": "2026-09-03T08:40:12",
+      "custody": { "recording_began_at": "2026-09-09T16:12:06.081420", "links": 1, "reconstructed_links": 0,
+                   "first_link_at": "2026-09-11T09:02:44", "custodian_held_before_first_link": false,
+                   "statement": "Changes of custodian are recorded on this system from …" },
+      "evidence_grades": [ { "grade": "append_only", "meaning": "…" }, "… four more, strongest first" ],
+      "not_recorded":    [ { "event": "financial_change", "statement": "A change to a cost or a value — … nothing records that it changed, when, or who changed it." }, "…" ],
+      "verification": "Each verification shown is a change to the last-verified date. …",
+      "undated_records_omitted": 0
+    },
+    "events": [
+      { "id": "custody_changed:nrs.asset.custody:5514", "type": "custody_changed",
+        "title": "Custodian changed", "summary": "unassigned → Adaobi Eze",
+        "at": "2026-09-11T09:02:44", "at_precision": "second",
+        "actor": { "id": 31, "name": "Vendra (API client)" }, "actor_name": "Vendra (API client)",
+        "evidence": "append_only", "reconstructed": false, "source": "api_transfer",
+        "record": { "model": "nrs.asset.custody", "id": 5514 },
+        "detail": { "from_custodian": null, "to_custodian": { "id": 42, "name": "Adaobi Eze" },
+                    "from_custodian_name": null, "to_custodian_name": "Adaobi Eze",
+                    "reason": "Custodian handover at quarter-end" } }
+    ]
+  }
+}
+```
+
+### Read `evidence` before relying on an event
+
+The records behind this list are not worth the same, and each event says
+which it rests on. The grades are defined in the response
+(`fidelity.evidence_grades`) by what somebody can **do** to the record:
+
+| `evidence` | Meaning | Events |
+|---|---|---|
+| `append_only` | the application refuses to edit or delete it, for anyone | `custody_changed` — **and nothing else** |
+| `system_stamp` | stamped when the row was created; gone if the row is deleted | `registered`, `tag_issued` |
+| `guarded_record` | written from the acting user and refused to an ordinary edit; a privileged user can still rewrite it, and a tag label can be deleted by an asset manager | `tag_printed`, `tag_affixed`, `integration_event` |
+| `editable_record` | an asset manager can edit or delete it, without trace | `location_moved` **when a transfer row exists**, `transfer_recorded`, `maintenance_request`, `tag_scrapped`, **`disposal_approved`** |
+| `chatter` | a line in the message log that anyone able to edit the asset can delete, without trace | `status_changed`, `condition_changed`, `verified`, `disposal_recorded`, `details_changed`, and `location_moved` **when no transfer row exists** |
+
+**`disposal_approved` is `editable_record`, not more.** The approver and the
+instant are absent from `_WRITABLE_FIELDS`, so no API client can name its own
+approver — but both are ordinary inputs on the Odoo form. The event shows the
+columns as they stand now (`detail.is_current_value`), and **a rewrite of the
+approver since is listed as its own `disposal_recorded` event** carrying the
+old and the new name, graded `chatter`.
+
+**A location move is `editable_record` at best.** Only `POST /assets/<id>/move`
+and a completed transfer write a transfer row. A `PATCH` of `location_id`
+moves the asset and leaves a message-log line only — that move comes back as
+`location_moved` with `evidence: "chatter"` and `detail.transfer: null`. If
+the move has to be evidenced, use `/move`.
+
+### What the other keys promise
+
+- **`reconstructed: true`** — recovered after the fact, not recorded when it
+  happened. Today: a custody link whose `source` is `tracking_backfill`.
+- **`actor`** — the user the record names; **null where it names nobody.**
+  Never inferred and never filled from a created-by field that means
+  something else. `actor_name` is the name as the record holds it, which
+  outlives the user. A transfer row with no message-log line has a null
+  actor: `detail.transfer.recorded_by` is who raised the transfer, which is
+  not who moved the asset.
+- **`at_precision`** — `second`, or `day` for a record that holds only a
+  date. A `day` event's `at` is a bare date and it sorts at the start of that
+  day, which is a placement and not a claim.
+- **`type`** — a closed enum in the OpenAPI document that may GROW; a new
+  type is an additive change announced in the changelog, and every event
+  carries a human `title` so a consumer can display one it does not know. A
+  tracked field with no type of its own arrives as `details_changed`, so a
+  field that becomes tracked appears rather than being silently absent.
+  `transfer_recorded` is a transfer that is NOT done (raised, approved or
+  rejected) and is not a move. `integration_event` is any outbox row for this
+  asset, whatever its `detail.status` — `pending` and `dead` included.
+  `maintenance_request` says that a request was raised, when and by whom, and
+  deliberately NOT its reference: the request belongs to `requests:read`.
+- **An unmatched transfer says what its time is.** A `location_moved` read
+  from a transfer row with no message-log line carries
+  `detail.at_is_when_the_transfer_was_recorded: true`: for `/move` that is the
+  move, for a transfer raised in Odoo and completed later it is when it was
+  raised.
+- **`fidelity.undated_records_omitted`** — records that hold no instant
+  cannot be placed on a clock; they are left out and counted here.
+- **Times are naive server time, which is UTC.**
+- **`fidelity.not_recorded`** — on every response. A changed cost, a changed
+  SAP field and a changed GRN/PO reference leave no record at all; their
+  absence from `events` is not evidence that they did not happen.
+- **`fidelity.custody`** — when custody recording began on this system, and
+  `custodian_held_before_first_link`: true when the asset was already held by
+  somebody the chain never saw arrive.
+- **An empty history says so in words.** With nothing after registration,
+  `summary.events_after_registration` is 0 and `summary.statement` begins
+  *"There is no recorded history for this asset…"*. The registration event is
+  still returned.
+
+Message bodies are never published — tracked old/new values only.
+
 ## 3.8 POST `/api/v1/assets/<id>/tag-affixed` — confirm physical tagging
 
 Scope: **`tagging:write`** (not `assets:write`). Success: **200**. Idempotent.

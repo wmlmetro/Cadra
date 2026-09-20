@@ -199,7 +199,25 @@ reports a true `total_estimate` and announces the record cap in
 
 ### 2.4 "Show me what changed on this asset, and who changed it."
 
-**No, over the API. Partly, in the Odoo UI.**
+**Yes over the API since handoff 27, for what is recorded — and the response says what is not.** Until then the answer was *"No, over the API. Partly, in the Odoo UI."*, and everything below that sentence about WHAT is tracked still stands; what changed is that it is now readable.
+
+`GET /api/v1/assets/<id>/history` merges every place an asset's life leaves a mark — registration, the tag's issue, print and affix, the chain of custody (§2.3), location moves, the tracked fields listed below, the disposal approval (§2.9), events sent to SAP and the Tag-Issuing Unit, and maintenance requests — onto one clock, newest first (`?sort=oldest` reads it forwards), uncapped and unpaged for §2.3's reason. It came out of a live demonstration: NRS opened *Audit & Review* on an asset expecting this, and the screen had never asked for it.
+
+**It does not make the records any better than they are, and it says so on every event.** Each carries `evidence`, one of five grades defined in the response by what somebody can do to the record:
+
+| `evidence` | What it rests on | Which events |
+|---|---|---|
+| `append_only` | the application refuses edit and delete to everyone, sudo included (the refusal is Python — no database trigger) | a change of custodian, **and nothing else** |
+| `system_stamp` | `create_date` / `create_uid`, not editable through the ORM, gone if the row is deleted | registration · tag issued |
+| `guarded_record` | stamped from the acting user and refused to an ordinary write; a caller who sets the internal context flag can still rewrite it, and a tag label row is deletable by an asset manager | tag printed · tag affixed · outbox events |
+| `editable_record` | an asset manager can edit or delete it and nothing records that they did; `nrs.asset.transfer` also cascades away with the asset | a location move **that has a transfer row** · a transfer that is not done · a tag scrapped · maintenance requests · **the disposal approval** — both columns are inputs on the Odoo form; a rewrite of the approver is listed as its own event |
+| `chatter` | a `mail.message`, deletable by anyone with write on the asset — which is the same group that can edit the asset | status · condition · verification · disposal paperwork · every other tracked field · **a location move made any other way** |
+
+**A location move is the one to read twice.** Only `POST /assets/<id>/move` and a completed transfer write an `nrs.asset.transfer` row. PATCH (`location_id` is in `_WRITABLE_FIELDS`), the Odoo form and an import move an asset and leave chatter and nothing else: on `nrs19`, **1,146 tracked location changes against 1 transfer row.** Where one move left both records they are joined into one event; where it left only the message the event says `chatter`.
+
+`reconstructed: true` marks a custody link with `source: tracking_backfill`. `actor` is the user the record names, or null — never inferred, and never a created-by field that means something else. `fidelity.not_recorded` names, on every response, what the **Untracked** list below means in practice: a changed cost, a changed SAP field and a changed GRN reference leave nothing, and their absence from `events` is not evidence they did not happen. `fidelity.custody` says when custody recording began on this system and whether this asset was already held by somebody the chain never saw arrive — true of **6,643 assets on `nrs19`**, all assigned at creation on 2026-08-06, a month before the recorder existed. An asset with nothing after its registration says so in `summary.statement`, in words.
+
+Message BODIES are not published — only tracked old/new values. A note typed on an asset was never promised to every holder of `assets:read`.
 
 PRD §8.14 requires *"who, when, what changed (before/after values), and the source (which API call, which user or system)."* Cadra has the first three for **20 fields** and none of the fourth.
 

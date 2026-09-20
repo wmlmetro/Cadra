@@ -35,8 +35,9 @@ import {
   apiLocationToLocation, type ApiLocation,
   apiRequestToRequest, type ApiRequest,
   type ApiAssetDepreciation,
+  apiAssetHistoryToAssetHistory, type ApiAssetHistory,
 } from "./adapters";
-import type { ServiceRequest } from "../types";
+import type { ServiceRequest, AssetHistory } from "../types";
 
 // ─── ASSETS ───────────────────────────────────────────────────────────────────
 export interface AssetFilters {
@@ -742,6 +743,27 @@ export const fetchAssetDepreciation = async (id: string | number, asOf?: string)
     `/api/v1/assets/${id}/depreciation`,
     asOf ? { as_of: asOf } : undefined,
   )).data;
+
+// ── Asset history ─────────────────────────────────────────────────────────
+
+/** Everything recorded about one asset, on one clock — with the server's own
+ *  account of where that record begins and what it never holds.
+ *
+ *  `sort` is the order of `events` and nothing else; whatever calls this MUST
+ *  put it in the react-query key.
+ *
+ *  Returns `null` without a live API. There is no mock history and there must
+ *  not be one: an invented chain of custody on a demo build is exactly the
+ *  claim this endpoint exists to stop the screen making. The caller says, in
+ *  words, that history needs a live server. */
+export async function fetchAssetHistory(
+  id: string | number,
+  sort: "newest" | "oldest" = "newest",
+): Promise<AssetHistory | null> {
+  if (!apiConfigured) return null;
+  const res = await apiGet<ApiAssetHistory>(`/api/v1/assets/${id}/history`, { sort });
+  return apiAssetHistoryToAssetHistory(res.data);
+}
 
 export const fetchDepreciationReport = async (categoryId?: number) =>
   (await apiGet<DepreciationReport>(

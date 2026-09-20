@@ -149,6 +149,68 @@ export interface Asset {
   childCount?: number;
 }
 
+/** One tracked field change on a history event. `old`/`new` arrive as the
+ *  record holds them — a selection as its LABEL, a many2one as its name — so
+ *  they are printed, never looked up. */
+export interface AssetHistoryChange {
+  label: string;
+  old: string | number | boolean | null;
+  new: string | number | boolean | null;
+}
+
+/** One line of `GET /api/v1/assets/<id>/history`. */
+export interface AssetHistoryEvent {
+  id: string;
+  /** The server's event type. `string`, not a union: the set is the server's
+   *  and it is OPEN — a type this build has never heard of still renders,
+   *  from `title` and `summary`, which the server supplies for that reason. */
+  type: string;
+  title: string;
+  summary: string;
+  /** A bare date (`2026-09-05`) when `atIsDayOnly`, an ISO instant otherwise. */
+  at: string;
+  atIsDayOnly: boolean;
+  /** The name as the record holds it. `null` means the record names NOBODY,
+   *  and it stays `null` all the way to the screen — never "System", never a
+   *  neighbouring field. Explicitly nullable rather than optional so that
+   *  "blank" is a value somebody had to handle. */
+  actorName: string | null;
+  /** An evidence grade key (`append_only`, `chatter`, …). Also `string`: the
+   *  grades and their meanings are published in the same response. */
+  evidence: string;
+  /** Recovered after the fact from the message log, not recorded when it
+   *  happened. Said on the row. */
+  reconstructed: boolean;
+  /** Custody links only — how the link came to exist. */
+  source?: string;
+  /** Why, in the words of whoever recorded it (custody link or transfer). */
+  reason?: string;
+  transferReference?: string;
+  changes?: AssetHistoryChange[];
+}
+
+export interface AssetHistory {
+  summary: {
+    events: number;
+    /** 0 means nothing is recorded beyond registration — which the screen
+     *  says in the server's words rather than by showing less. */
+    eventsAfterRegistration: number;
+    reconstructedEvents: number;
+    statement: string;
+  };
+  /** Where the custody record begins, and whether the asset was already held
+   *  by somebody the chain never saw arrive. */
+  custody: {
+    statement: string;
+    custodianHeldBeforeFirstLink: boolean;
+  };
+  /** grade → the server's own sentence about what that grade is worth. */
+  evidenceMeanings: Record<string, string>;
+  notRecorded: { event: string; statement: string }[];
+  verification: string;
+  events: AssetHistoryEvent[];
+}
+
 export interface Location {
   id: string;
   name: string;

@@ -168,6 +168,8 @@ export default function BarcodeStation() {
       qc.invalidateQueries({ queryKey: ["barcode-untagged"] });
       qc.invalidateQueries({ queryKey: ["barcode-kpis"] });
       qc.invalidateQueries({ queryKey: ["barcode-recent"] });
+      // A tag issued is an event in each of those assets' histories.
+      qc.invalidateQueries({ queryKey: ["asset-history"] });
 
       const made = res.generated.length;
       const already = res.skipped.filter((s) => s.reason === "already_tagged").length;

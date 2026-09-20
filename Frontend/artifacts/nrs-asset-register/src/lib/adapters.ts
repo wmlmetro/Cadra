@@ -11,6 +11,7 @@ import type {
   Asset, AssetLocation, Location as FrontLocation, ApprovalStatus,
   ServiceRequest, RequestPriority, RequestKanbanState, RequestStageRoute, RequestMessage,
   AssetDepreciation, DepreciationMethod, DepreciationState, DepreciationStartSource,
+  AssetHistory, AssetHistoryEvent,
 } from "../types";
 
 // ─── API shape (from myservice_api/controllers/v1_identity.py:serialize_employee)
@@ -361,6 +362,120 @@ export function apiAssetToAsset(a: ApiAsset & ApiAssetExtras): Asset {
     notes: a.notes ?? undefined,
     pmCount:      a.pm_count,
     requestCount: a.request_count,
+  };
+}
+
+
+// ─── ASSET HISTORY ───────────────────────────────────────────────────
+
+/** One tracked change. Mirrors `_history_change` in
+ *  myservice_api/models/asset_history.py — a selection arrives as its label
+ *  and a many2one as its name, so neither is a key to look up. */
+export interface ApiAssetHistoryChange {
+  field: string;
+  label: string;
+  old: string | number | boolean | null;
+  new: string | number | boolean | null;
+}
+
+/** Mirrors `_history_event`. Every key is present on every event. */
+export interface ApiAssetHistoryEvent {
+  id: string;
+  // Deliberately `string`, like `ApiAsset.condition` above: the event types
+  // and evidence grades are the server's sets, and the event types are open.
+  type: string;
+  title: string;
+  summary: string;
+  at: string;
+  at_precision: string;          // "second" | "day"
+  actor: ApiRef | null;
+  actor_name: string | null;
+  evidence: string;
+  reconstructed: boolean;
+  source: string | null;
+  record: { model: string; id: number };
+  // Type-specific. Only the keys the UI reads are spelled out.
+  detail: {
+    reason?: string | null;
+    changes?: ApiAssetHistoryChange[];
+    transfer?: { reference: string | null; reason: string | null; state: string } | null;
+    [key: string]: unknown;
+  };
+}
+
+/** `data` of `GET /api/v1/assets/<id>/history`. Mirrors `asset_history`. */
+export interface ApiAssetHistory {
+  asset: { id: number; asset_code: string; name: string };
+  order: string;                 // "newest_first" | "oldest_first"
+  summary: {
+    events: number;
+    events_after_registration: number;
+    by_evidence: Record<string, number>;
+    reconstructed_events: number;
+    statement: string;
+  };
+  fidelity: {
+    registered_at: string | null;
+    earliest_event_after_registration_at: string | null;
+    custody: {
+      recording_began_at: string | null;
+      links: number;
+      reconstructed_links: number;
+      first_link_at: string | null;
+      custodian_held_before_first_link: boolean;
+      statement: string;
+    };
+    evidence_grades: { grade: string; meaning: string }[];
+    not_recorded: { event: string; statement: string }[];
+    verification: string;
+  };
+  events: ApiAssetHistoryEvent[];
+}
+
+export function apiAssetHistoryEventToEvent(e: ApiAssetHistoryEvent): AssetHistoryEvent {
+  const detail = e.detail ?? {};
+  return {
+    id: e.id,
+    type: e.type,
+    title: e.title || e.type,
+    summary: e.summary ?? "",
+    at: e.at,
+    atIsDayOnly: e.at_precision === "day",
+    // NOT `e.actor?.name ?? …`. The server has already taken the name from the
+    // record; when it is null the record names nobody, and filling it here
+    // from anywhere else would be this screen inventing a person.
+    actorName: e.actor_name ?? null,
+    evidence: e.evidence,
+    reconstructed: !!e.reconstructed,
+    source: e.source ?? undefined,
+    // A custody link carries its reason on the event; a move carries it on
+    // the transfer paperwork it was joined to.
+    reason: detail.reason ?? detail.transfer?.reason ?? undefined,
+    transferReference: detail.transfer?.reference ?? undefined,
+    changes: detail.changes?.length
+      ? detail.changes.map(c => ({ label: c.label, old: c.old, new: c.new }))
+      : undefined,
+  };
+}
+
+export function apiAssetHistoryToAssetHistory(h: ApiAssetHistory): AssetHistory {
+  return {
+    summary: {
+      events: h.summary.events,
+      eventsAfterRegistration: h.summary.events_after_registration,
+      reconstructedEvents: h.summary.reconstructed_events,
+      statement: h.summary.statement,
+    },
+    custody: {
+      statement: h.fidelity.custody.statement,
+      custodianHeldBeforeFirstLink: !!h.fidelity.custody.custodian_held_before_first_link,
+    },
+    evidenceMeanings: Object.fromEntries(
+      (h.fidelity.evidence_grades ?? []).map(g => [g.grade, g.meaning]),
+    ),
+    notRecorded: h.fidelity.not_recorded ?? [],
+    verification: h.fidelity.verification ?? "",
+    events: (h.events ?? []).map(apiAssetHistoryEventToEvent),
   };
 }
 

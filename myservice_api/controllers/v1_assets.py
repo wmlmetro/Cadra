@@ -1520,6 +1520,75 @@ class CadraAssetsV1(http.Controller):
             },
         )
 
+    # ── History: GET /api/v1/assets/<id>/history ───────────────────
+
+    @cadra_route("/api/v1/assets/<int:id>/history", method="GET",
+                 summary="What has happened to this asset — one ordered "
+                         "history, and what it cannot say",
+                 scopes=[SCOPE_ASSETS_READ],
+                 response_schema={
+                     "$ref": "#/components/schemas/AssetHistory"},
+                 query_params=[
+                     {"name": "sort",
+                      "schema": {"type": "string",
+                                 "enum": list(_LIST_SORT_VALUES)},
+                      "description": "`newest` (the default) or `oldest`. "
+                                     + _ENUM_FILTER_400},
+                 ])
+    def asset_history(self, id, **kwargs):
+        """*"What has happened to this asset?"* — the question NRS asked.
+
+        **Read `data.summary.statement` and `evidence` on each event before
+        relying on the list.** It merges every place an asset's life leaves
+        a mark — registration, the tag's issue, print and affix, the chain of
+        custody, location moves, tracked field changes, the disposal
+        approval, events sent to SAP and the Tag-Issuing Unit, maintenance
+        requests — onto one clock. Those records are not worth the same. A
+        change of custodian is append-only; a location move is a row an asset
+        manager can delete; a status change exists only in the message log.
+        Each event says which, and `data.fidelity.evidence_grades` says what
+        each grade means in terms of what somebody can do to the record.
+
+        `reconstructed: true` marks an event recovered after the fact rather
+        than recorded when it happened — today, a custody link with
+        `source: tracking_backfill`. `actor` is the user the record names and
+        is null where the record names nobody; it is never filled in from a
+        field that means something else.
+
+        `data.fidelity.not_recorded` names the events Cadra never writes
+        down at all — a changed cost, a changed SAP field, a changed GRN
+        reference. They are listed on every response because their absence
+        from `events` cannot otherwise be told from their not having
+        happened. `data.fidelity.custody` says when custody recording began
+        on this system and whether this asset was already held by somebody
+        when it did.
+
+        An asset with nothing after its registration says so in
+        `summary.statement`, in words.
+
+        Newest first by default, because the reader's first question about
+        an asset is where it is now and how it got there; `?sort=oldest`
+        reads it forwards. NOT paged and NOT capped: a merged history has no
+        single id for a cursor to walk, and it is exempt from the
+        per-credential record cap for the reason the chain of custody is —
+        `utils.CAP_EXEMPT_REASON_CUSTODY`.
+
+        Tracked changes publish the field, the old value and the new one.
+        Message bodies are never published: a note typed on an asset was not
+        promised to every holder of `assets:read`.
+        """
+        rec, error = _browse_or_404(id)
+        if error:
+            return error
+        qs = get_params()
+        try:
+            sort = parse_enum("sort", qs.get("sort"), _LIST_SORT_VALUES)
+        except BadFilter as e:
+            return err(ERR_INVALID_REQUEST, str(e), details=e.details)
+        # Absent means newest — the opposite default from the listing, whose
+        # `oldest` predates `?sort`. Here there is no older behaviour to keep.
+        return rec.asset_history(newest_first=sort != "oldest")
+
     # ── Confirm tagging: POST /api/v1/assets/<id>/tag-affixed ──────
 
     @cadra_route("/api/v1/assets/<int:id>/tag-affixed", method="POST",

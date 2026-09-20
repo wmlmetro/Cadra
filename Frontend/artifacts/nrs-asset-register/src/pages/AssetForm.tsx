@@ -285,6 +285,7 @@ export default function AssetForm({ mode }: Props) {
     onSuccess: (asset) => {
       qc.invalidateQueries({ queryKey: ["assets"] });
       qc.invalidateQueries({ queryKey: ["asset", asset.id] });
+      qc.invalidateQueries({ queryKey: ["asset-history", asset.id] });
       qc.invalidateQueries({ queryKey: ["asset-raw", asset.id] });
       nav(`/assets/${asset.id}`);
     },

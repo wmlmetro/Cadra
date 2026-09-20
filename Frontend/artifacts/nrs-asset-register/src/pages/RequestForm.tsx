@@ -173,6 +173,9 @@ export default function RequestForm({ mode }: { mode: "create" | "edit" }) {
       qc.invalidateQueries({ queryKey: ["requests"] });
       qc.invalidateQueries({ queryKey: ["request", r.id] });
       qc.invalidateQueries({ queryKey: ["fm-dashboard"] });
+      // A request raised against an asset is an event in that asset's
+      // history. Which asset is not known here, so every cached history goes.
+      qc.invalidateQueries({ queryKey: ["asset-history"] });
       nav(`/service-desk/${r.id}`);
     },
   });
