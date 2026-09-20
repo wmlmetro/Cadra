@@ -633,6 +633,92 @@ class TestTheReportWritesNothing(SnapshotCase):
 
 # ═════════════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install")
+class TestAFieldTrackedFromAKnownDay(SnapshotCase):
+    """Handoff 28 tracked the six provenance fields, and the two guards in
+    `TestTheFidelityContract` then REQUIRE them to be rolled back — which is
+    right, and which would have had the snapshot say of a GRN reference that
+    *no recorded change since the date means the current value IS the value
+    at the date*. That is true only back to the day tracking began. These
+    hold the report to saying so — ONCE, in the classification that moves
+    with the requested date, and never as a flag on every row: a row's
+    `_fidelity` is a signal only because a sound row does not carry one."""
+
+    SIX = ("grn_reference", "purchase_order_reference", "purchase_vendor",
+           "import_source", "import_date", "import_ref")
+
+    PARAM = "cadra.provenance_tracked_from"
+
+    def _stamp(self, when):
+        self.env["ir.config_parameter"].sudo().set_param(self.PARAM, when)
+
+    def test_a_date_before_tracking_began_classes_the_six_as_todays_value(self):
+        self._stamp("2021-01-01 00:00:00")          # after AS_OF (2020-06-30)
+        fidelity = self.Asset.snapshot_fidelity(AS_OF)
+        for field in self.SIX:
+            self.assertIn(field, fidelity["as_of_today"])
+            self.assertNotIn(field, fidelity["rolled_back"])
+
+    def test_a_change_made_before_tracking_is_not_rolled_back_to(self):
+        """The defect itself. A tracked change AFTER the date must NOT be
+        used to 'recover' a value for a date the field has no history for —
+        the value before that change may itself have been rewritten, unseen,
+        any number of times since the date."""
+        self._stamp("2021-01-01 00:00:00")
+        asset = self._asset(grn_reference="GRN-A")
+        mark = self._mark()
+        asset.write({"grn_reference": "GRN-B"})
+        self._stamp_after(mark, AFTER_CUTOFF)
+        row = self._row(asset)
+        self.assertEqual(row["grn_reference"], "GRN-B", "today's value")
+        self.assertNotIn("grn_reference", row.get("_changed_since", []))
+
+    def test_a_sound_row_stays_free_of_a_fidelity_block(self):
+        """Every row of every historical snapshot would otherwise carry one."""
+        self._stamp("2021-01-01 00:00:00")
+        row = self._row(self._asset(grn_reference="GRN-TODAY"))
+        for field in self.SIX:
+            self.assertNotIn(
+                field, row.get("_fidelity", {}).get("as_of_today", []))
+
+    def test_a_date_after_tracking_began_is_rolled_back_and_not_flagged(self):
+        self._stamp("2020-02-01 00:00:00")          # before AS_OF
+        asset = self._asset(grn_reference="GRN-ON-THE-DATE")
+        mark = self._mark()
+        asset.write({"grn_reference": "GRN-LATER"})
+        self._stamp_after(mark, AFTER_CUTOFF)
+        row = self._row(asset)
+        self.assertEqual(row["grn_reference"], "GRN-ON-THE-DATE",
+                         "a tracked change after the date rolls back")
+        self.assertIn("grn_reference", row["_changed_since"])
+        fidelity = self.Asset.snapshot_fidelity(AS_OF)
+        self.assertIn("grn_reference", fidelity["rolled_back"])
+        self.assertNotIn("grn_reference", fidelity["as_of_today"])
+
+    def test_no_stamp_means_tracked_from_the_first_asset(self):
+        """A fresh install runs no migration and has no stamp."""
+        self.env["ir.config_parameter"].sudo().search(
+            [("key", "=", self.PARAM)]).unlink()
+        fidelity = self.Asset.snapshot_fidelity(AS_OF)
+        self.assertIn("grn_reference", fidelity["rolled_back"])
+        self.assertIsNone(fidelity["tracked_from"]["since"])
+
+    def test_the_boundary_is_published_before_any_row(self):
+        self._stamp("2021-01-01 00:00:00")
+        fidelity = self.Asset.snapshot_fidelity(AS_OF)
+        self.assertEqual(fidelity["tracked_from"]["since"],
+                         "2021-01-01T00:00:00")
+        # The six provenance fields, and the verifier — tracked in the same
+        # handoff so that a verifier being replaced or cleared is visible.
+        self.assertEqual(tuple(fidelity["tracked_from"]["fields"]),
+                         self.SIX + ("last_verified_by",))
+        self.assertIn("tracked_from", fidelity["notes"])
+        # Asked without a date, it describes the mechanism and claims the
+        # history the fields do have.
+        self.assertIn("grn_reference",
+                      self.Asset.snapshot_fidelity()["rolled_back"])
+
+
+@tagged("post_install", "-at_install")
 class TestTheFidelityContract(SnapshotCase):
     """The lists are the report's real output — handoff 16 asks for them by
     name. A field that quietly falls out of one is the defect."""

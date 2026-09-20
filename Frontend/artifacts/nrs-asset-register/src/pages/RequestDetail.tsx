@@ -262,7 +262,13 @@ export default function RequestDetail() {
               {req.messages.map(m => (
                 <li key={m.id} className="border-l-2 border-border pl-3 py-1">
                   <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <span className="font-semibold text-foreground">{m.author?.name ?? "System"}</span>
+                    {/* Was `?? "System"`. A message with no author is a message
+                        whose record names nobody; "System" is an actor this
+                        page made up, and the asset history refuses the same
+                        word for the same reason. */}
+                    {m.author?.name
+                      ? <span className="font-semibold text-foreground">{m.author.name}</span>
+                      : <span className="italic">No person recorded</span>}
                     <span>·</span>
                     <span>{m.date?.replace("T", " ").slice(0, 16)}</span>
                     {m.is_internal && <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 font-semibold uppercase">Internal</span>}

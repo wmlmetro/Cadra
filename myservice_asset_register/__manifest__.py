@@ -1,6 +1,6 @@
 {
     'name': 'NRS Asset Register & PM Schedules',
-    'version': '19.0.1.14.0',
+    'version': '19.0.1.15.0',
     'summary': 'Fixed asset register, condition tracking, tagging, transfers, PM auto-scheduling',
     'category': 'Facilities',
     'author': 'WestMetro Limited',
@@ -40,6 +40,8 @@
         ],
         
     },
+    # Stamps when tracking of the handoff-28 fields began — see hooks.py.
+    'post_init_hook': 'stamp_tracking_began',
     'installable': True,
     'auto_install': False,
     'license': 'LGPL-3',

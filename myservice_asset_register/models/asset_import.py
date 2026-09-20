@@ -194,10 +194,34 @@ class NRSAssetImport(models.Model):
                                 'Tag %s in the file was NOT applied: the asset '
                                 'carries %s. Request a tag replacement to change '
                                 'it.' % (incoming, existing.asset_tag or '(none)'))
+                        # `location_id` is NOT written on update unless the file
+                        # named a location that was FOUND. `vals` always carries
+                        # the key, so a blank cell — or a name with a typo in it,
+                        # which `ilike` resolves to nothing — used to write
+                        # `False` and move the asset to nowhere. That was already
+                        # wrong; since handoff 28 it would also be PERMANENT,
+                        # because every change of `location_id` is appended to
+                        # `nrs.asset.movement`, which refuses correction by
+                        # design. A file that does not say where an asset is has
+                        # not said it moved. Same care as `asset_tag` above, for
+                        # the same reason: the register must not drift from the
+                        # room on the strength of an empty column.
+                        update_vals = dict(vals)
+                        if not loc:
+                            update_vals.pop('location_id', None)
+                            if (line.location or '').strip():
+                                unresolved = (
+                                    'Location "%s" in the file matched no '
+                                    'location, so the asset was left at %s.' % (
+                                        line.location.strip(),
+                                        existing.location_id.display_name
+                                        or '(no location)'))
+                                line_vals['status_note'] = ' '.join(filter(None, [
+                                    line_vals.get('status_note'), unresolved]))
                         # No `status_note` key when there is nothing to say, so the
                         # validation step's own note survives instead of being
                         # blanked.
-                        existing.write(vals)
+                        existing.write(update_vals)
                         line.write(line_vals)
 
             except Exception as e:

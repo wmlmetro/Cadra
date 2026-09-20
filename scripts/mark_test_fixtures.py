@@ -158,6 +158,10 @@ def _name_domain(patterns):
 Client = env['myservice.api.client'].sudo()          # noqa: F821 — odoo shell
 Asset = env['nrs.asset'].sudo()                      # noqa: F821
 Custody = env['nrs.asset.custody'].sudo()            # noqa: F821
+# The second append-only pin (handoff 28) — see `remove_test_residue.py`,
+# which refuses on it; the two scripts must agree about what stays.
+Movement = (env['nrs.asset.movement'].sudo()         # noqa: F821
+            if 'nrs.asset.movement' in env else None)  # noqa: F821
 Location = env['generic.location'].sudo()            # noqa: F821
 Request = env['request.request'].sudo()              # noqa: F821
 
@@ -264,10 +268,14 @@ print("  fixture-named locations in the register : %d of %d"
 
 held_by_custody = fixture_assets.filtered(
     lambda a: Custody.search_count([('asset_id', '=', a.id)]))
+held_by_movement = fixture_assets.filtered(
+    lambda a: Movement is not None
+    and Movement.search_count([('asset_id', '=', a.id)]))
 held_by_request = fixture_assets.filtered(
     lambda a: Request.search_count([('nrs_asset_id', '=', a.id)]))
 held_by_disposal = fixture_assets.filtered(lambda a: a.disposal_approved_by)
-unremovable_assets = held_by_custody | held_by_request | held_by_disposal
+unremovable_assets = (held_by_custody | held_by_movement
+                      | held_by_request | held_by_disposal)
 
 # A fixture LOCATION stays for a different reason than report 25 recorded.
 #

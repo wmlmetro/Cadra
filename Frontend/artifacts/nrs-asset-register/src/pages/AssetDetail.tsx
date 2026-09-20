@@ -141,6 +141,27 @@ export default function AssetDetail() {
     asset.category === "Fleet / Vehicles" ? "bg-emerald-500" :
     "bg-amber-500";
 
+  // The Provenance tab, as a list, so that "every row is blank" is something
+  // the page can see and say instead of rendering an empty panel.
+  const prov = asset.provenance;
+  const provenanceRows: { label: string; value: React.ReactNode }[] = [
+    { label: "Legacy Code", value: asset.legacyCode },
+    { label: "Registration No.", value: isFleet ? asset.registrationNo : undefined },
+    { label: "Engine No.", value: isFleet ? asset.engineNo : undefined },
+    // The model's key (`vendra`, `sap`, …), printed as the key it is.
+    // `/meta/enums` does not publish this set, so there is no server label to
+    // read — and a label map declared here would be a copy of a Selection the
+    // server owns, which is how this page came to mislabel things before.
+    { label: "Data Source", value: prov?.importSource && <span className="font-mono">{prov.importSource}</span> },
+    { label: "Import Date", value: prov?.importDate },
+    { label: "Import Reference", value: prov?.importRef && <span className="font-mono">{prov.importRef}</span> },
+    { label: "GRN Reference", value: prov?.grnReference && <span className="font-mono">{prov.grnReference}</span> },
+    { label: "PO Reference", value: prov?.purchaseOrderReference && <span className="font-mono">{prov.purchaseOrderReference}</span> },
+    { label: "Purchase Vendor", value: prov?.purchaseVendor },
+    { label: "Registered", value: prov?.registeredAt?.replace("T", " ").slice(0, 16) },
+    { label: "Registered By", value: prov?.registeredBy },
+  ].filter(r => r.value !== null && r.value !== undefined && r.value !== "");
+
   return (
     <div className="max-w-4xl mx-auto px-5 py-5">
       {/* Back */}
@@ -345,6 +366,19 @@ export default function AssetDetail() {
                     <DetailRow label="Warranty Expiry" value={asset.keyDates.warrantyExpiry} />
                     <DetailRow label="Acquisition Date" value={asset.keyDates.acquisitionDate} />
                     <DetailRow label="Last Verified" value={asset.keyDates.lastVerifiedDate} />
+                    {/* `DetailRow` hides an empty value, and here that would be
+                        the defect: a date with no person beside it reads as a
+                        date nobody thought to show a person for. Every
+                        verification made before the Verify button recorded its
+                        verifier is exactly that, so the row says so — in the
+                        history timeline's words. No date, no row. */}
+                    {asset.keyDates.lastVerifiedDate && (
+                      <DetailRow
+                        label="Verified By"
+                        value={asset.verifiedBy
+                          ?? <span className="italic text-muted-foreground">No person recorded</span>}
+                      />
+                    )}
                     <DetailRow label="Next Service" value={asset.keyDates.nextServiceDate} />
                     <DetailRow label="Disposal Date" value={asset.keyDates.disposalDate} />
                   </dl>
@@ -463,15 +497,20 @@ export default function AssetDetail() {
           ),
         },
         {
-          label: "Legacy Data",
-          content: (
-            <dl className="bg-card border border-card-border rounded-xl px-5 py-1">
-              <DetailRow label="Legacy Code" value={asset.legacyCode} />
-              {isFleet && <DetailRow label="Registration No." value={asset.registrationNo} />}
-              {isFleet && <DetailRow label="Engine No." value={asset.engineNo} />}
-              <DetailRow label="Source" value="Migrated from FIRS legacy system" />
-              <DetailRow label="Migration Date" value="March 2024" />
+          // Was "Legacy Data", and printed "Migrated from FIRS legacy system"
+          // and "March 2024" as literals on EVERY asset — one received from
+          // Vendra this month included. Show what the record says, or show
+          // nothing: every row below is a field on the record, and a record
+          // that holds none of them says so in words.
+          label: "Provenance",
+          content: provenanceRows.length > 0 ? (
+            <dl className="bg-card border border-card-border rounded-xl px-5 py-1" data-testid="asset-provenance">
+              {provenanceRows.map(r => <DetailRow key={r.label} label={r.label} value={r.value} />)}
             </dl>
+          ) : (
+            <div className="bg-card border border-card-border rounded-xl px-5 py-4" data-testid="asset-provenance-empty">
+              <p className="text-xs text-muted-foreground">No provenance is recorded for this asset.</p>
+            </div>
           ),
         },
       ]} />

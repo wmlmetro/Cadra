@@ -75,6 +75,22 @@ export interface AssetKeyDates {
   nextServiceDate?: string;
 }
 
+export interface AssetProvenance {
+  /** `nrs.asset.import_source` — the MODEL's key (`vendra`, `sap`, …), and
+   *  deliberately `string`: the set is the server's, `/meta/enums` does not
+   *  publish it, and so no label map for it exists here. It is printed as
+   *  the key it is. */
+  importSource?: string;
+  importDate?: string;
+  importRef?: string;
+  grnReference?: string;
+  purchaseOrderReference?: string;
+  purchaseVendor?: string;
+  /** `created_at`, an ISO instant, and `created_by.name`. */
+  registeredAt?: string;
+  registeredBy?: string;
+}
+
 export interface Asset {
   id: string;
   name: string;
@@ -141,6 +157,17 @@ export interface Asset {
   imageUrl?: string;
   financials?: AssetFinancials;
   keyDates?: AssetKeyDates;
+  /** `last_verified_by.name` — WHO verified, which the date cannot say.
+   *  Read-only: written only by `POST /assets/<id>/verify`, from the acting
+   *  user. Absent means NOBODY IS RECORDED, not that nobody checked — every
+   *  verification this app made before handoff 28 was a PATCH of a date and
+   *  named no one. The page says so beside the date rather than hiding the
+   *  row. */
+  verifiedBy?: string;
+  /** Where the record came from, as the record says it. Every key is
+   *  optional and an absent key is an absent fact: the Provenance tab prints
+   *  what is here and nothing else. */
+  provenance?: AssetProvenance;
   maintenanceVendor?: string;
   notes?: string;
   pmCount?: number;
@@ -181,7 +208,8 @@ export interface AssetHistoryEvent {
   /** Recovered after the fact from the message log, not recorded when it
    *  happened. Said on the row. */
   reconstructed: boolean;
-  /** Custody links only — how the link came to exist. */
+  /** Custody links and location movements — how the row came to exist
+   *  (`api`, `tracking_backfill`, `test`, …). */
   source?: string;
   /** Why, in the words of whoever recorded it (custody link or transfer). */
   reason?: string;
@@ -204,7 +232,19 @@ export interface AssetHistory {
     statement: string;
     custodianHeldBeforeFirstLink: boolean;
   };
-  /** grade → the server's own sentence about what that grade is worth. */
+  /** Where the location record begins — the same question as `custody`,
+   *  asked of the append-only movement record. Absent when the server
+   *  predates that record; the screen then says nothing about it rather than
+   *  guessing. */
+  location?: {
+    statement: string;
+    locatedBeforeFirstMovement: boolean;
+  };
+  /** Every grade with the server's own sentence about what it is worth, in
+   *  the SERVER'S ORDER — strongest first, which is an order a `Record`
+   *  would not promise to keep. The legend prints it as sent. */
+  evidenceGrades: { grade: string; meaning: string }[];
+  /** grade → meaning, derived from the list above, for the pill's tooltip. */
   evidenceMeanings: Record<string, string>;
   notRecorded: { event: string; statement: string }[];
   verification: string;

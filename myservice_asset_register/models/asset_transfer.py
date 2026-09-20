@@ -2,6 +2,11 @@ from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 
 from .asset_custody import CUSTODY_REASON_KEY, CUSTODY_SOURCE_KEY
+from .asset_movement import (
+    MOVEMENT_REASON_KEY,
+    MOVEMENT_SOURCE_KEY,
+    MOVEMENT_TRANSFER_KEY,
+)
 
 
 class NRSAssetTransfer(models.Model):
@@ -65,9 +70,14 @@ class NRSAssetTransfer(models.Model):
             # `nrs.asset.write` records the chain of custody for whoever
             # writes `custodian_id`. Declaring the source here is what stops
             # a completed transfer reading as an anonymous direct edit.
+            # The same for the movement record, plus the one thing only this
+            # caller knows: WHICH transfer the move was the execution of.
             r.asset_id.with_context(
                 **{CUSTODY_SOURCE_KEY: 'transfer',
-                   CUSTODY_REASON_KEY: r.reason or False},
+                   CUSTODY_REASON_KEY: r.reason or False,
+                   MOVEMENT_SOURCE_KEY: 'transfer',
+                   MOVEMENT_REASON_KEY: r.reason or False,
+                   MOVEMENT_TRANSFER_KEY: r.id},
             ).write(vals)
             r.write({'state': 'done'})
             r.message_post(body=_(

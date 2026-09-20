@@ -351,14 +351,42 @@ class TestAssetHistoryDoesNotOverclaim(AssetHistoryCase):
         self.assertNotIn(req.name, repr(event))
 
     def test_the_statement_counts_what_nobody_can_alter(self):
-        asset = self._asset()
-        asset.write({"custodian_id": self.alice.id})
+        asset = self._asset(custodian_id=self.alice.id)
+        asset.write({"custodian_id": self.bob.id})
         asset.write({"state": "in_repair"})
         self._flush_tracking()
         statement = asset.asset_history()["summary"]["statement"]
         self.assertIn("2 recorded event(s)", statement)
         self.assertIn("1 of them rest on a record that nobody can edit",
                       statement)
+
+    def test_the_verification_statement_matches_the_button(self):
+        """The sentence is shown to a client. Handoff 28 changed what the
+        Verify button does and the sentence went on saying the old thing."""
+        asset = self._asset()
+        asset.action_verify(notes="sighted")
+        self._flush_tracking()
+        self.assertEqual(asset.last_verified_by, self.env.user)
+        history = asset.asset_history()
+        statement = history["fidelity"]["verification"]
+        self.assertIn("records that person", statement)
+        self.assertIn("clears the verifier", statement)
+        self.assertNotIn("nothing else", statement)
+        verified = next(e for e in history["events"]
+                        if e["type"] == "verified")
+        self.assertEqual(verified["actor"]["id"], self.env.uid)
+        self.assertEqual(verified["evidence"], "chatter")
+
+    def test_a_changed_provenance_field_is_its_own_event(self):
+        asset = self._asset(grn_reference="GRN-1")
+        asset.write({"grn_reference": "GRN-2", "purchase_vendor": "Acme"})
+        self._flush_tracking()
+        event = next(e for e in asset.asset_history()["events"]
+                     if e["type"] == "provenance_changed")
+        self.assertEqual(event["evidence"], "chatter",
+                         "visible, which it was not; not protected")
+        fields_changed = {c["field"] for c in event["detail"]["changes"]}
+        self.assertEqual(fields_changed, {"grn_reference", "purchase_vendor"})
 
     def test_every_grade_used_is_a_grade_defined(self):
         asset = self._asset()
@@ -426,6 +454,15 @@ class TestAssetHistoryTags(AssetHistoryCase):
 
 @tagged("post_install", "-at_install")
 class TestAssetHistoryMoves(AssetHistoryCase):
+    """Since handoff 28 a move has a record of its own, and it is the event.
+
+    Two halves. The first is a move made NOW: an `nrs.asset.movement`,
+    append-only, with the transfer document and the chatter row of the same
+    act folded into it. The second is a move made BEFORE the recorder
+    existed, which is still most of `nrs19` and must still be graded as the
+    weaker record it is — simulated here by removing the movement row with
+    SQL, which is the only way a row of that model can be made to not exist.
+    """
 
     def _move_like_the_route(self, asset, to):
         """What `POST /assets/<id>/move` does, in one transaction."""
@@ -436,62 +473,117 @@ class TestAssetHistoryMoves(AssetHistoryCase):
             "reason": "history test move",
             "state": "done",
         })
-        asset.write({"location_id": to.id})
+        asset.with_context(
+            cadra_movement_source="api_move",
+            cadra_movement_reason="history test move",
+            cadra_movement_transfer_id=transfer.id,
+        ).write({"location_id": to.id})
         self._flush_tracking()
         return transfer
 
-    def _moves(self, asset):
-        return [e for e in asset.asset_history()["events"]
-                if e["type"] == "location_moved"]
+    def _forget_the_movements(self, asset, keep_opening=True):
+        """As it was before the recorder: the move happened, no row says so."""
+        self.env.flush_all()
+        self.env.cr.execute(
+            "DELETE FROM nrs_asset_movement WHERE asset_id = %s"
+            + (" AND from_location_id IS NOT NULL" if keep_opening else ""),
+            (asset.id,))
+        self.env.invalidate_all()
 
-    def test_one_move_with_two_records_is_one_line(self):
+    def _moves(self, asset):
+        """Real moves — not the opening 'Placed at', which has no `from`."""
+        return [e for e in asset.asset_history()["events"]
+                if e["type"] == "location_moved"
+                and e["detail"]["from_location"]]
+
+    # ── a move made now ──────────────────────────────────────────────
+
+    def test_a_move_is_append_only_and_folds_in_its_paperwork(self):
         asset = self._asset()
         transfer = self._move_like_the_route(asset, self.place_b)
         moves = self._moves(asset)
-        self.assertEqual(len(moves), 1)
+        self.assertEqual(len(moves), 1, "three records of one act: one line")
         move = moves[0]
-        self.assertEqual(move["evidence"], "editable_record")
+        self.assertEqual(move["evidence"], "append_only")
+        self.assertEqual(move["record"]["model"], "nrs.asset.movement")
+        self.assertEqual(move["source"], "api_move")
+        self.assertEqual(move["detail"]["reason"], "history test move")
         self.assertEqual(move["detail"]["transfer"]["reference"],
                          transfer.name)
-        self.assertEqual(move["detail"]["transfer"]["reason"],
-                         "history test move")
         self.assertEqual(move["detail"]["records"],
-                         ["nrs.asset.transfer", "mail.message"])
-        # The actor is the chatter row's — whoever made the write.
+                         ["nrs.asset.movement", "nrs.asset.transfer",
+                          "mail.message"])
         self.assertEqual(move["actor"]["id"], self.env.user.id)
 
-    def test_a_move_with_no_transfer_row_is_still_a_line(self):
-        """PATCH, the Odoo form, an import: chatter and nothing else."""
+    def test_a_plain_write_is_append_only_too_and_invents_no_transfer(self):
+        """PATCH, the Odoo form, an import. The quiet door, no longer quiet."""
         asset = self._asset()
         asset.write({"location_id": self.place_b.id})
         self._flush_tracking()
         moves = self._moves(asset)
         self.assertEqual(len(moves), 1)
-        self.assertEqual(moves[0]["evidence"], "chatter")
+        self.assertEqual(moves[0]["evidence"], "append_only")
+        self.assertEqual(moves[0]["source"], "direct")
         self.assertIsNone(moves[0]["detail"]["transfer"])
         self.assertIn("History location B", moves[0]["summary"])
 
-    def test_two_moves_between_the_same_places_stay_two(self):
-        """Each side of the join is used once."""
+    def test_the_reference_outlives_the_transfer_document(self):
         asset = self._asset()
-        # NOT frozen. The join compares a message's `date`, which obeys
-        # freezegun, with the transfer's `create_date`, which is the
-        # database's clock and does not — freeze this step and the two
-        # records of one move sit five years apart and rightly do not join.
-        self._move_like_the_route(asset, self.place_b)
-        with freeze_time("2031-02-02 09:00:00"):
-            asset.write({"location_id": self.place_a.id})
-            self._flush_tracking()
-        with freeze_time("2031-02-03 09:00:00"):
-            asset.write({"location_id": self.place_b.id})
-            self._flush_tracking()
-        moves = self._moves(asset)
-        self.assertEqual(len(moves), 3)
-        self.assertEqual(
-            sorted(m["evidence"] for m in moves),
-            ["chatter", "chatter", "editable_record"])
+        transfer = self._move_like_the_route(asset, self.place_b)
+        reference = transfer.name
+        transfer.unlink()
+        self.env.invalidate_all()
+        move = self._moves(asset)[0]
+        self.assertEqual(move["detail"]["transfer"]["reference"], reference)
+        self.assertIsNone(move["detail"]["transfer"]["id"])
+        self.assertEqual(move["detail"]["records"][:1],
+                         ["nrs.asset.movement"])
+        self.assertNotIn("nrs.asset.transfer", move["detail"]["records"])
 
-    def test_a_transfer_with_no_chatter_row_names_nobody(self):
+    def test_the_opening_placement_is_listed_and_is_not_history(self):
+        asset = self._asset()
+        history = asset.asset_history(newest_first=False)
+        placed = [e for e in history["events"]
+                  if e["type"] == "location_moved"]
+        self.assertEqual(len(placed), 1)
+        self.assertTrue(placed[0]["summary"].startswith("Placed at"))
+        self.assertEqual(placed[0]["evidence"], "append_only")
+        self.assertEqual(history["summary"]["events_after_registration"], 0)
+
+    def test_a_deleted_location_is_a_move_to_nowhere(self):
+        asset = self._asset(location_id=self.place_c.id)
+        self.place_c.unlink()
+        self.env.invalidate_all()
+        move = self._moves(asset)[0]
+        self.assertEqual(move["source"], "location_deleted")
+        self.assertTrue(move["summary"].endswith("nowhere"))
+        self.assertEqual(move["evidence"], "append_only")
+
+    # ── a move made before the recorder existed ──────────────────────
+
+    def test_an_old_move_with_a_transfer_row_is_still_only_editable(self):
+        asset = self._asset()
+        transfer = self._move_like_the_route(asset, self.place_b)
+        self._forget_the_movements(asset)
+        moves = self._moves(asset)
+        self.assertEqual(len(moves), 1)
+        self.assertEqual(moves[0]["evidence"], "editable_record")
+        self.assertEqual(moves[0]["detail"]["transfer"]["reference"],
+                         transfer.name)
+        self.assertEqual(moves[0]["detail"]["records"],
+                         ["nrs.asset.transfer", "mail.message"])
+
+    def test_an_old_move_with_no_transfer_row_is_still_only_chatter(self):
+        asset = self._asset()
+        asset.write({"location_id": self.place_b.id})
+        self._flush_tracking()
+        self._forget_the_movements(asset)
+        moves = self._moves(asset)
+        self.assertEqual(len(moves), 1)
+        self.assertEqual(moves[0]["evidence"], "chatter")
+        self.assertIsNone(moves[0]["detail"]["transfer"])
+
+    def test_an_old_transfer_with_no_chatter_row_names_nobody(self):
         """`create_uid` raised the transfer. It is not who moved the asset."""
         asset = self._asset()
         transfer = self.env["nrs.asset.transfer"].create({
@@ -511,6 +603,88 @@ class TestAssetHistoryMoves(AssetHistoryCase):
             move["detail"]["at_is_when_the_transfer_was_recorded"])
         self.assertIn("when the transfer was recorded", move["summary"])
 
+    def test_a_located_asset_with_no_record_says_so(self):
+        """What EVERY asset placed before handoff 28 will show: it is
+        somewhere, and no row says how it came to be there."""
+        asset = self._asset()
+        self._forget_the_movements(asset, keep_opening=False)
+        location = asset.asset_history()["fidelity"]["location"]
+        self.assertEqual(location["movements"], 0)
+        self.assertTrue(location["located_before_first_movement"])
+        self.assertIn("already somewhere", location["statement"])
+
+    def test_a_first_movement_with_a_from_says_so_too(self):
+        asset = self._asset()
+        asset.write({"location_id": self.place_b.id})
+        self._forget_the_movements(asset, keep_opening=False)  # all of them
+        asset.write({"location_id": self.place_c.id})           # first row
+        location = asset.asset_history()["fidelity"]["location"]
+        self.assertEqual(location["movements"], 1)
+        self.assertTrue(location["located_before_first_movement"])
+
+    def test_an_asset_placed_under_the_recorder_is_not_flagged(self):
+        location = self._asset().asset_history()["fidelity"]["location"]
+        self.assertFalse(location["located_before_first_movement"])
+
+    def test_a_transfer_of_another_asset_cannot_be_borrowed(self):
+        """The link arrives in the context, and a caller controls that."""
+        mine, theirs = self._asset(), self._asset()
+        approved = self.env["nrs.asset.transfer"].create({
+            "asset_id": theirs.id,
+            "from_location_id": self.place_a.id,
+            "to_location_id": self.place_b.id,
+            "state": "done", "approved_by": self.env.uid})
+        mine.with_context(
+            cadra_movement_source="transfer",
+            cadra_movement_transfer_id=approved.id,
+        ).write({"location_id": self.place_b.id})
+        move = self._moves(mine)[0]
+        self.assertIsNone(move["detail"]["transfer"])
+        self.assertEqual(move["source"], "direct",
+                         "`transfer` claimed with no transfer of its own")
+
+    def test_a_caller_cannot_file_a_move_under_test(self):
+        asset = self._asset()
+        asset.with_context(cadra_movement_source="test").write(
+            {"location_id": self.place_b.id})
+        self.assertEqual(self._moves(asset)[0]["source"], "direct")
+
+    def test_the_transfer_block_says_it_is_read_from_an_editable_document(self):
+        asset = self._asset()
+        self._move_like_the_route(asset, self.place_b)
+        move = self._moves(asset)[0]
+        self.assertEqual(move["evidence"], "append_only")
+        self.assertEqual(move["detail"]["transfer"]["evidence"],
+                         "editable_record")
+
+    def test_a_move_into_a_place_since_deleted_is_still_one_line(self):
+        """The FK nulls the movement's location id; the tracking value keeps
+        the original. The join falls back to the recorded name."""
+        asset = self._asset()
+        asset.write({"location_id": self.place_c.id})
+        self._flush_tracking()
+        asset.write({"location_id": self.place_b.id})
+        self._flush_tracking()
+        self.place_c.unlink()
+        self.env.invalidate_all()
+        moves = self._moves(asset)
+        self.assertEqual(len(moves), 2, [m["summary"] for m in moves])
+        self.assertEqual({m["evidence"] for m in moves}, {"append_only"})
+
+    def test_two_old_moves_between_the_same_places_stay_two(self):
+        """The LEGACY join, each side used once."""
+        asset = self._asset()
+        self._move_like_the_route(asset, self.place_b)
+        asset.write({"location_id": self.place_a.id})
+        self._flush_tracking()
+        asset.write({"location_id": self.place_b.id})
+        self._flush_tracking()
+        self._forget_the_movements(asset)
+        moves = self._moves(asset)
+        self.assertEqual(len(moves), 3)
+        self.assertEqual(sorted(m["evidence"] for m in moves),
+                         ["chatter", "chatter", "editable_record"])
+
     def test_a_transfer_that_is_not_done_is_not_a_move(self):
         asset = self._asset()
         self.env["nrs.asset.transfer"].create({
@@ -519,11 +693,21 @@ class TestAssetHistoryMoves(AssetHistoryCase):
             "to_location_id": self.place_c.id,
             "state": "draft",
         })
-        events = asset.asset_history()["events"]
-        self.assertFalse([e for e in events if e["type"] == "location_moved"])
-        recorded = [e for e in events if e["type"] == "transfer_recorded"]
+        self.assertFalse(self._moves(asset))
+        recorded = [e for e in asset.asset_history()["events"]
+                    if e["type"] == "transfer_recorded"]
         self.assertEqual(len(recorded), 1)
         self.assertIn("draft", recorded[0]["summary"])
+
+    def test_old_and_new_moves_sit_in_one_list_graded_differently(self):
+        asset = self._asset()
+        asset.write({"location_id": self.place_b.id})
+        self._flush_tracking()
+        self._forget_the_movements(asset)
+        asset.write({"location_id": self.place_c.id})
+        self._flush_tracking()
+        self.assertEqual(sorted(m["evidence"] for m in self._moves(asset)),
+                         ["append_only", "chatter"])
 
 
 @tagged("post_install", "-at_install")
@@ -536,14 +720,19 @@ class TestAssetHistorySaysWhereItBegins(AssetHistoryCase):
         self.assertTrue(history["summary"]["statement"].startswith(
             "There is no recorded history for this asset"))
         # The registration itself is still shown.
+        # Registered, tagged and placed — by one `create`, in one
+        # transaction. Listed, and none of it a life.
         self.assertEqual({e["type"] for e in history["events"]},
-                         {"registered", "tag_issued"})
+                         {"registered", "tag_issued", "location_moved"})
         self.assertIsNone(history["fidelity"]
                           ["earliest_event_after_registration_at"])
 
     def test_one_event_ends_the_empty_statement(self):
-        asset = self._asset()
-        asset.write({"custodian_id": self.alice.id})
+        asset = self._asset(custodian_id=self.alice.id)
+        self.assertEqual(asset.asset_history()["summary"]
+                         ["events_after_registration"], 0,
+                         "created already assigned: the opening state")
+        asset.write({"custodian_id": self.bob.id})
         summary = asset.asset_history()["summary"]
         self.assertEqual(summary["events_after_registration"], 1)
         self.assertFalse(summary["statement"].startswith("There is no"))

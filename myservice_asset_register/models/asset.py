@@ -5,6 +5,7 @@ from odoo.exceptions import ValidationError
 from odoo.tools import config
 
 from .asset_custody import CUSTODY_REASON_KEY
+from .asset_movement import MOVEMENT_REASON_KEY
 
 # How long a physical verification counts as current, when the asset's category
 # does not state its own window. Database-per-tenant means a config parameter
@@ -142,14 +143,25 @@ class NRSAsset(models.Model):
     # GRN/PO records and SAP owns the purchase order, so modelling them here
     # would mean maintaining a shadow copy of another system's master data.
     # Indexed because `?grn_reference=` is the audit lookup these exist for.
+    #
+    # TRACKED since handoff 28. The API's `_WRITABLE_FIELDS` carried a comment
+    # saying a later change to these "is tracked on the asset's mail.thread",
+    # and for as long as that comment existed it was false: none of them was.
+    # They are exactly what an auditor traces back to Vendra and to SAP, and a
+    # mis-stated GRN could be rewritten over PATCH leaving nothing anywhere.
+    # What tracking buys is VISIBILITY, not protection — the change is a
+    # chatter line, deletable by the same people who can make it. And it
+    # reaches back only to `cadra.provenance_tracked_from`, which migration
+    # 19.0.1.15.0 stamps on each database; the register snapshot reads that
+    # rather than claiming a history these fields do not have.
     grn_reference = fields.Char(
-        string='GRN Reference', index=True,
+        string='GRN Reference', index=True, tracking=True,
         help='Goods Receipt Note that brought this asset onto the register')
     purchase_order_reference = fields.Char(
-        string='PO Reference', index=True,
+        string='PO Reference', index=True, tracking=True,
         help='Purchase Order this asset was procured against')
     purchase_vendor = fields.Char(
-        string='Purchase Vendor', index=True,
+        string='Purchase Vendor', index=True, tracking=True,
         help='Supplier the asset was bought from. Distinct from the '
              'Primary Maintenance Vendor, which is who services it.')
 
@@ -159,7 +171,13 @@ class NRSAsset(models.Model):
 
     # ── Verification ─────────────────────────────────────────
     last_verified_date = fields.Date('Last Verified', tracking=True)
-    last_verified_by = fields.Many2one('res.users', string='Verified By')
+    # TRACKED since handoff 28, so that a verifier being replaced — or
+    # cleared by a date that arrived without one, see `write` — is a line in
+    # the history rather than a silent overwrite. Two verifications on one
+    # day change no DATE, and without this the asset would say Bob while the
+    # only `verified` line in its history said Alice.
+    last_verified_by = fields.Many2one(
+        'res.users', string='Verified By', tracking=True)
     verification_notes = fields.Text('Verification Notes')
     is_verified = fields.Boolean('Verified', compute='_compute_verified', store=True)
 
@@ -188,6 +206,13 @@ class NRSAsset(models.Model):
     # shape and is merely untidy; here it would be invented evidence.
     custody_ids = fields.One2many(
         'nrs.asset.custody', 'asset_id', string='Chain of Custody',
+        readonly=True, copy=False)
+
+    # `copy=False` for the reason above, word for word: a duplicated asset
+    # would otherwise arrive carrying another asset's moves, and they could
+    # never be removed.
+    movement_ids = fields.One2many(
+        'nrs.asset.movement', 'asset_id', string='Movement Record',
         readonly=True, copy=False)
 
     # ── Notes ─────────────────────────────────────────────────
@@ -271,6 +296,11 @@ class NRSAsset(models.Model):
             if record.custodian_id:
                 record._record_custody_change(
                     self.env['hr.employee'], record.custodian_id)
+            # The same argument, for where it is: an asset created AT a
+            # location begins its movement record there, from nowhere.
+            if record.location_id:
+                record._record_movement(
+                    self.env['generic.location'], record.location_id)
         return records
 
     def write(self, vals):
@@ -290,15 +320,45 @@ class NRSAsset(models.Model):
         that know why they are writing declare it through
         `CUSTODY_SOURCE_KEY` in the context; everything else is `direct`.
         """
-        if 'custodian_id' not in vals:
+        # WHERE IT IS gets the same treatment as WHO HOLDS IT, since handoff
+        # 28, and for the same reason. Handoff 27 measured the writers of
+        # `location_id`: only `POST /assets/<id>/move` and a completed
+        # transfer left a row, and PATCH, this model's own form, the
+        # building/floor/room onchanges and the importer left a deletable
+        # chatter line — 1,146 of them on `nrs19` against one transfer row.
+        # Both are read BEFORE `super()` and compared AFTER, so a write that
+        # names a field without changing it records nothing, and a
+        # multi-record write records one row per asset that actually moved.
+        # A VERIFICATION DATE THAT ARRIVES WITHOUT A VERIFIER HAS NONE.
+        # `last_verified_date` is writable over the API and on the form;
+        # `last_verified_by` is written by `action_verify`. So a PATCH of the
+        # date used to leave the PREVIOUS verifier standing beside it: Alice
+        # verifies in January, an integration PATCHes a June date, and the
+        # asset reads "verified in June, by Alice" — who checked nothing in
+        # June. That is naming a person the record does not have, and the
+        # first draft of handoff 28 published three sentences saying it could
+        # not happen. Here rather than in the route, for the reason the two
+        # recorders below are: the date has more than one writer.
+        if 'last_verified_date' in vals and 'last_verified_by' not in vals:
+            vals = dict(vals, last_verified_by=False)
+        track_custody = 'custodian_id' in vals
+        track_location = 'location_id' in vals
+        if not (track_custody or track_location):
             return super().write(vals)
-        before = {record.id: record.custodian_id for record in self}
+        held = {r.id: r.custodian_id for r in self} if track_custody else {}
+        placed = {r.id: r.location_id for r in self} if track_location else {}
         result = super().write(vals)
         for record in self:
-            was = before.get(record.id, self.env['hr.employee'])
-            now = record.custodian_id
-            if was.id != now.id:
-                record._record_custody_change(was, now)
+            if track_custody:
+                was = held.get(record.id, self.env['hr.employee'])
+                now = record.custodian_id
+                if was.id != now.id:
+                    record._record_custody_change(was, now)
+            if track_location:
+                was = placed.get(record.id, self.env['generic.location'])
+                now = record.location_id
+                if was.id != now.id:
+                    record._record_movement(was, now)
         return result
 
     def _record_custody_change(self, from_custodian, to_custodian):
@@ -312,6 +372,19 @@ class NRSAsset(models.Model):
         return self.env['nrs.asset.custody']._record(
             self, from_custodian, to_custodian,
             reason=self.env.context.get(CUSTODY_REASON_KEY),
+        )
+
+    def _record_movement(self, from_location, to_location):
+        """Append one row to the record of where this asset has been.
+
+        The reason and the transfer, where there is one, are read off the
+        context by `nrs.asset.movement._record` for the reason custody's
+        reason is: the write that carries a move has nowhere to put them.
+        """
+        self.ensure_one()
+        return self.env['nrs.asset.movement']._record(
+            self, from_location, to_location,
+            reason=self.env.context.get(MOVEMENT_REASON_KEY),
         )
 
     @api.depends('last_verified_date',
@@ -423,12 +496,29 @@ class NRSAsset(models.Model):
         for r in self:
             r.request_count = len(r.request_ids)
 
-    def action_verify(self):
+    def action_verify(self, notes=None):
+        """Record that somebody checked this asset, and WHO.
+
+        The only FIRST-PARTY writer of `last_verified_by` — nothing on the
+        model guards the column, and an asset manager can write it over
+        XML-RPC; `readonly` on the form is a client not offering an input.
+        What `write` does guarantee is the converse: a date that arrives
+        without a verifier clears the old one. `last_verified_date` is also
+        in the API's `_WRITABLE_FIELDS`, and until handoff 28 the Cadra app's
+        own Verify button was a PATCH of that date — so a verification made
+        from the app recorded a day and nobody. A verification with a date
+        and no person is a date. `POST /assets/<id>/verify` calls this.
+        """
         from datetime import date
-        self.write({
+        vals = {
             'last_verified_date': date.today(),
             'last_verified_by': self.env.uid,
-        })
+        }
+        # ALWAYS written, empty included. The notes describe THIS
+        # verification; leaving the previous verifier's notes in place would
+        # attribute them to somebody who never wrote them.
+        vals['verification_notes'] = notes or False
+        self.write(vals)
         self.message_post(body=_('Asset verified by %s') % self.env.user.name)
 
     def action_condemn(self):

@@ -178,6 +178,17 @@ if db_class not in (TEST, CLIENT):
 
 Asset = env["nrs.asset"].sudo()                      # noqa: F821
 Custody = env["nrs.asset.custody"].sudo()            # noqa: F821
+# `nrs.asset.movement` (handoff 28) pins an asset exactly as custody does:
+# `asset_id` is `ondelete='restrict'` and the model refuses `unlink()`. Since
+# it landed, EVERY asset created at a location carries a row from birth — so
+# a fixture asset created after that day is permanent, by design, and is
+# refused here by name rather than by a foreign-key error. The guard covers
+# a deployment where the module is not installed at all; it does NOT cover a
+# database that has the module and has not been UPGRADED — the registry is
+# Python, so the model is `in env` there and the first query fails on a
+# missing table. Upgrade every tenant first; see CLAUDE.md.
+Movement = (env["nrs.asset.movement"].sudo()         # noqa: F821
+            if "nrs.asset.movement" in env else None)  # noqa: F821
 Location = env["generic.location"].sudo()            # noqa: F821
 Request = env["request.request"].sudo()              # noqa: F821
 
@@ -190,6 +201,8 @@ print("fixture-named assets     : %d of %d in the register"
 candidates, refused = [], []
 for asset in fixtures:
     links = Custody.search_count([("asset_id", "=", asset.id)])
+    moves = (Movement.search_count([("asset_id", "=", asset.id)])
+             if Movement is not None else 0)
     requests = Request.search_count([("nrs_asset_id", "=", asset.id)])
     if asset.disposal_approved_by:
         refused.append((asset, "carries an APPROVED disposal — not reversible; "
@@ -199,6 +212,11 @@ for asset in fixtures:
                                "`asset_id` is ondelete=restrict and custody "
                                "is append-only, so the asset cannot be "
                                "released" % links))
+    elif moves:
+        refused.append((asset, "carries %d movement record(s); `asset_id` is "
+                               "ondelete=restrict and the record of where an "
+                               "asset has been is append-only, so the asset "
+                               "cannot be released" % moves))
     elif requests:
         refused.append((asset, "%d service request(s) point at it; the field "
                                "is `set null`, so removing it would silently "

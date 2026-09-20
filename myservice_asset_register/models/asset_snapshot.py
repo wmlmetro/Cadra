@@ -185,6 +185,58 @@ SNAPSHOT_ROLLED_BACK = (
     'disposal_date_reconstructed',
 )
 
+# TRACKED FROM A KNOWN INSTANT — rolled back, and honest about how far.
+#
+# Every field in `SNAPSHOT_ROLLED_BACK` became tracked on SOME day, and the
+# `rolled_back` note's claim — "no recorded change since the date means the
+# current value IS the value at the date" — is only true back to that day.
+# For the older fields nobody knows when that was and the note's `tracking`
+# caveat is the best that can be said. For these six it is known exactly,
+# because handoff 28 turned tracking on and stamped the instant on each
+# database (`cadra.provenance_tracked_from`) — migration 19.0.1.15.0 on an
+# upgrade, `hooks.stamp_tracking_began` on a fresh install.
+#
+# So they ARE rolled back — `test_every_tracked_field_is_rolled_back`
+# requires it and is right to — but only for a requested date AT OR AFTER
+# that instant. For an EARLIER date they are classed `as_of_today`, which is
+# where they sat before they were tracked and is exactly what they are: a GRN
+# reference rewritten the week before tracking began left nothing, and a
+# snapshot of that week would otherwise present today's value as the value
+# on the date. That is the defect this module exists to prevent, arriving
+# through the act of fixing a different one.
+#
+# The classification moves with the DATE and is said once, in
+# `snapshot_fidelity(as_of)` — NOT on every row. The first draft flagged
+# each row under `_fidelity.as_of_today`, and `test_fidelity_keys_are_absent_
+# when_the_row_is_sound` failed it, rightly: `_fidelity` on a row is a signal
+# only because a sound row does not carry one, and on a database whose
+# tracking began today that flag would have sat on every row of every
+# historical snapshot, where every reader learns to skip it.
+#
+# Every database gets a stamp, so an absent one never has to mean anything.
+# The first draft let absence mean "tracked from the first asset", on the
+# grounds that a fresh install runs no migration — true of a database whose
+# every asset was created by this code, and FALSE of the one that matters:
+# the 15→19 cutover builds NEW databases and loads them by ETL with their
+# original `create_date`s, and with no stamp the snapshot would have rolled
+# provenance back across years it holds no record of. If a stamp is somehow
+# absent anyway, nothing is flagged; that is the fallback, not the design.
+SNAPSHOT_TRACKED_FROM_PARAM = 'cadra.provenance_tracked_from'
+SNAPSHOT_TRACKED_FROM = (
+    'grn_reference',
+    'purchase_order_reference',
+    'purchase_vendor',
+    'import_source',
+    'import_date',
+    'import_ref',
+    # Tracked in the same handoff and for a different reason — so that a
+    # verifier being replaced or cleared is visible (`asset.py`). Before the
+    # stamp it was NOT_RECOVERABLE and unpublished; it is published now, at
+    # today's value and classed `as_of_today`, for any earlier date.
+    'last_verified_by',
+)
+SNAPSHOT_ROLLED_BACK = SNAPSHOT_ROLLED_BACK + SNAPSHOT_TRACKED_FROM
+
 # AS OF TODAY — no history exists for these, and they are published anyway,
 # at their CURRENT value, labelled. Handoff 16: "where a field cannot be
 # rolled back, the report says so for that field rather than omitting the
@@ -202,14 +254,9 @@ SNAPSHOT_AS_OF_TODAY = (
     'department',
     'floor_room',
     'parent_id',
-    # INT-03 provenance. `grn_reference` is untracked AND in `_WRITABLE_FIELDS`
-    # for PATCH — INT-10 §2.1 lists that as a gap in its own right.
-    'grn_reference',
-    'purchase_order_reference',
-    'purchase_vendor',
-    'import_source',
-    'import_date',
-    'import_ref',
+    # The six INT-03 provenance fields were here until handoff 28 tracked
+    # them. They are now in `SNAPSHOT_TRACKED_FROM` below, which is where a
+    # field goes when it has a history that begins on a known day.
     # Money as the register holds it. The point-in-time answer is `value`.
     'acquisition_date',
     'acquisition_cost',
@@ -244,7 +291,8 @@ SNAPSHOT_NOT_RECOVERABLE = (
     'current_book_value',
     # Verification: the date is tracked and rolled back, its evidence is not.
     'is_verified',
-    'last_verified_by',
+    # `last_verified_by` was here until handoff 28 tracked it; it is now in
+    # `SNAPSHOT_TRACKED_FROM`.
     'verification_notes',
     # Retrieval: the flag is tracked, the circumstances are not.
     'assignment_date',
@@ -273,6 +321,14 @@ SNAPSHOT_NOTES = {
         "the chatter tracking values. A field with no recorded change since "
         "the date correctly reports its current value: no change means the "
         "current value IS the value at the date."
+    ),
+    'tracked_from': (
+        "These fields have been tracked only since the instant given in "
+        "`tracked_from.since`. For a requested date at or after it they are "
+        "rolled back like any other tracked field. For an earlier date they "
+        "are listed under `as_of_today` instead and published at today's "
+        "value: a change made before tracking began left no record, so "
+        "Cadra cannot say what the value was on the date."
     ),
     'as_of_today': (
         "Published at its CURRENT value. These fields carry no history at "
@@ -386,7 +442,17 @@ class NRSAssetSnapshot(models.Model):
     # ── What the report can and cannot answer ────────────────────────
 
     @api.model
-    def snapshot_fidelity(self):
+    def _snapshot_not_yet_tracked(self, cutoff):
+        """The `SNAPSHOT_TRACKED_FROM` fields that were NOT yet tracked at
+        `cutoff`, and so cannot be rolled back to it. Empty when there is no
+        stamp, no cutoff, or the cutoff is inside the tracked period."""
+        tracked_from = self._snapshot_tracked_from()
+        if not (tracked_from and cutoff and cutoff < tracked_from):
+            return []
+        return [f for f in SNAPSHOT_TRACKED_FROM if f in self._fields]
+
+    @api.model
+    def snapshot_fidelity(self, as_of=None):
         """The boundary, stated before any row is read. Same for every row.
 
         The three lists are filtered to fields this tenant actually has: a
@@ -395,8 +461,14 @@ class NRSAssetSnapshot(models.Model):
         field that does not exist would be its own small lie. Anything
         filtered out is named in `notes['uninstalled']`.
         """
-        rolled = [f for f in SNAPSHOT_ROLLED_BACK if f in self._fields]
-        today = [f for f in SNAPSHOT_AS_OF_TODAY if f in self._fields]
+        # `as_of` is optional so that a caller asking only "what can this
+        # report say" still gets an answer; with it, the two lists below are
+        # the ones that apply to THAT date — see `SNAPSHOT_TRACKED_FROM`.
+        late = self._snapshot_not_yet_tracked(
+            snapshot_cutoff(as_of) if as_of else None)
+        rolled = [f for f in SNAPSHOT_ROLLED_BACK
+                  if f in self._fields and f not in late]
+        today = [f for f in SNAPSHOT_AS_OF_TODAY if f in self._fields] + late
         # Topics have no field to check; field names are checked.
         not_recoverable = [
             f for f in SNAPSHOT_NOT_RECOVERABLE
@@ -419,10 +491,19 @@ class NRSAssetSnapshot(models.Model):
                 "deployment, so no point-in-time value can be computed and "
                 "every row lists `value` in its `_fidelity.unknown`."
             )
+        tracked_from = self._snapshot_tracked_from()
         return {
             'rolled_back': rolled,
             'as_of_today': today,
             'not_recoverable': not_recoverable,
+            # ADDITIVE (handoff 28). The subset of `rolled_back` whose history
+            # begins on a known instant, and that instant — null where these
+            # fields have been tracked since this database's first asset.
+            'tracked_from': {
+                'fields': [f for f in SNAPSHOT_TRACKED_FROM
+                           if f in self._fields],
+                'since': tracked_from.isoformat() if tracked_from else None,
+            },
             'notes': notes,
         }
 
@@ -485,8 +566,14 @@ class NRSAssetSnapshot(models.Model):
         if not existed:
             return {}
 
-        rolled_fields = [f for f in SNAPSHOT_ROLLED_BACK if f in self._fields]
-        today_fields = [f for f in SNAPSHOT_AS_OF_TODAY if f in self._fields]
+        # A field tracked only from a known instant is rolled back for a date
+        # inside its history and published at today's value for one before
+        # it — the same two lists `snapshot_fidelity(as_of)` publishes.
+        late = self._snapshot_not_yet_tracked(cutoff)
+        rolled_fields = [f for f in SNAPSHOT_ROLLED_BACK
+                         if f in self._fields and f not in late]
+        today_fields = [f for f in SNAPSHOT_AS_OF_TODAY
+                        if f in self._fields] + late
 
         # Three bulk reads for the whole page, never one per asset. `nrs19`
         # holds 11,878 assets and 24,959 tracking rows; per-asset queries turn
@@ -572,6 +659,19 @@ class NRSAssetSnapshot(models.Model):
 
             rows[rec.id] = row
         return rows
+
+    @api.model
+    def _snapshot_tracked_from(self):
+        """When the `SNAPSHOT_TRACKED_FROM` fields began to be tracked HERE.
+
+        Read from the database, not from a constant: a client's own server is
+        upgraded on its own day, and a date typed into the source would claim
+        a history on every deployment made after it. None means no stamp,
+        which means tracked from the first asset.
+        """
+        raw = self.env['ir.config_parameter'].sudo().get_param(
+            SNAPSHOT_TRACKED_FROM_PARAM)
+        return fields.Datetime.to_datetime(raw) if raw else None
 
     # ── Tracking values ──────────────────────────────────────────────
 

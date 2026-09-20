@@ -12,13 +12,15 @@ reads the seven places an asset's life leaves a mark and puts them on one
 clock. What it adds is the thing none of those places says about itself: HOW
 MUCH EACH RECORD IS WORTH. Measured in handoff 27 §A, and it is not a detail:
 
-- a change of custodian is the ONLY event with a record nobody can alter
+- a change of custodian was the ONLY event with a record nobody can alter
   (`nrs.asset.custody`, append-only on the model);
-- a location move has a row only when `POST /assets/<id>/move` or a completed
+- a location move had a row only when `POST /assets/<id>/move` or a completed
   transfer made it, and that row is editable and deletable by any asset
   manager and cascades away with the asset. Every other writer of
-  `location_id` — PATCH, the Odoo form, an import — leaves chatter and
-  nothing else;
+  `location_id` — PATCH, the Odoo form, an import — left chatter and
+  nothing else. **Handoff 28 closed that going forward**: a move is now an
+  append-only `nrs.asset.movement`. Every move made BEFORE it is still
+  exactly as described, and is still graded as such;
 - status, condition, verification and the disposal paperwork exist ONLY as
   chatter tracking values, deletable by anyone who can edit the asset;
 - a change to a cost, a SAP column or a GRN/PO reference leaves nothing.
@@ -84,9 +86,10 @@ NOT_RECORDED = (
      "overwrites the last, so only the most recent survives, and it carries "
      "a time but no person."),
     ("provenance_change",
-     "A change to the GRN, purchase order, vendor or import reference. "
-     "These can be rewritten over the API and no record is kept of the old "
-     "value."),
+     "A change to the GRN, purchase order, vendor or import reference made "
+     "before those fields began to be tracked on this system. A later "
+     "change is listed in this history, as a line in the message log; an "
+     "earlier one left nothing."),
     ("disposal_executor",
      "Who carried out a disposal. The approval records its approver; the "
      "act of disposing records a date and no person. A status change in "
@@ -116,6 +119,7 @@ _EVENT_TITLES = {
     "verified": "Verified",
     "disposal_approved": "Disposal approved",
     "disposal_recorded": "Disposal details recorded",
+    "provenance_changed": "Provenance changed",
     "details_changed": "Details changed",
     "integration_event": "Event for an external system",
     "maintenance_request": "Maintenance request raised",
@@ -158,6 +162,10 @@ _CHATTER_EVENT_OF_FIELD = {
     "state": "status_changed",
     "condition": "condition_changed",
     "last_verified_date": "verified",
+    # The verifier, tracked since handoff 28. A change of verifier with no
+    # change of DATE — a second verification on the same day, or a date that
+    # arrived by PATCH and cleared the old verifier — is a line of its own.
+    "last_verified_by": "verified",
     "disposal_method": "disposal_recorded",
     "disposal_reference": "disposal_recorded",
     "disposal_proceeds": "disposal_recorded",
@@ -169,6 +177,15 @@ _CHATTER_EVENT_OF_FIELD = {
     # recorded as having approved is not an approval.
     "disposal_approved_by": "disposal_recorded",
     "disposal_approved_date": "disposal_recorded",
+    # Where the asset came from — what an auditor traces back to Vendra and
+    # to SAP. Tracked since handoff 28, so graded `chatter` like every other
+    # tracked change: VISIBLE, which it was not before, and not protected.
+    "grn_reference": "provenance_changed",
+    "purchase_order_reference": "provenance_changed",
+    "purchase_vendor": "provenance_changed",
+    "import_source": "provenance_changed",
+    "import_date": "provenance_changed",
+    "import_ref": "provenance_changed",
 }
 
 # How far apart a transfer row and the chatter row of the location write it
@@ -255,15 +272,25 @@ class NRSAssetHistory(models.Model):
         undated = sum(1 for e in events if e is None)
         events = [e for e in events if e is not None]
         events.sort(key=lambda e: e["_sort"], reverse=bool(newest_first))
+        # THE OPENING STATE IS NOT HISTORY. The `create` that makes an asset
+        # also mints its tag, and — when it is created at a location or
+        # already assigned — writes the first movement and the first custody
+        # link, all in one transaction and therefore under one `create_date`.
+        # Counting those as things that happened AFTER registration would
+        # mean no asset ever had an empty history, and the sentence handoff
+        # 27 exists for could never be reached on the screen it was written
+        # for. They are still LISTED; they are just not counted as a life.
+        opening = {e["id"] for e in events if e["_initial"]}
         for e in events:
             del e["_sort"]
+            del e["_initial"]
 
         return {
             "asset": {"id": self.id, "asset_code": self.asset_code,
                       "name": self.name},
             "order": "newest_first" if newest_first else "oldest_first",
-            "summary": self._history_summary(events),
-            "fidelity": dict(self._history_fidelity(events),
+            "summary": self._history_summary(events, opening),
+            "fidelity": dict(self._history_fidelity(events, opening),
                              undated_records_omitted=undated),
             "events": events,
         }
@@ -272,7 +299,8 @@ class NRSAssetHistory(models.Model):
 
     def _history_event(self, etype, at, record, evidence, *, summary,
                        actor=None, actor_name=None, precision="second",
-                       source=None, reconstructed=False, detail=None):
+                       source=None, reconstructed=False, detail=None,
+                       initial=False):
         """One line of the history. Every key present on every event.
 
         `actor` is the user the RECORD names, or None. It is never filled
@@ -323,21 +351,24 @@ class NRSAssetHistory(models.Model):
             "record": {"model": model, "id": rec_id},
             "detail": detail or {},
             "_sort": (sort_at, _RANK[etype], model, rec_id),
+            # Part of the asset's OPENING STATE rather than of its history:
+            # see `asset_history`. Private, stripped before publishing.
+            "_initial": bool(initial),
         }
 
     # ── the sources ──────────────────────────────────────────────────
 
     def _history_registered(self):
         # The provenance block is the asset's CURRENT values, not what was
-        # sent at registration — all six are rewritable and untracked
-        # (`NOT_RECORDED.provenance_change`). Said on the event, because a
+        # sent at registration — all are rewritable, and tracked only since
+        # `fidelity.provenance_tracked_from`. Said on the event, because a
         # GRN reference printed under "Registered" reads as what arrived.
         source = self.import_source or None
         via = dict(self._fields["import_source"]._description_selection(
             self.env)).get(source) if source else None
         return [self._history_event(
             "registered", self.create_date, ("nrs.asset", self.id),
-            "system_stamp",
+            "system_stamp", initial=True,
             summary=("Registered from %s" % via) if via else "Registered",
             actor=_user_ref(self.create_uid),
             detail={
@@ -357,7 +388,8 @@ class NRSAssetHistory(models.Model):
             events.append(self._history_event(
                 "tag_issued", tag.create_date, rec, "system_stamp",
                 summary="Tag %s issued" % tag.name,
-                actor=_user_ref(tag.create_uid), detail=base))
+                actor=_user_ref(tag.create_uid), detail=base,
+                initial=tag.create_date == self.create_date))
             if tag.printed_date:
                 # The LAST print. A reprint overwrites the stamp, so an
                 # earlier one is not recoverable from this row.
@@ -409,6 +441,9 @@ class NRSAssetHistory(models.Model):
                 # The serializer's own docstring: a reconstruction presented
                 # as a contemporaneous record is worse than no record.
                 reconstructed=link.source == "tracking_backfill",
+                initial=(not link.from_custodian_id
+                         and not link.from_custodian_name
+                         and link.create_date == self.create_date),
                 detail={
                     "from_custodian": (
                         {"id": link.from_custodian_id.id,
@@ -536,7 +571,73 @@ class NRSAssetHistory(models.Model):
         """
         events = []
         unmatched = list(location_rows)
+        recorded_transfers = set()
+        # SINCE HANDOFF 28 a move has a record of its own: `nrs.asset.movement`,
+        # append-only, written by `nrs.asset.write` underneath every writer of
+        # `location_id`. Where one exists IT is the event, and the transfer
+        # row and the chatter row of the same act are folded into it rather
+        # than listed beside it. Everything below this loop is unchanged and
+        # now describes only what happened BEFORE recording began — which is
+        # still most of `nrs19`, and the list has to keep saying so.
+        for m in self.movement_ids:
+            row = self._history_chatter_row_of(m, unmatched)
+            if row:
+                unmatched.remove(row)
+            t = m.transfer_id
+            if t:
+                recorded_transfers.add(t.id)
+            before = m.from_location_name or None
+            after = m.to_location_name or None
+            if not before:
+                summary = "Placed at %s" % (after or "—")
+            elif not after:
+                summary = "%s → nowhere" % before
+            else:
+                summary = "%s → %s" % (before, after)
+            events.append(self._history_event(
+                "location_moved", m.moved_at,
+                ("nrs.asset.movement", m.id), "append_only",
+                summary=summary,
+                actor=_user_ref(m.moved_by_id),
+                actor_name=m.moved_by_name or None,
+                source=m.source,
+                reconstructed=m.source == "tracking_backfill",
+                detail={
+                    "from_location": before,
+                    "to_location": after,
+                    "reason": m.reason or None,
+                    # The paperwork, where the move had any. The reference is
+                    # the one RECORDED with the move and survives the
+                    # transfer row being deleted; the rest is read live from
+                    # a document an asset manager can edit, and is null once
+                    # it is gone.
+                    "transfer": ({
+                        # IN-BAND, because this block sits inside an event
+                        # graded `append_only` and only ONE key of it is:
+                        # `reference` was recorded with the move. The rest is
+                        # read live from a document an asset manager can
+                        # edit — an approver shown here is what that document
+                        # says TODAY.
+                        "evidence": "editable_record",
+                        "id": t.id or None,
+                        "reference": m.transfer_reference,
+                        "state": t.state if t else None,
+                        "transfer_date": _iso(t.transfer_date) if t else None,
+                        "reason": (t.reason or None) if t else None,
+                        "recorded_by": _user_ref(t.create_uid) if t else None,
+                        "approved_by": _user_ref(t.approved_by) if t else None,
+                        "approved_at": _iso(t.approved_date) if t else None,
+                    } if m.transfer_reference else None),
+                    "records": ["nrs.asset.movement"]
+                               + (["nrs.asset.transfer"] if t else [])
+                               + (["mail.message"] if row else []),
+                },
+                initial=(not m.from_location_id
+                         and not m.from_location_name
+                         and m.create_date == self.create_date)))
         for t in self.transfer_ids.sorted("id"):
+            if t.id in recorded_transfers:
+                continue
             row = None
             if t.state == "done":
                 candidates = [
@@ -609,6 +710,43 @@ class NRSAssetHistory(models.Model):
         return events
 
     @api.model
+    def _history_chatter_row_of(self, movement, rows):
+        """The chatter row of the write that produced this movement, or None.
+
+        **By TRANSACTION, not by the clock.** The movement row and the
+        tracking message are created inside one transaction, so their
+        `create_date`s — Postgres's transaction stamp — are identical. The
+        first draft matched on the two wall-clock instants being within 120
+        seconds, and that fails exactly where it matters: a message's `date`
+        is taken at PRECOMMIT, so in an import or a seed that runs for longer
+        than two minutes every early line's move came apart from its own
+        chatter row and was listed twice.
+
+        **By NAME where the id is gone.** Deleting a location nulls
+        `from_location_id`/`to_location_id` on the movement, while the
+        tracking value still holds the original id — so every move into or
+        out of a since-deleted place lost its join too. The names were
+        recorded for precisely that case.
+        """
+        def same_place(location, name, tracked_id, tracked_name):
+            if location:
+                return tracked_id == location.id
+            return (tracked_name or "") == (name or "") or (
+                not name and not tracked_id)
+
+        for row in rows:
+            tv = row["value"]
+            if (row["message"].create_date == movement.create_date
+                    and same_place(movement.from_location_id,
+                                   movement.from_location_name,
+                                   tv.old_value_integer, tv.old_value_char)
+                    and same_place(movement.to_location_id,
+                                   movement.to_location_name,
+                                   tv.new_value_integer, tv.new_value_char)):
+                return row
+        return None
+
+    @api.model
     def _history_transfer_gap(self, transfer, instant):
         return min(abs(instant - transfer.create_date),
                    abs(instant - transfer.write_date))
@@ -663,22 +801,8 @@ class NRSAssetHistory(models.Model):
 
     # ── what the list says about itself ──────────────────────────────
 
-    def _history_is_registration(self, event):
-        """The registration, or the tag minted in the same transaction.
-
-        Every asset is given a tag by the `create()` that makes it, stamped
-        with the same transaction instant. Counting that as something that
-        happened AFTER registration would mean no asset ever had an empty
-        history, and the sentence that says so could never be reached — on
-        the one screen it was written for.
-        """
-        if event["type"] == "registered":
-            return True
-        return (event["type"] == "tag_issued"
-                and event["at"] == _iso(self.create_date))
-
-    def _history_summary(self, events):
-        after = [e for e in events if not self._history_is_registration(e)]
+    def _history_summary(self, events, opening):
+        after = [e for e in events if e["id"] not in opening]
         by_evidence = {grade: 0 for grade, _ in EVIDENCE_GRADES}
         for e in events:
             by_evidence[e["evidence"]] += 1
@@ -716,7 +840,66 @@ class NRSAssetHistory(models.Model):
             "statement": statement,
         }
 
-    def _history_fidelity(self, events):
+    def _history_location_fidelity(self):
+        """Where the record of this asset's moves begins. Custody's twin.
+
+        The movement record began on the day the recorder was installed and
+        was NOT backfilled (handoff 28 ruled that separately). So an asset
+        that was already somewhere on that day has no record of how it got
+        there: its first movement already has a `from`, or it has no
+        movements and is somewhere. `nrs19` holds 11,943 assets of which
+        every one placed before today is in that state, and the list has to
+        say so on each rather than letting a short record read as a quiet
+        life.
+        """
+        Movement = self.env["nrs.asset.movement"]
+        began = Movement.recording_began_at()
+        moves = self.movement_ids.sorted(lambda m: (m.moved_at, m.id))
+        first = moves[:1]
+        if first:
+            unrecorded = bool(first.from_location_id
+                              or first.from_location_name)
+        else:
+            unrecorded = bool(self.location_id)
+        if not began:
+            statement = (
+                "No change of location has yet been recorded on this system, "
+                "for any asset. A move shown here rests on a transfer "
+                "document or on the message log, and says which.")
+        elif unrecorded:
+            statement = (
+                "This asset was already somewhere when the recording of "
+                "moves reached it, and how it came to be there is not "
+                "recorded. Moves are recorded on this system from %s; an "
+                "earlier one is shown only where a transfer document or the "
+                "message log holds it, and says which." % _when(began))
+        else:
+            statement = (
+                "Moves are recorded on this system from %s, and cannot be "
+                "edited or deleted afterwards. An earlier one is shown only "
+                "where a transfer document or the message log holds it, and "
+                "says which." % _when(began))
+        return {
+            "recording_began_at": _iso(began),
+            "movements": len(moves),
+            "reconstructed_movements": len(moves.filtered(
+                lambda m: m.source == "tracking_backfill")),
+            "first_movement_at": _iso(first.moved_at) if first else None,
+            "located_before_first_movement": unrecorded,
+            "statement": statement,
+        }
+
+    def _history_provenance_from(self):
+        """When a change to the GRN/PO/vendor/import fields began to show.
+
+        The same parameter the register snapshot reads, stamped per database
+        by migration 19.0.1.15.0. Null means tracked from the first asset.
+        """
+        raw = self.env["ir.config_parameter"].sudo().get_param(
+            "cadra.provenance_tracked_from")
+        return _iso(fields.Datetime.to_datetime(raw)) if raw else None
+
+    def _history_fidelity(self, events, opening):
         links = self.custody_ids.sorted(lambda c: (c.changed_at, c.id))
         first = links[:1]
         # When the recorder began on THIS TENANT. The backfilled rows were
@@ -749,8 +932,7 @@ class NRSAssetHistory(models.Model):
                 "Changes of custodian are recorded on this system from %s. "
                 "Any shown before that were reconstructed from the message "
                 "log and are marked as reconstructed." % _when(began))
-        dated = [e["at"] for e in events
-                 if not self._history_is_registration(e)]
+        dated = [e["at"] for e in events if e["id"] not in opening]
         return {
             "registered_at": _iso(self.create_date),
             "earliest_event_after_registration_at":
@@ -764,15 +946,26 @@ class NRSAssetHistory(models.Model):
                 "custodian_held_before_first_link": unrecorded,
                 "statement": custody_statement,
             },
+            "location": self._history_location_fidelity(),
+            "provenance_tracked_from": self._history_provenance_from(),
             "evidence_grades": [
                 {"grade": grade, "meaning": meaning}
                 for grade, meaning in EVIDENCE_GRADES],
             "not_recorded": [
                 {"event": event, "statement": text}
                 for event, text in NOT_RECORDED],
+            # Rewritten in handoff 28, which made the previous sentence
+            # false: it said the Verify button "sets that date and nothing
+            # else". It now records the verifier. A statement published on a
+            # client's screen goes stale the day the behaviour under it
+            # changes, and nothing fails when it does — so this one is held
+            # by `test_the_verification_statement_matches_the_button`.
             "verification": (
                 "Each verification shown is a change to the last-verified "
-                "date. The application's own Verify button sets that date "
-                "and nothing else, so the event names whoever saved the "
-                "date; no separate record says a physical check was made."),
+                "date or to the verifier, and names whoever made it. The "
+                "Verify button records that person on the asset as its "
+                "verifier. A date set any other way clears the verifier, "
+                "and the asset then shows none. Only the most recent "
+                "verification is kept on the asset; earlier ones survive "
+                "only as the message-log lines listed here."),
         }

@@ -288,6 +288,9 @@ class NRSAsset(models.Model):
 
     # SAP / import fields
     sap_asset_number = fields.Char('SAP Asset Number', index=True)
+    # `import_source`, `import_date` and `import_ref` are TRACKED since
+    # handoff 28, with the GRN, PO and vendor references in `asset.py` — see
+    # the note there for what that buys and where it begins.
     import_source = fields.Selection([
         ('myservice', 'myservice'),
         ('sap',       'SAP'),
@@ -299,9 +302,9 @@ class NRSAsset(models.Model):
         ('vendra',    'Vendra'),
         ('excel',     'Excel Import'),
         ('other',     'Other'),
-    ], string='Data Source', default='myservice')
-    import_date = fields.Date('Import Date')
-    import_ref = fields.Char('Import Reference')
+    ], string='Data Source', default='myservice', tracking=True)
+    import_date = fields.Date('Import Date', tracking=True)
+    import_ref = fields.Char('Import Reference', tracking=True)
 
     @api.depends('tag_ids.state', 'tag_ids.label_state')
     def _compute_physical_tag(self):

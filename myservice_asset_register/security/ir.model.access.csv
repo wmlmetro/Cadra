@@ -25,3 +25,6 @@ access_nrs_asset_label_wizard_manager,nrs.asset.label.wizard manager,model_nrs_a
 access_nrs_asset_custody_employee,nrs.asset.custody employee,model_nrs_asset_custody,base.group_user,1,0,0,0
 access_nrs_asset_custody_user,nrs.asset.custody user,model_nrs_asset_custody,myservice_asset_register.group_asset_user,1,0,0,0
 access_nrs_asset_custody_manager,nrs.asset.custody manager,model_nrs_asset_custody,myservice_asset_register.group_asset_manager,1,0,0,0
+access_nrs_asset_movement_employee,nrs.asset.movement employee,model_nrs_asset_movement,base.group_user,1,0,0,0
+access_nrs_asset_movement_user,nrs.asset.movement user,model_nrs_asset_movement,myservice_asset_register.group_asset_user,1,0,0,0
+access_nrs_asset_movement_manager,nrs.asset.movement manager,model_nrs_asset_movement,myservice_asset_register.group_asset_manager,1,0,0,0

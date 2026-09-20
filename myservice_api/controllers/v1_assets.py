@@ -611,6 +611,13 @@ def serialize_asset(a, *, include=()):
         "sap": _serialize_sap(a),
         "maintenance_vendor": _ref(a.maintenance_vendor_id),
         "is_verified": a.is_verified,
+        # WHO verified it, which `dates.last_verified_date` cannot say.
+        # READ-ONLY and absent from `_WRITABLE_FIELDS` on purpose: written
+        # only by `POST /assets/<id>/verify`, from the acting user. Null on
+        # an asset whose date arrived by PATCH — which, until handoff 28,
+        # was every verification made from the Cadra app. Null means nobody
+        # is recorded, not that nobody checked.
+        "last_verified_by": _ref(a.last_verified_by),
         "pm_count": a.pm_count,
         "request_count": a.request_count,
         "notes": a.notes or None,
@@ -1246,7 +1253,8 @@ class CadraAssetsV1(http.Controller):
         # custody. `nrs.asset.create` records the link; this says where it
         # came from, so the row does not read as an anonymous direct write.
         rec = request.env["nrs.asset"].sudo().with_context(
-            cadra_custody_source="api_write").create(vals)
+            cadra_custody_source="api_write",
+            cadra_movement_source="api_write").create(vals)
         out = serialize_asset(rec)
         if rejected:
             out["_warnings"] = {"rejected_fields": rejected}
@@ -1301,7 +1309,8 @@ class CadraAssetsV1(http.Controller):
             # announce it. The recorder in `nrs.asset.write` catches it
             # either way; the context is what stops it being labelled
             # `direct`.
-            rec.with_context(cadra_custody_source="api_write").write(vals)
+            rec.with_context(cadra_custody_source="api_write",
+                             cadra_movement_source="api_write").write(vals)
         out = serialize_asset(rec)
         if rejected:
             out["_warnings"] = {"rejected_fields": rejected}
@@ -1346,6 +1355,17 @@ class CadraAssetsV1(http.Controller):
             return err(ERR_INVALID_REQUEST, "Asset is already at the requested location",
                        details={"current_location_id": from_loc.id})
 
+        # EVERY refusal happens above this line, because everything below it
+        # writes. The first draft of handoff 28 validated `reason` AFTER the
+        # transfer document had been created: a refused request returned 400
+        # and left behind a transfer in state `done`, for a move that never
+        # happened — a false record, written by the change meant to end them.
+        # An error RESPONSE does not roll the transaction back; only an
+        # exception does. Found by fact-checking the endpoint reference.
+        reason = body.get("reason") or ""
+        if reason and not isinstance(reason, str):
+            return err(ERR_INVALID_REQUEST, "`reason` must be a string")
+
         Transfer = request.env["nrs.asset.transfer"].sudo()
         seq = request.env["ir.sequence"].next_by_code("nrs.asset.transfer") or "/"
         transfer = Transfer.create({
@@ -1356,11 +1376,20 @@ class CadraAssetsV1(http.Controller):
             "from_custodian_id": rec.custodian_id.id or False,
             "to_custodian_id": rec.custodian_id.id or False,
             "transfer_date": odoo_fields.Date.today(),
-            "reason": body.get("reason") or "",
+            "reason": reason,
             "state": "done",
         })
-        rec.with_context(cadra_custody_source="api_write").write(
-            {"location_id": to_loc.id})
+        # The move itself is recorded by `nrs.asset.write`, append-only, as
+        # an `nrs.asset.movement` — underneath every writer of `location_id`,
+        # not here. What only this route knows is that the move was asked for
+        # as a move, why, and which transfer document it produced.
+        rec.with_context(
+            cadra_custody_source="api_write",
+            cadra_movement_source="api_move",
+            cadra_movement_reason=reason or False,
+            cadra_movement_transfer_id=transfer.id,
+        ).write({"location_id": to_loc.id})
+        movement = rec.movement_ids.sorted("id")[-1:]
 
         return {
             "asset": serialize_asset(rec),
@@ -1369,6 +1398,68 @@ class CadraAssetsV1(http.Controller):
                 "reference": transfer.name,
                 "from_location": _ref(from_loc),
                 "to_location": _ref(to_loc),
+                # The append-only record this call produced. Additive, and
+                # the same shape as `custody_change.custody_id`: the transfer
+                # above is a document an asset manager can edit; this is the
+                # fact, and it is what `GET /assets/<id>/history` reads.
+                "movement_id": movement.id if movement else None,
+            },
+        }
+
+    # ── Verify: POST /api/v1/assets/<id>/verify ────────────────────
+
+    @cadra_route("/api/v1/assets/<int:id>/verify", method="POST",
+                 summary="Record that this asset was physically verified, "
+                         "and by whom",
+                 scopes=[SCOPE_ASSETS_WRITE],
+                 idempotent=True,
+                 request_schema={
+                     "type": "object",
+                     "properties": {
+                         "notes": {"type": "string", "nullable": True,
+                                   "description": "What was checked, or "
+                                                  "what was found."},
+                     },
+                 },
+                 request_example={"notes": "Sighted at desk 4F-12, tag intact"})
+    def verify_asset(self, id, **kwargs):
+        """A verification is somebody saying they checked. This records who.
+
+        `last_verified_date` is in `_WRITABLE_FIELDS`, so `PATCH
+        {"last_verified_date": …}` has always been able to mark an asset
+        verified — and it records a date and NO PERSON, because
+        `last_verified_by` is deliberately not writable: a verifier a client
+        can name is a claim, not evidence. Until handoff 28 that PATCH was
+        what the Cadra app's own Verify button sent, so report 27 could say
+        of a government asset register that *no record anywhere says a
+        physical check was made*.
+
+        This route is the other door. It takes no date and no verifier: the
+        date is today and the verifier is the ACTING USER — the person logged
+        in, or the API client's own user — for the reason `approve-disposal`
+        gives. PATCH keeps accepting the date; it is an integration's way to
+        carry a verification made elsewhere, and what it cannot do is say who.
+
+        What this buys, plainly: the asset holds the verifier, and the
+        history's `verified` event names them. It is ONE overwritten column
+        and a chatter line — a second verification replaces the first on the
+        asset, and the chatter line is deletable. It is not an append-only
+        record of verifications, and nothing here says it is.
+        """
+        rec, error = _browse_or_404(id)
+        if error:
+            return error
+        body = get_params()
+        notes = body.get("notes") or ""
+        if notes and not isinstance(notes, str):
+            return err(ERR_INVALID_REQUEST, "`notes` must be a string")
+        rec.action_verify(notes=notes or None)
+        return {
+            "asset": serialize_asset(rec),
+            "verification": {
+                "verified_on": _date(rec.last_verified_date),
+                "verified_by": _ref(rec.last_verified_by),
+                "notes": rec.verification_notes or None,
             },
         }
 
@@ -1544,8 +1635,10 @@ class CadraAssetsV1(http.Controller):
         custody, location moves, tracked field changes, the disposal
         approval, events sent to SAP and the Tag-Issuing Unit, maintenance
         requests — onto one clock. Those records are not worth the same. A
-        change of custodian is append-only; a location move is a row an asset
-        manager can delete; a status change exists only in the message log.
+        change of custodian is append-only, and so is a move made since
+        handoff 28; a move made before it is a row an asset manager can
+        delete, or a message-log line; a status change exists only in the
+        message log.
         Each event says which, and `data.fidelity.evidence_grades` says what
         each grade means in terms of what somebody can do to the record.
 
@@ -1556,12 +1649,14 @@ class CadraAssetsV1(http.Controller):
         field that means something else.
 
         `data.fidelity.not_recorded` names the events Cadra never writes
-        down at all — a changed cost, a changed SAP field, a changed GRN
-        reference. They are listed on every response because their absence
+        down at all — a changed cost, a changed SAP field, and a GRN
+        reference changed before tracking of it began. They are listed on
+        every response because their absence
         from `events` cannot otherwise be told from their not having
         happened. `data.fidelity.custody` says when custody recording began
         on this system and whether this asset was already held by somebody
-        when it did.
+        when it did; `data.fidelity.location` says the same of moves, and is
+        true of nearly every asset on a register loaded before handoff 28.
 
         An asset with nothing after its registration says so in
         `summary.statement`, in words.
@@ -2123,7 +2218,9 @@ class CadraAssetsV1(http.Controller):
                 # offset — the same terms Cadra stores every datetime in.
                 "cutoff": _naive_iso(snapshot_cutoff(as_of)),
                 "cutoff_timezone": "UTC",
-                "fidelity": Asset.snapshot_fidelity(),
+                # WITH the date: which fields can be rolled back depends on
+                # it (handoff 28 — a field tracked only from a known day).
+                "fidelity": Asset.snapshot_fidelity(as_of),
                 "filters": _snapshot_filter_disclosure(qs),
                 # Named, never dropped. Empty on every healthy request.
                 "omitted_asset_ids": omitted,

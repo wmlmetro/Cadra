@@ -266,6 +266,23 @@ interface ApiAssetExtras {
   notes?: string | null;
   pm_count?: number;
   request_count?: number;
+  // Where the record came from. `import_source` is the model's key and stays
+  // `string` for the reason `condition` does above — and `/meta/enums` does
+  // not publish this set, so nothing here or downstream spells its labels.
+  provenance?: {
+    grn_reference: string | null;
+    purchase_order_reference: string | null;
+    purchase_vendor: string | null;
+    import_source: string | null;
+    import_date: string | null;
+    import_ref: string | null;
+  };
+  // Read-only, and null on every asset verified by a PATCH of the date —
+  // which was every verification this app made before handoff 28. Null means
+  // nobody is recorded, not that nobody checked.
+  last_verified_by?: ApiRef | null;
+  created_at?: string | null;
+  created_by?: ApiRef | null;
 }
 
 export function apiDepreciationToDepreciation(
@@ -293,6 +310,7 @@ export function apiDepreciationToDepreciation(
 export function apiAssetToAsset(a: ApiAsset & ApiAssetExtras): Asset {
   const f = a.financial;
   const d = a.dates;
+  const p = a.provenance;
   const num = (v: number | null | undefined) => (typeof v === "number" ? v : undefined);
   const str = (v: string | null | undefined) => (v ? v : undefined);
   return {
@@ -358,6 +376,22 @@ export function apiAssetToAsset(a: ApiAsset & ApiAssetExtras): Asset {
       lastVerifiedDate: str(d.last_verified_date),
       nextServiceDate:  str(d.next_service_date),
     } : undefined,
+    // The name as the record holds it, or nothing. NOT filled from
+    // `updated_by` or anywhere else: whoever last saved the asset is not
+    // whoever checked it.
+    verifiedBy: str(a.last_verified_by?.name),
+    // Every key straight from the record; a blank stays absent so the
+    // Provenance tab can tell "not recorded" from a value.
+    provenance: {
+      importSource:           str(p?.import_source),
+      importDate:             str(p?.import_date),
+      importRef:              str(p?.import_ref),
+      grnReference:           str(p?.grn_reference),
+      purchaseOrderReference: str(p?.purchase_order_reference),
+      purchaseVendor:         str(p?.purchase_vendor),
+      registeredAt:           str(a.created_at),
+      registeredBy:           str(a.created_by?.name),
+    },
     maintenanceVendor: a.maintenance_vendor?.name,
     notes: a.notes ?? undefined,
     pmCount:      a.pm_count,
@@ -398,7 +432,15 @@ export interface ApiAssetHistoryEvent {
   detail: {
     reason?: string | null;
     changes?: ApiAssetHistoryChange[];
-    transfer?: { reference: string | null; reason: string | null; state: string } | null;
+    // `id` is null when the transfer document has since been deleted: the
+    // movement row recorded the reference when it happened, so the reference
+    // outlives the paperwork. Everything but the reference may be missing.
+    transfer?: {
+      id?: number | null;
+      reference: string | null;
+      reason?: string | null;
+      state?: string | null;
+    } | null;
     [key: string]: unknown;
   };
 }
@@ -423,6 +465,16 @@ export interface ApiAssetHistory {
       reconstructed_links: number;
       first_link_at: string | null;
       custodian_held_before_first_link: boolean;
+      statement: string;
+    };
+    // The same question asked of the append-only movement record. Optional:
+    // a server that predates that record does not send the block.
+    location?: {
+      recording_began_at: string | null;
+      movements: number;
+      reconstructed_movements: number;
+      first_movement_at: string | null;
+      located_before_first_movement: boolean;
       statement: string;
     };
     evidence_grades: { grade: string; meaning: string }[];
@@ -459,6 +511,12 @@ export function apiAssetHistoryEventToEvent(e: ApiAssetHistoryEvent): AssetHisto
 }
 
 export function apiAssetHistoryToAssetHistory(h: ApiAssetHistory): AssetHistory {
+  // Kept as the ordered list the server sent — strongest first. It used to be
+  // flattened straight into a lookup, which is enough for a tooltip and not
+  // for a legend a reader is meant to read top to bottom.
+  const evidenceGrades = (h.fidelity.evidence_grades ?? [])
+    .map(g => ({ grade: g.grade, meaning: g.meaning }));
+  const loc = h.fidelity.location;
   return {
     summary: {
       events: h.summary.events,
@@ -470,9 +528,14 @@ export function apiAssetHistoryToAssetHistory(h: ApiAssetHistory): AssetHistory 
       statement: h.fidelity.custody.statement,
       custodianHeldBeforeFirstLink: !!h.fidelity.custody.custodian_held_before_first_link,
     },
-    evidenceMeanings: Object.fromEntries(
-      (h.fidelity.evidence_grades ?? []).map(g => [g.grade, g.meaning]),
-    ),
+    // Absent stays absent. An older server says nothing about where the
+    // location record begins, and neither does the screen.
+    location: loc?.statement ? {
+      statement: loc.statement,
+      locatedBeforeFirstMovement: !!loc.located_before_first_movement,
+    } : undefined,
+    evidenceGrades,
+    evidenceMeanings: Object.fromEntries(evidenceGrades.map(g => [g.grade, g.meaning])),
     notRecorded: h.fidelity.not_recorded ?? [],
     verification: h.fidelity.verification ?? "",
     events: (h.events ?? []).map(apiAssetHistoryEventToEvent),
