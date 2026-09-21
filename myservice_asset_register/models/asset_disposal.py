@@ -654,35 +654,14 @@ class NRSAssetDisposal(models.Model):
         }
 
     # ── The action that produces a disposal ───────────────────
-
-    def action_condemn(self, reason=None):
-        """Record WHEN, alongside the condition and the state.
-
-        `action_condemn` wrote a condition and a state and nothing else, so
-        every disposal made through the Odoo button arrived with a null
-        `disposal_date` — the hole the migration recovers from tracking
-        values, still open for every disposal made after it. The
-        depreciation module already stamps the date for the reason that
-        depreciation must stop; this makes the date a property of the
-        disposal itself, so a tenant without the depreciation module
-        installed does not silently produce undated disposals.
-
-        Deliberately NOT stamped here: the approver. Condemning an asset is
-        not authorising its disposal, and recording the person who pressed
-        this button as the approving authority would manufacture exactly the
-        evidence an auditor is asking for.
-        """
-        result = super().action_condemn(reason=reason)
-        # A LAGOS day, not `context_today`. That resolves the acting user's
-        # timezone and falls back to UTC when they have none — and every API
-        # credential's user has none. `POST /assets/<id>/condemn` (handoff
-        # 30) exists to take this date off the browser's clock; stamped with
-        # `context_today` it would have dated every disposal made between
-        # 00:00 and 01:00 in Lagos to the day before, which is the bug the
-        # route was ruled in to remove, moved to the server. One definition
-        # of the day: the one the register snapshot cuts on.
-        from .asset_snapshot import snapshot_today
-        for record in self:
-            if not record.disposal_date:
-                record.disposal_date = snapshot_today()
-        return result
+    #
+    # `action_condemn` was overridden here to stamp `disposal_date`, and again
+    # in `myservice_asset_depreciation` to stamp it a second time. Both are
+    # gone (handoff 31): the date and the condition are stamped by
+    # `nrs.asset._stamp_disposal`, underneath EVERY writer of `state`, so a
+    # disposal made by PATCH, on the form or from a shell is dated exactly as
+    # one made with the button is. What is still deliberately NOT stamped by
+    # disposing is the APPROVER: condemning an asset is not authorising its
+    # disposal, and recording whoever pressed the button as the approving
+    # authority would manufacture exactly the evidence an auditor is asking
+    # for. That is `action_approve_disposal`, above.

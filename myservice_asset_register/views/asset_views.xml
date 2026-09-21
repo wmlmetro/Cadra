@@ -7,11 +7,21 @@
         <field name="arch" type="xml">
             <form>
                 <header>
+                    <!-- ALWAYS offered, a disposed asset included (handoff 31 §C2).
+                         It used to be hidden unless the asset was active or
+                         missing, while the model, the API and the Cadra app
+                         all allowed it: two surfaces, one rule, two answers.
+                         The ruling is ALLOWED, in these words — a disposed
+                         asset somebody physically finds on the premises is an
+                         audit finding, and a register that refuses to record
+                         "I saw it, today" is suppressing the one fact that
+                         matters. Do not tidy this back. -->
                     <button name="action_verify" string="Mark Verified" type="object"
-                            class="btn-primary"
-                            invisible="state not in ['active', 'missing']"/>
+                            class="btn-primary"/>
                     <button name="action_mark_missing" string="Mark Missing" type="object"
                             invisible="state in ['missing', 'disposed']"/>
+                    <button name="action_mark_found" string="Mark Found" type="object"
+                            invisible="state != 'missing'"/>
                     <button name="action_condemn" string="Condemn / Dispose" type="object"
                             invisible="state == 'disposed'"/>
                     <!-- Records the acting user as the approving authority,

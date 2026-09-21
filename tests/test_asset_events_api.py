@@ -11,6 +11,12 @@ put: `POST /assets/<id>/mark-missing` (a reason) and `POST /assets/<id>/condemn`
 (a reason, and a disposal date taken off the server's clock rather than a
 browser's).
 
+Handoff 31 added the third such route, `POST /assets/<id>/mark-found` —
+*where it turned up* is as much an audit fact as *why it went* — and moved the
+disposal stamp underneath every writer, so a bare `PATCH {"state":
+"disposed"}` is dated and decommissioned exactly as `/condemn` is. It also
+ruled that a disposed asset can still be verified. All three are held here.
+
 The model's own guarantees — that an event cannot be edited, deleted or
 hand-written, and what each type may carry — are asserted in the registry, in
 `myservice_asset_register/tests/test_asset_event.py`, where the ORM can be
@@ -37,7 +43,8 @@ import uuid
 
 import pytest
 
-from .conftest import assert_envelope_err, assert_envelope_ok
+from .conftest import (assert_envelope_err, assert_envelope_ok,
+                       assert_fields_refused, ids_matching)
 
 _EVENT_RECORD = "nrs.asset.event"
 
@@ -85,6 +92,11 @@ def _recorded(history):
 
 def _mark_missing(client, asset_id, reason, **kw):
     return client.post(f"/api/v1/assets/{asset_id}/mark-missing",
+                       json={"reason": reason}, **kw)
+
+
+def _mark_found(client, asset_id, reason, **kw):
+    return client.post(f"/api/v1/assets/{asset_id}/mark-found",
                        json={"reason": reason}, **kw)
 
 
@@ -319,6 +331,172 @@ def test_a_missing_asset_can_still_be_disposed_of(client, test_location):
         ("active", "missing"), ("missing", "disposed")]
 
 
+# ─── mark found ──────────────────────────────────────────────────────
+
+def test_marking_an_asset_found_records_where_it_turned_up(
+        client, test_location, me, capture):
+    """POST /api/v1/assets/<id>/mark-found — handoff 31 §C3.
+
+    *Where it turned up* is as much an audit fact as *why it went missing*.
+    The PATCH above still works, and still records the most interesting
+    event in an asset's life as a change of one word with a null beside it.
+    This route exists to carry the sentence: it is written to the
+    append-only `status_changed` event, beside the one that says why the
+    asset went.
+
+    It sets the status back to `active` and does NOT verify the asset:
+    whoever found it may not be whoever checks it.
+    """
+    asset = _new_asset(client, test_location, "pytest-events-found")
+    assert_envelope_ok(_mark_missing(client, asset["id"], "not at its desk"))
+    reason = ("test_asset_events_api — found in the 2nd-floor store during "
+              "the October count, tag intact")
+    r = _mark_found(client, asset["id"], reason)
+    capture("assets/mark_found", r)
+    data = assert_envelope_ok(r)["data"]
+    assert set(data) == {"asset", "event_id"}
+    assert data["asset"]["id"] == asset["id"]
+    assert data["asset"]["state"] == "active"
+    assert isinstance(data["event_id"], int) and data["event_id"] > 0
+    assert data["asset"]["dates"]["last_verified_date"] is None, (
+        "finding an asset is not verifying it")
+    assert data["asset"]["last_verified_by"] is None
+
+    history = _history(client, asset["id"])
+    assert _events(history, "verified") == []
+    found = [e for e in _events(history, "status_changed")
+             if e["detail"]["to"] == "active"]
+    assert len(found) == 1, (
+        "one act, listed once: the message-log line of the same change must "
+        "be folded into the record. Listed: %s" % [e["id"] for e in found])
+    event = found[0]
+    assert event["record"] == {"model": _EVENT_RECORD, "id": data["event_id"]}
+    assert event["evidence"] == "append_only"
+    assert event["reconstructed"] is False
+    assert event["detail"]["from"] == "missing"
+    assert event["detail"]["reason"] == reason
+    assert event["actor"] is not None and event["actor"]["id"] == me["id"]
+    # `test` is `api_mark_found` relabelled by the credential.
+    assert event["source"] in ("api_mark_found", "test")
+
+
+def test_going_missing_and_turning_up_read_in_order_each_with_its_reason(
+        client, test_location):
+    """The pair an auditor reads together: why it went, where it turned up.
+
+    Two rows of one append-only table, and each keeps ITS OWN reason — the
+    asset has no column for either, so there is nothing for the second to
+    overwrite.
+    """
+    asset = _new_asset(client, test_location, "pytest-events-found-pair")
+    went = assert_envelope_ok(_mark_missing(
+        client, asset["id"], "not in the store at the Q3 count"))["data"]
+    came = assert_envelope_ok(_mark_found(
+        client, asset["id"], "in the annex, moved there for a repaint"))["data"]
+    assert came["event_id"] > went["event_id"]
+
+    oldest = _events(_history(client, asset["id"], sort="oldest"),
+                     "status_changed")
+    assert [(e["detail"]["from"], e["detail"]["to"], e["detail"]["reason"],
+             e["record"]["id"]) for e in oldest] == [
+        ("active", "missing", "not in the store at the Q3 count",
+         went["event_id"]),
+        ("missing", "active", "in the annex, moved there for a repaint",
+         came["event_id"])]
+    newest = _events(_history(client, asset["id"]), "status_changed")
+    assert [e["record"]["id"] for e in newest] == [
+        came["event_id"], went["event_id"]], "newest first is the default"
+    assert all(e["evidence"] == "append_only" for e in oldest)
+
+
+@pytest.mark.parametrize("label,body", [
+    ("no body at all", None),
+    ("an empty object", {}),
+    ("a null reason", {"reason": None}),
+    ("an empty reason", {"reason": ""}),
+    ("a reason of spaces", {"reason": "   \n\t "}),
+    ("a number", {"reason": 7}),
+    ("a list", {"reason": ["found"]}),
+])
+def test_mark_found_without_a_reason_is_refused_and_the_asset_stays_missing(
+        client, test_location, label, body):
+    """`reason` is REQUIRED, for `mark-missing`'s reason — and the whole
+    point of the route is the sentence. A caller with nothing to say still
+    has `PATCH {"state": "active"}`, which has always worked and records
+    exactly that: a change, and no reason. A 400 must not write."""
+    asset = _new_asset(client, test_location, "pytest-events-found-400")
+    assert_envelope_ok(_mark_missing(client, asset["id"], "gone"))
+    before = _status_snapshot(client, asset["id"])
+    url = f"/api/v1/assets/{asset['id']}/mark-found"
+    r = client.post(url) if body is None else client.post(url, json=body)
+    assert_envelope_err(r, 400, "invalid_request")
+    after = _status_snapshot(client, asset["id"])
+    assert after["state"] == "missing", (
+        "%s was refused with a 400 and the asset was marked found anyway"
+        % label)
+    assert after == before
+
+
+@pytest.mark.parametrize("state", ["active", "disposed"])
+def test_an_asset_that_is_not_missing_cannot_be_marked_found(
+        client, test_location, state):
+    """409 — there is nothing to find.
+
+    For an ACTIVE asset a 200 would append no event, because the status
+    does not change, and would tell the caller its sentence had been
+    recorded. For a DISPOSED one it is the terminal rule's tenth door:
+    `mark-found` writes `active`, which is a way out of `disposed` for
+    anybody who thought to ask. The route answers before the model has to,
+    and the record is compared WHOLE, as it is for every other closed door.
+    """
+    asset = (_condemned(client, test_location, "pytest-events-found-409")
+             if state == "disposed"
+             else _new_asset(client, test_location, "pytest-events-found-409"))
+    before = _status_snapshot(client, asset["id"])
+    assert before["state"] == state
+
+    r = _mark_found(client, asset["id"], "it was never lost")
+    details = assert_envelope_err(r, 409, "conflict")["error"]["details"]
+    # A subset: the envelope adds `http_status` to every `details`.
+    assert (details["asset_id"], details["state"]) == (asset["id"], state)
+    assert _status_snapshot(client, asset["id"]) == before
+
+
+def test_mark_found_on_an_unknown_asset_is_a_404(client):
+    assert_envelope_err(_mark_found(client, 999999999, "no such asset"),
+                        404, "not_found")
+
+
+def test_a_replayed_mark_found_writes_no_second_event(client, test_location):
+    """Without the key a second call is a 409 — the asset is no longer
+    missing. With it, a client whose first response was lost gets that
+    response back, and the append-only table gains nothing."""
+    asset = _new_asset(client, test_location, "pytest-events-found-replay")
+    assert_envelope_ok(_mark_missing(client, asset["id"], "gone"))
+    key = f"pytest-events-found-{int(time.time())}-{uuid.uuid4().hex[:8]}"
+    first = assert_envelope_ok(_mark_found(
+        client, asset["id"], "sent once",
+        headers={"X-Idempotency-Key": key}))
+    second = assert_envelope_ok(_mark_found(
+        client, asset["id"], "SHOULD-BE-IGNORED",
+        headers={"X-Idempotency-Key": key}))
+    assert second["data"]["event_id"] == first["data"]["event_id"]
+    assert second["meta"]["request_id"] == first["meta"]["request_id"], (
+        "the second call was processed rather than replayed")
+    back = [e for e in _events(_history(client, asset["id"]), "status_changed")
+            if e["detail"]["to"] == "active"]
+    assert [e["detail"]["reason"] for e in back] == ["sent once"]
+
+
+def test_mark_found_needs_a_credential(client, unauthed_client, test_location):
+    asset = _new_asset(client, test_location, "pytest-events-found-401")
+    assert_envelope_ok(_mark_missing(client, asset["id"], "gone"))
+    r = unauthed_client.post(f"/api/v1/assets/{asset['id']}/mark-found",
+                             json={"reason": "nobody is asking"})
+    assert_envelope_err(r, 401, "unauthorized")
+    assert _asset(client, asset["id"])["state"] == "missing"
+
+
 # ─── condemn ─────────────────────────────────────────────────────────
 
 def test_condemning_an_asset_sets_everything_in_one_place(
@@ -489,28 +667,161 @@ def test_condemn_needs_a_credential(client, unauthed_client, test_location):
     assert _asset(client, asset["id"])["state"] == "active"
 
 
-def test_the_two_routes_publish_their_whole_contract(client):
+def test_the_three_routes_publish_their_whole_contract(client):
     """Scope, the required reason, the conflict, and the idempotency header.
 
     `reason` is `required` in the published schema and not only in the
     handler: a generated client that treats it as optional finds out from a
-    400 in production.
+    400 in production. `mark-found` joined the two in handoff 31 and is held
+    to exactly what they are.
     """
     spec = client.get("/api/v1/openapi.json").json()
     for path in ("/api/v1/assets/{id}/mark-missing",
+                 "/api/v1/assets/{id}/mark-found",
                  "/api/v1/assets/{id}/condemn"):
         assert path in spec["paths"], f"{path} is not published in openapi.json"
         op = spec["paths"][path]["post"]
         assert op["x-cadra-scopes"] == ["assets:write"], (path, op["x-cadra-scopes"])
         assert "409" in op["responses"], (
-            f"{path}: 409 is a published answer — already missing, or "
-            "disposed — and an integration has to be able to branch on it")
+            f"{path}: 409 is a published answer — already missing, not "
+            "missing, or disposed — and an integration has to be able to "
+            "branch on it")
         names = {p["name"] for p in op.get("parameters", [])}
         assert "X-Idempotency-Key" in names, (
             f"{path} is declared idempotent but does not publish the header")
         schema = op["requestBody"]["content"]["application/json"]["schema"]
         assert schema.get("required") == ["reason"], (path, schema)
         assert schema["properties"]["reason"]["type"] == "string"
+
+
+# ─── a disposal is stamped through ANY door ──────────────────────────
+#
+# Handoff 31 §C1. `/condemn` was the proper door and did not close the
+# others: `PATCH {"state": "disposed"}` disposed of an asset and stamped
+# nothing, which is how the disposal report came to raise `no_disposal_date`
+# against disposals made last week. `nrs.asset._stamp_disposal` sits under
+# every writer now; these are the PATCH door, which is the one an
+# integration uses.
+
+def test_a_disposal_made_by_a_bare_patch_is_dated_and_decommissioned(
+        client, test_location):
+    """`PATCH {"state": "disposed"}` and nothing else.
+
+    The date is a LAGOS day — (UTC now + 1 hour).date(), taken either side
+    of the call, for the reason `test_condemning_an_asset_sets_everything_in_
+    one_place` sets out at length: every API credential's user has no
+    timezone, so a date stamped from the acting user's would put a disposal
+    made in the first hour of a Lagos day on the day before.
+    """
+    asset = _new_asset(client, test_location, "pytest-events-stamp-bare",
+                       condition="fair")
+    before = _lagos_today()
+    r = client.patch(f"/api/v1/assets/{asset['id']}",
+                     json={"state": "disposed"})
+    after = _lagos_today()
+    data = assert_envelope_ok(r)["data"]
+    assert data["state"] == "disposed"
+    assert data["condition"] == "decommissioned"
+    assert data["dates"]["disposal_date"] in {
+        before.isoformat(), after.isoformat()}, (
+        "the disposal is dated %s; in Lagos it is %s"
+        % (data["dates"]["disposal_date"], after.isoformat()))
+    assert data["disposal"]["date"] == data["dates"]["disposal_date"]
+    assert data["disposal"]["date_reconstructed"] is False
+
+    # What came back is what was stored, and the stamp is not a second act:
+    # one change of status, however many columns it took to record it.
+    assert _asset(client, asset["id"])["disposal"] == data["disposal"]
+    changed = _events(_history(client, asset["id"]), "status_changed")
+    assert [(e["detail"]["from"], e["detail"]["to"]) for e in changed] == [
+        ("active", "disposed")]
+
+
+def test_a_disposal_cannot_arrive_in_good_condition(client, test_location):
+    """The condition is not negotiable, even when the caller sends one.
+
+    `decommissioned` is what disposed MEANS on this register. A disposed
+    asset in `good` condition is how the condition tiles came to count
+    things that are gone (handoff 29), and the PATCH that produces one is a
+    body an integration can perfectly well send.
+    """
+    asset = _new_asset(client, test_location, "pytest-events-stamp-good",
+                       condition="good")
+    r = client.patch(f"/api/v1/assets/{asset['id']}",
+                     json={"state": "disposed", "condition": "good"})
+    data = assert_envelope_ok(r)["data"]
+    assert (data["state"], data["condition"]) == ("disposed",
+                                                  "decommissioned")
+    assert _asset(client, asset["id"])["condition"] == "decommissioned"
+
+
+def test_a_disposal_date_the_caller_sent_is_kept(client, test_location):
+    """An integration carrying a disposal made elsewhere knows when it
+    happened, and the server does not. The stamp fills a gap; it does not
+    overrule a fact."""
+    asset = _new_asset(client, test_location, "pytest-events-stamp-dated")
+    r = client.patch(f"/api/v1/assets/{asset['id']}",
+                     json={"state": "disposed",
+                           "disposal_date": "2026-01-31"})
+    data = assert_envelope_ok(r)["data"]
+    assert data["dates"]["disposal_date"] == "2026-01-31"
+    assert data["disposal"]["date"] == "2026-01-31"
+    assert data["condition"] == "decommissioned"
+
+
+def test_an_asset_registered_as_already_disposed_is_given_no_date(
+        client, test_location):
+    """NOT on create — deliberately, and this is the edge of the rule.
+
+    An asset REGISTERED as disposed was disposed of on some earlier day this
+    system never saw. Stamping today would replace a finding the disposal
+    report can show — no date — with a date that is wrong, which it cannot.
+    """
+    asset = _new_asset(client, test_location, "pytest-events-stamp-create",
+                       state="disposed")
+    assert asset["state"] == "disposed"
+    assert asset["dates"]["disposal_date"] is None
+    assert asset["disposal"]["date"] is None
+    assert _asset(client, asset["id"])["disposal"]["date"] is None
+    # …and then DATED, so this test does not grow `test19`'s
+    # `no_disposal_date` finding by one on every run for ever: the asset sits
+    # at a location, so it has a movement row and can never be deleted. The
+    # first three runs of this test left three such rows before the
+    # verification pass counted them. A disposal's paperwork stays editable,
+    # which is also what lets a real one be dated once somebody finds out.
+    dated = assert_envelope_ok(client.patch(
+        f"/api/v1/assets/{asset['id']}",
+        json={"disposal_date": "2020-01-01"}))["data"]
+    assert dated["disposal"]["date"] == "2020-01-01"
+
+
+def test_a_disposed_asset_somebody_finds_on_the_premises_can_be_verified(
+        client, test_location, me):
+    """Handoff 31 §C2 — ALLOWED, by ruling, and in these words: a disposed
+    asset somebody physically finds on the premises is an audit finding, and
+    a register that refuses to record "I saw it, today" is suppressing the
+    one fact that matters.
+
+    The Odoo form used to hide the button the app offered: two surfaces, one
+    rule, two answers. This is the API's half of the agreed answer. Do not
+    tidy it into `_CLOSED_DOORS`.
+    """
+    asset = _condemned(client, test_location, "pytest-events-verify-disposed")
+    r = client.post(f"/api/v1/assets/{asset['id']}/verify",
+                    json={"notes": "sighted in the yard, awaiting collection"})
+    data = assert_envelope_ok(r)["data"]
+    assert data["asset"]["state"] == "disposed", (
+        "verifying a disposed asset brought it back onto the register")
+    assert data["asset"]["disposal"] == asset["disposal"]
+
+    verified = _events(_history(client, asset["id"]), "verified")
+    assert len(verified) == 1
+    event = verified[0]
+    assert event["record"] == {"model": _EVENT_RECORD, "id": data["event_id"]}
+    assert event["evidence"] == "append_only"
+    assert event["actor"]["id"] == me["id"]
+    assert event["detail"]["notes"] == \
+        "sighted in the yard, awaiting collection"
 
 
 # ─── disposed is terminal — every door ───────────────────────────────
@@ -1060,30 +1371,38 @@ def test_a_request_reference_is_published_to_whoever_may_read_requests(
 
 # ─── building, floor and room ────────────────────────────────────────
 
-def test_the_location_hierarchy_is_refused_on_create_and_says_so(
+def test_the_location_hierarchy_is_refused_on_create_and_creates_nothing(
         client, test_location, any_location):
     """POST — `building_id`, `floor_id`, `room_id` are no longer writable.
 
-    Compared against a CONTROL created the same way without them, rather
-    than against nulls: what the hierarchy of a new asset at this location
-    reads is the tenant's business, and the property is that sending the
-    three fields changes nothing about it. Rule 3: the refusal is reported,
-    never silent.
+    Rule 3: the refusal is said, never silent — and since handoff 31 it is
+    said with a 400, before anything is created. Until then this was a 201:
+    the asset was registered WITHOUT the building the caller sent, and the
+    three names sat in `_warnings.rejected_fields` of a response most callers
+    had stopped reading at the status line.
+
+    A create has no record to read back, so "nothing was written" is asked of
+    the list — and the CONTROL is what makes that answer mean something: the
+    same name, sent without the three fields, is created and found.
     """
-    control = _new_asset(client, test_location, "pytest-events-hierarchy-ctl")
-    assert "_warnings" not in control
-    sent = _new_asset(client, test_location, "pytest-events-hierarchy-post",
-                      **{f: any_location for f in _HIERARCHY_FIELDS})
-    rejected = sent["_warnings"]["rejected_fields"]
-    for field in _HIERARCHY_FIELDS:
-        assert field in rejected, (
-            f"`{field}` was accepted or dropped without a warning")
-    assert sent["location_hierarchy"] == control["location_hierarchy"]
-    assert sent["current_location"] == control["current_location"]
-    assert sent["address_display"] == control["address_display"]
+    name = f"pytest-events-hierarchy-post-{uuid.uuid4().hex[:8]}"
+    assert ids_matching(client, "/api/v1/assets", name) == []
+    r = client.post("/api/v1/assets", json={
+        "name": name, "category_id": 1, "location_id": test_location["id"],
+        **{f: any_location for f in _HIERARCHY_FIELDS}})
+    details = assert_fields_refused(r, *_HIERARCHY_FIELDS)
+    assert "location_id" in details["writable"], (
+        "the repair — move it with `location_id` — is not in the response")
+    assert ids_matching(client, "/api/v1/assets", name) == [], (
+        "the hierarchy was refused with a 400 and the asset was created "
+        "anyway")
+
+    control = _new_asset(client, test_location, name)
+    assert ids_matching(client, "/api/v1/assets", name) == [control["id"]]
+    assert control["current_location"]["id"] == test_location["id"]
 
 
-def test_the_location_hierarchy_is_refused_on_patch_and_moves_nothing(
+def test_the_location_hierarchy_is_refused_on_patch_and_writes_neither_half(
         client, test_location, any_location):
     """PATCH — the bug this closes answered 200 and contradicted itself.
 
@@ -1092,21 +1411,25 @@ def test_the_location_hierarchy_is_refused_on_patch_and_moves_nothing(
     moved NOTHING, because `location_id` follows the building only through a
     form onchange the API never runs. The movement record correctly said no
     move had happened; the asset's own address said otherwise.
+
+    Handoff 30 refused the three fields and still wrote the `notes` beside
+    them: *refused, not rejected whole*. Handoff 31 reversed that half, and
+    this test with it. A body that is partly wrong is refused WHOLE, because
+    a caller told 400 will fix the body and send all of it again — and a
+    caller told 200 never learns that half of what it sent was dropped.
     """
     asset = _new_asset(client, test_location, "pytest-events-hierarchy-patch")
     r = client.patch(f"/api/v1/assets/{asset['id']}", json={
         **{f: any_location for f in _HIERARCHY_FIELDS},
         "notes": "the one writable field in this request"})
-    data = assert_envelope_ok(r)["data"]
-    assert sorted(set(data["_warnings"]["rejected_fields"])
-                  & set(_HIERARCHY_FIELDS)) == sorted(_HIERARCHY_FIELDS)
-    # The writable field beside them still landed: refused, not rejected whole.
-    assert data["notes"] == "the one writable field in this request"
+    assert_fields_refused(r, *_HIERARCHY_FIELDS)
+    after = _asset(client, asset["id"])
+    assert after["notes"] == asset["notes"], (
+        "the request was refused and its writable half was written anyway")
     for key in ("location_hierarchy", "current_location", "address_display",
                 "coordinates"):
-        assert data[key] == asset[key], (
-            f"`{key}` changed on a request whose hierarchy fields were "
-            "reported as rejected")
+        assert after[key] == asset[key], (
+            f"`{key}` changed on a request that was refused")
     moves = [e for e in _events(_history(client, asset["id"]), "location_moved")
              if e["detail"]["from_location"]]
     assert moves == []

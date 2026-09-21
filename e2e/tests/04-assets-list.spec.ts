@@ -95,7 +95,14 @@ test.describe("/assets/list", () => {
    * have found none of them.
    */
   test("the Status filter 'no SAP code' returns the real rows, each wearing that pill", async ({ page, api }) => {
-    const counted = await api.probe("/api/v1/assets", { sap_reconciliation_state: "exception", state: "active", limit: 1 });
+    // `sort: "newest"` because that is the order the LIST asks for, and the
+    // sample below has to be a row the list will actually draw. Without it
+    // the API answers oldest-first, and this spec clicked the OLDEST
+    // exception — which is on screen only while the tenant holds 200 or
+    // fewer. `test19` crossed that during handoff 31 (232; every asset a test
+    // run registers without a SAP code is one more), and the spec began
+    // failing on a row that was simply on the second page.
+    const counted = await api.probe("/api/v1/assets", { sap_reconciliation_state: "exception", state: "active", limit: 1, sort: "newest" });
     expect(counted.ok, `the API filters on sap_reconciliation_state (HTTP ${counted.status})`).toBeTruthy();
     const expected: number = counted.body?.pagination?.total_estimate ?? 0;
     test.skip(expected === 0, "this tenant has no ACTIVE asset with sap_reconciliation_state=exception — nothing to filter for");

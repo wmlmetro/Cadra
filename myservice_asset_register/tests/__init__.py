@@ -7,3 +7,4 @@ from . import test_disposal_report
 from . import test_asset_default_order
 from . import test_movement_record
 from . import test_asset_event
+from . import test_append_only_mixin

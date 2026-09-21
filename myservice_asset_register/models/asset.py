@@ -407,6 +407,8 @@ class NRSAsset(models.Model):
                     EVENT_STATUS_CHANGED,
                     from_value=status.get(record.id), to_value=record.state,
                     reason=self.env.context.get(EVENT_REASON_KEY))
+                if record.state == STATE_DISPOSED:
+                    record._stamp_disposal()
             if track_verified:
                 record._record_verification(
                     *checked.get(record.id, (False, False)), vals=vals)
@@ -469,6 +471,40 @@ class NRSAsset(models.Model):
                     "%(asset)s has been disposed of, and a disposed asset "
                     "cannot change custodian. Its record keeps whoever held "
                     "it when it was disposed of.", asset=record.display_name))
+
+    def _stamp_disposal(self):
+        """A disposal gets its date and its condition — through ANY door.
+
+        Until handoff 31 only `action_condemn` did this, in two overrides.
+        `POST /assets/<id>/condemn` was the proper door and did not close the
+        others: `PATCH {"state": "disposed"}`, the Odoo form and the shell
+        all disposed of an asset and stamped nothing, which is how the
+        disposal report came to have a `no_disposal_date` finding for
+        disposals made last week. Here, underneath every writer, for the
+        reason the recorders above are.
+
+        The date is a LAGOS day (`snapshot_today`), not `context_today` —
+        that is UTC for every API credential, whose users have no timezone.
+        A date the caller SENT is respected: an integration carrying a
+        disposal made elsewhere knows when it happened and this does not.
+        The condition is not negotiable. `decommissioned` is what disposed
+        MEANS on this register, and a disposed asset in `good` condition is
+        how the condition tiles came to count things that are gone.
+
+        NOT on `create`. An asset REGISTERED as already disposed was disposed
+        of on some earlier day this system never saw; stamping today would
+        replace a finding the disposal report can show — no date — with a
+        date that is wrong, which it cannot.
+        """
+        self.ensure_one()
+        from .asset_snapshot import snapshot_today
+        vals = {}
+        if self.condition != 'decommissioned':
+            vals['condition'] = 'decommissioned'
+        if not self.disposal_date:
+            vals['disposal_date'] = snapshot_today()
+        if vals:
+            self.write(vals)
 
     def _record_event(self, event_type, **payload):
         """Append one `nrs.asset.event`. The source is read off the context
@@ -719,6 +755,22 @@ class NRSAsset(models.Model):
         marked, not a note somebody can tidy up afterwards.
         """
         self._with_event_source('action', reason).write({'state': 'missing'})
+
+    def action_mark_found(self, reason=None):
+        """A missing asset turned up. Say WHERE, where somebody knows.
+
+        *Where it turned up* is as much an audit fact as *why it went
+        missing* — and until handoff 31 an asset reappeared through a bare
+        PATCH of `state`, which records the most interesting event in its
+        life as a change of one word. The reason lives on the append-only
+        `status_changed` event, as the reason for going missing does.
+
+        Only a MISSING asset. Anything else is left alone: the route answers
+        409 before it gets here, and this is the same answer for the ORM and
+        the Odoo button.
+        """
+        missing = self.filtered(lambda r: r.state == 'missing')
+        missing._with_event_source('action', reason).write({'state': 'active'})
 
     def action_view_requests(self):
         return {

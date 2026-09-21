@@ -6,12 +6,13 @@ import {
 import RecordPicker from "@/components/RecordPicker";
 import { CadraApiError, apiGet } from "@/lib/api";
 import {
-  moveAsset, transferCustody, condemnAsset, markAssetMissing,
+  moveAsset, transferCustody, condemnAsset, markAssetMissing, markAssetFound,
   type ApiAssetTransfer,
 } from "@/lib/dataProvider";
 import type { ApiLocation } from "@/lib/adapters";
-import { AlertCircle, AlertTriangle, ArrowRightLeft, MapPin, Trash2, Loader2 } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowRightLeft, MapPin, SearchCheck, Trash2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ApiErrorMessage } from "@/components/ApiErrorMessage";
 
 interface ApiEmployeeRef {
   id: number;
@@ -170,9 +171,7 @@ export function AssetMoveDialog({ assetId, open, onOpenChange, placed = true }: 
           {err && (
             <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-xl p-3">
               <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-              <p className="text-[12px] text-red-700 dark:text-red-400">
-                <span className="font-semibold">{err.code}:</span> {err.message}
-              </p>
+              <ApiErrorMessage err={err} />
             </div>
           )}
         </div>
@@ -274,9 +273,7 @@ export function CustodyTransferDialog({ assetId, open, onOpenChange }: MoveProps
           {err && (
             <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-xl p-3">
               <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-              <p className="text-[12px] text-red-700 dark:text-red-400">
-                <span className="font-semibold">{err.code}:</span> {err.message}
-              </p>
+              <ApiErrorMessage err={err} />
             </div>
           )}
         </div>
@@ -386,9 +383,7 @@ export function CondemnAssetDialog({ assetId, open, onOpenChange }: CondemnProps
           {err && (
             <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-xl p-3">
               <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-              <p className="text-[12px] text-red-700 dark:text-red-400">
-                <span className="font-semibold">{err.code}:</span> {err.message}
-              </p>
+              <ApiErrorMessage err={err} />
             </div>
           )}
         </div>
@@ -440,8 +435,11 @@ export function CondemnAssetDialog({ assetId, open, onOpenChange }: CondemnProps
  *
  * What the description says about reversing it is two different answers and
  * both are the model's. MISSING is not terminal — a missing asset that turns
- * up is ordinary, and Edit → State puts it back. DISPOSED is: that is said
- * here because this is the last screen on which the two look alike.
+ * up is ordinary, and *Mark found* puts it back (`MarkFoundDialog`, below).
+ * Until handoff 31 this said "use Edit and set the state back", which worked
+ * and recorded nothing about where the asset had been. DISPOSED is terminal:
+ * that is said here because this is the last screen on which the two look
+ * alike.
  */
 export function MarkMissingDialog({ assetId, open, onOpenChange }: CondemnProps) {
   const qc = useQueryClient();
@@ -485,7 +483,7 @@ export function MarkMissingDialog({ assetId, open, onOpenChange }: CondemnProps)
             <AlertTriangle size={16} /> Mark asset as missing
           </DialogTitle>
           <DialogDescription>
-            Sets this asset's state to Missing. It stays on the register. The reason you give is kept in the asset's history with your name and the time, and cannot be edited or deleted afterwards. If the asset turns up, use Edit and set the state back — unlike a disposal, this can be reversed.
+            Sets this asset's state to Missing. It stays on the register. The reason you give is kept in the asset's history with your name and the time, and cannot be edited or deleted afterwards. If the asset turns up, use Mark found on this page and say where — unlike a disposal, this can be reversed.
           </DialogDescription>
         </DialogHeader>
 
@@ -510,9 +508,7 @@ export function MarkMissingDialog({ assetId, open, onOpenChange }: CondemnProps)
           {err && (
             <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-xl p-3">
               <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-              <p className="text-[12px] text-red-700 dark:text-red-400">
-                <span className="font-semibold">{err.code}:</span> {err.message}
-              </p>
+              <ApiErrorMessage err={err} />
             </div>
           )}
         </div>
@@ -538,6 +534,123 @@ export function MarkMissingDialog({ assetId, open, onOpenChange }: CondemnProps)
             )}
           >
             {mutation.isPending ? <Loader2 size={12} className="animate-spin" /> : "Mark as missing"}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Mark-found dialog ────────────────────────────────────────────────────
+
+/**
+ * The way back from MISSING, and the twin of the dialog above on purpose: the
+ * same box, the same required sentence, the same append-only record.
+ *
+ * *Where it turned up* is as much an audit fact as *why it went*. Until
+ * handoff 31 the only way back was Edit → State → Active, a PATCH, which has
+ * nowhere to put a sentence — an asset reappeared having recorded nothing
+ * about the most interesting event in its life. `POST /assets/<id>/mark-found`
+ * requires the reason and writes it to the asset's `status_changed` event,
+ * beside the one that says why it went missing.
+ *
+ * It sets the state to Active and does NOT verify the asset, and the
+ * description says so: whoever found it may not be whoever checks it, and a
+ * person who assumed otherwise would leave it unverified believing it was.
+ *
+ * Offered on a missing asset and on nothing else (`AssetDetail`). If this
+ * copy of the asset is stale and it is no longer missing, the server answers
+ * 409 and its sentence is printed here.
+ */
+export function MarkFoundDialog({ assetId, open, onOpenChange }: CondemnProps) {
+  const qc = useQueryClient();
+  const [reason, setReason] = useState("");
+
+  const mutation = useMutation({
+    mutationFn: () => markAssetFound(assetId, reason.trim()),
+    onSuccess: () => {
+      invalidateAssetQueries(qc, assetId);
+      setOpen(false, true);
+    },
+    // 409: it is not missing any more — somebody else found it, or disposed of
+    // it. Either way this page is stale. See `CondemnAssetDialog`.
+    onError: (e) => {
+      if ((e as CadraApiError).status === 409) invalidateAssetQueries(qc, assetId);
+    },
+  });
+  const err = mutation.error as CadraApiError | null;
+
+  // Reset on every close — see `AssetMoveDialog`, including why the success
+  // handler passes `done`: without it this dialog would stay open after a
+  // successful save, as all four did for one build.
+  const setOpen = (next: boolean, done = false) => {
+    if (!next && mutation.isPending && !done) return;
+    if (!next) {
+      setReason("");
+      mutation.reset();
+    }
+    onOpenChange(next);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => setOpen(next)}>
+      <DialogContent className="sm:max-w-md" data-testid="dialog-mark-found">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+            <SearchCheck size={16} /> Mark asset as found
+          </DialogTitle>
+          <DialogDescription>
+            Sets this asset's state back to Active. What you write here is kept in the asset's history with your name and the time, beside the reason it went missing, and cannot be edited or deleted afterwards. This does not verify the asset — use Mark verified once somebody has checked it.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <div>
+            <label
+              htmlFor="mark-found-reason"
+              className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide"
+            >
+              Where did it turn up?
+            </label>
+            <textarea
+              id="mark-found-reason"
+              rows={3}
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              className="mt-1.5 w-full px-3 py-2 text-xs border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              placeholder="Required — where it was found, who found it, what state it was in"
+              data-testid="input-found-reason"
+            />
+          </div>
+          {err && (
+            <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-xl p-3" data-testid="mark-found-error">
+              <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+              <ApiErrorMessage err={err} />
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={!reason.trim() || mutation.isPending}
+            onClick={() => mutation.mutate()}
+            data-testid="button-confirm-found"
+            className={cn(
+              "px-3 py-1.5 text-xs font-semibold rounded-xl",
+              reason.trim() && !mutation.isPending
+                ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                : "bg-muted text-muted-foreground cursor-not-allowed",
+            )}
+          >
+            {mutation.isPending ? <Loader2 size={12} className="animate-spin" /> : "Mark as found"}
           </button>
         </DialogFooter>
       </DialogContent>

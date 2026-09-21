@@ -14,7 +14,8 @@ and a reader has to be able to see that without knowing to ask.
 """
 import pytest
 
-from .conftest import assert_envelope_err, assert_envelope_ok
+from .conftest import (assert_envelope_err, assert_envelope_ok,
+                       assert_fields_refused)
 
 _GRADES = ["append_only", "system_stamp", "guarded_record",
            "editable_record", "chatter"]
@@ -336,12 +337,21 @@ def test_a_second_verification_on_one_day_is_not_invisible(
 
 
 def test_a_client_cannot_name_its_own_verifier(client, test_location):
+    """`last_verified_by` is written by `POST /assets/<id>/verify` and by
+    nothing a caller sends. Refused — a 400 since handoff 31, where it was a
+    200 that dropped the name and wrote the `notes` beside it. A caller that
+    believed it had named a verifier is now told it has not, and the note
+    that travelled with the claim is not left on the asset as though the
+    request had half-succeeded."""
     asset = _new_asset(client, test_location, "pytest-history-verify-claim")
     r = client.patch(f"/api/v1/assets/{asset['id']}",
                      json={"last_verified_by": 1, "notes": "claim"})
-    data = assert_envelope_ok(r)["data"]
-    assert data["last_verified_by"] is None
-    assert "last_verified_by" in data["_warnings"]["rejected_fields"]
+    assert_fields_refused(r, "last_verified_by")
+    after = assert_envelope_ok(
+        client.get(f"/api/v1/assets/{asset['id']}"))["data"]
+    assert after["last_verified_by"] is None
+    assert after["notes"] == asset["notes"], (
+        "the request was refused and its writable half was written anyway")
 
 
 def test_a_changed_grn_reference_is_recorded_where_nobody_can_alter_it(

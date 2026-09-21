@@ -45,7 +45,7 @@ WHAT IT REFUSES, AND WHY EACH ONE IS NOT NEGOTIABLE
 ----------------------------------------------------
 **An asset carrying ANY chain-of-custody row is not removable at all.**
 `nrs.asset.custody.asset_id` is declared `ondelete='restrict'`
-(`myservice_asset_register/models/asset_custody.py:93`, with a comment saying
+(`myservice_asset_register/models/asset_custody.py`, on `asset_id`, with a comment saying
 "NOT cascade" in as many words) and `nrs.asset.custody.unlink()` raises
 unconditionally. The first cut of this script asserted the opposite — that
 Odoo "will happily ON DELETE CASCADE a fixture asset's custody rows out of

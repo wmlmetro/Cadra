@@ -243,6 +243,11 @@ class TestTheEventSourceIsTruthful(EventCase):
         asset.action_mark_missing()
         self.assertEqual(self._events(asset).source, "action")
 
+    def test_the_found_button_is_labelled_action_too(self):
+        asset = self._asset(state="missing")
+        asset.action_mark_found()
+        self.assertEqual(self._events(asset).source, "action")
+
     def test_a_route_that_has_said_so_is_left_standing(self):
         """`POST /assets/<id>/mark-missing` declares itself before it calls
         the button; the button must not relabel it `action`."""
@@ -685,6 +690,12 @@ class TestDisposedIsTerminal(EventCase):
     """
 
     def _disposed(self, **vals):
+        """Disposed of by a BARE WRITE, on purpose: the rule is in
+        `nrs.asset.write` and has to hold for an asset that got here by any
+        door. Since handoff 31 that write also stamps the disposal — a date
+        and `decommissioned` — so this fixture is dated, which nothing in
+        this class depends on either way. The stamp's own tests are
+        `TestADisposalIsStampedThroughAnyDoor`."""
         asset = self._asset(location_id=self.room.id,
                             custodian_id=self.alice.id, **vals)
         asset.write({"state": "disposed"})
@@ -923,6 +934,75 @@ class TestDisposedIsTerminal(EventCase):
         self.assertEqual(found.to_value, "active")
         self.assertEqual(found.reason, "found in the annex")
 
+    def test_marking_found_carries_where_it_turned_up(self):
+        """Handoff 31 §C3. The bare write above still works and still
+        records a change with whatever reason the context happened to
+        carry; `action_mark_found` is the door that takes the sentence as
+        an argument, as `action_mark_missing` does for why it went."""
+        asset = self._asset()
+        asset.action_mark_missing(reason="not in the store")
+        asset.action_mark_found(reason="in the annex, tag intact")
+        self.assertEqual(asset.state, "active")
+        self.assertEqual(
+            [(e.from_value, e.to_value, e.reason, e.source)
+             for e in self._events(asset, "status_changed")],
+            [("active", "missing", "not in the store", "action"),
+             ("missing", "active", "in the annex, tag intact", "action")])
+        found = self._events(asset)[-1]
+        self.assertEqual(found.actor_id, self.env.user)
+
+    def test_marking_found_without_a_reason_still_records_the_change(self):
+        """The Odoo button asks for none (GO-LIVE §15.3). The change is the
+        fact; a reason nobody gave is not invented."""
+        asset = self._asset(state="missing")
+        asset.action_mark_found()
+        self.assertEqual(asset.state, "active")
+        self.assertFalse(self._events(asset).reason)
+
+    def test_marking_found_does_not_verify_the_asset(self):
+        """Whoever found it may not be whoever checks it."""
+        asset = self._asset(state="missing")
+        asset.action_mark_found(reason="turned up")
+        self.assertFalse(asset.last_verified_date)
+        self.assertFalse(asset.last_verified_by)
+        self.assertFalse(self._events(asset, "verified"))
+
+    def test_marking_found_acts_only_on_what_is_missing(self):
+        """The route answers 409 before it gets here; this is the same
+        answer for the ORM and the Odoo button. Every status that is not
+        `missing` is left exactly as it was, with no event — and for
+        `disposed` that is the terminal rule's tenth door: `mark found`
+        writes `active`, and must not be a way out."""
+        for state in ("active", "in_repair", "transferred", "disposed"):
+            with self.subTest(state=state):
+                asset = self._asset()
+                if state != "active":
+                    asset.write({"state": state})
+                events = len(self._events(asset))
+                asset.action_mark_found(reason="it was never lost")
+                self.assertEqual(asset.state, state)
+                self.assertEqual(len(self._events(asset)), events)
+
+    def test_marking_a_mixed_set_found_touches_only_the_missing_one(self):
+        """A list view selects across statuses. The live asset beside the
+        missing one must not collect an event saying it was found."""
+        missing = self._asset(state="missing")
+        live = self._asset()
+        (missing | live).action_mark_found(reason="found in the recount")
+        self.assertEqual(missing.state, "active")
+        self.assertEqual(self._events(missing).reason,
+                         "found in the recount")
+        self.assertFalse(self._events(live))
+
+    def test_a_route_that_found_it_is_left_standing(self):
+        """`POST /assets/<id>/mark-found` declares itself before it calls
+        the button; the button must not relabel it `action`."""
+        asset = self._asset(state="missing")
+        asset.with_context(
+            cadra_event_source="api_mark_found").action_mark_found(
+                reason="found")
+        self.assertEqual(self._events(asset).source, "api_mark_found")
+
     def test_a_missing_asset_can_be_moved_and_handed_over(self):
         asset = self._asset(location_id=self.room.id,
                             custodian_id=self.alice.id)
@@ -1042,3 +1122,116 @@ class TestDisposedIsTerminal(EventCase):
         self.assertEqual(asset.disposal_reason, "the reason at the time")
         self.assertEqual(len(self._events(asset)), events)
 
+
+@tagged("post_install", "-at_install")
+class TestADisposalIsStampedThroughAnyDoor(EventCase):
+    """Handoff 31 §C1. A disposal gets its date and its condition whichever
+    way it arrives.
+
+    Until then only `action_condemn` did this, in two overrides — one here
+    and one in `myservice_asset_depreciation` — and `/condemn` being the
+    proper door did not close the others: a PATCH of `state`, the Odoo form
+    and the shell all disposed of an asset and stamped nothing, which is how
+    the disposal report came to raise `no_disposal_date` against disposals
+    made last week. `nrs.asset._stamp_disposal` is in `nrs.asset.write`,
+    beside the recorders and for their reason. These go through a BARE
+    write, because that is the door that used to be open; the button's own
+    stamp is `test_condemning_records_one_event_naming_who_and_why`.
+    """
+
+    def test_a_bare_write_into_disposed_is_dated_and_decommissioned(self):
+        asset = self._asset(condition="fair")
+        # 00:30 on 2 March in Lagos, and still 1 March in UTC — which is
+        # what `context_today` answers for a user with no timezone, and
+        # every API credential's user has none.
+        with freeze_time("2031-03-01 23:30:00"):
+            asset.write({"state": "disposed"})
+        self.assertEqual(asset.state, "disposed")
+        self.assertEqual(asset.condition, "decommissioned")
+        self.assertEqual(asset.disposal_date, date(2031, 3, 2),
+                         "a Lagos day, the one the register snapshot cuts on")
+
+    def test_a_condition_sent_with_the_disposal_does_not_survive_it(self):
+        """`decommissioned` is what disposed MEANS here. A disposed asset in
+        `good` condition is how the condition tiles came to count things
+        that are gone."""
+        asset = self._asset(condition="good")
+        asset.write({"state": "disposed", "condition": "good"})
+        self.assertEqual(asset.condition, "decommissioned")
+
+    def test_a_date_the_writer_supplied_is_kept(self):
+        """An integration carrying a disposal made elsewhere knows when it
+        happened, and this does not."""
+        asset = self._asset()
+        with freeze_time("2031-03-01 23:30:00"):
+            asset.write({"state": "disposed",
+                         "disposal_date": "2026-01-31"})
+        self.assertEqual(asset.disposal_date, date(2026, 1, 31))
+        self.assertEqual(asset.condition, "decommissioned")
+
+    def test_a_date_already_on_the_asset_is_kept(self):
+        """Paperwork written up BEFORE the act — the date was agreed at the
+        board of survey, and the status follows a week later."""
+        asset = self._asset(disposal_date="2026-01-31")
+        with freeze_time("2031-03-01 23:30:00"):
+            asset.write({"state": "disposed"})
+        self.assertEqual(asset.disposal_date, date(2026, 1, 31))
+
+    def test_an_asset_registered_as_already_disposed_gets_no_date(self):
+        """NOT on `create`, deliberately. It was disposed of on some earlier
+        day this system never saw; stamping today would replace a finding
+        the disposal report can show — no date — with a date that is wrong,
+        which it cannot. `test_disposal_report.py` depends on this for its
+        unplaceable row."""
+        with freeze_time("2031-03-01 23:30:00"):
+            asset = self._asset(state="disposed", condition="poor")
+        self.assertEqual(asset.state, "disposed")
+        self.assertFalse(asset.disposal_date)
+        self.assertEqual(asset.condition, "poor",
+                         "the stamp is the write's; a create is a "
+                         "registration and is left as it was sent")
+
+    def test_the_stamp_is_not_a_second_event(self):
+        """The stamp re-enters `write` with a condition and a date. Neither
+        is a status, so the one change of status is still ONE event — and
+        it still carries the reason and the source of the write that caused
+        it, not of the stamp that followed."""
+        asset = self._asset()
+        asset.with_context(
+            cadra_event_source="api_write",
+            cadra_event_reason="written off").write({"state": "disposed"})
+        events = self._events(asset)
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events.event_type, "status_changed")
+        self.assertEqual((events.from_value, events.to_value),
+                         ("active", "disposed"))
+        self.assertEqual(events.reason, "written off")
+        self.assertEqual(events.source, "api_write")
+
+    def test_a_multi_record_write_stamps_each_asset_that_was_disposed(self):
+        """…and leaves the one that already was alone: its date is the day
+        it was disposed of, not the day somebody re-sent its status."""
+        already = self._asset()
+        already.write({"state": "disposed", "disposal_date": "2026-01-31"})
+        fresh = self._asset()
+        other = self._asset(state="missing")
+        with freeze_time("2031-03-01 23:30:00"):
+            (already | fresh | other).write({"state": "disposed"})
+        self.assertEqual(already.disposal_date, date(2026, 1, 31))
+        self.assertEqual(fresh.disposal_date, date(2031, 3, 2))
+        self.assertEqual(other.disposal_date, date(2031, 3, 2))
+        self.assertEqual(
+            (fresh | other | already).mapped("condition"),
+            ["decommissioned"] * 3)
+
+    def test_resending_disposed_to_an_undated_disposal_does_not_date_it(self):
+        """The stamp belongs to the CHANGE into `disposed`. A legacy row —
+        disposed, no date — whose status is re-sent by the app's edit form
+        must not acquire today's date on the way: that would turn a finding
+        into a wrong answer, one save at a time."""
+        asset = self._asset(state="disposed")
+        self.assertFalse(asset.disposal_date)
+        with freeze_time("2031-03-01 23:30:00"):
+            asset.write({"state": "disposed", "notes": "saved from the form"})
+        self.assertFalse(asset.disposal_date)
+        self.assertEqual(asset.notes, "saved from the form")

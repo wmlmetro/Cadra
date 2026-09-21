@@ -1,9 +1,25 @@
 /**
- * Service Desk request create/edit form. Mirrors _WRITABLE_FIELDS in
- * myservice_api/controllers/v1_requests.py.
+ * Service Desk request create/edit form. Sends a subset of `_WRITABLE_FIELDS`
+ * in myservice_api/controllers/v1_requests.py — see `RequestWriteBody`.
  *
  * type_id / category_id pickers stay as raw FK ids until the API exposes
  * request.type and request.category list endpoints (backend gap).
+ *
+ * THE LOCATION PICKER, and what it did for the life of this app: nothing.
+ * It has always been here and has always sent `location_id`. The API asked
+ * `request.request` for a field of that name, which is what it was called on
+ * Odoo 15; on the Odoo 19 stack the model's field is `generic_location_id`.
+ * The route's filter refuses an allow-listed key the model lacks, so every
+ * request raised with a location answered 201 and was saved WITHOUT it — of
+ * the first 100 requests on `test19`, none had one — silently until handoff
+ * 30 and with a warning for the one handoff after it. Handoff 31 made that
+ * key a 400, which is what exposed it: the same Save failed outright. The
+ * first reading of that was wrong — the picker was taken out, on the ground
+ * that the register had never kept a request's location. It had never been
+ * ASKED to, under the right name. The API was fixed instead
+ * (`_location_field` in v1_requests.py translates the published key onto the
+ * model's field, publishes `data.location` and filters on `?location_id=`),
+ * and the picker is back, now hydrated on edit from what was saved.
  */
 import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
@@ -17,6 +33,7 @@ import { ENUM_DEFAULT } from "@/lib/enums";
 import type { ApiLocation } from "@/lib/adapters";
 import { ArrowLeft, AlertCircle, Loader2, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ApiErrorMessage } from "@/components/ApiErrorMessage";
 
 interface ApiAssetRef { id: number; name: string; tag: string | null }
 interface ApiEmployeeRef { id: number; name: string; ir_number: string | null }
@@ -151,11 +168,16 @@ export default function RequestForm({ mode }: { mode: "create" | "edit" }) {
         response_text: r.responseText ?? "",
         deadline_date: r.deadline ?? "",
         user_id: r.assignee?.id ?? null,
-        location_id: null,
+        // Hydrated since handoff 31. It was reset to null on every edit —
+        // harmless while nothing was ever saved to read back, and the moment
+        // the API began keeping it, a form that showed an empty Location for
+        // a request that has one.
+        location_id: r.location?.id ?? null,
         vehicle_id: "",
         nrs_asset_id: null,
       });
       if (r.assignee) setUserPick({ id: r.assignee.id, label: r.assignee.name });
+      if (r.location) setLocPick({ id: r.location.id, label: r.location.name });
       setTitle(`Edit · ${r.reference}`);
     }
     setSearchHandler(undefined);
@@ -214,10 +236,9 @@ export default function RequestForm({ mode }: { mode: "create" | "edit" }) {
       {err && (
         <div className="bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-2xl p-4 flex items-start gap-3">
           <AlertCircle size={16} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-[13px] font-semibold text-red-700 dark:text-red-400">{err.code}</p>
-            <p className="text-[12px] text-red-700 dark:text-red-400 mt-0.5">{err.message}</p>
-          </div>
+          {/* Which fields, in words, when the save was refused for naming one
+              the API does not accept — see ApiErrorMessage. */}
+          <ApiErrorMessage err={err} stacked />
         </div>
       )}
 
@@ -238,11 +259,14 @@ export default function RequestForm({ mode }: { mode: "create" | "edit" }) {
         <Field label="Deadline">
           <input className={inputCls} type="date" value={form.deadline_date} onChange={e => set("deadline_date", e.target.value)} />
         </Field>
+        {/* 1–3, not the "1–4" these two said until handoff 31: both are
+            Selections of Low / Medium / High on `request.request`, and a 4 is
+            refused by the server as not a member. Read from the model. */}
         <Field label="Impact">
-          <input className={inputCls} value={form.impact} onChange={e => set("impact", e.target.value)} placeholder="1–4" />
+          <input className={inputCls} value={form.impact} onChange={e => set("impact", e.target.value)} placeholder="1–3 (Low, Medium, High)" />
         </Field>
         <Field label="Urgency">
-          <input className={inputCls} value={form.urgency} onChange={e => set("urgency", e.target.value)} placeholder="1–4" />
+          <input className={inputCls} value={form.urgency} onChange={e => set("urgency", e.target.value)} placeholder="1–3 (Low, Medium, High)" />
         </Field>
       </Section>
 

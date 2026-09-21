@@ -230,7 +230,6 @@ def test_has_deadline_partitions_a_register_that_actually_has_both(
             "category_id": 5,
             "priority": "2",
             "request_text": "<p>pytest has_deadline partition</p>",
-            "location_id": test_location["id"],
             "nrs_asset_id": test_asset["id"],
         }
         if deadline:

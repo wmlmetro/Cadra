@@ -13,14 +13,15 @@ from odoo import http
 from odoo.http import request
 
 from .utils import (
-    ERR_INVALID_REQUEST,
     ERR_CONFLICT,
+    ERR_INVALID_REQUEST,
     ERR_NOT_FOUND,
     SCOPE_ASSETS_READ,
     SCOPE_SETTINGS_WRITE,
     err,
     get_params,
     ok,
+    refuse_unwritable,
 )
 from .v1 import cadra_route
 
@@ -126,10 +127,11 @@ class CadraConfigV1(http.Controller):
         body = get_params()
         vals = {k: v for k, v in body.items() if k in _CATEGORY_WRITABLE}
         rejected = [k for k in body if k not in _CATEGORY_WRITABLE]
+        if rejected:
+            return refuse_unwritable(rejected, _CATEGORY_WRITABLE)
         if not vals:
             return err(ERR_INVALID_REQUEST, "No writable fields supplied",
-                       details={"rejected_fields": rejected,
-                                "writable": sorted(_CATEGORY_WRITABLE)})
+                       details={"writable": sorted(_CATEGORY_WRITABLE)})
 
         if vals.get("domain") and vals["domain"] not in _FM_DOMAINS:
             # Handoff 25 C2. Every other refusal in this API publishes the
@@ -159,8 +161,6 @@ class CadraConfigV1(http.Controller):
 
         data = _serialize_category(cat)
         data["assets_recomputed"] = len(assets)
-        if rejected:
-            data["_warnings"] = {"rejected_fields": rejected}
         return data
 
     @cadra_route("/api/v1/asset-categories", method="POST",
@@ -185,6 +185,16 @@ class CadraConfigV1(http.Controller):
                                   "domain": "other", "pm_interval_days": 180})
     def create_category(self, **kwargs):
         body = get_params()
+        # THE ELEVENTH ROUTE. Handoff 31 counted ten routes that dropped a
+        # field they did not accept, by searching for the ones that REPORTED
+        # it in `_warnings`. This one dropped fields and reported nothing, so
+        # that search could not see it: `{"name": "X", "method":
+        # "straight_line"}` answered 201 and set no policy — the depreciation
+        # bug that justified the ruling, at the one door the ruling missed.
+        # Found by the test author, reading the file.
+        rejected = [k for k in body if k not in _CATEGORY_WRITABLE]
+        if rejected:
+            return refuse_unwritable(rejected, _CATEGORY_WRITABLE)
         name = (body.get("name") or "").strip()
         if not name:
             return err(ERR_INVALID_REQUEST, "`name` is required")
@@ -302,10 +312,11 @@ class CadraConfigV1(http.Controller):
         allowed = {"name"} | set(self._BRAND_PARAMS)
         vals = {k: v for k, v in body.items() if k in allowed}
         rejected = [k for k in body if k not in allowed]
+        if rejected:
+            return refuse_unwritable(rejected, allowed)
         if not vals:
             return err(ERR_INVALID_REQUEST, "No writable branding fields supplied",
-                       details={"rejected_fields": rejected,
-                                "writable": sorted(allowed)})
+                       details={"writable": sorted(allowed)})
 
         for key in ("primary", "primary_dark"):
             colour = (vals.get(key) or "").strip()
@@ -331,6 +342,16 @@ class CadraConfigV1(http.Controller):
                            details={"allowed_values": list(self._ALLOWED_LOGO_PREFIXES),
                                     "allowed": list(self._ALLOWED_LOGO_PREFIXES)})
 
+        # EVERY refusal before ANY write. The blank-name check used to sit
+        # below the `set_param` loop, so `{"primary": "#123456", "name": " "}`
+        # wrote the colour and THEN answered 400 — and `err()` returns a
+        # response, it does not roll back. The rule handoff 31's 400 states
+        # ("nothing was written") was already broken here by a different
+        # refusal; found by the verification pass, which was asked to look
+        # for a route that validates after it writes.
+        if "name" in vals and not (vals["name"] or "").strip():
+            return err(ERR_INVALID_REQUEST, "`name` cannot be blank")
+
         env = request.env
         icp = env["ir.config_parameter"].sudo()
         for field, key in self._BRAND_PARAMS.items():
@@ -339,18 +360,13 @@ class CadraConfigV1(http.Controller):
 
         if "name" in vals:
             name = (vals["name"] or "").strip()
-            if not name:
-                return err(ERR_INVALID_REQUEST, "`name` cannot be blank")
             # This renames the company record, which is what /api/v1/brand
             # reports as the tenant name.
             company = env["res.company"].sudo().search([], limit=1)
             if company:
                 company.name = name
 
-        data = self._branding_payload()
-        if rejected:
-            data["_warnings"] = {"rejected_fields": rejected}
-        return data
+        return self._branding_payload()
 
     # ── Depreciation settings ──────────────────────────────────────
 
@@ -380,15 +396,13 @@ class CadraConfigV1(http.Controller):
         body = get_params()
         vals = {k: v for k, v in body.items() if k in _SETTINGS_WRITABLE}
         rejected = [k for k in body if k not in _SETTINGS_WRITABLE]
+        if rejected:
+            return refuse_unwritable(rejected, _SETTINGS_WRITABLE)
         if not vals:
             return err(ERR_INVALID_REQUEST, "No writable settings supplied",
-                       details={"rejected_fields": rejected,
-                                "writable": sorted(_SETTINGS_WRITABLE)})
+                       details={"writable": sorted(_SETTINGS_WRITABLE)})
 
-        data = request.env["cadra.depreciation.settings"].sudo().set_settings(vals)
-        if rejected:
-            data["_warnings"] = {"rejected_fields": rejected}
-        return data
+        return request.env["cadra.depreciation.settings"].sudo().set_settings(vals)
 
     @cadra_route("/api/v1/settings/depreciation/recompute", method="POST",
                  summary="Recompute book values across the register",

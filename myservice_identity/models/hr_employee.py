@@ -68,11 +68,19 @@ class HrEmployee(models.Model):
         for emp in self:
             emp.asset_count = len(emp.nrs_asset_ids)
 
-    @api.depends('nrs_asset_ids', 'nrs_asset_ids.retrieval_flag')
+    @api.depends('nrs_asset_ids', 'nrs_asset_ids.retrieval_flag',
+                 'nrs_asset_ids.state')
     def _compute_has_pending_retrieval(self):
+        # A DISPOSED asset is not outstanding (handoff 31 §C4). It left the
+        # estate; there is nothing to hand back. And since handoff 30 it
+        # could never be cleared either: *Mark retrieved* clears the
+        # custodian, which the register refuses on a disposed asset — so an
+        # asset flagged and THEN disposed would have held a leaver's
+        # clearance open for ever.
         for emp in self:
             emp.has_pending_retrieval = any(
-                a.retrieval_flag for a in emp.nrs_asset_ids
+                a.retrieval_flag and a.state != 'disposed'
+                for a in emp.nrs_asset_ids
             )
 
     @api.constrains('ir_number')
@@ -102,7 +110,9 @@ class HrEmployee(models.Model):
 
     def action_flag_retrieval(self):
         """Flag all assets for retrieval when employee exits."""
-        assets = self.nrs_asset_ids.filtered(lambda a: not a.retrieval_flag)
+        # Not the disposed ones — see `_compute_has_pending_retrieval`.
+        assets = self.nrs_asset_ids.filtered(
+            lambda a: not a.retrieval_flag and a.state != 'disposed')
         assets.write({
             'retrieval_flag': True,
             'retrieval_reason': 'employee_exit',

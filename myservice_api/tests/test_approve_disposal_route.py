@@ -237,20 +237,47 @@ class TestApproveDisposalRoute(CadraHttpCase):
         asset.invalidate_recordset()
         self.assertFalse(asset.disposal_approved_by)
 
-    def test_an_unknown_key_is_reported_rather_than_silently_dropped(self):
-        """Not every unrecognised key is refused — only the ones that claim
-        an approver. The rest follow the contract PATCH already publishes:
-        reported in `_warnings.rejected_fields`, because a key this route
-        does not read is a caller misunderstanding and it is told so."""
+    def test_an_unknown_key_is_refused_and_records_no_approval(self):
+        """This route reads NO body, so ANY key is a caller misunderstanding.
+
+        Until handoff 31 only the keys that claimed an approver were
+        refused. Everything else followed the contract PATCH published
+        then: a 200, the approval RECORDED, and the unread key named in
+        `data._warnings.rejected_fields`. That is the worst place in this
+        API for the lenient answer — an approval is a one-time act under
+        the caller's own name, so a caller that believed `{"colour":
+        "blue"}` shaped it had authorised a disposal on a misreading, and
+        the second call that would have corrected it is a 409.
+
+        `writable == []` and not a missing key: the repair a caller makes
+        from this response is to send nothing, and an empty list says so.
+
+        The second half is the part that matters, as it is one test up: the
+        asset must still be approvable, which is what proves the refused
+        call recorded nothing.
+        """
         token = self._token()
         asset = self._disposed_asset()
 
         r = self._approve(token, asset, {"colour": "blue"})
-        self.assertEqual(r.status_code, 200, r.text)
-        self.assertIn(
-            "colour",
-            r.json()["data"]["_warnings"]["rejected_fields"],
-            "an unread key was accepted in silence")
+        self.assertEqual(r.status_code, 400, r.text)
+        body = r.json()
+        self.assertNotIn("data", body,
+                         "a refusal that also carries the approval")
+        error = body["error"]
+        self.assertEqual(error["code"], "invalid_request")
+        self.assertEqual(error["details"]["rejected_fields"], ["colour"])
+        self.assertEqual(error["details"]["writable"], [])
+
+        asset.invalidate_recordset()
+        self.assertFalse(asset.disposal_approved_by,
+                         "the refused call recorded an approver anyway")
+        self.assertFalse(asset.disposal_approved_date,
+                         "the refused call recorded an approval date anyway")
+
+        self.assertEqual(self._approve(token, asset).status_code, 200)
+        asset.invalidate_recordset()
+        self.assertEqual(asset.disposal_approved_by, self.client_rec.user_id)
 
     def test_a_client_without_the_scope_is_refused(self):
         """The second half of the criterion, proved with a REAL credential

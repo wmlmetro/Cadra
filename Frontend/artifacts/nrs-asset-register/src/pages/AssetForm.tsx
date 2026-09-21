@@ -30,6 +30,7 @@ import { ArrowLeft, AlertCircle, Loader2, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEnum } from "@/hooks/useEnums";
 import { ENUM_DEFAULT, withCurrent } from "@/lib/enums";
+import { ApiErrorMessage } from "@/components/ApiErrorMessage";
 
 
 type FormShape = {
@@ -58,8 +59,11 @@ type FormShape = {
   // them, and until handoff 30 it hydrated all three from
   // `location_hierarchy` and sent them back on every save — three fields the
   // user never saw, echoed into every PATCH. They left `_WRITABLE_FIELDS` in
-  // that handoff, so the echo would now have raised "these fields were not
-  // accepted" on every edit of every located asset.
+  // that handoff, where the echo would have raised a warning on every edit of
+  // every located asset. Since handoff 31 it would do worse: a key the route
+  // does not accept is a 400, so every such edit would save nothing at all.
+  // e2e/tests/18-rejected-fields.spec.ts holds this form's body to the live
+  // allow-list for that reason.
   location_id: number | null;
   custodian_id: number | null;
   maintenance_vendor_id: number | null;
@@ -111,14 +115,14 @@ function toBody(f: FormShape, terminal = false): AssetWriteBody {
   // `asset_tag` is NOT sent, on create or on edit. The server leaves it out of
   // `_WRITABLE_FIELDS` on purpose (`v1_assets.py`: a client able to write it
   // can walk the record away from the sticker on the asset), and both POST and
-  // PATCH run the body through the same `_filter_writable`. So it was dropped
-  // and named in `_warnings.rejected_fields`, which at the time NOTHING read:
-  // typing a tag gave a 200, no change and no message. Since handoff 30 every
-  // write's `_warnings` are shown to the user (`sendMutation` in lib/api.ts),
-  // so sending it would no longer be silent — it would be a warning about a
-  // field the user was never able to type. Still not sent. Cadra mints the
-  // tag itself when the asset is created; the input below is read-only and
-  // says so.
+  // PATCH run the body through the same `_filter_writable`. It used to be
+  // dropped and named in `_warnings.rejected_fields`, which at the time
+  // NOTHING read: typing a tag gave a 200, no change and no message. Since
+  // handoff 31 sending it would be a 400 that refuses the WHOLE save, over a
+  // field the user was never able to type — and `AssetWriteBody` no longer
+  // declares it, so this function could not send it if it tried. Cadra mints
+  // the tag itself when the asset is created; the input below is read-only
+  // and says so.
   assignIfSet("legacy_asset_code", f.legacy_asset_code);
   assignIfSet("serial_number", f.serial_number);
   assignIfSet("make", f.make);
@@ -376,10 +380,9 @@ export default function AssetForm({ mode }: Props) {
       {err && (
         <div className="bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-2xl p-4 flex items-start gap-3">
           <AlertCircle size={16} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-[13px] font-semibold text-red-700 dark:text-red-400">{err.code}</p>
-            <p className="text-[12px] text-red-700 dark:text-red-400 mt-0.5">{err.message}</p>
-          </div>
+          {/* Which fields, in words, when the save was refused for naming one
+              the API does not accept — see ApiErrorMessage. */}
+          <ApiErrorMessage err={err} stacked />
         </div>
       )}
 
@@ -513,12 +516,17 @@ export default function AssetForm({ mode }: Props) {
               .filter(o => !isDisposed || o.value === form.state)
               // Editing a LIVE asset does not offer "Disposed". Since handoff
               // 30 disposal is terminal, so this option had become a one-way
-              // door in a dropdown: no confirmation, no reason, and — because
-              // a PATCH stamps nothing — no disposal date. Until that day a
+              // door in a dropdown: no confirmation and no reason. (It also
+              // left no disposal date, a PATCH being a plain write; since
+              // handoff 31 the model dates a disposal and sets the condition
+              // through ANY door — `_stamp_disposal` — so that half is cured
+              // on the server. The missing reason and the mis-click are not,
+              // and they are why this stays off.) Until handoff 30 a
               // mis-click was undone from this same select. Disposal has a
-              // door of its own, Condemn, which asks why and lets the server
-              // date it. Registering an asset that is ALREADY gone is a
-              // different act and is still offered on create.
+              // door of its own, Condemn, which asks why. Registering an
+              // asset that is ALREADY gone is a different act and is still
+              // offered on create — where the model stamps no date, because
+              // it was not disposed of today.
               .filter(o => mode !== "edit" || isDisposed || o.value !== "disposed")
               .map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>

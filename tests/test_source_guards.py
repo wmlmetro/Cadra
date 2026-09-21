@@ -4724,25 +4724,32 @@ def _models_carrying_the_mixin():
 #: a script cite it by name.
 ALREADY_LABELLED = {
     "nrs.asset.custody":
-        "`source = 'test'`, derived in myservice_api/models/asset_custody.py "
+        "`source = 'test'`, derived in myservice_api/models/append_only.py "
         "from the same credential flag. 352 rows on jaizbankplc self-label "
-        "because of it — this is the mechanism the mixin generalises.",
+        "because of it — this is the mechanism the mixin generalises. Until "
+        "handoff 31 the derivation was an override on THIS model, in "
+        "myservice_api/models/asset_custody.py; it is now the one on "
+        "`nrs.asset.append.only.mixin`, which custody inherits, and "
+        "`test_the_three_records_inherit_the_label_they_are_listed_for` "
+        "holds every link of that.",
     "nrs.asset.movement":
-        "`source = 'test'`, derived in myservice_api/models/asset_movement.py "
+        "`source = 'test'`, derived in myservice_api/models/append_only.py "
         "from the same credential flag and by the same one derivation on "
         "`myservice.api.client` — custody's mechanism, for the append-only "
-        "record of where an asset has been (handoff 28). Measured on test19 "
-        "the day it landed: 63 of 63 rows written under the test credential "
-        "say `test`, and the one written by a person logged in says "
-        "`api_move`. tests/test_asset_history.py holds it over HTTP.",
+        "record of where an asset has been (handoff 28; its own override in "
+        "myservice_api/models/asset_movement.py until handoff 31, the "
+        "mixin's since). Measured on test19 the day it landed: 63 of 63 "
+        "rows written under the test credential say `test`, and the one "
+        "written by a person logged in says `api_move`. "
+        "tests/test_asset_history.py holds it over HTTP.",
     "nrs.asset.event":
-        "`source = 'test'`, derived in myservice_api/models/asset_event.py "
-        "from the same credential flag — but on the abstract "
+        "`source = 'test'`, derived in myservice_api/models/append_only.py "
+        "from the same credential flag — on the abstract "
         "`nrs.asset.append.only.mixin` rather than on the model, so that a "
         "fourth append-only record cannot be written without the derivation "
         "(handoff 30). The mixin is abstract and creates nothing itself; "
         "what this entry rests on is that `nrs.asset.event` INHERITS it, "
-        "which `test_the_event_record_inherits_the_label_it_is_listed_for` "
+        "which `test_the_three_records_inherit_the_label_they_are_listed_for` "
         "holds. tests/test_asset_events_api.py holds the label over HTTP.",
 }
 
@@ -4890,9 +4897,24 @@ def test_the_mixin_still_declares_models():
 
 
 _APPEND_ONLY_MIXIN = "nrs.asset.append.only.mixin"
-_EVENT_MODEL_FILE = (REPO_ROOT / "myservice_asset_register" / "models"
-                     / "asset_event.py")
-_EVENT_LABEL_FILE = REPO_ROOT / "myservice_api" / "models" / "asset_event.py"
+_REGISTER_MODELS = REPO_ROOT / "myservice_asset_register" / "models"
+_EVENT_MODEL_FILE = _REGISTER_MODELS / "asset_event.py"
+#: The three records the ONE derivation labels, and the file that declares
+#: each. Until handoff 31 only the event record reached the label through
+#: the mixin; custody and movement each had an override of their own.
+_APPEND_ONLY_MODEL_FILES = {
+    "nrs.asset.custody": _REGISTER_MODELS / "asset_custody.py",
+    "nrs.asset.movement": _REGISTER_MODELS / "asset_movement.py",
+    "nrs.asset.event": _EVENT_MODEL_FILE,
+}
+_APPEND_ONLY_GUARD_FILE = _REGISTER_MODELS / "append_only.py"
+_EVENT_LABEL_FILE = REPO_ROOT / "myservice_api" / "models" / "append_only.py"
+#: The three per-model overrides handoff 31 deleted. One of them coming back
+#: is a second answer to the question the mixin answers.
+_RETIRED_LABEL_FILES = tuple(
+    REPO_ROOT / "myservice_api" / "models" / name
+    for name in ("asset_custody.py", "asset_movement.py", "asset_event.py"))
+_GUARD_METHODS = ("create", "write", "unlink", "_resolve_source")
 
 
 def _class_model_attrs(node):
@@ -4914,56 +4936,113 @@ def _class_model_attrs(node):
     return name, inherits
 
 
-def test_the_event_record_inherits_the_label_it_is_listed_for():
-    """`ALREADY_LABELLED["nrs.asset.event"]` is a claim. This checks it.
+def _own_guard_methods(class_node):
+    """Which of the append-only guard's four methods a class body defines."""
+    return sorted(
+        fn.name for fn in class_node.body
+        if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and fn.name in _GUARD_METHODS)
 
-    Custody and movement each carry their own `_resolve_source` override, on
-    the model, so the entry above names a file and the file names the model.
-    The event record's derivation is one step further away: it sits on an
-    ABSTRACT mixin in `myservice_api`, and reaches `nrs.asset.event` only
-    because that model inherits the mixin in a different module. Three links,
-    any of which can be dropped without anything going red — and then every
-    verification, status change and reference change this suite writes lands
-    on a client-shaped register as `api_verify`, permanently, because the
-    record is append-only and nobody can relabel it afterwards.
+
+def test_the_three_records_inherit_the_label_they_are_listed_for():
+    """Three entries in `ALREADY_LABELLED` are claims. This checks them.
+
+    Until handoff 31 custody and movement each carried their own
+    `_resolve_source` override, on the model, so each entry named a file and
+    the file named the model; only the event record's derivation was a step
+    further away. All three are now: the derivation sits on an ABSTRACT mixin
+    in `myservice_api`, and reaches a record only because that record
+    inherits the mixin in a different module. Three links, any of which can
+    be dropped without anything going red — and then every custody change,
+    move, verification and status change this suite writes lands on a
+    client-shaped register as `api_write`, permanently, because the records
+    are append-only and nobody can relabel them afterwards.
+
+    And ONE derivation means one. A model that grows a `_resolve_source` of
+    its own again sits IN FRONT of the mixin's, and that is exactly how
+    custody came to honour a `source` any caller could claim for twelve days
+    after movement, copied from it, was written without the hole. The same
+    for the three override files handoff 31 deleted. The registry has the
+    acting half of this (`test_append_only_mixin.py`); this is the half that
+    runs with no server.
 
     And the mixin itself must NOT appear as a created model: it is abstract,
     its `create` is a `super()` call, and a guard that started listing it
     would be asking somebody to classify a table that does not exist.
     """
-    for path in (_EVENT_MODEL_FILE, _EVENT_LABEL_FILE):
+    for path in (*_APPEND_ONLY_MODEL_FILES.values(), _APPEND_ONLY_GUARD_FILE,
+                 _EVENT_LABEL_FILE):
         assert path.exists(), (
-            "%s is gone — the `nrs.asset.event` entry in ALREADY_LABELLED is "
-            "citing a file that does not exist" % path.relative_to(REPO_ROOT))
+            "%s is gone — an entry in ALREADY_LABELLED is citing a file that "
+            "does not exist" % path.relative_to(REPO_ROOT))
+    assert sorted(_APPEND_ONLY_MODEL_FILES) == sorted(
+        m for m in ALREADY_LABELLED if m.startswith("nrs.asset.")), (
+        "ALREADY_LABELLED and this guard disagree about which records the "
+        "mixin's derivation labels")
 
-    # 1. the model inherits the guard…
-    tree = ast.parse(_EVENT_MODEL_FILE.read_text(encoding="utf-8"))
-    classes = {name: (node, inherits)
-               for node in tree.body if isinstance(node, ast.ClassDef)
-               for name, inherits in [_class_model_attrs(node)] if name}
-    assert "nrs.asset.event" in classes, (
-        "`nrs.asset.event` is no longer declared in %s"
-        % _EVENT_MODEL_FILE.relative_to(REPO_ROOT))
-    event_class, inherits = classes["nrs.asset.event"]
-    assert _APPEND_ONLY_MIXIN in inherits, (
-        "`nrs.asset.event` does not inherit `%s` (it inherits %s), so the "
-        "`test` derivation in myservice_api never reaches it and its rows "
-        "are labelled by route." % (_APPEND_ONLY_MIXIN, inherits))
+    # 1. each model inherits the guard, and defines none of it again…
+    for model, path in _APPEND_ONLY_MODEL_FILES.items():
+        rel = path.relative_to(REPO_ROOT)
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        classes = {name: (node, inherits)
+                   for node in tree.body if isinstance(node, ast.ClassDef)
+                   for name, inherits in [_class_model_attrs(node)] if name}
+        assert model in classes, (
+            "`%s` is no longer declared in %s" % (model, rel))
+        model_class, inherits = classes[model]
+        assert _APPEND_ONLY_MIXIN in inherits, (
+            "`%s` does not inherit `%s` (it inherits %s), so the `test` "
+            "derivation in myservice_api never reaches it and its rows are "
+            "labelled by route." % (model, _APPEND_ONLY_MIXIN, inherits))
+        own = _own_guard_methods(model_class)
+        assert not own, (
+            "`%s` defines %s itself, in %s. That sits in front of the "
+            "mixin's: a second copy of the append-only guard, and the last "
+            "time there were two, one of them let a caller file a real "
+            "change of custody under `test`." % (model, own, rel))
+        assert ("myservice_api/models/append_only.py"
+                in ALREADY_LABELLED[model]), (
+            "the `%s` entry in ALREADY_LABELLED does not name the file the "
+            "derivation lives in" % model)
 
-    # …and can HOLD the label: a Selection without `test` makes the
-    # derivation a ValueError inside every write the suite makes.
-    source_values = {
-        literal.value
-        for stmt in event_class.body
-        if isinstance(stmt, ast.Assign)
-        and any(isinstance(t, ast.Name) and t.id == "source"
-                for t in stmt.targets)
-        for literal in ast.walk(stmt.value)
-        if isinstance(literal, ast.Constant) and isinstance(literal.value, str)}
-    assert "test" in source_values, (
-        "`nrs.asset.event.source` no longer offers `test`")
+        # …and can HOLD the label: a Selection without `test` makes the
+        # derivation a ValueError inside every write the suite makes.
+        source_values = {
+            literal.value
+            for stmt in model_class.body
+            if isinstance(stmt, ast.Assign)
+            and any(isinstance(t, ast.Name) and t.id == "source"
+                    for t in stmt.targets)
+            for literal in ast.walk(stmt.value)
+            if isinstance(literal, ast.Constant)
+            and isinstance(literal.value, str)}
+        assert "test" in source_values, (
+            "`%s.source` no longer offers `test`" % model)
 
-    # 2. the derivation is on the MIXIN, and says `test`.
+    # …the guard they inherit is declared, and declares all four.
+    tree = ast.parse(_APPEND_ONLY_GUARD_FILE.read_text(encoding="utf-8"))
+    declared = [node for node in tree.body if isinstance(node, ast.ClassDef)
+                and _class_model_attrs(node)[0] == _APPEND_ONLY_MIXIN]
+    assert len(declared) == 1, (
+        "%s declares `%s` %d time(s)" % (
+            _APPEND_ONLY_GUARD_FILE.relative_to(REPO_ROOT),
+            _APPEND_ONLY_MIXIN, len(declared)))
+    assert _own_guard_methods(declared[0]) == sorted(_GUARD_METHODS), (
+        "the mixin no longer defines the whole guard: %s"
+        % _own_guard_methods(declared[0]))
+    register_init = (_REGISTER_MODELS / "__init__.py").read_text(
+        encoding="utf-8")
+    imports = re.findall(r"^from \. import (\w+)", register_init, re.MULTILINE)
+    assert "append_only" in imports, (
+        "myservice_asset_register/models/__init__.py does not import "
+        "`append_only`")
+    for later in ("asset_custody", "asset_movement", "asset_event"):
+        assert imports.index("append_only") < imports.index(later), (
+            "`append_only` is imported after `%s`, which names it in "
+            "`_inherit` — a model cannot be built before the mixin it names"
+            % later)
+
+    # 2. the derivation is on the MIXIN, ONCE, and says `test`.
     tree = ast.parse(_EVENT_LABEL_FILE.read_text(encoding="utf-8"))
     overrides = [
         fn for node in tree.body if isinstance(node, ast.ClassDef)
@@ -4984,13 +5063,34 @@ def test_the_event_record_inherits_the_label_it_is_listed_for():
         encoding="utf-8"), (
         "the label is no longer derived from the ONE statement of what a "
         "test credential is, `myservice.api.client._is_test_credential_user`")
+    back = [path.relative_to(REPO_ROOT).as_posix()
+            for path in _RETIRED_LABEL_FILES if path.exists()]
+    assert not back, (
+        "%s is back. Handoff 31 replaced three per-model overrides with the "
+        "one on the mixin; a per-model file is a second derivation, and "
+        "three were 'supposed to be the same rule and were not the same "
+        "code'." % ", ".join(back))
+    elsewhere = sorted(
+        path.relative_to(REPO_ROOT).as_posix()
+        for path in (REPO_ROOT / "myservice_api" / "models").glob("*.py")
+        if path != _EVENT_LABEL_FILE
+        and re.search(r"def _resolve_source\b",
+                      path.read_text(encoding="utf-8")))
+    assert not elsewhere, (
+        "`_resolve_source` is also defined in %s" % ", ".join(elsewhere))
 
     # 3. the override is actually loaded.
     init = (REPO_ROOT / "myservice_api" / "models" / "__init__.py").read_text(
         encoding="utf-8")
-    assert re.search(r"^from \. import asset_event\b", init, re.MULTILINE), (
-        "myservice_api/models/__init__.py does not import `asset_event`; the "
+    assert re.search(r"^from \. import append_only\b", init, re.MULTILINE), (
+        "myservice_api/models/__init__.py does not import `append_only`; the "
         "override exists and nothing loads it")
+    stale = re.findall(
+        r"^from \. import (asset_custody|asset_movement|asset_event)\b",
+        init, re.MULTILINE)
+    assert not stale, (
+        "myservice_api/models/__init__.py still imports %s, which handoff 31 "
+        "deleted — the module would not load" % stale)
 
     # 4. the abstract mixin is not mistaken for a model somebody can create.
     created, unresolved = _created_models(_EVENT_MODEL_FILE)
@@ -4998,6 +5098,39 @@ def test_the_event_record_inherits_the_label_it_is_listed_for():
         "expected the one create in this file to resolve to the event "
         "record; got %s" % sorted(created))
     assert not unresolved, unresolved
+
+
+def test_the_second_copy_guard_sees_a_second_copy():
+    """The guard above passes today because no model defines the guard
+    again. That is also what it would say if `_own_guard_methods` could not
+    see a method at all — so it is shown the shape custody had until
+    handoff 31, and must name every one of the four."""
+    sample = (
+        "class NRSAssetCustody(models.Model):\n"
+        "    _name = 'nrs.asset.custody'\n"
+        "    _inherit = ['nrs.asset.append.only.mixin']\n"
+        "    @api.model_create_multi\n"
+        "    def create(self, vals_list):\n"
+        "        return super().create(vals_list)\n"
+        "    def write(self, vals):\n"
+        "        raise UserError('no')\n"
+        "    def unlink(self):\n"
+        "        raise UserError('no')\n"
+        "    @api.model\n"
+        "    def _resolve_source(self, declared, user):\n"
+        "        return declared or self.env.context.get('src') or 'direct'\n"
+        "    def _record(self, asset):\n"
+        "        return self.sudo().create({})\n")
+    node = ast.parse(sample).body[0]
+    assert _class_model_attrs(node) == (
+        "nrs.asset.custody", [_APPEND_ONLY_MIXIN])
+    assert _own_guard_methods(node) == sorted(_GUARD_METHODS)
+    clean = ast.parse(
+        "class NRSAssetCustody(models.Model):\n"
+        "    _name = 'nrs.asset.custody'\n"
+        "    def _record(self, asset):\n"
+        "        return self.sudo().create({})\n").body[0]
+    assert _own_guard_methods(clean) == []
 
 
 @pytest.mark.parametrize("label,source,expected", [
@@ -5558,3 +5691,166 @@ def test_a_bare_reference_resolves_only_against_files_this_guard_governs():
     assert target is not None and missing not in _defined_names(target), (
         "the resolver no longer reaches a governed file, so the guard that "
         "reports broken references is asserting on nothing")
+
+
+# ─── a refused field is a 400, not a warning beside a 2xx (handoff 31) ──
+#
+# Until handoff 31 ten write routes answered a body naming a field they do
+# not accept with a 2xx: they wrote the rest and named the dropped keys in
+# `data._warnings.rejected_fields`. They answer 400 now, through ONE helper
+# (`refuse_unwritable` in `myservice_api/controllers/utils.py`), and the old
+# shape is gone. `tests/test_rejected_fields_are_refused.py` holds the ten
+# over HTTP. What it cannot hold is the ELEVENTH — a route written next month
+# by copying a controller from before the change. This does, with no server.
+#
+# `_warnings` itself is not retired: `truncated` on a capped list and
+# `discarded_fields` on a replayed workflow callback are warnings about a
+# request that SUCCEEDED, and stay. And `details={"rejected_fields": …}` on
+# an `err(...)` is the new shape, not the old one. So the guard is an AST
+# walk for the one construction, not a grep for either word.
+
+def _warned_rejections(source):
+    """Line numbers where `rejected_fields` is put under `_warnings`.
+
+    Three spellings, because a route can build the block three ways:
+
+        out["_warnings"] = {"rejected_fields": rejected}
+        return {"id": 1, "_warnings": {"rejected_fields": rejected}}
+        out["_warnings"]["rejected_fields"] = rejected
+    """
+    def const(node, value):
+        return isinstance(node, ast.Constant) and node.value == value
+
+    def names_rejections(node):
+        return isinstance(node, ast.Dict) and any(
+            const(key, "rejected_fields") for key in node.keys)
+
+    def is_warnings_slot(node):
+        return isinstance(node, ast.Subscript) and const(node.slice, "_warnings")
+
+    found = set()
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+            targets = (node.targets if isinstance(node, ast.Assign)
+                       else [node.target])
+            for target in targets:
+                if is_warnings_slot(target) and names_rejections(node.value):
+                    found.add(node.lineno)
+                if (isinstance(target, ast.Subscript)
+                        and const(target.slice, "rejected_fields")
+                        and is_warnings_slot(target.value)):
+                    found.add(node.lineno)
+        if isinstance(node, ast.Dict):
+            for key, value in zip(node.keys, node.values):
+                if const(key, "_warnings") and names_rejections(value):
+                    found.add(value.lineno)
+    return sorted(found)
+
+
+@pytest.mark.parametrize("label,source,expected", [
+    (
+        # VERBATIM what all ten routes did until handoff 31.
+        "the block assigned onto the response",
+        "def create_asset(self):\n"
+        "    out = serialize_asset(rec)\n"
+        "    if rejected:\n"
+        "        out[\"_warnings\"] = {\"rejected_fields\": rejected}\n"
+        "    return out\n",
+        [4],
+    ),
+    (
+        "PATCH /requests' spelling, with the hint beside it",
+        "out['_warnings'] = {'rejected_fields': rejected,\n"
+        "                    'hint': 'Use POST .../transition'}\n",
+        [1],
+    ),
+    (
+        "built inline in the returned dict",
+        "def f(self):\n"
+        "    return {'id': 1,\n"
+        "            '_warnings': {'rejected_fields': rejected}}\n",
+        [3],
+    ),
+    (
+        "written into an existing block",
+        "out.setdefault('_warnings', {})\n"
+        "out['_warnings']['rejected_fields'] = rejected\n",
+        [2],
+    ),
+    (
+        # The NEW shape. A guard that flagged this would be asking somebody
+        # to delete the fix.
+        "the refusal itself",
+        "return err(ERR_INVALID_REQUEST, 'no',\n"
+        "           details={'rejected_fields': rejected,\n"
+        "                    'writable': sorted(writable)})\n",
+        [],
+    ),
+    (
+        "the two warnings that are about a request that succeeded",
+        "data['_warnings'] = {'discarded_fields': discarded}\n"
+        "body['_warnings'] = {'truncated': {'returned': 100}}\n",
+        [],
+    ),
+    (
+        "the words in a comment and a docstring",
+        "def f(self):\n"
+        "    \"\"\"Used to set out['_warnings'] = {'rejected_fields': x}.\"\"\"\n"
+        "    # out['_warnings'] = {'rejected_fields': rejected}\n"
+        "    return 1\n",
+        [],
+    ),
+])
+def test_the_warned_rejection_finder_sees_each_spelling(label, source,
+                                                        expected):
+    """Fail-first, as every guard in this file is: shown the construction
+    the ten routes used, it must find it; shown the refusal that replaced
+    it, and the two `_warnings` that stay, it must not."""
+    assert _warned_rejections(source) == expected, label
+
+
+def test_no_controller_reports_a_refused_field_beside_a_success():
+    """`data._warnings.rejected_fields` is not set anywhere, by any route.
+
+    Rule 3: never let an integration guess. A dropped field beside a 2xx is
+    a guess the integration does not know it is making — Vendra dead-letters
+    the receipt AFTER Cadra has created the asset without the field, under an
+    idempotency key that replays the same 201 for ever. A route that needs
+    to refuse a key calls `refuse_unwritable(...)` BEFORE it writes.
+    """
+    controllers = sorted(
+        path for path in REPO_ROOT.glob("myservice_*/controllers/*.py")
+        if path.name != "__init__.py")
+    assert len(controllers) >= 10, (
+        "only %d controller file(s) found — the glob has stopped matching "
+        "and this guard is asserting on nothing" % len(controllers))
+    names = {path.relative_to(REPO_ROOT).as_posix() for path in controllers}
+    for owed in ("myservice_api/controllers/v1_assets.py",
+                 "myservice_api/controllers/v1_locations.py",
+                 "myservice_api/controllers/v1_requests.py",
+                 "myservice_api/controllers/v1_settings.py"):
+        assert owed in names, "%s is not among the files scanned" % owed
+
+    sites = [
+        "%s:%d" % (path.relative_to(REPO_ROOT).as_posix(), line)
+        for path in controllers
+        for line in _warned_rejections(path.read_text(encoding="utf-8"))]
+    assert not sites, (
+        "`_warnings.rejected_fields` is set at %s. Since handoff 31 a field "
+        "a route does not accept is a 400 through `refuse_unwritable`, "
+        "BEFORE anything is written — not a 2xx that dropped it."
+        % ", ".join(sites))
+
+    # And the helper the ten routes call is still there to be called.
+    utils = (REPO_ROOT / "myservice_api" / "controllers"
+             / "utils.py").read_text(encoding="utf-8")
+    assert re.search(r"^def refuse_unwritable\(", utils, re.MULTILINE), (
+        "myservice_api/controllers/utils.py no longer defines "
+        "`refuse_unwritable`")
+    callers = [name for name in sorted(names)
+               if re.search(r"\brefuse_unwritable\(",
+                            (REPO_ROOT / name).read_text(encoding="utf-8"))
+               and not name.endswith("/utils.py")]
+    assert len(callers) >= 4, (
+        "only %s call `refuse_unwritable`; the four controllers that hold "
+        "the ten routes all did" % callers)

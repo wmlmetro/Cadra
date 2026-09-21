@@ -73,6 +73,14 @@ test("a disposed asset offers no change of status, place or custodian — and sa
   for (const c of TERMINAL_CONTROLS) await expect(page.getByTestId(c), `${c} after disposal`).toBeDisabled();
   // Not everything is off. A disposed asset's other details stay correctable.
   await expect(page.getByTestId("button-edit")).toBeEnabled();
+  // …and it can still be VERIFIED, by ruling (handoff 31 §C2): a disposed
+  // asset somebody physically finds on the premises is an audit finding, and
+  // a register that refuses to record "I saw it, today" suppresses the one
+  // fact that matters. The notice says so, beside a button that is live —
+  // otherwise "disposal is the end of an asset's record" reads as though the
+  // button were the mistake. Acted on in its own spec, below.
+  await expect(notice).toContainText("can still be marked verified");
+  await expect(page.getByTestId("button-verify")).toBeEnabled();
 
   // 5. the Edit form offers no State but the one it holds, lets neither the
   //    location nor the custodian be changed, and says why beside each.
@@ -104,6 +112,39 @@ test("a disposed asset offers no change of status, place or custodian — and sa
   await page.getByTestId("button-view-list").click();
   await page.getByTestId("input-asset-search").fill(name);
   await expect(page.getByTestId(`row-asset-${id}`).getByTestId("lifecycle-pill")).toHaveText("Disposed", { timeout: 15_000 });
+});
+
+/**
+ * Handoff 31 §C2. The Odoo form used to hide Verify on a disposed asset while
+ * this app offered it — one rule, two answers. The ruling is *allowed*, on
+ * both. This is the app's half, by acting: disposed first, THEN verified, and
+ * the record read back.
+ */
+test("a disposed asset can still be verified, and stays disposed (UI)", async ({ page, api }) => {
+  const { id } = await createAsset(api, "VerifyDisposed");
+  await api.post(`/api/v1/assets/${id}/condemn`, { reason: "E2E — verify-after-disposal spec" });
+  const before = await api.get(`/api/v1/assets/${id}`);
+  expect(before?.state).toBe("disposed");
+  expect(before?.is_verified, "not verified before the button is pressed").toBeFalsy();
+
+  await gotoApp(page, `/assets/${id}`);
+  await expectShell(page);
+  await expect(page.getByTestId("asset-disposed-notice")).toContainText("can still be marked verified", { timeout: 15_000 });
+  const answered = page.waitForResponse((r) => r.url().includes(`/api/v1/assets/${id}/verify`));
+  await page.getByTestId("button-verify").click();
+  expect((await answered).status(), "the server allows it").toBe(200);
+  await expect(page.getByTestId("asset-action-error")).toHaveCount(0);
+
+  const after = await api.get(`/api/v1/assets/${id}`);
+  expect(after?.is_verified, "the sighting is recorded").toBeTruthy();
+  expect(after?.last_verified_by?.name, "and who made it").toBeTruthy();
+  expect(after?.state, "and it did not bring the asset back").toBe("disposed");
+  // On the page, and in the history on a record nobody can alter.
+  await expect(page.getByText("Verified By")).toBeVisible({ timeout: 15_000 });
+  await page.getByTestId("tab-audit-review").click();
+  const newest = page.getByTestId("asset-history-event").first();
+  await expect(newest).toContainText("Verified", { timeout: 15_000 });
+  await expect(newest).toContainText("Cannot be altered");
 });
 
 /**

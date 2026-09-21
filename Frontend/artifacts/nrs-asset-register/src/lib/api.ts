@@ -5,9 +5,12 @@
  *   success: { data, meta, pagination?, _warnings? }
  *   error:   { error: { code, message, request_id, details } }
  *
- * A SUCCESS can still carry `_warnings` — what the caller sent that did not
- * take effect. Every write goes through `sendMutation` below, which is the one
- * place that reads them and puts them in front of the user; see there.
+ * A SUCCESS can still carry `_warnings`. Every write goes through
+ * `sendMutation` below, which is the one place that reads them and puts them
+ * in front of the user; see there. A body field the route does not accept is
+ * NOT one of them any more: since handoff 31 it is a `400 invalid_request`
+ * whose `details.rejected_fields` names the keys, thrown like any other error
+ * and spelled out by `components/ApiErrorMessage.tsx`.
  */
 
 import { getToken, hasLiveSession, logout, refreshSession } from "./auth";
@@ -45,13 +48,14 @@ export interface CadraPagination {
 }
 
 /**
- * What a 200 says it did NOT do. The server writes this block in two places
+ * What a 2xx says it did NOT do. The server writes this block in two places
  * and both are read (`collectApiWarnings`):
  *
- *   - INSIDE `data`, by the handler — `rejected_fields` (keys the route's
- *     allow-list refused; the rest of the write went ahead), with an optional
- *     `hint` naming the route that does accept them, and `discarded_fields`
- *     on a replayed workflow callback;
+ *   - INSIDE `data`, by the handler — `discarded_fields`, on a replayed
+ *     workflow callback. `rejected_fields` and its `hint` lived here until
+ *     handoff 31 and are gone from the type because they are gone from the
+ *     server: that case is a 400 now, and its keys are on the ERROR, under
+ *     `details`;
  *   - at the TOP of the envelope, by `ok()` — `truncated`, when the
  *     credential's record cap cut a list short. A list's `data` is an array
  *     and has nowhere to hang a block, which is why that one lives up here.
@@ -60,9 +64,7 @@ export interface CadraPagination {
  * typed, and still shown.
  */
 export interface CadraWarnings {
-  rejected_fields?: string[];
   discarded_fields?: string[];
-  hint?: string;
   truncated?: { cap: number; total: number; reason: string };
   [key: string]: unknown;
 }
@@ -193,23 +195,26 @@ export async function apiGet<T>(
 
 /**
  * EVERY write goes through here — `apiMutate` and `apiUpload` both — and this
- * is where a success that was only partly a success is said out loud.
+ * is where a success that carries a `_warnings` block is said out loud.
  *
- * The API answers 200/201 to a write whose body named a field the route does
- * not accept: it drops the field, applies the rest and lists what it dropped
- * under `data._warnings.rejected_fields`. Until handoff 30 NOTHING in this app
- * read that block. `asset_tag` was typed into the Edit form, saved, answered
- * 200 and left unchanged, with no message (report 29); that input was made
- * read-only, which closed one field on one screen and left the hole where it
- * was for every other field on every other form.
+ * It was built in handoff 30 for one block in particular. The API then
+ * answered 200/201 to a write whose body named a field the route does not
+ * accept: it dropped the field, applied the rest and listed what it dropped
+ * under `data._warnings.rejected_fields`, which nothing in this app read.
+ * `asset_tag` was typed into the Edit form, saved, answered 200 and left
+ * unchanged, with no message (report 29). **That response no longer exists.**
+ * Since handoff 31 the same body is a 400 and nothing is written, so it never
+ * reaches the line below — `sendWithAuth` throws it, and the form that sent
+ * it prints the fields (`components/ApiErrorMessage.tsx`). What still arrives
+ * on a 2xx is listed in `lib/apiWarnings.tsx`.
  *
- * It is closed HERE rather than at the call sites because there are some two
+ * It stays HERE rather than at the call sites because there are some two
  * dozen of them, none of which sees the envelope — each unwraps `res.data`
- * through an adapter that keeps only the keys it knows, so `_warnings` was
- * gone before a page could have looked. A call site cannot forget what it is
- * never asked to do. Reads do not come through here: a GET sends no fields to
- * reject, and `_warnings.truncated` on a list is a statement about the
- * credential, not about anything the user just did.
+ * through an adapter that keeps only the keys it knows, so `_warnings` is
+ * gone before a page could look. A call site cannot forget what it is never
+ * asked to do. Reads do not come through here: `_warnings.truncated` on a
+ * list is a statement about the credential, not about anything the user just
+ * did.
  */
 async function sendMutation<T>(
   method: string,

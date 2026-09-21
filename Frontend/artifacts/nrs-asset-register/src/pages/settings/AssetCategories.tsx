@@ -20,6 +20,7 @@ import {
   AlertCircle, Clock, Check, Loader2, Plus, Trash2, X, Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ApiErrorMessage } from "@/components/ApiErrorMessage";
 
 const inputCls =
   "w-full rounded-lg border border-border bg-background px-2 py-1 text-[12px] " +
@@ -227,10 +228,9 @@ export default function AssetCategoriesPage() {
       {err && (
         <div className="bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-2xl p-4 flex items-start gap-3">
           <AlertCircle size={16} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-[13px] font-semibold text-red-700 dark:text-red-400">{err.code}</p>
-            <p className="text-[12px] text-red-700 dark:text-red-400 mt-0.5">{err.message}</p>
-          </div>
+          {/* Which fields, in words, when the save was refused for naming one
+              the API does not accept — see ApiErrorMessage. */}
+          <ApiErrorMessage err={err} stacked />
         </div>
       )}
       {note && !err && (

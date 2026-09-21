@@ -62,7 +62,6 @@ def test_idempotent_request_create(client, test_location, test_asset, capture):
         "type_id": 1,
         "category_id": 5,
         "request_text": f"<p>idem request {key}</p>",
-        "location_id": test_location["id"],
         "nrs_asset_id": test_asset["id"],
     }
     r1 = client.post("/api/v1/requests", json=body,

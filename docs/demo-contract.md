@@ -209,8 +209,10 @@ Three more things to read carefully:
   NUMBER, minted at creation. It is marked `deprecated` in the OpenAPI document
   for exactly this reason. **Branch on `data.tagging.is_tagged`**, which is
   `false` here and stays false until step 4.
-- **`asset_tag` is not writable.** Send it and it is dropped and reported in
-  `data._warnings.rejected_fields` — the tag number is Cadra's to mint, because
+- **`asset_tag` is not writable.** Send it and the whole request is refused —
+  `400 invalid_request`, `details.rejected_fields: ["asset_tag"]`, and NO asset
+  is created (since 21 September 2026; until then it was dropped with a 201
+  and a warning). The tag number is Cadra's to mint, because
   a record whose tag can be edited no longer matches the sticker in the room.
 - **`send serial_number`.** Step 4 verifies it, and it cannot verify what it
   was not given.

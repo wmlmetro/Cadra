@@ -67,6 +67,7 @@ class NRSAssetCustody(models.Model):
     """
 
     _name = 'nrs.asset.custody'
+    _inherit = ['nrs.asset.append.only.mixin']
     _description = 'Asset Chain of Custody'
     # Chronological, because a chain reads forwards. `id` breaks ties inside
     # a single transaction, where several rows share one timestamp.
@@ -143,71 +144,43 @@ class NRSAssetCustody(models.Model):
     ], string='Source', required=True, default='direct', index=True)
 
     # ── Append-only ───────────────────────────────────────────────────
+    #
+    # The guard is `nrs.asset.append.only.mixin` (handoff 31). This model
+    # carried its own copy of `create`, `write`, `unlink` and
+    # `_resolve_source` from 9 September until then, and the copy is how the
+    # hole got in: `_resolve_source` here honoured ANY `source` a caller put
+    # in the context — `test` and `tracking_backfill` included — so anybody
+    # able to change a custodian could file a real change of custody as an
+    # artefact. `nrs.asset.movement` was copied from this model twelve days
+    # later WITHOUT that hole; the copy was fixed and the original was not.
+    # Nobody decided that. It is what two copies of a safety rule do, and it
+    # is why there is now one.
+    #
+    # WHY the guard is on the model and not in the ACL is unchanged and worth
+    # keeping here: `write` and `unlink` raising is worth nothing if `create`
+    # is guarded only by `ir.model.access.csv`. One `1,1,1,1` line there — a
+    # convenience edit, a bad merge, a deploy — and any internal user could
+    # `call_kw` a backdated link naming an arbitrary actor into a record that
+    # then cannot be corrected, because this model refuses correction by
+    # design. An ACL is configuration.
+    #
+    # WHY `_resolve_source` is an override point is unchanged too: the module
+    # ABOVE this one relabels a write made under a test credential, and the
+    # column it reads (`myservice.api.client.is_test_credential`) is one that
+    # module owns. When the lookup lived down here, this module read a column
+    # of a module it does not depend on, Odoo could not order the two, and a
+    # tenant carrying the new Python with the older `myservice_api` schema
+    # would have raised `UndefinedColumn` on EVERY custodian write — on one
+    # registry, a cross-tenant outage from a single-module upgrade.
+    _append_key = CUSTODY_APPEND_KEY
+    _source_key = CUSTODY_SOURCE_KEY
+    _context_sources = _CONTEXT_SOURCES
 
-    @api.model_create_multi
-    def create(self, vals_list):
-        """Refuse a link that did not come from a custodian actually moving.
+    def _append_only_message(self):
+        return _append_only_message()
 
-        `write` and `unlink` raising is worth nothing if `create` is guarded
-        only by `ir.model.access.csv`. One `1,1,1,1` line there — a
-        convenience edit, a bad merge, a deploy — and any internal user could
-        `call_kw` a backdated link naming an arbitrary actor into a record
-        that then cannot be corrected, because this model refuses correction
-        by design. An ACL is configuration, and the argument in the class
-        docstring applies to all three operations or to none.
-
-        Same shape as `workflow.dispatch.log`, which guards `create` on the
-        model with a context flag for exactly this reason: there the ACL
-        could not carry it because the queue writes as the acting user, and
-        here it cannot carry it because the whole point is that no
-        configuration mistake may reach the record.
-        """
-        if not self.env.context.get(CUSTODY_APPEND_KEY):
-            raise UserError(_no_hand_written_links_message())
-        return super().create(vals_list)
-
-    def write(self, vals):
-        raise UserError(_append_only_message())
-
-    def unlink(self):
-        raise UserError(_append_only_message())
-
-    @api.model
-    def _resolve_source(self, declared, user):
-        """The label this link carries. The extension point for provenance.
-
-        Split out of `_record` so that a module ABOVE this one can have an
-        opinion about a link's provenance without this one reaching upward.
-        `myservice_api` overrides it to relabel a write made under a test
-        credential, and the flag it reads is a column that module owns.
-
-        That direction is load-bearing rather than tidy. When the lookup
-        lived here, this module read `myservice_api.client.is_test_credential`
-        while not depending on `myservice_api` — so Odoo's dependency graph
-        could not order the two, and any tenant carrying the new Python with
-        the older `myservice_api` schema would have raised `UndefinedColumn`
-        on EVERY custodian write: the API create and patch, the transfer
-        route, the transfer completion, the employee-departure clear, the
-        Odoo form, the importer. One registry serves every database here, so
-        that is a cross-tenant outage from a single-module upgrade.
-
-        Declared as an override point, it cannot happen: the column and the
-        code that reads it ship in the same module and move together.
-        """
-        if declared:
-            return declared
-        # The context is CALLER-CONTROLLED over `call_kw`. `test` and
-        # `tracking_backfill` say something about the evidence itself — that
-        # the link is an artefact, or a reconstruction — and until handoff 30
-        # anybody able to change a custodian could claim either through the
-        # context and file a real change of custody as one. Movement was
-        # copied from this model in handoff 28 and the COPY was written
-        # without the hole; the original kept it for twelve days. Two copies
-        # of one rule, and only one of them fixed. Such a label is passed
-        # explicitly by first-party code or derived from the credential,
-        # never claimed.
-        claimed = self.env.context.get(CUSTODY_SOURCE_KEY)
-        return claimed if claimed in _CONTEXT_SOURCES else 'direct'
+    def _no_hand_written_rows_message(self):
+        return _no_hand_written_links_message()
 
     @api.model
     def _record(self, asset, from_custodian, to_custodian, *,

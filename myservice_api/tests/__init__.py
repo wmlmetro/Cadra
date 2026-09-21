@@ -11,3 +11,4 @@ from . import test_approve_disposal_route
 from . import test_access_change_record
 from . import test_fixture_label_is_derived
 from . import test_asset_history
+from . import test_append_only_label

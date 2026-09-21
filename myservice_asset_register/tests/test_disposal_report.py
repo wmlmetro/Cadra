@@ -93,6 +93,43 @@ class DisposalCase(CadraTransactionCase):
             {"name": "Disposal test asset", "category_id": self.category.id},
             **vals))
 
+    def _legacy_undated_disposal(self, **vals):
+        """A LEGACY row: disposed of through the ORM, and carrying no date.
+
+        Until handoff 31 this was `asset.write({"state": "disposed"})` and
+        nothing else, because that is exactly what the product did for the
+        whole of its life — `action_condemn` wrote a condition and a state,
+        and PATCH, the form and the shell wrote a state. Since then
+        `nrs.asset._stamp_disposal` dates every write INTO `disposed`, so no
+        ORM write can produce one of these any more. The rows it simulates
+        are still in every tenant, and they are the rows the
+        `no_disposal_date` finding and the tracked-transition fallback exist
+        for.
+
+        So the date is removed with RAW SQL after the write, and that is the
+        honest way to say "a row from before the recorder" (CLAUDE.md: a
+        fixture that needs the time before a recorder uses raw SQL and says
+        so). The write still goes through the ORM, because the tracked
+        `state → disposed` transition it leaves is what the fallback reads;
+        creating the asset as already disposed would leave none.
+
+        The flush BETWEEN the create and the write is load-bearing — see
+        `test_the_date_falls_back_to_the_tracked_state_change`.
+        """
+        asset = self._asset(**vals)
+        self._flush_tracking()
+        asset.write({"state": "disposed"})
+        self._flush_tracking()
+        self.env.cr.execute(
+            "UPDATE nrs_asset SET disposal_date = NULL WHERE id = %s",
+            (asset.id,))
+        asset.invalidate_recordset(["disposal_date"])
+        self.assertFalse(
+            asset.disposal_date,
+            "the fixture is still dated, so every assertion about an "
+            "undated disposal below would be about something else")
+        return asset
+
     def _bare_disposal(self, **vals):
         """A disposal with nothing behind it — the common case on a live
         tenant, and the one the report exists to make visible."""
@@ -439,19 +476,21 @@ class TestADisposalWithNoDate(DisposalCase):
         `date_source` — an auditor reconciling a period total has to know
         whether the date placing a row in that period was recorded at the
         time or worked out afterwards.
+
+        **Since handoff 31 this is a finding about LEGACY rows only.** Every
+        write into `disposed` is now dated by `nrs.asset._stamp_disposal`, so
+        the fixture has to be made the way those rows were: written through
+        the ORM, then un-dated underneath it — `_legacy_undated_disposal`.
         """
-        asset = self._asset()
-        # Flush BETWEEN the create and the write. `mail_thread.create`
-        # registers `_track_discard` on `cr.precommit`, which nulls the
-        # initial values for this record until the precommit runs — so a
-        # write issued after a create and before that point records NO
-        # tracking row at all, and the fallback under test has nothing to
-        # find. Creating and then changing in one uninterrupted block is the
-        # natural way to write this test and it silently tests nothing.
-        self._flush_tracking()
-        asset.write({"state": "disposed"})
-        self._flush_tracking()
-        self.assertFalse(asset.disposal_date)
+        # The helper flushes BETWEEN the create and the write.
+        # `mail_thread.create` registers `_track_discard` on `cr.precommit`,
+        # which nulls the initial values for this record until the precommit
+        # runs — so a write issued after a create and before that point
+        # records NO tracking row at all, and the fallback under test has
+        # nothing to find. Creating and then changing in one uninterrupted
+        # block is the natural way to write this test and it silently tests
+        # nothing.
+        asset = self._legacy_undated_disposal()
 
         # UTC, because `mail_message.date` is UTC and a test run in the hour
         # after local midnight would otherwise compare two different days.
@@ -465,6 +504,30 @@ class TestADisposalWithNoDate(DisposalCase):
         self.assertEqual(row["date_source"], "state_transition")
         self.assertIn("no_disposal_date", row["findings"])
         self.assertEqual(row["disposal_date"], today.isoformat())
+
+    def test_a_disposal_made_by_a_bare_write_is_no_longer_this_finding(self):
+        """What `no_disposal_date` means since handoff 31: a LEGACY row.
+
+        A disposal that arrives by a write of `state` and nothing else — a
+        PATCH, the Odoo form, a shell — is dated where it is made, as one
+        made with the button always was. So the finding stops being raised
+        against disposals made last week through the wrong door, and a row
+        that still carries it is a row from before the stamp, or one
+        registered as already disposed. `recorded`, and not
+        `state_transition`: the date is on the asset, not worked out from
+        the message log afterwards.
+        """
+        asset = self._asset()
+        self._flush_tracking()
+        asset.write({"state": "disposed"})
+        self._flush_tracking()
+        self.assertTrue(asset.disposal_date)
+
+        row = self._row_for(self._report(), asset)
+        self.assertIsNotNone(row)
+        self.assertEqual(row["date_source"], "recorded")
+        self.assertNotIn("no_disposal_date", row["findings"])
+        self.assertNotIn("disposal_date_reconstructed", row["findings"])
 
     def test_a_disposal_with_no_evidence_at_all_is_unplaceable_not_absent(self):
         """A tenant seeded by direct SQL produces no tracking rows, so some
@@ -542,9 +605,10 @@ class TestTheReportWritesNothing(DisposalCase):
     def test_the_report_changes_nothing(self):
         self._bare_disposal()
         self._documented_disposal()
-        undated = self._asset()
-        undated.write({"state": "disposed"})
-        self._flush_tracking()
+        # The undated one is the row a report tempted to repair would
+        # repair, so it has to be GENUINELY undated — which since handoff 31
+        # an ORM write into `disposed` no longer leaves it.
+        self._legacy_undated_disposal()
 
         before = self._fingerprint()
         report = self.Asset.disposal_report(WIDE_FROM, WIDE_TO)
@@ -562,10 +626,8 @@ class TestTheReportWritesNothing(DisposalCase):
         that repaired on the first pass would come back cleaner on the
         second, and the diff would be the repair."""
         self._bare_disposal()
-        undated = self._asset()
-        undated.write({"state": "disposed"})
+        self._legacy_undated_disposal()
 
-        self._flush_tracking()
         first = self.Asset.disposal_report(WIDE_FROM, WIDE_TO)
         second = self.Asset.disposal_report(WIDE_FROM, WIDE_TO)
         self.assertEqual(first, second)

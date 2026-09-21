@@ -198,6 +198,29 @@ class TestPolicyInheritance(CadraTransactionCase):
         self.assertLess(len(asset.get_depreciation_schedule()), before)
         self.assertEqual(asset.depreciation_state, "disposed")
 
+    def test_a_disposal_by_a_bare_write_stops_the_clock_too(self):
+        """This module used to override `action_condemn` to stamp the date,
+        because depreciation must stop on the day of disposal. Handoff 31
+        deleted that override: the REGISTER stamps the date now, underneath
+        every writer of `state`, and this module is owed the recompute only
+        because `disposal_date` is a depreciation input and the stamp is a
+        `write`. That is a dependency between two modules that nothing
+        states in code, so it is stated here — through the door the old
+        override never covered: a write of `state` and nothing else, which
+        is what `PATCH {"state": "disposed"}` and the Odoo form send.
+        """
+        cat = self._category(depreciation_method="straight_line",
+                             useful_life_months=600)
+        asset = self._asset(cat, acquisition_cost=1200000.0,
+                            acquisition_date="2020-01-31")
+        before = len(asset.get_depreciation_schedule())
+
+        asset.write({"state": "disposed"})
+
+        self.assertTrue(asset.disposal_date, "disposal_date must be stamped")
+        self.assertLess(len(asset.get_depreciation_schedule()), before)
+        self.assertEqual(asset.depreciation_state, "disposed")
+
     # ── Report ───────────────────────────────────────────────────────────────
 
     def test_report_excludes_erp_managed_from_the_backfill_queue(self):

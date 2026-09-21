@@ -189,8 +189,11 @@ class MyserviceApiClient(models.Model):
         `nrs.asset.custody`, which was fine while custody was the only thing
         asking; handoff 26 added `cadra.test.fixture.mixin`, and two copies
         of a safety derivation is how the two answers start disagreeing.
-        `nrs.asset.custody._is_test_credential_user` now delegates here and
-        keeps its name, because `scripts/` and the docs cite it.
+        `nrs.asset.custody._is_test_credential_user` delegated here and kept
+        its name until handoff 31, "because `scripts/` and the docs cite it" —
+        a search found that nothing outside this module did. It is gone, and
+        the one derivation for all three append-only records is
+        `append_only.py` next door.
 
         Cached on the user id because the mixin's `create` calls it once per
         batch and custody's `_record` calls it once per ROW — ten thousand of
@@ -280,7 +283,7 @@ class MyserviceApiClient(models.Model):
                 vals['user_id'] = self._provision_client_user(
                     vals['client_id'], vals.get('name'), vals.get('scopes')).id
         records = super().create(vals_list)
-        # `nrs.asset.custody._is_test_credential_user` is ormcached on the
+        # `_is_test_credential_user` below is ormcached on the
         # user id, because it runs once per custody link and a bulk import
         # would otherwise issue one query per row. A new client can change
         # that answer, so the cache goes with it.
