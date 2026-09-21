@@ -1,9 +1,23 @@
+/**
+ * `status` is a DATA-QUALITY fact, and it only means anything for an asset in
+ * service: active and verified is "Cleared", active and unverified is in the
+ * review queue. LIFECYCLE is a different fact and lives on `lifecycleState`
+ * (the model's `state` key). An asset that is not active has no data-quality
+ * verdict at all, and must never inherit "Cleared" — a missing asset and a
+ * condemned one both rendered a green "Cleared" pill for exactly that reason,
+ * because the derivation only ever asked "is it unverified?" and fell through.
+ * "Not in service" is the absence of a verdict, said out loud.
+ *
+ * Three members were removed with it: "allottee not in nominal roll", "VIN not
+ * verifiable" and "possible duplicate". The back end models none of them —
+ * there is no nominal-roll check, no VIN field on an asset and no duplicate
+ * detection — so they were mock-era values no real record could ever carry,
+ * offered in a filter that always answered zero rows.
+ */
 export type ApprovalStatus =
   | "Cleared"
   | "Review — data quality"
-  | "Review — allottee not in nominal roll"
-  | "Review — VIN not verifiable"
-  | "Review — possible duplicate";
+  | "Not in service";
 
 export interface AssetLocation {
   zone: string;

@@ -109,9 +109,14 @@ export async function fetchAssetsPage(
     const all = listAssets(f);
     return { assets: all, nextCursor: null, totalEstimate: all.length };
   }
-  // Frontend status maps to backend is_verified: only "Review — data quality"
-  // has a real backend filter today (unverified = review-queue). Other review
-  // statuses are mock-only review-queue concepts that the API doesn't model.
+  // Frontend status maps to backend `is_verified` AND `state=active`. Both
+  // verdicts are statements about an asset in service (`deriveStatus` in
+  // adapters.ts), so a status filter that sent `is_verified` alone asked the
+  // server for a different set than the one the word names: the dashboard's
+  // review queue listed missing and disposed assets as awaiting review.
+  // "Not in service" has no server filter — the API's `state` takes one value
+  // and that status is every state but one — so it is left unfiltered here.
+  const inService = f?.status === "Cleared" || f?.status === "Review — data quality";
   const isVerifiedFilter =
     f?.status === "Cleared" ? true :
     f?.status === "Review — data quality" ? false :
@@ -120,6 +125,7 @@ export async function fetchAssetsPage(
     q: f?.search,
     condition: f?.condition || undefined,
     is_verified: isVerifiedFilter,
+    state: inService ? "active" : undefined,
     // Newest-first unless the caller says otherwise. The API's own default
     // is `oldest` and stays that way for every other consumer — this is the
     // register UI choosing its order, not the contract changing under
@@ -306,28 +312,62 @@ export interface AssetRegisterCounts {
   active: number;
   inRepair: number;
   disposed: number;
+  missing: number;
+  /** ACTIVE and unverified. Not "unverified" over the whole register. */
   unverified: number;
+  /** ACTIVE and verified: `active - unverified`. */
   verified: number;
 }
 
 /**
- * Asset Register dashboard top strip. Runs five count queries in parallel —
- * each is a single limit=1 call so this is cheap. PM-overdue is deliberately
- * not here: the API doesn't yet expose a maintenance.due/overdue count for
- * assets (backend gap noted in the deployment plan).
+ * Asset Register dashboard top strip. Runs six count queries in parallel —
+ * each is a single limit=1 call so this is cheap.
+ *
+ * `unverified` carries `state: "active"`, and it did not. Unfiltered, it
+ * counted every missing and every disposed asset that had never been verified
+ * as unverified STOCK — work for somebody to go and do, on an asset that is
+ * gone — and the derived `verified = total - unverified` then counted every
+ * disposed asset as VERIFIED. Both figures are now statements about assets in
+ * service, which is the only place a verification means anything.
+ *
+ * `missing` is here because nothing counted it: Total − Active − Under Repair
+ * − Condemned did not come to zero and nothing on the strip explained the gap.
+ * It replaced a "PM Overdue" tile that was permanently "—": the API exposes no
+ * maintenance due/overdue count for assets, so that tile could never say
+ * anything.
  */
 export async function fetchAssetRegisterCounts(): Promise<AssetRegisterCounts> {
   if (!apiConfigured) {
-    return { total: 0, active: 0, inRepair: 0, disposed: 0, unverified: 0, verified: 0 };
+    return { total: 0, active: 0, inRepair: 0, disposed: 0, missing: 0, unverified: 0, verified: 0 };
   }
-  const [total, active, inRepair, disposed, unverified] = await Promise.all([
+  const [total, active, inRepair, disposed, missing, unverified] = await Promise.all([
     countAssets({}),
     countAssets({ state: "active" }),
     countAssets({ state: "in_repair" }),
     countAssets({ state: "disposed" }),
-    countAssets({ is_verified: false }),
+    countAssets({ state: "missing" }),
+    countAssets({ is_verified: false, state: "active" }),
   ]);
-  return { total, active, inRepair, disposed, unverified, verified: Math.max(0, total - unverified) };
+  return { total, active, inRepair, disposed, missing, unverified, verified: Math.max(0, active - unverified) };
+}
+
+/** The three figures the dashboard's status breakdown is made of, as counts
+ *  over the register rather than a window of it. Named by what they ARE —
+ *  the chart derives its slices, and says how, where it draws them. */
+export interface AssetStatusCounts {
+  total: number;
+  active: number;
+  activeUnverified: number;
+}
+
+export async function fetchAssetStatusCounts(): Promise<AssetStatusCounts> {
+  if (!apiConfigured) return { total: 0, active: 0, activeUnverified: 0 };
+  const [total, active, activeUnverified] = await Promise.all([
+    countAssets({}),
+    countAssets({ state: "active" }),
+    countAssets({ is_verified: false, state: "active" }),
+  ]);
+  return { total, active, activeUnverified };
 }
 
 // ─── CATEGORY-SCOPED DASHBOARD (e.g. IT Assets Command) ──────────────────────
@@ -339,6 +379,8 @@ export interface CategoryDashboardData {
   active: number;
   inRepair: number;
   disposed: number;
+  /** ACTIVE and unverified — see `fetchAssetRegisterCounts` for why the state
+   *  filter is there. */
   unverified: number;
   /** One count per `nrs.asset.condition` value, keyed by the model's own key.
    *  Not a five-field object: that shape wrote the Selection out a sixth
@@ -388,7 +430,7 @@ async function fetchCategoryDashboard(categoryRegex: RegExp): Promise<CategoryDa
     countAssets({ category_id: id, state: "active" }),
     countAssets({ category_id: id, state: "in_repair" }),
     countAssets({ category_id: id, state: "disposed" }),
-    countAssets({ category_id: id, is_verified: false }),
+    countAssets({ category_id: id, is_verified: false, state: "active" }),
     Promise.all(conditions.map(c => countAssets({ category_id: id, condition: c }))),
     apiGet<ApiAsset[]>("/api/v1/assets", { category_id: id, limit: 20 }),
   ]);
@@ -427,13 +469,39 @@ export async function markAssetVerified(id: string): Promise<Asset> {
 
 // Convenience PATCHes — the Odoo asset form has "Mark Missing / Condemn" as
 // one-click buttons. Same endpoint, different bodies.
+//
+// No reason goes with this one because the model has no field FOR it. Its three
+// free-text fields (`notes`, `verification_notes`, `disposal_reason`) each mean
+// something else, and a reason written into one would overwrite it.
 export const markAssetMissing = (id: string) =>
   updateAsset(id, { state: "missing" });
 
+// BOTH fields, because Odoo's own action of the same name writes both
+// (`nrs.asset.action_condemn`: `state = 'disposed'` AND `condition =
+// 'decommissioned'`). This sent the state alone, so an asset condemned from
+// this app still read "Good" beside "Disposed" — the record contradicting
+// itself, and the condition is the half a disposal report prints.
+//
+// `disposal_date` IS STILL THIS BROWSER'S CLOCK, and that is a known defect
+// left standing on purpose. It is the same defect `markAssetVerified` above
+// got rid of, and the same cure does not exist here yet: the server stamps the
+// date in `action_condemn` only, and a PATCH is a plain `write`, which stamps
+// nothing (`myservice_asset_register/tests/test_disposal_report.py` asserts
+// exactly that — `write({"state": "disposed"})` leaves `disposal_date` empty
+// and the disposal report raises `no_disposal_date` against the row). So
+// dropping the date here would not hand the clock to the server; it would turn
+// every disposal made from this app into an undated one. The cure is a route
+// that calls the action, as `/verify` does. Until there is one, a date from
+// the wrong clock is a smaller fault than no date.
 export const condemnAsset = (id: string, disposal_reason: string) =>
   updateAsset(id, {
     state: "disposed",
-    disposal_date: new Date().toISOString().slice(0, 10),
+    condition: "decommissioned",
+    // The LOCAL calendar date, not `toISOString()`. That is the UTC date,
+    // which for the first hour of every Lagos day is YESTERDAY — a disposal
+    // made at 00:30 was dated the day before, with a correct clock. `en-CA`
+    // formats as yyyy-mm-dd. Still the browser's clock, for the reason above.
+    disposal_date: new Date().toLocaleDateString("en-CA"),
     disposal_reason,
   });
 export function getAssetsByCategory() {
@@ -443,13 +511,14 @@ export function getAssetsByCategory() {
     { name: "Furniture & Fittings", value: 1272 },
   ];
 }
+// MOCK figures, for mock mode only (`!apiConfigured`). With an API configured
+// the dashboard plots `fetchAssetStatusCounts()` instead: this used to be drawn
+// as percentages of the LIVE total, five invented numbers beside real ones.
+// Three of the five were statuses no record can carry and are gone.
 export function getAssetsByStatus() {
   return [
     { name: "Cleared", value: 10842 },
     { name: "Review — data quality", value: 985 },
-    { name: "Review — allottee not in nominal roll", value: 673 },
-    { name: "Review — VIN not verifiable", value: 418 },
-    { name: "Review — possible duplicate", value: 232 },
   ];
 }
 export function getReviewQueueAssets(): Asset[] {
@@ -755,6 +824,20 @@ export interface DepreciationReport {
 
 /** The period-by-period board for one asset. `asOf` truncates it for a
  *  point-in-time view (PRD §13.4). */
+// ── Who is signed in ──────────────────────────────────────────────────────
+
+export interface WhoAmI { id: number; name: string | null; login: string | null }
+
+/** The signed-in user, from the token. `GET /auth/whoami` has existed for as
+ *  long as the login has and nothing called it: the top bar printed a name it
+ *  had been given in the source instead. Null without a live API — there is
+ *  nobody signed in to name, and the top bar then names nobody. */
+export async function fetchWhoAmI(): Promise<WhoAmI | null> {
+  if (!apiConfigured) return null;
+  const res = await apiGet<{ id: number; name?: string | null; login?: string | null }>("/api/v1/auth/whoami");
+  return { id: res.data.id, name: res.data.name || null, login: res.data.login || null };
+}
+
 export const fetchAssetDepreciation = async (id: string | number, asOf?: string) =>
   (await apiGet<AssetDepreciationSchedule>(
     `/api/v1/assets/${id}/depreciation`,

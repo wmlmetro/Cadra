@@ -791,7 +791,12 @@ class NRSAssetHistory(models.Model):
             # reference or its content. `request_count` already tells every
             # holder of `assets:read` that requests exist; the request
             # itself belongs to `requests:read`, which this caller may not
-            # hold, and a route cannot see its caller's scopes today.
+            # hold. (This comment used to add that "a route cannot see its
+            # caller's scopes". That was FALSE — `require_jwt` sets
+            # `request.jwt_claims`, scopes included — and is retracted in
+            # GO-LIVE §14.1. The reference is still withheld, which is safe;
+            # publishing it to holders of `requests:read` is possible, and is
+            # a ruling rather than a repair.)
             events.append(self._history_event(
                 "maintenance_request", req.create_date,
                 ("request.request", req.id), "editable_record",

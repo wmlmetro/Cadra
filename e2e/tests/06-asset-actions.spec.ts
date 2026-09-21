@@ -2,15 +2,23 @@ import { test, expect } from "../fixtures/test";
 import type { ApiClient } from "../fixtures/api";
 import { gotoApp, expectShell, pickRecord } from "../fixtures/helpers";
 import { markedName, recordCreated } from "../fixtures/marker";
+import { appPath } from "../config";
 
 /**
  * Asset lifecycle actions from the detail page.
  *
  * Everything here is expected to PASS; there is no `test.fail` in this file.
  * Covered in the UI: the detail tabs, the Audit & Review history (live and
- * canned), Mark verified, Mark missing (native confirm), Condemn, Move and
- * Transfer custody. Move and Transfer custody each also have an API-level
- * twin, so a UI failure can be told apart from a server one.
+ * canned), Mark verified, Mark missing (the app's own dialog — it was a
+ * native `window.confirm` until handoff 29), Condemn, Move and Transfer
+ * custody. Move and Transfer custody each also have an API-level twin, so a
+ * UI failure can be told apart from a server one.
+ *
+ * Handoff 29. Mark missing and Condemn both passed here while the page was
+ * wrong: each spec polled the API for the new `state` and never read the
+ * screen, which went on saying "Cleared" in green over a missing asset and a
+ * condemned one. Both now read the hero — the lifecycle label must be there
+ * and the word "Cleared" must not.
  *
  * This header used to say Move and Transfer custody were BROKEN in the UI and
  * encoded as `test.fail`. They were — moveAsset()/transferCustody() mapped the
@@ -231,24 +239,74 @@ test("mark verified (UI)", async ({ page, api }) => {
   await expect(page.getByText("No person recorded")).toHaveCount(0);
 });
 
-test("mark missing via native confirm (UI)", async ({ page, api }) => {
+test("mark missing via the app dialog, and the page stops saying Cleared (UI)", async ({ page, api }) => {
   const id = await createAsset(api, "Missing");
   await gotoApp(page, `/assets/${id}`);
   await expectShell(page);
-  page.once("dialog", (d) => d.accept());
   await page.getByTestId("button-missing").click();
+  const dialog = page.getByTestId("dialog-mark-missing");
+  await expect(dialog).toBeVisible();
+  // The sentence the native confirm carried was false — neither Move nor
+  // Verify changes `state`. What reverses it is Edit.
+  await expect(dialog).toContainText("use Edit and set the state back");
+  await expect(dialog).not.toContainText("move/verify");
+  await page.getByTestId("button-confirm-missing").click();
+  await expect(dialog).toBeHidden({ timeout: 15_000 });
   await expect
     .poll(async () => (await api.get(`/api/v1/assets/${id}`))?.state, { timeout: 15_000 })
     .toBe("missing");
+
+  // The point of the handoff. The record says missing; so must the screen.
+  const hero = page.getByTestId("asset-hero-badges");
+  await expect(hero.getByTestId("lifecycle-pill")).toHaveText("Missing", { timeout: 15_000 });
+  await expect(hero.getByTestId("lifecycle-pill")).toHaveAttribute("data-state", "missing");
+  await expect(hero).not.toContainText("Cleared");
+  // No step of the header stepper describes a missing asset, so none is lit.
+  await expect(page.locator('[data-testid^="workflow-step-"][data-current="true"]')).toHaveCount(0);
+  // And the Audit & Review tab agrees with the hero.
+  await page.getByTestId("tab-audit-review").click();
+  await expect(page.getByText("Approval Status")).toHaveCount(0);
+  await expect(page.getByTestId("lifecycle-pill").last()).toHaveText("Missing");
 });
 
-test("condemn soft-deletes to disposed (UI)", async ({ page, api }) => {
+test("mark missing fires no native browser dialog", async ({ page, api }) => {
+  const id = await createAsset(api, "MissingNoNative");
+  const fired: string[] = [];
+  // Registered for the whole test, and dismissed so a regression fails on the
+  // assertion below rather than hanging the page on an unanswered dialog.
+  page.on("dialog", async (d) => {
+    fired.push(`${d.type()}: ${d.message()}`);
+    await d.dismiss();
+  });
+  await gotoApp(page, `/assets/${id}`);
+  await expectShell(page);
+  await page.getByTestId("button-missing").click();
+  await expect(page.getByTestId("dialog-mark-missing")).toBeVisible();
+  // Cancel writes nothing…
+  await page.getByTestId("dialog-mark-missing").getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByTestId("dialog-mark-missing")).toBeHidden();
+  expect((await api.get(`/api/v1/assets/${id}`))?.state).toBe("active");
+  // …and confirming does, still without the browser's own dialog.
+  await page.getByTestId("button-missing").click();
+  await page.getByTestId("button-confirm-missing").click();
+  await expect(page.getByTestId("dialog-mark-missing")).toBeHidden({ timeout: 15_000 });
+  await expect
+    .poll(async () => (await api.get(`/api/v1/assets/${id}`))?.state, { timeout: 15_000 })
+    .toBe("missing");
+  expect(fired, "no window.confirm / alert / prompt may fire").toEqual([]);
+});
+
+test("condemn sets state and condition, and the page stops saying Cleared (UI)", async ({ page, api }) => {
   const id = await createAsset(api, "Condemn");
   await gotoApp(page, `/assets/${id}`);
   await expectShell(page);
   await page.getByTestId("button-condemn").click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
+  // The description used to promise the asset would "no longer appear in
+  // active workflows". It still appears in the register and in every Total.
+  await expect(dialog).toContainText("It stays on the register");
+  await expect(dialog).toContainText("carries no approver");
   const condemnBtn = dialog.getByRole("button", { name: "Condemn" });
   await expect(condemnBtn).toBeDisabled();
   await dialog.getByPlaceholder(/required/i).fill("E2E disposal test");
@@ -258,6 +316,82 @@ test("condemn soft-deletes to disposed (UI)", async ({ page, api }) => {
   await expect
     .poll(async () => (await api.get(`/api/v1/assets/${id}`))?.state, { timeout: 15_000 })
     .toBe("disposed");
+  // Odoo's own action of the same name writes BOTH fields; the button wrote
+  // one, so a condemned asset still read "Good".
+  const fresh = await api.get(`/api/v1/assets/${id}`);
+  expect(fresh?.condition, "condemn also decommissions").toBe("decommissioned");
+  expect(fresh?.disposal_reason).toBe("E2E disposal test");
+
+  const hero = page.getByTestId("asset-hero-badges");
+  await expect(hero.getByTestId("lifecycle-pill")).toHaveText("Disposed", { timeout: 15_000 });
+  await expect(hero).not.toContainText("Cleared");
+  await expect(hero).toContainText("Decommissioned");
+  // "Disposed" was an unreachable step; a condemned asset sat on "Cleared".
+  await expect(page.getByTestId("workflow-step-2")).toHaveAttribute("data-current", "true");
+  await expect(page.getByTestId("workflow-step-0")).toHaveAttribute("data-current", "false");
+});
+
+test("a cancelled condemn does not reopen pre-filled", async ({ page, api }) => {
+  const id = await createAsset(api, "CondemnCancel");
+  await gotoApp(page, `/assets/${id}`);
+  await expectShell(page);
+  await page.getByTestId("button-condemn").click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByPlaceholder(/required/i).fill("typed and abandoned");
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(dialog).toBeHidden();
+  await page.getByTestId("button-condemn").click();
+  await expect(page.getByRole("dialog").getByPlaceholder(/required/i)).toHaveValue("");
+});
+
+test("back goes to the register list, not the KPI dashboard", async ({ page, api }) => {
+  const id = await createAsset(api, "Back");
+  await gotoApp(page, `/assets/${id}`);
+  await expectShell(page);
+  await page.getByTestId("button-back").click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe(appPath("/assets/list"));
+});
+
+/**
+ * The ORDINARY flow, in ONE page session: list → asset → act → back out.
+ *
+ * Every other spec here starts from a cold cache and reads a page it has just
+ * loaded, and so did the harness that "proved" handoff 29's first version. The
+ * app then had `refetchOnMount: false`, which makes `invalidateQueries` a no-op
+ * for any query not on screen — and at the moment of an action the user is on
+ * the asset's page, so the list and every count are off screen. Acted: mark an
+ * asset missing, open the dashboard from the sidebar — *Missing: 8* on screen,
+ * 9 in the database. And the Edit form, hydrated from a cached copy, read
+ * *Active* for an asset just marked missing; saving anything wrote it back.
+ */
+test("after marking an asset missing, the dashboard count and the edit form both know", async ({ page, api }) => {
+  const id = await createAsset(api, "FlowMissing");
+  const missingOnStrip = async () => {
+    const strip = page.getByTestId("asset-kpi-strip");
+    await expect(strip).toContainText(/MISSING\s*[\d,]+/i, { timeout: 15_000 });
+    return Number(((await strip.innerText()).replace(/\n+/g, " ").match(/MISSING\s*([\d,]+)/i) ?? [])[1]?.replace(/,/g, ""));
+  };
+  // 1. the dashboard first, so its counts are CACHED before anything happens
+  await gotoApp(page, "/assets");
+  await expectShell(page);
+  const before = await missingOnStrip();
+  // 2. warm the Edit form's copy too, as somebody who had edited this asset would have
+  await gotoApp(page, `/assets/${id}`);
+  await page.getByTestId("button-edit").click();
+  await page.waitForURL(/\/edit$/);
+  await page.goBack();
+  // 3. act
+  await page.getByTestId("button-missing").click();
+  await page.getByTestId("button-confirm-missing").click();
+  await expect(page.getByTestId("dialog-mark-missing")).toBeHidden({ timeout: 15_000 });
+  // 4. the Edit form — which the dialog sends people to — must show the NEW state
+  await page.getByTestId("button-edit").click();
+  await page.waitForURL(/\/edit$/);
+  const stateSelect = page.locator("label", { hasText: /^\s*state/i }).first().locator("xpath=following::select[1]");
+  await expect(stateSelect).toHaveValue("missing", { timeout: 10_000 });
+  // 5. and the dashboard, reached WITHOUT a reload, must have counted it
+  await page.locator("aside, nav").getByText("Dashboard", { exact: true }).first().click();
+  await expect.poll(missingOnStrip, { timeout: 15_000 }).toBe(before + 1);
 });
 
 // ── Move ─────────────────────────────────────────────────────────────────────

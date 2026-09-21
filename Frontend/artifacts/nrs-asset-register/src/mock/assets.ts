@@ -6,6 +6,11 @@ import type { Asset } from '../types';
 // and the live one disagreed about the same field: the mock could never hold a
 // `new` asset, and the mock Condition filter compared display strings while the
 // live one sent model keys to the API.
+//
+// `status` is one of the three values a live asset can carry. Three rows used
+// to hold "VIN not verifiable", "possible duplicate" and "allottee not in
+// nominal roll", each with a flag explaining a check the back end does not
+// perform; they are plain review rows now and the invented flags are gone.
 export const mockAssets: Asset[] = [
   {
     id: "AST-1001",
@@ -55,8 +60,8 @@ export const mockAssets: Asset[] = [
       office: "Basement Parking",
       path: "NRS Headquarters / FCT / Basement Parking"
     },
-    status: "Review — VIN not verifiable",
-    reviewFlags: ["VIN format mismatch"],
+    status: "Review — data quality",
+    reviewFlags: [],
     custodianScore: 85
   },
   {
@@ -155,8 +160,8 @@ export const mockAssets: Asset[] = [
       office: "Kano GBTO",
       path: "North West / Kano State Office / Kano GBTO"
     },
-    status: "Review — possible duplicate",
-    reviewFlags: ["Duplicate serial number PF-29384 found"]
+    status: "Review — data quality",
+    reviewFlags: []
   },
   {
     id: "AST-1007",
@@ -203,8 +208,8 @@ export const mockAssets: Asset[] = [
       office: "Port Harcourt MSTO",
       path: "South South / Rivers State Office / Port Harcourt MSTO"
     },
-    status: "Review — allottee not in nominal roll",
-    reviewFlags: ["Custodian IR-1102 not found in HR system"],
+    status: "Review — data quality",
+    reviewFlags: [],
     custodianScore: 60
   }
 ];

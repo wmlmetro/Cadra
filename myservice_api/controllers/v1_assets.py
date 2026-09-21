@@ -68,6 +68,7 @@ from .v1 import PAGINATION_QUERY_PARAMS, cadra_route
 # its `depends`, so the import order is guaranteed.
 from odoo.addons.myservice_asset_register.models.asset_snapshot import (
     snapshot_cutoff,
+    snapshot_today,
 )
 
 _logger = logging.getLogger(__name__)
@@ -2167,7 +2168,10 @@ class CadraAssetsV1(http.Controller):
         as_of, error = _parse_report_date(qs, "as_of", required=True)
         if error:
             return error
-        if as_of > odoo_fields.Date.today():
+        # "Today" in LAGOS, which is the day the cutoff is defined in — not
+        # the UTC date, which is yesterday for the first hour of every Lagos
+        # day. See `snapshot_today`.
+        if as_of > snapshot_today():
             # A snapshot of tomorrow is today's register with a wrong label
             # on it. Answering 200 would put a date in an audit file that the
             # data cannot support.
@@ -2175,7 +2179,7 @@ class CadraAssetsV1(http.Controller):
                        "`as_of` cannot be in the future — the register has no "
                        "value at a date that has not happened",
                        details={"as_of": qs.get("as_of"),
-                                "today": odoo_fields.Date.today().isoformat()})
+                                "today": snapshot_today().isoformat()})
 
         try:
             filter_domain = _list_domain(qs)

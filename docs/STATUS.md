@@ -249,3 +249,51 @@ by GitHub since 2026-09-18 14:13 UTC — *"recent account payments have failed
 or your spending limit needs to be increased"* — with zero steps executed. A
 red X on this handoff's PR means *never started*, not *failed*. The results
 above are local, on this machine, and are not a substitute for CI.
+
+## Handoff 29 — every control on the asset page
+
+**What was built.** A front-end handoff. The asset's status pill told the
+truth about data quality and nothing about lifecycle, so a missing or
+disposed asset rendered as a green *Cleared* on every screen that used the
+shared adapter. One status slot now shows the lifecycle state when it is
+anything but active (`AssetStatusPills`, `LifecyclePill`), and `deriveStatus`
+returns *Not in service* for it, so filters and grouping follow. The three
+mock-era statuses were measured dead and deleted. The browser's two
+`confirm()` dialogs are app dialogs. Condemn sets the condition as well as the
+state. Counts that folded missing and disposed assets into stock were fixed
+where the front end could and relabelled where it could not. A dead
+notifications bell, a hard-coded user name and four dead tabs were removed.
+The persisted query cache was versioned so a browser cannot outlive the fix.
+One back-end fix rode along: the register snapshot's *today* is a Lagos day.
+
+**How it was proved.** By acting: a harness clicks the real control as a
+signed-in person on `test19`, and reads the asset's rows from Postgres before
+and after. Report 29 §1 is the table.
+
+| Control | The row | The screen, before | after |
+|---|---|---|---|
+| Mark missing | `state active → missing` | green *Cleared*, behind the browser's own dialog | red *Missing*, app dialog |
+| Condemn | `state → disposed`; **now also `condition → decommissioned`** | *Good · Cleared* | *Decommissioned · Disposed* |
+| Edit, with a typed asset tag | name saved, **tag unchanged**, 200 | no message | tag read-only, with the reason |
+| Move · Transfer custody · Verify | movement / custody / verifier rows written | correct | correct — handoff 28's record sees what the UI does |
+
+**Measured (§D):** `nrs19` reported *Verified: 1*, and that asset is the
+missing one. `jaizbankplc`: 140 disposed assets, all rendered *Cleared*. After
+the fix the asset dashboard's strip adds up for the first time — `test19`:
+1,105 active + 0 under repair + 6 missing + 144 condemned = 1,255 on register,
+each figure matched to SQL.
+
+**Retracted here:** handoff 28's "architectural fact" that `require_jwt`
+discards scopes. It sets `request.jwt_claims`. GO-LIVE §14.1.
+
+**Suites, in CI's order, against `test19`:**
+
+| Suite | Result |
+|---|---|
+| `pytest tests/` | **873 passed, 8 skipped, 0 failed** |
+| In-registry, CI's 11 modules, `--workers=0` | **0 failed, 0 error(s) of 615 tests** |
+| Playwright, the whole suite | **121 passed, 2 failed, 4 skipped** — both failures reproduce against `dev`'s front end (GO-LIVE §13.5.13) |
+| Front end `tsc --noEmit` / `BASE_PATH=/app/ vite build` | clean / built |
+
+**GitHub CI has still not run** — refused for billing since 2026-09-18, on
+handoffs 27, 28 and this one. Left to find: GO-LIVE §13.5, eleven entries.

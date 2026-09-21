@@ -1094,6 +1094,85 @@ One line each; the evidence is handoff 27's report §A, and INT-10 §2.4 and
    sends · *Custodian Match Score* exists only in mock data · *Mark missing*
    promises it is reversible and nothing shown reverses it.
 
+### 13.5 · What handoff 29 found on the asset page and one screen out — `[open]`, acted 2026-09-21
+
+Handoff 29 fixed the status pill, the two browser dialogs, the counts and a
+dozen small things (`docs/STATUS.md`). **These it found and LEFT**, each
+because it is a decision or a back-end change rather than a repair. Every one
+was seen by acting on `test19` and reading the row, not by reading the code.
+
+1. **Mark missing takes no reason, and cannot.** The button sends
+   `PATCH {"state": "missing"}`. The model has no field FOR *why*. It has
+   three free-text fields — `notes`, `verification_notes`, `disposal_reason` —
+   and each means something else; a reason written into one would overwrite
+   what it holds and mislabel what was put there. *"Why is this missing"* is the first thing an auditor asks, and
+   it needs a field — and, if it is to be evidence, more than a field: a
+   `state` change is a chatter line and nothing else. NOT added on the
+   front end, because there is nowhere true to put it.
+2. **A disposal made from the app is dated by the browser.** `condemnAsset`
+   sent `disposal_date` from `new Date().toISOString()` — the UTC date, which
+   is YESTERDAY for the first hour of a Lagos day, with a perfectly correct
+   clock. Handoff 29 changed it to the browser's LOCAL calendar date, which
+   removes that hour for a user in Lagos; it is still the browser's clock and
+   not the server's. It cannot simply be dropped: acted, a PATCH of `state: disposed` with no date leaves
+   `disposal_date` NULL (the server stamps it only inside `action_condemn`,
+   which the API never calls), and the disposals report then raises
+   `no_disposal_date` on it. The cure is `POST /assets/<id>/condemn` calling
+   `action_condemn`, as `/verify` calls `action_verify`.
+3. **A disposal made from the app never has an approver.** The app never
+   calls `POST /assets/<id>/approve-disposal`, and no screen offers the step.
+   Every condemned asset is a `no_approver` finding. The Condemn dialog now
+   SAYS so; nothing yet does anything about it.
+4. **On a DISPOSED asset the page still offers Mark verified, Move, Transfer
+   and Mark missing** — and *Mark missing* on a disposed asset would overwrite
+   `disposed` with `missing`, un-disposing it in the register. Handoff 29
+   disabled only the two no-ops (Mark missing on a missing asset, Condemn on a
+   disposed one). What a disposed asset may still have done to it is a rule,
+   and belongs in the model, not in which buttons are grey.
+5. **Every "total" counts missing and disposed assets**, because the back end
+   counts `Asset.search_count([])` and `nrs.asset` has no `active` field:
+   *Total Assets* on the home dashboard, *Total IT*, the inventory report, the
+   barcode station, and the per-category bars on three screens. Handoff 29
+   relabelled the asset dashboard's to *On register* and added a *Missing*
+   tile so the strip adds up; the others still read as stock.
+6. **`_warnings.rejected_fields` is read by nothing.** The API reports every
+   field it dropped; the app ignores it. `asset_tag` was the visible case —
+   typed, saved, 200, unchanged, silent — and is now read-only. Any other
+   field outside the allow-list still fails exactly that way.
+7. **Assets with no custodian are shown as held by *"Pool"*.** The register
+   list prints `Pool — {department}` for a null custodian. Nothing called
+   "Pool" exists in the data.
+8. **The register's Status and Category filters work only on rows already
+   loaded**, while the count beside them is register-wide. Filter to
+   *Cleared* on a 12,000-asset register and you see the Cleared rows among
+   the first 200, under a total of 12,000.
+9. **The home dashboard prints fixed text as though it were live:** *"All
+   systems operational"*, *"7 zones · 38 states · 857 offices"*, and mock
+   figures (13,150 assets) while the API loads or if it fails. The asset
+   dashboard prints *"NRS Facilities Management · staging.app.cadra.ng"* on
+   every tenant, and a *PM Due* card that asserts *"No upcoming PM schedules"*
+   for data that has no endpoint.
+10. **`is_verified` decays with no write.** It is a stored compute over
+    `last_verified_date` and the category's verification window, refreshed by
+    cron — so an asset goes from *Cleared* to *Review* without anybody
+    touching it. True, and worth knowing before anyone reads *Cleared* as a
+    thing somebody did.
+11. **The home dashboard's *Review Queue* card promises more than it
+    delivers.** Labelled *Active assets not yet verified*, it opens the
+    register list UNFILTERED — the list has no server-side filter for it
+    (see 8). The count is right; the destination is not the thing counted.
+12. **The IT dashboard's condition tiles count across every state.** *Needs
+    service* includes missing and disposed assets in poor condition, and that
+    page has no *Missing* tile. Its *Verified*/*Unverified* were fixed.
+13. **Two depreciation e2e specs fail on `test19`, on `dev` as well as on
+    handoff 29's branch** — *"a computed asset charts its value over time"*
+    and *"the straight-line switch persists across a reload"*. Established by
+    building `dev`'s front end and running them against it; NOT investigated.
+14. **On a tenant with `transferred` assets the KPI strip will not add up.**
+    Its tiles are Active, Under Repair, Missing and Condemned; the enum has a
+    fifth state. None of the eight local tenants holds one. Measured, not
+    assumed — and it is a number that will move.
+
 ---
 
 ## 14 · Architectural facts — not to-dos
@@ -1101,20 +1180,42 @@ One line each; the evidence is handoff 27's report §A, and INT-10 §2.4 and
 Things true of this system's shape that a future change must know about.
 They are not defects to be scheduled; they are constraints to design within.
 
-### 14.1 · A route cannot see what its caller is allowed to do
+### 14.1 · ~~A route cannot see what its caller is allowed to do~~ — **RETRACTED 2026-09-21. It was false.**
 
-`require_jwt` (`myservice_api/controllers/utils.py`) checks the token's scopes
-against the route's list and **discards them**. Nothing is left on the request
-for the handler. So a route is all-or-nothing per scope: it cannot return one
-shape to a holder of `assets:read` and a fuller one to a holder of
-`requests:read` as well.
+**This section said `require_jwt` checks a token's scopes and *discards them*,
+so that no route can see what its caller holds, and that this *"forecloses
+per-scope shaping anywhere in this API"*. None of that is true, and it was
+registered here as an architectural FACT.**
 
-**That forecloses per-scope shaping anywhere in this API.** Where a response
-would cross a scope boundary, the only tool is to REMOVE the field for
-everybody — which is what `GET /assets/<id>/history` does with a maintenance
-request's reference (handoff 27), and why that was a removal and not a filter.
-Changing it means carrying the scopes from `require_jwt` onto the request,
-for every route, which is a change to the authentication path and should be
-made as one, deliberately, not as a side effect of wanting one richer
-response.
+`myservice_api/controllers/utils.py`, at the end of `require_jwt`:
 
+```python
+    _set_request_user(int(uid))
+    request.jwt_claims = claims
+```
+
+The whole validated token — `scopes`, `uid`, `sub`, `aud`, the limit claims —
+is on the request for every handler behind `require_jwt`, on its one success
+path, wildcard and `scopes=[]` routes included. Three places already read it: `_limit_claim`
+and the frontend-audience check beside it (`utils.py`), `GET /meta/database`
+(`v1_meta.py`), and `GET /auth/whoami` (`v1.py`). **A route can shape its
+response by scope today, with no change to the authentication path.**
+
+**How a false statement became a registered fact.** Handoff 27's verification
+reviewer wrote it in a summary. The Builder searched the code for three
+attribute names — `cadra_scopes`, `cadra_claims`, `cadra_token` — found none,
+and never opened the function. Report 27 repeated it; the Architect accepted
+it and built a ruling on it (handoff 28 §D: *"it belongs in the register as an
+architectural fact"*); the Builder registered it. It was found in handoff 29
+by reading `whoami` for an unrelated reason. Five handoffs running, the
+defect is the same — a claim nobody checked against the file — and this is
+its fifth instance, this time about our own code, promoted to a constraint on
+future design.
+
+**What it changes.** `GET /assets/<id>/history` withholds a maintenance
+request's reference from everybody because it *"could not"* be shown only to
+holders of `requests:read`. It can. Withholding it is still SAFE — it
+under-publishes — so nothing was exposed; but the stated reason was wrong,
+and anything designed around "per-scope shaping is impossible here" should be
+re-read. Whether to publish the reference to `requests:read` holders is a
+ruling, not a repair: `[open]`.

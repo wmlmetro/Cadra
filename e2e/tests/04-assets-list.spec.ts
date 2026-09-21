@@ -40,22 +40,41 @@ test.describe("/assets/list", () => {
   });
 
   test("filter dropdowns open and clear", async ({ page }) => {
-    for (const label of ["Category", "Status", "Condition"]) {
+    // Lower-case: the component renders `filter-${label.toLowerCase()}`. This
+    // loop asked for `filter-Category`, found nothing, and — being guarded by
+    // `if (count)` — passed for as long as it existed without opening one.
+    for (const label of ["category", "status", "condition"]) {
       const filter = page.getByTestId(`filter-${label}`);
-      if (await filter.count()) {
-        await filter.click();
-        // Popover with "All …" + options; pick the first option button if any.
-        const opt = page.locator(".z-50 button, [role='menu'] button").first();
-        if (await opt.count()) {
-          await opt.click();
-        } else {
-          await page.keyboard.press("Escape");
-        }
-      }
+      // NOT `if (await filter.count())`. That guard is what let this test ask
+      // for a test id that did not exist and pass for as long as it lived —
+      // and fixing the casing while keeping the guard would have left it just
+      // as able to prove nothing the next time an id changes.
+      await expect(filter, `filter-${label} must exist`).toBeVisible();
+      await filter.click();
+      // Popover with "All …" + options.
+      const opt = page.locator(".z-50 button, [role='menu'] button").first();
+      await expect(opt, `filter-${label} must open a menu`).toBeVisible();
+      await opt.click();
     }
     const clear = page.getByTestId("button-clear-filters");
     if (await clear.count()) await clear.click();
     await expectShell(page);
+  });
+
+  test("the Status filter offers only statuses a record can carry", async ({ page }) => {
+    // Three options here — allottee not in nominal roll, VIN not verifiable,
+    // possible duplicate — named checks the back end does not perform, so each
+    // always answered zero rows and said nothing about why.
+    await page.getByTestId("filter-status").click();
+    const menu = page.locator(".z-50").filter({ hasText: "Cleared" });
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole("button", { name: "Cleared", exact: true })).toBeVisible();
+    await expect(menu.getByRole("button", { name: "Review — data quality", exact: true })).toBeVisible();
+    await expect(menu.getByRole("button", { name: "Not in service", exact: true })).toBeVisible();
+    await expect(menu).not.toContainText("nominal roll");
+    await expect(menu).not.toContainText("VIN");
+    await expect(menu).not.toContainText("duplicate");
+    await page.keyboard.press("Escape");
   });
 
   test("group-by select changes grouping", async ({ page }) => {
@@ -91,6 +110,23 @@ test.describe("/assets/list", () => {
 });
 
 test.describe("/assets dashboard", () => {
+  test("the KPI strip names what it counts", async ({ page }) => {
+    await gotoApp(page, "/assets");
+    await expectShell(page);
+    const strip = page.getByTestId("asset-kpi-strip");
+    await expect(strip).toBeVisible();
+    // "On register" — the figure includes disposed and missing assets, so it
+    // is the register and not the stock. "Missing" had no count anywhere in
+    // the app, and took the place of a "PM Overdue" tile that no endpoint
+    // could ever fill.
+    for (const label of ["On register", "Active", "Under Repair", "Active, unverified", "Missing", "Condemned"]) {
+      await expect(strip.getByText(label, { exact: true })).toBeVisible();
+    }
+    await expect(strip).not.toContainText("PM Overdue");
+    await expect(strip).not.toContainText("Total Assets");
+  });
+
+
   test("dashboard controls render and New asset navigates", async ({ page }) => {
     await gotoApp(page, "/assets");
     await expectShell(page);

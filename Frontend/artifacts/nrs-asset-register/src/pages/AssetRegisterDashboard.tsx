@@ -13,25 +13,23 @@ import {
 } from "@/lib/dataProvider";
 import { apiConfigured, CadraApiError } from "@/lib/api";
 import {
-  AlertCircle, ArrowRight, ChevronRight, Clock, Package,
+  AlertCircle, AlertTriangle, ArrowRight, ChevronRight, Clock, Package,
   RefreshCw, ScanBarcode, ShieldAlert, ShieldCheck, Trash2,
   Wrench, ListChecks, Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import BrandPill from "@/components/BrandPill";
 
-const ASSET_FILTER_TABS = [
-  { key: "all",        label: "All" },
-  { key: "active",     label: "Active" },
-  { key: "in_repair",  label: "Repair" },
-  { key: "unverified", label: "Unverified" },
-] as const;
-type AssetFilterKey = typeof ASSET_FILTER_TABS[number]["key"];
+// There were four filter tabs over the map — All / Active / Repair /
+// Unverified — setting a `pinFilter` that nothing read. They could not have
+// been wired: the pins are LOCATIONS from `/dashboard/map` (id, name,
+// coordinates, open requests) and carry neither an asset state nor a
+// verification flag, so there is nothing on a pin to filter by. Four tabs that
+// changed their own highlight and nothing else are gone.
 
 export default function AssetRegisterDashboard() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const [, nav] = useLocation();
-  const [pinFilter, setPinFilter] = useState<AssetFilterKey>("all");
 
   useEffect(() => {
     setTitle("Asset Register");
@@ -96,7 +94,10 @@ export default function AssetRegisterDashboard() {
     ? new Date(counts.dataUpdatedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
     : "—";
 
-  const c = counts.data ?? { total: 0, active: 0, inRepair: 0, disposed: 0, unverified: 0, verified: 0 };
+  // `null`, not 0, until the counts are in: `Kpi` draws null as "—". A strip
+  // reading *Missing 0 · Condemned 0* over a request that failed is a false
+  // statement about the register; "—" is a true one about the screen.
+  const c = counts.data ?? { total: null, active: null, inRepair: null, disposed: null, missing: null, unverified: null, verified: null };
 
   return (
     <div className="p-5 space-y-5 max-w-[1440px] mx-auto">
@@ -146,14 +147,22 @@ export default function AssetRegisterDashboard() {
         </div>
       )}
 
-      {/* ─── KPI strip ──────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <Kpi label="Total Assets"  value={c.total}      icon={Package}      color="text-foreground"                            highlight />
-        <Kpi label="Active"        value={c.active}     icon={ShieldCheck}  color="text-green-600 dark:text-green-400"        />
-        <Kpi label="Under Repair"  value={c.inRepair}   icon={Wrench}       color="text-amber-600 dark:text-amber-400"        />
-        <Kpi label="Unverified"    value={c.unverified} icon={ShieldAlert}  color="text-red-600 dark:text-red-400"            />
-        <Kpi label="Condemned"     value={c.disposed}   icon={Trash2}       color="text-muted-foreground"                     />
-        <Kpi label="PM Overdue"    value={null}         icon={Clock}        color="text-muted-foreground"                     note="—" />
+      {/* ─── KPI strip ────────────────────────────────────────────────────
+          "On register", not "Total Assets": the figure includes every disposed
+          and missing asset — it is the register, not the stock. "Active,
+          unverified" because that is now what it counts (it used to count
+          missing and disposed assets too, under a label that did not say so).
+          "Missing" replaces a "PM Overdue" tile that was permanently "—" — no
+          endpoint exists to fill it — and closes the gap nothing explained:
+          Total − Active − Under Repair − Condemned did not come to zero. It
+          still need not: the model has a transferred state with no tile. */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" data-testid="asset-kpi-strip">
+        <Kpi label="On register"        value={c.total}      icon={Package}       color="text-foreground"                       highlight />
+        <Kpi label="Active"             value={c.active}     icon={ShieldCheck}   color="text-green-600 dark:text-green-400"   />
+        <Kpi label="Under Repair"       value={c.inRepair}   icon={Wrench}        color="text-amber-600 dark:text-amber-400"   />
+        <Kpi label="Active, unverified" value={c.unverified} icon={ShieldAlert}   color="text-orange-600 dark:text-orange-400" />
+        <Kpi label="Missing"            value={c.missing}    icon={AlertTriangle} color="text-red-600 dark:text-red-400"       />
+        <Kpi label="Condemned"          value={c.disposed}   icon={Trash2}        color="text-muted-foreground"                />
       </div>
 
       {/* ─── Main grid: map + sidebar ───────────────────────────────────── */}
@@ -162,22 +171,6 @@ export default function AssetRegisterDashboard() {
         <section className="lg:col-span-2 bg-card border border-border rounded-2xl p-5 space-y-3">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <h2 className="text-[13px] font-bold">Asset Locations</h2>
-            <div className="flex items-center gap-1 rounded-xl border border-border bg-muted/40 p-0.5">
-              {ASSET_FILTER_TABS.map(t => (
-                <button
-                  key={t.key}
-                  onClick={() => setPinFilter(t.key)}
-                  className={cn(
-                    "px-2.5 py-1 text-[11px] font-medium rounded-lg",
-                    pinFilter === t.key
-                      ? "bg-card text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
           </div>
           <NigeriaMap pins={pins} height={360} />
           <p className="text-[10px] text-muted-foreground">

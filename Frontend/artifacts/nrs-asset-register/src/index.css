@@ -127,9 +127,6 @@
   /* Status pills — no brand red */
   --st-cleared-bg:  #ECFDF3; --st-cleared-fg:  #15803D;
   --st-dq-bg:       #FFFBEB; --st-dq-fg:       #B45309;
-  --st-vin-bg:      #FEF3C7; --st-vin-fg:      #92400E;
-  --st-dup-bg:      #F5F3FF; --st-dup-fg:      #6D28D9;
-  --st-allottee-bg: #FFF7ED; --st-allottee-fg: #C2410C;
 
   /* Condition badges */
   --cond-good-bg:   #ECFDF3; --cond-good-fg:   #15803D;
@@ -220,9 +217,6 @@
   /* Dark status pills */
   --st-cleared-bg:  #0E2A1B; --st-cleared-fg:  #5CD08F;
   --st-dq-bg:       #2A2310; --st-dq-fg:       #E2B65C;
-  --st-vin-bg:      #2A2310; --st-vin-fg:      #E0A93C;
-  --st-dup-bg:      #221A33; --st-dup-fg:      #B79CF0;
-  --st-allottee-bg: #2A1B10; --st-allottee-fg: #E89B5C;
 
   --cond-good-bg:   #0E2A1B; --cond-good-fg:   #5CD08F;
   --cond-fair-bg:   #0A1E35; --cond-fair-fg:   #60A5FA;

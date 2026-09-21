@@ -46,9 +46,21 @@ test.describe("/settings/categories", () => {
     const made = (cats ?? []).find((c: any) => c.name === name);
     expect(made, "category should exist via the API").toBeTruthy();
 
-    // A brand-new category holds nothing, so delete is offered.
-    page.once("dialog", d => d.accept());
+    // A brand-new category holds nothing, so delete is offered. The
+    // confirmation is the app's own dialog since handoff 29 — it was
+    // `window.confirm`, which this spec accepted with `page.once("dialog")`.
+    // A native dialog firing now is a regression, so it is recorded and the
+    // test fails on it below.
+    const fired: string[] = [];
+    page.on("dialog", async (d) => { fired.push(d.message()); await d.dismiss(); });
     await page.getByTestId(`delete-cat-${made.id}`).click();
+    const confirm = page.getByTestId("dialog-delete-category");
+    await expect(confirm).toBeVisible();
+    await expect(confirm).toContainText(name);
+    await expect(confirm).toContainText("This cannot be undone");
+    await page.getByTestId("button-confirm-delete-category").click();
+    await expect(confirm).toBeHidden({ timeout: 20_000 });
+    expect(fired, "no native browser dialog may fire").toEqual([]);
     await expect(page.getByText(`Deleted ${name}.`)).toBeVisible({ timeout: 20_000 });
 
     const after = await api.get("/api/v1/asset-categories");

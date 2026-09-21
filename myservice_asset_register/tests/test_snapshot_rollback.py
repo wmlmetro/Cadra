@@ -49,12 +49,14 @@ Run with:
 from datetime import date, datetime
 
 from odoo.tests import tagged
+from odoo.tests.common import freeze_time
 
 from odoo.addons.myservice_asset_register.models.asset_snapshot import (
     SNAPSHOT_AS_OF_TODAY,
     SNAPSHOT_NOT_RECOVERABLE,
     SNAPSHOT_ROLLED_BACK,
     snapshot_cutoff,
+    snapshot_today,
 )
 from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
@@ -167,6 +169,23 @@ class TestTheCutoff(SnapshotCase):
         the space this has to land in."""
         self.assertEqual(snapshot_cutoff(date(2026, 3, 31)),
                          datetime(2026, 3, 31, 23, 0, 0))
+
+    def test_today_is_a_lagos_day_like_the_cutoff(self):
+        """For the first hour of every Lagos day the UTC date is YESTERDAY.
+
+        The route refused a future `as_of` against the UTC date, so between
+        00:00 and 01:00 in Lagos somebody asking for today's register was
+        told the date had not happened. CI runs in UTC and asks for the UTC
+        date, so it could never see this; it was found by running the suite
+        at 00:50 in Lagos.
+        """
+        with freeze_time("2031-03-31 23:30:00"):      # 00:30 on 1 April, WAT
+            self.assertEqual(snapshot_today(), date(2031, 4, 1))
+            # …and the day it names is one whose cutoff is still ahead.
+            self.assertGreater(snapshot_cutoff(snapshot_today()),
+                               datetime(2031, 3, 31, 23, 30))
+        with freeze_time("2031-03-31 22:59:59"):      # 23:59:59 on 31 March
+            self.assertEqual(snapshot_today(), date(2031, 3, 31))
 
     def test_the_cutoff_accepts_a_string(self):
         self.assertEqual(snapshot_cutoff("2026-03-31"),

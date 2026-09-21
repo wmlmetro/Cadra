@@ -72,7 +72,16 @@ const queryClient = new QueryClient({
       staleTime: 5 * 60_000,
       gcTime:    24 * 60 * 60_000,
       refetchOnWindowFocus: false,
-      refetchOnMount: false,
+      // `true`, NOT `false`. `true` refetches on mount only when the data is
+      // STALE, so inside `staleTime` a revisit is still instant — which is
+      // all `false` was ever chosen for. What `false` also did, silently and
+      // app-wide, was make `invalidateQueries` a no-op for every query not on
+      // screen: invalidation only REFETCHES mounted queries and merely flags
+      // the rest, and a flagged query that is never refetched on mount is
+      // shown from cache for ever. Acted in handoff 29: mark an asset missing
+      // on its detail page, open the dashboard from the sidebar — *Missing: 8*
+      // on screen, 9 in the database. Every mutation in the app had this.
+      refetchOnMount: true,
       retry: 1,
     },
   },
@@ -164,10 +173,14 @@ function AuthGate() {
     return () => { window.removeEventListener("cadra:auth-changed", refresh); off(); };
   }, []);
 
-  // When the user logs out we also wipe the react-query cache so the next
-  // sign-in doesn't read stale per-user data.
+  // The cache is wiped on BOTH transitions — signing out AND signing in.
+  // Clearing only on sign-out missed the ordinary end of a session on a
+  // shared PC: A's token expires with the tab closed, so no sign-out ever
+  // happens here; B opens the app, A's persisted cache is restored, B signs
+  // in — and B reads A's cached data, the top bar's name included, beside a
+  // Verify button that records B.
   useEffect(() => {
-    if (!signedIn) queryClient.clear();
+    queryClient.clear();
   }, [signedIn]);
 
   if (!signedIn) return (
@@ -186,7 +199,24 @@ function App() {
         persistOptions={{
           persister,
           maxAge: 6 * 60 * 60_000,
-          buster: "v1",
+          // Never written to disk: who is signed in, and the raw record the
+          // Edit form hydrates from. Both must come from the server each
+          // time — a restored copy of the first names the wrong person, and
+          // of the second writes an old `state` back over a newer one.
+          dehydrateOptions: {
+            shouldDehydrateQuery: (q) =>
+              q.state.status === "success"
+              && q.queryKey[0] !== "whoami" && q.queryKey[0] !== "asset-raw",
+          },
+          // BUMP THIS whenever an adapter changes what a cached object MEANS.
+          // The persisted cache holds objects AFTER `lib/adapters.ts` has run,
+          // and with `refetchOnMount: false` a restored one is shown as it
+          // was stored. v1 → v2 in handoff 29: `deriveStatus` used to turn a
+          // missing or disposed asset into "Cleared", and every browser that
+          // had opened the register was holding those objects — so the fix
+          // could have shipped and the green pill stayed on screen for six
+          // hours, out of the user's own localStorage.
+          buster: "v2",
         }}
       >
         <TooltipProvider>

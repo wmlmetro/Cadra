@@ -91,13 +91,16 @@ export default function ITAssetsCommand() {
   // The recent-assets table below prints `a.condition`, which is now the
   // model's key. Spell it the model's way.
   const conditionLabelOf = useEnumLabel("condition");
-  const verifiedShare = d.total ? Math.max(0, d.total - d.unverified) : 0;
+  // Verification is a fact about an asset IN SERVICE. `d.unverified` is now
+  // counted over active assets only, and this was `total - unverified` — which
+  // counted every disposed and every missing IT asset as VERIFIED.
+  const verifiedShare = Math.max(0, d.active - d.unverified);
   const tiles = [
     { label: "Total IT",      value: d.total,                    icon: Monitor,        color: "text-foreground" },
     { label: "Active",        value: d.active,                   icon: CheckCircle2,   color: "text-green-600 dark:text-green-400" },
     { label: "Under repair",  value: d.inRepair,                 icon: Wrench,         color: "text-amber-600 dark:text-amber-400" },
-    { label: "Unverified",    value: d.unverified,               icon: ShieldAlert,    color: "text-red-600 dark:text-red-400" },
-    { label: "Verified",      value: verifiedShare,              icon: ShieldCheck,    color: "text-green-600 dark:text-green-400" },
+    { label: "Active, unverified", value: d.unverified,          icon: ShieldAlert,    color: "text-red-600 dark:text-red-400" },
+    { label: "Active, verified",   value: verifiedShare,         icon: ShieldCheck,    color: "text-green-600 dark:text-green-400" },
     { label: "New",           value: d.byCondition.new,          icon: Sparkles,       color: "text-emerald-600 dark:text-emerald-400" },
     // Decommissioned assets are retired, not awaiting service, so they are not
     // counted here. Until the condition filter was corrected this sum's second
@@ -113,7 +116,7 @@ export default function ITAssetsCommand() {
         <div>
           <h1 className="text-xl font-bold text-foreground">IT Assets Command</h1>
           <p className="text-xs text-muted-foreground mt-1">
-            {d.total.toLocaleString()} {d.categoryName} records · {verifiedShare.toLocaleString()} verified · {d.unverified.toLocaleString()} pending
+            {d.total.toLocaleString()} {d.categoryName} records · {d.active.toLocaleString()} active — {verifiedShare.toLocaleString()} verified, {d.unverified.toLocaleString()} not yet
           </p>
         </div>
         <div className="flex items-center gap-2">
