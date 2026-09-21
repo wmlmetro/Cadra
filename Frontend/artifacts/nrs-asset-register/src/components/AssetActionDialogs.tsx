@@ -321,10 +321,16 @@ export function CondemnAssetDialog({ assetId, open, onOpenChange }: CondemnProps
   const [reason, setReason] = useState("");
 
   const mutation = useMutation({
-    mutationFn: () => condemnAsset(assetId, reason),
+    mutationFn: () => condemnAsset(assetId, reason.trim()),
     onSuccess: () => {
       invalidateAssetQueries(qc, assetId);
       setOpen(false, true);
+    },
+    // A 409 means the page behind this dialog is out of date — somebody else
+    // disposed of the asset first. The dialog stays open on the server's
+    // sentence; the page is refetched so that closing it lands on the truth.
+    onError: (e) => {
+      if ((e as CadraApiError).status === 409) invalidateAssetQueries(qc, assetId);
     },
   });
   const err = mutation.error as CadraApiError | null;
@@ -358,8 +364,10 @@ export function CondemnAssetDialog({ assetId, open, onOpenChange }: CondemnProps
                 list and in every Total. And it named one of the two fields the
                 action writes. The last sentence is there because it is the
                 part an auditor asks about — this app never calls the
-                approve-disposal route, so nothing made here has an approver. */}
-            Sets this asset's state to Disposed and its condition to Decommissioned, and records the reason. It stays on the register. A disposal made here carries no approver — approval is a separate step.
+                approve-disposal route, so nothing made here has an approver.
+                "Cannot be undone" is new in handoff 30 and is the model's
+                rule: nothing leaves `disposed`, by any route. */}
+            Sets this asset's state to Disposed and its condition to Decommissioned, dates the disposal today, and records the reason and who did it. It stays on the register. This cannot be undone: a disposed asset cannot be returned to service, moved or marked missing. A disposal made here carries no approver — approval is a separate step.
           </DialogDescription>
         </DialogHeader>
 
@@ -372,6 +380,7 @@ export function CondemnAssetDialog({ assetId, open, onOpenChange }: CondemnProps
               onChange={e => setReason(e.target.value)}
               className="mt-1.5 w-full px-3 py-2 text-xs border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
               placeholder="Required — explains why this asset is being condemned"
+              data-testid="input-condemn-reason"
             />
           </div>
           {err && (
@@ -420,26 +429,39 @@ export function CondemnAssetDialog({ assetId, open, onOpenChange }: CondemnProps
  * carrying a sentence that was not true ("you can move/verify it again later":
  * neither Move nor Verify changes `state`).
  *
- * There is NO reason field, deliberately. `markAssetMissing` is
- * `PATCH {state: "missing"}` and the model has no field FOR a reason. An asset
- * has three free-text fields — `notes`, `verification_notes`, `disposal_reason`
- * — and each means something else; a missing-reason written into one would
- * overwrite what it holds and mislabel what was put there. A box that collects
- * a reason and keeps it nowhere true is worse than no box.
+ * The reason is REQUIRED, and until handoff 30 there was no box for one. That
+ * was deliberate then: marking missing was `PATCH {state: "missing"}`, the
+ * model had no field for a reason, and a box that collects a reason and keeps
+ * it nowhere true is worse than no box. It has somewhere true now.
+ * `POST /assets/<id>/mark-missing` writes it to the asset's append-only
+ * `status_changed` event — with who said it and when — and refuses a blank
+ * one. It is evidence rather than a note: an asset that cannot be found may
+ * be a loss, and *why* is the first question anybody asks.
+ *
+ * What the description says about reversing it is two different answers and
+ * both are the model's. MISSING is not terminal — a missing asset that turns
+ * up is ordinary, and Edit → State puts it back. DISPOSED is: that is said
+ * here because this is the last screen on which the two look alike.
  */
 export function MarkMissingDialog({ assetId, open, onOpenChange }: CondemnProps) {
   const qc = useQueryClient();
+  const [reason, setReason] = useState("");
 
   const mutation = useMutation({
-    mutationFn: () => markAssetMissing(assetId),
+    mutationFn: () => markAssetMissing(assetId, reason.trim()),
     onSuccess: () => {
       invalidateAssetQueries(qc, assetId);
       setOpen(false, true);
     },
+    // 409: already missing, or disposed — either way this page is stale. See
+    // `CondemnAssetDialog`.
+    onError: (e) => {
+      if ((e as CadraApiError).status === 409) invalidateAssetQueries(qc, assetId);
+    },
   });
   const err = mutation.error as CadraApiError | null;
 
-  // Nothing to clear but the last error — which must not greet the next open.
+  // Reset on every close — see `AssetMoveDialog`.
   const setOpen = (next: boolean, done = false) => {
     // A USER cannot close it while the request is in flight: closing resets
     // the mutation, which detaches it, and a REFUSAL would then be shown
@@ -448,7 +470,10 @@ export function MarkMissingDialog({ assetId, open, onOpenChange }: CondemnProps)
     // blocked the one close that must always happen. (It did, for one build:
     // every dialog stayed open after a successful save. Found by acting.)
     if (!next && mutation.isPending && !done) return;
-    if (!next) mutation.reset();
+    if (!next) {
+      setReason("");
+      mutation.reset();
+    }
     onOpenChange(next);
   };
 
@@ -460,18 +485,37 @@ export function MarkMissingDialog({ assetId, open, onOpenChange }: CondemnProps)
             <AlertTriangle size={16} /> Mark asset as missing
           </DialogTitle>
           <DialogDescription>
-            Sets this asset's state to Missing. It stays on the register and in its history. To reverse it, use Edit and set the state back.
+            Sets this asset's state to Missing. It stays on the register. The reason you give is kept in the asset's history with your name and the time, and cannot be edited or deleted afterwards. If the asset turns up, use Edit and set the state back — unlike a disposal, this can be reversed.
           </DialogDescription>
         </DialogHeader>
 
-        {err && (
-          <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-xl p-3">
-            <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-            <p className="text-[12px] text-red-700 dark:text-red-400">
-              <span className="font-semibold">{err.code}:</span> {err.message}
-            </p>
+        <div className="space-y-3">
+          <div>
+            <label
+              htmlFor="mark-missing-reason"
+              className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide"
+            >
+              Why is it missing?
+            </label>
+            <textarea
+              id="mark-missing-reason"
+              rows={3}
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              className="mt-1.5 w-full px-3 py-2 text-xs border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              placeholder="Required — where it was looked for, when it was last seen, who reported it"
+              data-testid="input-missing-reason"
+            />
           </div>
-        )}
+          {err && (
+            <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-xl p-3">
+              <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+              <p className="text-[12px] text-red-700 dark:text-red-400">
+                <span className="font-semibold">{err.code}:</span> {err.message}
+              </p>
+            </div>
+          )}
+        </div>
 
         <DialogFooter>
           <button
@@ -483,12 +527,12 @@ export function MarkMissingDialog({ assetId, open, onOpenChange }: CondemnProps)
           </button>
           <button
             type="button"
-            disabled={mutation.isPending}
+            disabled={!reason.trim() || mutation.isPending}
             onClick={() => mutation.mutate()}
             data-testid="button-confirm-missing"
             className={cn(
               "px-3 py-1.5 text-xs font-semibold rounded-xl",
-              !mutation.isPending
+              reason.trim() && !mutation.isPending
                 ? "bg-amber-600 text-white hover:bg-amber-700"
                 : "bg-muted text-muted-foreground cursor-not-allowed",
             )}

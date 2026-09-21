@@ -26,6 +26,9 @@ const CAT_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--cha
 const STATUS_COLORS: Record<string, string> = {
   "Cleared": "#22c55e",
   "Review — data quality": "#f59e0b",
+  // Orange, as its pill is (`StatusPill`): a different finding from the amber
+  // one beside it, and not the red kept for a missing asset.
+  "Review — no SAP code": "#f97316",
   // Neutral, like its pill: it is the absence of a verdict, not a third one.
   "Not in service": "#94a3b8",
 };
@@ -186,9 +189,13 @@ export default function Dashboard() {
     staleTime: 60_000,
   });
   // Review queue sample = first page of ACTIVE, unverified assets. The status
-  // filter carries `state=active` (see `fetchAssetsPage`), so a missing or
-  // disposed asset cannot be listed here as awaiting review — and this page's
-  // `total_estimate` is the size of the queue, read off the same request.
+  // filter carries `state=active` (see `statusToServerFilter`), so a missing
+  // or disposed asset cannot be listed here as awaiting review — and this
+  // page's `total_estimate` is the size of the queue, read off the same
+  // request. The card and the table both say "Active assets not yet
+  // verified", and that is exactly what the request asks for — so an asset
+  // that is unverified AND an SAP exception is listed here, correctly, wearing
+  // the exception's pill (`deriveStatus` ranks it first).
   const { data: reviewPage } = useQuery({
     queryKey: ["dashboard", "review-queue"],
     queryFn: () => fetchAssetsPage(undefined, { status: "Review — data quality" }),
@@ -231,11 +238,17 @@ export default function Dashboard() {
     : getAssetsByCategory();
   // The status breakdown, from REAL counts. This plotted five hard-coded mock
   // numbers (10,842 / 985 / …) as percentages of the LIVE total — invented
-  // figures beside real ones, on the first screen a client sees. Three slices,
-  // each derived where it can be read:
-  //   Cleared                = active − active-unverified
-  //   Review — data quality  = active-unverified
+  // figures beside real ones, on the first screen a client sees. Four slices
+  // that PARTITION the register, in `deriveStatus`'s order — an active asset
+  // that is both an SAP exception and unverified is an exception, so it is
+  // taken out of the data-quality slice rather than drawn twice:
+  //   Review — no SAP code   = active-exception
+  //   Review — data quality  = active-unverified − active-unverified-exception
+  //   Cleared                = active − the two above
   //   Not in service         = total − active
+  // The exception slice is drawn only when it is not zero: on a tenant where
+  // nothing has been tagged it is a structural zero, and a permanent "0" in a
+  // legend reads as a check that was run and passed.
   // Mock mode keeps mock numbers. With an API configured and no counts yet,
   // there are NO slices — never the mock ones.
   const { data: statusCounts, isError: statusCountsFailed } = useQuery({
@@ -246,11 +259,17 @@ export default function Dashboard() {
   });
   const statusData: { name: string; value: number }[] =
     !apiConfigured ? getAssetsByStatus() :
-    statusCounts ? [
-      { name: "Cleared", value: Math.max(0, statusCounts.active - statusCounts.activeUnverified) },
-      { name: "Review — data quality", value: statusCounts.activeUnverified },
-      { name: "Not in service", value: Math.max(0, statusCounts.total - statusCounts.active) },
-    ] : [];
+    statusCounts ? (() => {
+      const c = statusCounts;
+      const dataQuality = Math.max(0, c.activeUnverified - c.activeUnverifiedException);
+      return [
+        // "Cleared" stays FIRST: the header under the title reads slice 0.
+        { name: "Cleared", value: Math.max(0, c.active - c.activeException - dataQuality) },
+        { name: "Review — data quality", value: dataQuality },
+        ...(c.activeException > 0 ? [{ name: "Review — no SAP code", value: c.activeException }] : []),
+        { name: "Not in service", value: Math.max(0, c.total - c.active) },
+      ];
+    })() : [];
   // The slices' own sum, not `stats.totalAssets`: that comes from a different
   // request at a different moment, and a percentage of somebody else's total
   // is how a donut comes to 97% or 104%.

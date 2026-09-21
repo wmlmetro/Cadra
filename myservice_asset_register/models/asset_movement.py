@@ -276,6 +276,24 @@ class GenericLocation(models.Model):
             [('id', 'child_of', self.ids)])
         assets = self.env['nrs.asset'].sudo().with_context(
             active_test=False).search([('location_id', 'in', doomed.ids)])
+        # DISPOSED IS TERMINAL, and this is a door `nrs.asset.write` cannot
+        # see. The rule that a disposed asset is not moved lives in that
+        # method (handoff 30) — and this delete never calls it: the database
+        # empties `location_id` itself. So deleting a room would have moved
+        # every disposed asset in it to nowhere, and the page that says "its
+        # record keeps the location it was disposed of from" would have been
+        # wrong. Found by the verification pass, which asked whether the rule
+        # held "through any door" and went looking for one. Refused outright,
+        # before anything is recorded; a location can be archived instead.
+        disposed = assets.filtered(lambda a: a.state == 'disposed')
+        if disposed:
+            raise UserError(_(
+                "%(count)s disposed asset(s) keep a location being deleted as "
+                "the place they were disposed of from (%(first)s%(more)s), "
+                "and a disposed asset's record cannot be changed. Archive the "
+                "location instead of deleting it.",
+                count=len(disposed), first=disposed[0].display_name,
+                more=_(' and others') if len(disposed) > 1 else ''))
         Movement = self.env['nrs.asset.movement']
         nowhere = self.env['generic.location']
         # BEFORE the delete, while the names can still be read.

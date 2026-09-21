@@ -29,7 +29,8 @@ const WORKFLOW_STEPS = ["Cleared", "In Review", "Disposed"];
  * It was `status === "Cleared" ? 0 : 1`, so "Disposed" could not be reached by
  * any asset and a condemned one sat highlighted on "Cleared". Two facts feed
  * it, read one at a time: disposed is the third step; an asset in service is
- * on the first or second by whether it is verified. Every OTHER lifecycle
+ * on the first when it is cleared and on the second when it is under EITHER
+ * review — unverified, or tagged with no SAP code. Every OTHER lifecycle
  * state — missing, under repair, transferred — lights nothing, because none of
  * the three words is true of it; the lifecycle pill in the hero says what it
  * is. -1 also leaves no step drawn as "passed", which is right: a missing
@@ -39,7 +40,7 @@ function workflowStep(asset: Asset): number {
   if (asset.lifecycleState === "disposed") return 2;
   if (asset.lifecycleState !== undefined && asset.lifecycleState !== "active") return -1;
   if (asset.status === "Cleared") return 0;
-  if (asset.status === "Review — data quality") return 1;
+  if (asset.status === "Review — data quality" || asset.status === "Review — no SAP code") return 1;
   return -1;
 }
 
@@ -164,6 +165,19 @@ export default function AssetDetail() {
 
   const isFleet = asset.category === "Fleet / Vehicles";
 
+  // DISPOSAL IS TERMINAL, and the rule is the model's, not this page's:
+  // `nrs.asset.write` refuses a change of status, location or custodian on a
+  // disposed asset for every writer — this app, Vendra, the importer, the
+  // shell (handoff 30 §B). Until then this page offered *Mark missing* on a
+  // disposed asset, which overwrote `disposed` and put it back on the
+  // register with a 200. All this page does is not OFFER what the server
+  // will refuse, and say why in words on the page rather than in a tooltip —
+  // it is shown to the client on a tablet, where nothing is hovered. If this
+  // copy of the asset is stale and a dialog is opened anyway, the dialog
+  // prints the server's own sentence.
+  const isDisposed = asset.lifecycleState === "disposed";
+  const DISPOSED_TITLE = "This asset has been disposed of";
+
   const currentStep = workflowStep(asset);
 
   const iconBg =
@@ -242,14 +256,18 @@ export default function AssetDetail() {
             </button>
             <button
               onClick={() => setMoveOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+              disabled={isDisposed}
+              title={isDisposed ? DISPOSED_TITLE : undefined}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
               data-testid="button-move"
             >
               <MapPin size={12} /> {asset.location.locationId ? "Move" : "Place"}
             </button>
             <button
               onClick={() => setCustodyOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+              disabled={isDisposed}
+              title={isDisposed ? DISPOSED_TITLE : undefined}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
               data-testid="button-transfer-custody"
             >
               <ArrowRightLeft size={12} /> {asset.custodianName ? "Transfer" : "Assign custodian"}
@@ -263,14 +281,18 @@ export default function AssetDetail() {
               {verifyMut.isPending ? <Loader2 size={12} className="animate-spin" /> : <ShieldCheck size={12} />}
               Mark verified
             </button>
-            {/* Disabled when it would do nothing. Offered on an asset that was
-                ALREADY missing, this opened a dialog, sent a PATCH, got a 200
-                and changed no row — a control reporting success while nothing
-                happened. One key compared at a time: see LifecyclePill. */}
+            {/* Disabled when the server would refuse it: the asset is already
+                missing, or it is disposed (both a 409 from `/mark-missing`).
+                Offered on an asset that was ALREADY missing, this used to open
+                a dialog, send a PATCH, get a 200 and change no row — a control
+                reporting success while nothing happened; offered on a DISPOSED
+                one it un-disposed it. One key compared at a time: see
+                LifecyclePill. */}
             <button
               onClick={() => setMissingOpen(true)}
-              disabled={asset.lifecycleState === "missing"}
-              title={asset.lifecycleState === "missing" ? "This asset is already marked missing" : undefined}
+              disabled={asset.lifecycleState === "missing" || isDisposed}
+              title={asset.lifecycleState === "missing" ? "This asset is already marked missing"
+                : isDisposed ? DISPOSED_TITLE : undefined}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-200/70 dark:border-amber-800/30 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               data-testid="button-missing"
             >
@@ -279,8 +301,8 @@ export default function AssetDetail() {
             </button>
             <button
               onClick={() => setCondemnOpen(true)}
-              disabled={asset.lifecycleState === "disposed"}
-              title={asset.lifecycleState === "disposed" ? "This asset has already been disposed of" : undefined}
+              disabled={isDisposed}
+              title={isDisposed ? "This asset has already been disposed of" : undefined}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200/70 dark:border-red-800/30 text-xs font-medium text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               data-testid="button-condemn"
             >
@@ -288,6 +310,22 @@ export default function AssetDetail() {
             </button>
           </div>
         </div>
+
+        {/* WHY four of the buttons above are grey, on the page. `role="note"`
+            and not an alert: it is a standing fact about this record, not
+            something that just happened. */}
+        {isDisposed && (
+          <div className="px-5 py-3 border-b border-border" data-testid="asset-disposed-notice" role="note">
+            <div className="flex items-start gap-2 bg-slate-100 dark:bg-slate-800/60 border border-slate-300/80 dark:border-slate-600/60 rounded-xl p-3">
+              <Trash2 size={14} className="text-slate-600 dark:text-slate-300 shrink-0 mt-0.5" />
+              <p className="text-[12px] text-slate-800 dark:text-slate-200">
+                <span className="font-semibold">This asset has been disposed of, and disposal is the end of an asset's record.</span>{" "}
+                It cannot be marked missing, moved, handed to another custodian or returned to service, so those actions are switched off.
+                Its other details can still be corrected with Edit.
+              </p>
+            </div>
+          </div>
+        )}
 
         {verifyErr && (
           <div className="px-5 py-3 border-b border-border" data-testid="asset-action-error">

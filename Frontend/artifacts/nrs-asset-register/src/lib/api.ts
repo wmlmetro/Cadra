@@ -2,11 +2,16 @@
  * Cadra API client — thin fetch wrapper around the v1 endpoints.
  *
  * Envelope:
- *   success: { data, meta, pagination? }
+ *   success: { data, meta, pagination?, _warnings? }
  *   error:   { error: { code, message, request_id, details } }
+ *
+ * A SUCCESS can still carry `_warnings` — what the caller sent that did not
+ * take effect. Every write goes through `sendMutation` below, which is the one
+ * place that reads them and puts them in front of the user; see there.
  */
 
 import { getToken, hasLiveSession, logout, refreshSession } from "./auth";
+import { collectApiWarnings, showApiWarnings } from "./apiWarnings";
 
 /** Origin the Cadra API lives on. Empty string = same origin as the SPA, which
  *  is how it is deployed (the ingress routes /app to the SPA and everything
@@ -39,10 +44,37 @@ export interface CadraPagination {
   total_estimate: number | null;
 }
 
+/**
+ * What a 200 says it did NOT do. The server writes this block in two places
+ * and both are read (`collectApiWarnings`):
+ *
+ *   - INSIDE `data`, by the handler — `rejected_fields` (keys the route's
+ *     allow-list refused; the rest of the write went ahead), with an optional
+ *     `hint` naming the route that does accept them, and `discarded_fields`
+ *     on a replayed workflow callback;
+ *   - at the TOP of the envelope, by `ok()` — `truncated`, when the
+ *     credential's record cap cut a list short. A list's `data` is an array
+ *     and has nowhere to hang a block, which is why that one lives up here.
+ *
+ * Open-ended on purpose: a block this build has never heard of is still
+ * typed, and still shown.
+ */
+export interface CadraWarnings {
+  rejected_fields?: string[];
+  discarded_fields?: string[];
+  hint?: string;
+  truncated?: { cap: number; total: number; reason: string };
+  [key: string]: unknown;
+}
+
+/** `data` of a write, as the handler may have annotated it. */
+export type WithWarnings<T> = T & { _warnings?: CadraWarnings };
+
 export interface CadraResponse<T> {
   data: T;
   meta: CadraMeta;
   pagination?: CadraPagination;
+  _warnings?: CadraWarnings;
 }
 
 export class CadraApiError extends Error {
@@ -159,13 +191,49 @@ export async function apiGet<T>(
   }));
 }
 
+/**
+ * EVERY write goes through here — `apiMutate` and `apiUpload` both — and this
+ * is where a success that was only partly a success is said out loud.
+ *
+ * The API answers 200/201 to a write whose body named a field the route does
+ * not accept: it drops the field, applies the rest and lists what it dropped
+ * under `data._warnings.rejected_fields`. Until handoff 30 NOTHING in this app
+ * read that block. `asset_tag` was typed into the Edit form, saved, answered
+ * 200 and left unchanged, with no message (report 29); that input was made
+ * read-only, which closed one field on one screen and left the hole where it
+ * was for every other field on every other form.
+ *
+ * It is closed HERE rather than at the call sites because there are some two
+ * dozen of them, none of which sees the envelope — each unwraps `res.data`
+ * through an adapter that keeps only the keys it knows, so `_warnings` was
+ * gone before a page could have looked. A call site cannot forget what it is
+ * never asked to do. Reads do not come through here: a GET sends no fields to
+ * reject, and `_warnings.truncated` on a list is a statement about the
+ * credential, not about anything the user just did.
+ */
+async function sendMutation<T>(
+  method: string,
+  path: string,
+  make: (token: string) => Promise<Response>,
+): Promise<CadraResponse<T>> {
+  const res = await sendWithAuth<T>(path, make);
+  // Never allowed to turn a write that SUCCEEDED into a thrown error: the
+  // caller would show a failure for a record that was saved.
+  try {
+    showApiWarnings(collectApiWarnings(res), { method, path });
+  } catch (e) {
+    console.error("could not show the API's warnings", e);
+  }
+  return res;
+}
+
 async function apiMutate<T>(
   method: "POST" | "PATCH" | "PUT" | "DELETE",
   path: string,
   body?: unknown,
   opts?: MutateOpts,
 ): Promise<CadraResponse<T>> {
-  return sendWithAuth<T>(path, (token) => {
+  return sendMutation<T>(method, path, (token) => {
     const headers: Record<string, string> = {
       Authorization: `Bearer ${token}`,
       Accept: "application/json",
@@ -186,13 +254,16 @@ export const apiPatch  = <T>(path: string, body?: unknown, opts?: MutateOpts) =>
 export const apiPut    = <T>(path: string, body?: unknown, opts?: MutateOpts) => apiMutate<T>("PUT",    path, body, opts);
 export const apiDelete = <T>(path: string, opts?: MutateOpts)                 => apiMutate<T>("DELETE", path, undefined, opts);
 
-/** Multipart upload — used by the employee bulk-import endpoint. */
+/** Multipart upload — used by the employee bulk-import endpoint. It does not
+ *  go through `apiMutate` (the body is a form, not JSON), so it is sent
+ *  through `sendMutation` by name: a write that bypassed the warnings would
+ *  be the same silence, one function along. */
 export async function apiUpload<T>(
   path: string,
   form: FormData,
   opts?: MutateOpts,
 ): Promise<CadraResponse<T>> {
-  return sendWithAuth<T>(path, (token) => {
+  return sendMutation<T>("POST", path, (token) => {
     const headers: Record<string, string> = {
       Authorization: `Bearer ${token}`,
       Accept: "application/json",

@@ -53,12 +53,16 @@ classified `production` or on one carrying no class at all.
 
 3. **Marks, on their NAME, the fixtures that cannot be removed** (handoff 26
    §D). `scripts/remove_test_residue.py` refuses three groups permanently and
-   correctly — assets holding a chain-of-custody row (append-only, and
+   correctly — assets pinned by an append-only record (append-only, and
    `ondelete='restrict'` means the database refuses too), assets carrying an
    approved disposal, and the assets and locations a REAL service request
    points at (whose foreign keys are `set null`, so deleting the fixture
-   would succeed while silently blanking a live request's field). Those
-   records stay. What changes is that they stop looking like register data:
+   would succeed while silently blanking a live request's field). The first
+   group was one model when this was written and is now three, each counted
+   and printed under its own name: `nrs.asset.custody` (who held it),
+   `nrs.asset.movement` (where it has been, handoff 28) and `nrs.asset.event`
+   (that it was verified, changed status or had a GRN, PO or SAP reference
+   changed, handoff 30). Those records stay. What changes is that they stop looking like register data:
    a ` [TEST FIXTURE]` suffix goes on the name, which is the field every list
    view, every report and the public homepage dropdown already renders.
 
@@ -162,6 +166,15 @@ Custody = env['nrs.asset.custody'].sudo()            # noqa: F821
 # which refuses on it; the two scripts must agree about what stays.
 Movement = (env['nrs.asset.movement'].sudo()         # noqa: F821
             if 'nrs.asset.movement' in env else None)  # noqa: F821
+# The third (handoff 30). It pins an asset that has been verified, has
+# changed `state`, or has had `grn_reference`, `purchase_order_reference` or
+# `sap_asset_number` changed — NOT every asset, because an event is a change
+# and an asset's opening values write none. `remove_test_residue.py` refuses
+# on it by name, so it is counted here by name: a fixture that script will
+# not delete and this one does not mark is one that stays in the register
+# looking like data.
+Event = (env['nrs.asset.event'].sudo()               # noqa: F821
+         if 'nrs.asset.event' in env else None)      # noqa: F821
 Location = env['generic.location'].sudo()            # noqa: F821
 Request = env['request.request'].sudo()              # noqa: F821
 
@@ -222,6 +235,10 @@ print()
 #     `ondelete='restrict'` and `custody.unlink()` raises unconditionally.
 #     Append-only is the property the whole chain is worth having for, and
 #     carving one exception for tidiness is how it stops meaning anything.
+#     The same two facts hold, word for word, of a movement record
+#     (`nrs.asset.movement`, handoff 28) and of an event record
+#     (`nrs.asset.event`, handoff 30), and the removal script refuses on each
+#     BY NAME. One group in this list, three models under it.
 #   * assets and locations a real service request points at — neither
 #     `nrs_asset_id` nor `generic_location_id` declares an `ondelete`, so the
 #     default `set null` applies and deleting the fixture would SUCCEED while
@@ -271,10 +288,13 @@ held_by_custody = fixture_assets.filtered(
 held_by_movement = fixture_assets.filtered(
     lambda a: Movement is not None
     and Movement.search_count([('asset_id', '=', a.id)]))
+held_by_event = fixture_assets.filtered(
+    lambda a: Event is not None
+    and Event.search_count([('asset_id', '=', a.id)]))
 held_by_request = fixture_assets.filtered(
     lambda a: Request.search_count([('nrs_asset_id', '=', a.id)]))
 held_by_disposal = fixture_assets.filtered(lambda a: a.disposal_approved_by)
-unremovable_assets = (held_by_custody | held_by_movement
+unremovable_assets = (held_by_custody | held_by_movement | held_by_event
                       | held_by_request | held_by_disposal)
 
 # A fixture LOCATION stays for a different reason than report 25 recorded.
@@ -307,8 +327,9 @@ def _asset_stays(asset):
     """Would the removal script leave this asset in the register?
 
     Two ways to stay: it is not a fixture at all, or it is one of the
-    fixtures that cannot be released (custody, disposal, a request pointing
-    at it). Either way the location holding it cannot go.
+    fixtures that cannot be released (a custody, movement or event row, an
+    approved disposal, a request pointing at it). Either way the location
+    holding it cannot go.
     """
     return (asset.id not in _fixture_asset_ids
             or asset.id in _unremovable_asset_ids)
@@ -331,9 +352,23 @@ if not unremovable_assets and not unremovable_locs:
           "check the tenant and the patterns above.")
 
 _mark_names(unremovable_assets, "assets that cannot be removed (all reasons)")
-print("    of which: %d hold a custody row, %d are pointed at by a request, "
-      "%d carry an approved disposal (the three overlap)"
-      % (len(held_by_custody), len(held_by_request), len(held_by_disposal)))
+# Five reasons, not three. This line named custody, request and disposal
+# only, and had already been wrong by omission since handoff 28 added
+# movement to the union above without adding it here — so an asset held
+# ONLY by a movement record was in the total and in none of the parts, with
+# nothing on the page to say why. Every member of the union is printed now.
+# They overlap; do not add them up.
+print("    of which: %d hold a custody row, %s, %s,"
+      % (len(held_by_custody),
+         ("%d hold a movement record" % len(held_by_movement)
+          if Movement is not None
+          else "movement n/a (`nrs.asset.movement` not installed)"),
+         ("%d hold an event record" % len(held_by_event)
+          if Event is not None
+          else "event n/a (`nrs.asset.event` not installed)")))
+print("              %d are pointed at by a request, %d carry an approved "
+      "disposal (the five overlap)"
+      % (len(held_by_request), len(held_by_disposal)))
 _mark_names(locs_holding_a_survivor, "locations holding an asset that stays")
 _mark_names(locs_held_by_request, "locations a service request points at")
 print()

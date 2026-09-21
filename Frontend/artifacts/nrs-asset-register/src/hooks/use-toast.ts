@@ -5,14 +5,29 @@ import type {
   ToastProps,
 } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+// 3, not shadcn's 1. With a limit of one, a second toast REPLACES the first
+// — and the only toast this app raises is "the server did not accept these
+// fields" (`lib/apiWarnings.tsx`), which stays until it is dismissed. Two
+// saves in a row would have had the second warning silently erase the first,
+// unread: the defect that toast exists to close, reintroduced by its container.
+const TOAST_LIMIT = 3
+// How long a DISMISSED toast stays in the list (closed, invisible) before it
+// is dropped. NOT how long a toast is shown — that is Radix's `duration`. It
+// was shadcn's 1,000,000 ms, about sixteen minutes, which was harmless with a
+// limit of one and is not with three: a dismissed toast would go on holding
+// one of the three places, and could push a warning nobody had read yet out
+// of the list. One second is enough for the closing animation to finish.
+const TOAST_REMOVE_DELAY = 1000
 
 type ToasterToast = ToastProps & {
   id: string
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
+  // Spread onto the toast's root element by `<Toaster />`. Spelled out because
+  // an object literal, unlike JSX, does not get `data-*` attributes for free.
+  "data-testid"?: string
+  "data-request"?: string
 }
 
 const actionTypes = {

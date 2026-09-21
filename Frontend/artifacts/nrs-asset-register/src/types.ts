@@ -8,6 +8,15 @@
  * because the derivation only ever asked "is it unverified?" and fell through.
  * "Not in service" is the absence of a verdict, said out loud.
  *
+ * "Review — no SAP code" (handoff 30) is the second review status, and it is
+ * a different KIND of finding from the first. The asset has a tag physically
+ * on it, finance has no SAP asset number for it, and no posting to SAP is on
+ * its way: the server's `sap.reconciliation_state = "exception"`. Nobody in
+ * the field clears it by visiting the asset — it is cleared when finance books
+ * it. The wording is for somebody who is not an accountant; the detail page
+ * spells the sentence out under Review Flags. Where it ranks against "Review
+ * — data quality", and why, is in `deriveStatus` (lib/adapters.ts).
+ *
  * Three members were removed with it: "allottee not in nominal roll", "VIN not
  * verifiable" and "possible duplicate". The back end models none of them —
  * there is no nominal-roll check, no VIN field on an asset and no duplicate
@@ -17,6 +26,7 @@
 export type ApprovalStatus =
   | "Cleared"
   | "Review — data quality"
+  | "Review — no SAP code"
   | "Not in service";
 
 export interface AssetLocation {
@@ -159,6 +169,13 @@ export interface Asset {
    *  opinion about a Selection the server owns — see `condition` above. */
   lifecycleState?: string;
   isVerified?: boolean;
+  /** `sap.reconciliation_state`, as the model's key: `not_tagged`, `pending`,
+   *  `reconciled` or `exception`. `string` for the reason `condition` is.
+   *  Absent on a mock row and on a payload from a server that does not send
+   *  the `sap` block — and absent is not "exception". */
+  sapReconciliationState?: string;
+  /** `sap.asset_number` — finance's half of the dual code. */
+  sapAssetNumber?: string;
   custodianId?: number;
   custodianName?: string;
   custodianIR?: string;
@@ -225,9 +242,17 @@ export interface AssetHistoryEvent {
   /** Custody links and location movements — how the row came to exist
    *  (`api`, `tracking_backfill`, `test`, …). */
   source?: string;
-  /** Why, in the words of whoever recorded it (custody link or transfer). */
+  /** Why, in the words of whoever recorded it — a custody link, a transfer,
+   *  or (handoff 30) a change of status: the reason given when an asset was
+   *  marked missing or condemned rides on its `status_changed` event. */
   reason?: string;
   transferReference?: string;
+  /** A maintenance request's reference (`SR-0042`). Present only for a
+   *  sign-in that may read service requests. */
+  requestReference?: string;
+  /** The server HELD THE REFERENCE BACK from this sign-in. Distinct from a
+   *  request that has none, and the row says which. */
+  requestReferenceWithheld?: boolean;
   changes?: AssetHistoryChange[];
 }
 
@@ -254,6 +279,12 @@ export interface AssetHistory {
     statement: string;
     locatedBeforeFirstMovement: boolean;
   };
+  /** From when each KIND of event — a verification, a change of status, a
+   *  change to the GRN / PO / SAP number — has a record nobody can alter, in
+   *  the server's sentences and the server's order. Before that instant such
+   *  an event is a message-log line and is graded as one. Empty from a server
+   *  that predates `nrs.asset.event`; the screen then says nothing about it. */
+  eventRecording: { event: string; statement: string }[];
   /** Every grade with the server's own sentence about what it is worth, in
    *  the SERVER'S ORDER — strongest first, which is an order a `Record`
    *  would not promise to keep. The legend prints it as sent. */

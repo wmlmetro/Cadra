@@ -13,6 +13,12 @@ Sources consolidated in this version:
 
 Deploys:
   STEP 0   Wipe existing nrs.asset records (leaves fleet.vehicle untouched)
+           REFUSES while the tenant holds any row of the three append-only
+           records — nrs.asset.custody, nrs.asset.movement, nrs.asset.event.
+           Each has its OWN flag, and all three refusals are decided before
+           anything is deleted:  CADRA_SEED_DESTROY_CUSTODY=1
+                                 CADRA_SEED_DESTROY_MOVEMENTS=1
+                                 CADRA_SEED_DESTROY_EVENTS=1
   STEP 1   ir.sequence — asset_code and tag_code auto-generation
   STEP 2   NRS HQ location hierarchy  (1 root → 19 floors → 232 rooms)
   STEP 3   8 Asset categories
@@ -81,7 +87,8 @@ import os
 
 CUSTODY_ESCAPE_FLAG = 'CADRA_SEED_DESTROY_CUSTODY'
 MOVEMENT_ESCAPE_FLAG = 'CADRA_SEED_DESTROY_MOVEMENTS'
-custody_links = movement_rows = 0
+EVENT_ESCAPE_FLAG = 'CADRA_SEED_DESTROY_EVENTS'
+custody_links = movement_rows = event_rows = 0
 
 sep('STEP 0: WIPE EXISTING nrs.asset RECORDS')
 
@@ -99,10 +106,36 @@ sep('STEP 0: WIPE EXISTING nrs.asset RECORDS')
 # did not exist when they typed it, and a flag that quietly widens is how
 # that happens.
 #
-# BOTH refusals are decided before EITHER deletion. Checked one after the
-# other, a run with the custody flag set and this one unset would DELETE the
-# chain of custody and only then be refused for the movements — saved by
-# nothing but the absence of a commit in between.
+#
+# THE EVENT RECORD — the third refusal, and deliberately a THIRD flag.
+#
+# `nrs.asset.event` (handoff 30) is append-only and `ondelete='restrict'`
+# exactly as the two above are. It records every verification, every change
+# of `state`, and every change to `grn_reference`, `purchase_order_reference`
+# or `sap_asset_number`. Unlike movement it is NOT written at create — an
+# event is a change, and an asset's opening values write none — so a register
+# that has only ever been created into may hold no rows, and this block is
+# then silent. A register anybody has USED holds them, and without this block
+# the wipe below fails there on a raw foreign-key violation that names a
+# constraint and nothing an operator could act on.
+#
+# Its OWN flag, for the movement flag's reason and one more. The same
+# argument from time applies: `CADRA_SEED_DESTROY_CUSTODY=1
+# CADRA_SEED_DESTROY_MOVEMENTS=1` in an old command line is consent to
+# destroy two records, not a third that did not exist when it was typed. And
+# the three are three distinct bodies of evidence — who held it, where it has
+# been, what was done to it and by whom. They are what three different
+# questions from an auditor are answered out of. One flag that destroys all
+# three would make the most destructive choice the EASIEST one to type, which
+# is the wrong way round for a door out of a refusal: somebody who needs to
+# discard the movements of a demo tenant should not have to agree to discard
+# every verification in the same breath. Three flags is more typing, and the
+# typing is the point.
+#
+# ALL THREE refusals are decided before ANY deletion. Checked one after the
+# other, a run with the custody flag set and a later one unset would DELETE
+# the chain of custody and only then be refused for the movements or the
+# events — saved by nothing but the absence of a commit in between.
 if 'nrs.asset.custody' in env:
     custody_links = env['nrs.asset.custody'].sudo().search_count([])
     if custody_links:
@@ -135,6 +168,28 @@ if 'nrs.asset.movement' in env:
                 f'{MOVEMENT_ESCAPE_FLAG}=1 set.\n'
             )
 
+if 'nrs.asset.event' in env:
+    event_rows = env['nrs.asset.event'].sudo().search_count([])
+    if event_rows:
+        print(f'  Event record on {env.cr.dbname!r}: '
+              f'{event_rows} row(s).')
+        if os.environ.get(EVENT_ESCAPE_FLAG, '').strip() not in ('1', 'true', 'TRUE', 'yes'):
+            raise SystemExit(
+                f'\n  REFUSED. Wiping the register would destroy '
+                f'{event_rows} event record(s) on tenant '
+                f'{env.cr.dbname!r}.\n'
+                f'  These are the append-only record of what has happened to '
+                f'each asset — who verified it and when, every change of '
+                f'status and the reason given, every change to a GRN, PO or '
+                f'SAP reference: once gone there is nothing left to say they '
+                f'existed.\n'
+                f'  If you genuinely mean to discard them, re-run with '
+                f'{EVENT_ESCAPE_FLAG}=1 set.\n'
+                f'  That flag is separate from {CUSTODY_ESCAPE_FLAG} and '
+                f'{MOVEMENT_ESCAPE_FLAG} on purpose; neither of them covers '
+                f'this.\n'
+            )
+
 if 'nrs.asset.custody' in env and custody_links:
     print(f'  {CUSTODY_ESCAPE_FLAG} is set. DESTROYING {custody_links} '
           f'chain-of-custody link(s) on tenant {env.cr.dbname!r}.')
@@ -156,6 +211,17 @@ if 'nrs.asset.movement' in env and movement_rows:
         MOVEMENT_ESCAPE_FLAG, movement_rows, env.cr.dbname)
     env.cr.execute('DELETE FROM nrs_asset_movement')
     print(f'  - Removed {movement_rows} movement records')
+
+if 'nrs.asset.event' in env and event_rows:
+    print(f'  {EVENT_ESCAPE_FLAG} is set. DESTROYING {event_rows} '
+          f'event record(s) on tenant {env.cr.dbname!r}.')
+    print(f'  This goes around nrs.asset.event\'s own append-only '
+          f'guard. It is not recoverable.')
+    _logger.warning(
+        'nrs_hq_seed: %s set — deleting %s event record(s) on %s',
+        EVENT_ESCAPE_FLAG, event_rows, env.cr.dbname)
+    env.cr.execute('DELETE FROM nrs_asset_event')
+    print(f'  - Removed {event_rows} event records')
 
 existing = env['nrs.asset'].search([])
 cats     = env['nrs.asset.category'].search([])

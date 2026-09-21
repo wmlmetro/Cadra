@@ -1,11 +1,30 @@
 from datetime import timedelta
 
 from odoo import models, fields, api, release, _
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 from odoo.tools import config
 
 from .asset_custody import CUSTODY_REASON_KEY
 from .asset_movement import MOVEMENT_REASON_KEY
+from .asset_event import (
+    EVENT_REASON_KEY, EVENT_SOURCE_KEY, EVENT_REFERENCE_CHANGED,
+    EVENT_STATUS_CHANGED, EVENT_VERIFICATION_DATE_SET, EVENT_VERIFIED,
+    REFERENCE_FIELDS)
+
+# The status nothing leaves. See `NRSAsset._assert_disposed_is_terminal`.
+STATE_DISPOSED = 'disposed'
+
+# The sources under which the ACTOR of a verification is the verifier —
+# `action_verify` and the route that calls it. Under any other source somebody
+# wrote a verification DATE, and the record does not say who checked anything.
+_VERIFIER_SOURCES = ('action', 'api_verify')
+
+
+def _m2o_id(value):
+    """The id a many2one value in `vals` names. `False` for empty."""
+    if isinstance(value, models.BaseModel):
+        return value.id or False
+    return value or False
 
 # How long a physical verification counts as current, when the asset's category
 # does not state its own window. Database-per-tenant means a config parameter
@@ -215,6 +234,12 @@ class NRSAsset(models.Model):
         'nrs.asset.movement', 'asset_id', string='Movement Record',
         readonly=True, copy=False)
 
+    # `copy=False` for the reason above, a third time: verifications, status
+    # changes and reference changes that happened to ANOTHER asset.
+    event_ids = fields.One2many(
+        'nrs.asset.event', 'asset_id', string='Event Record',
+        readonly=True, copy=False)
+
     # ── Notes ─────────────────────────────────────────────────
     notes = fields.Text('Notes')
     image = fields.Image('Asset Photo', max_width=1024, max_height=1024)
@@ -341,12 +366,30 @@ class NRSAsset(models.Model):
         # recorders below are: the date has more than one writer.
         if 'last_verified_date' in vals and 'last_verified_by' not in vals:
             vals = dict(vals, last_verified_by=False)
+        # BEFORE anything is written, and here rather than in a route for the
+        # reason everything else in this method is here.
+        self._assert_disposed_is_terminal(vals)
         track_custody = 'custodian_id' in vals
         track_location = 'location_id' in vals
-        if not (track_custody or track_location):
+        # WHAT HAS HAPPENED TO IT, since handoff 30 — a verification, a
+        # change of status, a change to one of the three references an
+        # auditor reconciles against Vendra and SAP. `nrs.asset.event`,
+        # append-only, under every writer, for the reason the two recorders
+        # above are: `state` has the API's PATCH, three action methods, a
+        # completed transfer and the form; `sap_asset_number` has the INT-07
+        # setter, the importer and the form.
+        track_status = 'state' in vals
+        track_verified = 'last_verified_date' in vals
+        track_refs = [f for f in REFERENCE_FIELDS if f in vals]
+        if not (track_custody or track_location or track_status
+                or track_verified or track_refs):
             return super().write(vals)
         held = {r.id: r.custodian_id for r in self} if track_custody else {}
         placed = {r.id: r.location_id for r in self} if track_location else {}
+        status = {r.id: r.state for r in self} if track_status else {}
+        checked = ({r.id: (r.last_verified_date, r.last_verified_by.id)
+                    for r in self} if track_verified else {})
+        refs = {r.id: {f: r[f] for f in track_refs} for r in self}
         result = super().write(vals)
         for record in self:
             if track_custody:
@@ -359,7 +402,121 @@ class NRSAsset(models.Model):
                 now = record.location_id
                 if was.id != now.id:
                     record._record_movement(was, now)
+            if track_status and status.get(record.id) != record.state:
+                record._record_event(
+                    EVENT_STATUS_CHANGED,
+                    from_value=status.get(record.id), to_value=record.state,
+                    reason=self.env.context.get(EVENT_REASON_KEY))
+            if track_verified:
+                record._record_verification(
+                    *checked.get(record.id, (False, False)), vals=vals)
+            for name in track_refs:
+                was = refs[record.id][name] or False
+                now = record[name] or False
+                if was != now:
+                    record._record_event(
+                        EVENT_REFERENCE_CHANGED, field_name=name,
+                        from_value=was, to_value=now)
         return result
+
+    def _assert_disposed_is_terminal(self, vals):
+        """Nothing leaves `disposed`, and a disposed asset is not moved or
+        handed to anybody. Refused here, where every writer passes.
+
+        Until handoff 30 a disposed asset could be marked missing — which
+        overwrote `disposed` and put it back on the register with a 200 —
+        and completing a transfer raised on one set it `active` without
+        anybody having asked. Disabling a button fixes one door and leaves
+        the API, the importer and the shell open; the movement recorder is
+        in this method for that reason and so is this.
+
+        **There is no way round it, on purpose.** A context flag would be a
+        way round that an RPC caller could set. Whether a disposal can be
+        REVERSED — a deliberate, recorded act by somebody entitled to do it —
+        was asked of the Architect rather than built: across the eight local
+        databases the only asset that ever left `disposed` was the fixture
+        handoff 29 used to discover that it could
+        (`docs/handoffs/30-REPORT.md` §2).
+
+        A write that NAMES one of the three fields without changing it is
+        not refused: the Cadra app's edit form re-sends `state` and the
+        location on every save, and a disposed asset's paperwork —
+        `disposal_method`, `disposal_reference`, the approval — is completed
+        AFTER it is disposed. Compared here, before `super()`, so that a
+        refusal happens before anything is written.
+        """
+        if not ({'state', 'location_id', 'custodian_id'} & set(vals)):
+            return
+        for record in self:
+            if record.state != STATE_DISPOSED:
+                continue
+            if 'state' in vals and vals['state'] != STATE_DISPOSED:
+                raise UserError(_(
+                    "%(asset)s has been disposed of, and a disposed asset's "
+                    "status cannot be changed — it cannot be marked missing, "
+                    "put under repair or returned to service. Disposal is "
+                    "the end of an asset's record.",
+                    asset=record.display_name))
+            if 'location_id' in vals \
+                    and _m2o_id(vals['location_id']) != record.location_id.id:
+                raise UserError(_(
+                    "%(asset)s has been disposed of, and a disposed asset "
+                    "cannot be moved. Its record keeps the location it was "
+                    "disposed of from.", asset=record.display_name))
+            if 'custodian_id' in vals \
+                    and _m2o_id(vals['custodian_id']) != record.custodian_id.id:
+                raise UserError(_(
+                    "%(asset)s has been disposed of, and a disposed asset "
+                    "cannot change custodian. Its record keeps whoever held "
+                    "it when it was disposed of.", asset=record.display_name))
+
+    def _record_event(self, event_type, **payload):
+        """Append one `nrs.asset.event`. The source is read off the context
+        by the model, as custody's and movement's are."""
+        self.ensure_one()
+        return self.env['nrs.asset.event']._record(self, event_type, **payload)
+
+    def _record_verification(self, previous_date, previous_verifier, vals):
+        """Every time this asset was checked — or a date was written.
+
+        Two different facts, and two event TYPES. When `action_verify` made
+        the write, the ACTOR VERIFIED THE ASSET, today — `verified` — and
+        every such call is an event even when the date does not change: two
+        checks on one day are two checks, and one overwritten column is
+        exactly what could not say so.
+
+        Anything else is somebody writing a verification DATE — over PATCH,
+        on the form, by import: `verification_date_set`, recorded when the
+        date actually changes. The context says which it is, and the context
+        is caller-controlled, so the claim is only honoured when the write
+        also names the actor as the verifier and dates it today — which is
+        what `action_verify` does, and what a caller claiming it would have
+        to do as well, at which point the claim is true.
+        """
+        self.ensure_one()
+        claimed = self.env.context.get(EVENT_SOURCE_KEY)
+        by_actor = (
+            claimed in _VERIFIER_SOURCES
+            and _m2o_id(vals.get('last_verified_by')) == self.env.uid
+            and self.last_verified_date == fields.Date.today())
+        before = previous_date and previous_date.isoformat()
+        after = self.last_verified_date and self.last_verified_date.isoformat()
+        if by_actor:
+            return self._record_event(
+                EVENT_VERIFIED, from_value=before, to_value=after,
+                notes=self.verification_notes or False)
+        # The same date written again, over nobody: nothing happened. The
+        # same date written again OVER A VERIFIER is not nothing — `write`
+        # has just cleared them, and an asset that said "checked by Ada" now
+        # says nobody checked it. That is recorded.
+        if (previous_date == self.last_verified_date
+                and previous_verifier == self.last_verified_by.id):
+            return None
+        return self._record_event(
+            EVENT_VERIFICATION_DATE_SET,
+            # A verifier label on a write that was not one is not honoured.
+            source='direct' if claimed in _VERIFIER_SOURCES else None,
+            from_value=before, to_value=after)
 
     def _record_custody_change(self, from_custodian, to_custodian):
         """Append one link to this asset's chain.
@@ -518,14 +675,50 @@ class NRSAsset(models.Model):
         # verification; leaving the previous verifier's notes in place would
         # attribute them to somebody who never wrote them.
         vals['verification_notes'] = notes or False
-        self.write(vals)
+        # Since handoff 30 each call is also an append-only `verified` event
+        # (`_record_verification`): the pair of columns above is the LAST
+        # verification, overwritten by the next; the events are all of them.
+        self._with_event_source('action').write(vals)
         self.message_post(body=_('Asset verified by %s') % self.env.user.name)
 
-    def action_condemn(self):
-        self.write({'condition': 'decommissioned', 'state': 'disposed'})
+    def _with_event_source(self, default, reason=None):
+        """This recordset, saying where the event it is about to cause came
+        from. A route that has already said so (`api_verify`, `api_condemn`,
+        `api_mark_missing`) is left standing; a button press is `action`."""
+        ctx = {}
+        if not self.env.context.get(EVENT_SOURCE_KEY):
+            ctx[EVENT_SOURCE_KEY] = default
+        if reason:
+            ctx[EVENT_REASON_KEY] = reason
+        return self.with_context(**ctx) if ctx else self
 
-    def action_mark_missing(self):
-        self.write({'state': 'missing'})
+    def action_condemn(self, reason=None):
+        """Dispose of the asset. `reason` is recorded twice, deliberately:
+        on `disposal_reason`, which is the editable paperwork the disposal
+        report reads, and on the append-only `status_changed` event, which
+        is what was said AT THE TIME and also names who carried it out."""
+        vals = {'condition': 'decommissioned', 'state': STATE_DISPOSED}
+        if reason:
+            vals['disposal_reason'] = reason
+        # An asset ALREADY disposed is left alone. The write would change no
+        # status, so it would record no event — and would still have
+        # overwritten the reason the disposal was given at the time, with
+        # nothing anywhere to say so. The route answers 409 before it gets
+        # here; this is the same answer for the ORM and the Odoo button.
+        live = self.filtered(lambda r: r.state != STATE_DISPOSED)
+        live._with_event_source('action', reason).write(vals)
+
+    def action_mark_missing(self, reason=None):
+        """Mark the asset missing, and say WHY where somebody knows.
+
+        An asset that cannot be found may be a loss, and *why* is the first
+        question anybody asks. Until handoff 30 it had nowhere to live: the
+        Cadra app's dialog asked for no reason because the API had nowhere
+        to put one (report 29 Q2). It lives on the append-only
+        `status_changed` event — evidence of what was said when it was
+        marked, not a note somebody can tidy up afterwards.
+        """
+        self._with_event_source('action', reason).write({'state': 'missing'})
 
     def action_view_requests(self):
         return {

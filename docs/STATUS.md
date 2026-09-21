@@ -297,3 +297,57 @@ discards scopes. It sets `request.jwt_claims`. GO-LIVE §14.1.
 
 **GitHub CI has still not run** — refused for billing since 2026-09-18, on
 handoffs 27, 28 and this one. Left to find: GO-LIVE §13.5, eleven entries.
+
+## Handoff 30 — before the fourth twin
+
+**What was built.** Three more things get a record nobody can alter — every
+verification, every change of status with its reason, and a change to the GRN
+reference, the purchase order reference or the SAP asset number — as ONE
+model, `nrs.asset.event`, rather than three more copies of custody. Custody
+and movement were left where they are; the case both ways is report 30 §1.
+The append-only guard is written once, as a mixin. Disposal is terminal, in
+the model, for every writer. `POST /assets/<id>/mark-missing` and
+`POST /assets/<id>/condemn` exist, each requiring a reason. `building_id`,
+`floor_id` and `room_id` are no longer writable over the API. The app shows
+`_warnings` for every write. A maintenance request's reference is published
+in the asset history to a holder of `requests:read`. `sap_reconciliation_state
+= exception` is a review status in the app.
+
+**How it was proved.** Acted by hand against `test19` before any test
+existed, and the rows read from Postgres: after four refused calls on a
+disposed asset, 0 transfers, 0 movements, 0 custody links. Then:
+
+| Suite | Result |
+|---|---|
+| HTTP, `test19` | 942 passed, 8 skipped — 60 of them the new file |
+| in-registry, CI's 11 modules | 0 failed, 0 error(s) **of 733** (615 + 88 + 4 + 19, + 7 for the verification pass) |
+| static guards | 228 passed — 1 failed before the guard was taught the new model |
+| browser, `test19` | 131 passed, 4 skipped, 2 failed — the two GO-LIVE §13.5.13 already records |
+
+**Measured.**
+
+- **Nobody has ever un-disposed a real asset.** One transition out of
+  `disposed` exists across all eight databases: `NRS-AST-047641`, an `E2E-…`
+  fixture, 19:37 on 20 September — handoff 29's own probe.
+- **`exception`: 34 on `nrs19`, 184 on `test19`, 593 on `jaizbankplc`, and
+  every one of the 811 is a demo or a test fixture.** The *"34 real cases"*
+  quoted since handoff 07 are 29 of handoff 04's demo assets and five
+  handoff-05/06 probes. The control is live
+  and its opening balance is zero.
+- **Before this handoff's tests ran, no asset anywhere was `in_repair` or
+  `transferred`, and nothing in the code writes `transferred`.**
+- **Custody 1,341 rows, movement 420**, across eight databases, measured
+  before the suites ran — the size of the migration that was NOT done.
+- **Every API credential's user has no timezone**, so `context_today` is UTC
+  for them: `/condemn` as specified would have dated the first hour of every
+  Lagos day to the day before.
+
+**Found because rejected fields became visible:** a category's depreciation
+method could never be changed from the Depreciation settings screen. The API
+publishes `method` and accepts `depreciation_method`; the screen echoed the
+first, the API dropped it with a 200, and the screen said *"policy saved"*.
+
+**Schema.** `myservice_asset_register` 19.0.1.16.0, `myservice_api`
+19.0.3.10.0, one new table, no new column on an existing one. All eight local
+databases upgraded, one at a time, before the code was restarted onto them.
+

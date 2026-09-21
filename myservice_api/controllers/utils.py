@@ -655,6 +655,35 @@ def _set_request_user(uid):
         request._env = request.env(user=uid)
 
 
+def _missing_scopes(claims, scopes):
+    """`(granted, missing)` — the ONE statement of what a token's scopes allow.
+
+    `admin` and `*` grant everything. Split out of `require_jwt` in handoff
+    30 so that a route shaping its RESPONSE by scope (`caller_holds`) asks
+    the same question the gate asks, in the same words: a second copy of the
+    wildcard rule is how a route comes to show an admin less than it lets
+    them do.
+    """
+    granted = (claims or {}).get("scopes") or []
+    if isinstance(granted, str):
+        granted = granted.split()
+    granted = set(granted)
+    if not scopes or SCOPE_ADMIN in granted or "*" in granted:
+        return granted, []
+    return granted, [s for s in scopes if s not in granted]
+
+
+def caller_holds(scope):
+    """Whether the authenticated caller holds `scope`. For shaping a response.
+
+    `require_jwt` leaves the validated claims on `request.jwt_claims`. Report
+    27 said a route could not see its caller's scopes, handoff 28 ruled on
+    that as an architectural fact, and it was false (GO-LIVE §14.1).
+    """
+    claims = getattr(request, "jwt_claims", None) or {}
+    return not _missing_scopes(claims, [scope])[1]
+
+
 def require_jwt(scopes=()):
     """Validate the bearer token and apply scope check.
 
@@ -686,21 +715,14 @@ def require_jwt(scopes=()):
     if not uid:
         return None, err(ERR_UNAUTHORIZED, "Token missing subject", status=401), None
 
-    token_scopes = claims.get("scopes") or []
-    if isinstance(token_scopes, str):
-        token_scopes = token_scopes.split()
-    token_scopes = set(token_scopes)
-    wildcard = SCOPE_ADMIN in token_scopes or "*" in token_scopes
-
-    if scopes and not wildcard:
-        missing = [s for s in scopes if s not in token_scopes]
-        if missing:
-            return None, err(
-                ERR_FORBIDDEN,
-                f"Missing required scope(s): {' '.join(missing)}",
-                status=403,
-                details={"required_scopes": list(scopes), "granted_scopes": sorted(token_scopes)},
-            ), None
+    token_scopes, missing = _missing_scopes(claims, scopes)
+    if missing:
+        return None, err(
+            ERR_FORBIDDEN,
+            f"Missing required scope(s): {' '.join(missing)}",
+            status=403,
+            details={"required_scopes": list(scopes), "granted_scopes": sorted(token_scopes)},
+        ), None
 
     _set_request_user(int(uid))
     request.jwt_claims = claims

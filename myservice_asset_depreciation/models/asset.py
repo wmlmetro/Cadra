@@ -273,13 +273,21 @@ class NRSAsset(models.Model):
         self._resolve_start_date()
         self._apply_depreciation()
 
-    def action_condemn(self):
+    def action_condemn(self, reason=None):
         """Disposal stops the clock — record the date so the board truncates."""
-        res = super().action_condemn()
+        res = super().action_condemn(reason=reason)
+        # Unreachable today: `myservice_asset_register` stamps the date in
+        # its own `action_condemn`, which runs inside the `super()` above.
+        # Kept as a belt, and kept on the SAME definition of the day — it
+        # used to be `context_today`, which is UTC for every API credential
+        # and would have dated a disposal made in the first hour of a Lagos
+        # day to the day before, the moment that ordering ever changed.
+        from odoo.addons.myservice_asset_register.models.asset_snapshot import (
+            snapshot_today)
         for r in self:
             if not r.disposal_date:
                 # Writing disposal_date re-enters write(), which recomputes.
-                r.disposal_date = fields.Date.context_today(r)
+                r.disposal_date = snapshot_today()
         return res
 
     # ── Register-wide reporting ───────────────────────────────

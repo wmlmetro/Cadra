@@ -91,6 +91,7 @@ categories, not the count.
 | `test_assets.py` | 8 asset endpoints (incl. move + transfer-custody actions) |
 | `test_assets_csv.py` | /assets/export.csv (non-JSON) |
 | `test_custody.py` | /assets/<id>/custody + `include=custody` — the append-only chain (INT-10 §2.3) |
+| `test_asset_events_api.py` | /assets/<id>/mark-missing + /condemn, `event_id` on /verify, the append-only event record in the history — and DISPOSED IS TERMINAL, as one table over every door (handoff 30) |
 | `test_requests.py` | 8 service-request endpoints (incl. assign/transition/comment actions) |
 | `test_dashboards.py` | 9 dashboard endpoints (operations + security + fleet + fm) |
 | `test_barcode.py` | 4 barcode endpoints + /tags/lookup |

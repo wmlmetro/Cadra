@@ -17,6 +17,10 @@ CUSTODY_REASON_KEY = 'cadra_custody_reason'
 # see the class docstring for why that distinction is the whole point here.
 CUSTODY_APPEND_KEY = 'cadra_custody_append'
 
+# The sources a CALLER may declare through the context. `test` and
+# `tracking_backfill` are never taken from it: see `_resolve_source`.
+_CONTEXT_SOURCES = ('api_transfer', 'api_write', 'transfer', 'direct')
+
 
 # Translated at the call, not at import: `_()` evaluated at class-build time
 # resolves against no context and freezes one language into the module. The
@@ -190,7 +194,20 @@ class NRSAssetCustody(models.Model):
         Declared as an override point, it cannot happen: the column and the
         code that reads it ship in the same module and move together.
         """
-        return declared or self.env.context.get(CUSTODY_SOURCE_KEY) or 'direct'
+        if declared:
+            return declared
+        # The context is CALLER-CONTROLLED over `call_kw`. `test` and
+        # `tracking_backfill` say something about the evidence itself — that
+        # the link is an artefact, or a reconstruction — and until handoff 30
+        # anybody able to change a custodian could claim either through the
+        # context and file a real change of custody as one. Movement was
+        # copied from this model in handoff 28 and the COPY was written
+        # without the hole; the original kept it for twelve days. Two copies
+        # of one rule, and only one of them fixed. Such a label is passed
+        # explicitly by first-party code or derived from the credential,
+        # never claimed.
+        claimed = self.env.context.get(CUSTODY_SOURCE_KEY)
+        return claimed if claimed in _CONTEXT_SOURCES else 'direct'
 
     @api.model
     def _record(self, asset, from_custodian, to_custodian, *,
@@ -221,3 +238,50 @@ class NRSAssetCustody(models.Model):
         }
         return self.sudo().with_context(
             **{CUSTODY_APPEND_KEY: True}).create(vals)
+
+
+class HrEmployee(models.Model):
+    """Deleting an employee un-assigns everything they held. Say so.
+
+    `nrs_asset.custodian_id` is `ON DELETE SET NULL`. So deleting an employee
+    empties `custodian_id` on every asset they held — done by the database,
+    with no ORM write. No `nrs.asset.write` runs, so the chain of custody
+    never sees it and no tracking value is written either: the asset simply
+    stops being held by anybody, and the last link in its chain still says
+    somebody has it.
+
+    It is `GenericLocation.unlink` in `asset_movement.py`, word for word, on
+    the older model — handoff 28 closed it for location and did not look
+    here, and handoff 30's verification pass found it by asking whether
+    "disposed is terminal" held through every door. It did not, through
+    either of these two.
+    """
+    _inherit = 'hr.employee'
+
+    def unlink(self):
+        assets = self.env['nrs.asset'].sudo().with_context(
+            active_test=False).search([('custodian_id', 'in', self.ids)])
+        disposed = assets.filtered(lambda a: a.state == 'disposed')
+        if disposed:
+            raise UserError(_(
+                "%(count)s disposed asset(s) keep an employee being deleted "
+                "as whoever held them when they were disposed of "
+                "(%(first)s%(more)s), and a disposed asset's record cannot "
+                "be changed. Archive the employee instead of deleting them.",
+                count=len(disposed), first=disposed[0].display_name,
+                more=_(' and others') if len(disposed) > 1 else ''))
+        Custody = self.env['nrs.asset.custody']
+        nobody = self.env['hr.employee']
+        # BEFORE the delete, while the names can still be read, and in a
+        # SAVEPOINT for the reason `GenericLocation.unlink` gives: a refusal
+        # that raises in Python after these rows are written must not leave
+        # permanent links saying an employee was deleted who is still there.
+        # `direct`, not a label of its own: it IS a direct act in Odoo, the
+        # reason says which, and `source` is a published enum.
+        with self.env.cr.savepoint():
+            for asset in assets:
+                Custody._record(
+                    asset, asset.custodian_id, nobody, source='direct',
+                    reason=_("The employee record was deleted."))
+            return super().unlink()
+

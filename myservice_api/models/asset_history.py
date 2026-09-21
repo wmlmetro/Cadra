@@ -82,27 +82,40 @@ NOT_RECORDED = (
      "overwritten in place; nothing records that it changed, when, or who "
      "changed it."),
     ("sap_change",
-     "A change to the SAP asset number or any other SAP field. Each sync "
+     "A change to any SAP field other than the SAP asset number — each sync "
      "overwrites the last, so only the most recent survives, and it carries "
-     "a time but no person."),
+     "a time but no person — and a change to the SAP asset number itself "
+     "made before such changes began to be recorded on this system. From "
+     "then on a change to the number is listed here, with who made it, and "
+     "cannot be altered. This history says, for each kind of event, the "
+     "date from which it has been kept that way."),
     ("provenance_change",
      "A change to the GRN, purchase order, vendor or import reference made "
-     "before those fields began to be tracked on this system. A later "
-     "change is listed in this history, as a line in the message log; an "
-     "earlier one left nothing."),
+     "before those fields began to be tracked on this system: it left "
+     "nothing. A later change to the vendor or an import field is listed "
+     "here as a line in the message log, which can be deleted. A change to "
+     "the GRN or purchase order reference is now recorded so that nobody "
+     "can alter it; this history gives the date that began, and a change "
+     "made between the two dates is a message-log line."),
     ("disposal_executor",
-     "Who carried out a disposal. The approval records its approver; the "
-     "act of disposing records a date and no person. A status change in "
-     "this history names whoever saved the record, which is not the same "
-     "claim."),
+     "Who carried out a disposal made before changes of status began to be "
+     "recorded on this system. For those, the approval records its approver "
+     "and the act of disposing records a date and no person; a status "
+     "change shown from the message log names whoever saved the record, "
+     "which is not the same claim. From the date this history gives for "
+     "changes of status, the change into Disposed names who made it and "
+     "cannot be altered."),
     ("maintenance_performed",
      "A planned maintenance visit being carried out. The schedule keeps one "
      "overwritten last-done date, with no person and no row per visit."),
     ("deleted_records",
-     "Anything whose record has since been deleted. Only a change of "
-     "custodian is protected from deletion; every other record here can be "
-     "removed without trace, so this history is a lower bound on what "
-     "happened, never a complete account of it."),
+     "Anything whose record has since been deleted. A change of custodian, "
+     "a move, a verification, a change of status and a change to the GRN, "
+     "purchase order or SAP asset number are protected from deletion, each "
+     "from the date this history gives for it. Every other record here, and "
+     "every one of those made before its date, can be removed without "
+     "trace, so this history is a lower bound on what happened, never a "
+     "complete account of it."),
 )
 
 _EVENT_TITLES = {
@@ -117,6 +130,7 @@ _EVENT_TITLES = {
     "status_changed": "Status changed",
     "condition_changed": "Condition changed",
     "verified": "Verified",
+    "verification_date_set": "Verification date written",
     "disposal_approved": "Disposal approved",
     "disposal_recorded": "Disposal details recorded",
     "provenance_changed": "Provenance changed",
@@ -241,8 +255,12 @@ class NRSAssetHistory(models.Model):
 
     # ── the one public entry point ───────────────────────────────────
 
-    def asset_history(self, newest_first=True):
+    def asset_history(self, newest_first=True, request_references=False):
         """Everything recorded about this asset, on one clock.
+
+        `request_references` — whether a maintenance request's reference is
+        published. The ROUTE decides, from the caller's scopes: the request
+        belongs to `requests:read`, and this history is `assets:read`.
 
         Returns the dict the route publishes as `data`. An OBJECT, for the
         reason the access report and the register snapshot give: there is
@@ -262,12 +280,14 @@ class NRSAssetHistory(models.Model):
         events += self._history_registered()
         events += self._history_tags()
         events += self._history_custody()
-        location_rows, other_chatter = self._history_chatter()
+        recorded, covered = self._history_recorded_events()
+        events += recorded
+        location_rows, other_chatter = self._history_chatter(covered)
         events += self._history_locations(location_rows)
         events += other_chatter
         events += self._history_disposal_approval()
         events += self._history_dispatches()
-        events += self._history_requests()
+        events += self._history_requests(request_references)
 
         undated = sum(1 for e in events if e is None)
         events = [e for e in events if e is not None]
@@ -459,12 +479,123 @@ class NRSAssetHistory(models.Model):
                 }))
         return events
 
-    def _history_chatter(self):
+    # The chatter fields an `nrs.asset.event` of each type also records.
+    # `sap_asset_number` is not tracked, so there is nothing of it to fold.
+    _EVENT_COVERS = {
+        "verified": ("last_verified_date", "last_verified_by"),
+        "verification_date_set": ("last_verified_date", "last_verified_by"),
+        "status_changed": ("state",),
+    }
+
+    def _history_recorded_events(self):
+        """`nrs.asset.event` rows, and the chatter rows they make redundant.
+
+        Since handoff 30 a verification, a change of status and a change to
+        the GRN, purchase order or SAP asset number each have a record nobody
+        can alter. Where one exists IT is the event. Everything that happened
+        BEFORE recording began is still a message-log line, still graded as
+        one, and `fidelity.events` says where the line falls.
+        """
+        events, covered = [], set()
+        labels = dict(
+            self._fields["state"].get_description(self.env)["selection"])
+        field_labels = {
+            name: self._fields[name].get_description(self.env)["string"]
+            for name in ("grn_reference", "purchase_order_reference",
+                         "sap_asset_number") if name in self._fields}
+        for ev in self.event_ids:
+            etype = ev.event_type
+            for fname in self._EVENT_COVERS.get(etype, ()):
+                covered.add((ev.create_date, fname))
+            detail = {"records": ["nrs.asset.event"]}
+            if etype == "verified":
+                published = "verified"
+                summary = "Verified by %s" % (ev.actor_name or "—")
+                detail.update(verified_on=ev.to_value or None,
+                              previous_verified_on=ev.from_value or None,
+                              notes=ev.notes or None,
+                              verifier_recorded=True)
+            elif etype == "verification_date_set":
+                published = "verification_date_set"
+                summary = ("Verification date set to %s — the record does "
+                           "not say who checked the asset"
+                           % (ev.to_value or "nothing"))
+                detail.update(verified_on=ev.to_value or None,
+                              previous_verified_on=ev.from_value or None,
+                              verifier_recorded=False)
+            elif etype == "status_changed":
+                published = "status_changed"
+                summary = "%s → %s" % (
+                    labels.get(ev.from_value, ev.from_value or "—"),
+                    labels.get(ev.to_value, ev.to_value or "—"))
+                detail.update({"from": ev.from_value or None,
+                               "to": ev.to_value or None,
+                               "reason": ev.reason or None})
+            else:
+                published = "provenance_changed"
+                covered.add((ev.create_date, ev.field_name))
+                label = field_labels.get(ev.field_name, ev.field_name)
+                summary = "%s: %s → %s" % (
+                    label, _shown(ev.from_value or None),
+                    _shown(ev.to_value or None))
+                detail.update(changes=[{
+                    "field": ev.field_name, "label": label,
+                    "old": ev.from_value or None,
+                    "new": ev.to_value or None}])
+            events.append(self._history_event(
+                published, ev.occurred_at, ("nrs.asset.event", ev.id),
+                "append_only", summary=summary,
+                actor=_user_ref(ev.actor_id),
+                actor_name=ev.actor_name or None,
+                source=ev.source, detail=detail))
+        return events, covered
+
+    def _history_event_fidelity(self):
+        """From when each kind of event has a record nobody can alter.
+
+        PER KIND. They share a table and did not necessarily begin together
+        on a given database, and a shared table is exactly where that is
+        easy to get wrong.
+        """
+        Event = self.env["nrs.asset.event"]
+        kinds = (
+            ("verified", "verified",
+             "a verification made with the Verify button"),
+            ("verification_date_set", "verification_date_set",
+             "a verification date written any other way"),
+            ("status_changed", "status_changed", "a change of status"),
+            ("reference_changed", "provenance_changed",
+             "a change to the GRN reference, the purchase order reference "
+             "or the SAP asset number"),
+        )
+        out = []
+        for stored, published, what in kinds:
+            began = Event.recording_began_at(stored)
+            out.append({
+                "event": published,
+                "recording_began_at": _iso(began),
+                "statement": (
+                    "No record of this kind has been written on this system "
+                    "yet, for any asset: %s is shown only where the message "
+                    "log holds it." % what if not began else
+                    "From %s, %s is recorded so that nobody can edit or "
+                    "delete it. An earlier one is shown only where the "
+                    "message log holds it, and says so."
+                    % (_when(began), what)),
+            })
+        return out
+
+    def _history_chatter(self, covered=frozenset()):
         """Tracked changes, split into location rows and everything else.
 
         Tracking VALUES only. A message body is free text somebody typed and
         is not published here — this route is `assets:read`, and a note on
         an asset was never promised to every holder of that scope.
+
+        `covered` — `(transaction stamp, field)` pairs that an append-only
+        `nrs.asset.event` already records. Such a row is the same act seen
+        twice and is dropped, for `_CHATTER_SUPERSEDED`'s reason; matched by
+        transaction and not by the clock, for `_history_chatter_row_of`'s.
         """
         messages = self.env["mail.message"].search([
             ("model", "=", "nrs.asset"), ("res_id", "=", self.id),
@@ -477,6 +608,8 @@ class NRSAssetHistory(models.Model):
             for tv in msg.tracking_value_ids:
                 field = self._history_tracked_field(tv)
                 if field["name"] in _CHATTER_SUPERSEDED:
+                    continue
+                if (msg.create_date, field["name"]) in covered:
                     continue
                 if field["name"] == "location_id":
                     location_rows.append({
@@ -782,26 +915,31 @@ class NRSAssetHistory(models.Model):
                         "sent_at": _iso(log.sent_at)}))
         return events
 
-    def _history_requests(self):
+    def _history_requests(self, with_reference=False):
         events = []
         requests = self.env["request.request"].search(
             [("nrs_asset_id", "=", self.id)])
         for req in requests:
-            # THAT a request was raised, when and by whom — not its
-            # reference or its content. `request_count` already tells every
-            # holder of `assets:read` that requests exist; the request
-            # itself belongs to `requests:read`, which this caller may not
-            # hold. (This comment used to add that "a route cannot see its
-            # caller's scopes". That was FALSE — `require_jwt` sets
-            # `request.jwt_claims`, scopes included — and is retracted in
-            # GO-LIVE §14.1. The reference is still withheld, which is safe;
-            # publishing it to holders of `requests:read` is possible, and is
-            # a ruling rather than a repair.)
+            # THAT a request was raised, when and by whom, to everybody who
+            # may read the asset: `request_count` already tells every holder
+            # of `assets:read` that requests exist. Its REFERENCE only to a
+            # caller who also holds `requests:read`, which is who the request
+            # belongs to (ruled in handoff 30 §D1). It was withheld from
+            # everybody until then, on the grounds that "a route cannot see
+            # its caller's scopes" — which was false, and is retracted in
+            # GO-LIVE §14.1. Still not its content: a request's text was
+            # never promised to a reader of assets.
+            reference = (req.name or None) if with_reference else None
             events.append(self._history_event(
                 "maintenance_request", req.create_date,
                 ("request.request", req.id), "editable_record",
-                summary="Maintenance request raised",
-                actor=_user_ref(req.create_uid)))
+                summary=("Maintenance request %s raised" % reference
+                         if reference else "Maintenance request raised"),
+                actor=_user_ref(req.create_uid),
+                detail={"reference": reference,
+                        # Said, so that a null reads as WITHHELD and not as
+                        # a request that has no reference.
+                        "reference_withheld": not with_reference}))
         return events
 
     # ── what the list says about itself ──────────────────────────────
@@ -952,6 +1090,7 @@ class NRSAssetHistory(models.Model):
                 "statement": custody_statement,
             },
             "location": self._history_location_fidelity(),
+            "events": self._history_event_fidelity(),
             "provenance_tracked_from": self._history_provenance_from(),
             "evidence_grades": [
                 {"grade": grade, "meaning": meaning}
@@ -965,12 +1104,18 @@ class NRSAssetHistory(models.Model):
             # client's screen goes stale the day the behaviour under it
             # changes, and nothing fails when it does — so this one is held
             # by `test_the_verification_statement_matches_the_button`.
+            # …and again in handoff 30, which made THAT sentence false: it
+            # said earlier verifications "survive only as the message-log
+            # lines listed here". Each is now a record of its own.
             "verification": (
-                "Each verification shown is a change to the last-verified "
-                "date or to the verifier, and names whoever made it. The "
-                "Verify button records that person on the asset as its "
-                "verifier. A date set any other way clears the verifier, "
-                "and the asset then shows none. Only the most recent "
-                "verification is kept on the asset; earlier ones survive "
-                "only as the message-log lines listed here."),
+                "The Verify button records who checked the asset, each time "
+                "it is pressed, as an event that cannot be edited or "
+                "deleted. A verification date written any other way is "
+                "listed as a date that was written, names whoever wrote it, "
+                "and clears the verifier: the record does not say that "
+                "anybody checked the asset. The asset itself keeps only the "
+                "most recent date and verifier. A verification made before "
+                "this system began recording them is shown only as a "
+                "message-log line, and this history gives the date that "
+                "began."),
         }

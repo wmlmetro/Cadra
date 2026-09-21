@@ -95,6 +95,39 @@ export function getAsset(id: string): Asset | undefined {
 // same table was calling Good. The filter value is now the model's key, taken
 // straight from `useEnum("condition")`, and goes to the API untouched.
 
+/**
+ * A front-end `status` as the query the server can answer — the ONE place the
+ * two are tied together, so the register's Status filter and the dashboard's
+ * review queue cannot ask for different sets under the same word.
+ *
+ * Every mapped status carries `state=active`. All three verdicts are
+ * statements about an asset in service (`deriveStatus` in adapters.ts), so a
+ * filter that sent `is_verified` alone asked the server for a different set
+ * than the one the word names: the dashboard's review queue listed missing
+ * and disposed assets as awaiting review.
+ *
+ * "Review — no SAP code" is `sap_reconciliation_state=exception`, a stored
+ * compute the server filters on natively, and because `deriveStatus` ranks it
+ * first among active assets EVERY row this returns wears that pill. The other
+ * two are not exact the other way round: the API's enum filter takes one
+ * value and has no "not", so `is_verified=true|false` also returns the active
+ * assets that are SAP exceptions, whose pill says so. The register drops
+ * those rows after the fetch (it compares `asset.status` as well); it never
+ * shows a row under a status its pill contradicts.
+ *
+ * "Not in service" has no server filter — the API's `state` takes one value
+ * and that status is every state but one — so it is left unfiltered here and
+ * narrowed on the rows already loaded.
+ */
+export function statusToServerFilter(status: string | undefined): Record<string, unknown> {
+  switch (status) {
+    case "Cleared":               return { state: "active", is_verified: true };
+    case "Review — data quality": return { state: "active", is_verified: false };
+    case "Review — no SAP code":  return { state: "active", sap_reconciliation_state: "exception" };
+    default:                      return {};
+  }
+}
+
 export interface AssetsPage {
   assets: Asset[];
   nextCursor: string | null;
@@ -109,23 +142,10 @@ export async function fetchAssetsPage(
     const all = listAssets(f);
     return { assets: all, nextCursor: null, totalEstimate: all.length };
   }
-  // Frontend status maps to backend `is_verified` AND `state=active`. Both
-  // verdicts are statements about an asset in service (`deriveStatus` in
-  // adapters.ts), so a status filter that sent `is_verified` alone asked the
-  // server for a different set than the one the word names: the dashboard's
-  // review queue listed missing and disposed assets as awaiting review.
-  // "Not in service" has no server filter — the API's `state` takes one value
-  // and that status is every state but one — so it is left unfiltered here.
-  const inService = f?.status === "Cleared" || f?.status === "Review — data quality";
-  const isVerifiedFilter =
-    f?.status === "Cleared" ? true :
-    f?.status === "Review — data quality" ? false :
-    undefined;
   const res = await apiGet<ApiAsset[]>("/api/v1/assets", {
     q: f?.search,
     condition: f?.condition || undefined,
-    is_verified: isVerifiedFilter,
-    state: inService ? "active" : undefined,
+    ...statusToServerFilter(f?.status),
     // Newest-first unless the caller says otherwise. The API's own default
     // is `oldest` and stays that way for every other consumer — this is the
     // register UI choosing its order, not the contract changing under
@@ -135,10 +155,32 @@ export async function fetchAssetsPage(
     limit: 200,
     cursor,
   });
+  // THE COUNT MUST BE A COUNT OF THE ROWS. Under *Cleared* and *Review — data
+  // quality* the server is asked for `is_verified=true|false`, and the API
+  // has no way to say "and NOT a SAP exception" — so it also returns the
+  // active exceptions, which wear a different pill and are dropped from the
+  // list on this side. Its total still counted them: on `test19` the
+  // data-quality filter announced about 190 more assets than it listed, and
+  // on a register like `jaizbankplc` it would be nearly 600. A number beside
+  // a list that does not add up to it is this programme's oldest defect, and
+  // handoff 30's first draft shipped it with the explanation in a comment.
+  // One extra `limit: 1` read, on the first page only; the dashboard has
+  // always subtracted the same overlap.
+  let totalEstimate = res.pagination?.total_estimate ?? null;
+  const server = statusToServerFilter(f?.status);
+  if (totalEstimate !== null && !cursor && "is_verified" in server) {
+    const overlap = await countAssets({
+      q: f?.search,
+      condition: f?.condition || undefined,
+      ...server,
+      sap_reconciliation_state: "exception",
+    });
+    totalEstimate = Math.max(0, totalEstimate - overlap);
+  }
   return {
     assets: res.data.map(apiAssetToAsset),
     nextCursor: res.pagination?.next_cursor ?? null,
-    totalEstimate: res.pagination?.total_estimate ?? null,
+    totalEstimate,
   };
 }
 
@@ -231,9 +273,11 @@ export interface AssetWriteBody {
   asset_level?: string | null;
   domain?: string | null;
   parent_id?: number | null;
-  building_id?: number | null;
-  floor_id?: number | null;
-  room_id?: number | null;
+  // No `building_id` / `floor_id` / `room_id`. They left `_WRITABLE_FIELDS` in
+  // handoff 30: on the Odoo form they drive `location_id` through an onchange
+  // the API never runs, so a PATCH of one rewrote the building and moved
+  // nothing. `location_id` is the one writable statement of where an asset
+  // is. They are still READ, under `location_hierarchy`.
   location_id?: number | null;
   custodian_id?: number | null;
   department?: string | null;
@@ -351,23 +395,40 @@ export async function fetchAssetRegisterCounts(): Promise<AssetRegisterCounts> {
   return { total, active, inRepair, disposed, missing, unverified, verified: Math.max(0, active - unverified) };
 }
 
-/** The three figures the dashboard's status breakdown is made of, as counts
- *  over the register rather than a window of it. Named by what they ARE —
- *  the chart derives its slices, and says how, where it draws them. */
+/** The figures the dashboard's status breakdown is made of, as counts over
+ *  the register rather than a window of it. Named by what they ARE — the
+ *  chart derives its slices, and says how, where it draws them.
+ *
+ *  Five counts for four slices, because the slices have to PARTITION the
+ *  register and two of the facts overlap: an active asset can be both
+ *  unverified and an SAP exception, and `deriveStatus` gives it one status
+ *  (the exception). `activeUnverifiedException` is that overlap, counted so it
+ *  can be taken out of the data-quality slice instead of being drawn twice —
+ *  the server ANDs its filters, so it is one request like the others.
+ *
+ *  Every exception figure carries `state: "active"`. A disposed asset can be
+ *  an SAP exception too, and it is "Not in service": counting it here would
+ *  fold it back into stock, which is what handoff 29 took out. */
 export interface AssetStatusCounts {
   total: number;
   active: number;
   activeUnverified: number;
+  activeException: number;
+  activeUnverifiedException: number;
 }
 
 export async function fetchAssetStatusCounts(): Promise<AssetStatusCounts> {
-  if (!apiConfigured) return { total: 0, active: 0, activeUnverified: 0 };
-  const [total, active, activeUnverified] = await Promise.all([
+  if (!apiConfigured) {
+    return { total: 0, active: 0, activeUnverified: 0, activeException: 0, activeUnverifiedException: 0 };
+  }
+  const [total, active, activeUnverified, activeException, activeUnverifiedException] = await Promise.all([
     countAssets({}),
     countAssets({ state: "active" }),
     countAssets({ is_verified: false, state: "active" }),
+    countAssets({ sap_reconciliation_state: "exception", state: "active" }),
+    countAssets({ sap_reconciliation_state: "exception", is_verified: false, state: "active" }),
   ]);
-  return { total, active, activeUnverified };
+  return { total, active, activeUnverified, activeException, activeUnverifiedException };
 }
 
 // ─── CATEGORY-SCOPED DASHBOARD (e.g. IT Assets Command) ──────────────────────
@@ -467,43 +528,40 @@ export async function markAssetVerified(id: string): Promise<Asset> {
   return apiAssetToAsset(res.data.asset);
 }
 
-// Convenience PATCHes — the Odoo asset form has "Mark Missing / Condemn" as
-// one-click buttons. Same endpoint, different bodies.
+// NOT a PATCH, and until handoff 30 it was one: `PATCH {state: "missing"}`,
+// which has nowhere to put a sentence — so the first question anybody asks
+// about an asset that cannot be found, *why*, had no answer anywhere. The
+// route REQUIRES a reason and writes it to the asset's append-only
+// `status_changed` event: what was said when it was marked, and by whom,
+// which nobody can tidy up afterwards. It is not a field on the asset.
 //
-// No reason goes with this one because the model has no field FOR it. Its three
-// free-text fields (`notes`, `verification_notes`, `disposal_reason`) each mean
-// something else, and a reason written into one would overwrite it.
-export const markAssetMissing = (id: string) =>
-  updateAsset(id, { state: "missing" });
+// 409 `conflict` when the asset is already missing, or disposed — a disposed
+// asset's status cannot change, for any caller. 400 when the reason is blank.
+export async function markAssetMissing(id: string, reason: string): Promise<Asset> {
+  const res = await apiPost<{ asset: ApiAsset; event_id: number | null }>(
+    `/api/v1/assets/${id}/mark-missing`,
+    { reason },
+    { idempotencyKey: newIdempotencyKey() },
+  );
+  return apiAssetToAsset(res.data.asset);
+}
 
-// BOTH fields, because Odoo's own action of the same name writes both
-// (`nrs.asset.action_condemn`: `state = 'disposed'` AND `condition =
-// 'decommissioned'`). This sent the state alone, so an asset condemned from
-// this app still read "Good" beside "Disposed" — the record contradicting
-// itself, and the condition is the half a disposal report prints.
+// The reason and NOTHING else. `POST /assets/<id>/condemn` calls the model's
+// own `action_condemn`, which sets the state, the condition and the disposal
+// date together, on the server, as a Lagos day. This used to be a PATCH of all
+// four with the date read off this browser's clock, because a PATCH is a plain
+// `write` and stamps nothing. No date is sent now, and one must not be added
+// back: a date a client sends is whatever the client's clock says.
 //
-// `disposal_date` IS STILL THIS BROWSER'S CLOCK, and that is a known defect
-// left standing on purpose. It is the same defect `markAssetVerified` above
-// got rid of, and the same cure does not exist here yet: the server stamps the
-// date in `action_condemn` only, and a PATCH is a plain `write`, which stamps
-// nothing (`myservice_asset_register/tests/test_disposal_report.py` asserts
-// exactly that — `write({"state": "disposed"})` leaves `disposal_date` empty
-// and the disposal report raises `no_disposal_date` against the row). So
-// dropping the date here would not hand the clock to the server; it would turn
-// every disposal made from this app into an undated one. The cure is a route
-// that calls the action, as `/verify` does. Until there is one, a date from
-// the wrong clock is a smaller fault than no date.
-export const condemnAsset = (id: string, disposal_reason: string) =>
-  updateAsset(id, {
-    state: "disposed",
-    condition: "decommissioned",
-    // The LOCAL calendar date, not `toISOString()`. That is the UTC date,
-    // which for the first hour of every Lagos day is YESTERDAY — a disposal
-    // made at 00:30 was dated the day before, with a correct clock. `en-CA`
-    // formats as yyyy-mm-dd. Still the browser's clock, for the reason above.
-    disposal_date: new Date().toLocaleDateString("en-CA"),
-    disposal_reason,
-  });
+// 409 `conflict` when the asset is already disposed. Disposal is terminal.
+export async function condemnAsset(id: string, reason: string): Promise<Asset> {
+  const res = await apiPost<{ asset: ApiAsset; disposal: unknown; event_id: number | null }>(
+    `/api/v1/assets/${id}/condemn`,
+    { reason },
+    { idempotencyKey: newIdempotencyKey() },
+  );
+  return apiAssetToAsset(res.data.asset);
+}
 export function getAssetsByCategory() {
   return [
     { name: "IT Equipment", value: 10259 },
@@ -1635,10 +1693,26 @@ export interface CategoryIdentity {
   pm_interval_days: number | null;
 }
 
+/**
+ * The API READS the policy back as `depreciation.method` and only ACCEPTS it
+ * as `depreciation_method`. This function used to send the screen's draft
+ * verbatim — key `method` — so the API refused that one field, saved the three
+ * numbers beside it, answered 200, and the Depreciation settings screen said
+ * "policy saved". A category's depreciation method could never be changed
+ * from that screen, and nothing said so: `_warnings.rejected_fields` was read
+ * by nothing (handoff 30 §C). Found on the day the app began showing those
+ * warnings, which is what closing that hole AS A CLASS was for. Proved against
+ * `test19`: `{"method": …}` → 200 `rejected_fields: ["method"]`;
+ * `{"depreciation_method": …}` → 200, no warning.
+ */
 export const updateAssetCategory = async (
   id: number,
   body: Partial<CategoryPolicy & CategoryIdentity>,
-) => (await apiPatch<AssetCategoryConfig>(`/api/v1/asset-categories/${id}`, body)).data;
+) => {
+  const { method, ...rest } = body;
+  const wire = method === undefined ? rest : { ...rest, depreciation_method: method };
+  return (await apiPatch<AssetCategoryConfig>(`/api/v1/asset-categories/${id}`, wire)).data;
+};
 
 export const createAssetCategory = async (body: Partial<CategoryIdentity>) =>
   (await apiPost<AssetCategoryConfig>("/api/v1/asset-categories", body, {

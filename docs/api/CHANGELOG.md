@@ -33,6 +33,132 @@ live at was never the point.
 
 ---
 
+## 2026-09-21 — handoff 30: disposal is terminal · three fields stop being writable · what happened to an asset, recorded so nobody can alter it
+
+**Two BREAKING changes, both rulings, both closing a request that answered
+200 and did the wrong thing.** Then two new routes and the additive rest.
+
+### BREAKING — a disposed asset cannot change status, move, or change hands
+
+Through **any** route. Until now `PATCH {"state": "missing"}` on a disposed
+asset answered **200** and put it back on the register; so did any other
+`state`. Measured before ruling: across every database we hold, the only
+asset that ever left `disposed` was the fixture used to discover that it
+could.
+
+| Request on a DISPOSED asset | Before | Now |
+|---|---|---|
+| `PATCH` with a different `state` | 200, un-disposed | **400 `validation_failed`** |
+| `PATCH` with a different `location_id` or `custodian_id` | 200 | **400 `validation_failed`** |
+| `POST /assets/<id>/move` | 200 | **400 `validation_failed`** |
+| `POST /assets/<id>/transfer-custody` | 200 | **400 `validation_failed`** |
+| `POST /assets/<id>/mark-missing` *(new)* | — | **409 `conflict`** |
+| `POST /assets/<id>/condemn` *(new)* | — | **409 `conflict`** |
+| `PATCH` re-sending the **same** `state`/`location_id`/`custodian_id` | 200 | 200 — unchanged |
+| `PATCH` of `disposal_method`, `disposal_reference`, `disposal_proceeds`, `disposal_reason`, `notes`, … | 200 | 200 — unchanged |
+| `POST /assets/<id>/approve-disposal` | 200 | 200 — unchanged |
+
+The message is a plain sentence naming the asset. **Every refusal writes
+nothing** — no transfer document, no movement, no custody link.
+`POST /assets` with `"state": "disposed"` is unchanged: an asset may be
+REGISTERED as already disposed. **`missing` is not terminal** — a missing
+asset that turns up is `PATCH {"state": "active"}`, as before.
+
+**There is no way to reverse a disposal over the API.** That is deliberate
+and is an open ruling, not an oversight.
+
+### BREAKING — `building_id`, `floor_id` and `room_id` are no longer writable
+
+On `POST /assets` and `PATCH /assets/<id>`. They are now reported in
+`data._warnings.rejected_fields` like any other field the API does not
+accept. **They never did what a caller sending them wanted:** on the Odoo
+form they drive `location_id`, through a rule the API never ran, so
+`PATCH {"building_id": …}` answered 200, rewrote the building — and with it
+the published `address_display` and `coordinates` — and **moved nothing**,
+leaving an asset that contradicted itself. `location_id` is the one writable
+statement of where an asset is; `POST /assets/<id>/move` is the act.
+
+Unchanged: all three are still **published**, read-only, under
+`data.location_hierarchy`, and are still **filters** on `GET /assets` and
+`GET /reports/asset-register`. No Cadra document ever told an integrator to
+send them; the only place they were advertised was the generated schema for
+`POST /assets`, which no longer lists them.
+
+### NEW — `POST /assets/<id>/mark-missing`
+
+Scope `assets:write` · idempotent · body `{"reason": "…"}`, **required**.
+Answers `{asset, event_id}`. **400** `invalid_request` if `reason` is absent,
+blank or not a string · **409** `conflict` if the asset is already missing,
+or disposed · 404.
+
+`PATCH {"state": "missing"}` still works and still carries no reason — a
+PATCH has nowhere to put a sentence. The reason given here is kept on a
+record nobody can edit or delete; it is **not** a field on the asset.
+
+### NEW — `POST /assets/<id>/condemn`
+
+Scope `assets:write` · idempotent · body `{"reason": "…"}`, **required**.
+Answers `{asset, disposal, event_id}`. Sets `state = disposed`,
+`condition = decommissioned`, `disposal_reason`, and **`disposal_date` —
+stamped by the server, as a LAGOS day** (UTC+01:00, fixed; the day the
+register snapshot cuts on). It takes no date. **409** if already disposed.
+It does **not** approve the disposal: that is `approve-disposal`, a
+different scope.
+
+A consumer disposing of an asset with `PATCH {"state": "disposed",
+"disposal_date": …}` can keep doing so. This route exists so that it does
+not have to send a date from its own clock.
+
+### ADDITIVE
+
+- **`POST /assets/<id>/verify` answers `data.event_id`** — the record this
+  call wrote. Every call writes one, including a second on the same day.
+- **`GET /assets/<id>/history`:**
+  - a verification made with `/verify`, **every** change of `state`, and a
+    change to `grn_reference`, `purchase_order_reference` or
+    `sap_asset_number` are now graded **`append_only`**, with
+    `record.model = "nrs.asset.event"`. Each is listed **once**: the
+    message-log line of the same act is folded into it. Anything that
+    happened *before* this release is still a `chatter` event.
+  - **new event type `verification_date_set`** — a `last_verified_date`
+    written by PATCH. It is *not* a `verified` event: the record does not
+    say that anybody checked the asset. A consumer that switches on
+    `events[].type` must allow for it.
+  - `status_changed` carries `detail.from`, `detail.to` (the enum **keys**)
+    and `detail.reason`.
+  - `maintenance_request` carries **`detail.reference`** — published to a
+    caller that also holds `requests:read`, `null` otherwise — and
+    **`detail.reference_withheld`**, so that a `null` reads as *withheld* and
+    not as a request with no reference. It was withheld from everybody until
+    now, for a reason that turned out to be false.
+  - **`fidelity.events`** — per kind of event, the instant from which it has
+    been recorded on this database, and a sentence. Per kind, because they
+    did not necessarily begin together.
+  - **Reworded, because this release made them false:**
+    `fidelity.verification`, and the `sap_change`, `provenance_change` and
+    `disposal_executor` entries of `fidelity.not_recorded`. **Who carried
+    out a disposal is now recorded** — the actor of the `status_changed`
+    event into `disposed` — from this release forward, and not before.
+
+### Not reachable over the API, and said so you need not look
+
+A disposed asset's location and custodian are also protected from the two
+changes no write makes: **deleting the location, or the employee, it names is
+now refused in Odoo** (archive instead), because both columns are
+`ON DELETE SET NULL` and the database would otherwise have moved or
+un-assigned it. No `/api/v1` route deletes either. Deleting an employee who
+holds LIVE assets now appends a custody link for each (`source: direct`) —
+visible in `GET /assets/<id>/custody` — where it used to leave the chain
+saying somebody still held them.
+
+### NOT CHANGED, and asked about
+
+**An unaccepted field is still a 2xx with `data._warnings.rejected_fields`,
+not a 400.** Whether it should be a 400 is an open ruling. The Cadra app now
+shows the warning to the person who caused it, which it never did.
+
+---
+
 ## 2026-09-21 — `POST /assets/<id>/move` places an asset that has no location
 
 **BEHAVIOUR CHANGE, a fix: a 400 becomes a 200.** Moving an asset whose

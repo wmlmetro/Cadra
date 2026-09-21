@@ -438,6 +438,15 @@ Idempotent via `X-Idempotency-Key` header — same key → same record.
 > not write this field. The same drift path is closed in the bulk import
 > wizard, which no longer rewrites `asset_tag` on an existing asset.
 
+> **Breaking change (2026-09-21): `building_id`, `floor_id` and `room_id` are
+> no longer writable**, on `POST` or `PATCH`. They land in
+> `data._warnings.rejected_fields`. They never moved an asset: on the Odoo
+> form they drive `location_id` through a rule the API does not run, so a
+> `PATCH` of `building_id` answered 200, rewrote the building — and the
+> published address and coordinates, which are computed from it — and left
+> `location_id` where it was. Write `location_id`, or use §3.6. All three are
+> still published under `data.location_hierarchy` and are still list filters.
+
 > **`data.tag` is deprecated** (marked `deprecated: true` on
 > `components.schemas.Asset` in `/api/v1/openapi.json`). It is still returned
 > and will stay returned — breaking a published field to fix a naming problem
@@ -579,6 +588,28 @@ acurl -X PATCH $API/api/v1/assets/99999999 \
 { "error": { "code": "not_found", "message": "Asset 99999999 not found", "request_id": "…", "details": { "http_status": 404 } } }
 ```
 
+## 3.5.1 What may be done to a disposed asset
+
+**Disposal is terminal, and the rule is in the model — so it holds on every
+route, not only the ones that say so.** Since 21 September 2026:
+
+| On a DISPOSED asset | Answer |
+|---|---|
+| change `state` to anything else — `PATCH` | **400** `validation_failed` |
+| change `location_id` or `custodian_id` — `PATCH` | **400** `validation_failed` |
+| `POST …/move`, `POST …/transfer-custody` | **400** `validation_failed` |
+| `POST …/mark-missing`, `POST …/condemn` | **409** `conflict` |
+| re-send the SAME `state`, `location_id` or `custodian_id` | 200 |
+| edit the disposal paperwork, `notes`, anything else writable | 200 |
+| `POST …/approve-disposal` | 200 |
+
+Every refusal is a plain sentence naming the asset, and **writes nothing**.
+There is no route that reverses a disposal. `POST /assets` may still
+register an asset as already `disposed`.
+
+Until this date a disposed asset could be marked missing, which overwrote
+`disposed` and returned it to the register with a 200.
+
 ## 3.6 POST `/api/v1/assets/<id>/move` — move to a new location
 
 Scope: `assets:write`. Success: **200**. Idempotent.
@@ -657,7 +688,8 @@ acurl -X POST $API/api/v1/assets/124/verify \
 {
   "data": {
     "asset": { "id": 124, "is_verified": true, "last_verified_by": { "id": 31, "name": "Adaobi Eze" }, "...": "full asset record" },
-    "verification": { "verified_on": "2026-09-20", "verified_by": { "id": 31, "name": "Adaobi Eze" }, "notes": "Sighted at desk 4F-12, tag intact" }
+    "verification": { "verified_on": "2026-09-20", "verified_by": { "id": 31, "name": "Adaobi Eze" }, "notes": "Sighted at desk 4F-12, tag intact" },
+    "event_id": 5120
   },
   "meta": { "request_id": "…", "timestamp": "…", "version": "v1" }
 }
@@ -678,14 +710,94 @@ date would say somebody checked who did not. Until handoff 28 that PATCH is
 what the Cadra app's own Verify button sent. Use `PATCH` to carry a verification made in another system; use this
 route to make one.
 
-**What it does not buy.** The asset holds ONE verifier, overwritten by the
-next verification. Both the date and the verifier are tracked, so each change
-is a `verified` event in the history — a line in the message log
-(`evidence: "chatter"`), deletable by anyone who can edit the asset. It records who; it is not an append-only
-record of verifications, and nothing here says it is.
+**Every call is kept.** The asset itself holds ONE verifier and one date,
+overwritten by the next verification. Since 21 September 2026 each call also
+appends a record nobody can edit or delete, and `data.event_id` is the one
+this call wrote — including a second call on the same day, which changes no
+date and used to leave nothing. `GET /assets/<id>/history` lists them as
+`verified` events graded `append_only`: *every time this asset was checked,
+and by whom.*
+
+**A `PATCH` of the date is a different fact, and is listed as one.** It
+appears as `verification_date_set`, not `verified`: somebody wrote a date,
+and the record does not say that anybody checked the asset.
+
+**What it does not reach.** A verification made before 21 September 2026 is
+still only a line in the message log (`evidence: "chatter"`), deletable by
+anyone who can edit the asset. `fidelity.events` in the history gives the
+instant, per database.
 
 `last_verified_by` is published on every asset. **Null means nobody is
 recorded, not that nobody checked.**
+
+## 3.6.2 POST `/api/v1/assets/<id>/mark-missing` — mark an asset missing, and record why
+
+Scope: `assets:write`. Success: **200**. Idempotent.
+
+```bash
+acurl -X POST $API/api/v1/assets/124/mark-missing \
+  -H 'Content-Type: application/json' \
+  -d '{"reason": "Not found at desk 4F-12 during the Q3 verification exercise; last sighted 2026-06-30."}'
+```
+
+```json
+{ "data": { "asset": { "id": 124, "state": "missing", "...": "full asset record" }, "event_id": 5121 },
+  "meta": { "request_id": "…", "timestamp": "…", "version": "v1" } }
+```
+
+**The reason is an API feature.** The Odoo form's *Mark Missing* and *Condemn* buttons ask for none, so a status change made there is recorded with who and when and no reason.
+
+**`reason` is required.** An asset that cannot be found may be a loss, and
+*why* is the first question anybody asks. The reason is **not a field on the
+asset**: it is kept on the `status_changed` event `event_id` names, which
+nobody can edit or delete, and is published as `detail.reason` in
+`GET /assets/<id>/history`.
+
+`PATCH {"state": "missing"}` still works, and still records no reason — a
+`PATCH` has nowhere to put a sentence. **Missing is not terminal:** an asset
+that turns up is `PATCH {"state": "active"}`.
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_request` | `reason` absent, blank, or not a string |
+| 404 | `not_found` | no such asset |
+| 409 | `conflict` | already `missing`; or `disposed` — see §3.5.1 |
+
+## 3.6.3 POST `/api/v1/assets/<id>/condemn` — dispose of an asset
+
+Scope: `assets:write`. Success: **200**. Idempotent.
+
+```bash
+acurl -X POST $API/api/v1/assets/124/condemn \
+  -H 'Content-Type: application/json' \
+  -d '{"reason": "Beyond economic repair — motherboard failure, BER report ICT/2026/114."}'
+```
+
+Answers `{asset, disposal, event_id}`; `disposal` is the block every asset
+publishes as `data.disposal`.
+
+**It takes no date.** `state = disposed`, `condition = decommissioned` and
+`disposal_date` are set together, on the server. **The date is a Lagos day**
+— UTC+01:00, fixed, the same day the register snapshot cuts on — and not the
+calling credential's timezone, which for an API client is unset and would
+have meant UTC: every disposal made between 00:00 and 01:00 in Lagos dated
+to the day before.
+
+**`reason` is required**, and is written twice on purpose: to
+`disposal_reason`, the editable paperwork the disposal report reads; and to
+the `status_changed` event, which is what was said AT THE TIME and which
+nobody can edit. **That event's actor is who carried the disposal out** —
+which the register did not record anywhere before 21 September 2026.
+
+**It does not approve the disposal.** That is
+`POST /assets/<id>/approve-disposal`, which needs `approvals:write` — a
+scope that gates nothing else, so holding it is a deliberate act.
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_request` | `reason` absent, blank, or not a string |
+| 404 | `not_found` | no such asset |
+| 409 | `conflict` | already disposed — disposal is terminal, §3.5.1 |
 
 ## 3.7 POST `/api/v1/assets/<id>/transfer-custody` — reassign custodian
 
@@ -875,7 +987,8 @@ acurl "$API/api/v1/assets/124/history"
                    "statement": "Changes of custodian are recorded on this system from …" },
       "evidence_grades": [ { "grade": "append_only", "meaning": "…" }, "… four more, strongest first" ],
       "not_recorded":    [ { "event": "financial_change", "statement": "A change to a cost or a value — … nothing records that it changed, when, or who changed it." }, "…" ],
-      "verification": "Each verification shown is a change to the last-verified date. …",
+      "verification": "The Verify button records who checked the asset, each time it is pressed, as an event that cannot be edited or deleted. …",
+      "events": [ { "event": "verified", "recording_began_at": "2026-09-21T08:31:02", "statement": "From 2026-09-21 08:31 UTC, a verification made with the Verify button is recorded so that nobody can edit or delete it. …" }, "… three more: verification_date_set, status_changed, provenance_changed" ],
       "undated_records_omitted": 0
     },
     "events": [
@@ -901,11 +1014,11 @@ which it rests on. The grades are defined in the response
 
 | `evidence` | Meaning | Events |
 |---|---|---|
-| `append_only` | the application refuses to edit or delete it, for anyone | `custody_changed`, and — for a move made since handoff 28 — `location_moved` |
+| `append_only` | the application refuses to edit or delete it, for anyone | `custody_changed`; `location_moved`, for a move made since handoff 28; and — **made since handoff 30 (21 September 2026)** — `verified`, `verification_date_set`, `status_changed`, and a `provenance_changed` of the GRN reference, the purchase order reference or the SAP asset number |
 | `system_stamp` | stamped when the row was created; gone if the row is deleted | `registered`, `tag_issued` |
 | `guarded_record` | written from the acting user and refused to an ordinary edit; a privileged user can still rewrite it, and a tag label can be deleted by an asset manager | `tag_printed`, `tag_affixed`, `integration_event` |
 | `editable_record` | an asset manager can edit or delete it, without trace | `location_moved` **made before handoff 28, when a transfer row exists**, `transfer_recorded`, `maintenance_request`, `tag_scrapped`, **`disposal_approved`** |
-| `chatter` | a line in the message log that anyone able to edit the asset can delete, without trace | `status_changed`, `condition_changed`, `verified`, `disposal_recorded`, `provenance_changed`, `details_changed`, and `location_moved` **made before handoff 28, when no transfer row exists** |
+| `chatter` | a line in the message log that anyone able to edit the asset can delete, without trace | `condition_changed`, `disposal_recorded`, `details_changed`; a `provenance_changed` of the vendor or an import field; a `verified` that is a write of the VERIFIER alone, with no date (an asset manager can do that over XML-RPC, and it is not a verification); `status_changed`, `verified` and any other `provenance_changed` **made before handoff 30**; and `location_moved` **made before handoff 28, when no transfer row exists** |
 
 **`disposal_approved` is `editable_record`, not more.** The approver and the
 instant are absent from `_WRITABLE_FIELDS`, so no API client can name its own
@@ -959,8 +1072,23 @@ state, not something that happened to it.
   `transfer_recorded` is a transfer that is NOT done (raised, approved or
   rejected) and is not a move. `integration_event` is any outbox row for this
   asset, whatever its `detail.status` — `pending` and `dead` included.
-  `maintenance_request` says that a request was raised, when and by whom, and
-  deliberately NOT its reference: the request belongs to `requests:read`.
+  `maintenance_request` says that a request was raised, when and by whom, to
+  everybody who may read the asset. **Its reference is `detail.reference` for
+  a caller that also holds `requests:read`, and `null` for one that does
+  not** — and `detail.reference_withheld` says which, so that a `null` does
+  not read as a request with no reference. Never its content. (Until 21
+  September 2026 it was withheld from everybody, for a reason that turned
+  out to be false.)
+- **One act is listed once.** A change that has an `append_only` record is
+  read from it, and the message-log line of the same act is folded away —
+  matched by transaction, not by the clock. `verification_date_set` is a
+  `last_verified_date` written by `PATCH`: a date, and nobody recorded as
+  having checked. `status_changed` carries `detail.from`, `detail.to` — the
+  enum KEYS — and `detail.reason`, which is where the reason given to
+  `mark-missing` or `condemn` is published.
+- **`fidelity.events`** — for each kind of event that has an `append_only`
+  record, the instant it began to be kept ON THIS DATABASE, and a sentence.
+  Per kind: they share a table and did not necessarily begin together.
 - **An unmatched transfer says what its time is.** A `location_moved` read
   from a transfer row with no message-log line carries
   `detail.at_is_when_the_transfer_was_recorded: true`: for `/move` that is the
@@ -969,9 +1097,12 @@ state, not something that happened to it.
 - **`fidelity.undated_records_omitted`** — records that hold no instant
   cannot be placed on a clock; they are left out and counted here.
 - **Times are naive server time, which is UTC.**
-- **`fidelity.not_recorded`** — on every response. A changed cost, a changed
-  SAP field and a changed GRN/PO reference leave no record at all; their
-  absence from `events` is not evidence that they did not happen.
+- **`fidelity.not_recorded`** — on every response. A changed cost, and a
+  changed SAP field other than the asset number, leave no record at all;
+  their absence from `events` is not evidence that they did not happen. A
+  changed GRN or PO reference, a changed SAP asset number, and who carried
+  out a disposal are recorded **from the instant `fidelity.events` gives and
+  not before**, and each statement says so.
 - **`fidelity.custody`** — when custody recording began on this system, and
   `custodian_held_before_first_link`: true when the asset was already held by
   somebody the chain never saw arrive.

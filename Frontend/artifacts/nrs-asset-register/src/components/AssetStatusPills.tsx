@@ -8,11 +8,13 @@ import LifecyclePill from "@/components/LifecyclePill";
  * the dashboard queue cannot disagree with each other.
  *
  * One slot, not two pills side by side. An asset carries two facts: its
- * lifecycle (`lifecycleState`, the model's `state`) and a data-quality verdict
- * (`status`). The verdict only exists for an asset in service. "Missing ·
- * Cleared" side by side is a contradiction on its face, and a data-quality
- * verdict about an asset nobody can find is not a fact anyone holds. So: not
- * active → the lifecycle, and nothing else; active → the verdict, as before.
+ * lifecycle (`lifecycleState`, the model's `state`) and a review verdict
+ * (`status` — cleared, or one of the two review findings). The verdict only
+ * exists for an asset in service. "Missing · Cleared" side by side is a
+ * contradiction on its face, and a verdict about an asset nobody can find is
+ * not a fact anyone holds. So: not active → the lifecycle, and nothing else;
+ * active → the verdict, as before. That holds for "Review — no SAP code" too:
+ * a disposed asset can still be an SAP exception, and it reads "Disposed".
  *
  * `lifecycleState` absent (a mock row, or a payload that never carried it)
  * falls back to the verdict — which, since `deriveStatus` stopped falling

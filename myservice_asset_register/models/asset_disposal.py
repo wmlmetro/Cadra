@@ -655,7 +655,7 @@ class NRSAssetDisposal(models.Model):
 
     # ── The action that produces a disposal ───────────────────
 
-    def action_condemn(self):
+    def action_condemn(self, reason=None):
         """Record WHEN, alongside the condition and the state.
 
         `action_condemn` wrote a condition and a state and nothing else, so
@@ -672,8 +672,17 @@ class NRSAssetDisposal(models.Model):
         this button as the approving authority would manufacture exactly the
         evidence an auditor is asking for.
         """
-        result = super().action_condemn()
+        result = super().action_condemn(reason=reason)
+        # A LAGOS day, not `context_today`. That resolves the acting user's
+        # timezone and falls back to UTC when they have none — and every API
+        # credential's user has none. `POST /assets/<id>/condemn` (handoff
+        # 30) exists to take this date off the browser's clock; stamped with
+        # `context_today` it would have dated every disposal made between
+        # 00:00 and 01:00 in Lagos to the day before, which is the bug the
+        # route was ruled in to remove, moved to the server. One definition
+        # of the day: the one the register snapshot cuts on.
+        from .asset_snapshot import snapshot_today
         for record in self:
             if not record.disposal_date:
-                record.disposal_date = fields.Date.context_today(record)
+                record.disposal_date = snapshot_today()
         return result

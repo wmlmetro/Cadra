@@ -1217,5 +1217,102 @@ request's reference from everybody because it *"could not"* be shown only to
 holders of `requests:read`. It can. Withholding it is still SAFE — it
 under-publishes — so nothing was exposed; but the stated reason was wrong,
 and anything designed around "per-scope shaping is impossible here" should be
-re-read. Whether to publish the reference to `requests:read` holders is a
-ruling, not a repair: `[open]`.
+re-read. ~~Whether to publish the reference to `requests:read` holders is a
+ruling, not a repair: `[open]`.~~ **`[landed]` handoff 30:** ruled, and published
+— `detail.reference`, with `detail.reference_withheld` saying when it was not.
+
+## 15 · Handoff 30 — before the fourth twin, 2026-09-21
+
+### 15.1 · What it closed — `[landed, keep it that way]`
+
+Each of these was an `[open]` entry above; the entry is left as it was
+written, because how a thing stood is part of the record.
+
+| Entry | Was | Now |
+|---|---|---|
+| §13.4 item 0 | a caller could file a real change of custody under `test` | custody honours only `api_transfer`, `api_write`, `transfer`, `direct` from the context, as movement does |
+| §13.4 item 2 | location backfill, unruled | **ruled: no.** |
+| §13.4 item 3 | `PATCH {"building_id": …}` moved nothing and said nothing | the three fields are not writable; sending one is reported |
+| §13.5 item 1 | *Mark missing* took no reason, and could not | `POST /assets/<id>/mark-missing`, reason required, kept where nobody can edit it |
+| §13.5 item 2 | a disposal made from the app was dated by the browser | `POST /assets/<id>/condemn` — dated by the server, as a Lagos day |
+| §13.5 item 4 | a disposed asset could be marked missing, moved, handed over | refused in the model, for every writer; the app does not offer them |
+| §13.5 item 6 | `_warnings.rejected_fields` was read by nothing | the app shows it, for every mutation |
+| §13.3 *disposal executor* | who carried out a disposal was recorded nowhere | the actor of the `status_changed` event into `disposed` — **from 2026-09-21, not before** |
+| §14.1 | a request's reference withheld from everybody | published to a holder of `requests:read` |
+
+### 15.2 · Asked of the Architect — `[open]`
+
+1. **Should custody and movement adopt `nrs.asset.append.only.mixin`?** No
+   fields, so no migration, no id changes, no published name changes. It
+   would have made §13.4 item 0 impossible. Recommended; not done, because
+   it changes two live audit models nobody has ruled on. Report 30 §1.
+2. **400, or 200 with a warning, for a field the API does not accept?**
+   Recommended: 400 — Vendra's own client already raises on it, *after*
+   Cadra has created the asset, and says so. BREAKING; ten routes. Report
+   30 §3.
+3. **May a DISPOSED asset be verified?** Allowed today, deliberately: a
+   disposed asset somebody finds on the premises is an audit finding, and
+   refusing to record the sighting would hide it. One line either way.
+4. **What a reversal of a disposal should be, if one is ever needed.** Not
+   built. Measured need: none — the one asset that ever left `disposed` is
+   handoff 29's probe. Report 30 §2 proposes the shape.
+
+### 15.3 · Found, not touched — `[open]`
+
+1. ~~**Deleting an employee silently un-assigns everything they held, and the
+   chain of custody records nothing.**~~ **`[landed]` in this handoff**, after
+   the verification pass connected it to the terminal rule. `nrs_asset.
+   custodian_id` is `ON DELETE SET NULL` (read from `pg_constraint`), so the
+   database made the change with no ORM write — the exact twin of the hole
+   handoff 28 closed for location. `hr.employee.unlink` now appends the link
+   first (`source: direct`, the reason says the employee was deleted) and
+   **refuses outright if a disposed asset names the employee**;
+   `generic.location.unlink` refuses likewise. Both offer archiving.
+2. **`transferred` is a published status with no producer.** Nothing in the
+   code writes it; no asset on any of the eight databases carries it — nor
+   did any carry `in_repair` before handoff 30's own tests wrote two on
+   `test19`. It is published, filterable and selectable in the app's edit
+   form. It is report 29 §3's dead-status class; removing a published enum
+   value is BREAKING, so it was measured and left.
+3. **A disposed asset still assigned to a leaver is flagged for retrieval
+   and can never be marked retrieved.** `action_mark_retrieved` clears the
+   custodian, which the terminal rule refuses. One button, one asset, a plain
+   sentence; nothing automated calls it. The fix belongs in
+   `myservice_identity`'s exit flow, which should not flag disposed assets.
+4. **Custody can still CLAIM `transfer` through the context without there
+   being a transfer.** Movement downgrades that to `direct` unless a transfer
+   of the asset's own backs it; custody has no transfer column to check
+   against. A claim about process, not about whether the evidence is real —
+   far less serious than `test` was — and named rather than left.
+5. **The endpoint reference documents neither
+   `POST /assets/<id>/approve-disposal` nor the `data.disposal` block.**
+   Found by citing two section numbers from memory and then looking for
+   them. The route is in the changelog and the OpenAPI document only.
+6. **An asset REGISTERED as already disposed has no status event**, by
+   design: an event is a change, and the registration is the record. So *who
+   carried out the disposal* is unanswerable for such an asset, as it is for
+   every disposal made before 2026-09-21.
+7. **A verification is still dated by the UTC day, and that date is now
+   frozen in an append-only row.** `action_verify` writes `date.today()` and
+   the container is UTC, so a check made between 00:00 and 01:00 in Lagos is
+   dated the day before — the bug `/condemn` was cured of in this handoff.
+   Left, deliberately: `is_verified` is a stored compute whose cron and
+   cutoff are UTC on purpose (its docstring says why), and the recorder's
+   own "did the actor verify it TODAY" test reads the same clock. Moving one
+   without the others files real verifications as `verification_date_set`
+   for an hour a night. **The event's `occurred_at` is the exact instant**,
+   so the audit question is answerable to the second; it is the asset's own
+   date column that is a day out.
+8. **The reason is an API and app feature. The Odoo form's *Mark Missing*
+   and *Condemn / Dispose* buttons ask for none**, so a `status_changed`
+   event made from Odoo carries no reason. It says who and when.
+9. **`PATCH {"state": "disposed"}` still disposes, and stamps nothing** — no
+   disposal date, no change of condition, no reason. `/condemn` is the door
+   that does it properly; it did not close the other one. By precedent
+   (PATCH stayed open for location in handoff 28), and the app no longer
+   offers it on edit. Whether the MODEL should stamp the date for every
+   writer is a ruling: the disposal report's `no_disposal_date` finding, and
+   the tests that prove it, rest on the fact that today it does not.
+10. **An approved transfer of an asset that is then condemned can never be
+   completed** — `action_complete` raises, correctly. It can be rejected.
+

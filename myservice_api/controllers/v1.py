@@ -1574,6 +1574,14 @@ class MyserviceApiV1(http.Controller):
                                     "asset. `provenance_tracked_from` is the "
                                     "instant a change to the GRN, PO, vendor "
                                     "and import fields began to be listed. "
+                                    "`events` gives, PER KIND of event that "
+                                    "has a record nobody can alter — a "
+                                    "verification, a verification date "
+                                    "written, a change of status, a change "
+                                    "to the GRN, PO or SAP asset number — "
+                                    "the instant it began to be kept that "
+                                    "way on this database, or null if it "
+                                    "never has. "
                                     "`evidence_grades` defines each grade "
                                     "by what somebody can do to the "
                                     "record.")},
@@ -1630,11 +1638,18 @@ class MyserviceApiV1(http.Controller):
                             "actor_name": {
                                 "type": "string", "nullable": True,
                                 "description": (
-                                    "On a `custody_changed` event, the name "
-                                    "AS RECORDED at the time, which outlives "
-                                    "the user. On every other event the "
-                                    "record holds a user and no name, so "
-                                    "this is that user's name today.")},
+                                    "On an event read from a record nobody "
+                                    "can alter — `custody_changed`, a "
+                                    "`location_moved` made since handoff 28, "
+                                    "and the `verified`, "
+                                    "`verification_date_set`, "
+                                    "`status_changed` and "
+                                    "`provenance_changed` events made since "
+                                    "handoff 30 — the name AS RECORDED at "
+                                    "the time, which outlives the user. On "
+                                    "every other event the record holds a "
+                                    "user and no name, so this is that "
+                                    "user's name today.")},
                             "evidence": {
                                 "type": "string",
                                 "enum": [g for g, _ in EVIDENCE_GRADES],
@@ -1660,9 +1675,14 @@ class MyserviceApiV1(http.Controller):
                                     "no record.")},
                             "source": {
                                 "type": "string", "nullable": True,
-                                "description": "`AssetCustody.source`, on a "
-                                               "`custody_changed` event; "
-                                               "null otherwise."},
+                                "description": "Where the write came from, "
+                                               "on an event whose `evidence` "
+                                               "is `append_only` — the "
+                                               "record's own `source`; null "
+                                               "otherwise. `test` marks a row "
+                                               "written by the automated test "
+                                               "suite, whatever route wrote "
+                                               "it."},
                             "record": {
                                 "type": "object",
                                 "description": "`{model, id}` of the row "

@@ -262,11 +262,17 @@ def test_verify_records_who_verified(client, test_location, capture):
     assert data["asset"]["is_verified"] is True
     _, history = _history(client, asset["id"])
     verified = [e for e in history["events"] if e["type"] == "verified"]
+    # ONE, although the same act also left a message-log line: the record
+    # supersedes the tracked `last_verified_date` / `last_verified_by` rows.
     assert len(verified) == 1
     assert verified[0]["actor"]["id"] == data["verification"]["verified_by"]["id"]
-    # Still a line in the message log. The route records WHO; it does not
-    # make the record of it any harder to delete, and must not say it does.
-    assert verified[0]["evidence"] == "chatter"
+    # Handoff 28 asserted `chatter` here, and said why: the route recorded
+    # WHO and did not make the record of it any harder to delete. Since
+    # handoff 30 each call appends an `nrs.asset.event` nobody can edit or
+    # delete, and THAT is what the event rests on — `data.event_id` names it.
+    assert verified[0]["evidence"] == "append_only"
+    assert verified[0]["record"] == {"model": "nrs.asset.event",
+                                     "id": data["event_id"]}
 
 
 def test_a_patched_verification_date_clears_the_old_verifier(
@@ -290,11 +296,30 @@ def test_a_patched_verification_date_clears_the_old_verifier(
     assert data["last_verified_by"] is None, (
         "a date that arrived without a verifier kept the previous one")
     # …and the clearing is itself a line in the history, not a silence.
+    #
+    # Handoff 28 found it as a `verified` chatter event whose `changes` named
+    # `last_verified_by` going to null. Since handoff 30 the PATCH appends an
+    # `nrs.asset.event` of its own TYPE — a date that was written, not a
+    # verification — and that record supersedes the tracked rows of the same
+    # write, so the chatter line is folded away rather than listed beside it.
+    # What says the verifier is gone is `verifier_recorded`, on a record
+    # nobody can alter, which is a stronger statement than the one it
+    # replaces.
     _, history = _history(client, asset["id"])
-    cleared = [c for e in history["events"] if e["type"] == "verified"
-               for c in e["detail"].get("changes", [])
-               if c["field"] == "last_verified_by" and c["new"] is None]
-    assert cleared, "the verifier was cleared and the history does not say so"
+    written = [e for e in history["events"]
+               if e["type"] == "verification_date_set"]
+    assert len(written) == 1, (
+        "the verifier was cleared and the history does not say so")
+    assert written[0]["evidence"] == "append_only"
+    assert written[0]["detail"]["verifier_recorded"] is False
+    assert written[0]["detail"]["verified_on"] == "2026-01-15"
+    assert written[0]["detail"]["previous_verified_on"], (
+        "the date it replaced — the real verification's — is not carried")
+    # The verification that DID happen is still there, and still one event:
+    # the PATCH must not be listed as a second one, nor erase the first.
+    verified = [e for e in history["events"] if e["type"] == "verified"]
+    assert len(verified) == 1
+    assert verified[0]["detail"]["verifier_recorded"] is True
 
 
 def test_a_second_verification_on_one_day_is_not_invisible(
@@ -319,9 +344,14 @@ def test_a_client_cannot_name_its_own_verifier(client, test_location):
     assert "last_verified_by" in data["_warnings"]["rejected_fields"]
 
 
-def test_a_changed_grn_reference_is_now_visible_and_is_only_chatter(
+def test_a_changed_grn_reference_is_recorded_where_nobody_can_alter_it(
         client, test_location):
-    """Tracked since handoff 28. Visible — which it was not. Not protected."""
+    """Tracked since handoff 28 — visible, which it was not, and deletable.
+    Recorded since handoff 30, because a change to what an auditor reconciles
+    against Vendra is exactly the event somebody would want to hide.
+
+    This test was `…is_now_visible_and_is_only_chatter` and asserted the
+    `chatter` grade. The name said what was true then."""
     r = client.post("/api/v1/assets", json={
         "name": "pytest-history-provenance", "category_id": 1,
         "location_id": test_location["id"], "grn_reference": "GRN-BEFORE"})
@@ -331,8 +361,11 @@ def test_a_changed_grn_reference_is_now_visible_and_is_only_chatter(
     assert_envelope_ok(r)
     _, data = _history(client, asset["id"])
     changed = [e for e in data["events"] if e["type"] == "provenance_changed"]
+    # ONE: `grn_reference` is still tracked, so the same PATCH also left a
+    # message-log row, and the record supersedes it.
     assert len(changed) == 1
-    assert changed[0]["evidence"] == "chatter"
+    assert changed[0]["evidence"] == "append_only"
+    assert changed[0]["record"]["model"] == "nrs.asset.event"
     change = changed[0]["detail"]["changes"][0]
     assert (change["field"], change["old"], change["new"]) == (
         "grn_reference", "GRN-BEFORE", "GRN-AFTER")

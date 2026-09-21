@@ -1,0 +1,304 @@
+from odoo import models, fields, api, _
+from odoo.exceptions import UserError
+
+# The context key a caller sets to say WHERE an event came from. Anything that
+# does not set it lands on `direct` — the Odoo form, an import, a shell
+# session — exactly as `asset_custody.CUSTODY_SOURCE_KEY` does.
+EVENT_SOURCE_KEY = 'cadra_event_source'
+
+# The reason the caller gave, when it gave one. In the context for the reason
+# custody's is: an ORM write that changes a status has nowhere to put a
+# sentence. It is what makes *why is this asset missing* a recorded fact
+# rather than a note squeezed into a field that means something else.
+EVENT_REASON_KEY = 'cadra_event_reason'
+
+# The flag `_record` sets on itself; `create` refuses without it.
+EVENT_APPEND_KEY = 'cadra_event_append'
+
+EVENT_VERIFIED = 'verified'
+EVENT_VERIFICATION_DATE_SET = 'verification_date_set'
+EVENT_STATUS_CHANGED = 'status_changed'
+EVENT_REFERENCE_CHANGED = 'reference_changed'
+
+# The three fields whose change is an event. They are what an auditor
+# reconciles against Vendra and against SAP, they change rarely, and a change
+# to one is exactly the thing somebody would want to hide (report 28 §4,
+# ruled in handoff 30). `purchase_vendor` and the three import fields stay
+# tracked in the chatter and are NOT here: the importer rewrites them on
+# every re-import, and an append-only table is the wrong place to discover
+# that a record is mostly data loading — which is what report 28 §0 found
+# about location, after the fact.
+REFERENCE_FIELDS = (
+    'grn_reference', 'purchase_order_reference', 'sap_asset_number')
+
+# What each type may carry. `_record` refuses a key that does not belong to
+# the type, so a status change cannot arrive with verification notes and the
+# sparse columns below cannot drift into a bag of whatever a caller sent.
+# This table is the typed payload: it is why the model can be ONE table
+# without the per-type guarantees becoming "any column, any row".
+_PAYLOAD_OF_TYPE = {
+    EVENT_VERIFIED: frozenset({'from_value', 'to_value', 'notes'}),
+    EVENT_VERIFICATION_DATE_SET: frozenset({'from_value', 'to_value'}),
+    EVENT_STATUS_CHANGED: frozenset({'from_value', 'to_value', 'reason'}),
+    # No `reason`: nothing that changes a reference has anywhere to take one
+    # from, and a column no writer can fill reads as a reason nobody gave.
+    EVENT_REFERENCE_CHANGED: frozenset(
+        {'field_name', 'from_value', 'to_value'}),
+}
+
+# The sources a CALLER may declare through the context. `test` says something
+# about the evidence itself and is never taken from the context — see
+# `nrs.asset.append.only.mixin._resolve_source`.
+_CONTEXT_SOURCES = (
+    'api_verify', 'api_condemn', 'api_mark_missing', 'api_write',
+    'action', 'transfer', 'direct')
+
+
+class NRSAssetAppendOnlyMixin(models.AbstractModel):
+    """The append-only guard, written once.
+
+    `nrs.asset.custody` and `nrs.asset.movement` each carry their own copy of
+    what is below, and the copies have already disagreed: custody was written
+    with a `source` any caller could claim through the context, movement was
+    copied from it in handoff 28 WITHOUT that hole, and the original kept it
+    until handoff 30 §D3. The copy was fixed and the original was not. A
+    safety rule with two copies is how the two answers start to differ, and
+    this programme has been bitten by exactly that often enough to have a
+    sentence for it.
+
+    So the third append-only model does not get a third copy. **The two
+    existing models are deliberately NOT moved onto this mixin here** —
+    whether they should be is the question handoff 30 §A asks the Architect
+    to rule on, and adopting it is a change to two live audit models that
+    nobody has ruled. It defines no fields, so adoption needs no migration.
+
+    `write` and `unlink` raise unconditionally, so they hold under `sudo()`.
+    `create` is weaker and says so: it refuses without a context flag, and a
+    context is something an RPC caller supplies. What actually stops a
+    hand-written row is that flag AND the ACL, which grants `create` to
+    nobody. Two locks, one of them configuration. And all of it is Python:
+    there is no database trigger, and somebody with direct SQL access is not
+    stopped.
+    """
+
+    _name = 'nrs.asset.append.only.mixin'
+    _description = 'Append-only record of an asset (guard)'
+
+    # The context flag `_record` sets on itself. Each model names its own.
+    _append_key = None
+    # The context key a caller may declare a source through, and the values
+    # it may declare. Anything else is `direct`.
+    _source_key = None
+    _context_sources = ()
+
+    def _append_only_message(self):
+        # Literal inside the function, translated at the call — see
+        # `asset_custody._append_only_message` for why both halves matter.
+        return _(
+            "This record is append-only. It cannot be edited or deleted "
+            "once written — not through the interface, not over the API, "
+            "and not as an administrator with sudo. Record what happened "
+            "next instead; the history is the evidence."
+        )
+
+    def _no_hand_written_rows_message(self):
+        return _(
+            "This record cannot be created directly. A row is written only "
+            "as a side effect of the thing it records actually happening, "
+            "so that it says what happened rather than what somebody typed."
+        )
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        if not self._append_key \
+                or not self.env.context.get(self._append_key):
+            raise UserError(self._no_hand_written_rows_message())
+        return super().create(vals_list)
+
+    def write(self, vals):
+        raise UserError(self._append_only_message())
+
+    def unlink(self):
+        raise UserError(self._append_only_message())
+
+    @api.model
+    def _resolve_source(self, declared, user):
+        """The label a row carries. `myservice_api` extends it — once.
+
+        The context is CALLER-CONTROLLED over `call_kw`. A label that says
+        something about the evidence itself — that the row is a test
+        artefact, or a reconstruction — may only be passed explicitly by
+        first-party code or derived from the credential, never claimed
+        through the context: otherwise anybody able to change an asset could
+        file the change under `test`.
+        """
+        if declared:
+            return declared
+        claimed = self.env.context.get(self._source_key) \
+            if self._source_key else None
+        return claimed if claimed in self._context_sources else 'direct'
+
+
+class NRSAssetEvent(models.Model):
+    """Something that happened to an asset, which nobody can alter.
+
+    Handoff 30 ruled three more records of the kind `nrs.asset.custody` and
+    `nrs.asset.movement` are, and asked first whether building them as a
+    third, fourth and fifth near-identical table was a design or an accident.
+    This is the answer for the three that did not exist yet: ONE model with a
+    type, the common columns, and a payload whose shape is fixed per type by
+    `_PAYLOAD_OF_TYPE`. The case both ways, and why custody and movement were
+    left where they are, is `docs/handoffs/30-REPORT.md` §1.
+
+    - **`verified`** — every time this asset was checked, and by whom: the
+      ACTOR IS THE VERIFIER. `last_verified_date` / `last_verified_by` are
+      ONE overwritten pair; a register that is physically verified every
+      year kept only the last year.
+    - **`verification_date_set`** — somebody wrote a verification DATE, over
+      PATCH, on the form or by import, and the record does not say who
+      checked anything — which is why `nrs.asset.write` clears the verifier
+      then. A TYPE OF ITS OWN and not a `verified` with a different
+      `source`, because `source` is overwritten with `test` under a test
+      credential and the difference between *"Ada checked it"* and *"a date
+      was written"* must not be something a label can erase.
+    - **`status_changed`** — every change of `state`, with the reason where
+      one was given. It is where *why is this asset missing* lives, and it
+      closes `disposal_executor` going forward: the actor of the change into
+      `disposed` is who carried the disposal out.
+    - **`reference_changed`** — a change to one of `REFERENCE_FIELDS`, with
+      the value before and the value after AS THEY READ AT THE TIME.
+
+    Written by `nrs.asset.write`, where every writer passes — not by any
+    route.
+
+    **An event is a CHANGE, so an asset's opening values write none.** That
+    is a deliberate difference from custody and movement, which record the
+    first custodian and the first placement. Every asset has a `state` from
+    birth; recording it would pin every asset ever created
+    (`ondelete='restrict'`) for a row that says only that it was created,
+    which `create_date` already says. The first CHANGE of a reference
+    carries the opening value in `from_value`, so nothing is lost by it.
+    """
+
+    _name = 'nrs.asset.event'
+    _inherit = ['nrs.asset.append.only.mixin']
+    _description = 'Asset Event Record'
+    # Chronological; `id` breaks ties inside one transaction.
+    _order = 'occurred_at, id'
+
+    _append_key = EVENT_APPEND_KEY
+    _source_key = EVENT_SOURCE_KEY
+    _context_sources = _CONTEXT_SOURCES
+
+    asset_id = fields.Many2one(
+        'nrs.asset', string='Asset', required=True, index=True,
+        # NOT cascade, for custody's reason: deleting the asset would erase
+        # what happened to it, which is the defect this model exists to
+        # remove.
+        ondelete='restrict')
+
+    event_type = fields.Selection([
+        (EVENT_VERIFIED, 'Verified'),
+        (EVENT_VERIFICATION_DATE_SET, 'Verification date written'),
+        (EVENT_STATUS_CHANGED, 'Status changed'),
+        (EVENT_REFERENCE_CHANGED, 'Reference changed'),
+    ], string='Event', required=True, index=True)
+
+    occurred_at = fields.Datetime(
+        string='Recorded At', required=True, index=True,
+        default=lambda self: fields.Datetime.now())
+
+    # WHO MADE THE WRITE. On a `verified` event that is the verifier.
+    actor_id = fields.Many2one(
+        'res.users', string='By', ondelete='set null')
+    actor_name = fields.Char(string='By (as recorded)')
+
+    # ── the typed payload — see `_PAYLOAD_OF_TYPE` ────────────────────
+    field_name = fields.Selection(
+        [(name, name) for name in REFERENCE_FIELDS],
+        string='Field', index=True)
+    # Chars, AS RECORDED. A status is stored by its key (`missing`), a
+    # verification by the ISO date written, a reference verbatim — none of
+    # them a foreign key, so nothing outside this row can empty it.
+    from_value = fields.Char(string='Before (as recorded)')
+    to_value = fields.Char(string='After (as recorded)')
+    reason = fields.Text(string='Reason')
+    notes = fields.Text(string='Verification Notes')
+
+    source = fields.Selection([
+        ('api_verify', 'API — verify'),
+        ('api_condemn', 'API — condemn'),
+        ('api_mark_missing', 'API — mark missing'),
+        ('api_write', 'API — asset create or update'),
+        ('action', 'A button on the asset (verify, condemn, mark missing)'),
+        ('transfer', 'Asset transfer completion'),
+        ('direct', 'Direct write (Odoo UI, import or script)'),
+        ('test', 'Written by the automated test suite'),
+    ], string='Source', required=True, default='direct', index=True)
+
+    def _append_only_message(self):
+        return _(
+            "The record of what has happened to an asset is append-only. An "
+            "event cannot be edited or deleted once written — not through "
+            "the interface, not over the API, and not as an administrator "
+            "with sudo. What happens next is recorded as a new event; the "
+            "history is the evidence."
+        )
+
+    def _no_hand_written_rows_message(self):
+        return _(
+            "An asset event cannot be created directly. One is written only "
+            "as a side effect of the asset actually being verified, changing "
+            "status or having a reference changed, so that the record says "
+            "what happened rather than what somebody typed."
+        )
+
+    # ── When the record began, PER TYPE ───────────────────────────────
+
+    @api.model
+    def recording_began_at(self, event_type):
+        """The instant of the oldest row of this type HERE, or None.
+
+        Per type and not per table, and that is the one thing a shared model
+        makes easier to get wrong: a database whose first status change was
+        recorded in September and whose first verification was recorded in
+        March did not begin recording verifications in September. Measured,
+        not declared, for `nrs.asset.movement.recording_began_at`'s reason.
+        """
+        self.env.cr.execute(
+            "SELECT min(create_date) FROM nrs_asset_event "
+            "WHERE event_type = %s", (event_type,))
+        return self.env.cr.fetchone()[0]
+
+    # ── The one way a row is written ──────────────────────────────────
+
+    @api.model
+    def _record(self, asset, event_type, *, source=None, occurred_at=None,
+                actor=None, **payload):
+        """Append one event. The only way a row is ever written."""
+        allowed = _PAYLOAD_OF_TYPE.get(event_type)
+        if allowed is None:
+            raise UserError(_("Unknown asset event type: %s") % event_type)
+        stray = set(payload) - allowed
+        if stray:
+            raise UserError(_(
+                "An asset event of type %(type)s cannot carry %(keys)s.",
+                type=event_type, keys=', '.join(sorted(stray))))
+        if event_type == EVENT_REFERENCE_CHANGED \
+                and payload.get('field_name') not in REFERENCE_FIELDS:
+            raise UserError(_(
+                "A reference change must name one of: %s")
+                % ', '.join(REFERENCE_FIELDS))
+        user = actor if actor is not None else self.env.user
+        vals = {
+            'asset_id': asset.id,
+            'event_type': event_type,
+            'occurred_at': occurred_at or fields.Datetime.now(),
+            'actor_id': user.id if user else False,
+            'actor_name': user.name if user else False,
+            'source': self._resolve_source(source, user),
+        }
+        for key in allowed:
+            vals[key] = payload.get(key) or False
+        return self.sudo().with_context(
+            **{self._append_key: True}).create(vals)
