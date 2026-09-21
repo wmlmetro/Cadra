@@ -46,6 +46,7 @@ from .utils import (
     paginate,
     parse_limit,
     record_cap,
+    refuse_unwritable,
     selection_values,
 )
 # The door. Every query parameter this controller reads is parsed by one of
@@ -1291,9 +1292,10 @@ class CadraAssetsV1(http.Controller):
     def create_asset(self, **kwargs):
         body = get_params()
         vals, rejected = _filter_writable(body)
+        if rejected:
+            return refuse_unwritable(rejected, _WRITABLE_FIELDS)
         if not vals.get("name"):
-            return err(ERR_INVALID_REQUEST, "`name` is required",
-                       details={"rejected_fields": rejected} if rejected else None)
+            return err(ERR_INVALID_REQUEST, "`name` is required")
         # An asset created already assigned to somebody opens its chain of
         # custody. `nrs.asset.create` records the link; this says where it
         # came from, so the row does not read as an anonymous direct write.
@@ -1301,10 +1303,7 @@ class CadraAssetsV1(http.Controller):
             cadra_custody_source="api_write",
             cadra_movement_source="api_write",
             cadra_event_source="api_write").create(vals)
-        out = serialize_asset(rec)
-        if rejected:
-            out["_warnings"] = {"rejected_fields": rejected}
-        return out
+        return serialize_asset(rec)
 
     # ── Patch: PATCH /api/v1/assets/<id> ───────────────────────────
 
@@ -1316,8 +1315,11 @@ class CadraAssetsV1(http.Controller):
                  request_schema={
                      "type": "object",
                      "description": ("Any subset of the writable fields from POST "
-                                     "/api/v1/assets. Unknown fields are rejected "
-                                     "and reported under `_warnings`."),
+                                     "/api/v1/assets. A field this route does not "
+                                     "accept is a 400 `invalid_request` naming it "
+                                     "in `details.rejected_fields`, with "
+                                     "`details.writable` listing what is "
+                                     "accepted — and NOTHING is written."),
                      "properties": {
                          "name": {"type": "string"},
                          "condition": {"type": "string",
@@ -1347,7 +1349,12 @@ class CadraAssetsV1(http.Controller):
             return error
         body = get_params()
         vals, rejected = _filter_writable(body)
-        if not vals and not rejected:
+        # BEFORE the write, and whatever else the body holds. Until handoff 31
+        # a PATCH whose EVERY field was refused passed the check below, wrote
+        # nothing, and answered 200 — typed, saved, unchanged, no message.
+        if rejected:
+            return refuse_unwritable(rejected, _WRITABLE_FIELDS)
+        if not vals:
             return err(ERR_INVALID_REQUEST, "Empty patch — no writable fields supplied")
         if vals:
             # `custodian_id` is in `_WRITABLE_FIELDS`, so this route moves
@@ -1365,10 +1372,7 @@ class CadraAssetsV1(http.Controller):
             rec.with_context(cadra_custody_source="api_write",
                              cadra_movement_source="api_write",
                              cadra_event_source="api_write").write(vals)
-        out = serialize_asset(rec)
-        if rejected:
-            out["_warnings"] = {"rejected_fields": rejected}
-        return out
+        return serialize_asset(rec)
 
     # ── Move action: POST /api/v1/assets/<id>/move ─────────────────
 
@@ -1611,6 +1615,62 @@ class CadraAssetsV1(http.Controller):
         before = _last_event_id(rec)
         rec.with_context(
             cadra_event_source="api_mark_missing").action_mark_missing(
+                reason=reason)
+        return {
+            "asset": serialize_asset(rec),
+            "event_id": _event_written(rec, "status_changed", before),
+        }
+
+    # ── Mark found: POST /api/v1/assets/<id>/mark-found ────────────
+
+    @cadra_route("/api/v1/assets/<int:id>/mark-found", method="POST",
+                 summary="A missing asset turned up — record where",
+                 scopes=[SCOPE_ASSETS_WRITE],
+                 idempotent=True,
+                 error_statuses=(409,),
+                 request_schema={
+                     "type": "object",
+                     "required": ["reason"],
+                     "properties": {
+                         "reason": {"type": "string",
+                                    "description": "Where it turned up, who "
+                                                   "found it, what state it "
+                                                   "was in."},
+                     },
+                 },
+                 request_example={"reason": "Found in the 2nd-floor store "
+                                            "room during the October count, "
+                                            "tag intact. It had been moved "
+                                            "there for a repaint."})
+    def mark_asset_found(self, id, **kwargs):
+        """*Where it turned up* is as much an audit fact as *why it went*.
+
+        `PATCH {"state": "active"}` has always been able to bring a missing
+        asset back and still can — but a PATCH has nowhere to put a sentence,
+        so an asset reappeared having recorded nothing about the most
+        interesting event in its life. The reason given here is written to
+        the append-only `status_changed` event, beside the one that says why
+        it went missing. It sets `state` back to `active`. It does not verify
+        the asset: whoever found it may not be whoever checks it.
+
+        `reason` is REQUIRED, for `mark-missing`'s reason.
+
+        **409** — the asset is not missing. There is nothing to find.
+        """
+        rec, error = _browse_or_404(id)
+        if error:
+            return error
+        reason, error = _required_reason(get_params())
+        if error:
+            return error
+        if rec.state != "missing":
+            return err(ERR_CONFLICT,
+                       "This asset is not missing, so it cannot be marked found.",
+                       status=409,
+                       details={"asset_id": rec.id, "state": rec.state})
+        before = _last_event_id(rec)
+        rec.with_context(
+            cadra_event_source="api_mark_found").action_mark_found(
                 reason=reason)
         return {
             "asset": serialize_asset(rec),
@@ -2118,12 +2178,20 @@ class CadraAssetsV1(http.Controller):
                     "call and cannot be supplied: remove %s and call again as "
                     "the approving user." % ", ".join("`%s`" % k
                                                       for k in claimed),
-                    details={"asset_id": rec.id, "rejected_fields": claimed})
+                    # The same two keys `refuse_unwritable` publishes, so a
+                    # caller reading `details.writable` finds it on BOTH of
+                    # this route's refusals, three lines apart. This route
+                    # reads no body, so nothing is writable.
+                    details={"asset_id": rec.id, "rejected_fields": claimed,
+                             "writable": []})
 
-        # Reported, not acted on — the same contract PATCH publishes. A key
-        # this route does not read is a caller misunderstanding, and it is
-        # told so rather than left to infer it from an unchanged record.
+        # This route reads NO body. A key it does not read is a caller
+        # misunderstanding, and since handoff 31 it is REFUSED — the same
+        # contract PATCH publishes — rather than reported beside a 200 for
+        # an approval the caller may believe it shaped.
         ignored = sorted(body) if isinstance(body, dict) else []
+        if ignored:
+            return refuse_unwritable(ignored, ())
 
         if rec.disposal_approved_by:
             return err(
@@ -2150,8 +2218,6 @@ class CadraAssetsV1(http.Controller):
             "asset": serialize_asset(rec),
             "disposal": _serialize_disposal(rec),
         }
-        if ignored:
-            payload["_warnings"] = {"rejected_fields": ignored}
         return payload
 
     # ── Register report: GET /api/v1/reports/depreciation ──────────

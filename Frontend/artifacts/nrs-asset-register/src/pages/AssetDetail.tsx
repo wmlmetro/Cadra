@@ -6,9 +6,10 @@ import { fetchAsset, markAssetVerified } from "@/lib/dataProvider";
 import { CadraApiError } from "@/lib/api";
 import {
   AssetMoveDialog, CustodyTransferDialog, CondemnAssetDialog, MarkMissingDialog,
-  invalidateAssetQueries,
+  MarkFoundDialog, invalidateAssetQueries,
 } from "@/components/AssetActionDialogs";
 import RecordLink from "@/components/RecordLink";
+import { ApiErrorMessage } from "@/components/ApiErrorMessage";
 import type { Asset } from "@/types";
 import AssetStatusPills from "@/components/AssetStatusPills";
 import ConditionBadge from "@/components/ConditionBadge";
@@ -16,7 +17,7 @@ import DepreciationCard from "@/components/DepreciationCard";
 import AssetHistoryTimeline from "@/components/AssetHistoryTimeline";
 import {
   ArrowLeft, Monitor, Car, Sofa, User, MapPin, Clock,
-  AlertCircle, ChevronRight, Edit3, ShieldCheck, AlertTriangle, Trash2, ArrowRightLeft, Loader2,
+  AlertCircle, ChevronRight, Edit3, ShieldCheck, AlertTriangle, Trash2, ArrowRightLeft, Loader2, SearchCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEnumLabel } from "@/hooks/useEnums";
@@ -114,6 +115,7 @@ export default function AssetDetail() {
   const [custodyOpen, setCustodyOpen] = useState(false);
   const [condemnOpen, setCondemnOpen] = useState(false);
   const [missingOpen, setMissingOpen] = useState(false);
+  const [foundOpen, setFoundOpen] = useState(false);
   // Verifying an asset is itself an event, so the history goes stale with the
   // asset — and so do the register list and every count of unverified assets,
   // which this did not refresh. One list, shared with the dialogs.
@@ -175,7 +177,18 @@ export default function AssetDetail() {
   // it is shown to the client on a tablet, where nothing is hovered. If this
   // copy of the asset is stale and a dialog is opened anyway, the dialog
   // prints the server's own sentence.
+  //
+  // VERIFY IS NOT ONE OF THEM, by ruling (handoff 31 §C2, `DECISIONS.md`): "a
+  // disposed asset somebody physically finds on the premises is an audit
+  // finding, and a register that refuses to record 'I saw it, today' is
+  // suppressing the one fact that matters". The Odoo form used to hide the
+  // button on a disposed asset while this page offered it — one rule, two
+  // answers. The form now offers it in every state, this page always did,
+  // and the notice below says so, because a person reading "disposal is the
+  // end of an asset's record" beside a live green button would fairly assume
+  // the button was the mistake.
   const isDisposed = asset.lifecycleState === "disposed";
+  const isMissing = asset.lifecycleState === "missing";
   const DISPOSED_TITLE = "This asset has been disposed of";
 
   const currentStep = workflowStep(asset);
@@ -288,10 +301,25 @@ export default function AssetDetail() {
                 reporting success while nothing happened; offered on a DISPOSED
                 one it un-disposed it. One key compared at a time: see
                 LifecyclePill. */}
+            {/* *Mark found*, on a MISSING asset and on no other: the route is a
+                409 for every other state, so it is not drawn greyed-out on the
+                thousands of assets that were never lost. It sits where *Mark
+                missing* sits — which on a missing asset is disabled — because
+                it is that button's other half. */}
+            {isMissing && (
+              <button
+                onClick={() => setFoundOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-200/70 dark:border-emerald-800/30 text-xs font-medium text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                data-testid="button-found"
+              >
+                <SearchCheck size={12} />
+                Mark found
+              </button>
+            )}
             <button
               onClick={() => setMissingOpen(true)}
-              disabled={asset.lifecycleState === "missing" || isDisposed}
-              title={asset.lifecycleState === "missing" ? "This asset is already marked missing"
+              disabled={isMissing || isDisposed}
+              title={isMissing ? "This asset is already marked missing"
                 : isDisposed ? DISPOSED_TITLE : undefined}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-200/70 dark:border-amber-800/30 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               data-testid="button-missing"
@@ -321,6 +349,7 @@ export default function AssetDetail() {
               <p className="text-[12px] text-slate-800 dark:text-slate-200">
                 <span className="font-semibold">This asset has been disposed of, and disposal is the end of an asset's record.</span>{" "}
                 It cannot be marked missing, moved, handed to another custodian or returned to service, so those actions are switched off.
+                It can still be marked verified: if it is physically found on the premises, that sighting is worth recording.
                 Its other details can still be corrected with Edit.
               </p>
             </div>
@@ -331,9 +360,7 @@ export default function AssetDetail() {
           <div className="px-5 py-3 border-b border-border" data-testid="asset-action-error">
             <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-xl p-3">
               <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-              <p className="text-[12px] text-red-700 dark:text-red-400">
-                <span className="font-semibold">{verifyErr.code}:</span> {verifyErr.message}
-              </p>
+              <ApiErrorMessage err={verifyErr} />
             </div>
           </div>
         )}
@@ -608,6 +635,7 @@ export default function AssetDetail() {
       <CustodyTransferDialog  assetId={asset.id} open={custodyOpen} onOpenChange={setCustodyOpen} />
       <CondemnAssetDialog     assetId={asset.id} open={condemnOpen} onOpenChange={setCondemnOpen} />
       <MarkMissingDialog      assetId={asset.id} open={missingOpen} onOpenChange={setMissingOpen} />
+      <MarkFoundDialog        assetId={asset.id} open={foundOpen}   onOpenChange={setFoundOpen} />
     </div>
   );
 }

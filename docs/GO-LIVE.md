@@ -1316,3 +1316,105 @@ written, because how a thing stood is part of the record.
 10. **An approved transfer of an asset that is then condemned can never be
    completed** — `action_complete` raises, correctly. It can be rejected.
 
+## 16 · Handoff 31 — one answer per rule, 2026-09-21
+
+### 16.1 · What it closed — `[landed, keep it that way]`
+
+| Entry | Was | Now |
+|---|---|---|
+| §15.2 item 1 | should custody and movement adopt the mixin? | **ruled yes, done.** One guard, one credential relabel, for all three records. Their ROWS stay where they are — ruled, not to be reopened |
+| §15.2 item 2 | 400, or 200 with a warning? | **ruled 400, done**, eleven routes (report 30's ten, plus one that dropped fields without even reporting them), announced in the changelog, the endpoint reference and `INT-10` |
+| §15.2 item 3 | may a disposed asset be verified? | **ruled allowed**; the Odoo form, which hid it, now agrees with the model, the API and the app |
+| §15.3 item 3 | a leaver's disposed asset could never be retrieved | a disposed asset is not flagged, and does not hold a clearance open |
+| §15.3 item 9 | `PATCH {"state": "disposed"}` stamped nothing | the MODEL stamps date and condition for every writer; both `action_condemn` overrides deleted |
+| §13.5 item 6, §15.1 | rejected fields shown as a warning | refused; the app says which fields, in words, where it shows any error |
+| *(new)* | a found asset recorded no reason | `POST /assets/<id>/mark-found`, reason required |
+| *(new, found by the 400)* | **`POST`/`PATCH /requests` dropped a request's location for the life of the route**, `GET /requests` published `location: null` whatever the request held, and `?location_id=` filtered nothing | saved, published, filterable — §16.3 item 1 |
+
+### 16.2 · Asked of NRS — `[open]`, theirs
+
+1. **What does "Transferred" mean?** Published, filterable, selectable in the
+   app, and nothing writes it. If an asset can leave NRS's books altogether
+   it is a disposal-like act needing an approver and a posting to SAP; if it
+   only ever moves between offices, the register already records that and
+   the status means nothing. The question as put is report 31 §5. **If it
+   means nothing it is removed under handoff 31's announcement.**
+
+### 16.3 · Found — `[open]` unless it says otherwise
+
+1. **`[landed]` — the request location.** The request model's field became
+   `generic_location_id` in the move to Odoo 19 and `v1_requests` went on
+   asking for `location_id`. **A request raised through the API before
+   2026-09-21 has no location** (`jaizbankplc`: 0 of 460). The first
+   reading — *the register cannot hold one* — was wrong, was acted on for
+   two hours, and was caught by a comment in the front end. **The second
+   reading over-corrected** — *never saved, by anyone, and unrecoverable* —
+   and was caught by the verification pass running one SELECT: quick-submit,
+   the PM scheduler, fleet maintenance and the Odoo form all knew the
+   field's real name, and `cadra19`'s 80 requests all have a location,
+   which the API read back as `null` until now. **Worth a sweep nobody has done:** every
+   OTHER published key in every controller against the model field it
+   claims to write, on 19. This one hid for the whole migration behind a
+   201; the 400 will now surface the write side of any sibling, but a
+   serializer that publishes `null` for a renamed field fails nothing.
+   **And the disposal stamp keeps a STALE date:** `disposal_date` is
+   writable on a live asset, so one PATCHed with last year's date and
+   disposed today is dated last year — *a date the caller sent is respected*
+   cannot tell a date sent with the disposal from one sent long before it.
+2. **Vendra's own contract document is now wrong.**
+   `vendra_network/docs/reference/cadra-api-contract.md` §*"Unknown fields
+   are silently swallowed"* says a create with an unaccepted field returns
+   201. Nothing of Vendra's breaks — its client turns our 400 into the same
+   terminal failure, with a remedy text that is now CORRECT where the old
+   one had to be special-cased — but the page misleads. Not our repository;
+   a note to send.
+3. **`disposal_date` is writable, so a `PATCH {"disposal_date": null}` on a
+   disposed asset un-dates it** — the one remaining way to produce a
+   `no_disposal_date` finding on a disposal made after 2026-09-21.
+4. **The smoke test hardcodes location ids 1 and 2**, which do not exist on
+   `test19`: four `404` lines on every run there, exit 0. The pytest suite
+   had the same fault and fixed it in handoff 25 (`any_location`).
+5. **A screen that PATCHes back the object it GET-ed fails the day the
+   serializer gains a read-only key.** `building_id` happened that way in
+   handoff 30; the Branding screen was safe only because two shapes happened
+   to agree, and now sends an explicit pick. There is no guard against the
+   next one.
+6. **The Odoo form's Mark Missing, Mark Found and Condemn buttons ask for no
+   reason** (§15.3 item 8 stands): the reason is an API and app feature.
+7. **The request form's *Assignee* picker writes an EMPLOYEE's id into a
+   USER field.** `RequestForm.tsx` searches `/identity/employees` and sends
+   the chosen `hr.employee` id as `user_id`, which is `res.users`. The API
+   accepts it — it is an integer on the allow-list — so this is a WRONG
+   write and not a refused one: the request is assigned to whichever user
+   happens to hold that number, or fails on the foreign key. The 400 cannot
+   catch it; nothing can but a lookup of users. Found by the front-end pass
+   reading the form, acting on nothing. Not touched.
+8. **A full page reload inside a query's five-minute stale window restores
+   the PERSISTED copy and does not refetch** — so a reload straight after a
+   change can show the page as it was before. It made one new browser spec
+   flaky and is the front-end author's suspected cause of the long-standing
+   failure *"the straight-line switch persists across a reload"* (§13.5 item
+   13). A hypothesis; not proven, not touched.
+9. **`condition_at_disposal` in the `asset.disposed` event to SAP has never
+   carried the condition at disposal.** Disposing sets `condition =
+   decommissioned` in the same write the event is built from, so the key has
+   read `decommissioned` for every disposal made with the button or
+   `/condemn`, and since handoff 31 for a PATCH too. SAP's payload; raised,
+   not changed.
+10. **Two routes CREATE records from a body and ignore what they do not
+   read — the twelfth door, of a different shape.** `POST
+   /home/quick-submit` hands the body to a function that takes `**kwargs`:
+   send it `request_text` (the sibling route's key) and it raises a request
+   with no description, 201. It also swallows a non-integer `service_id` or
+   `location_id` with a bare `except: pass` — a KNOWN key silently dropped,
+   which is rule 3 verbatim. `POST /integrations/sap/employee-sync` is the
+   same shape per employee. Neither filters against an allow-list, so the
+   search that found the eleven could not see them — the reason the eleventh
+   was missed, again. Not ruled; not touched.
+11. **The ACTION routes ignore body keys they do not know** — `/move`,
+   `/verify`, `/transfer-custody`, `/mark-missing`, `/mark-found`,
+   `/condemn`, `/tag-affixed`, the three request actions. Handoff 31's ruling
+   covered routes that take a body of FIELDS; whether these should refuse a
+   stray key too is not ruled. `POST …/verify {"verified_by": 7}` answers 200
+   and records the caller, which is right — and says nothing about the key.
+

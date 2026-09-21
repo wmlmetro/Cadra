@@ -258,10 +258,20 @@ export async function fetchAssetWithIncludes(
 
 // ─── ASSET MUTATIONS ─────────────────────────────────────────────────────────
 
-/** Body shape mirrors _WRITABLE_FIELDS in myservice_api/controllers/v1_assets.py. */
+/**
+ * A SUBSET of `_WRITABLE_FIELDS` in myservice_api/controllers/v1_assets.py —
+ * the keys this app has a control for — and never a superset. That is the
+ * whole job of this type since handoff 31: a key the route does not accept is
+ * a `400` that saves NOTHING, so a key declared here and absent there is a
+ * Save button that fails. The compiler should refuse what the server refuses.
+ *
+ * `asset_tag` was declared here until then, although the server has left it
+ * out of the allow-list on purpose since handoff 04 and `AssetForm.toBody`
+ * deliberately does not send it. Nothing sent it; the type merely offered to
+ * let the next form do so.
+ */
 export interface AssetWriteBody {
   name?: string;
-  asset_tag?: string | null;
   legacy_asset_code?: string | null;
   serial_number?: string | null;
   make?: string | null;
@@ -546,12 +556,33 @@ export async function markAssetMissing(id: string, reason: string): Promise<Asse
   return apiAssetToAsset(res.data.asset);
 }
 
+// The other half of `markAssetMissing`, and new in handoff 31. A missing asset
+// that turned up used to be put back through Edit → State, which is a PATCH,
+// which has nowhere to put a sentence: the asset reappeared having recorded
+// nothing about where it had been. The route REQUIRES a reason — where it
+// turned up — and writes it to the same append-only `status_changed` event
+// record. It sets the state back to `active` and does NOT verify the asset:
+// whoever found it may not be whoever checks it.
+//
+// 409 `conflict` unless the asset is missing. 400 when the reason is blank.
+export async function markAssetFound(id: string, reason: string): Promise<Asset> {
+  const res = await apiPost<{ asset: ApiAsset; event_id: number | null }>(
+    `/api/v1/assets/${id}/mark-found`,
+    { reason },
+    { idempotencyKey: newIdempotencyKey() },
+  );
+  return apiAssetToAsset(res.data.asset);
+}
+
 // The reason and NOTHING else. `POST /assets/<id>/condemn` calls the model's
 // own `action_condemn`, which sets the state, the condition and the disposal
 // date together, on the server, as a Lagos day. This used to be a PATCH of all
-// four with the date read off this browser's clock, because a PATCH is a plain
-// `write` and stamps nothing. No date is sent now, and one must not be added
-// back: a date a client sends is whatever the client's clock says.
+// four with the date read off this browser's clock, because a PATCH was then a
+// plain `write` that stamped nothing. (Since handoff 31 the model dates a
+// disposal and sets its condition through any door, PATCH included; this
+// route is still the one that takes the REASON.) No date is sent now, and one
+// must not be added back: a date a client sends is whatever the client's
+// clock says, and the model respects a date it is sent.
 //
 // 409 `conflict` when the asset is already disposed. Disposal is terminal.
 export async function condemnAsset(id: string, reason: string): Promise<Asset> {
@@ -1503,6 +1534,11 @@ export interface RequestFilters {
   user_id?: number;
   priority?: string;
   closed?: boolean;
+  // A real filter since handoff 31 and not before. Until then the list route
+  // looked for a model field called `location_id`, found none on Odoo 19 and
+  // IGNORED the parameter — `?location_id=7` answered 200 with every request
+  // (read against `test19`: 189 of 189). It now filters, and refuses a value
+  // it cannot read. No page sends it yet.
   location_id?: number;
   asset_id?: number;
 }
@@ -1575,8 +1611,20 @@ export async function fetchRequestByReference(ref: string, includes?: RequestInc
 
 // ─── REQUEST MUTATIONS ───────────────────────────────────────────────────────
 
-/** Mirrors _WRITABLE_FIELDS in v1_requests.py. stage_id is intentionally excluded
- *  — use transitionRequest() instead. */
+/**
+ * A subset of `_WRITABLE_FIELDS` in v1_requests.py. That route's filter
+ * refuses two kinds of key: one that is not allow-listed, and one that is
+ * allow-listed but has no field behind it on the database answering — so the
+ * Python list alone does not say what a deployment accepts; the 400's
+ * `details.writable` does. `stage_id` is the first kind — use
+ * transitionRequest().
+ *
+ * `location_id` was the second kind until handoff 31, and nobody knew: the
+ * controller looked for a model field of that name, the Odoo 19 model calls
+ * it `generic_location_id`, and the key was dropped with a 201 for the life
+ * of this app. The API now translates it (see RequestForm's header for the
+ * whole story), and `test19` lists it as writable.
+ */
 export interface RequestWriteBody {
   type_id?: number;
   category_id?: number | null;
@@ -1694,6 +1742,33 @@ export interface CategoryIdentity {
 }
 
 /**
+ * Only the named keys, and only those that are set. For the three settings
+ * writes below, whose screens build a body by EDITING AN OBJECT THEY WERE
+ * GIVEN BY A GET. That is safe exactly as long as the GET publishes nothing
+ * the PATCH refuses, which no one is watching: the day a read-only key joins
+ * the response, the screen echoes it back and every Save on it is a 400. It
+ * is how `building_id`, `floor_id` and `room_id` came to ride on every asset
+ * edit (handoff 30), and how `method` did below. The body is assembled from
+ * the route's own key list instead, so what is sent is decided here and not
+ * by what the server happened to return.
+ */
+function pickSet<T extends object, K extends keyof T>(body: T, keys: readonly K[]): Partial<Pick<T, K>> {
+  const out: Partial<Pick<T, K>> = {};
+  for (const k of keys) if (body[k] !== undefined) out[k] = body[k];
+  return out;
+}
+
+/** `_CATEGORY_IDENTITY_FIELDS` in v1_settings.py, less
+ *  `verification_interval_days`, which no screen edits yet. */
+const CATEGORY_IDENTITY_KEYS = [
+  "name", "code", "domain", "description", "sequence", "pm_interval_days",
+] as const;
+/** `_CATEGORY_POLICY_FIELDS`, less the method — sent under its wire name. */
+const CATEGORY_POLICY_NUMBER_KEYS = [
+  "useful_life_months", "declining_rate", "salvage_rate",
+] as const;
+
+/**
  * The API READS the policy back as `depreciation.method` and only ACCEPTS it
  * as `depreciation_method`. This function used to send the screen's draft
  * verbatim — key `method` — so the API refused that one field, saved the three
@@ -1701,23 +1776,32 @@ export interface CategoryIdentity {
  * "policy saved". A category's depreciation method could never be changed
  * from that screen, and nothing said so: `_warnings.rejected_fields` was read
  * by nothing (handoff 30 §C). Found on the day the app began showing those
- * warnings, which is what closing that hole AS A CLASS was for. Proved against
- * `test19`: `{"method": …}` → 200 `rejected_fields: ["method"]`;
- * `{"depreciation_method": …}` → 200, no warning.
+ * warnings. Proved against `test19` at the time: `{"method": …}` → 200
+ * `rejected_fields: ["method"]`; `{"depreciation_method": …}` → 200, no
+ * warning. Since handoff 31 the first of those is a 400 that saves nothing —
+ * the same mistake would now fail loudly instead of half-working quietly.
  */
 export const updateAssetCategory = async (
   id: number,
   body: Partial<CategoryPolicy & CategoryIdentity>,
 ) => {
-  const { method, ...rest } = body;
-  const wire = method === undefined ? rest : { ...rest, depreciation_method: method };
+  const wire: Record<string, unknown> = {
+    ...pickSet(body, CATEGORY_IDENTITY_KEYS),
+    ...pickSet(body, CATEGORY_POLICY_NUMBER_KEYS),
+  };
+  if (body.method !== undefined) wire.depreciation_method = body.method;
   return (await apiPatch<AssetCategoryConfig>(`/api/v1/asset-categories/${id}`, wire)).data;
 };
 
+// POST is the one write route on this controller that does NOT refuse an
+// unknown key — `create_category` filters the body and drops the rest with a
+// 201 (v1_settings.py, read in handoff 31). Picked here all the same: what
+// this app sends should not depend on which routes have been tightened yet.
 export const createAssetCategory = async (body: Partial<CategoryIdentity>) =>
-  (await apiPost<AssetCategoryConfig>("/api/v1/asset-categories", body, {
-    idempotencyKey: newIdempotencyKey(),
-  })).data;
+  (await apiPost<AssetCategoryConfig>("/api/v1/asset-categories",
+    pickSet(body, CATEGORY_IDENTITY_KEYS), {
+      idempotencyKey: newIdempotencyKey(),
+    })).data;
 
 /** Refused with 409 while the category still holds assets. */
 export const deleteAssetCategory = async (id: number) =>
@@ -1727,8 +1811,18 @@ export const deleteAssetCategory = async (id: number) =>
 export const fetchDepreciationSettings = async () =>
   (await apiGet<DepreciationSettings>("/api/v1/settings/depreciation")).data;
 
-export const updateDepreciationSettings = async (body: Partial<DepreciationSettings>) =>
-  (await apiPatch<DepreciationSettings>("/api/v1/settings/depreciation", body)).data;
+/** `_SETTINGS_WRITABLE` in v1_settings.py. `last_recompute` and `data_quality`
+ *  are the server's output; `Partial<DepreciationSettings>` used to let a
+ *  caller send them, and the route answers that with a 400. */
+const DEPRECIATION_SETTINGS_KEYS = [
+  "mode", "proration", "declining_switches_to_straight_line",
+] as const;
+export type DepreciationSettingsWrite =
+  Partial<Pick<DepreciationSettings, typeof DEPRECIATION_SETTINGS_KEYS[number]>>;
+
+export const updateDepreciationSettings = async (body: DepreciationSettingsWrite) =>
+  (await apiPatch<DepreciationSettings>("/api/v1/settings/depreciation",
+    pickSet(body, DEPRECIATION_SETTINGS_KEYS))).data;
 
 export const recomputeDepreciation = async () =>
   (await apiPost<DepreciationSettings & { recomputed: number }>(
@@ -1748,5 +1842,12 @@ export interface TenantBranding {
 export const fetchBranding = async () =>
   (await apiGet<TenantBranding>("/api/v1/settings/branding")).data;
 
+/** `name` plus `_BRAND_PARAMS` in v1_settings.py — all five keys of
+ *  `TenantBranding`, today. The Branding screen saves the object it was given
+ *  by the GET, edited; that worked because the GET returns exactly these five
+ *  and would stop working the day it returned a sixth. See `pickSet`. */
+const BRANDING_KEYS = ["name", "short_name", "primary", "primary_dark", "logo"] as const;
+
 export const updateBranding = async (body: Partial<TenantBranding>) =>
-  (await apiPatch<TenantBranding>("/api/v1/settings/branding", body)).data;
+  (await apiPatch<TenantBranding>("/api/v1/settings/branding",
+    pickSet(body, BRANDING_KEYS))).data;

@@ -31,6 +31,7 @@ from .utils import (
     ok,
     paginate,
     parse_limit,
+    refuse_unwritable,
     selection_values,
 )
 from .v1 import PAGINATION_QUERY_PARAMS, cadra_route
@@ -461,14 +462,12 @@ class CadraLocationsV1(http.Controller):
     def create_location(self, **kwargs):
         body = get_params()
         vals, rejected = _filter_writable(body)
-        if not vals.get("name"):
-            return err(ERR_INVALID_REQUEST, "`name` is required",
-                       details={"rejected_fields": rejected} if rejected else None)
-        rec = request.env["generic.location"].sudo().create(vals)
-        out = serialize_location(rec)
         if rejected:
-            out["_warnings"] = {"rejected_fields": rejected}
-        return out
+            return refuse_unwritable(rejected, _WRITABLE_FIELDS)
+        if not vals.get("name"):
+            return err(ERR_INVALID_REQUEST, "`name` is required")
+        rec = request.env["generic.location"].sudo().create(vals)
+        return serialize_location(rec)
 
     # ── Patch: PATCH /api/v1/locations/<id> ────────────────────────
 
@@ -479,8 +478,11 @@ class CadraLocationsV1(http.Controller):
                  request_schema={
                      "type": "object",
                      "description": ("Any subset of the writable fields from POST "
-                                     "/api/v1/locations. Unknown fields are "
-                                     "rejected and reported under `_warnings`."),
+                                     "/api/v1/locations. A field this route "
+                                     "does not accept is a 400 "
+                                     "`invalid_request` naming it in "
+                                     "`details.rejected_fields`, and nothing "
+                                     "is written."),
                      "properties": {
                          "name": {"type": "string"},
                          "description": {"type": "string", "nullable": True},
@@ -502,14 +504,12 @@ class CadraLocationsV1(http.Controller):
             return error
         body = get_params()
         vals, rejected = _filter_writable(body)
-        if not vals and not rejected:
-            return err(ERR_INVALID_REQUEST, "Empty patch — no writable fields supplied")
-        if vals:
-            rec.write(vals)
-        out = serialize_location(rec)
         if rejected:
-            out["_warnings"] = {"rejected_fields": rejected}
-        return out
+            return refuse_unwritable(rejected, _WRITABLE_FIELDS)
+        if not vals:
+            return err(ERR_INVALID_REQUEST, "Empty patch — no writable fields supplied")
+        rec.write(vals)
+        return serialize_location(rec)
 
     # ── Hierarchy: GET /api/v1/locations/<id>/{children,ancestors,descendants} ─
 

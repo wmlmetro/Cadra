@@ -347,6 +347,10 @@ def main():
         "category_id": 5,
         "priority": "2",
         "request_text": "<p>Smoke test: REST API request.</p>",
+        # SAVED since handoff 31. This script sent a location for as long as
+        # it existed and it was dropped with a 201 every time: the model's
+        # field was renamed in the move to Odoo 19 and the route asked for
+        # the old name. The check below is the one nobody made.
         "location_id": created_loc_id,
         "nrs_asset_id": asset_id,
     }, token=token)
@@ -354,6 +358,12 @@ def main():
         return 1
     req_id = r["data"]["id"]
     req_ref = r["data"]["reference"]
+    kept = (r["data"].get("location") or {}).get("id")
+    if kept != created_loc_id:
+        print(f"  the request was created and its location was NOT kept: "
+              f"sent {created_loc_id}, data.location is {r['data'].get('location')!r}")
+        return 1
+    print(f"  location kept: {r['data']['location']}")
     routes = r["data"].get("available_routes", [])
     print(f"  req_id={req_id}, ref={req_ref!r}, stage={r['data']['stage']['name']!r}")
     print(f"  available routes: {len(routes)}")
@@ -378,13 +388,20 @@ def main():
     else:
         render(status, r)
 
-    step(f"PATCH /api/v1/requests/{req_id}  (try stage_id — should be rejected)")
+    step(f"PATCH /api/v1/requests/{req_id}  (try stage_id — expect 400, nothing written)")
     status, r = PATCH(f"/api/v1/requests/{req_id}", body={"stage_id": 99}, token=token)
-    if "data" in r and "_warnings" in r["data"]:
-        print(f"  HTTP {status}  rejected: {r['data']['_warnings'].get('rejected_fields')}")
-        print(f"           hint: {r['data']['_warnings'].get('hint')}")
+    # A REFUSAL is the pass here. Until handoff 31 this was a 200 carrying
+    # `data._warnings`; it is a 400 now, and a step that fell through to
+    # `render()` would print "ERROR invalid_request" on every healthy run
+    # while the script still exited 0 — a liveness check crying wolf.
+    details = (r.get("error") or {}).get("details") or {}
+    if status == 400 and "stage_id" in (details.get("rejected_fields") or []):
+        print(f"  HTTP {status}  refused, as it should be: {details.get('rejected_fields')}")
+        print(f"           hint: {details.get('hint')}")
     else:
+        print(f"  EXPECTED a 400 naming `stage_id`; got HTTP {status}")
         render(status, r)
+        return 1
 
     step(f"POST /api/v1/requests/{req_id}/assign  to user_id=2")
     status, r = POST(f"/api/v1/requests/{req_id}/assign", body={"user_id": 2}, token=token)

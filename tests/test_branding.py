@@ -93,6 +93,31 @@ def test_blank_name_is_rejected(client, admin_scope):
     assert r.status_code == 400
 
 
+def test_a_refused_name_does_not_write_the_colour_sent_beside_it(client, admin_scope):
+    """A refusal happens before anything is written — every refusal.
+
+    The blank-name check used to sit BELOW the loop that stores the brand
+    parameters, so this request wrote the colour and then answered 400;
+    `err()` returns a response and does not roll back. Found by handoff 31's
+    verification pass, asked to look for a route that validates after it
+    writes. The probe colour is one nobody would choose, so "unchanged" is
+    not satisfied by coincidence; restored either way.
+    """
+    before = assert_envelope_ok(client.get("/api/v1/settings/branding"))["data"]
+    probe = "#0A1B2C"
+    assert before["primary"].upper() != probe
+    try:
+        r = client.patch("/api/v1/settings/branding",
+                         json={"primary": probe, "name": "   "})
+        assert r.status_code == 400
+        after = assert_envelope_ok(client.get("/api/v1/settings/branding"))["data"]
+        assert after["primary"] == before["primary"], (
+            "a 400 for the name still wrote the colour sent beside it")
+    finally:
+        client.patch("/api/v1/settings/branding",
+                     json={"primary": before["primary"]})
+
+
 def test_unknown_fields_are_rejected(client, admin_scope):
     r = client.patch("/api/v1/settings/branding", json={"favourite_colour": "red"})
     assert r.status_code == 400

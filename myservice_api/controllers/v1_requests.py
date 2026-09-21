@@ -38,6 +38,7 @@ from .utils import (
     ok,
     paginate,
     parse_limit,
+    refuse_unwritable,
     selection_values,
 )
 from .v1 import PAGINATION_QUERY_PARAMS, cadra_route
@@ -153,7 +154,8 @@ def serialize_request(r, *, include=()):
             "moved": _dt(r.date_moved),
             "closed": _dt(r.date_closed),
         },
-        "location": _ref(r.location_id) if "location_id" in r._fields else None,
+        "location": (_ref(r[_location_field(r)])
+                     if _location_field(r) else None),
         "vehicle": _ref(r.vehicle_id) if "vehicle_id" in r._fields else None,
         "asset": _ref(r.nrs_asset_id) if "nrs_asset_id" in r._fields else None,
         "created_at": _dt(r.create_date),
@@ -263,8 +265,14 @@ def _list_domain(qs):
     # refused. Ignoring a filter the model cannot answer is a different thing
     # from ignoring a value we could not read, and only the second is what
     # this pass is closing.
-    if "location_id" in Req._fields:
-        domain += int_filter_terms(qs, ("location_id",))
+    # `location_id` is the PUBLISHED name; the model's field is whatever
+    # `_location_field` finds. Until handoff 31 this looked for a model field
+    # called `location_id`, which the Odoo 19 request model does not have, so
+    # the filter was ignored on every deployment and `?location_id=` answered
+    # with every request — the defect handoff 21 closed everywhere else,
+    # surviving here under a comment that called it a registry guard.
+    if _location_field(Req):
+        domain += int_filter_terms(qs, (("location_id", _location_field(Req)),))
     if "nrs_asset_id" in Req._fields:
         # `asset_id` is the published name and `nrs_asset_id` the model
         # field; both are accepted as input and both stay accepted. The
@@ -330,6 +338,60 @@ _WRITABLE_FIELDS = {
 }
 
 
+def _location_field(Req):
+    """The model field behind the published key `location_id`, or None.
+
+    **The published key and the model field stopped agreeing in the move to
+    Odoo 19, and nobody noticed for the life of the API.** This controller
+    was written when the request model's location was `location_id`. On 19 it
+    is `generic_location_id` (`myservice_request_core`). The allow-list kept
+    the old name, the filter below refused any allow-listed key the model did
+    not define — and so every request raised THROUGH THIS ROUTE with a
+    location answered 201 and was saved without it, the serializer published
+    `location: null` for every request whatever it held, and `?location_id=`
+    filtered nothing. Measured in handoff 31: `jaizbankplc`, 0 of 460
+    requests with a location. The endpoint reference's own example, the Cadra
+    app's request form, the test suite's fixture and the smoke test all sent
+    one.
+
+    **Only this route, though, and the first draft of this docstring said
+    "by anyone".** The model's field has been written all along by the doors
+    that knew its name: `POST /home/quick-submit`, the PM scheduler's
+    auto-tickets, fleet maintenance and the Odoo form — `cadra19` holds 80
+    requests and all 80 have a location. Those requests published
+    `location: null` until now too, and will start showing the location they
+    always had.
+
+    Found because handoff 31 turned the silent drop into a 400 — and then,
+    nearly missed a second time: the first reading was "the register cannot
+    hold a request's location", and the app's picker was removed on it. The
+    model could all along. It is the depreciation-method bug again, one layer
+    down: the API publishes one name and the thing underneath answers to
+    another. The published key is the contract; translating it is this
+    file's job.
+    """
+    for name in ("location_id", "generic_location_id"):
+        if name in Req._fields:
+            return name
+    return None
+
+
+def _model_field(Req, key):
+    """The model field a published body key writes, or None if this
+    deployment's model has nowhere to put it."""
+    if key == "location_id":
+        return _location_field(Req)
+    return key if key in Req._fields else None
+
+
+def _writable_here():
+    """What this route accepts ON THIS DATABASE — a key is refused when the
+    installed model has nowhere to put it, so publishing the bare allow-list
+    would name keys that are then refused."""
+    Req = request.env["request.request"]
+    return [k for k in _WRITABLE_FIELDS if _model_field(Req, k)]
+
+
 def _filter_writable(body):
     if not isinstance(body, dict):
         return {}, []
@@ -337,8 +399,9 @@ def _filter_writable(body):
     vals = {}
     rejected = []
     for k, v in body.items():
-        if k in _WRITABLE_FIELDS and k in Req._fields:
-            vals[k] = v
+        field = _model_field(Req, k) if k in _WRITABLE_FIELDS else None
+        if field:
+            vals[field] = v
         else:
             rejected.append(k)
     return vals, rejected
@@ -495,6 +558,13 @@ class CadraRequestsV1(http.Controller):
                                                      "3=Critical, 4=Very Urgent"},
                          "impact": {"type": "string", "nullable": True},
                          "urgency": {"type": "string", "nullable": True},
+                         # Both are on the allow-list and were missing here,
+                         # which did not matter while an unlisted key was
+                         # merely dropped. Now that an unaccepted key is a
+                         # 400, the published list is what a caller repairs
+                         # itself FROM, so it has to be the whole list.
+                         "kanban_state": {"type": "string", "nullable": True},
+                         "response_text": {"type": "string", "nullable": True},
                          "author_id": {"type": "integer", "nullable": True,
                                        "description": "res.partner id"},
                          "user_id": {"type": "integer", "nullable": True,
@@ -505,7 +575,21 @@ class CadraRequestsV1(http.Controller):
                          "deadline_date": {"type": "string", "format": "date-time", "nullable": True},
                          "tag_ids": {"type": "array", "items": {"type": "integer"},
                                      "nullable": True},
-                         "location_id": {"type": "integer", "nullable": True},
+                         "location_id": {
+                             "type": "integer", "nullable": True,
+                             "description": (
+                                 "A `generic.location` id — where the "
+                                 "problem is. SAVED since handoff 31 (21 "
+                                 "September 2026). Before that it was "
+                                 "accepted, dropped and answered 201 by "
+                                 "THIS route: the model's field was renamed "
+                                 "in the move to Odoo 19 and this route went "
+                                 "on asking for the old name. Published back "
+                                 "as `data.location` — including on older "
+                                 "requests raised by quick-submit, a PM "
+                                 "schedule or the Odoo form, which kept "
+                                 "theirs and used to read null — and a "
+                                 "filter on the list.")},
                          "vehicle_id": {"type": "integer", "nullable": True},
                          "nrs_asset_id": {"type": "integer", "nullable": True,
                                           "description": "Related nrs.asset id"},
@@ -523,17 +607,14 @@ class CadraRequestsV1(http.Controller):
     def create_request(self, **kwargs):
         body = get_params()
         vals, rejected = _filter_writable(body)
-        if not vals.get("type_id"):
-            return err(ERR_INVALID_REQUEST, "`type_id` is required",
-                       details={"rejected_fields": rejected} if rejected else None)
-        if not vals.get("request_text"):
-            return err(ERR_INVALID_REQUEST, "`request_text` is required (the issue description)",
-                       details={"rejected_fields": rejected} if rejected else None)
-        rec = request.env["request.request"].sudo().create(vals)
-        out = serialize_request(rec, include=["routes"])
         if rejected:
-            out["_warnings"] = {"rejected_fields": rejected}
-        return out
+            return refuse_unwritable(rejected, _writable_here())
+        if not vals.get("type_id"):
+            return err(ERR_INVALID_REQUEST, "`type_id` is required")
+        if not vals.get("request_text"):
+            return err(ERR_INVALID_REQUEST, "`request_text` is required (the issue description)")
+        rec = request.env["request.request"].sudo().create(vals)
+        return serialize_request(rec, include=["routes"])
 
     # ── Patch: PATCH /api/v1/requests/<id> ─────────────────────────
 
@@ -545,8 +626,11 @@ class CadraRequestsV1(http.Controller):
                      "type": "object",
                      "description": ("Any subset of the writable fields from POST "
                                      "/api/v1/requests. `stage_id` is intentionally "
-                                     "excluded — use POST .../transition. Unknown "
-                                     "fields are reported under `_warnings`."),
+                                     "excluded — use POST .../transition. A "
+                                     "field this route does not accept is a "
+                                     "400 `invalid_request` naming it in "
+                                     "`details.rejected_fields`, and nothing "
+                                     "is written."),
                      "properties": {
                          "priority": {"type": "string",
                                       "enum": ["0", "1", "2", "3", "4"]},
@@ -571,15 +655,17 @@ class CadraRequestsV1(http.Controller):
             return error
         body = get_params()
         vals, rejected = _filter_writable(body)
-        if not vals and not rejected:
-            return err(ERR_INVALID_REQUEST, "Empty patch — no writable fields supplied")
-        if vals:
-            rec.write(vals)
-        out = serialize_request(rec)
         if rejected:
-            out["_warnings"] = {"rejected_fields": rejected,
-                                "hint": "Use POST /api/v1/requests/<id>/transition to change stage_id"}
-        return out
+            # The hint used to ride on EVERY rejection here, whatever was
+            # rejected. It is advice about one field.
+            return refuse_unwritable(
+                rejected, _writable_here(),
+                hint=("Use POST /api/v1/requests/<id>/transition to change "
+                      "stage_id") if "stage_id" in rejected else None)
+        if not vals:
+            return err(ERR_INVALID_REQUEST, "Empty patch — no writable fields supplied")
+        rec.write(vals)
+        return serialize_request(rec)
 
     # ── Assign: POST /api/v1/requests/<id>/assign ──────────────────
 

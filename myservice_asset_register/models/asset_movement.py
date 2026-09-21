@@ -87,6 +87,7 @@ class NRSAssetMovement(models.Model):
     """
 
     _name = 'nrs.asset.movement'
+    _inherit = ['nrs.asset.append.only.mixin']
     _description = 'Asset Movement Record'
     # Chronological; `id` breaks ties inside one transaction.
     _order = 'moved_at, id'
@@ -147,25 +148,20 @@ class NRSAssetMovement(models.Model):
     ], string='Source', required=True, default='direct', index=True)
 
     # ── Append-only ───────────────────────────────────────────────────
+    #
+    # The guard — `create`, `write`, `unlink` and `_resolve_source` — is
+    # `nrs.asset.append.only.mixin` since handoff 31. This model's own copy
+    # was the CORRECT one of the two: it refused a context-claimed `test`,
+    # and custody's did not. See the note in `asset_custody.py`.
+    _append_key = MOVEMENT_APPEND_KEY
+    _source_key = MOVEMENT_SOURCE_KEY
+    _context_sources = _CONTEXT_SOURCES
 
-    @api.model_create_multi
-    def create(self, vals_list):
-        """Refuse a movement that did not come from a location changing.
+    def _append_only_message(self):
+        return _append_only_message()
 
-        See `nrs.asset.custody.create`: `write` and `unlink` raising is worth
-        nothing if `create` is guarded only by an access rule, because then
-        one bad ACL line lets anybody `call_kw` a backdated move naming an
-        arbitrary person into a record that refuses correction by design.
-        """
-        if not self.env.context.get(MOVEMENT_APPEND_KEY):
-            raise UserError(_no_hand_written_movements_message())
-        return super().create(vals_list)
-
-    def write(self, vals):
-        raise UserError(_append_only_message())
-
-    def unlink(self):
-        raise UserError(_append_only_message())
+    def _no_hand_written_rows_message(self):
+        return _no_hand_written_movements_message()
 
     # ── When the record began ─────────────────────────────────────────
 
@@ -183,25 +179,6 @@ class NRSAssetMovement(models.Model):
         return self.env.cr.fetchone()[0]
 
     # ── The one way a row is written ──────────────────────────────────
-
-    @api.model
-    def _resolve_source(self, declared, user):
-        """The label this movement carries. `myservice_api` extends it.
-
-        Split out for the reason `nrs.asset.custody._resolve_source` sets
-        out at length: the module above relabels a write made under a test
-        credential, and the column it reads is one that module owns.
-        """
-        if declared:
-            return declared
-        # The context is CALLER-CONTROLLED over `call_kw`. A label that says
-        # something about the evidence itself — that the row is a test
-        # artefact, a reconstruction, or the database's doing — may only be
-        # passed explicitly by first-party code or derived from the
-        # credential, never claimed through the context: otherwise anybody
-        # able to move an asset could file the move under `test`.
-        claimed = self.env.context.get(MOVEMENT_SOURCE_KEY)
-        return claimed if claimed in _CONTEXT_SOURCES else 'direct'
 
     @api.model
     def _record(self, asset, from_location, to_location, *,

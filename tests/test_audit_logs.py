@@ -46,7 +46,8 @@ import time
 
 import pytest
 
-from .conftest import assert_envelope_ok, assert_envelope_err
+from .conftest import (assert_envelope_ok, assert_envelope_err,
+                       assert_fields_refused)
 
 ACCESS = "/api/v1/reports/access-changes"
 CONFIG = "/api/v1/reports/configuration-changes"
@@ -1119,10 +1120,9 @@ def test_patch_cannot_name_the_approver_under_any_spelling(
 
     That test already asserts the three READ-ONLY MODEL FIELDS —
     `disposal_approved_by`, `disposal_approved_date`,
-    `disposal_date_reconstructed` — come back in
-    `data._warnings.rejected_fields` on PATCH and write nothing. It is the
-    canonical assertion for those three and is deliberately not repeated
-    here.
+    `disposal_date_reconstructed` — are refused on PATCH and write nothing.
+    It is the canonical assertion for those three and is deliberately not
+    repeated here.
 
     What handoff 23 adds is `_APPROVER_CLAIM_FIELDS`: twelve SPELLINGS a
     caller might reach for when it thinks it can name the approver, which
@@ -1137,24 +1137,23 @@ def test_patch_cannot_name_the_approver_under_any_spelling(
     to `_WRITABLE_FIELDS` — `user_id` is the plausible one, it is a real
     column on plenty of Odoo models — the approve-disposal route would be
     refusing a body that PATCH accepts one request later.
+
+    Since handoff 31 the two doors give the SAME answer, a 400 naming the
+    field, where PATCH used to answer 200 with the spellings listed in
+    `data._warnings.rejected_fields`.
     """
     asset_id = disposal_awaiting_approval["id"]
     before = assert_envelope_ok(
         client.get(f"/api/v1/assets/{asset_id}"))["data"]["disposal"]
     assert before["approved_by"] is None
 
-    body = assert_envelope_ok(client.patch(
-        f"/api/v1/assets/{asset_id}",
-        json={name: 1 for name in _APPROVER_SPELLINGS}))
-    rejected = set(body["data"].get("_warnings", {})
-                   .get("rejected_fields") or [])
-
-    for name in _APPROVER_SPELLINGS:
-        assert name in rejected, (
-            f"`{name}` was not reported in `_warnings.rejected_fields`. It is "
-            "one of the spellings `approve-disposal` refuses with a 400, so "
-            "PATCH accepting it — or dropping it silently — is the same "
-            "control failing at the other door (rules 2 and 3).")
+    # Named one by one by the helper: a spelling missing from the list is
+    # one PATCH accepted — or dropped silently — and that is the same control
+    # failing at the other door (rules 2 and 3).
+    assert_fields_refused(
+        client.patch(f"/api/v1/assets/{asset_id}",
+                     json={name: 1 for name in _APPROVER_SPELLINGS}),
+        *_APPROVER_SPELLINGS)
 
     after = assert_envelope_ok(
         client.get(f"/api/v1/assets/{asset_id}"))["data"]["disposal"]

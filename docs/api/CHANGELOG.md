@@ -33,6 +33,139 @@ live at was never the point.
 
 ---
 
+## 2026-09-21 — handoff 31: a field the API does not accept is a 400 · `mark-found` · a disposal is dated whichever door it came by
+
+### BREAKING — a body field a route does not accept is refused, and NOTHING is written
+
+**Until this release** eleven write routes answered **2xx**, wrote the fields
+they recognised and silently dropped the rest; ten of them named the dropped
+keys in `data._warnings.rejected_fields`, and one named nothing at all. **They now answer `400 invalid_request` and
+write nothing** — not the refused field, and not the accepted fields sent
+beside it.
+
+```json
+{ "error": { "code": "invalid_request",
+    "message": "This route does not accept: `asset_tag`. Nothing was written.",
+    "details": { "rejected_fields": ["asset_tag"],
+                 "writable": ["acquisition_cost", "acquisition_date", "…"],
+                 "http_status": 400 } } }
+```
+
+`details.writable` is every key the route accepts, so a caller can repair
+itself from the response. `PATCH /requests/<id>` adds `details.hint` when —
+and now only when — `stage_id` is among the refused keys.
+
+| Route | Before | Now |
+|---|---|---|
+| `POST /assets` · `POST /locations` · `POST /requests` | **201**, record created without the field | **400**, no record |
+| `PATCH /assets/<id>` · `/locations/<id>` · `/requests/<id>` | **200**, the other fields written | **400**, nothing written |
+| `PATCH /asset-categories/<id>` · `/settings/branding` · `/settings/depreciation` | **200** if any field was accepted, 400 if none | **400** if any field is refused |
+| `POST /asset-categories` | **201**, the field dropped and **not even reported** — the one route of the eleven that named nothing in `_warnings` | **400**, no category |
+| `POST /assets/<id>/approve-disposal` — reads no body | **200**, approval recorded, keys listed | **400** for ANY body key, no approval; `writable` is `[]` |
+| a `PATCH` whose EVERY field was refused (assets, locations, requests) | **200, having written nothing** | **400** |
+
+`data._warnings.rejected_fields` no longer exists on any route. A consumer
+that checks it may keep the check; it will never fire. `_warnings.truncated`
+on lists and `_warnings.discarded_fields` on the workflow callback are
+different facts and are unchanged.
+
+**Why, and why with no deprecation window.** The lenient answer was actively
+harmful to the one system consuming it. Vendra's client already treats a
+rejected field as a terminal failure and dead-letters the receipt — but
+*after* Cadra had created the asset, incomplete, under an idempotency key
+that replays the same 201 on every retry; its own operator message says
+*"the asset exists in the register, incomplete"*. With a 400 nothing is
+created, the mapper is fixed, the receipt is re-delivered and the asset lands
+whole. And on the day the Cadra app first showed these warnings to a person,
+it turned out that a category's depreciation method had never been changeable
+from its own settings screen: the screen sent the one key the API refused,
+got a 200, and said *"policy saved"*. A consumer sending a field we do not
+accept is wrong about our schema, and the sooner it is told the cheaper the
+repair. **A refusal does not burn the idempotency key.** Error responses are never
+stored under a key, so a retry is evaluated afresh: the same body is refused
+again, and **a corrected body sent under the SAME key succeeds** — then
+replays as usual. Acted against `test19`: 400 · 400 · 201 · 201, one asset.
+Under the old behaviour the key pinned the incomplete 201, which is what
+made the repair manual.
+
+### FIX, found by the 400 — `POST`/`PATCH /requests` SAVE `location_id`. They never did.
+
+**BEHAVIOUR CHANGE, a fix.** `POST` and `PATCH /requests` accept
+`location_id`, and **for the life of this API it was dropped with a 201.**
+The request model's location field was renamed in the move to Odoo 19, and
+this route went on asking the model for the old name: the key was refused,
+named in `data._warnings.rejected_fields`, and nobody read it. This
+document's reference example, the OpenAPI example, the Cadra app's own
+request form and the test suite's fixture all sent a location through these
+routes, and none was stored. **`?location_id=` on `GET /requests` was ignored for the same
+reason, and answered with every request.**
+
+All three now work: the location is saved, published back as
+`data.location: {id, name}` (it was always `null`), and the filter filters.
+A consumer that sent `location_id` needs to change nothing.
+
+**READ-SIDE CHANGE — `data.location` will now appear on OLDER requests that
+always had one.** The fault was these routes', not the register's: requests
+raised by `POST /home/quick-submit`, by a PM schedule, by fleet maintenance
+or on the Odoo form have stored their location all along, and
+`GET /requests` published `location: null` for them anyway. On `cadra19`
+that is all 80 requests. A consumer that treated `null` as *no location*
+was misinformed and is now told the truth. A request raised through
+`POST /requests` before 21 September 2026 has none — `jaizbankplc`: 0 of
+460 — and can be given one now with `PATCH`.
+
+It was found because this release turned the silent drop into a 400. That is
+the argument for the change, in one bug.
+
+### NEW — `POST /assets/<id>/mark-found`
+
+Scope `assets:write` · idempotent · body `{"reason": "…"}`, **required** —
+where it turned up. Answers `{asset, event_id}` and sets `state` back to
+`active`. **409** `conflict` unless the asset is `missing` · 400 if `reason`
+is absent, blank or not a string · 404. It does not verify the asset.
+`PATCH {"state": "active"}` still works and still records no reason.
+
+### BEHAVIOUR CHANGE — a disposal is dated and decommissioned whichever route made it
+
+Any write that takes an asset into `disposed` — `PATCH {"state": "disposed"}`
+included — now sets **`condition = decommissioned`** and, where the asset has
+no `disposal_date` and the request sent none, **stamps one: the server's
+Lagos day.** Until now only `POST /assets/<id>/condemn` did, and a PATCH into
+`disposed` produced an undated disposal in whatever condition it was last in.
+A `disposal_date` the caller sends is kept. A `condition` sent in the same
+request as `state: disposed` is overridden — `decommissioned` is what
+disposed means on this register. **`POST /assets` registering an asset as
+ALREADY disposed is not stamped**: it was disposed of on a day this system
+never saw, and a wrong date would hide what a missing one shows.
+
+### OUTBOUND — the `asset.disposed` event to SAP (INT-09) follows the register
+
+Two keys of that event's `change` block move with the stamp above, because
+the event is built after it:
+
+- **`disposal_date`** is the date the register STORED. Where the caller sent
+  no date, the event used to be built before one was stamped — `/condemn`
+  and the Odoo button included — so it fell back to the server's UTC day — for
+  a disposal made between 00:00 and 01:00 in Lagos, the day BEFORE the one
+  the register then recorded. The event and the register now agree.
+- **`condition_at_disposal`** is `decommissioned` for a disposal made by
+  `PATCH`, where it used to carry whatever condition the asset was last in.
+  **It has always been `decommissioned` for every disposal made with
+  `/condemn` or the Odoo button**, which set the condition in the same
+  write — so the key has never said what condition the asset was in when it
+  was disposed of, and now says so consistently. Whether it should carry the
+  condition BEFORE disposal is an open question; it is SAP's payload and was
+  not changed on our judgement.
+
+### NOT CHANGED, and ruled
+
+**A disposed asset may still be verified** — `POST /assets/<id>/verify`
+answers 200. A disposed asset somebody physically finds on the premises is an
+audit finding, and a register that refuses to record *"I saw it, today"* is
+suppressing the one fact that matters.
+
+---
+
 ## 2026-09-21 — handoff 30: disposal is terminal · three fields stop being writable · what happened to an asset, recorded so nobody can alter it
 
 **Two BREAKING changes, both rulings, both closing a request that answered
@@ -152,6 +285,8 @@ visible in `GET /assets/<id>/custody` — where it used to leave the chain
 saying somebody still held them.
 
 ### NOT CHANGED, and asked about
+
+> **Superseded later the same day — see handoff 31, above. It is a 400 now.**
 
 **An unaccepted field is still a 2xx with `data._warnings.rejected_fields`,
 not a 400.** Whether it should be a 400 is an open ruling. The Cadra app now

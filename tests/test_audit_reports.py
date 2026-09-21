@@ -35,7 +35,8 @@ import time
 
 import pytest
 
-from .conftest import assert_envelope_ok, assert_envelope_err
+from .conftest import (assert_envelope_ok, assert_envelope_err,
+                       assert_fields_refused)
 
 SNAPSHOT = "/api/v1/reports/asset-register"
 DISPOSALS = "/api/v1/reports/disposals"
@@ -832,15 +833,17 @@ def test_the_writable_disposal_fields_round_trip(client, test_location):
         "disposal_proceeds": 0.0,
         "disposal_reason": "pytest — writable round trip",
     })
+    # BEFORE the skip. Since handoff 31 a field that fell off the allow-list
+    # is a 400, and the skip below would have filed exactly the failure this
+    # test exists to catch under "could not create the asset".
+    refused = ((r.json().get("error") or {}).get("details") or {}).get(
+        "rejected_fields") if r.status_code == 400 else None
+    assert not refused, (
+        f"{refused} is on the writable allow-list and the create refused it")
     if r.status_code != 201:
         pytest.skip(f"could not create the asset: HTTP {r.status_code} "
                     f"{r.text[:200]}")
     data = r.json()["data"]
-    rejected = data.get("_warnings", {}).get("rejected_fields") or []
-    for field in ("disposal_method", "disposal_reference", "disposal_reason"):
-        assert field not in rejected, (
-            f"`{field}` is on the writable allow-list but the create "
-            f"rejected it")
     disposal = data["disposal"]
     assert disposal["method"] == "scrapped"
     assert disposal["reference"] == "BOS/2026/PYTEST-WRITE"
@@ -871,8 +874,10 @@ def test_a_client_cannot_assert_its_own_disposal_approval(
     `asset_tag` and `sap_asset_number` omissions this file already
     documents.
 
-    And it must not degrade SILENTLY: the rejection is reported in
-    `data._warnings.rejected_fields` (rule 3).
+    And it must not degrade SILENTLY (rule 3): the request is REFUSED, a 400
+    naming each field, since handoff 31. Until then it was a 200 with the
+    names in `data._warnings.rejected_fields`, which told a caller that read
+    only the status that it had recorded an approver.
     """
     asset_id = disposed_assets["bare"]["id"]
     before = assert_envelope_ok(
@@ -884,16 +889,10 @@ def test_a_client_cannot_assert_its_own_disposal_approval(
         "disposal_approved_date": "2020-01-01 00:00:00",
         "disposal_date_reconstructed": False,
     })
-    body = assert_envelope_ok(r)
-    rejected = set(body["data"].get("_warnings", {})
-                   .get("rejected_fields") or [])
-    for field in _READ_ONLY_DISPOSAL_FIELDS:
-        assert field in rejected, (
-            f"`{field}` was accepted or dropped without a warning. It "
-            "records an authorisation or a disclosure; a client able to "
-            "write it can manufacture the evidence the audit report exists "
-            "to look for — and a field dropped without a warning is a "
-            "defect even at 200 (rule 3).")
+    # Each of the three records an authorisation or a disclosure; a client
+    # able to write one can manufacture the evidence the audit report exists
+    # to look for. The helper fails on any that is not named in the refusal.
+    assert_fields_refused(r, *_READ_ONLY_DISPOSAL_FIELDS)
 
     after = assert_envelope_ok(
         client.get(f"/api/v1/assets/{asset_id}"))["data"]["disposal"]

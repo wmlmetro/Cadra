@@ -40,6 +40,37 @@ calls use plain `curl`.
 `POST /integrations/workflow/callback` for a tenant with no WorkSpace
 configuration).
 
+**A field a route does not accept is refused — a 400, and nothing is
+written.** Since 21 September 2026. Each of the eleven write routes that
+filter a body of fields against an allow-list — assets, locations, requests, asset categories (create and update),
+the two settings routes, and `approve-disposal`, which takes none — answers:
+
+```json
+{ "error": { "code": "invalid_request",
+    "message": "This route does not accept: `asset_tag`. Nothing was written.",
+    "details": { "rejected_fields": ["asset_tag"], "writable": ["…every key this route accepts…"], "http_status": 400 } } }
+```
+
+Not the refused field, and **not the accepted fields sent beside it**: on a
+create, no record; on a `PATCH`, no change. `details.writable` is there so a
+caller can repair itself from the response. On `/requests` it is what THIS
+deployment's model can store, which can be narrower than the list in this
+document where a field depends on a module that is not installed; on every
+other route it is the route's allow-list. **A refusal does not use up the idempotency key:** errors are never
+stored under one, so a corrected body sent under the same key succeeds.
+
+**Not covered, and said so you need not find out:** routes that read the
+keys they know and ignore the rest — the action routes (`/move`, `/verify`,
+`/mark-missing`, `/mark-found`, `/condemn`, `/transfer-custody`,
+`/tag-affixed`, a request's `/assign`, `/transition`, `/comment`), and two
+that CREATE records that way, `POST /home/quick-submit` and
+`POST /integrations/sap/employee-sync`.
+
+Until that date these routes answered 2xx, wrote what they recognised,
+dropped the rest, and named the dropped keys in
+`data._warnings.rejected_fields`, which no longer exists. `CHANGELOG.md` has
+the route-by-route table and the reasons.
+
 ---
 
 # §1 — Auth
@@ -426,8 +457,9 @@ Idempotent via `X-Idempotency-Key` header — same key → same record.
 `asset_code` auto-generated from category if omitted.
 
 > **Breaking change (2026-09-05): `asset_tag` is no longer writable.** It was
-> accepted on `POST` and `PATCH`; it now lands in
-> `data._warnings.rejected_fields` and is ignored. The tag number is the number
+> accepted on `POST` and `PATCH`; from that date it landed in
+> `data._warnings.rejected_fields` and was ignored, and **since 21 September
+> 2026 sending it is a 400 and nothing is written** (*Conventions*, above). The tag number is the number
 > printed on the physical label, and a client that can edit it can walk the
 > record away from the sticker on the asset — defeating the affix check in
 > §3.8, which then returns a `400` that looks like the scanner's fault. Tags
@@ -439,8 +471,8 @@ Idempotent via `X-Idempotency-Key` header — same key → same record.
 > wizard, which no longer rewrites `asset_tag` on an existing asset.
 
 > **Breaking change (2026-09-21): `building_id`, `floor_id` and `room_id` are
-> no longer writable**, on `POST` or `PATCH`. They land in
-> `data._warnings.rejected_fields`. They never moved an asset: on the Odoo
+> no longer writable**, on `POST` or `PATCH`. Sending one is a 400 and
+> nothing is written (*Conventions*, above). They never moved an asset: on the Odoo
 > form they drive `location_id` through a rule the API does not run, so a
 > `PATCH` of `building_id` answered 200, rewrote the building — and the
 > published address and coordinates, which are computed from it — and left
@@ -602,10 +634,20 @@ route, not only the ones that say so.** Since 21 September 2026:
 | re-send the SAME `state`, `location_id` or `custodian_id` | 200 |
 | edit the disposal paperwork, `notes`, anything else writable | 200 |
 | `POST …/approve-disposal` | 200 |
+| **`POST …/verify`** | **200 — allowed, by ruling.** A disposed asset somebody physically finds on the premises is an audit finding, and a register that refuses to record *"I saw it, today"* is suppressing the one fact that matters |
 
 Every refusal is a plain sentence naming the asset, and **writes nothing**.
 There is no route that reverses a disposal. `POST /assets` may still
 register an asset as already `disposed`.
+
+**Becoming disposed, by any route, sets the condition and the date.** Since
+21 September 2026 a write that takes an asset into `disposed` —
+`PATCH {"state": "disposed"}` as much as §3.6.3 — sets `condition =
+decommissioned` and, where the asset has no `disposal_date` and the request
+sent none, stamps the server's Lagos day. A date the caller sends is kept; a
+`condition` sent beside `state: disposed` is overridden. An asset REGISTERED
+as already disposed is not stamped: it was disposed of on a day this system
+never saw. What `PATCH` still cannot carry is the REASON — that is §3.6.3.
 
 Until this date a disposed asset could be marked missing, which overwrote
 `disposed` and returned it to the register with a 200.
@@ -755,7 +797,7 @@ nobody can edit or delete, and is published as `detail.reason` in
 
 `PATCH {"state": "missing"}` still works, and still records no reason — a
 `PATCH` has nowhere to put a sentence. **Missing is not terminal:** an asset
-that turns up is `PATCH {"state": "active"}`.
+that turns up is §3.6.4, which records where.
 
 | Status | Code | When |
 |---|---|---|
@@ -798,6 +840,30 @@ scope that gates nothing else, so holding it is a deliberate act.
 | 400 | `invalid_request` | `reason` absent, blank, or not a string |
 | 404 | `not_found` | no such asset |
 | 409 | `conflict` | already disposed — disposal is terminal, §3.5.1 |
+
+## 3.6.4 POST `/api/v1/assets/<id>/mark-found` — a missing asset turned up
+
+Scope: `assets:write`. Success: **200**. Idempotent.
+
+```bash
+acurl -X POST $API/api/v1/assets/124/mark-found \
+  -H 'Content-Type: application/json' \
+  -d '{"reason": "Found in the 2nd-floor store room during the October count, tag intact."}'
+```
+
+Answers `{asset, event_id}` and sets `state` back to `active`.
+
+***Where it turned up* is as much an audit fact as *why it went missing*.**
+`reason` is required, and is kept on the `status_changed` event `event_id`
+names — beside the one that says why it went — where nobody can edit it.
+`PATCH {"state": "active"}` still works and records no reason. It does not
+verify the asset: whoever found it may not be whoever checks it.
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_request` | `reason` absent, blank, or not a string |
+| 404 | `not_found` | no such asset |
+| 409 | `conflict` | the asset is not `missing` |
 
 ## 3.7 POST `/api/v1/assets/<id>/transfer-custody` — reassign custodian
 
@@ -1946,10 +2012,10 @@ acurl -X POST $API/api/v1/requests \
     "request_text": "<p>UPS in Bldg A failed overnight</p>",
     "author": { "id": 3, "name": "Administrator" },
     "asset": { "id": 124, "name": "Fire Alarm Panel" },
+    "location": { "id": 891, "name": "Building A" },
     "available_routes": [
       { "id": 1, "name": "New", "from_stage": { "id": 1, "name": "Draft" }, "to_stage": { "id": 2, "name": "New" } }
     ],
-    "_warnings": { "rejected_fields": ["location_id"] },
     "created_at": "2026-06-08T10:00:06",
     "updated_at": "2026-06-08T10:00:06"
   },
@@ -1957,10 +2023,15 @@ acurl -X POST $API/api/v1/requests \
 }
 ```
 
-> **Note on `_warnings.rejected_fields`** — the API accepted the
-> request but silently dropped `location_id` because that field isn't on
-> `request.request` in this schema version. The response tells you which
-> input keys were ignored so you can fix your client.
+> **`location_id` is saved — since 21 September 2026. Before that it never
+> was**, although this example has always sent one. The request model's
+> location field was renamed in the move to Odoo 19 and this route went on
+> asking the model for the old name, so the key was dropped with a 201 and a
+> `_warnings.rejected_fields` entry nobody read; `data.location` was always
+> `null` and `?location_id=` filtered nothing. Found when a dropped field
+> became a 400 (*Conventions*). **Only this route dropped it:** a request
+> raised by quick-submit, a PM schedule or the Odoo form kept its location
+> all along, read `location: null` here regardless, and now shows it.
 
 ### Error — `400 invalid_request` (missing required type_id)
 

@@ -5,6 +5,7 @@ import {
   fetchAssetCategories, updateAssetCategory,
   fetchDepreciationSettings, updateDepreciationSettings, recomputeDepreciation,
   type AssetCategoryConfig, type CategoryPolicy, type DepreciationSettings as Settings,
+  type DepreciationSettingsWrite,
 } from "@/lib/dataProvider";
 import { CadraApiError } from "@/lib/api";
 import {
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import BrandPill from "@/components/BrandPill";
+import { ApiErrorMessage } from "@/components/ApiErrorMessage";
 
 
 const METHODS: { value: CategoryPolicy["method"]; label: string }[] = [
@@ -145,7 +147,12 @@ export default function DepreciationSettingsPage() {
   };
 
   const saveSettings = useMutation({
-    mutationFn: (body: Partial<Settings>) => updateDepreciationSettings(body),
+    // `DepreciationSettingsWrite`, not `Partial<Settings>`: the three keys the
+    // route accepts. `Settings` also holds `last_recompute` and
+    // `data_quality`, which are the server's output, and a body naming either
+    // is a 400 that saves nothing (handoff 31). Typed HERE so that every
+    // `saveSettings.mutate({…})` literal below is checked for excess keys.
+    mutationFn: (body: DepreciationSettingsWrite) => updateDepreciationSettings(body),
     // Optimistic: saving recomputes the whole register, which takes seconds on
     // a large tenant. A control that sits unchanged that long reads as broken.
     onMutate: async (body) => {
@@ -227,10 +234,9 @@ export default function DepreciationSettingsPage() {
       {err && (
         <div className="bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-2xl p-4 flex items-start gap-3">
           <AlertCircle size={16} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-[13px] font-semibold text-red-700 dark:text-red-400">{err.code}</p>
-            <p className="text-[12px] text-red-700 dark:text-red-400 mt-0.5">{err.message}</p>
-          </div>
+          {/* Which fields, in words, when the save was refused for naming one
+              the API does not accept — see ApiErrorMessage. */}
+          <ApiErrorMessage err={err} stacked />
         </div>
       )}
       {note && !err && (

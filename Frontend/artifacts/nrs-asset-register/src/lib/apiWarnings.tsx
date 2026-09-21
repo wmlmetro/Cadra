@@ -1,28 +1,41 @@
 /**
- * What the API said it did NOT do, put where the user can read it.
+ * What a write that SUCCEEDED still has to say, put where the user can read it.
  *
  * `lib/api.ts` calls this for every write (`sendMutation`). It is a separate
  * file only because the message has markup in it and `api.ts` is not a `.tsx`.
  *
  * The rule it serves is architecture rule 3 — *never let an integration
  * guess* — turned on ourselves: this app IS an integration, and until handoff
- * 30 it was the one guessing. A field the server refused came back as a 200, a
- * key in `data._warnings.rejected_fields`, and nothing on any screen.
+ * 30 it was the one guessing.
+ *
+ * **What this file was built for can no longer happen.** Handoff 30 wrote it
+ * to show `data._warnings.rejected_fields`: a field the route refused came
+ * back as a 200 and a key in that block, and nothing on any screen. Since
+ * handoff 31 that write is a `400 invalid_request` and NOTHING is saved, so
+ * it arrives as a thrown `CadraApiError` and is shown in the red panel beside
+ * the button that was pressed — `components/ApiErrorMessage.tsx`. The
+ * `rejected_fields` branch, its sentence ("Everything else you entered was
+ * saved") and the `hint` that rode with it are deleted rather than kept for
+ * a response the server does not produce.
+ *
+ * What still rides on a 2xx, and is still shown here:
+ *   - `_warnings.truncated`, from `ok()`, when the credential's record cap
+ *     cut a list short;
+ *   - `data._warnings.discarded_fields`, on a replayed workflow callback —
+ *     a route this app does not call, read here because a block the server
+ *     can send is a block somebody should be able to see;
+ *   - any block this build has never heard of, printed as `key: value`.
  */
 import { ToastAction } from "@/components/ui/toast";
 import { toast } from "@/hooks/use-toast";
 import type { CadraWarnings } from "./api";
 
 /** The test id the e2e suite waits for. One warning, one of these. */
-export const API_WARNING_TESTID = "rejected-fields-warning";
+export const API_WARNING_TESTID = "api-warning";
 
 export interface ApiWarningSummary {
-  /** Keys the route's allow-list refused. The rest of the write went ahead. */
-  rejected: string[];
   /** Keys a replayed callback carried and the server threw away. */
   discarded: string[];
-  /** The server's own sentence about where those keys DO belong, if it has one. */
-  hints: string[];
   /** Anything else under `_warnings`, as `key: value`. Never dropped: a block
    *  this build has not heard of is still something the server wanted said. */
   other: string[];
@@ -35,9 +48,7 @@ function readBlock(w: unknown, into: ApiWarningSummary) {
   if (!w || typeof w !== "object" || Array.isArray(w)) return;
   const block = w as CadraWarnings;
   for (const [key, value] of Object.entries(block)) {
-    if (key === "rejected_fields") into.rejected.push(...strings(value));
-    else if (key === "discarded_fields") into.discarded.push(...strings(value));
-    else if (key === "hint") { if (typeof value === "string" && value) into.hints.push(value); }
+    if (key === "discarded_fields") into.discarded.push(...strings(value));
     else if (key === "truncated") {
       // Its own sentence is the readable part; `cap` and `total` are in it.
       const reason = (value as { reason?: unknown } | null)?.reason;
@@ -55,7 +66,7 @@ function readBlock(w: unknown, into: ApiWarningSummary) {
  * null when there is nothing to say, which is nearly always.
  */
 export function collectApiWarnings(envelope: unknown): ApiWarningSummary | null {
-  const out: ApiWarningSummary = { rejected: [], discarded: [], hints: [], other: [] };
+  const out: ApiWarningSummary = { discarded: [], other: [] };
   if (envelope && typeof envelope === "object") {
     const env = envelope as { data?: unknown; _warnings?: unknown };
     readBlock(env._warnings, out);
@@ -64,11 +75,9 @@ export function collectApiWarnings(envelope: unknown): ApiWarningSummary | null 
     }
   }
   const uniq = (xs: string[]) => Array.from(new Set(xs));
-  out.rejected = uniq(out.rejected);
   out.discarded = uniq(out.discarded);
-  out.hints = uniq(out.hints);
   out.other = uniq(out.other);
-  return out.rejected.length || out.discarded.length || out.hints.length || out.other.length ? out : null;
+  return out.discarded.length || out.other.length ? out : null;
 }
 
 /**
@@ -77,6 +86,9 @@ export function collectApiWarnings(envelope: unknown): ApiWarningSummary | null 
  * what they will be asked for when they report it. No lookup table: the set of
  * keys a route might refuse is the server's and open, and a table here would
  * be a copy of every allow-list in the API that nothing keeps in step.
+ *
+ * Shared with `components/ApiErrorMessage.tsx`, which names the fields of a
+ * REFUSED write the same way this names the discarded ones of a saved one.
  */
 export function fieldWords(key: string): string {
   const words = key.replace(/_ids?$/, "").replace(/_+/g, " ").trim();
@@ -123,32 +135,22 @@ export function showApiWarnings(
     "data-request": `${ctx.method} ${ctx.path}`,
     className:
       "items-start border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800/60 dark:bg-amber-950 dark:text-amber-100",
-    title: w.rejected.length || w.discarded.length
-      ? "Saved — but not all of it"
-      : "Saved — the server added a note",
+    // Not "Saved": the one block this app can name, `discarded_fields`, rides
+    // on a REPLAY, where the server applied nothing a second time — and the
+    // sentence that used to close this notice, "Everything else you entered
+    // was saved", was written for `rejected_fields` and was never true of it.
+    title: w.discarded.length
+      ? "Done — but part of what was sent was discarded"
+      : "Done — the server added a note",
     description: (
       <div className="space-y-2 text-xs">
-        {w.rejected.length > 0 && (
-          <div>
-            <p>
-              {w.rejected.length === 1
-                ? "This field was not accepted and was not changed:"
-                : "These fields were not accepted and were not changed:"}
-            </p>
-            <FieldList keys={w.rejected} testid="rejected-fields-list" />
-          </div>
-        )}
         {w.discarded.length > 0 && (
           <div>
             <p>Sent again after the decision was already recorded, and discarded:</p>
             <FieldList keys={w.discarded} testid="discarded-fields-list" />
           </div>
         )}
-        {w.hints.map(h => <p key={h} data-testid="api-warning-hint">{h}</p>)}
-        {w.other.map(o => <p key={o}>{o}</p>)}
-        {(w.rejected.length > 0 || w.discarded.length > 0) && (
-          <p className="opacity-80">Everything else you entered was saved.</p>
-        )}
+        {w.other.map(o => <p key={o} data-testid="api-warning-note">{o}</p>)}
       </div>
     ),
     action: (

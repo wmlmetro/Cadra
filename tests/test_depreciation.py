@@ -107,11 +107,10 @@ def test_writable_policy_fields_are_not_rejected(client, test_location, any_cate
         "depreciation_start_date": "2020-01-31",
     }
     r = client.patch(f"/api/v1/assets/{asset_id}", json=policy)
+    # The 200 IS the assertion that every policy field is on
+    # `_WRITABLE_FIELDS`: since handoff 31 one that is not is a 400 naming
+    # it, where it used to be a 200 and a line in `_warnings` to go and read.
     body = assert_envelope_ok(r)
-
-    rejected = (body["data"].get("_warnings") or {}).get("rejected_fields") or []
-    assert not [f for f in policy if f in rejected], (
-        f"policy fields missing from _WRITABLE_FIELDS: {rejected}")
 
     d = body["data"]["financial"]["depreciation"]
     assert d["method"] == "declining_balance"

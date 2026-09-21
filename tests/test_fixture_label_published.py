@@ -17,6 +17,8 @@ test_a_record_created_under_a_real_credential_does_not`, with `with_user()`.
 A label that reads TRUE for everything says nothing about anything, so that
 half is the half that matters — it is just not this suite's to prove.
 """
+from .conftest import (assert_envelope_ok, assert_fields_refused,
+                       ids_matching)
 
 
 def test_a_created_asset_comes_back_labelled(client, test_asset):
@@ -64,27 +66,36 @@ def test_a_created_request_comes_back_labelled(client, test_request):
 
 
 def test_the_label_cannot_be_set_by_the_caller(client, test_location):
-    """Sending it is rejected as an unknown field, not honoured.
+    """Sending it is REFUSED, not honoured — and not dropped either.
 
-    `is_test_fixture` is in no `_WRITABLE_FIELDS`, so it lands in
-    `_warnings.rejected_fields` — the published behaviour for a field the
-    API will not accept. Asserted rather than assumed: a label a caller can
-    send is a label that says whatever the caller wants, and
+    `is_test_fixture` is in no `_WRITABLE_FIELDS`, so a body that names it is
+    a 400 naming it back: the published behaviour, since handoff 31, for a
+    field the API will not accept. Asserted rather than assumed: a label a
+    caller can send is a label that says whatever the caller wants, and
     `tests/test_source_guards.py` guards the allow-list from the other side.
+
+    Until handoff 31 this was a 201 — the location was CREATED, labelled
+    correctly, with the claim listed in `_warnings.rejected_fields`. The
+    label was safe either way. What changed is that a caller who sent
+    `is_test_fixture: false` believing it had declared real data is now told
+    that it cannot, instead of being handed a record that says the opposite.
+
+    The control is the second half: the same name WITHOUT the claim is
+    created, found, and labelled from the credential.
     """
     import time
+    name = "pytest-loc-label-probe-%d" % int(time.time() * 1000)
+    assert ids_matching(client, "/api/v1/locations", name) == []
     r = client.post("/api/v1/locations", json={
-        "name": "pytest-loc-label-probe-%d" % int(time.time()),
+        "name": name,
         "is_test_fixture": False,
     })
-    assert r.status_code == 201, r.text[:300]
-    body = r.json()["data"]
-    assert body["is_test_fixture"] is True, (
-        "a payload claiming `is_test_fixture: False` was honoured — the "
-        "label is declarable over the API")
-    rejected = (body.get("_warnings") or {}).get("rejected_fields") or []
-    assert "is_test_fixture" in rejected, (
-        "`is_test_fixture` was dropped without being reported in "
-        "`_warnings.rejected_fields`. Silently dropping a field an "
-        "integration sent is the defect rule 3 names, even on a 201. Got: %r"
-        % rejected)
+    assert_fields_refused(r, "is_test_fixture")
+    assert ids_matching(client, "/api/v1/locations", name) == [], (
+        "the claim was refused with a 400 and the location was created "
+        "anyway")
+
+    created = assert_envelope_ok(
+        client.post("/api/v1/locations", json={"name": name}), 201)["data"]
+    assert ids_matching(client, "/api/v1/locations", name) == [created["id"]]
+    assert created["is_test_fixture"] is True

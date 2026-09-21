@@ -567,7 +567,24 @@ def test_asset(client, test_location):
 
 @pytest.fixture(scope="session")
 def test_request(client, test_location, test_asset):
-    """Create one service request at session start; reused by action tests."""
+    """Create one service request at session start; reused by action tests.
+
+    It sends `location_id`, and FAILS unless the location comes back.
+
+    This fixture sent one from the day it was written and for all that time
+    it was NEVER saved. The request model's field was renamed in the move to
+    Odoo 19 (`generic_location_id`); `POST /requests` went on asking the
+    model for `location_id`, refused the key because the model did not
+    define it, and answered 201 with
+    `data._warnings.rejected_fields == ["location_id"]` — which nobody read,
+    this fixture included. Handoff 31 turned the silent drop into a 400, the
+    fixture broke, and that is how it was found. The route now translates
+    the published key onto the model's field.
+
+    So the assertion below is the one nobody ever made: that what was sent
+    was KEPT. A 201 is not evidence of that, and for the life of this suite
+    it was mistaken for it.
+    """
     r = client.post("/api/v1/requests", json={
         "type_id": 1,        # Incident (first seeded type)
         "category_id": 5,    # First existing category (1-4 skipped by seed)
@@ -578,7 +595,12 @@ def test_request(client, test_location, test_asset):
     })
     if r.status_code != 201:
         pytest.fail(f"test_request fixture failed: HTTP {r.status_code} {r.text[:300]}")
-    return r.json()["data"]
+    data = r.json()["data"]
+    if (data.get("location") or {}).get("id") != test_location["id"]:
+        pytest.fail("test_request fixture: the request was created and its "
+                    "`location_id` was NOT kept — data.location is %r"
+                    % (data.get("location"),))
+    return data
 
 
 # ─── reporting hooks ────────────────────────────────────────────────
@@ -811,3 +833,53 @@ def assert_envelope_err(response, expected_status, expected_code=None):
             f"expected code={expected_code}, got {err['code']}"
         )
     return body
+
+
+def assert_fields_refused(response, *named):
+    """Assert the refusal a write route gives a field it does not accept.
+
+    **400 `invalid_request`, `details.rejected_fields`, `details.writable` —
+    and nothing written** (handoff 31 §B). Until then the answer was a 2xx
+    with the dropped keys named in `data._warnings.rejected_fields`, which
+    for most of this API's life nothing read: this suite's own `test_request`
+    fixture sent a key that was never once saved, and found out from the 400.
+
+    Every field in `named` must be among the rejected; returns `details`, so
+    a caller can assert the list exactly where that is the property. What
+    this CANNOT assert is the half that matters — that nothing was written.
+    That takes a read of the record, and each caller owes one.
+    """
+    body = assert_envelope_err(response, 400, "invalid_request")
+    assert "data" not in body, (
+        "a refusal that also carries the record it says it did not write")
+    details = body["error"].get("details") or {}
+    rejected = details.get("rejected_fields")
+    assert isinstance(rejected, list), (
+        f"`details.rejected_fields` is not a list: {details}")
+    for name in named:
+        assert name in rejected, (
+            f"`{name}` was not named in `details.rejected_fields` "
+            f"({rejected}). A caller repairs itself from that list.")
+    writable = details.get("writable")
+    assert isinstance(writable, list), (
+        f"`details.writable` is not a list: {details}")
+    assert writable == sorted(writable), "`details.writable` is not sorted"
+    assert not set(rejected) & set(writable), (
+        f"{sorted(set(rejected) & set(writable))} refused and listed as "
+        "writable in the same response")
+    return details
+
+
+def ids_matching(client, path, marker):
+    """The ids `GET <path>?q=<marker>` finds — how a test proves a refused
+    CREATE created nothing.
+
+    A create has no record to read back, so "nothing was written" is asked
+    of the list: a marker unique to the test, searched before and after.
+    Whoever uses this owes a CONTROL — the same marker created without the
+    refused key must then be found — or an `?q=` that had quietly stopped
+    matching would make every "created nothing" pass on its own.
+    """
+    body = assert_envelope_ok(
+        client.get(path, params={"q": marker, "limit": 5}))
+    return [row["id"] for row in body["data"]]

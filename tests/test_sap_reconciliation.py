@@ -20,7 +20,8 @@ but a full list reads as an ANSWER.
 import time
 import uuid
 
-from .conftest import assert_envelope_ok, assert_envelope_err
+from .conftest import (assert_envelope_ok, assert_envelope_err,
+                       assert_fields_refused, ids_matching)
 
 
 # The keys `_serialize_sap` publishes. Named here rather than derived from
@@ -340,11 +341,17 @@ def test_sap_fields_are_not_writable_on_create(client, capture):
     mean finance booked the asset. A caller able to POST the number would
     reach that state without SAP having booked anything, and a caller able to
     POST the state would reach it without even the pretence of a code. Both
-    have to be dropped, and — rule 3 — the drop has to be REPORTED, because a
-    silently ignored field is a defect even at 201.
+    are REFUSED — rule 3, and since handoff 31 with a 400 rather than a 201
+    and a warning: until then the asset was created WITHOUT the number, which
+    is what Vendra dead-lettered after the fact, under an idempotency key
+    that replayed the same incomplete 201 on every retry.
+
+    So this asserts two records: the refused body created NONE, and the same
+    asset sent without the four fields is created with an empty SAP block.
     """
+    name = f"pytest-sapwrite-{_uniq()}"
     r = client.post("/api/v1/assets", json={
-        "name": f"pytest-sapwrite-{_uniq()}",
+        "name": name,
         "category_id": 1,
         "sap_asset_number": "100000001234",
         "sap_reconciliation_state": "reconciled",
@@ -352,16 +359,14 @@ def test_sap_fields_are_not_writable_on_create(client, capture):
         "sap_synced_at": "2026-09-06T10:00:00",
     })
     capture("sap/create_rejects_sap_fields", r)
-    body = assert_envelope_ok(r, expected_status=201)
-    data = body["data"]
+    assert_fields_refused(r, "sap_asset_number", "sap_reconciliation_state",
+                          "sap_code_source", "sap_synced_at")
+    assert ids_matching(client, "/api/v1/assets", name) == [], (
+        "the SAP fields were refused with a 400 and the asset was created "
+        "anyway")
 
-    rejected = (data.get("_warnings") or {}).get("rejected_fields") or []
-    for field in ("sap_asset_number", "sap_reconciliation_state",
-                  "sap_code_source", "sap_synced_at"):
-        assert field in rejected, (
-            f"`{field}` was dropped without being reported; rejected={rejected}"
-        )
-
+    data = _new_asset(client, name=name)
+    assert ids_matching(client, "/api/v1/assets", name) == [data["id"]]
     assert data["sap"]["asset_number"] is None, (
         "the client's SAP asset number reached the record"
     )
@@ -381,10 +386,7 @@ def test_sap_fields_are_not_writable_on_patch(client):
         "sap_asset_number": "100000009999",
         "sap_reconciliation_state": "reconciled",
     })
-    body = assert_envelope_ok(r)
-    rejected = (body["data"].get("_warnings") or {}).get("rejected_fields") or []
-    assert "sap_asset_number" in rejected, rejected
-    assert "sap_reconciliation_state" in rejected, rejected
+    assert_fields_refused(r, "sap_asset_number", "sap_reconciliation_state")
 
     after = assert_envelope_ok(client.get(f"/api/v1/assets/{asset['id']}"))
     assert after["data"]["sap"]["asset_number"] is None
@@ -396,17 +398,16 @@ def test_the_serialised_alias_names_are_not_writable_either(client):
 
     `data.sap.asset_number` is the published name, and a caller who never
     reads the model would reasonably try to PATCH it. It is not a model field
-    either, so it is dropped — but the drop still has to be reported rather
-    than accepted silently.
+    either, so it is refused — by name, so that the caller who tried the
+    published spelling is told that is not how the number arrives.
     """
     asset = _new_asset(client)
     r = client.patch(f"/api/v1/assets/{asset['id']}",
                      json={"sap": {"asset_number": "100000004321"},
                            "asset_number": "100000004321"})
-    body = assert_envelope_ok(r)
-    rejected = (body["data"].get("_warnings") or {}).get("rejected_fields") or []
-    assert "sap" in rejected and "asset_number" in rejected, rejected
-    assert body["data"]["sap"]["asset_number"] is None
+    assert_fields_refused(r, "sap", "asset_number")
+    after = assert_envelope_ok(client.get(f"/api/v1/assets/{asset['id']}"))
+    assert after["data"]["sap"]["asset_number"] is None
 
 
 # ─── the published contract describes it ─────────────────────────────

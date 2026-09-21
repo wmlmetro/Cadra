@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import RecordPicker from "@/components/RecordPicker";
 import RecordLink from "@/components/RecordLink";
+import { ApiErrorMessage } from "@/components/ApiErrorMessage";
 import {
   fetchRequest, assignRequest, transitionRequest, commentOnRequest, updateRequest,
 } from "@/lib/dataProvider";
@@ -243,10 +244,10 @@ export default function RequestDetail() {
       {errs.length > 0 && (
         <div className="bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-2xl p-3 space-y-1">
           {errs.map((e, i) => (
-            <p key={i} className="text-[12px] text-red-700 dark:text-red-400">
-              <AlertCircle size={11} className="inline mr-1" />
-              <span className="font-semibold">{e.code}:</span> {e.message}
-            </p>
+            <div key={i} className="flex items-start gap-1">
+              <AlertCircle size={11} className="text-red-700 dark:text-red-400 shrink-0 mt-[3px]" />
+              <ApiErrorMessage err={e} />
+            </div>
           ))}
         </div>
       )}

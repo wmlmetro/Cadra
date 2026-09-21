@@ -50,93 +50,9 @@ _PAYLOAD_OF_TYPE = {
 # about the evidence itself and is never taken from the context — see
 # `nrs.asset.append.only.mixin._resolve_source`.
 _CONTEXT_SOURCES = (
-    'api_verify', 'api_condemn', 'api_mark_missing', 'api_write',
+    'api_verify', 'api_condemn', 'api_mark_missing', 'api_mark_found',
+    'api_write',
     'action', 'transfer', 'direct')
-
-
-class NRSAssetAppendOnlyMixin(models.AbstractModel):
-    """The append-only guard, written once.
-
-    `nrs.asset.custody` and `nrs.asset.movement` each carry their own copy of
-    what is below, and the copies have already disagreed: custody was written
-    with a `source` any caller could claim through the context, movement was
-    copied from it in handoff 28 WITHOUT that hole, and the original kept it
-    until handoff 30 §D3. The copy was fixed and the original was not. A
-    safety rule with two copies is how the two answers start to differ, and
-    this programme has been bitten by exactly that often enough to have a
-    sentence for it.
-
-    So the third append-only model does not get a third copy. **The two
-    existing models are deliberately NOT moved onto this mixin here** —
-    whether they should be is the question handoff 30 §A asks the Architect
-    to rule on, and adopting it is a change to two live audit models that
-    nobody has ruled. It defines no fields, so adoption needs no migration.
-
-    `write` and `unlink` raise unconditionally, so they hold under `sudo()`.
-    `create` is weaker and says so: it refuses without a context flag, and a
-    context is something an RPC caller supplies. What actually stops a
-    hand-written row is that flag AND the ACL, which grants `create` to
-    nobody. Two locks, one of them configuration. And all of it is Python:
-    there is no database trigger, and somebody with direct SQL access is not
-    stopped.
-    """
-
-    _name = 'nrs.asset.append.only.mixin'
-    _description = 'Append-only record of an asset (guard)'
-
-    # The context flag `_record` sets on itself. Each model names its own.
-    _append_key = None
-    # The context key a caller may declare a source through, and the values
-    # it may declare. Anything else is `direct`.
-    _source_key = None
-    _context_sources = ()
-
-    def _append_only_message(self):
-        # Literal inside the function, translated at the call — see
-        # `asset_custody._append_only_message` for why both halves matter.
-        return _(
-            "This record is append-only. It cannot be edited or deleted "
-            "once written — not through the interface, not over the API, "
-            "and not as an administrator with sudo. Record what happened "
-            "next instead; the history is the evidence."
-        )
-
-    def _no_hand_written_rows_message(self):
-        return _(
-            "This record cannot be created directly. A row is written only "
-            "as a side effect of the thing it records actually happening, "
-            "so that it says what happened rather than what somebody typed."
-        )
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        if not self._append_key \
-                or not self.env.context.get(self._append_key):
-            raise UserError(self._no_hand_written_rows_message())
-        return super().create(vals_list)
-
-    def write(self, vals):
-        raise UserError(self._append_only_message())
-
-    def unlink(self):
-        raise UserError(self._append_only_message())
-
-    @api.model
-    def _resolve_source(self, declared, user):
-        """The label a row carries. `myservice_api` extends it — once.
-
-        The context is CALLER-CONTROLLED over `call_kw`. A label that says
-        something about the evidence itself — that the row is a test
-        artefact, or a reconstruction — may only be passed explicitly by
-        first-party code or derived from the credential, never claimed
-        through the context: otherwise anybody able to change an asset could
-        file the change under `test`.
-        """
-        if declared:
-            return declared
-        claimed = self.env.context.get(self._source_key) \
-            if self._source_key else None
-        return claimed if claimed in self._context_sources else 'direct'
 
 
 class NRSAssetEvent(models.Model):
@@ -229,8 +145,10 @@ class NRSAssetEvent(models.Model):
         ('api_verify', 'API — verify'),
         ('api_condemn', 'API — condemn'),
         ('api_mark_missing', 'API — mark missing'),
+        ('api_mark_found', 'API — mark found'),
         ('api_write', 'API — asset create or update'),
-        ('action', 'A button on the asset (verify, condemn, mark missing)'),
+        ('action', 'A button on the asset (verify, condemn, mark missing '
+                   'or found)'),
         ('transfer', 'Asset transfer completion'),
         ('direct', 'Direct write (Odoo UI, import or script)'),
         ('test', 'Written by the automated test suite'),

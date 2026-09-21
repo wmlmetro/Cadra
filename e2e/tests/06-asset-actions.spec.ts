@@ -22,6 +22,10 @@ import { appPath } from "../config";
  * disposed asset, and what the app does with a field the server refuses, are
  * in `17-disposed-is-terminal.spec.ts` and `18-rejected-fields.spec.ts`.
  *
+ * Handoff 31. *Mark found* is Mark missing's other half — `POST /mark-found`,
+ * a required "where did it turn up?", offered on a missing asset and on no
+ * other. Its specs follow the ones for Mark missing.
+ *
  * Handoff 29. Mark missing and Condemn both passed here while the page was
  * wrong: each spec polled the API for the new `state` and never read the
  * screen, which went on saying "Cleared" in green over a missing asset and a
@@ -261,9 +265,12 @@ test("mark missing via the app dialog, and the page stops saying Cleared (UI)", 
   const dialog = page.getByTestId("dialog-mark-missing");
   await expect(dialog).toBeVisible();
   // The sentence the native confirm carried was false — neither Move nor
-  // Verify changes `state`. What reverses it is Edit — and the dialog now says
-  // the other half: a disposal cannot be reversed, and the reason is kept.
-  await expect(dialog).toContainText("use Edit and set the state back");
+  // Verify changes `state`. What reverses it is Mark found (it said "use Edit
+  // and set the state back" until handoff 31, which worked and recorded
+  // nothing) — and the dialog says the other half: a disposal cannot be
+  // reversed, and the reason is kept.
+  await expect(dialog).toContainText("use Mark found on this page");
+  await expect(dialog).not.toContainText("set the state back");
   await expect(dialog).toContainText("cannot be edited or deleted");
   await expect(dialog).not.toContainText("move/verify");
   // No reason, no button. A blank one is no reason either.
@@ -438,7 +445,9 @@ test("after marking an asset missing, the dashboard count and the edit form both
   await page.getByTestId("input-missing-reason").fill(MISSING_REASON);
   await page.getByTestId("button-confirm-missing").click();
   await expect(page.getByTestId("dialog-mark-missing")).toBeHidden({ timeout: 15_000 });
-  // 4. the Edit form — which the dialog sends people to — must show the NEW state
+  // 4. the Edit form must show the NEW state. (The dialog sent people here to
+  //    reverse it until handoff 31; it sends them to Mark found now, and the
+  //    form's copy going stale is the same defect either way.)
   await page.getByTestId("button-edit").click();
   await page.waitForURL(/\/edit$/);
   const stateSelect = page.locator("label", { hasText: /^\s*state/i }).first().locator("xpath=following::select[1]");
@@ -446,6 +455,141 @@ test("after marking an asset missing, the dashboard count and the edit form both
   // 5. and the dashboard, reached WITHOUT a reload, must have counted it
   await page.locator("aside, nav").getByText("Dashboard", { exact: true }).first().click();
   await expect.poll(missingOnStrip, { timeout: 15_000 }).toBe(before + 1);
+});
+
+const FOUND_REASON = "E2E — turned up in the 2nd-floor store room, tag intact";
+
+/** Missing by the ROUTE, so the asset has a real "why it went" event for the
+ *  "where it turned up" one to sit beside. */
+async function createMissingAsset(api: ApiClient, label: string) {
+  const name = markedName(label);
+  const created = await api.createAsset(name);
+  recordCreated({ kind: "asset", id: created?.id, name });
+  const id = String(created.id);
+  await api.post(`/api/v1/assets/${id}/mark-missing`, { reason: MISSING_REASON });
+  return { id, name };
+}
+
+test("mark found is offered on a missing asset and on no other", async ({ page, api }) => {
+  const live = await createAsset(api, "FoundNotOffered");
+  await gotoApp(page, `/assets/${live}`);
+  await expectShell(page);
+  await expect(page.getByTestId("button-missing")).toBeEnabled({ timeout: 15_000 });
+  await expect(page.getByTestId("button-found")).toHaveCount(0);
+
+  // …nor on a disposed one, where the server would answer 409. A SECOND
+  // asset, disposed of before this browser has ever seen it — not the first
+  // one condemned behind the page's back and reloaded. That was this spec's
+  // first draft, and in the full-suite run it failed once and passed on the
+  // retry, which is what a race looks like: the asset query is fresh for
+  // a minute and its cache is persisted, so a reload inside that minute
+  // restores the copy that says "active" and does not ask again.
+  const gone = await createAsset(api, "FoundNotOfferedDisposed");
+  await api.post(`/api/v1/assets/${gone}/condemn`, { reason: "E2E — mark-found is not offered here" });
+  await gotoApp(page, `/assets/${gone}`);
+  await expect(page.getByTestId("asset-disposed-notice")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId("button-found")).toHaveCount(0);
+});
+
+/**
+ * ONE page session: list → asset → act → look → back to the list. Report 29
+ * §8: acting from a cold start proves only the cold start — and the bug this
+ * flow is most likely to catch is last handoff's, a dialog that stays open
+ * after the save it was opened for has succeeded.
+ */
+test("mark found via the app dialog: list → asset → act → back (UI, one session)", async ({ page, api }) => {
+  const { id, name } = await createMissingAsset(api, "Found");
+
+  // 1. the LIST first, so the row saying Missing is cached before anything happens
+  await gotoApp(page, "/assets/list");
+  await expectShell(page);
+  await page.getByTestId("button-view-list").click();
+  await page.getByTestId("input-asset-search").fill(name);
+  const row = page.getByTestId(`row-asset-${id}`);
+  await expect(row.getByTestId("lifecycle-pill")).toHaveText("Missing", { timeout: 15_000 });
+
+  // 2. the asset, by clicking its row. Mark missing is off; Mark found is on offer.
+  await row.click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe(appPath(`/assets/${id}`));
+  await expect(page.getByTestId("button-missing")).toBeDisabled();
+  await page.getByTestId("button-found").click();
+  const dialog = page.getByTestId("dialog-mark-found");
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText("Where did it turn up?");
+  await expect(dialog).toContainText("cannot be edited or deleted");
+  // It does not verify, and says so — whoever found it may not be who checks it.
+  await expect(dialog).toContainText("does not verify");
+
+  // 3. no reason, no button. A blank one is no reason either.
+  const confirm = page.getByTestId("button-confirm-found");
+  await expect(confirm).toBeDisabled();
+  await page.getByTestId("input-found-reason").fill("   ");
+  await expect(confirm).toBeDisabled();
+  await page.getByTestId("input-found-reason").fill(FOUND_REASON);
+  await expect(confirm).toBeEnabled();
+  const sent = page.waitForRequest((r) => r.method() !== "GET" && r.url().includes(`/api/v1/assets/${id}`));
+  await confirm.click();
+  const req = await sent;
+  // The ROUTE, not a PATCH of `state` — a PATCH has nowhere to put a sentence.
+  expect(req.method()).toBe("POST");
+  expect(new URL(req.url()).pathname).toBe(`/api/v1/assets/${id}/mark-found`);
+  expect(req.postDataJSON()).toEqual({ reason: FOUND_REASON });
+  // Success CLOSES it.
+  await expect(dialog).toBeHidden({ timeout: 15_000 });
+  const fresh = await api.get(`/api/v1/assets/${id}`);
+  expect(fresh?.state).toBe("active");
+  expect(fresh?.is_verified, "found is not verified").toBeFalsy();
+
+  // 4. the page: no lifecycle pill, Mark missing back on offer, Mark found gone.
+  const hero = page.getByTestId("asset-hero-badges");
+  await expect(hero.getByTestId("lifecycle-pill")).toHaveCount(0, { timeout: 15_000 });
+  await expect(page.getByTestId("button-found")).toHaveCount(0);
+  await expect(page.getByTestId("button-missing")).toBeEnabled();
+  // Both sentences are in the history, newest first, on a record nobody can alter.
+  await page.getByTestId("tab-audit-review").click();
+  const rows = page.getByTestId("asset-history-event");
+  await expect(rows.nth(0)).toContainText(FOUND_REASON, { timeout: 15_000 });
+  await expect(rows.nth(0)).toContainText("Cannot be altered");
+  await expect(rows.nth(0)).not.toContainText("No person recorded");
+  await expect(rows.nth(1)).toContainText(MISSING_REASON);
+
+  // 5. BACK TO THE LIST, without a reload: the row it started from is Active again.
+  await page.getByTestId("button-back").click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe(appPath("/assets/list"));
+  await page.getByTestId("button-view-list").click();
+  await page.getByTestId("input-asset-search").fill(name);
+  await expect(page.getByTestId(`row-asset-${id}`)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId(`row-asset-${id}`).getByTestId("lifecycle-pill")).toHaveCount(0, { timeout: 15_000 });
+});
+
+/**
+ * The page can be WRONG about the record: somebody else finds the asset while
+ * it is open here as missing. The button is still live. The 409 must stay in
+ * the dialog, in the server's words, and the page must then catch up.
+ */
+test("a stale Mark found gets the server's 409 in the dialog, and the page catches up", async ({ page, api }) => {
+  const { id } = await createMissingAsset(api, "FoundStale");
+  await gotoApp(page, `/assets/${id}`);
+  await expectShell(page);
+  await expect(page.getByTestId("button-found")).toBeVisible({ timeout: 15_000 });
+  // Somebody else gets there first.
+  await api.post(`/api/v1/assets/${id}/mark-found`, { reason: "E2E — found by somebody else first" });
+
+  await page.getByTestId("button-found").click();
+  await page.getByTestId("input-found-reason").fill(FOUND_REASON);
+  const answered = page.waitForResponse((r) => r.url().includes(`/api/v1/assets/${id}/mark-found`));
+  await page.getByTestId("button-confirm-found").click();
+  expect((await answered).status()).toBe(409);
+  const dialog = page.getByTestId("dialog-mark-found");
+  await expect(dialog).toBeVisible();
+  await expect(page.getByTestId("mark-found-error")).toContainText("This asset is not missing");
+  // What was typed is still there; nothing was thrown away with the refusal.
+  await expect(page.getByTestId("input-found-reason")).toHaveValue(FOUND_REASON);
+  // Closing it lands on the truth: the page was refetched, the offer is gone.
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByTestId("button-found")).toHaveCount(0, { timeout: 15_000 });
+  await expect(page.getByTestId("button-missing")).toBeEnabled();
 });
 
 /**

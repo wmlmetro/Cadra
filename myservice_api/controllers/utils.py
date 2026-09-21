@@ -108,6 +108,38 @@ ERR_IDEMPOTENCY_MISMATCH = "idempotency_mismatch"
 ERR_MISCONFIGURED        = "server_misconfigured"
 
 
+def refuse_unwritable(rejected, writable, *, hint=None):
+    """The answer to a body naming a field this route does not accept. A 400.
+
+    **Until handoff 31 this was a 2xx.** The route wrote what it could, dropped
+    the rest, and named the dropped keys in `data._warnings.rejected_fields` —
+    which for most of this API's life nothing read. Rule 3 of `CLAUDE.md` had
+    called that a defect from the start; what settled it was reading the
+    consumer. Vendra ALREADY treats a rejected field as terminal and
+    dead-letters the receipt — AFTER Cadra has created the asset, incomplete,
+    under an idempotency key that replays the same 201 on every retry. So the
+    lenient answer cost the only integrator a manual repair and bought nobody
+    anything. And on the day the Cadra app first showed those warnings to a
+    person, it turned out a category's depreciation method had never been
+    changeable from its own settings screen: the screen sent the one key the
+    API refused, got a 200, and said "policy saved".
+
+    `details.writable` is there so a caller can repair itself from the
+    response, the way `allowed_values` lets one repair a filter. A route calls
+    this BEFORE it writes anything: `err()` returns a response and does not
+    roll back.
+    """
+    rejected = list(rejected)
+    details = {"rejected_fields": rejected, "writable": sorted(writable)}
+    if hint:
+        details["hint"] = hint
+    return err(
+        ERR_INVALID_REQUEST,
+        "This route does not accept: %s. Nothing was written."
+        % ", ".join("`%s`" % k for k in rejected),
+        details=details)
+
+
 # ─── request id ──────────────────────────────────────────────────────
 
 def _new_request_id():

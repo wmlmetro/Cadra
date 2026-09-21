@@ -10,7 +10,8 @@ makes the confirmation evidence rather than assertion.
 import time
 import uuid
 
-from .conftest import assert_envelope_ok, assert_envelope_err
+from .conftest import (assert_envelope_ok, assert_envelope_err,
+                       assert_fields_refused, ids_matching)
 
 
 def _uniq():
@@ -215,25 +216,32 @@ def test_asset_tag_is_not_writable_on_create(client):
     It would then fail the affix check it just defeated, with a 400 that looks
     like the scanner's fault. Breaking change, announced: Vendra is the only
     live consumer and does not write this field.
+
+    REFUSED since handoff 31, where it was dropped beside a 201: the asset
+    was created under a tag Cadra minted, and the caller that believed it
+    had chosen one found out at the affix check. Nothing is created now, and
+    the same asset without the tag is.
     """
+    name = f"pytest-tagwrite-{_uniq()}"
     r = client.post("/api/v1/assets", json={
-        "name": f"pytest-tagwrite-{_uniq()}", "category_id": 1,
+        "name": name, "category_id": 1,
         "asset_tag": "OPERATOR-CHOSEN-TAG"})
-    body = assert_envelope_ok(r, expected_status=201)
-    assert body["data"]["tag"] != "OPERATOR-CHOSEN-TAG"
-    rejected = (body["data"].get("_warnings") or {}).get("rejected_fields") or []
-    assert "asset_tag" in rejected, (
-        "a dropped field must be reported, not silently ignored"
-    )
+    assert_fields_refused(r, "asset_tag")
+    assert ids_matching(client, "/api/v1/assets", name) == [], (
+        "`asset_tag` was refused with a 400 and the asset was created anyway")
+
+    created = _new_asset(client, name=name)
+    assert ids_matching(client, "/api/v1/assets", name) == [created["id"]]
+    assert created["tag"] != "OPERATOR-CHOSEN-TAG"
 
 
 def test_asset_tag_is_not_writable_on_patch(client, test_asset):
     r = client.patch(f"/api/v1/assets/{test_asset['id']}",
                      json={"asset_tag": "OPERATOR-CHOSEN-TAG"})
-    body = assert_envelope_ok(r)
-    assert body["data"]["tag"] != "OPERATOR-CHOSEN-TAG"
-    rejected = (body["data"].get("_warnings") or {}).get("rejected_fields") or []
-    assert "asset_tag" in rejected
+    assert_fields_refused(r, "asset_tag")
+    after = assert_envelope_ok(
+        client.get(f"/api/v1/assets/{test_asset['id']}"))["data"]
+    assert after["tag"] == test_asset["tag"]
 
 
 def test_affix_on_a_missing_asset_is_404(client):
@@ -255,12 +263,12 @@ def test_label_state_is_not_writable_through_the_api(client):
     data = _new_asset(client)
     r = client.patch(f"/api/v1/assets/{data['id']}",
                      json={"label_state": "affixed", "tag_label_state": "affixed"})
-    body = assert_envelope_ok(r)
-    rejected = (body["data"].get("_warnings") or {}).get("rejected_fields") or []
-    assert "label_state" in rejected and "tag_label_state" in rejected, (
-        f"label_state must be rejected, not written. rejected={rejected}"
-    )
-    assert body["data"]["tagging"]["is_tagged"] is False
+    assert_fields_refused(r, "label_state", "tag_label_state")
+    after = assert_envelope_ok(
+        client.get(f"/api/v1/assets/{data['id']}"))["data"]
+    assert after["tagging"]["is_tagged"] is False
+    assert after["tagging"] == data["tagging"], (
+        "the refused PATCH changed the tagging block")
 
 
 # ─── filters ─────────────────────────────────────────────────────────

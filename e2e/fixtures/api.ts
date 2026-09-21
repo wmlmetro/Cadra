@@ -70,6 +70,14 @@ export class ApiClient {
     return (body?.data ?? body) as T;
   }
 
+  /** Raw DELETE returning {status, body} — for CLEANUP in a `finally`, where
+   *  throwing would replace the failure the test is about with this one. */
+  async delete(path: string) {
+    const res = await this.ctx.delete(path, { headers: this.headers() });
+    const body = await res.json().catch(() => null);
+    return { status: res.status(), ok: res.ok(), body };
+  }
+
   // ── Discovery helpers ──────────────────────────────────────────────────────
 
   async brand(): Promise<any> {

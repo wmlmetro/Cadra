@@ -1,7 +1,8 @@
 """All 8 Service Request endpoints."""
 import time
 
-from .conftest import assert_envelope_ok
+from .conftest import (
+    assert_envelope_err, assert_envelope_ok, assert_fields_refused)
 
 
 def test_list(client, capture):
@@ -62,6 +63,74 @@ def test_create(client, test_location, test_asset, capture):
     assert body["data"]["stage"]["name"]
 
 
+def test_a_requests_location_is_kept(client, test_location, test_asset):
+    """`location_id` is SAVED, published back, and can be changed.
+
+    For the life of this API it was not. The request model's location field
+    was renamed in the move to Odoo 19 (`generic_location_id`) and this route
+    went on asking the model for `location_id`; the key was dropped and the
+    answer was a 201. No test asserted the location came BACK, so nothing
+    failed — until handoff 31 made a dropped field a 400 and the suite's own
+    fixture broke on it. The published key is the contract; the model's name
+    for it is the controller's business.
+    """
+    r = client.post("/api/v1/requests", json={
+        "type_id": 1, "category_id": 5,
+        "request_text": "<p>test_a_requests_location_is_kept</p>",
+        "location_id": test_location["id"],
+    })
+    created = assert_envelope_ok(r, expected_status=201)["data"]
+    assert created["location"] == {"id": test_location["id"],
+                                   "name": test_location["name"]}
+    # Read back, not only echoed: a serializer can echo what was never stored.
+    read = assert_envelope_ok(
+        client.get(f"/api/v1/requests/{created['id']}"))["data"]
+    assert read["location"]["id"] == test_location["id"]
+
+    elsewhere = assert_envelope_ok(client.post(
+        "/api/v1/locations", json={"name": "pytest-request-elsewhere"}),
+        expected_status=201)["data"]
+    patched = assert_envelope_ok(client.patch(
+        f"/api/v1/requests/{created['id']}",
+        json={"location_id": elsewhere["id"]}))["data"]
+    assert patched["location"]["id"] == elsewhere["id"]
+
+
+def test_the_location_filter_filters(client, test_location):
+    """`?location_id=` answered with EVERY request until handoff 31.
+
+    The list looked for a model field called `location_id`, did not find one,
+    and ignored the parameter — the defect handoff 21 closed on every other
+    filter, surviving here under a comment that called it a registry guard.
+    A location nobody has raised a request at must return nothing, and a
+    bare 200 would prove nothing, so the control is the unfiltered total.
+    """
+    empty = assert_envelope_ok(client.post(
+        "/api/v1/locations", json={"name": "pytest-request-nobody-here"}),
+        expected_status=201)["data"]
+    everything = assert_envelope_ok(
+        client.get("/api/v1/requests", params={"limit": 1}))
+    assert everything["pagination"]["total_estimate"] > 0
+    nothing = assert_envelope_ok(client.get(
+        "/api/v1/requests", params={"location_id": empty["id"], "limit": 1}))
+    assert nothing["data"] == []
+    here = assert_envelope_ok(client.get(
+        "/api/v1/requests", params={"location_id": test_location["id"]}))
+    assert here["data"], "the fixture request was raised at this location"
+    assert all(row["location"]["id"] == test_location["id"]
+               for row in here["data"])
+
+
+def test_what_a_request_accepts_is_what_this_deployment_can_store(client, test_request):
+    """`details.writable` lists `location_id` — and would not, if the
+    installed model had nowhere to put it."""
+    r = client.patch(f"/api/v1/requests/{test_request['id']}",
+                     json={"not_a_request_field": 1})
+    details = assert_envelope_err(r, 400, "invalid_request")["error"]["details"]
+    assert details["rejected_fields"] == ["not_a_request_field"]
+    assert {"location_id", "nrs_asset_id", "vehicle_id"} <= set(details["writable"])
+
+
 def test_patch(client, test_request, capture):
     """PATCH /api/v1/requests/<id> — partial update."""
     r = client.patch(f"/api/v1/requests/{test_request['id']}", json={
@@ -74,14 +143,27 @@ def test_patch(client, test_request, capture):
 
 
 def test_patch_rejects_stage_id(client, test_request, capture):
-    """PATCH with stage_id should be rejected with a warning + hint."""
+    """PATCH with `stage_id` is REFUSED, with a hint naming the right door.
+
+    A stage changes through `POST .../transition`, which runs the route's
+    checks; a PATCH that set it would walk round them. Until handoff 31 the
+    refusal was a 200 carrying `_warnings` — so a caller reading the status
+    believed the request had moved. It is a 400 now, the stage is read back
+    to prove it did not move, and the hint is in `details` beside the list
+    of what this route does accept.
+    """
+    before = assert_envelope_ok(
+        client.get(f"/api/v1/requests/{test_request['id']}"))["data"]
     r = client.patch(f"/api/v1/requests/{test_request['id']}", json={
         "stage_id": 99,
     })
     capture("requests/patch_stage_rejected", r)
-    body = assert_envelope_ok(r)
-    assert "_warnings" in body["data"]
-    assert "stage_id" in body["data"]["_warnings"]["rejected_fields"]
+    details = assert_fields_refused(r, "stage_id")
+    assert details["rejected_fields"] == ["stage_id"]
+    assert "/transition" in details["hint"]
+    after = assert_envelope_ok(
+        client.get(f"/api/v1/requests/{test_request['id']}"))["data"]
+    assert after["stage"] == before["stage"]
 
 
 def test_assign(client, test_request, capture):
@@ -104,7 +186,6 @@ def test_transition(client, test_location, test_asset, capture):
         "type_id": 1,
         "category_id": 5,
         "request_text": f"<p>transition test {time.time()}</p>",
-        "location_id": test_location["id"],
         "nrs_asset_id": test_asset["id"],
     })
     body = assert_envelope_ok(create_r, expected_status=201)
