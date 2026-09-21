@@ -394,6 +394,40 @@ test("after marking an asset missing, the dashboard count and the edit form both
   await expect.poll(missingOnStrip, { timeout: 15_000 }).toBe(before + 1);
 });
 
+/**
+ * An asset with NO location — which is what `createAsset` here makes, and what
+ * 358 assets on `nrs19` and 1,920 on `jaizbankplc` are. The Move button used
+ * to fail on them outright: *"validation_failed: Required field missing:
+ * from_location_id"*, because the route always built a transfer document and a
+ * transfer needs both ends. Reported by the owner, from the screen. It is
+ * PLACED now, and the dialog says so rather than promising a transfer.
+ */
+test("an asset with no location can be placed, and the dialog promises no transfer (UI)", async ({ page, api }) => {
+  const locs = await api.locations(1);
+  test.skip(!locs.length, "no location on this tenant to place it at");
+  const id = await createAsset(api, "Place");
+  expect((await api.get(`/api/v1/assets/${id}`))?.current_location ?? null).toBeNull();
+  await gotoApp(page, `/assets/${id}`);
+  await expectShell(page);
+  await expect(page.getByTestId("button-move")).toHaveText(/Place/);
+  await page.getByTestId("button-move").click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText("Place asset");
+  await expect(dialog).toContainText("No transfer document is created");
+  const q = String(locs[0].name).replace(/[^A-Za-z ]/g, " ").trim().split(/\s+/)[0].slice(0, 6);
+  const picked = await pickRecord(dialog, "Search locations", q.length >= 2 ? q : "of");
+  test.skip(!picked, "location search returned no options");
+  await dialog.getByRole("button", { name: "Place asset" }).click();
+  await expect(dialog).toBeHidden({ timeout: 15_000 });
+  await expect
+    .poll(async () => (await api.get(`/api/v1/assets/${id}`))?.current_location?.id ?? null, { timeout: 15_000 })
+    .not.toBeNull();
+  // Placed, so from now on it is MOVED — and the history has the placement.
+  await expect(page.getByTestId("button-move")).toHaveText(/Move/);
+  await page.getByTestId("tab-audit-review").click();
+  await expect(page.getByTestId("asset-history-event").first()).toContainText("Placed at");
+});
+
 // ── Move ─────────────────────────────────────────────────────────────────────
 
 test("move persists server-side (API)", async ({ api }) => {

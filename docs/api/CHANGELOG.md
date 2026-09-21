@@ -33,6 +33,30 @@ live at was never the point.
 
 ---
 
+## 2026-09-21 — `POST /assets/<id>/move` places an asset that has no location
+
+**BEHAVIOUR CHANGE, a fix: a 400 becomes a 200.** Moving an asset whose
+`current_location` is null answered **400 `validation_failed` — *"Required
+field missing: from_location_id"***. The route always built an
+`nrs.asset.transfer`, and that model requires both locations. So an asset
+with no location could not be given one through this route at all — 358
+assets on `nrs19`, 1,920 (46%) on `jaizbankplc`.
+
+It is now PLACED: `location_id` is set, the append-only movement records it
+(`source: api_move`, the reason, no `from`), and **no transfer document is
+created — a move is not always a transfer.**
+
+- **`data.transfer` is `null` in that case.** A consumer that reads
+  `data.transfer.id` must allow for it. It is still an object whenever the
+  asset had a location to be transferred from, exactly as before.
+- **`data.movement_id` is new, at the top level (ADDITIVE), and always
+  present.** Where there is a transfer, `data.transfer.movement_id` carries
+  the same value, where handoff 28 put it.
+
+Every refusal is unchanged: a destination that does not exist is still 404, a
+non-string `reason` still 400, the asset's own location still 400 — and none
+of them writes anything.
+
 ## 2026-09-21 — handoff 29: today is a Lagos day
 
 **`GET /reports/asset-register?as_of=` no longer refuses TODAY for the first

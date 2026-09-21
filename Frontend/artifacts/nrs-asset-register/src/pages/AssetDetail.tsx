@@ -245,7 +245,7 @@ export default function AssetDetail() {
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
               data-testid="button-move"
             >
-              <MapPin size={12} /> Move
+              <MapPin size={12} /> {asset.location.locationId ? "Move" : "Place"}
             </button>
             <button
               onClick={() => setCustodyOpen(true)}
@@ -566,7 +566,7 @@ export default function AssetDetail() {
         },
       ]} />
 
-      <AssetMoveDialog        assetId={asset.id} open={moveOpen}    onOpenChange={setMoveOpen} />
+      <AssetMoveDialog        assetId={asset.id} open={moveOpen}    onOpenChange={setMoveOpen} placed={!!asset.location.locationId} />
       <CustodyTransferDialog  assetId={asset.id} open={custodyOpen} onOpenChange={setCustodyOpen} />
       <CondemnAssetDialog     assetId={asset.id} open={condemnOpen} onOpenChange={setCondemnOpen} />
       <MarkMissingDialog      assetId={asset.id} open={missingOpen} onOpenChange={setMissingOpen} />

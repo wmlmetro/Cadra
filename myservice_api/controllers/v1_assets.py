@@ -1320,7 +1320,7 @@ class CadraAssetsV1(http.Controller):
     # ── Move action: POST /api/v1/assets/<id>/move ─────────────────
 
     @cadra_route("/api/v1/assets/<int:id>/move", method="POST",
-                 summary="Move asset to a new location (creates an nrs.asset.transfer row)",
+                 summary="Move an asset to a location — or place one that has none",
                  scopes=[SCOPE_ASSETS_WRITE],
                  idempotent=True,
                  request_schema={
@@ -1367,19 +1367,35 @@ class CadraAssetsV1(http.Controller):
         if reason and not isinstance(reason, str):
             return err(ERR_INVALID_REQUEST, "`reason` must be a string")
 
-        Transfer = request.env["nrs.asset.transfer"].sudo()
-        seq = request.env["ir.sequence"].next_by_code("nrs.asset.transfer") or "/"
-        transfer = Transfer.create({
-            "name": seq,
-            "asset_id": rec.id,
-            "from_location_id": from_loc.id or False,
-            "to_location_id": to_loc.id,
-            "from_custodian_id": rec.custodian_id.id or False,
-            "to_custodian_id": rec.custodian_id.id or False,
-            "transfer_date": odoo_fields.Date.today(),
-            "reason": reason,
-            "state": "done",
-        })
+        # AN ASSET THAT IS NOWHERE IS PLACED, NOT TRANSFERRED.
+        # `nrs.asset.transfer` requires BOTH locations — it is a document about
+        # going from one place to another, and "from nowhere" is not a place.
+        # This route used to build one regardless, so moving an asset with no
+        # current location died on the NOT NULL and answered 400
+        # *"Required field missing: from_location_id"*: a message about a
+        # column in a table the user has never heard of, for the most ordinary
+        # act in the register. 358 of `nrs19`'s assets and 1,920 of
+        # `jaizbankplc`'s — 46% of that register — had no location and could
+        # not be given one with the Move button at all. Reported by the owner,
+        # from the screen. Handoff 28 had already said what the answer is: the
+        # MOVE is the fact, the transfer is paperwork, and a move is not always
+        # a transfer. The movement record below captures who, when, where and
+        # why either way; the document is made when there is something for it
+        # to say.
+        transfer = request.env["nrs.asset.transfer"]
+        if from_loc:
+            seq = request.env["ir.sequence"].next_by_code("nrs.asset.transfer") or "/"
+            transfer = transfer.sudo().create({
+                "name": seq,
+                "asset_id": rec.id,
+                "from_location_id": from_loc.id,
+                "to_location_id": to_loc.id,
+                "from_custodian_id": rec.custodian_id.id or False,
+                "to_custodian_id": rec.custodian_id.id or False,
+                "transfer_date": odoo_fields.Date.today(),
+                "reason": reason,
+                "state": "done",
+            })
         # The move itself is recorded by `nrs.asset.write`, append-only, as
         # an `nrs.asset.movement` — underneath every writer of `location_id`,
         # not here. What only this route knows is that the move was asked for
@@ -1388,23 +1404,29 @@ class CadraAssetsV1(http.Controller):
             cadra_custody_source="api_write",
             cadra_movement_source="api_move",
             cadra_movement_reason=reason or False,
-            cadra_movement_transfer_id=transfer.id,
+            cadra_movement_transfer_id=transfer.id or False,
         ).write({"location_id": to_loc.id})
         movement = rec.movement_ids.sorted("id")[-1:]
+        movement_id = movement.id if movement else None
 
         return {
             "asset": serialize_asset(rec),
+            # The append-only record this call produced — the FACT, and what
+            # `GET /assets/<id>/history` reads. At the top level since the
+            # asset-with-no-location case, because there it is the ONLY
+            # record: there is no transfer to hang it on.
+            "movement_id": movement_id,
+            # NULL when the asset had no location to be transferred FROM. A
+            # consumer reading `transfer.id` must allow for that; one reading
+            # `asset` — which is all the Cadra app reads — is unaffected.
             "transfer": {
                 "id": transfer.id,
                 "reference": transfer.name,
                 "from_location": _ref(from_loc),
                 "to_location": _ref(to_loc),
-                # The append-only record this call produced. Additive, and
-                # the same shape as `custody_change.custody_id`: the transfer
-                # above is a document an asset manager can edit; this is the
-                # fact, and it is what `GET /assets/<id>/history` reads.
-                "movement_id": movement.id if movement else None,
-            },
+                # Kept where handoff 28 put it. Same value as the top-level key.
+                "movement_id": movement_id,
+            } if transfer else None,
         }
 
     # ── Verify: POST /api/v1/assets/<id>/verify ────────────────────

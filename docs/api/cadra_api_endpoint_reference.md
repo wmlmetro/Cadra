@@ -594,6 +594,15 @@ to be described here as the audit trail. It never was.
 `reason`, when sent, must be a string (400 `invalid_request` otherwise), and
 **every refusal on this route happens before anything is written.**
 
+**An asset with NO current location is placed, not transferred.** A transfer
+document needs both ends, so none is made: `data.transfer` is **`null`**,
+`location_id` is set, and the movement record holds the placement (no `from`;
+the history shows it as *"Placed at …"*). `data.movement_id` is at the top
+level on every response for that reason — it is the one record this route
+always produces. Until 2026-09-21 this case answered 400 *"Required field
+missing: from_location_id"*, and such an asset could not be placed here at
+all.
+
 ### Request
 
 ```bash
@@ -611,6 +620,7 @@ acurl -X POST $API/api/v1/assets/124/move \
 {
   "data": {
     "asset": { "id": 124, "asset_code": "NRS-EV-FAL-FAP-00001", "current_location": { "id": 905, "name": "HQ - 1F - Server Room" }, "condition": "good", "state": "active", "...": "full asset record" },
+    "movement_id": 3301,
     "transfer": { "id": 17, "reference": "TRF/2026/0017", "from_location": { "id": 891, "name": "HQ - GF - Mail Room" }, "to_location": { "id": 905, "name": "HQ - 1F - Server Room" }, "movement_id": 3301 }
   },
   "meta": { "request_id": "…", "timestamp": "…", "version": "v1" }
