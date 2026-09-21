@@ -364,6 +364,13 @@ STYLING_WAIVERS = {
     "pages/RequestsList.tsx":
         "PRIORITY_COLOR — severity colour, deliberately kept when the label "
         "map was deleted, with PRIORITY_COLOR_UNKNOWN as the fallback",
+    "components/LifecyclePill.tsx":
+        "colour and dot per lifecycle state (handoff 29). The LABEL is read "
+        "from `useEnumLabel('asset_state')`, never declared; `?? "
+        "UNKNOWN_STATE` covers a state the model gains before this build "
+        "knows its colour. It exists because the register rendered a missing "
+        "or disposed asset as a green `Cleared`: the only status pill knew "
+        "about data quality and nothing about lifecycle",
 }
 
 

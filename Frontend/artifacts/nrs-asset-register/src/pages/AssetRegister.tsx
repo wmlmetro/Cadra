@@ -6,7 +6,7 @@ import { fetchAssetsPage, fetchAllLocations, type AssetsPage } from "@/lib/dataP
 import NigeriaMap, { type MapPinData } from "@/components/NigeriaMap";
 import { apiConfigured, CadraApiError } from "@/lib/api";
 import type { Asset } from "@/types";
-import StatusPill from "@/components/StatusPill";
+import AssetStatusPills from "@/components/AssetStatusPills";
 import ConditionBadge from "@/components/ConditionBadge";
 import {
   Monitor, Car, Sofa, MapPin, User, Search, X,
@@ -21,12 +21,14 @@ import { cn } from "@/lib/utils";
 import { useEnum, useEnumLabel } from "@/hooks/useEnums";
 
 const CATEGORIES = ["IT Equipment", "Fleet / Vehicles", "Furniture & Fittings"] as const;
+// Three more used to be offered here — allottee not in nominal roll, VIN not
+// verifiable, possible duplicate. The back end models none of them, so each
+// always answered zero rows and said nothing about why. "Not in service" is
+// every asset that is not active: missing, disposed, under repair, transferred.
 const STATUSES = [
   "Cleared",
   "Review — data quality",
-  "Review — allottee not in nominal roll",
-  "Review — VIN not verifiable",
-  "Review — possible duplicate",
+  "Not in service",
 ] as const;
 // There is no CONDITIONS list here. It read ["Good", "Fair", "Poor",
 // "Decommissioned"] — four of the model's five `nrs.asset.condition` values,
@@ -46,7 +48,16 @@ const CATEGORY_CONFIG = {
 function AssetCard({ asset, onClick }: { asset: Asset; onClick: () => void }) {
   const cfg = CATEGORY_CONFIG[asset.category];
   const Icon = cfg.icon;
-  const isCleared = asset.status === "Cleared";
+  // Anything not "Cleared" used to go amber, and a missing or disposed asset
+  // WAS "Cleared", so it wore the same plain border as healthy stock. A
+  // missing asset is red — on a wall of cards it is the one that should not
+  // look like the others. Everything else out of service (disposed, under
+  // repair, transferred) is a heavier slate: set apart, without the alarm.
+  const borderCls =
+    asset.status === "Cleared" ? "border-border" :
+    asset.lifecycleState === "missing" ? "border-red-300/80 dark:border-red-800/50" :
+    asset.status === "Not in service" ? "border-slate-400/70 dark:border-slate-600/60" :
+    "border-amber-200/70 dark:border-amber-800/30";
 
   return (
     <div
@@ -54,7 +65,7 @@ function AssetCard({ asset, onClick }: { asset: Asset; onClick: () => void }) {
       className={cn(
         "bg-card border rounded-2xl p-4 cursor-pointer transition-all duration-150 group flex flex-col gap-3",
         "hover:shadow-md hover:-translate-y-0.5 hover:border-primary/30",
-        isCleared ? "border-border" : "border-amber-200/70 dark:border-amber-800/30"
+        borderCls
       )}
       data-testid={`card-asset-${asset.id}`}
     >
@@ -90,7 +101,7 @@ function AssetCard({ asset, onClick }: { asset: Asset; onClick: () => void }) {
 
       {/* Footer: status */}
       <div className="pt-2.5 border-t border-border/60 flex items-center justify-between gap-2">
-        <StatusPill status={asset.status} />
+        <AssetStatusPills status={asset.status} lifecycleState={asset.lifecycleState} />
         <span className="text-[10px] text-muted-foreground/60 font-mono shrink-0">
           {asset.id.split("-").slice(0, 2).join("-")}
         </span>
@@ -186,7 +197,7 @@ function ListView({ assets, onSelect }: { assets: Asset[]; onSelect: (id: string
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }) => <StatusPill status={row.original.status} />,
+      cell: ({ row }) => <AssetStatusPills status={row.original.status} lifecycleState={row.original.lifecycleState} />,
     },
     {
       accessorKey: "condition",
@@ -343,8 +354,10 @@ export default function AssetRegister() {
 
   // Server-side: search and condition. Category/status stay client-side
   // because the frontend's category enum is a 3-bucket projection of the
-  // many real DB categories, and the frontend's status maps to backend
-  // is_verified — both are derived in the adapter, not native API filters.
+  // many real DB categories, and the frontend's status is derived in the
+  // adapter from `state` AND `is_verified` — neither is a native API filter.
+  // So both filter ONLY the rows already loaded, under a count that is
+  // register-wide (GO-LIVE §13.5.8).
   const {
     data,
     isLoading,

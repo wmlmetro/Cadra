@@ -28,6 +28,30 @@ test.describe("Facility Command Center (home)", () => {
     // are items. Assert the card region renders (no crash) either way.
     await expect(page.getByTestId("card-review-queue")).toBeVisible();
   });
+
+  test("the review-queue card goes somewhere", async ({ page }) => {
+    // It had `onClick={() => {}}` under a pointer cursor and a hover lift.
+    await gotoApp(page, "/");
+    await expectShell(page);
+    await page.getByTestId("card-review-queue").click();
+    await expect.poll(() => new URL(page.url()).pathname).toBe(appPath("/assets/list"));
+  });
+
+  test("the status breakdown plots statuses a record can carry", async ({ page }) => {
+    // It plotted five hard-coded mock figures as percentages of the live
+    // total, three of them statuses the back end does not model.
+    await gotoApp(page, "/");
+    await expectShell(page);
+    await expect(page.getByText("Status Breakdown")).toBeVisible();
+    await expect(page.getByText("Approval Breakdown")).toHaveCount(0);
+    await expect(page.getByText(/nominal roll|VIN not verifiable|possible duplicate/)).toHaveCount(0);
+    // …and not the five figures that were typed into the source and plotted as
+    // percentages of the live total. Absent words alone would still pass if
+    // the mock numbers came back under the new heading.
+    for (const mock of ["10,842", "985", "673", "418", "232"]) {
+      await expect(page.getByText(mock, { exact: true })).toHaveCount(0);
+    }
+  });
 });
 
 const DASHBOARDS: { path: string; name: string }[] = [

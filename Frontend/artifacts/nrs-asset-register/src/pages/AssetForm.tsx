@@ -97,7 +97,13 @@ function toBody(f: FormShape): AssetWriteBody {
     out[key] = val;
   };
   assignIfSet("name", f.name);
-  assignIfSet("asset_tag", f.asset_tag);
+  // `asset_tag` is NOT sent, on create or on edit. The server leaves it out of
+  // `_WRITABLE_FIELDS` on purpose (`v1_assets.py`: a client able to write it
+  // can walk the record away from the sticker on the asset), and both POST and
+  // PATCH run the body through the same `_filter_writable`. So it was dropped
+  // and named in `_warnings.rejected_fields`, which nothing here reads: typing
+  // a tag gave a 200, no change and no message. Cadra mints the tag itself
+  // when the asset is created; the input below is read-only and says so.
   assignIfSet("legacy_asset_code", f.legacy_asset_code);
   assignIfSet("serial_number", f.serial_number);
   assignIfSet("make", f.make);
@@ -225,13 +231,23 @@ export default function AssetForm({ mode }: Props) {
       return res.data;
     },
     enabled: mode === "edit" && !!id,
+    // THIS FORM NEVER HYDRATES FROM A CACHED COPY. It sends `state` and
+    // `condition` on every save, so a stale copy is not untidy, it is
+    // destructive: acted in handoff 29 — open Edit once, mark the asset
+    // missing, open Edit again, and the State select read *Active*; saving
+    // any field would have written `active` back with a 200 and un-missed
+    // the asset. And the Mark-missing dialog SENDS people here to reverse it.
+    // `gcTime: 0` drops the copy when the form closes, `"always"` refetches
+    // whatever is left, and the effect below waits for THAT fetch.
     staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
   });
 
   useEffect(() => {
     if (mode === "create") {
       setTitle("New Asset");
-    } else if (existing.data) {
+    } else if (existing.data && existing.isFetchedAfterMount) {
       const e = existing.data as Record<string, unknown>;
       const ref = (v: unknown) => (v && typeof v === "object" && "id" in v ? (v as { id: number }).id : null);
       const refName = (v: unknown) => (v && typeof v === "object" && "name" in v ? (v as { id: number; name: string }) : null);
@@ -278,7 +294,7 @@ export default function AssetForm({ mode }: Props) {
       setTitle(`Edit · ${e.name as string}`);
     }
     setSearchHandler(undefined);
-  }, [mode, existing.data, setTitle, setSearchHandler]);
+  }, [mode, existing.data, existing.isFetchedAfterMount, setTitle, setSearchHandler]);
 
   const mutation = useMutation({
     mutationFn: () => mode === "edit" ? updateAsset(id!, toBody(form)) : createAsset(toBody(form)),
@@ -347,7 +363,19 @@ export default function AssetForm({ mode }: Props) {
           <input className={inputCls} value={form.name} onChange={e => set("name", e.target.value)} required />
         </Field>
         <Field label="Asset tag">
-          <input className={inputCls} value={form.asset_tag} onChange={e => set("asset_tag", e.target.value)} placeholder="e.g. HQ-GF-MR-FF-001" />
+          <input
+            className={cn(inputCls, "bg-muted/50 text-muted-foreground cursor-not-allowed")}
+            value={form.asset_tag}
+            readOnly
+            aria-readonly="true"
+            placeholder={mode === "create" ? "Issued when the asset is saved" : "No tag issued"}
+            data-testid="input-asset-tag"
+          />
+          <p className="text-[10px] text-muted-foreground leading-snug" data-testid="hint-asset-tag">
+            {mode === "create"
+              ? "Cadra issues the tag when the asset is saved. It cannot be typed here, so the register cannot drift from the sticker on the asset."
+              : "A tag changes only through tag replacement, so the register cannot drift from the sticker on the asset."}
+          </p>
         </Field>
         <Field label="Legacy code">
           <input className={inputCls} value={form.legacy_asset_code} onChange={e => set("legacy_asset_code", e.target.value)} />

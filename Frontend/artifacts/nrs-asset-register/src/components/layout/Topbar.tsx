@@ -1,4 +1,6 @@
-import { Search, Sun, Moon, Bell } from "lucide-react";
+import { Search, Sun, Moon } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchWhoAmI } from "@/lib/dataProvider";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
@@ -11,6 +13,16 @@ interface TopbarProps {
 export default function Topbar({ title, onSearch }: TopbarProps) {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  // Long-lived on purpose: who is signed in does not change under a session.
+  // A failure leaves `me` undefined and the bar then shows NO name at all —
+  // an avatar with a dot. (`whoami` is never persisted and the cache is
+  // cleared on sign-in, so a previous user's name cannot be restored here.)
+  const { data: me } = useQuery({
+    queryKey: ["whoami"],
+    queryFn: fetchWhoAmI,
+    staleTime: 30 * 60_000,
+    retry: false,
+  });
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [location, nav] = useLocation();
@@ -88,14 +100,11 @@ export default function Topbar({ title, onSearch }: TopbarProps) {
 
       {/* Right: actions */}
       <div className="ml-auto flex items-center gap-1.5">
-        {/* Notifications */}
-        <button
-          aria-label="Notifications"
-          className="relative w-8 h-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
-        >
-          <Bell size={14} />
-          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary" />
-        </button>
+        {/* The notifications bell was here until handoff 29. It had no
+            handler — clicking it did nothing — and it drew a PERMANENT unread
+            dot: a claim, on every screen, that something was waiting, made by
+            a control with nothing behind it. There are no notifications in
+            this app. When there are, the bell comes back with them. */}
 
         {/* Theme toggle */}
         {mounted && (
@@ -112,17 +121,23 @@ export default function Topbar({ title, onSearch }: TopbarProps) {
         {/* Divider */}
         <div className="w-px h-4 bg-border mx-1" />
 
-        {/* Avatar */}
-        <div className="flex items-center gap-2 pl-1 cursor-pointer group">
+        {/* Who is signed in — read from the session, not written here. This
+            printed "Admin User / Administrator" for every session until
+            handoff 29. Since handoff 28 the Verify button records the
+            SIGNED-IN person as the verifier, so a top bar naming somebody
+            else sat beside a control that wrote a different name into the
+            register. Not clickable: there is no account menu, so it no longer
+            carries a pointer cursor promising one. */}
+        <div className="flex items-center gap-2 pl-1" data-testid="topbar-user">
           <div
             className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white shadow-sm"
             style={{ background: "hsl(var(--primary))" }}
           >
-            A
+            {(me?.name ?? "").trim().charAt(0).toUpperCase() || "·"}
           </div>
           <div className="hidden sm:block">
-            <p className="text-[12px] font-semibold text-foreground leading-tight">Admin User</p>
-            <p className="text-[10px] text-muted-foreground leading-tight">Administrator</p>
+            {me?.name && <p className="text-[12px] font-semibold text-foreground leading-tight">{me.name}</p>}
+            {me?.login && <p className="text-[10px] text-muted-foreground leading-tight">{me.login}</p>}
           </div>
         </div>
       </div>

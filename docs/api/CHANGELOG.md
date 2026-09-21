@@ -33,6 +33,23 @@ live at was never the point.
 
 ---
 
+## 2026-09-21 — handoff 29: today is a Lagos day
+
+**`GET /reports/asset-register?as_of=` no longer refuses TODAY for the first
+hour of every Lagos day (BEHAVIOUR CHANGE, a fix).** The snapshot's cutoff has
+always been the end of `as_of` in West Africa Time, but the *"`as_of` cannot
+be in the future"* check compared against the UTC date — which is yesterday
+between 00:00 and 01:00 in Lagos. A caller asking for today's register in
+that hour got a 400 saying the date had not happened. Both sides of the
+question now use the Lagos day, and `details.today` in that 400 is the Lagos
+date. A consumer running in UTC and sending the UTC date is unaffected.
+
+Nothing else in the API changed in handoff 29; it was a front-end handoff.
+One thing an integrator may notice in DATA: the Cadra app's **Condemn** now
+sends `condition: "decommissioned"` along with `state: "disposed"`, as Odoo's
+own action of that name always has, so disposals made from the app stop
+arriving with a condition of `good`.
+
 ## 2026-09-20 — handoff 28: a move is recorded, a verification names somebody
 
 **Nothing here removes or renames a field, an enum value or an error code.**

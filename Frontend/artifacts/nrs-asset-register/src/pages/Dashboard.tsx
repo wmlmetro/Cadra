@@ -6,9 +6,11 @@ import {
   getDashboardStats, getReviewQueueAssets,
   getAssetsByCategory, getAssetsByStatus,
   fetchTotals, fetchAssetsPage, fetchDashboardKpis, fetchDashboardMap,
+  fetchAssetStatusCounts,
 } from "@/lib/dataProvider";
+import { apiConfigured } from "@/lib/api";
 import NigeriaMap, { type MapPinData } from "@/components/NigeriaMap";
-import StatusPill from "@/components/StatusPill";
+import AssetStatusPills from "@/components/AssetStatusPills";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
@@ -24,9 +26,8 @@ const CAT_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--cha
 const STATUS_COLORS: Record<string, string> = {
   "Cleared": "#22c55e",
   "Review — data quality": "#f59e0b",
-  "Review — allottee not in nominal roll": "#f97316",
-  "Review — VIN not verifiable": "#eab308",
-  "Review — possible duplicate": "#a855f7",
+  // Neutral, like its pill: it is the absence of a verdict, not a third one.
+  "Not in service": "#94a3b8",
 };
 
 function StatCard({
@@ -148,22 +149,24 @@ function CSSDonut({ data, total }: { data: { name: string; value: number }[]; to
     return `${STATUS_COLORS[d.name] ?? "#94a3b8"} ${start.toFixed(1)}deg ${end.toFixed(1)}deg`;
   });
   const gradient = `conic-gradient(from -90deg, ${stops.join(", ")})`;
+  // No slices yet (the counts are still loading) or an empty register: say
+  // nothing rather than divide by zero and print "NaN%".
   const cleared = data[0];
-  const pct = ((cleared.value / total) * 100).toFixed(0);
+  const pct = cleared && total > 0 ? `${((cleared.value / total) * 100).toFixed(0)}%` : "—";
 
   return (
     <div className="flex items-center justify-center py-4">
       <div className="relative" style={{ width: 148, height: 148, flexShrink: 0 }}>
         <div
           className="w-full h-full rounded-full"
-          style={{ background: gradient }}
+          style={{ background: total > 0 && data.length > 0 ? gradient : "hsl(var(--muted))" }}
         />
         {/* inner mask */}
         <div
           className="absolute inset-0 rounded-full bg-card flex flex-col items-center justify-center"
           style={{ margin: "26px" }}
         >
-          <span className="text-[22px] font-extrabold text-foreground leading-none tabular-nums">{pct}%</span>
+          <span className="text-[22px] font-extrabold text-foreground leading-none tabular-nums">{pct}</span>
           <span className="text-[9px] text-muted-foreground uppercase tracking-wider mt-0.5 font-semibold">Cleared</span>
         </div>
       </div>
@@ -176,14 +179,16 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
 
   const mockStats = getDashboardStats();
-  // Real totals from the API (cheap — uses total_estimate). Category breakdown
-  // and statusData stay on mocks until backend ships an aggregate endpoint.
+  // Real totals from the API (cheap — uses total_estimate).
   const { data: totals } = useQuery({
     queryKey: ["dashboard", "totals"],
     queryFn: fetchTotals,
     staleTime: 60_000,
   });
-  // Review queue sample = first page of unverified assets.
+  // Review queue sample = first page of ACTIVE, unverified assets. The status
+  // filter carries `state=active` (see `fetchAssetsPage`), so a missing or
+  // disposed asset cannot be listed here as awaiting review — and this page's
+  // `total_estimate` is the size of the queue, read off the same request.
   const { data: reviewPage } = useQuery({
     queryKey: ["dashboard", "review-queue"],
     queryFn: () => fetchAssetsPage(undefined, { status: "Review — data quality" }),
@@ -203,16 +208,53 @@ export default function Dashboard() {
     locations:     realKpis?.locations.total  ?? totals?.locations  ?? mockStats.locations,
     employees:     totals?.employees          ?? mockStats.employees,
     fleetVehicles: realKpis?.fleet.total      ?? mockStats.fleetVehicles,
-    reviewQueue:   realKpis?.requests.open    ?? reviewPage?.totalEstimate ?? mockStats.reviewQueue,
   };
-  const reviewAssets = reviewPage?.assets.slice(0, 8) ?? getReviewQueueAssets();
+  // The card says "Assets pending data quality review" and the table says
+  // "Showing 8 of N". N was `realKpis.requests.open` — OPEN SERVICE-DESK
+  // TICKETS, a count of a different kind of thing. It is now the number both
+  // sentences describe, from the same response as the rows, so the two cannot
+  // disagree. Null while it loads: with an API configured the mock figure is
+  // never shown in its place.
+  const reviewQueue: number | null =
+    reviewPage?.totalEstimate ?? (apiConfigured ? null : mockStats.reviewQueue);
+  const reviewQueueText = reviewQueue == null ? "—" : reviewQueue.toLocaleString();
+  // Mock rows ONLY when there is no API. With one, an unloaded or failed
+  // queue is an empty table — the first version listed invented assets under
+  // the live heading for as long as the request took, or for ever if it failed.
+  const reviewAssets = reviewPage?.assets.slice(0, 8)
+    ?? (apiConfigured ? [] : getReviewQueueAssets());
   // Real per-tenant asset-category breakdown from /api/v1/dashboard/kpis
   // (assets.categories, sorted desc). Top 3 to match the palette/legend.
   // Falls back to mock only if the API didn't carry the assets block.
   const categoryData = (realKpis?.assets?.categories?.length ?? 0) > 0
     ? realKpis!.assets!.categories.slice(0, 3).map(c => ({ name: c.name, value: c.count }))
     : getAssetsByCategory();
-  const statusData = getAssetsByStatus();       // mock — no API aggregate
+  // The status breakdown, from REAL counts. This plotted five hard-coded mock
+  // numbers (10,842 / 985 / …) as percentages of the LIVE total — invented
+  // figures beside real ones, on the first screen a client sees. Three slices,
+  // each derived where it can be read:
+  //   Cleared                = active − active-unverified
+  //   Review — data quality  = active-unverified
+  //   Not in service         = total − active
+  // Mock mode keeps mock numbers. With an API configured and no counts yet,
+  // there are NO slices — never the mock ones.
+  const { data: statusCounts, isError: statusCountsFailed } = useQuery({
+    queryKey: ["dashboard", "status-counts"],
+    queryFn: fetchAssetStatusCounts,
+    staleTime: 60_000,
+    enabled: apiConfigured,
+  });
+  const statusData: { name: string; value: number }[] =
+    !apiConfigured ? getAssetsByStatus() :
+    statusCounts ? [
+      { name: "Cleared", value: Math.max(0, statusCounts.active - statusCounts.activeUnverified) },
+      { name: "Review — data quality", value: statusCounts.activeUnverified },
+      { name: "Not in service", value: Math.max(0, statusCounts.total - statusCounts.active) },
+    ] : [];
+  // The slices' own sum, not `stats.totalAssets`: that comes from a different
+  // request at a different moment, and a percentage of somebody else's total
+  // is how a donut comes to 97% or 104%.
+  const statusTotal = statusData.reduce((n, d) => n + d.value, 0);
 
   // Map pins from /api/v1/dashboard/map.locations — already deduped & geocoded
   // server-side, way cheaper than walking every Location record.
@@ -317,7 +359,9 @@ export default function Dashboard() {
         {/* Review Queue — highlighted */}
         <div
           className="relative bg-amber-50 dark:bg-amber-950/20 rounded-2xl border border-amber-200 dark:border-amber-800/40 p-6 overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
-          onClick={() => {}}
+          // Was `onClick={() => {}}` under a pointer cursor and a hover lift —
+          // a control that promised something and did nothing.
+          onClick={() => setLocation("/assets/list")}
           data-testid="card-review-queue"
         >
           <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-amber-500" />
@@ -330,10 +374,10 @@ export default function Dashboard() {
               </div>
             </div>
             <p className="text-4xl font-bold tracking-tight text-amber-700 dark:text-amber-400 tabular-nums leading-none">
-              {stats.reviewQueue.toLocaleString()}
+              {reviewQueueText}
             </p>
             <p className="mt-3 pt-3 border-t border-amber-200 dark:border-amber-800/40 text-[11px] text-amber-700/70 dark:text-amber-500/80 leading-relaxed">
-              Assets pending data quality review
+              Active assets not yet verified
             </p>
           </div>
         </div>
@@ -393,16 +437,21 @@ export default function Dashboard() {
 
         {/* Approval breakdown — CSS conic-gradient donut */}
         <div className="bg-card border border-border rounded-2xl p-5 lg:col-span-2 flex flex-col">
+          {/* Was "Approval Breakdown". Nothing here is an approval. */}
           <SectionHeader
-            title="Approval Breakdown"
-            sub={`${statusData[0].value.toLocaleString()} of ${stats.totalAssets.toLocaleString()} cleared`}
+            title="Status Breakdown"
+            sub={
+              statusData.length > 0
+                ? `${statusData[0].value.toLocaleString()} of ${statusTotal.toLocaleString()} cleared`
+                : statusCountsFailed ? "The counts could not be read" : "Counting…"
+            }
           />
 
-          <CSSDonut data={statusData} total={stats.totalAssets} />
+          <CSSDonut data={statusData} total={statusTotal} />
 
           <div className="space-y-2 mt-3">
             {statusData.map((d) => {
-              const pct = ((d.value / stats.totalAssets) * 100).toFixed(1);
+              const pct = statusTotal > 0 ? ((d.value / statusTotal) * 100).toFixed(1) : "0.0";
               return (
                 <div key={d.name} className="flex items-center gap-2.5">
                   <div className="w-2 h-2 rounded-full shrink-0" style={{ background: STATUS_COLORS[d.name] }} />
@@ -421,15 +470,15 @@ export default function Dashboard() {
         <div className="px-6 py-4 border-b border-border flex items-center justify-between">
           <div>
             <h2 className="text-sm font-bold text-foreground">Review Queue</h2>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Assets flagged for data quality review</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Active assets not yet verified</p>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-[11px] text-muted-foreground">
               Showing {reviewAssets.length} of{" "}
-              <span className="font-semibold text-amber-600 dark:text-amber-400">{stats.reviewQueue.toLocaleString()}</span>
+              <span className="font-semibold text-amber-600 dark:text-amber-400">{reviewQueueText}</span>
             </span>
             <button
-              onClick={() => setLocation("/assets")}
+              onClick={() => setLocation("/assets/list")}
               className="flex items-center gap-1 text-xs font-semibold text-primary hover:opacity-80 transition-opacity"
             >
               View all <ArrowUpRight size={12} />
@@ -464,7 +513,7 @@ export default function Dashboard() {
                   <td className="px-4 py-3.5">
                     <span className="text-xs text-muted-foreground">{asset.category.split(" /")[0]}</span>
                   </td>
-                  <td className="px-4 py-3.5"><StatusPill status={asset.status} /></td>
+                  <td className="px-4 py-3.5"><AssetStatusPills status={asset.status} lifecycleState={asset.lifecycleState} /></td>
                   <td className="px-4 py-3.5 text-xs text-muted-foreground">{asset.custodianName ?? `Pool · ${asset.department}`}</td>
                   <td className="px-4 py-3.5 text-xs text-muted-foreground max-w-[160px] truncate">{asset.location.office}</td>
                 </tr>

@@ -256,6 +256,12 @@ DOES bite in production: it is how two callers writing the same row both
 succeed. Handoff 15 added a clause re-raising all three, guarded by
 `tests/test_source_guards.py::test_the_envelope_lets_odoos_own_retries_through`.
 
+### A suite that fails only between midnight and 01:00 in Lagos is telling you something
+
+This machine's clock is Lagos (+01:00); Odoo's is UTC. For the first hour of every Lagos day the two disagree about the DATE, and any code that says "today" on one side and compares it with "today" on the other is wrong for that hour and right for the other twenty-three. **CI runs in UTC on both sides and can never see it.**
+
+Handoff 29 hit it at 00:50: nine tests in `tests/test_audit_reports.py` failed with *"`as_of` cannot be in the future"*. It was NOT a flaky test — the route was wrong, refusing a Lagos user today's register because UTC had not got there yet (fixed: `asset_snapshot.snapshot_today()`). **If a run goes red just after midnight, read the failure before re-running it**, and grep for `Date.today()` / `date.today()` next to anything the specification defines as a Lagos day. The front end has the mirror-image defect in one known place: `condemnAsset` dates a disposal from the browser's UTC clock (`GO-LIVE.md` §13.5).
+
 ### The external suite's skips are expected — check the CATEGORIES, not the count
 
 Admin-scoped tests the suite's own token cannot reach, plus pagination tests that skip loudly when a tenant fits inside the record cap.

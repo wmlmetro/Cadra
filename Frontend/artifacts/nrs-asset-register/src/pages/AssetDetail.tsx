@@ -2,12 +2,15 @@ import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
-import { fetchAsset, markAssetVerified, markAssetMissing } from "@/lib/dataProvider";
+import { fetchAsset, markAssetVerified } from "@/lib/dataProvider";
 import { CadraApiError } from "@/lib/api";
-import { AssetMoveDialog, CustodyTransferDialog, CondemnAssetDialog } from "@/components/AssetActionDialogs";
+import {
+  AssetMoveDialog, CustodyTransferDialog, CondemnAssetDialog, MarkMissingDialog,
+  invalidateAssetQueries,
+} from "@/components/AssetActionDialogs";
 import RecordLink from "@/components/RecordLink";
 import type { Asset } from "@/types";
-import StatusPill from "@/components/StatusPill";
+import AssetStatusPills from "@/components/AssetStatusPills";
 import ConditionBadge from "@/components/ConditionBadge";
 import DepreciationCard from "@/components/DepreciationCard";
 import AssetHistoryTimeline from "@/components/AssetHistoryTimeline";
@@ -19,6 +22,26 @@ import { cn } from "@/lib/utils";
 import { useEnumLabel } from "@/hooks/useEnums";
 
 const WORKFLOW_STEPS = ["Cleared", "In Review", "Disposed"];
+
+/**
+ * Which of the three steps describes this asset — or -1, for none of them.
+ *
+ * It was `status === "Cleared" ? 0 : 1`, so "Disposed" could not be reached by
+ * any asset and a condemned one sat highlighted on "Cleared". Two facts feed
+ * it, read one at a time: disposed is the third step; an asset in service is
+ * on the first or second by whether it is verified. Every OTHER lifecycle
+ * state — missing, under repair, transferred — lights nothing, because none of
+ * the three words is true of it; the lifecycle pill in the hero says what it
+ * is. -1 also leaves no step drawn as "passed", which is right: a missing
+ * asset has not passed "Cleared".
+ */
+function workflowStep(asset: Asset): number {
+  if (asset.lifecycleState === "disposed") return 2;
+  if (asset.lifecycleState !== undefined && asset.lifecycleState !== "active") return -1;
+  if (asset.status === "Cleared") return 0;
+  if (asset.status === "Review — data quality") return 1;
+  return -1;
+}
 
 function CategoryIcon({ category }: { category: string }) {
   const cls = "w-full h-full text-white";
@@ -76,6 +99,9 @@ export default function AssetDetail() {
   // its key — the row used to show the bare `it` under a heading that
   // meant something else entirely.
   const fmDomainLabel = useEnumLabel("domain");
+  // And the lifecycle state, which printed its raw key (`in_repair`) two rows
+  // below a condition that was spelled properly. Published as `asset_state`.
+  const stateLabelOf = useEnumLabel("asset_state");
   const { data: asset, isLoading, error } = useQuery<Asset | null, CadraApiError>({
     queryKey: ["asset", id],
     queryFn: () => fetchAsset(id ?? ""),
@@ -86,14 +112,18 @@ export default function AssetDetail() {
   const [moveOpen, setMoveOpen] = useState(false);
   const [custodyOpen, setCustodyOpen] = useState(false);
   const [condemnOpen, setCondemnOpen] = useState(false);
-  // Verifying an asset or marking it missing is itself an event, so the
-  // history goes stale with the asset. The prefix matches both sort orders.
-  const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ["asset", id] });
-    qc.invalidateQueries({ queryKey: ["asset-history", id] });
-  };
-  const verifyMut = useMutation({ mutationFn: () => markAssetVerified(id ?? ""), onSuccess: invalidate });
-  const missingMut = useMutation({ mutationFn: () => markAssetMissing(id ?? ""), onSuccess: invalidate });
+  const [missingOpen, setMissingOpen] = useState(false);
+  // Verifying an asset is itself an event, so the history goes stale with the
+  // asset — and so do the register list and every count of unverified assets,
+  // which this did not refresh. One list, shared with the dialogs.
+  const verifyMut = useMutation({
+    mutationFn: () => markAssetVerified(id ?? ""),
+    onSuccess: () => invalidateAssetQueries(qc, id),
+  });
+  // Verify is a button, not a dialog, so it has nowhere of its own to say no.
+  // It said nothing: a refused verify (a 403, say) stopped the spinner and
+  // looked exactly like a success.
+  const verifyErr = verifyMut.error as CadraApiError | null;
 
   useEffect(() => {
     setTitle(asset ? asset.name : "Asset Detail");
@@ -125,7 +155,7 @@ export default function AssetDetail() {
     return (
       <div className="p-8 text-center">
         <p className="text-muted-foreground text-sm">Asset not found.</p>
-        <button className="mt-4 text-primary text-sm hover:underline" onClick={() => setNavLocation("/assets")}>
+        <button className="mt-4 text-primary text-sm hover:underline" onClick={() => setNavLocation("/assets/list")}>
           Back to Asset Register
         </button>
       </div>
@@ -134,7 +164,7 @@ export default function AssetDetail() {
 
   const isFleet = asset.category === "Fleet / Vehicles";
 
-  const currentStep = asset.status === "Cleared" ? 0 : 1;
+  const currentStep = workflowStep(asset);
 
   const iconBg =
     asset.category === "IT Equipment" ? "bg-blue-500" :
@@ -164,9 +194,10 @@ export default function AssetDetail() {
 
   return (
     <div className="max-w-4xl mx-auto px-5 py-5">
-      {/* Back */}
+      {/* Back — to the register LIST. `/assets` is the KPI dashboard, which is
+          not what the label says and not where the user came from. */}
       <button
-        onClick={() => setNavLocation("/assets")}
+        onClick={() => setNavLocation("/assets/list")}
         className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-4 transition-colors"
         data-testid="button-back"
       >
@@ -180,14 +211,21 @@ export default function AssetDetail() {
           {WORKFLOW_STEPS.map((step, i) => (
             <div key={step} className="flex items-center gap-2">
               {i > 0 && <ChevronRight size={12} className="text-muted-foreground" />}
-              <span className={cn(
-                "px-3 py-1 rounded-full text-xs font-semibold border",
-                i === currentStep
-                  ? "bg-primary text-white border-primary"
-                  : i < currentStep
-                  ? "bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800"
-                  : "text-muted-foreground border-border"
-              )}>
+              {/* Only the current step is drawn. Steps before it used to be
+                  painted green as "passed" — which put a green "Cleared" on
+                  every unverified asset, and, once "Disposed" became
+                  reachable, on every condemned one. Nothing records that an
+                  asset passed through a step, so nothing is drawn as passed. */}
+              <span
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs font-semibold border",
+                  i === currentStep
+                    ? "bg-primary text-white border-primary"
+                    : "text-muted-foreground border-border"
+                )}
+                data-testid={`workflow-step-${i}`}
+                data-current={i === currentStep ? "true" : "false"}
+              >
                 {step}
               </span>
             </div>
@@ -225,28 +263,42 @@ export default function AssetDetail() {
               {verifyMut.isPending ? <Loader2 size={12} className="animate-spin" /> : <ShieldCheck size={12} />}
               Mark verified
             </button>
+            {/* Disabled when it would do nothing. Offered on an asset that was
+                ALREADY missing, this opened a dialog, sent a PATCH, got a 200
+                and changed no row — a control reporting success while nothing
+                happened. One key compared at a time: see LifecyclePill. */}
             <button
-              onClick={() => {
-                if (confirm("Mark this asset as missing? This is reversible — you can move/verify it again later.")) {
-                  missingMut.mutate();
-                }
-              }}
-              disabled={missingMut.isPending}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-200/70 dark:border-amber-800/30 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 disabled:opacity-50"
+              onClick={() => setMissingOpen(true)}
+              disabled={asset.lifecycleState === "missing"}
+              title={asset.lifecycleState === "missing" ? "This asset is already marked missing" : undefined}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-200/70 dark:border-amber-800/30 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               data-testid="button-missing"
             >
-              {missingMut.isPending ? <Loader2 size={12} className="animate-spin" /> : <AlertTriangle size={12} />}
+              <AlertTriangle size={12} />
               Mark missing
             </button>
             <button
               onClick={() => setCondemnOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200/70 dark:border-red-800/30 text-xs font-medium text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+              disabled={asset.lifecycleState === "disposed"}
+              title={asset.lifecycleState === "disposed" ? "This asset has already been disposed of" : undefined}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200/70 dark:border-red-800/30 text-xs font-medium text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               data-testid="button-condemn"
             >
               <Trash2 size={12} /> Condemn
             </button>
           </div>
         </div>
+
+        {verifyErr && (
+          <div className="px-5 py-3 border-b border-border" data-testid="asset-action-error">
+            <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-xl p-3">
+              <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+              <p className="text-[12px] text-red-700 dark:text-red-400">
+                <span className="font-semibold">{verifyErr.code}:</span> {verifyErr.message}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Hero */}
         <div className="p-5 flex gap-5">
@@ -259,11 +311,15 @@ export default function AssetDetail() {
               {asset.assetTag && <span>{asset.assetTag} · </span>}
               {asset.legacyCode}
             </p>
-            <div className="flex flex-wrap gap-2 mt-3">
+            <div className="flex flex-wrap gap-2 mt-3" data-testid="asset-hero-badges">
               <span className="px-2 py-0.5 rounded-full bg-accent text-accent-foreground text-xs font-medium border border-border">{asset.category}</span>
-              <span className="px-2 py-0.5 rounded-full bg-accent text-accent-foreground text-xs font-medium border border-border">{asset.subcategory}</span>
+              {/* Only when there is one: this chip used to render EMPTY — a
+                  grey blob between the category and the condition. */}
+              {asset.subcategory && (
+                <span className="px-2 py-0.5 rounded-full bg-accent text-accent-foreground text-xs font-medium border border-border">{asset.subcategory}</span>
+              )}
               <ConditionBadge condition={asset.condition} />
-              <StatusPill status={asset.status} showDot />
+              <AssetStatusPills status={asset.status} lifecycleState={asset.lifecycleState} showDot />
             </div>
           </div>
         </div>
@@ -297,7 +353,7 @@ export default function AssetDetail() {
                   <DetailRow label="Subcategory" value={asset.subcategory} />
                   <DetailRow label="Asset Type" value={asset.assetType} />
                   <DetailRow label="Condition" value={conditionLabelOf(asset.condition)} />
-                  <DetailRow label="Lifecycle State" value={asset.lifecycleState} />
+                  <DetailRow label="Lifecycle State" value={asset.lifecycleState ? stateLabelOf(asset.lifecycleState) : undefined} />
                   <DetailRow label="Verified" value={asset.isVerified == null ? null : asset.isVerified ? "Yes" : "No"} />
                 </dl>
               </section>
@@ -469,8 +525,10 @@ export default function AssetDetail() {
           content: (
             <div className="space-y-4">
               <div className="bg-card border border-card-border rounded-xl p-5">
-                <p className="text-xs font-medium text-muted-foreground mb-3">Approval Status</p>
-                <StatusPill status={asset.status} showDot />
+                {/* Was "Approval Status". There is no approval record anywhere
+                    in this system, so the heading claimed one. */}
+                <p className="text-xs font-medium text-muted-foreground mb-3">Status</p>
+                <AssetStatusPills status={asset.status} lifecycleState={asset.lifecycleState} showDot />
 
                 {asset.reviewFlags.length > 0 && (
                   <div className="mt-4 space-y-2">
@@ -481,13 +539,6 @@ export default function AssetDetail() {
                         <p className="text-xs text-amber-800 dark:text-amber-300">{flag}</p>
                       </div>
                     ))}
-                  </div>
-                )}
-
-                {asset.status === "Review — possible duplicate" && (
-                  <div className="mt-4 p-3 bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800/30 rounded-lg">
-                    <p className="text-xs text-purple-800 dark:text-purple-300 font-semibold">Possible Duplicate Detected</p>
-                    <p className="text-[10px] text-purple-600 dark:text-purple-400 mt-1">Review the flagged duplicate entry in the asset register before approving.</p>
                   </div>
                 )}
               </div>
@@ -518,6 +569,7 @@ export default function AssetDetail() {
       <AssetMoveDialog        assetId={asset.id} open={moveOpen}    onOpenChange={setMoveOpen} />
       <CustodyTransferDialog  assetId={asset.id} open={custodyOpen} onOpenChange={setCustodyOpen} />
       <CondemnAssetDialog     assetId={asset.id} open={condemnOpen} onOpenChange={setCondemnOpen} />
+      <MarkMissingDialog      assetId={asset.id} open={missingOpen} onOpenChange={setMissingOpen} />
     </div>
   );
 }

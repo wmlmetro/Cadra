@@ -12,6 +12,9 @@ import {
 // server publishes it; read it rather than keeping a third copy.
 import { useEnum } from "@/hooks/useEnums";
 import { CadraApiError } from "@/lib/api";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import BrandPill from "@/components/BrandPill";
 import {
   AlertCircle, Clock, Check, Loader2, Plus, Trash2, X, Info,
@@ -161,11 +164,29 @@ export default function AssetCategoriesPage() {
 
   const remove = useMutation({
     mutationFn: (id: number) => deleteAssetCategory(id),
-    onSuccess: (d) => { setNote(`Deleted ${d.name}.`); refresh(); },
+    onSuccess: (d) => { setNote(`Deleted ${d.name}.`); refresh(); setDeleteOpen(false); },
     onSettled: () => setDeletingId(null),
   });
+  const removeErr = remove.error as CadraApiError | null;
 
-  const err = (categories.error ?? save.error ?? create.error ?? remove.error) as CadraApiError | null;
+  // Deleting a category asked through `window.confirm` — the browser's own
+  // dialog, which could show neither the pending state nor the server's
+  // refusal. (The server refuses a category that holds assets. From THIS page
+  // that is rare — the delete button is disabled whenever the count shown is
+  // above zero — so the refusal is reached only when that count is stale; it
+  // is drawn in the dialog when it happens.) `deleteTarget` outlives `deleteOpen` on purpose: the dialog fades
+  // out after it closes, and clearing the name first blanks it mid-fade.
+  const [deleteTarget, setDeleteTarget] = useState<AssetCategoryConfig | null>(null);
+  const [deleteOpen, setDeleteOpenRaw] = useState(false);
+  const setDeleteOpen = (next: boolean) => {
+    // The refusal belongs to the attempt, not to the next category opened.
+    if (!next) remove.reset();
+    setDeleteOpenRaw(next);
+  };
+
+  // `remove.error` is shown inside the delete dialog, where the attempt was
+  // made, and not a second time on the page behind it.
+  const err = (categories.error ?? save.error ?? create.error) as CadraApiError | null;
   const busy = create.isPending || save.isPending || remove.isPending;
 
   const totals = useMemo(() => {
@@ -294,11 +315,7 @@ export default function AssetCategoriesPage() {
                 saving={savingId === c.id}
                 deleting={deletingId === c.id}
                 onSave={(id, body) => { setSavingId(id); save.mutate({ id, body }); }}
-                onDelete={(cat) => {
-                  if (!window.confirm(`Delete "${cat.name}"? This cannot be undone.`)) return;
-                  setDeletingId(cat.id);
-                  remove.mutate(cat.id);
-                }}
+                onDelete={(cat) => { setDeleteTarget(cat); setDeleteOpen(true); }}
               />
             ))}
           </tbody>
@@ -307,6 +324,56 @@ export default function AssetCategoriesPage() {
           A category holding assets cannot be deleted — reassign them first.
         </p>
       </section>
+
+      <Dialog open={deleteOpen} onOpenChange={(next) => { if (!next && remove.isPending) return; setDeleteOpen(next); }}>
+        <DialogContent className="sm:max-w-md" data-testid="dialog-delete-category">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
+              <Trash2 size={16} /> Delete category
+            </DialogTitle>
+            <DialogDescription>
+              Delete <span className="font-semibold text-foreground">"{deleteTarget?.name}"</span>? This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          {removeErr && (
+            <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-xl p-3">
+              <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+              <p className="text-[12px] text-red-700 dark:text-red-400">
+                <span className="font-semibold">{removeErr.code}:</span> {removeErr.message}
+              </p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setDeleteOpen(false)}
+              className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={!deleteTarget || remove.isPending}
+              onClick={() => {
+                if (!deleteTarget) return;
+                setDeletingId(deleteTarget.id);
+                remove.mutate(deleteTarget.id);
+              }}
+              data-testid="button-confirm-delete-category"
+              className={cn(
+                "px-3 py-1.5 text-xs font-semibold rounded-xl",
+                deleteTarget && !remove.isPending
+                  ? "bg-red-600 text-white hover:bg-red-700"
+                  : "bg-muted text-muted-foreground cursor-not-allowed",
+              )}
+            >
+              {remove.isPending ? <Loader2 size={12} className="animate-spin" /> : "Delete category"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -14,21 +14,25 @@ const statusConfig: Record<ApprovalStatus, Config> = {
     text: "text-amber-700 dark:text-amber-400",
     dot: "bg-amber-500",
   },
-  "Review — allottee not in nominal roll": {
-    bg: "bg-orange-50 dark:bg-orange-950/30 border-orange-200/70 dark:border-orange-800/30",
-    text: "text-orange-700 dark:text-orange-400",
-    dot: "bg-orange-500",
+  // Not a verdict — the absence of one. Muted on purpose: an asset that is
+  // missing or disposed has no data-quality status, and a colour here would
+  // claim one. `AssetStatusPills` draws the lifecycle pill instead wherever
+  // the state is known; this is what is left when it is not.
+  "Not in service": {
+    bg: "bg-muted border-border",
+    text: "text-muted-foreground",
+    dot: "bg-muted-foreground/50",
   },
-  "Review — VIN not verifiable": {
-    bg: "bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200/70 dark:border-yellow-800/30",
-    text: "text-yellow-700 dark:text-yellow-400",
-    dot: "bg-yellow-500",
-  },
-  "Review — possible duplicate": {
-    bg: "bg-purple-50 dark:bg-purple-950/30 border-purple-200/70 dark:border-purple-800/30",
-    text: "text-purple-700 dark:text-purple-400",
-    dot: "bg-purple-500",
-  },
+};
+
+/** A status this build has never seen still renders. The lookup was an
+ *  unguarded index, so one unmapped value — a persisted query cache written by
+ *  an older build is enough — read `undefined` and threw on `cfg.bg`: a white
+ *  screen on the register. `ConditionBadge` already falls back this way. */
+const UNKNOWN_STATUS: Config = {
+  bg: "bg-muted border-border",
+  text: "text-muted-foreground",
+  dot: "bg-muted-foreground/50",
 };
 
 interface StatusPillProps {
@@ -38,7 +42,7 @@ interface StatusPillProps {
 }
 
 export default function StatusPill({ status, showDot = false, className }: StatusPillProps) {
-  const cfg = statusConfig[status];
+  const cfg = statusConfig[status] ?? UNKNOWN_STATUS;
   return (
     <span
       className={cn(

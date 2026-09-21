@@ -191,8 +191,15 @@ function bucketCategory(name: string | null | undefined): Asset["category"] {
 // Backend `state` is lifecycle; frontend `status` is data-quality review queue.
 // Active+verified = Cleared; active+unverified is the only "review" we can
 // derive from current API data.
+//
+// Anything that is NOT active has no data-quality verdict and says so. This
+// used to fall through to "Cleared" for every state but one, so "Mark missing"
+// and "Condemn" both moved the row off `active` and the screen answered with a
+// green "Cleared" pill. The lifecycle itself is carried raw on
+// `lifecycleState` and drawn by `LifecyclePill`.
 function deriveStatus(a: ApiAsset): ApprovalStatus {
-  if (a.state === "active" && !a.is_verified) return "Review — data quality";
+  if (a.state !== "active") return "Not in service";
+  if (!a.is_verified) return "Review — data quality";
   return "Cleared";
 }
 
@@ -356,7 +363,11 @@ export function apiAssetToAsset(a: ApiAsset & ApiAssetExtras): Asset {
     department: a.department ?? "",
     location: buildAssetLocation(a),
     status: deriveStatus(a),
-    reviewFlags: a.is_verified ? [] : ["Not yet verified"],
+    // A review flag is part of the data-quality verdict, so it follows the
+    // same rule as `status`: only an asset in service has one. A missing asset
+    // flagged "Not yet verified" is an instruction to go and verify something
+    // nobody can find.
+    reviewFlags: a.state === "active" && !a.is_verified ? ["Not yet verified"] : [],
     parentAssetId:   a.parent_asset?.id ?? undefined,
     parentAssetName: a.parent_asset?.name,
     childCount: a.child_count || undefined,

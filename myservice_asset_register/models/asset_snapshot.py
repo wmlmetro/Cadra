@@ -104,6 +104,26 @@ def snapshot_cutoff(as_of):
     return end_of_day_local - timedelta(hours=SNAPSHOT_TZ_UTC_OFFSET_HOURS)
 
 
+def snapshot_today():
+    """The current date IN LAGOS — the day `as_of` is measured against.
+
+    The cutoff above is a Lagos day. Until handoff 29 the route refused a
+    future `as_of` by comparing it with `fields.Date.today()`, which is the
+    SERVER's date — UTC, because the container is — so for one hour every
+    night, 00:00 to 01:00 in Lagos, somebody
+    asking for TODAY's register was told the date *"has not happened"*. The
+    same fixed offset, for the reason given above; one definition of the day,
+    used on both sides of the question.
+
+    Invisible to CI, which runs in UTC and whose tests ask for the UTC date.
+    It was found by running the suite at 00:50 in Lagos.
+    """
+    # `fields.Datetime.now()`, the codebase's idiom for naive UTC — not
+    # `datetime.utcnow()`, which is deprecated on the image's Python.
+    return (fields.Datetime.now()
+            + timedelta(hours=SNAPSHOT_TZ_UTC_OFFSET_HOURS)).date()
+
+
 # ── The three classes of field ───────────────────────────────────────────
 #
 # ROLLED BACK — every field on `nrs.asset` that carries tracking, and no

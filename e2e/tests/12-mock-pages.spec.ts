@@ -56,16 +56,19 @@ test("Identity (clearance) renders (mock)", async ({ page }) => {
   await annotateMock(page, "Identity");
 });
 
-test("Topbar notifications bell + avatar are inert (documented)", async ({ page }) => {
+test("the top bar offers no dead controls, and names who is signed in", async ({ page }) => {
+  // This test used to ASSERT the dead bell: it clicked a button with no
+  // handler and a permanent unread dot, confirmed nothing crashed, and
+  // annotated it "inert by design". A test blessing a control that does
+  // nothing. Handoff 29 removed the bell — there are no notifications in this
+  // app — and replaced the hard-coded "Admin User / Administrator" with the
+  // session's own user, which matters since Verify records that person.
   await gotoApp(page, "/");
   await expectShell(page);
-  const bell = page.getByRole("button", { name: /notifications/i });
-  await expect(bell).toBeVisible();
-  // Clicking should not crash (no handler by design).
-  await bell.click();
-  test.info().annotations.push({
-    type: "known-stub",
-    description: "Topbar notifications bell + avatar have no handlers — inert by design.",
-  });
-  await expectShell(page);
+  await expect(page.getByRole("button", { name: "Notifications", exact: true })).toHaveCount(0);
+  const who = page.getByTestId("topbar-user");
+  await expect(who).toBeVisible();
+  await expect(who).not.toContainText("Admin User");
+  // Whoever global-setup signed in as. The name comes from /auth/whoami.
+  await expect(who).toContainText(/\S/, { timeout: 10_000 });
 });
