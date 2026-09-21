@@ -400,3 +400,69 @@ def test_a_refused_move_leaves_nothing_behind(client, test_location, any_locatio
     assert _real_moves(history) == []
     assert not [e for e in history["events"]
                 if e["type"] == "transfer_recorded"]
+
+
+def test_an_asset_with_no_location_can_be_placed(client, any_location, capture):
+    """POST /assets/<id>/move on an asset that is nowhere — reported by the owner.
+
+    It answered 400 *"Required field missing: from_location_id"*: the route
+    built an `nrs.asset.transfer` regardless, and that model requires both
+    locations. 358 assets on `nrs19` and 1,920 on `jaizbankplc` had no
+    location, so none of them could be given one with the Move button. A
+    move is not always a transfer: the asset is PLACED, the append-only
+    movement records it, and no document is made for a journey from nowhere.
+    """
+    r = client.post("/api/v1/assets", json={
+        "name": "pytest-history-unplaced", "category_id": 1})
+    asset = assert_envelope_ok(r, expected_status=201)["data"]
+    assert asset["current_location"] is None
+
+    r = client.post(f"/api/v1/assets/{asset['id']}/move",
+                    json={"to_location_id": any_location,
+                          "reason": "test_asset_history.placed"})
+    capture("assets/move_unplaced", r)
+    data = assert_envelope_ok(r)["data"]
+    assert data["asset"]["current_location"]["id"] == any_location
+    assert data["transfer"] is None, "no document for a journey from nowhere"
+    assert data["movement_id"], "the fact is recorded either way"
+
+    after = assert_envelope_ok(client.get(
+        f"/api/v1/assets/{asset['id']}", params={"include": "transfers"}))["data"]
+    assert after["transfers"] == []
+
+    _, history = _history(client, asset["id"])
+    placed = [e for e in history["events"] if e["type"] == "location_moved"]
+    assert len(placed) == 1
+    assert placed[0]["record"] == {"model": "nrs.asset.movement",
+                                   "id": data["movement_id"]}
+    assert placed[0]["evidence"] == "append_only"
+    assert placed[0]["summary"].startswith("Placed at")
+    assert placed[0]["detail"]["reason"] == "test_asset_history.placed"
+    assert placed[0]["detail"]["transfer"] is None
+    # A LATER request, so this is something that happened to the asset and
+    # not part of its registration.
+    assert history["summary"]["events_after_registration"] == 1
+
+
+def test_a_placed_asset_then_moves_with_a_transfer_as_before(
+        client, test_location, any_location):
+    """The ordinary case is untouched, and `movement_id` is in both places."""
+    if any_location == test_location["id"]:
+        pytest.skip("tenant has no second location to move to")
+    asset = _new_asset(client, test_location, "pytest-history-move-both-keys")
+    r = client.post(f"/api/v1/assets/{asset['id']}/move",
+                    json={"to_location_id": any_location})
+    data = assert_envelope_ok(r)["data"]
+    assert data["transfer"]["reference"]
+    assert data["movement_id"] == data["transfer"]["movement_id"]
+
+
+def test_placing_an_unplaced_asset_nowhere_real_is_still_refused(client):
+    r = client.post("/api/v1/assets", json={
+        "name": "pytest-history-unplaced-refused", "category_id": 1})
+    asset = assert_envelope_ok(r, expected_status=201)["data"]
+    r = client.post(f"/api/v1/assets/{asset['id']}/move",
+                    json={"to_location_id": 999999999})
+    assert_envelope_err(r, 404, "not_found")
+    _, history = _history(client, asset["id"])
+    assert not [e for e in history["events"] if e["type"] == "location_moved"]

@@ -85,7 +85,12 @@ interface MoveProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function AssetMoveDialog({ assetId, open, onOpenChange }: MoveProps) {
+/** `placed` is whether the asset HAS a location now. An asset with none is
+ *  PLACED rather than moved: the server creates no transfer document for a
+ *  journey from nowhere (a transfer needs both ends), and the dialog must not
+ *  promise one. Until this was handled, moving such an asset failed outright
+ *  with "Required field missing: from_location_id". */
+export function AssetMoveDialog({ assetId, open, onOpenChange, placed = true }: MoveProps & { placed?: boolean }) {
   const qc = useQueryClient();
   const [target, setTarget] = useState<{ id: number; label: string } | null>(null);
   const [reason, setReason] = useState("");
@@ -124,7 +129,7 @@ export function AssetMoveDialog({ assetId, open, onOpenChange }: MoveProps) {
     <Dialog open={open} onOpenChange={(next) => setOpen(next)}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><MapPin size={16} /> Move asset</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><MapPin size={16} /> {placed ? "Move asset" : "Place asset"}</DialogTitle>
           <DialogDescription>
             {/* Three versions, and the history of them is the point. It said
                 "creates an immutable transfer record" until handoff 27 — false:
@@ -133,7 +138,9 @@ export function AssetMoveDialog({ assetId, open, onOpenChange }: MoveProps) {
                 MOVE is now appended to the asset's movement record, which
                 nobody can alter, and the transfer is the paperwork beside it.
                 Two records of different worth, and the dialog names both. */}
-            Updates the current location. The move is added to the asset's movement record, which cannot be edited or deleted afterwards. A transfer document is also created; that one can be edited later by an asset manager.
+            {placed
+              ? "Updates the current location. The move is added to the asset's movement record, which cannot be edited or deleted afterwards. A transfer document is also created; that one can be edited later by an asset manager."
+              : "This asset has no location yet. Placing it is added to its movement record, which cannot be edited or deleted afterwards. No transfer document is created — there is nowhere it is being transferred from."}
           </DialogDescription>
         </DialogHeader>
 
@@ -189,7 +196,7 @@ export function AssetMoveDialog({ assetId, open, onOpenChange }: MoveProps) {
                 : "bg-muted text-muted-foreground cursor-not-allowed",
             )}
           >
-            {mutation.isPending ? <Loader2 size={12} className="animate-spin" /> : "Move asset"}
+            {mutation.isPending ? <Loader2 size={12} className="animate-spin" /> : placed ? "Move asset" : "Place asset"}
           </button>
         </DialogFooter>
       </DialogContent>
