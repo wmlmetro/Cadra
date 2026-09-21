@@ -4,6 +4,7 @@ from . import api_refresh_token
 from . import registry_diagnostics
 from . import asset_custody
 from . import asset_movement
+from . import asset_event
 from . import asset_history
 from . import test_fixture
 from . import access_change

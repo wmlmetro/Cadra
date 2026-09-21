@@ -55,6 +55,21 @@ them carrying custody rows the database would have refused to release. Under
 That is exactly why rule 4 exists: a script that predicts a deletion it has
 never attempted is an instrument reporting on itself.
 
+**The same holds for the two append-only records that came after custody,
+and each is refused BY NAME.** `nrs.asset.movement` (handoff 28 — where an
+asset has been) and `nrs.asset.event` (handoff 30 — every verification, every
+change of status, every change to `grn_reference`,
+`purchase_order_reference` or `sap_asset_number`) both hold their asset with
+`ondelete='restrict'` and both refuse `unlink()` unconditionally. They pin
+different assets: a movement row is written at CREATE, so every asset created
+at a location carries one from birth; an event is a CHANGE, so an asset's
+opening values write none and it is pinned only once something has happened
+to it. A fixture the suite verified, or whose status or GRN reference it
+changed, is therefore permanent, by design — and the HTTP suite does verify
+its fixtures (`tests/test_asset_history.py`) and does correct a
+`grn_reference` by PATCH (`tests/test_assets.py`). A fixture CREATED already
+`disposed` is not pinned by this: that is an opening value, not a change.
+
 **An asset with an approved disposal is never removed**, even when its name
 says `pytest-`. Disposal approval is not reversible by any action in this
 system, and deleting the record is not a reversal — it is the same
@@ -70,8 +85,8 @@ recording that it happened. Report 24 measured 354 of 420 entries in the
 PUBLIC homepage location dropdown as fixtures, so a member of the public
 choosing one off that dropdown is not hypothetical.
 
-**Custody rows are never removed on their own.** Append-only means
-append-only, and the model enforces it.
+**Custody, movement and event rows are never removed on their own.**
+Append-only means append-only, and each of the three models enforces it.
 """
 import os
 
@@ -189,6 +204,20 @@ Custody = env["nrs.asset.custody"].sudo()            # noqa: F821
 # missing table. Upgrade every tenant first; see CLAUDE.md.
 Movement = (env["nrs.asset.movement"].sudo()         # noqa: F821
             if "nrs.asset.movement" in env else None)  # noqa: F821
+# `nrs.asset.event` (handoff 30) is the THIRD pin, and the same two facts
+# hold: `asset_id` is `ondelete='restrict'` and the model refuses `unlink()`.
+# What differs is WHICH assets it pins. An event is a change, so creating an
+# asset writes none — a fixture is pinned by this only once it has been
+# verified, has changed `state`, or has had `grn_reference`,
+# `purchase_order_reference` or `sap_asset_number` changed. It overlaps the
+# two above, and the elif chain below reports each asset under the FIRST rule
+# that holds it — so the event count printed is of assets held by events and
+# by nothing earlier in the chain, NOT of every asset carrying an event. Same
+# guard, same limit as movement: it covers a deployment without the module,
+# not a database that has not been UPGRADED, where the model is `in env` and
+# the first query fails on a missing `nrs_asset_event` table.
+Event = (env["nrs.asset.event"].sudo()               # noqa: F821
+         if "nrs.asset.event" in env else None)      # noqa: F821
 Location = env["generic.location"].sudo()            # noqa: F821
 Request = env["request.request"].sudo()              # noqa: F821
 
@@ -203,6 +232,8 @@ for asset in fixtures:
     links = Custody.search_count([("asset_id", "=", asset.id)])
     moves = (Movement.search_count([("asset_id", "=", asset.id)])
              if Movement is not None else 0)
+    events = (Event.search_count([("asset_id", "=", asset.id)])
+              if Event is not None else 0)
     requests = Request.search_count([("nrs_asset_id", "=", asset.id)])
     if asset.disposal_approved_by:
         refused.append((asset, "carries an APPROVED disposal — not reversible; "
@@ -217,6 +248,12 @@ for asset in fixtures:
                                "ondelete=restrict and the record of where an "
                                "asset has been is append-only, so the asset "
                                "cannot be released" % moves))
+    elif events:
+        refused.append((asset, "carries %d event record(s); `asset_id` is "
+                               "ondelete=restrict and the record of what has "
+                               "happened to an asset (verified, status "
+                               "changed, reference changed) is append-only, "
+                               "so the asset cannot be released" % events))
     elif requests:
         refused.append((asset, "%d service request(s) point at it; the field "
                                "is `set null`, so removing it would silently "
@@ -292,10 +329,24 @@ print()
 # ── what is left behind, said out loud ───────────────────────────────
 
 test_links = Custody.search_count([("source", "=", "test")])
+# The other two append-only records carry the same `source: test` label and
+# are left for the same reason. This block named custody alone until handoff
+# 30, which made "will never remove them" true of three things while listing
+# one. A model that is not installed prints as such rather than as a zero.
+test_moves = (Movement.search_count([("source", "=", "test")])
+              if Movement is not None else None)
+test_events = (Event.search_count([("source", "=", "test")])
+               if Event is not None else None)
 all_requests = Request.search_count([])
 print("LEFT IN PLACE, and this script will never remove them:")
 print("  chain-of-custody rows `source: test` : %d  (append-only; the model "
       "refuses unlink outright)" % test_links)
+print("  movement records `source: test`      : %s  (append-only, likewise)"
+      % ("%d" % test_moves if test_moves is not None
+         else "n/a — `nrs.asset.movement` is not installed here"))
+print("  event records `source: test`         : %s  (append-only, likewise)"
+      % ("%d" % test_events if test_events is not None
+         else "n/a — `nrs.asset.event` is not installed here"))
 print("  service requests                     : %d in total, of which the "
       "fixtures CANNOT BE IDENTIFIED" % all_requests)
 print("      `request.request.name` is a sequence (`REQ-000692`), not a name "

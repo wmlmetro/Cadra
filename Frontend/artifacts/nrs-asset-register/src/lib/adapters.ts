@@ -176,6 +176,22 @@ export interface ApiAsset {
   state: string;
   is_verified: boolean;
   notes: string | null;
+  // The SAP half of the dual-code pair, read-only. Mirrors `_serialize_sap`
+  // in myservice_api/controllers/v1_assets.py, which `serialize_asset` emits
+  // on every asset — list rows included. Optional here all the same: a mock
+  // row and an older server send none, and absent must not read as a finding.
+  //
+  // Only the keys this app reads are spelled out. `reconciliation_state` is
+  // `not_tagged` | `pending` | `reconciled` | `exception` and is typed
+  // `string` for the reason `condition` above is.
+  sap?: {
+    asset_number: string | null;
+    code_source: string | null;
+    posting_state: string | null;
+    reconciliation_state: string | null;
+    synced_at: string | null;
+    [key: string]: unknown;
+  } | null;
 }
 
 // The frontend's category enum has 3 buckets; the API has many real
@@ -188,19 +204,62 @@ function bucketCategory(name: string | null | undefined): Asset["category"] {
   return "Furniture & Fittings";
 }
 
-// Backend `state` is lifecycle; frontend `status` is data-quality review queue.
-// Active+verified = Cleared; active+unverified is the only "review" we can
-// derive from current API data.
+// Backend `state` is lifecycle; frontend `status` is the review verdict.
 //
-// Anything that is NOT active has no data-quality verdict and says so. This
-// used to fall through to "Cleared" for every state but one, so "Mark missing"
-// and "Condemn" both moved the row off `active` and the screen answered with a
-// green "Cleared" pill. The lifecycle itself is carried raw on
-// `lifecycleState` and drawn by `LifecyclePill`.
+// 1. LIFECYCLE FIRST. Anything that is NOT active has no verdict and says so.
+//    This used to fall through to "Cleared" for every state but one, so "Mark
+//    missing" and "Condemn" both moved the row off `active` and the screen
+//    answered with a green "Cleared" pill. The lifecycle itself is carried
+//    raw on `lifecycleState` and drawn by `LifecyclePill`. A disposed asset
+//    can be an SAP exception too; it is still "Not in service", because a
+//    review status on an asset that has left the estate is a job for nobody.
+//
+// 2. THEN THE SAP EXCEPTION, ahead of "Review — data quality". An active
+//    asset can be both — tagged with no SAP code AND never verified — and it
+//    gets one status. The exception wins, for three reasons:
+//      - It is the rarer and the costlier fact. "Not yet verified" is a to-do
+//        that somebody clears by walking to the asset; an exception is a
+//        physical, tagged asset finance has not booked, and no visit clears
+//        it. Ranked second it would all but never be seen: report 29
+//        counted 1,084 of `test19`'s 1,105 active assets as unverified, so
+//        nearly every exception there would have read "data quality" instead.
+//      - It is the only order in which the register's Status filter is exact.
+//        The server filters `sap_reconciliation_state=exception` natively, so
+//        with the exception first every row that filter returns wears the
+//        pill it was filtered for. The other way round, the filter would
+//        return rows whose pill said "data quality" — the table and its own
+//        filter disagreeing about the same rows, which is the defect the
+//        Condition filter had (see `condition` in `apiAssetToAsset`).
+//      - Nothing is lost by it: `reviewFlags` carries BOTH facts, and the
+//        detail page prints both.
+//
+// 3. Active, not an exception: verified is "Cleared", unverified is in the
+//    data-quality queue. So "Cleared" now also means "and finance has not
+//    been left behind" — an asset with an open audit finding is not cleared.
+const isSapException = (a: ApiAsset) => a.sap?.reconciliation_state === "exception";
+
 function deriveStatus(a: ApiAsset): ApprovalStatus {
   if (a.state !== "active") return "Not in service";
+  if (isSapException(a)) return "Review — no SAP code";
   if (!a.is_verified) return "Review — data quality";
   return "Cleared";
+}
+
+// Every review finding that is true of the asset, not only the one its status
+// names. A flag is part of the verdict, so it follows the same rule as
+// `status`: only an asset in service has any. A missing asset flagged "Not yet
+// verified" is an instruction to go and verify something nobody can find.
+function deriveReviewFlags(a: ApiAsset): string[] {
+  if (a.state !== "active") return [];
+  const flags: string[] = [];
+  if (isSapException(a)) {
+    flags.push(
+      "Tagged, but finance has no SAP asset number for it and no posting to SAP is in progress. "
+      + "This is an audit finding: it is cleared when finance books the asset, not by verifying it.",
+    );
+  }
+  if (!a.is_verified) flags.push("Not yet verified");
+  return flags;
 }
 
 function buildAssetLocation(a: ApiAsset): AssetLocation {
@@ -214,8 +273,12 @@ function buildAssetLocation(a: ApiAsset): AssetLocation {
     ?? [lh.building?.name, lh.floor?.name, lh.room?.name]
       .filter(Boolean).join(" / ");
   // Prefer the most specific location id available (room > floor > building >
-  // current_location). The asset detail page uses this for the clickable link;
-  // the FK pickers in the edit form still consume them individually.
+  // current_location). The asset detail page uses this for the clickable link.
+  // The three hierarchy ids below are carried for reading only, and nothing
+  // reads them today: this said the edit form's pickers consumed them, but
+  // the form has no such pickers — it hydrated the three from the raw payload
+  // and echoed them back unseen, until they left `_WRITABLE_FIELDS` (handoff
+  // 30) and the echo was removed. They are not writable over the API.
   const locationId =
     lh.room?.id
     ?? lh.floor?.id
@@ -363,11 +426,9 @@ export function apiAssetToAsset(a: ApiAsset & ApiAssetExtras): Asset {
     department: a.department ?? "",
     location: buildAssetLocation(a),
     status: deriveStatus(a),
-    // A review flag is part of the data-quality verdict, so it follows the
-    // same rule as `status`: only an asset in service has one. A missing asset
-    // flagged "Not yet verified" is an instruction to go and verify something
-    // nobody can find.
-    reviewFlags: a.state === "active" && !a.is_verified ? ["Not yet verified"] : [],
+    reviewFlags: deriveReviewFlags(a),
+    sapReconciliationState: str(a.sap?.reconciliation_state),
+    sapAssetNumber: str(a.sap?.asset_number),
     parentAssetId:   a.parent_asset?.id ?? undefined,
     parentAssetName: a.parent_asset?.name,
     childCount: a.child_count || undefined,
@@ -452,6 +513,12 @@ export interface ApiAssetHistoryEvent {
       reason?: string | null;
       state?: string | null;
     } | null;
+    // `maintenance_request` only. The reference goes to a caller who may also
+    // read service requests; for anybody else it is null AND
+    // `reference_withheld` is true — said, so that a null reads as WITHHELD
+    // and not as a request that has no reference.
+    reference?: string | null;
+    reference_withheld?: boolean;
     [key: string]: unknown;
   };
 }
@@ -488,6 +555,10 @@ export interface ApiAssetHistory {
       located_before_first_movement: boolean;
       statement: string;
     };
+    // Handoff 30. One entry per kind of event that now has an append-only
+    // record (`nrs.asset.event`): from when, on this database, and in words.
+    // Optional: a server that predates that record does not send it.
+    events?: { event: string; recording_began_at: string | null; statement: string }[];
     evidence_grades: { grade: string; meaning: string }[];
     not_recorded: { event: string; statement: string }[];
     verification: string;
@@ -500,7 +571,13 @@ export function apiAssetHistoryEventToEvent(e: ApiAssetHistoryEvent): AssetHisto
   return {
     id: e.id,
     type: e.type,
-    title: e.title || e.type,
+    // A row is never blank. The event types are the server's and the set is
+    // open (`verification_date_set` arrived in handoff 30 and this build had
+    // never heard of it): the server sends a `title` for that reason, the raw
+    // type is the fallback, and the last word is for a payload carrying
+    // neither — an unnamed row still says that SOMETHING was recorded, which
+    // an empty line in an audit history does not.
+    title: e.title || e.type || "Recorded event",
     summary: e.summary ?? "",
     at: e.at,
     atIsDayOnly: e.at_precision === "day",
@@ -511,10 +588,15 @@ export function apiAssetHistoryEventToEvent(e: ApiAssetHistoryEvent): AssetHisto
     evidence: e.evidence,
     reconstructed: !!e.reconstructed,
     source: e.source ?? undefined,
-    // A custody link carries its reason on the event; a move carries it on
-    // the transfer paperwork it was joined to.
+    // A custody link and a change of status carry their reason on the event;
+    // a move carries it on the transfer paperwork it was joined to.
     reason: detail.reason ?? detail.transfer?.reason ?? undefined,
     transferReference: detail.transfer?.reference ?? undefined,
+    // Only ever read off a `maintenance_request`: `detail.reference` is a
+    // loose enough key that another event type may one day use it for
+    // something that is not a request.
+    requestReference: e.type === "maintenance_request" ? (detail.reference ?? undefined) : undefined,
+    requestReferenceWithheld: e.type === "maintenance_request" && detail.reference_withheld === true,
     changes: detail.changes?.length
       ? detail.changes.map(c => ({ label: c.label, old: c.old, new: c.new }))
       : undefined,
@@ -545,6 +627,9 @@ export function apiAssetHistoryToAssetHistory(h: ApiAssetHistory): AssetHistory 
       statement: loc.statement,
       locatedBeforeFirstMovement: !!loc.located_before_first_movement,
     } : undefined,
+    eventRecording: (h.fidelity.events ?? [])
+      .filter(f => !!f.statement)
+      .map(f => ({ event: f.event, statement: f.statement })),
     evidenceGrades,
     evidenceMeanings: Object.fromEntries(evidenceGrades.map(g => [g.grade, g.meaning])),
     notRecorded: h.fidelity.not_recorded ?? [],

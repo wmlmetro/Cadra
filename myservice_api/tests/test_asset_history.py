@@ -23,6 +23,8 @@ Run with:
     odoo -d <db> -u myservice_api --test-enable \\
          --test-tags /myservice_api --stop-after-init
 """
+import uuid
+
 from odoo.tests import tagged
 from odoo.tests.common import freeze_time
 from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
@@ -258,6 +260,7 @@ class TestAssetHistoryDoesNotOverclaim(AssetHistoryCase):
                  history["fidelity"]["custody"]["statement"],
                  history["fidelity"]["verification"]]
         shown += [n["statement"] for n in history["fidelity"]["not_recorded"]]
+        shown += [k["statement"] for k in history["fidelity"]["events"]]
         shown += [g["meaning"] for g in history["fidelity"]["evidence_grades"]]
         for text in shown:
             self.assertNotIn("`", text)
@@ -300,93 +303,151 @@ class TestAssetHistoryDoesNotOverclaim(AssetHistoryCase):
         self.assertEqual(rewrite["evidence"], "chatter")
 
     def test_a_message_with_no_author_names_nobody(self):
-        """Not its `create_uid`, which every message has."""
+        """Not its `create_uid`, which every message has.
+
+        A change of CONDITION, because this is about a message-log line and
+        since handoff 30 a change of status is not one: its event's record
+        is an `nrs.asset.event`, whose id this test would have written into
+        `mail_message` as though it were a message's.
+        """
         asset = self._asset()
-        asset.write({"state": "in_repair"})
+        asset.write({"condition": "poor"})
         self._flush_tracking()
         event = next(e for e in asset.asset_history()["events"]
-                     if e["type"] == "status_changed")
+                     if e["type"] == "condition_changed")
+        self.assertEqual(event["record"]["model"], "mail.message")
         self.assertIsNotNone(event["actor"])
         self.env.cr.execute(
             "UPDATE mail_message SET author_id = NULL WHERE id = %s",
             (event["record"]["id"],))
         self.env.invalidate_all()
         event = next(e for e in asset.asset_history()["events"]
-                     if e["type"] == "status_changed")
+                     if e["type"] == "condition_changed")
         self.assertIsNone(event["actor"])
         self.assertIsNone(event["actor_name"])
 
     def test_a_record_with_no_instant_is_omitted_and_counted(self):
-        """One undated row must not cost the asset its whole history."""
+        """One undated row must not cost the asset its whole history.
+
+        A change of condition, for the reason given in the test above.
+        """
         asset = self._asset()
-        asset.write({"state": "in_repair"})
+        asset.write({"condition": "poor"})
         self._flush_tracking()
         history = asset.asset_history()
         self.assertEqual(history["fidelity"]["undated_records_omitted"], 0)
-        message_id = next(e for e in history["events"]
-                          if e["type"] == "status_changed")["record"]["id"]
+        event = next(e for e in history["events"]
+                     if e["type"] == "condition_changed")
+        self.assertEqual(event["record"]["model"], "mail.message")
         self.env.cr.execute(
             "UPDATE mail_message SET date = NULL WHERE id = %s",
-            (message_id,))
+            (event["record"]["id"],))
         self.env.invalidate_all()
         history = asset.asset_history()
         self.assertFalse([e for e in history["events"]
-                          if e["type"] == "status_changed"])
+                          if e["type"] == "condition_changed"])
         self.assertEqual(history["fidelity"]["undated_records_omitted"], 1)
 
-    def test_a_request_is_an_event_without_its_reference(self):
-        """The request belongs to `requests:read`; this is `assets:read`."""
-        asset = self._asset()
+    def _a_request_on(self, asset):
         req = self.env["request.request"].search(
-            [("nrs_asset_id", "!=", False)], limit=1)
+            [("nrs_asset_id", "!=", False), ("name", "!=", False)], limit=1)
         if not req:
             self.skipTest("no request on this database to point at an asset")
         self.env.cr.execute(
             "UPDATE request_request SET nrs_asset_id = %s WHERE id = %s",
             (asset.id, req.id))
         self.env.invalidate_all()
+        return req
+
+    def test_a_request_is_an_event_without_its_reference(self):
+        """The request belongs to `requests:read`; this is `assets:read`.
+        And a withheld reference SAYS it is withheld — a bare null would
+        read as a request that has no reference."""
+        asset = self._asset()
+        req = self._a_request_on(asset)
         event = next(e for e in asset.asset_history()["events"]
                      if e["type"] == "maintenance_request")
         self.assertEqual(event["summary"], "Maintenance request raised")
         self.assertNotIn(req.name, repr(event))
+        self.assertIsNone(event["detail"]["reference"])
+        self.assertIs(event["detail"]["reference_withheld"], True)
+
+    def test_a_request_carries_its_reference_for_a_caller_who_may_read_it(
+            self):
+        """Handoff 30 §D1. It was withheld from everybody on the grounds
+        that a route cannot see its caller's scopes, which was false. The
+        ROUTE decides; the builder publishes what it is told to."""
+        asset = self._asset()
+        req = self._a_request_on(asset)
+        event = next(
+            e for e in asset.asset_history(
+                request_references=True)["events"]
+            if e["type"] == "maintenance_request")
+        self.assertEqual(event["detail"]["reference"], req.name)
+        self.assertIs(event["detail"]["reference_withheld"], False)
+        self.assertEqual(event["summary"],
+                         "Maintenance request %s raised" % req.name)
 
     def test_the_statement_counts_what_nobody_can_alter(self):
+        """Three things happen and two of them have a record nobody can
+        alter. Until handoff 30 this test changed a STATUS for its
+        alterable event; a change of status is now the other kind, so the
+        alterable one is a change of condition, which is still only a
+        message-log line."""
         asset = self._asset(custodian_id=self.alice.id)
         asset.write({"custodian_id": self.bob.id})
         asset.write({"state": "in_repair"})
+        asset.write({"condition": "poor"})
         self._flush_tracking()
         statement = asset.asset_history()["summary"]["statement"]
-        self.assertIn("2 recorded event(s)", statement)
-        self.assertIn("1 of them rest on a record that nobody can edit",
+        self.assertIn("3 recorded event(s)", statement)
+        self.assertIn("2 of them rest on a record that nobody can edit",
                       statement)
 
     def test_the_verification_statement_matches_the_button(self):
         """The sentence is shown to a client. Handoff 28 changed what the
-        Verify button does and the sentence went on saying the old thing."""
+        Verify button does and the sentence went on saying the old thing;
+        handoff 30 changed it again — each press is now a record of its
+        own — and this is what stops the sentence being left behind a
+        second time."""
         asset = self._asset()
         asset.action_verify(notes="sighted")
         self._flush_tracking()
         self.assertEqual(asset.last_verified_by, self.env.user)
         history = asset.asset_history()
         statement = history["fidelity"]["verification"]
-        self.assertIn("records that person", statement)
+        self.assertIn("records who checked the asset", statement)
+        self.assertIn("each time it is pressed", statement)
+        self.assertIn("cannot be edited or deleted", statement)
         self.assertIn("clears the verifier", statement)
+        self.assertIn("keeps only the most recent", statement)
         self.assertNotIn("nothing else", statement)
-        verified = next(e for e in history["events"]
-                        if e["type"] == "verified")
+        self.assertNotIn("survive only", statement)
+        verified = [e for e in history["events"] if e["type"] == "verified"]
+        self.assertEqual(len(verified), 1,
+                         "the event, and not its two message-log rows too")
+        verified = verified[0]
         self.assertEqual(verified["actor"]["id"], self.env.uid)
-        self.assertEqual(verified["evidence"], "chatter")
+        self.assertEqual(verified["evidence"], "append_only")
+        self.assertEqual(verified["record"]["model"], "nrs.asset.event")
+        self.assertEqual(verified["detail"]["notes"], "sighted")
+        self.assertIs(verified["detail"]["verifier_recorded"], True)
 
-    def test_a_changed_provenance_field_is_its_own_event(self):
-        asset = self._asset(grn_reference="GRN-1")
-        asset.write({"grn_reference": "GRN-2", "purchase_vendor": "Acme"})
+    def test_a_changed_vendor_is_still_only_a_message_log_line(self):
+        """Tracked since handoff 28 and deliberately NOT promoted in handoff
+        30: the importer rewrites it on every re-import."""
+        asset = self._asset(purchase_vendor="Acme")
+        asset.write({"purchase_vendor": "Apex"})
         self._flush_tracking()
-        event = next(e for e in asset.asset_history()["events"]
-                     if e["type"] == "provenance_changed")
-        self.assertEqual(event["evidence"], "chatter",
+        events = [e for e in asset.asset_history()["events"]
+                  if e["type"] == "provenance_changed"]
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["evidence"], "chatter",
                          "visible, which it was not; not protected")
-        fields_changed = {c["field"] for c in event["detail"]["changes"]}
-        self.assertEqual(fields_changed, {"grn_reference", "purchase_vendor"})
+        self.assertEqual(events[0]["record"]["model"], "mail.message")
+        self.assertEqual(
+            {c["field"] for c in events[0]["detail"]["changes"]},
+            {"purchase_vendor"})
 
     def test_every_grade_used_is_a_grade_defined(self):
         asset = self._asset()
@@ -399,6 +460,342 @@ class TestAssetHistoryDoesNotOverclaim(AssetHistoryCase):
             self.assertIn(event["evidence"], defined)
         self.assertEqual(sorted(history["summary"]["by_evidence"]),
                          sorted(defined))
+
+
+@tagged("post_install", "-at_install")
+class TestAssetHistoryRecordedEvents(AssetHistoryCase):
+    """Since handoff 30 a verification, a change of status and a change to
+    the GRN, purchase order or SAP asset number each have a record nobody
+    can alter — and where one exists IT is the event.
+
+    Two halves, as for moves. The first is something that happens NOW: an
+    `nrs.asset.event`, append-only, with the message-log row of the same
+    write folded into it rather than listed beside it. The second is
+    something that happened BEFORE the recorder existed, which is every
+    status change and every verification on every tenant today, and must
+    still be graded as the message-log line it is — simulated by removing
+    the event row with SQL, which is the only way a row of that model can
+    be made to not exist.
+
+    **Everything in one test shares one `create_date`**, because that is
+    the transaction's stamp and a test is one transaction — and the fold is
+    matched on exactly that stamp. So a test that needs an OLD message-log
+    line beside a NEW event has to move the old message's stamp by SQL as
+    well, or the new event folds the old line away and the test passes for
+    the wrong reason.
+    """
+
+    def _forget_the_events(self, asset):
+        """As it was before the recorder: it happened, and no row says so."""
+        self.env.flush_all()
+        self.env.cr.execute(
+            "DELETE FROM nrs_asset_event WHERE asset_id = %s", (asset.id,))
+        self.env.invalidate_all()
+
+    def _age_the_message_log(self, asset):
+        """Put this asset's message-log lines in an earlier transaction."""
+        self.env.flush_all()
+        self.env.cr.execute(
+            "UPDATE mail_message SET create_date = create_date "
+            "- interval '1 day' WHERE model = 'nrs.asset' AND res_id = %s",
+            (asset.id,))
+        self.env.invalidate_all()
+
+    def _of_type(self, asset, etype):
+        return [e for e in asset.asset_history()["events"]
+                if e["type"] == etype]
+
+    # ── a change of status ───────────────────────────────────────────
+
+    def test_a_status_change_is_listed_once(self):
+        """`state` is tracked too. One act, two records, one line."""
+        asset = self._asset()
+        asset.write({"state": "in_repair"})
+        self._flush_tracking()
+        changes = self._of_type(asset, "status_changed")
+        self.assertEqual(len(changes), 1,
+                         [(c["evidence"], c["summary"]) for c in changes])
+        change = changes[0]
+        self.assertEqual(change["evidence"], "append_only")
+        self.assertEqual(change["record"]["model"], "nrs.asset.event")
+        self.assertEqual(change["detail"]["from"], "active")
+        self.assertEqual(change["detail"]["to"], "in_repair")
+        self.assertEqual(change["summary"], "Active → Under Repair")
+        self.assertEqual(change["actor"]["id"], self.env.uid)
+        self.assertEqual(change["source"], "direct")
+        self.assertFalse(change["reconstructed"])
+
+    def test_the_fold_takes_only_the_status_out_of_the_message(self):
+        """A write that changes the status AND something else leaves one
+        message with two tracked values. Only the one the event records is
+        folded away; the other is still a line."""
+        asset = self._asset()
+        asset.write({"state": "in_repair", "condition": "poor"})
+        self._flush_tracking()
+        self.assertEqual(len(self._of_type(asset, "status_changed")), 1)
+        condition = self._of_type(asset, "condition_changed")
+        self.assertEqual(len(condition), 1)
+        self.assertEqual(condition[0]["evidence"], "chatter")
+        self.assertEqual(
+            [c["field"] for c in condition[0]["detail"]["changes"]],
+            ["condition"])
+
+    def test_marking_missing_says_why(self):
+        """*Why is this asset missing* — evidence of what was said at the
+        time, not a note somebody can tidy up afterwards."""
+        asset = self._asset()
+        asset.action_mark_missing(reason="not in the store at handover")
+        self._flush_tracking()
+        change = self._of_type(asset, "status_changed")
+        self.assertEqual(len(change), 1)
+        self.assertEqual(change[0]["detail"]["reason"],
+                         "not in the store at handover")
+        self.assertEqual(change[0]["source"], "action")
+        self.assertEqual(change[0]["evidence"], "append_only")
+
+    def test_a_condemn_names_who_and_why_and_still_shows_the_condition(self):
+        """`disposal_executor`, closed going forward: the actor of the
+        change into Disposed is who carried the disposal out. The CONDITION
+        it set in the same write has no record of its own and is still a
+        message-log line — folding the message away whole would have lost
+        it."""
+        asset = self._asset()
+        asset.action_condemn(reason="fire damage, beyond repair")
+        self._flush_tracking()
+        status = self._of_type(asset, "status_changed")
+        self.assertEqual(len(status), 1)
+        self.assertEqual(status[0]["evidence"], "append_only")
+        self.assertEqual(status[0]["detail"]["to"], "disposed")
+        self.assertEqual(status[0]["detail"]["reason"],
+                         "fire damage, beyond repair")
+        self.assertEqual(status[0]["actor"]["id"], self.env.uid)
+        condition = self._of_type(asset, "condition_changed")
+        self.assertEqual(len(condition), 1)
+        self.assertEqual(condition[0]["evidence"], "chatter")
+
+    def test_a_status_change_from_before_the_recorder_is_still_chatter(self):
+        asset = self._asset()
+        asset.write({"state": "in_repair"})
+        self._flush_tracking()
+        self._forget_the_events(asset)
+        changes = self._of_type(asset, "status_changed")
+        self.assertEqual(len(changes), 1)
+        self.assertEqual(changes[0]["evidence"], "chatter")
+        self.assertEqual(changes[0]["record"]["model"], "mail.message")
+
+    def test_old_and_new_status_changes_sit_in_one_list_graded_differently(
+            self):
+        asset = self._asset()
+        asset.write({"state": "in_repair"})
+        self._flush_tracking()
+        self._forget_the_events(asset)
+        self._age_the_message_log(asset)
+        asset.write({"state": "active"})
+        self._flush_tracking()
+        changes = self._of_type(asset, "status_changed")
+        self.assertEqual(sorted(c["evidence"] for c in changes),
+                         ["append_only", "chatter"],
+                         [(c["evidence"], c["summary"]) for c in changes])
+
+    def test_an_event_written_under_a_test_credential_says_so(self):
+        """`source: test`, decided from the ACTING USER and over whatever
+        the route declared — custody's rule, reached through the abstract
+        guard. The override sits on the MIXIN in this module and the model
+        is declared a module below, so that it reaches `nrs.asset.event` at
+        all is a fact about how the registry was built, and is checked here
+        by acting rather than by reading the class."""
+        client = self.create_api_client({
+            "name": "history probe test credential",
+            "client_id": "historyprobe_%s" % uuid.uuid4().hex[:8],
+            "scopes": "assets:read assets:write",
+        })
+        asset = self._asset()
+        # What a route does: the credential's own user, with sudo.
+        asset.with_user(client.user_id).sudo().with_context(
+            cadra_event_source="api_mark_missing",
+        ).action_mark_missing(reason="written by the suite")
+        self._flush_tracking()
+        change = self._of_type(asset, "status_changed")
+        self.assertEqual(len(change), 1)
+        self.assertEqual(change[0]["source"], "test")
+        self.assertEqual(change[0]["actor"]["id"], client.user_id.id)
+        self.assertEqual(change[0]["detail"]["reason"],
+                         "written by the suite")
+
+    # ── a verification ───────────────────────────────────────────────
+
+    def test_two_checks_on_one_day_are_two_lines(self):
+        asset = self._asset()
+        with freeze_time("2031-02-01 09:00:00"):
+            asset.action_verify(notes="sighted")
+            self._flush_tracking()
+        with freeze_time("2031-02-01 15:00:00"):
+            asset.action_verify()
+            self._flush_tracking()
+        checks = [e for e in self._later(
+            asset.asset_history(newest_first=False))
+            if e["type"] == "verified"]
+        self.assertEqual(len(checks), 2)
+        self.assertEqual({c["evidence"] for c in checks}, {"append_only"})
+        self.assertEqual(checks[0]["detail"]["notes"], "sighted")
+        self.assertIsNone(checks[1]["detail"]["notes"])
+        self.assertEqual(checks[1]["detail"]["previous_verified_on"],
+                         "2031-02-01")
+
+    def test_a_written_date_is_never_listed_as_a_verification(self):
+        """The message log calls ANY change of `last_verified_date`
+        "verified". Folded away, so that a PATCHed date reads as what it
+        is — and names whoever wrote it without saying they checked
+        anything."""
+        asset = self._asset()
+        asset.write({"last_verified_date": "2026-06-01"})
+        self._flush_tracking()
+        self.assertFalse(self._of_type(asset, "verified"))
+        written = self._of_type(asset, "verification_date_set")
+        self.assertEqual(len(written), 1)
+        self.assertEqual(written[0]["evidence"], "append_only")
+        self.assertEqual(written[0]["detail"]["verified_on"], "2026-06-01")
+        self.assertIs(written[0]["detail"]["verifier_recorded"], False)
+        self.assertIn("does not say who checked", written[0]["summary"])
+        self.assertEqual(written[0]["actor"]["id"], self.env.uid)
+
+    def test_a_verification_from_before_the_recorder_is_still_chatter(self):
+        asset = self._asset()
+        asset.action_verify()
+        self._flush_tracking()
+        self._forget_the_events(asset)
+        checks = self._of_type(asset, "verified")
+        self.assertTrue(checks)
+        self.assertEqual({c["evidence"] for c in checks}, {"chatter"})
+
+    # ── a change of reference ────────────────────────────────────────
+
+    def test_a_changed_grn_is_listed_once_and_cannot_be_altered(self):
+        asset = self._asset(grn_reference="GRN-1")
+        asset.write({"grn_reference": "GRN-2"})
+        self._flush_tracking()
+        changes = self._of_type(asset, "provenance_changed")
+        self.assertEqual(len(changes), 1,
+                         [(c["evidence"], c["summary"]) for c in changes])
+        self.assertEqual(changes[0]["evidence"], "append_only")
+        self.assertEqual(changes[0]["record"]["model"], "nrs.asset.event")
+        self.assertEqual(changes[0]["detail"]["changes"], [{
+            "field": "grn_reference",
+            "label": self.Asset._fields["grn_reference"].string,
+            "old": "GRN-1", "new": "GRN-2"}])
+
+    def test_a_grn_and_a_vendor_in_one_write_are_two_lines_of_two_grades(
+            self):
+        """One message, two tracked values, and only one of them has a
+        better record. This is the write the old single test made."""
+        asset = self._asset(grn_reference="GRN-1")
+        asset.write({"grn_reference": "GRN-2", "purchase_vendor": "Acme"})
+        self._flush_tracking()
+        changes = self._of_type(asset, "provenance_changed")
+        by_grade = {c["evidence"]: c for c in changes}
+        self.assertEqual(sorted(by_grade), ["append_only", "chatter"],
+                         [(c["evidence"], c["summary"]) for c in changes])
+        self.assertEqual(
+            [c["field"] for c in by_grade["append_only"]["detail"]["changes"]],
+            ["grn_reference"])
+        self.assertEqual(
+            [c["field"] for c in by_grade["chatter"]["detail"]["changes"]],
+            ["purchase_vendor"])
+
+    def test_a_changed_sap_number_is_listed(self):
+        """It is not tracked, so until handoff 30 a change to it left
+        nothing anywhere."""
+        asset = self._asset()
+        asset._set_sap_master({"sap_asset_number": "400000993301"})
+        self._flush_tracking()
+        changes = self._of_type(asset, "provenance_changed")
+        self.assertEqual(len(changes), 1)
+        self.assertEqual(changes[0]["evidence"], "append_only")
+        self.assertEqual(changes[0]["detail"]["changes"][0]["field"],
+                         "sap_asset_number")
+        self.assertEqual(changes[0]["detail"]["changes"][0]["new"],
+                         "400000993301")
+
+    def test_a_grn_change_from_before_the_recorder_is_still_chatter(self):
+        asset = self._asset(grn_reference="GRN-1")
+        asset.write({"grn_reference": "GRN-2"})
+        self._flush_tracking()
+        self._forget_the_events(asset)
+        changes = self._of_type(asset, "provenance_changed")
+        self.assertEqual(len(changes), 1)
+        self.assertEqual(changes[0]["evidence"], "chatter")
+
+    # ── from when ────────────────────────────────────────────────────
+
+    def test_the_response_says_from_when_for_each_kind(self):
+        kinds = self._asset().asset_history()["fidelity"]["events"]
+        self.assertEqual(
+            [k["event"] for k in kinds],
+            ["verified", "verification_date_set", "status_changed",
+             "provenance_changed"],
+            "by the name the EVENT is published under, not the stored type")
+        for kind in kinds:
+            self.assertEqual(
+                set(kind), {"event", "recording_began_at", "statement"})
+            self.assertTrue(kind["statement"])
+
+    def test_from_when_is_answered_per_kind(self):
+        """They share a table and did not necessarily begin together."""
+        asset = self._asset()
+        asset.write({"state": "in_repair"})
+        self.env.flush_all()
+        # Raw SQL: `create_date` is the transaction's clock, which
+        # `freeze_time` cannot move, and the model refuses `write`.
+        self.env.cr.execute(
+            "UPDATE nrs_asset_event SET create_date = '2001-02-03 04:05:06' "
+            "WHERE asset_id = %s", (asset.id,))
+        self.env.invalidate_all()
+        kinds = {k["event"]: k
+                 for k in asset.asset_history()["fidelity"]["events"]}
+        self.assertEqual(kinds["status_changed"]["recording_began_at"],
+                         "2001-02-03T04:05:06")
+        self.assertIn("2001-02-03 04:05 UTC",
+                      kinds["status_changed"]["statement"])
+        for other in ("verified", "verification_date_set",
+                      "provenance_changed"):
+            self.assertNotEqual(
+                kinds[other]["recording_began_at"], "2001-02-03T04:05:06",
+                "%s did not begin when status changes did" % other)
+
+    def test_a_kind_nobody_has_recorded_says_so(self):
+        """The table is EMPTIED first, by raw SQL, inside this test's
+        transaction and rolled back with it: CI runs the HTTP suite before
+        this one, and the events it writes are permanent by design."""
+        asset = self._asset()
+        self.env.flush_all()
+        self.env.cr.execute("DELETE FROM nrs_asset_event")
+        self.env.invalidate_all()
+        asset.write({"state": "in_repair"})
+        kinds = {k["event"]: k
+                 for k in asset.asset_history()["fidelity"]["events"]}
+        self.assertTrue(kinds["status_changed"]["recording_began_at"])
+        self.assertTrue(
+            kinds["status_changed"]["statement"].startswith("From "))
+        for other in ("verified", "verification_date_set",
+                      "provenance_changed"):
+            self.assertIsNone(kinds[other]["recording_began_at"])
+            self.assertTrue(kinds[other]["statement"].startswith(
+                "No record of this kind has been written"), other)
+
+    def test_what_is_never_recorded_no_longer_claims_these_leave_nothing(
+            self):
+        """`not_recorded` said a change to a GRN reference "leaves nothing"
+        and that the act of disposing "records no person". Both stopped
+        being true in handoff 30, and nothing fails when a sentence on a
+        client's screen goes stale unless something holds it."""
+        named = {n["event"]: n["statement"] for n in
+                 self._asset().asset_history()["fidelity"]["not_recorded"]}
+        self.assertIn("before", named["provenance_change"])
+        self.assertIn("nobody can alter", named["provenance_change"])
+        self.assertIn("before", named["disposal_executor"])
+        self.assertIn("names who made it", named["disposal_executor"])
+        self.assertIn("other than the SAP asset number",
+                      named["sap_change"])
 
 
 @tagged("post_install", "-at_install")

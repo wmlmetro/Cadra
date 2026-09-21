@@ -5,7 +5,7 @@ import { useLayoutCtx } from "@/components/layout/AppLayout";
 import { fetchAssetsPage, fetchAllLocations, type AssetsPage } from "@/lib/dataProvider";
 import NigeriaMap, { type MapPinData } from "@/components/NigeriaMap";
 import { apiConfigured, CadraApiError } from "@/lib/api";
-import type { Asset } from "@/types";
+import type { ApprovalStatus, Asset } from "@/types";
 import AssetStatusPills from "@/components/AssetStatusPills";
 import ConditionBadge from "@/components/ConditionBadge";
 import {
@@ -25,11 +25,19 @@ const CATEGORIES = ["IT Equipment", "Fleet / Vehicles", "Furniture & Fittings"] 
 // verifiable, possible duplicate. The back end models none of them, so each
 // always answered zero rows and said nothing about why. "Not in service" is
 // every asset that is not active: missing, disposed, under repair, transferred.
+//
+// "Review — no SAP code" (handoff 30) is NOT a fourth of those. It is the
+// server's `sap_reconciliation_state = exception`, a stored compute measured
+// on real rows before it was wired, and choosing it asks the SERVER for them
+// (`statusToServerFilter`) — a filter over the 200 rows already on screen
+// would have answered zero on most tenants, with the findings further down a
+// walk nobody had made, which is the same silence by another route.
 const STATUSES = [
   "Cleared",
   "Review — data quality",
+  "Review — no SAP code",
   "Not in service",
-] as const;
+] as const satisfies readonly ApprovalStatus[];
 // There is no CONDITIONS list here. It read ["Good", "Fair", "Poor",
 // "Decommissioned"] — four of the model's five `nrs.asset.condition` values,
 // missing `new`, so the Condition filter could not offer New at all and the
@@ -53,10 +61,13 @@ function AssetCard({ asset, onClick }: { asset: Asset; onClick: () => void }) {
   // missing asset is red — on a wall of cards it is the one that should not
   // look like the others. Everything else out of service (disposed, under
   // repair, transferred) is a heavier slate: set apart, without the alarm.
+  // The two review findings keep the colours of their pills: amber for data
+  // quality, orange for an asset finance has not booked.
   const borderCls =
     asset.status === "Cleared" ? "border-border" :
     asset.lifecycleState === "missing" ? "border-red-300/80 dark:border-red-800/50" :
     asset.status === "Not in service" ? "border-slate-400/70 dark:border-slate-600/60" :
+    asset.status === "Review — no SAP code" ? "border-orange-300/80 dark:border-orange-800/40" :
     "border-amber-200/70 dark:border-amber-800/30";
 
   return (
@@ -287,7 +298,10 @@ function FilterDropdown({
         )}
         data-testid={`filter-${label.toLowerCase()}`}
       >
-        {active ? show(value).split(" —")[0] : label}
+        {/* The WHOLE label. This cut at " —", which was tidy while one status
+            began "Review —" and is ambiguous now that two do: both would have
+            read "Review" on the button, with nothing to say which was on. */}
+        {active ? show(value) : label}
         <ChevronDown size={11} className={cn("transition-transform", open && "rotate-180")} />
       </button>
 
@@ -352,12 +366,25 @@ export default function AssetRegister() {
     return () => setSearchHandler(undefined);
   }, [setTitle, setSearchHandler]);
 
-  // Server-side: search and condition. Category/status stay client-side
-  // because the frontend's category enum is a 3-bucket projection of the
-  // many real DB categories, and the frontend's status is derived in the
-  // adapter from `state` AND `is_verified` — neither is a native API filter.
-  // So both filter ONLY the rows already loaded, under a count that is
-  // register-wide (GO-LIVE §13.5.8).
+  // Server-side: search, condition and — since handoff 30 — STATUS, wherever
+  // the server can express it (`statusToServerFilter` in dataProvider: every
+  // status but "Not in service"). It was client-side only, so choosing a
+  // status narrowed the 200 rows already loaded under a register-wide count;
+  // a rare status — an SAP exception is 34 rows of `nrs19` — would mostly
+  // have answered "No assets found" while the rows sat further down the walk.
+  //
+  // The client-side pass below STILL runs for status, and has to: "Cleared"
+  // and "Review — data quality" come back from the server including the
+  // active assets that are SAP exceptions (the API has no "not"), and those
+  // wear the exception's pill. Dropping them here keeps every row in
+  // agreement with the filter it is shown under. The count beside it is the
+  // server's, so under those two statuses it can run ahead of the rows by
+  // however many exceptions it includes; under "no SAP code" it is exact.
+  //
+  // Category stays client-side only: the frontend's category is a 3-bucket
+  // projection of the many real DB categories, not a native API filter, so it
+  // narrows ONLY the rows already loaded (GO-LIVE §13.5.8). So does "Not in
+  // service".
   const {
     data,
     isLoading,
@@ -372,10 +399,13 @@ export default function AssetRegister() {
     // `initialPageParam: undefined` — no cursor — which is exactly the
     // restart that contract requires. Dropping it from the key would send
     // the held cursor into the opposite walk and 400 the page.
-    queryKey: ["assets", { search, filterCondition, sortOrder }],
+    // `filterStatus` is in the key for the same reason: it changes what the
+    // server is asked, so it must start a fresh walk from page one.
+    queryKey: ["assets", { search, filterCondition, filterStatus, sortOrder }],
     queryFn: ({ pageParam }) => fetchAssetsPage(pageParam as string | undefined, {
       search: search || undefined,
       condition: filterCondition || undefined,
+      status: filterStatus || undefined,
       sort: sortOrder,
     }),
     initialPageParam: undefined as string | undefined,
@@ -625,7 +655,7 @@ export default function AssetRegister() {
 function FilterTag({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-primary/10 text-primary text-[10px] font-semibold">
-      {label.split(" —")[0]}
+      {label}
       <button onClick={onRemove} className="hover:text-primary/60 transition-colors ml-0.5">
         <X size={9} />
       </button>

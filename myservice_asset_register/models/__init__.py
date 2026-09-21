@@ -1,5 +1,6 @@
 from . import asset_custody
 from . import asset_movement
+from . import asset_event
 from . import asset
 from . import asset_transfer
 from . import asset_pm

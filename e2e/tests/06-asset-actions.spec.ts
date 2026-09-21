@@ -14,6 +14,14 @@ import { appPath } from "../config";
  * custody. Move and Transfer custody each also have an API-level twin, so a
  * UI failure can be told apart from a server one.
  *
+ * Handoff 30. Mark missing REQUIRES a reason and is `POST /mark-missing`;
+ * Condemn is `POST /condemn` and sends no date. Both specs assert the REQUEST
+ * as well as the record: a PATCH that happened to leave the same row behind
+ * would otherwise pass, and the date coming off the browser's clock is
+ * exactly the kind of thing the row cannot show. What may be done to a
+ * disposed asset, and what the app does with a field the server refuses, are
+ * in `17-disposed-is-terminal.spec.ts` and `18-rejected-fields.spec.ts`.
+ *
  * Handoff 29. Mark missing and Condemn both passed here while the page was
  * wrong: each spec polled the API for the new `state` and never read the
  * screen, which went on saying "Cleared" in green over a missing asset and a
@@ -28,6 +36,8 @@ import { appPath } from "../config";
  * Mark verified is the same envelope shape (`POST /assets/<id>/verify` returns
  * {asset, verification}) and is read the same way.
  */
+
+const MISSING_REASON = "E2E — not found at its desk during the count";
 
 async function createAsset(api: ApiClient, label: string, extra: Record<string, unknown> = {}): Promise<string> {
   const name = markedName(label);
@@ -89,10 +99,14 @@ test("audit & review shows a verification, newest first, with what its record is
   // Newest first: the verification just made is above the registration, and
   // the mutation invalidated the history so no reload was needed to see it.
   await expect(rows.first()).toContainText("Verified");
-  // The button is `POST /assets/<id>/verify` since handoff 28, which records
-  // WHO on the asset — but the EVENT is still a tracked change in the message
-  // log, so that is still all its record is worth, and the row still says so.
-  await expect(rows.first()).toContainText("Message log only");
+  // Since handoff 30 a verification made with the button has a record of its
+  // own that nobody can alter (`nrs.asset.event`), and the row says so. Until
+  // then the EVENT was a tracked change in the message log and this asserted
+  // "Message log only" — which is still what a verification made BEFORE
+  // recording began is worth, and `fidelity.events` says where that line is.
+  await expect(rows.first()).toContainText("Cannot be altered");
+  await expect(rows.first()).not.toContainText("Message log only");
+  await expect(page.getByTestId("asset-history-event-recording")).toContainText("Verify button");
   await expect(rows.first()).not.toContainText("No person recorded");
   await expect(rows.last()).toContainText("Registered");
   await expect(page.getByTestId("asset-history-empty")).toHaveCount(0);
@@ -247,10 +261,25 @@ test("mark missing via the app dialog, and the page stops saying Cleared (UI)", 
   const dialog = page.getByTestId("dialog-mark-missing");
   await expect(dialog).toBeVisible();
   // The sentence the native confirm carried was false — neither Move nor
-  // Verify changes `state`. What reverses it is Edit.
+  // Verify changes `state`. What reverses it is Edit — and the dialog now says
+  // the other half: a disposal cannot be reversed, and the reason is kept.
   await expect(dialog).toContainText("use Edit and set the state back");
+  await expect(dialog).toContainText("cannot be edited or deleted");
   await expect(dialog).not.toContainText("move/verify");
-  await page.getByTestId("button-confirm-missing").click();
+  // No reason, no button. A blank one is no reason either.
+  const confirm = page.getByTestId("button-confirm-missing");
+  await expect(confirm).toBeDisabled();
+  await page.getByTestId("input-missing-reason").fill("   ");
+  await expect(confirm).toBeDisabled();
+  await page.getByTestId("input-missing-reason").fill(MISSING_REASON);
+  await expect(confirm).toBeEnabled();
+  const sent = page.waitForRequest((r) => r.method() !== "GET" && r.url().includes(`/api/v1/assets/${id}`));
+  await confirm.click();
+  const req = await sent;
+  // The ROUTE, not a PATCH of `state` — a PATCH has nowhere to put a reason.
+  expect(req.method()).toBe("POST");
+  expect(new URL(req.url()).pathname).toBe(`/api/v1/assets/${id}/mark-missing`);
+  expect(req.postDataJSON()).toEqual({ reason: MISSING_REASON });
   await expect(dialog).toBeHidden({ timeout: 15_000 });
   await expect
     .poll(async () => (await api.get(`/api/v1/assets/${id}`))?.state, { timeout: 15_000 })
@@ -267,6 +296,12 @@ test("mark missing via the app dialog, and the page stops saying Cleared (UI)", 
   await page.getByTestId("tab-audit-review").click();
   await expect(page.getByText("Approval Status")).toHaveCount(0);
   await expect(page.getByTestId("lifecycle-pill").last()).toHaveText("Missing");
+  // The reason is EVIDENCE: on the newest row of the history, on a record
+  // nobody can alter, with the person who gave it.
+  const newest = page.getByTestId("asset-history-event").first();
+  await expect(newest).toContainText(MISSING_REASON, { timeout: 15_000 });
+  await expect(newest).toContainText("Cannot be altered");
+  await expect(newest).not.toContainText("No person recorded");
 });
 
 test("mark missing fires no native browser dialog", async ({ page, api }) => {
@@ -282,12 +317,16 @@ test("mark missing fires no native browser dialog", async ({ page, api }) => {
   await expectShell(page);
   await page.getByTestId("button-missing").click();
   await expect(page.getByTestId("dialog-mark-missing")).toBeVisible();
+  await page.getByTestId("input-missing-reason").fill("typed and abandoned");
   // Cancel writes nothing…
   await page.getByTestId("dialog-mark-missing").getByRole("button", { name: "Cancel" }).click();
   await expect(page.getByTestId("dialog-mark-missing")).toBeHidden();
   expect((await api.get(`/api/v1/assets/${id}`))?.state).toBe("active");
   // …and confirming does, still without the browser's own dialog.
   await page.getByTestId("button-missing").click();
+  // A cancelled dialog does not reopen with the reason still in it.
+  await expect(page.getByTestId("input-missing-reason")).toHaveValue("");
+  await page.getByTestId("input-missing-reason").fill(MISSING_REASON);
   await page.getByTestId("button-confirm-missing").click();
   await expect(page.getByTestId("dialog-mark-missing")).toBeHidden({ timeout: 15_000 });
   await expect
@@ -309,9 +348,21 @@ test("condemn sets state and condition, and the page stops saying Cleared (UI)",
   await expect(dialog).toContainText("carries no approver");
   const condemnBtn = dialog.getByRole("button", { name: "Condemn" });
   await expect(condemnBtn).toBeDisabled();
+  await expect(dialog).toContainText("cannot be undone");
   await dialog.getByPlaceholder(/required/i).fill("E2E disposal test");
   await expect(condemnBtn).toBeEnabled();
+  const sent = page.waitForRequest((r) => r.method() !== "GET" && r.url().includes(`/api/v1/assets/${id}`));
   await condemnBtn.click();
+  const req = await sent;
+  // `POST /condemn`, carrying the reason and NOTHING else. It was a PATCH of
+  // four fields, one of them `disposal_date` off this browser's clock — wrong
+  // for the first hour of every Lagos day, with a correct clock. The server
+  // dates it now, and a client that still sent a date would be sending one
+  // the route does not read.
+  expect(req.method()).toBe("POST");
+  expect(new URL(req.url()).pathname).toBe(`/api/v1/assets/${id}/condemn`);
+  expect(req.postDataJSON()).toEqual({ reason: "E2E disposal test" });
+  expect(JSON.stringify(req.postDataJSON())).not.toMatch(/date|state|condition/);
   await expect(dialog).toBeHidden({ timeout: 15_000 });
   await expect
     .poll(async () => (await api.get(`/api/v1/assets/${id}`))?.state, { timeout: 15_000 })
@@ -321,6 +372,8 @@ test("condemn sets state and condition, and the page stops saying Cleared (UI)",
   const fresh = await api.get(`/api/v1/assets/${id}`);
   expect(fresh?.condition, "condemn also decommissions").toBe("decommissioned");
   expect(fresh?.disposal_reason).toBe("E2E disposal test");
+  // Sent no date, and has one: the server's.
+  expect(fresh?.dates?.disposal_date, "the SERVER dated the disposal").toMatch(/^\d{4}-\d{2}-\d{2}$/);
 
   const hero = page.getByTestId("asset-hero-badges");
   await expect(hero.getByTestId("lifecycle-pill")).toHaveText("Disposed", { timeout: 15_000 });
@@ -382,6 +435,7 @@ test("after marking an asset missing, the dashboard count and the edit form both
   await page.goBack();
   // 3. act
   await page.getByTestId("button-missing").click();
+  await page.getByTestId("input-missing-reason").fill(MISSING_REASON);
   await page.getByTestId("button-confirm-missing").click();
   await expect(page.getByTestId("dialog-mark-missing")).toBeHidden({ timeout: 15_000 });
   // 4. the Edit form — which the dialog sends people to — must show the NEW state

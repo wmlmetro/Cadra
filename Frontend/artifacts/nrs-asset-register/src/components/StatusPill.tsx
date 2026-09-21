@@ -14,6 +14,15 @@ const statusConfig: Record<ApprovalStatus, Config> = {
     text: "text-amber-700 dark:text-amber-400",
     dot: "bg-amber-500",
   },
+  // Orange, not amber and not red. It has to read as a different finding from
+  // "data quality" at a glance down a column — the two sit side by side in the
+  // register, and both begin with the word "Review" — and red is kept for the
+  // one alarm on this screen, a missing asset (`LifecyclePill`).
+  "Review — no SAP code": {
+    bg: "bg-orange-50 dark:bg-orange-950/30 border-orange-300/70 dark:border-orange-800/40",
+    text: "text-orange-800 dark:text-orange-300",
+    dot: "bg-orange-500",
+  },
   // Not a verdict — the absence of one. Muted on purpose: an asset that is
   // missing or disposed has no data-quality status, and a colour here would
   // claim one. `AssetStatusPills` draws the lifecycle pill instead wherever
@@ -51,6 +60,8 @@ export default function StatusPill({ status, showDot = false, className }: Statu
         cfg.text,
         className
       )}
+      data-testid="status-pill"
+      data-status={status}
     >
       {showDot && <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", cfg.dot)} />}
       {status}

@@ -4735,6 +4735,15 @@ ALREADY_LABELLED = {
         "the day it landed: 63 of 63 rows written under the test credential "
         "say `test`, and the one written by a person logged in says "
         "`api_move`. tests/test_asset_history.py holds it over HTTP.",
+    "nrs.asset.event":
+        "`source = 'test'`, derived in myservice_api/models/asset_event.py "
+        "from the same credential flag — but on the abstract "
+        "`nrs.asset.append.only.mixin` rather than on the model, so that a "
+        "fourth append-only record cannot be written without the derivation "
+        "(handoff 30). The mixin is abstract and creates nothing itself; "
+        "what this entry rests on is that `nrs.asset.event` INHERITS it, "
+        "which `test_the_event_record_inherits_the_label_it_is_listed_for` "
+        "holds. tests/test_asset_events_api.py holds the label over HTTP.",
 }
 
 #: Models a create-shaped call addresses that an API CREDENTIAL cannot cause
@@ -4878,6 +4887,117 @@ def test_the_mixin_still_declares_models():
         "`request.request` lost the mixin. It is THE measured hole — its "
         "name is a sequence, so without a derived label a test-created "
         "request is indistinguishable from a real one forever.")
+
+
+_APPEND_ONLY_MIXIN = "nrs.asset.append.only.mixin"
+_EVENT_MODEL_FILE = (REPO_ROOT / "myservice_asset_register" / "models"
+                     / "asset_event.py")
+_EVENT_LABEL_FILE = REPO_ROOT / "myservice_api" / "models" / "asset_event.py"
+
+
+def _class_model_attrs(node):
+    """`(_name, [_inherit…])` of a class body; a bare string is a list of one."""
+    name, inherits = None, []
+    for stmt in node.body:
+        if not (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1
+                and isinstance(stmt.targets[0], ast.Name)):
+            continue
+        value = stmt.value
+        if stmt.targets[0].id == "_name" and isinstance(value, ast.Constant):
+            name = value.value
+        if stmt.targets[0].id == "_inherit":
+            if isinstance(value, ast.Constant):
+                inherits = [value.value]
+            elif isinstance(value, (ast.List, ast.Tuple)):
+                inherits = [e.value for e in value.elts
+                            if isinstance(e, ast.Constant)]
+    return name, inherits
+
+
+def test_the_event_record_inherits_the_label_it_is_listed_for():
+    """`ALREADY_LABELLED["nrs.asset.event"]` is a claim. This checks it.
+
+    Custody and movement each carry their own `_resolve_source` override, on
+    the model, so the entry above names a file and the file names the model.
+    The event record's derivation is one step further away: it sits on an
+    ABSTRACT mixin in `myservice_api`, and reaches `nrs.asset.event` only
+    because that model inherits the mixin in a different module. Three links,
+    any of which can be dropped without anything going red — and then every
+    verification, status change and reference change this suite writes lands
+    on a client-shaped register as `api_verify`, permanently, because the
+    record is append-only and nobody can relabel it afterwards.
+
+    And the mixin itself must NOT appear as a created model: it is abstract,
+    its `create` is a `super()` call, and a guard that started listing it
+    would be asking somebody to classify a table that does not exist.
+    """
+    for path in (_EVENT_MODEL_FILE, _EVENT_LABEL_FILE):
+        assert path.exists(), (
+            "%s is gone — the `nrs.asset.event` entry in ALREADY_LABELLED is "
+            "citing a file that does not exist" % path.relative_to(REPO_ROOT))
+
+    # 1. the model inherits the guard…
+    tree = ast.parse(_EVENT_MODEL_FILE.read_text(encoding="utf-8"))
+    classes = {name: (node, inherits)
+               for node in tree.body if isinstance(node, ast.ClassDef)
+               for name, inherits in [_class_model_attrs(node)] if name}
+    assert "nrs.asset.event" in classes, (
+        "`nrs.asset.event` is no longer declared in %s"
+        % _EVENT_MODEL_FILE.relative_to(REPO_ROOT))
+    event_class, inherits = classes["nrs.asset.event"]
+    assert _APPEND_ONLY_MIXIN in inherits, (
+        "`nrs.asset.event` does not inherit `%s` (it inherits %s), so the "
+        "`test` derivation in myservice_api never reaches it and its rows "
+        "are labelled by route." % (_APPEND_ONLY_MIXIN, inherits))
+
+    # …and can HOLD the label: a Selection without `test` makes the
+    # derivation a ValueError inside every write the suite makes.
+    source_values = {
+        literal.value
+        for stmt in event_class.body
+        if isinstance(stmt, ast.Assign)
+        and any(isinstance(t, ast.Name) and t.id == "source"
+                for t in stmt.targets)
+        for literal in ast.walk(stmt.value)
+        if isinstance(literal, ast.Constant) and isinstance(literal.value, str)}
+    assert "test" in source_values, (
+        "`nrs.asset.event.source` no longer offers `test`")
+
+    # 2. the derivation is on the MIXIN, and says `test`.
+    tree = ast.parse(_EVENT_LABEL_FILE.read_text(encoding="utf-8"))
+    overrides = [
+        fn for node in tree.body if isinstance(node, ast.ClassDef)
+        and _APPEND_ONLY_MIXIN in _class_model_attrs(node)[1]
+        and _class_model_attrs(node)[0] in (None, _APPEND_ONLY_MIXIN)
+        for fn in node.body
+        if isinstance(fn, ast.FunctionDef) and fn.name == "_resolve_source"]
+    assert overrides, (
+        "%s no longer extends `%s._resolve_source`"
+        % (_EVENT_LABEL_FILE.relative_to(REPO_ROOT), _APPEND_ONLY_MIXIN))
+    returns_test = [
+        ret for fn in overrides for ret in ast.walk(fn)
+        if isinstance(ret, ast.Return) and isinstance(ret.value, ast.Constant)
+        and ret.value.value == "test"]
+    assert returns_test, (
+        "the `_resolve_source` override never returns `test`")
+    assert "_is_test_credential_user" in _EVENT_LABEL_FILE.read_text(
+        encoding="utf-8"), (
+        "the label is no longer derived from the ONE statement of what a "
+        "test credential is, `myservice.api.client._is_test_credential_user`")
+
+    # 3. the override is actually loaded.
+    init = (REPO_ROOT / "myservice_api" / "models" / "__init__.py").read_text(
+        encoding="utf-8")
+    assert re.search(r"^from \. import asset_event\b", init, re.MULTILINE), (
+        "myservice_api/models/__init__.py does not import `asset_event`; the "
+        "override exists and nothing loads it")
+
+    # 4. the abstract mixin is not mistaken for a model somebody can create.
+    created, unresolved = _created_models(_EVENT_MODEL_FILE)
+    assert created == {"nrs.asset.event"}, (
+        "expected the one create in this file to resolve to the event "
+        "record; got %s" % sorted(created))
+    assert not unresolved, unresolved
 
 
 @pytest.mark.parametrize("label,source,expected", [
@@ -5091,6 +5211,90 @@ def test_the_allow_list_guard_sees_the_two_it_used_to_miss():
     assert {"_CATEGORY_WRITABLE", "_SETTINGS_WRITABLE"} <= found, (
         "the guard does not find the two allow-lists in v1_settings.py; it "
         "found %s" % sorted(found))
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# Handoff 30 §C — three fields that accepted a value and moved nothing
+# ═════════════════════════════════════════════════════════════════════════
+
+_V1_ASSETS = REPO_ROOT / "myservice_api" / "controllers" / "v1_assets.py"
+
+#: On the Odoo form these drive `location_id` through an `@api.onchange`. An
+#: onchange is a form behaviour and never runs for the API.
+_ONCHANGE_ONLY_LOCATION_FIELDS = ("building_id", "floor_id", "room_id")
+
+
+def _string_literals_of(source, name):
+    """The string constants in the module-level assignment to `name`, or None.
+
+    Constants, not text: the allow-list carries a comment explaining why the
+    three fields are ABSENT, which names all three, and a guard that grepped
+    the file would fail on the explanation of its own rule.
+    """
+    tree = ast.parse(source)
+    for node in tree.body:
+        if (isinstance(node, ast.Assign) and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and node.targets[0].id == name):
+            return {c.value for c in ast.walk(node.value)
+                    if isinstance(c, ast.Constant) and isinstance(c.value, str)}
+    return None
+
+
+def test_the_location_hierarchy_is_not_writable_over_the_api():
+    """`building_id`, `floor_id` and `room_id` stay OUT of `_WRITABLE_FIELDS`.
+
+    Until handoff 30 they were in it, and `PATCH {"building_id": …}` answered
+    200, rewrote the building — and with it the published address and the
+    coordinates, which are computed from the building — and MOVED NOTHING:
+    `location_id` follows them only through a form onchange the API never
+    runs. The asset then contradicted itself, and the append-only movement
+    record correctly said no move had happened (report 28 §1).
+
+    They were removed rather than made to work, because making them work
+    means re-implementing the onchange inside `write`: a second copy of a
+    rule, in a programme that has been bitten three times by two things that
+    should agree and do not. `location_id` is the one writable statement of
+    where an asset is and `POST /assets/<id>/move` is the act.
+
+    Putting one back looks like restoring a feature. It restores the bug.
+    `tests/test_asset_events_api.py` holds the behaviour over HTTP — the
+    three land in `_warnings.rejected_fields` and the hierarchy is unchanged.
+    """
+    assert _V1_ASSETS.exists(), "v1_assets.py is gone; this guards nothing"
+    writable = _string_literals_of(
+        _V1_ASSETS.read_text(encoding="utf-8"), "_WRITABLE_FIELDS")
+    assert writable is not None, (
+        "`_WRITABLE_FIELDS` is no longer a module-level assignment in "
+        "v1_assets.py, so this guard is asserting on nothing")
+    # Assert the subject first (reports 22 and 25): an allow-list parsed to
+    # an empty set would pass the check below for ever.
+    assert {"name", "location_id", "custodian_id", "state"} <= writable, (
+        "the allow-list parsed to %d names and lacks fields it is known to "
+        "carry — the parser is reading the wrong thing" % len(writable))
+    back = sorted(set(_ONCHANGE_ONLY_LOCATION_FIELDS) & writable)
+    assert not back, (
+        "%s %s back in `v1_assets._WRITABLE_FIELDS`. Over the API a write to "
+        "it changes the hierarchy and the published address and does NOT "
+        "move the asset, because the derivation is a form onchange. Write "
+        "`location_id`, or call POST /assets/<id>/move."
+        % (", ".join("`%s`" % f for f in back),
+           "is" if len(back) == 1 else "are"))
+
+
+def test_the_hierarchy_guard_reads_literals_and_not_comments():
+    """Mutation proof, both ways, on the shape the real file has."""
+    clean = ('_WRITABLE_FIELDS = {\n'
+             '    "name",\n'
+             '    # `building_id` was here until handoff 30.\n'
+             '    "location_id",\n'
+             '}\n')
+    assert _string_literals_of(clean, "_WRITABLE_FIELDS") == {
+        "name", "location_id"}, (
+        "a COMMENT naming the field was read as the field being writable")
+    reverted = clean.replace('"location_id",', '"building_id", "location_id",')
+    assert "building_id" in _string_literals_of(reverted, "_WRITABLE_FIELDS")
+    assert _string_literals_of(clean, "_NO_SUCH_LIST") is None
 
 
 # ═════════════════════════════════════════════════════════════════════════

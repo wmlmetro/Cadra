@@ -210,13 +210,26 @@ function App() {
           },
           // BUMP THIS whenever an adapter changes what a cached object MEANS.
           // The persisted cache holds objects AFTER `lib/adapters.ts` has run,
-          // and with `refetchOnMount: false` a restored one is shown as it
-          // was stored. v1 → v2 in handoff 29: `deriveStatus` used to turn a
-          // missing or disposed asset into "Cleared", and every browser that
-          // had opened the register was holding those objects — so the fix
-          // could have shipped and the green pill stayed on screen for six
-          // hours, out of the user's own localStorage.
-          buster: "v2",
+          // and a restored one is shown as it was stored for as long as it is
+          // fresh: `refetchOnMount: true` (above) refetches only what is STALE,
+          // and `staleTime` is five minutes — so a browser reopened inside
+          // that window paints the old objects and asks nobody.
+          //
+          // v1 → v2 in handoff 29: `deriveStatus` used to turn a missing or
+          // disposed asset into "Cleared", and every browser that had opened
+          // the register was holding those objects — so the fix could have
+          // shipped and the green pill stayed on screen, out of the user's
+          // own localStorage.
+          //
+          // v2 → v3 in handoff 30, for the same reason pointed the other way.
+          // `deriveStatus` gained "Review — no SAP code", `reviewFlags` gained
+          // its sentence, and `Asset` gained `sapReconciliationState`. A v2
+          // object has none of them: a tagged asset finance never booked would
+          // be restored wearing "Cleared", under a Status filter that now asks
+          // the server for exceptions and drops every row whose cached status
+          // disagrees. The history object changed shape too (`eventRecording`
+          // is mapped over, and a v2 one has no such key).
+          buster: "v3",
         }}
       >
         <TooltipProvider>

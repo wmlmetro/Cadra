@@ -2,6 +2,7 @@ from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 
 from .asset_custody import CUSTODY_REASON_KEY, CUSTODY_SOURCE_KEY
+from .asset_event import EVENT_REASON_KEY, EVENT_SOURCE_KEY
 from .asset_movement import (
     MOVEMENT_REASON_KEY,
     MOVEMENT_SOURCE_KEY,
@@ -77,7 +78,12 @@ class NRSAssetTransfer(models.Model):
                    CUSTODY_REASON_KEY: r.reason or False,
                    MOVEMENT_SOURCE_KEY: 'transfer',
                    MOVEMENT_REASON_KEY: r.reason or False,
-                   MOVEMENT_TRANSFER_KEY: r.id},
+                   MOVEMENT_TRANSFER_KEY: r.id,
+                   # Completing a transfer sets the asset `active`, so it can
+                   # change a status too — a missing asset that is transferred
+                   # has been found. Said, so the event is not `direct`.
+                   EVENT_SOURCE_KEY: 'transfer',
+                   EVENT_REASON_KEY: r.reason or False},
             ).write(vals)
             r.write({'state': 'done'})
             r.message_post(body=_(

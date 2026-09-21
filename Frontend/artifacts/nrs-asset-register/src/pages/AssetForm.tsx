@@ -22,7 +22,8 @@ import { useLocation, useParams } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import RecordPicker from "@/components/RecordPicker";
-import { fetchAsset, createAsset, updateAsset, type AssetWriteBody } from "@/lib/dataProvider";
+import { createAsset, updateAsset, type AssetWriteBody } from "@/lib/dataProvider";
+import { invalidateAssetQueries } from "@/components/AssetActionDialogs";
 import { apiGet, CadraApiError } from "@/lib/api";
 import type { ApiLocation } from "@/lib/adapters";
 import { ArrowLeft, AlertCircle, Loader2, Save } from "lucide-react";
@@ -53,9 +54,12 @@ type FormShape = {
   subcategory_id: number | null;
   asset_type_id: number | null;
   parent_id: number | null;
-  building_id: number | null;
-  floor_id: number | null;
-  room_id: number | null;
+  // No building / floor / room. This form has never had an input for any of
+  // them, and until handoff 30 it hydrated all three from
+  // `location_hierarchy` and sent them back on every save — three fields the
+  // user never saw, echoed into every PATCH. They left `_WRITABLE_FIELDS` in
+  // that handoff, so the echo would now have raised "these fields were not
+  // accepted" on every edit of every located asset.
   location_id: number | null;
   custodian_id: number | null;
   maintenance_vendor_id: number | null;
@@ -81,7 +85,7 @@ const blank: FormShape = {
   asset_level: ENUM_DEFAULT.asset_level, domain: "", department: "",
   condition: ENUM_DEFAULT.condition, state: ENUM_DEFAULT.asset_state,
   category_id: null, subcategory_id: null, asset_type_id: null,
-  parent_id: null, building_id: null, floor_id: null, room_id: null,
+  parent_id: null,
   location_id: null, custodian_id: null, maintenance_vendor_id: null, currency_id: null,
   purchase_date: "", warranty_expiry: "", acquisition_date: "",
   purchase_value: "", replacement_cost: "", acquisition_cost: "", current_value: "",
@@ -90,7 +94,14 @@ const blank: FormShape = {
 
 // Drop empty strings + null FK ids before POSTing — let the server keep its
 // defaults rather than wiping fields with empty values.
-function toBody(f: FormShape): AssetWriteBody {
+//
+// `terminal` is a DISPOSED asset. Its state, location and custodian are left
+// out of the body altogether: the model refuses a change to any of the three
+// (handoff 30 §B), the form does not let them be changed, and a field that
+// cannot change has no business in a PATCH. Re-sending the same values would
+// also be accepted — this is the narrower of two correct bodies, not a
+// workaround.
+function toBody(f: FormShape, terminal = false): AssetWriteBody {
   const out: AssetWriteBody = {};
   const assignIfSet = <K extends keyof AssetWriteBody>(key: K, val: AssetWriteBody[K]) => {
     if (val === "" || val === null || val === undefined) return;
@@ -101,9 +112,13 @@ function toBody(f: FormShape): AssetWriteBody {
   // `_WRITABLE_FIELDS` on purpose (`v1_assets.py`: a client able to write it
   // can walk the record away from the sticker on the asset), and both POST and
   // PATCH run the body through the same `_filter_writable`. So it was dropped
-  // and named in `_warnings.rejected_fields`, which nothing here reads: typing
-  // a tag gave a 200, no change and no message. Cadra mints the tag itself
-  // when the asset is created; the input below is read-only and says so.
+  // and named in `_warnings.rejected_fields`, which at the time NOTHING read:
+  // typing a tag gave a 200, no change and no message. Since handoff 30 every
+  // write's `_warnings` are shown to the user (`sendMutation` in lib/api.ts),
+  // so sending it would no longer be silent — it would be a warning about a
+  // field the user was never able to type. Still not sent. Cadra mints the
+  // tag itself when the asset is created; the input below is read-only and
+  // says so.
   assignIfSet("legacy_asset_code", f.legacy_asset_code);
   assignIfSet("serial_number", f.serial_number);
   assignIfSet("make", f.make);
@@ -121,16 +136,15 @@ function toBody(f: FormShape): AssetWriteBody {
   // `condition` and `state` to hand-written unions, and that narrowing has
   // been widened to the model's keys, so there is nothing left to cast past.
   assignIfSet("condition", f.condition);
-  assignIfSet("state", f.state);
+  if (!terminal) assignIfSet("state", f.state);
   assignIfSet("category_id", f.category_id);
   assignIfSet("subcategory_id", f.subcategory_id);
   assignIfSet("asset_type_id", f.asset_type_id);
   assignIfSet("parent_id", f.parent_id);
-  assignIfSet("building_id", f.building_id);
-  assignIfSet("floor_id", f.floor_id);
-  assignIfSet("room_id", f.room_id);
-  assignIfSet("location_id", f.location_id);
-  assignIfSet("custodian_id", f.custodian_id);
+  if (!terminal) {
+    assignIfSet("location_id", f.location_id);
+    assignIfSet("custodian_id", f.custodian_id);
+  }
   assignIfSet("maintenance_vendor_id", f.maintenance_vendor_id);
   assignIfSet("currency_id", f.currency_id);
   assignIfSet("purchase_date", f.purchase_date);
@@ -271,9 +285,6 @@ export default function AssetForm({ mode }: Props) {
         subcategory_id: ref(e.subcategory),
         asset_type_id: ref(e.asset_type),
         parent_id: ref(e.parent_asset),
-        building_id: ref((e.location_hierarchy as Record<string, unknown> | null)?.building),
-        floor_id: ref((e.location_hierarchy as Record<string, unknown> | null)?.floor),
-        room_id: ref((e.location_hierarchy as Record<string, unknown> | null)?.room),
         location_id: ref(e.current_location),
         custodian_id: ref(e.current_custodian),
         maintenance_vendor_id: ref(e.maintenance_vendor),
@@ -296,13 +307,27 @@ export default function AssetForm({ mode }: Props) {
     setSearchHandler(undefined);
   }, [mode, existing.data, existing.isFetchedAfterMount, setTitle, setSearchHandler]);
 
+  // DISPOSED IS TERMINAL — read off the RECORD as the server just sent it, not
+  // off the select, which the user can move. The rule is the model's
+  // (`nrs.asset.write` refuses a change of status, location or custodian on a
+  // disposed asset, for every writer); this form only declines to OFFER what
+  // would be refused, and says why beside each control. Were it ever wrong —
+  // a record disposed of by somebody else between load and save — the
+  // server's own sentence lands in the error panel below, as any refusal does.
+  const isDisposed = mode === "edit"
+    && existing.isFetchedAfterMount
+    && (existing.data as Record<string, unknown> | undefined)?.state === "disposed";
+
   const mutation = useMutation({
-    mutationFn: () => mode === "edit" ? updateAsset(id!, toBody(form)) : createAsset(toBody(form)),
+    mutationFn: () => mode === "edit"
+      ? updateAsset(id!, toBody(form, isDisposed))
+      : createAsset(toBody(form)),
     onSuccess: (asset) => {
-      qc.invalidateQueries({ queryKey: ["assets"] });
-      qc.invalidateQueries({ queryKey: ["asset", asset.id] });
-      qc.invalidateQueries({ queryKey: ["asset-history", asset.id] });
-      qc.invalidateQueries({ queryKey: ["asset-raw", asset.id] });
+      // The shared list, not a shorter one of this form's own. This form can
+      // change `state` — it is how a missing asset is put back — so a save
+      // here moves the register's counts and the dashboard's as surely as
+      // Mark missing does, and its own list refreshed neither.
+      invalidateAssetQueries(qc, asset.id);
       nav(`/assets/${asset.id}`);
     },
   });
@@ -355,6 +380,20 @@ export default function AssetForm({ mode }: Props) {
             <p className="text-[13px] font-semibold text-red-700 dark:text-red-400">{err.code}</p>
             <p className="text-[12px] text-red-700 dark:text-red-400 mt-0.5">{err.message}</p>
           </div>
+        </div>
+      )}
+
+      {isDisposed && (
+        <div
+          className="bg-slate-100 dark:bg-slate-800/60 border border-slate-300/80 dark:border-slate-600/60 rounded-2xl p-4"
+          data-testid="form-disposed-notice"
+          role="note"
+        >
+          <p className="text-[12px] text-slate-800 dark:text-slate-200">
+            <span className="font-semibold">This asset has been disposed of, and disposal is the end of an asset's record.</span>{" "}
+            Its state, location and custodian are fixed as they were when it was disposed of, so they are shown here and cannot be changed.
+            Everything else on this form can still be corrected.
+          </p>
         </div>
       )}
 
@@ -431,10 +470,22 @@ export default function AssetForm({ mode }: Props) {
 
       <Section title="Location & custody">
         <Field label="Current location" span={2}>
-          <RecordPicker value={locPick} onChange={setLocPick} search={searchLocations} queryKey="form-locations" placeholder="Search locations…" />
+          <RecordPicker value={locPick} onChange={setLocPick} search={searchLocations} queryKey="form-locations"
+                        placeholder={isDisposed ? "No location recorded" : "Search locations…"} disabled={isDisposed} />
+          {isDisposed && (
+            <p className="text-[10px] text-muted-foreground leading-snug" data-testid="hint-disposed-location">
+              A disposed asset cannot be moved. Its record keeps the location it was disposed of from.
+            </p>
+          )}
         </Field>
         <Field label="Current custodian" span={2}>
-          <RecordPicker value={custPick} onChange={setCustPick} search={searchEmployees} queryKey="form-employees" placeholder="Search employees…" />
+          <RecordPicker value={custPick} onChange={setCustPick} search={searchEmployees} queryKey="form-employees"
+                        placeholder={isDisposed ? "No custodian recorded" : "Search employees…"} disabled={isDisposed} />
+          {isDisposed && (
+            <p className="text-[10px] text-muted-foreground leading-snug" data-testid="hint-disposed-custodian">
+              A disposed asset cannot change custodian. Its record keeps whoever held it when it was disposed of.
+            </p>
+          )}
         </Field>
       </Section>
 
@@ -448,9 +499,39 @@ export default function AssetForm({ mode }: Props) {
           {/* These two matched the model's values, but displayed the raw keys:
               "in_repair" where the model says "Under Repair". The label is the
               model's now, along with the set. */}
-          <select className={inputCls} value={form.state} onChange={e => set("state", e.target.value)}>
-            {withCurrent(stateOptions, form.state).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          {/* On a disposed asset the ONLY option is the one it holds, and the
+              select is off. Offering the other four would be offering four
+              saves the server refuses. */}
+          <select
+            className={cn(inputCls, isDisposed && "bg-muted/50 text-muted-foreground cursor-not-allowed")}
+            value={form.state}
+            onChange={e => set("state", e.target.value)}
+            disabled={isDisposed}
+            data-testid="select-asset-state"
+          >
+            {withCurrent(stateOptions, form.state)
+              .filter(o => !isDisposed || o.value === form.state)
+              // Editing a LIVE asset does not offer "Disposed". Since handoff
+              // 30 disposal is terminal, so this option had become a one-way
+              // door in a dropdown: no confirmation, no reason, and — because
+              // a PATCH stamps nothing — no disposal date. Until that day a
+              // mis-click was undone from this same select. Disposal has a
+              // door of its own, Condemn, which asks why and lets the server
+              // date it. Registering an asset that is ALREADY gone is a
+              // different act and is still offered on create.
+              .filter(o => mode !== "edit" || isDisposed || o.value !== "disposed")
+              .map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
+          {isDisposed && (
+            <p className="text-[10px] text-muted-foreground leading-snug" data-testid="hint-disposed-state">
+              A disposed asset's state cannot be changed — it cannot be marked missing, put under repair or returned to service.
+            </p>
+          )}
+          {mode === "edit" && !isDisposed && (
+            <p className="text-[10px] text-muted-foreground leading-snug" data-testid="hint-dispose-elsewhere">
+              To dispose of this asset use Condemn on its page. It asks for a reason, and it cannot be undone.
+            </p>
+          )}
         </Field>
       </Section>
 

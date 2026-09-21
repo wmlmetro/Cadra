@@ -7,10 +7,12 @@ import type { Asset } from '../types';
 // `new` asset, and the mock Condition filter compared display strings while the
 // live one sent model keys to the API.
 //
-// `status` is one of the three values a live asset can carry. Three rows used
-// to hold "VIN not verifiable", "possible duplicate" and "allottee not in
-// nominal roll", each with a flag explaining a check the back end does not
-// perform; they are plain review rows now and the invented flags are gone.
+// `status` is one of the values a live asset can carry. Three rows used to
+// hold "VIN not verifiable", "possible duplicate" and "allottee not in nominal
+// roll", each with a flag explaining a check the back end does not perform;
+// they are plain review rows now and the invented flags are gone. The last
+// row is "Review — no SAP code" (handoff 30) so that the mock register's
+// Status filter has a row to return for every status it offers.
 export const mockAssets: Asset[] = [
   {
     id: "AST-1001",
@@ -208,8 +210,8 @@ export const mockAssets: Asset[] = [
       office: "Port Harcourt MSTO",
       path: "South South / Rivers State Office / Port Harcourt MSTO"
     },
-    status: "Review — data quality",
-    reviewFlags: [],
+    status: "Review — no SAP code",
+    reviewFlags: ["Tagged, but finance has no SAP asset number for it"],
     custodianScore: 60
   }
 ];

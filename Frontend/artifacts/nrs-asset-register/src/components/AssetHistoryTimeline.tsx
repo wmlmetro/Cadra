@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Activity, AlertCircle, AlertTriangle, ArrowDown, ArrowRightLeft, ArrowUp,
-  CheckCircle2, ChevronDown, ChevronRight, CircleDot, Clock, Edit3, FilePlus,
-  FileSearch, FileText, Gauge, Info, MapPin, Printer, Send, ShieldCheck, Tag,
-  Trash2, Wrench,
+  CalendarClock, CheckCircle2, ChevronDown, ChevronRight, CircleDot, Clock, Edit3,
+  FilePlus, FileSearch, FileText, Gauge, Info, MapPin, Printer, Send, ShieldCheck,
+  Tag, Trash2, Wrench,
   type LucideIcon,
 } from "lucide-react";
 import { fetchAssetHistory } from "@/lib/dataProvider";
@@ -31,6 +31,10 @@ const EVENT_ICON: Record<string, LucideIcon> = {
   status_changed: Activity,
   condition_changed: Gauge,
   verified: ShieldCheck,
+  // NOT the shield. A verification date written any other way than the Verify
+  // button names nobody who checked the asset, and the row must not borrow the
+  // look of one that does.
+  verification_date_set: CalendarClock,
   disposal_approved: CheckCircle2,
   disposal_recorded: Trash2,
   details_changed: Edit3,
@@ -157,6 +161,27 @@ function EventRow({ e, meanings, onExplain }: {
             <span className="font-mono">{e.transferReference}</span>
           </>
         )}
+        {/* A maintenance request's reference goes only to a sign-in that may
+            read service requests. When the server held it back the row SAYS
+            so: a bare "Maintenance request raised" reads as a request that
+            has no reference, which is a different fact. */}
+        {e.requestReference ? (
+          <>
+            <span>·</span>
+            <span className="font-mono" data-testid="history-request-reference">{e.requestReference}</span>
+          </>
+        ) : e.requestReferenceWithheld ? (
+          <>
+            <span>·</span>
+            <span
+              className="italic"
+              title="Shown only to a sign-in that may read service requests."
+              data-testid="history-request-reference-withheld"
+            >
+              Reference withheld — this sign-in cannot read service requests
+            </span>
+          </>
+        ) : null}
       </div>
     </li>
   );
@@ -353,6 +378,21 @@ export default function AssetHistoryTimeline({ assetId }: { assetId: string }) {
                     {h.location.statement}
                   </p>
                 )
+              )}
+              {/* And of each kind of event that has had a record nobody can
+                  alter since handoff 30 — a verification, a change of status,
+                  a change to the GRN / PO / SAP number. One sentence per kind,
+                  the server's: the kinds share a table and did not
+                  necessarily begin on the same day on a given database.
+                  Nothing from a server that does not send the block. */}
+              {h.eventRecording.length > 0 && (
+                <ul className="mt-2 space-y-1" data-testid="asset-history-event-recording">
+                  {h.eventRecording.map(f => (
+                    <li key={f.event} className="text-[11px] text-muted-foreground" data-event={f.event}>
+                      {f.statement}
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
 

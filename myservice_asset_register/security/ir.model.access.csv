@@ -28,3 +28,6 @@ access_nrs_asset_custody_manager,nrs.asset.custody manager,model_nrs_asset_custo
 access_nrs_asset_movement_employee,nrs.asset.movement employee,model_nrs_asset_movement,base.group_user,1,0,0,0
 access_nrs_asset_movement_user,nrs.asset.movement user,model_nrs_asset_movement,myservice_asset_register.group_asset_user,1,0,0,0
 access_nrs_asset_movement_manager,nrs.asset.movement manager,model_nrs_asset_movement,myservice_asset_register.group_asset_manager,1,0,0,0
+access_nrs_asset_event_employee,nrs.asset.event employee,model_nrs_asset_event,base.group_user,1,0,0,0
+access_nrs_asset_event_user,nrs.asset.event user,model_nrs_asset_event,myservice_asset_register.group_asset_user,1,0,0,0
+access_nrs_asset_event_manager,nrs.asset.event manager,model_nrs_asset_event,myservice_asset_register.group_asset_manager,1,0,0,0

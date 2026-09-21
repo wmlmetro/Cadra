@@ -34,7 +34,9 @@ from .utils import (
     SCOPE_ASSETS_READ,
     SCOPE_ASSETS_WRITE,
     SCOPE_DASHBOARDS_READ,
+    SCOPE_REQUESTS_READ,
     SCOPE_TAGGING_WRITE,
+    caller_holds,
     decode_cursor,
     encode_cursor,
     err,
@@ -828,7 +830,20 @@ _WRITABLE_FIELDS = {
     "make", "model_name", "manufacturer",
     "category_id", "subcategory_id", "asset_type_id", "asset_level", "domain",
     "parent_id",
-    "building_id", "floor_id", "room_id", "location_id",
+    # `building_id`, `floor_id` and `room_id` were here until handoff 30 and
+    # are deliberately ABSENT. On the Odoo form they drive `location_id`
+    # through an `@api.onchange`, and an onchange never runs for the API: so
+    # `PATCH {"building_id": …}` was accepted with a 200, rewrote the
+    # building — and with it the published address and coordinates, which
+    # are computed from the building — and MOVED NOTHING. The asset then
+    # contradicted itself, and the movement record correctly said no move
+    # had happened (report 28 §1). Re-implementing the onchange inside
+    # `write` would be a second copy of a rule, which is how two things that
+    # should agree come not to. `location_id` is the one writable statement
+    # of where an asset is, and `POST /assets/<id>/move` is the act. All
+    # three stay published, read-only, under `data.location_hierarchy`, and
+    # stay filters on the list.
+    "location_id",
     "custodian_id", "department",
     "condition", "state",
     "currency_id", "purchase_date", "warranty_expiry",
@@ -932,6 +947,38 @@ def _filter_writable(body):
     vals = {k: v for k, v in body.items() if k in _WRITABLE_FIELDS}
     rejected = [k for k in body if k not in _WRITABLE_FIELDS]
     return vals, rejected
+
+
+def _last_event_id(rec):
+    """The newest `nrs.asset.event` id on the asset NOW, or 0. Taken BEFORE
+    an action, so `_event_written` can tell the row the action wrote from
+    one that was already there."""
+    return max(rec.event_ids.ids or [0])
+
+
+def _event_written(rec, event_type, after):
+    """The id of the event of this type written SINCE `after`, or None.
+
+    Not "the newest of this type". That was the first draft, and it answers
+    with a PREVIOUS call's row the day an action writes none — unreachable
+    when it was written, and one refactor from publishing somebody else's
+    verification as the record of yours.
+    """
+    rec.invalidate_recordset(["event_ids"])
+    event = rec.event_ids.filtered(
+        lambda e: e.event_type == event_type and e.id > after).sorted("id")[-1:]
+    return event.id or None
+
+
+def _required_reason(body):
+    """`(reason, None)` or `(None, error)`. A blank reason is no reason."""
+    reason = body.get("reason") if isinstance(body, dict) else None
+    if reason is not None and not isinstance(reason, str):
+        return None, err(ERR_INVALID_REQUEST, "`reason` must be a string")
+    reason = (reason or "").strip()
+    if not reason:
+        return None, err(ERR_INVALID_REQUEST, "`reason` is required")
+    return reason, None
 
 
 def _browse_or_404(asset_id):
@@ -1180,9 +1227,6 @@ class CadraAssetsV1(http.Controller):
                          "asset_level": {"type": "string", "nullable": True},
                          "domain": {"type": "string", "nullable": True},
                          "parent_id": {"type": "integer", "nullable": True},
-                         "building_id": {"type": "integer", "nullable": True},
-                         "floor_id": {"type": "integer", "nullable": True},
-                         "room_id": {"type": "integer", "nullable": True},
                          "location_id": {"type": "integer", "nullable": True},
                          "custodian_id": {"type": "integer", "nullable": True,
                                           "description": "hr.employee id"},
@@ -1255,7 +1299,8 @@ class CadraAssetsV1(http.Controller):
         # came from, so the row does not read as an anonymous direct write.
         rec = request.env["nrs.asset"].sudo().with_context(
             cadra_custody_source="api_write",
-            cadra_movement_source="api_write").create(vals)
+            cadra_movement_source="api_write",
+            cadra_event_source="api_write").create(vals)
         out = serialize_asset(rec)
         if rejected:
             out["_warnings"] = {"rejected_fields": rejected}
@@ -1310,8 +1355,16 @@ class CadraAssetsV1(http.Controller):
             # announce it. The recorder in `nrs.asset.write` catches it
             # either way; the context is what stops it being labelled
             # `direct`.
+            # The same for `nrs.asset.event` (handoff 30): `state`,
+            # `last_verified_date` and two of the three recorded references
+            # are writable here, so this route changes a status as surely
+            # as `/condemn` does. A model refusal — a disposed asset may not
+            # change status, move or change hands — is raised in that
+            # `write`, rolls the transaction back and answers 400
+            # `validation_failed` in the model's own words.
             rec.with_context(cadra_custody_source="api_write",
-                             cadra_movement_source="api_write").write(vals)
+                             cadra_movement_source="api_write",
+                             cadra_event_source="api_write").write(vals)
         out = serialize_asset(rec)
         if rejected:
             out["_warnings"] = {"rejected_fields": rejected}
@@ -1366,6 +1419,14 @@ class CadraAssetsV1(http.Controller):
         reason = body.get("reason") or ""
         if reason and not isinstance(reason, str):
             return err(ERR_INVALID_REQUEST, "`reason` must be a string")
+
+        # ASKED EARLY, not re-stated. Whether a disposed asset may move is
+        # the model's rule and is refused in `nrs.asset.write` for every
+        # writer; this calls that same method before anything is drawn. The
+        # transfer row below rolls back with the refusal — an `ir.sequence`
+        # number does not, so a refused move used to leave a gap in the
+        # transfer references, one per attempt, that no transfer explained.
+        rec._assert_disposed_is_terminal({"location_id": to_loc.id})
 
         # AN ASSET THAT IS NOWHERE IS PLACED, NOT TRANSFERRED.
         # `nrs.asset.transfer` requires BOTH locations — it is a document about
@@ -1463,11 +1524,14 @@ class CadraAssetsV1(http.Controller):
         gives. PATCH keeps accepting the date; it is an integration's way to
         carry a verification made elsewhere, and what it cannot do is say who.
 
-        What this buys, plainly: the asset holds the verifier, and the
-        history's `verified` event names them. It is ONE overwritten column
-        and a chatter line — a second verification replaces the first on the
-        asset, and the chatter line is deletable. It is not an append-only
-        record of verifications, and nothing here says it is.
+        What this buys, plainly: the asset holds the LAST verifier — one
+        overwritten pair of columns — and, since handoff 30, every call also
+        appends an `nrs.asset.event` of type `verified` that nobody can edit
+        or delete. *"Show me every time this asset was checked, and by
+        whom"* is answered from those, by `GET /assets/<id>/history`.
+        `data.event_id` is the one this call wrote. Verifications made
+        before that record began exist only as a chatter line, and the
+        history says from when.
         """
         rec, error = _browse_or_404(id)
         if error:
@@ -1476,7 +1540,9 @@ class CadraAssetsV1(http.Controller):
         notes = body.get("notes") or ""
         if notes and not isinstance(notes, str):
             return err(ERR_INVALID_REQUEST, "`notes` must be a string")
-        rec.action_verify(notes=notes or None)
+        before = _last_event_id(rec)
+        rec.with_context(cadra_event_source="api_verify").action_verify(
+            notes=notes or None)
         return {
             "asset": serialize_asset(rec),
             "verification": {
@@ -1484,6 +1550,135 @@ class CadraAssetsV1(http.Controller):
                 "verified_by": _ref(rec.last_verified_by),
                 "notes": rec.verification_notes or None,
             },
+            # The append-only record this call produced. ADDITIVE.
+            "event_id": _event_written(rec, "verified", before),
+        }
+
+    # ── Mark missing: POST /api/v1/assets/<id>/mark-missing ────────
+
+    @cadra_route("/api/v1/assets/<int:id>/mark-missing", method="POST",
+                 summary="Mark an asset missing, and record why",
+                 scopes=[SCOPE_ASSETS_WRITE],
+                 idempotent=True,
+                 error_statuses=(409,),
+                 request_schema={
+                     "type": "object",
+                     "required": ["reason"],
+                     "properties": {
+                         "reason": {"type": "string",
+                                    "description": "The circumstances: where "
+                                                   "it was looked for, when "
+                                                   "it was last seen, who "
+                                                   "reported it."},
+                     },
+                 },
+                 request_example={"reason": "Not found at desk 4F-12 during "
+                                            "the Q3 verification exercise; "
+                                            "last sighted 2026-06-30."})
+    def mark_asset_missing(self, id, **kwargs):
+        """An asset that cannot be found may be a loss. This records WHY.
+
+        `PATCH {"state": "missing"}` has always been able to mark an asset
+        missing and still can — it is how the Cadra app did it until handoff
+        30 — but a PATCH has nowhere to put a sentence, so the first question
+        anybody asks about a missing asset had no answer anywhere. The reason
+        given here is written to the append-only `status_changed` event:
+        what was said when it was marked, by whom, which nobody can tidy up
+        afterwards. It is NOT a field on the asset.
+
+        `reason` is REQUIRED, and that is deliberate on a new route: loosening
+        it later breaks nobody, tightening it later would.
+
+        **409** — already missing, or disposed. A disposed asset's status
+        cannot change (the model refuses it for every writer); asking again
+        for one already missing would append nothing, and a 200 for nothing
+        is the answer this API refuses to give.
+        """
+        rec, error = _browse_or_404(id)
+        if error:
+            return error
+        reason, error = _required_reason(get_params())
+        if error:
+            return error
+        if rec.state in ("missing", "disposed"):
+            return err(
+                ERR_CONFLICT,
+                "This asset is already %s." % (
+                    "missing" if rec.state == "missing" else
+                    "disposed of, and a disposed asset cannot be marked "
+                    "missing"),
+                status=409, details={"asset_id": rec.id, "state": rec.state})
+        before = _last_event_id(rec)
+        rec.with_context(
+            cadra_event_source="api_mark_missing").action_mark_missing(
+                reason=reason)
+        return {
+            "asset": serialize_asset(rec),
+            "event_id": _event_written(rec, "status_changed", before),
+        }
+
+    # ── Condemn: POST /api/v1/assets/<id>/condemn ──────────────────
+
+    @cadra_route("/api/v1/assets/<int:id>/condemn", method="POST",
+                 summary="Dispose of an asset — status, condition and the "
+                         "disposal date, set in one place on the server",
+                 scopes=[SCOPE_ASSETS_WRITE],
+                 idempotent=True,
+                 error_statuses=(409,),
+                 request_schema={
+                     "type": "object",
+                     "required": ["reason"],
+                     "properties": {
+                         "reason": {"type": "string",
+                                    "description": "Why it is being disposed "
+                                                   "of. Recorded on "
+                                                   "`disposal_reason` and on "
+                                                   "the append-only event."},
+                     },
+                 },
+                 request_example={"reason": "Beyond economic repair — "
+                                            "motherboard failure, BER "
+                                            "report ICT/2026/114."})
+    def condemn_asset(self, id, **kwargs):
+        """Dispose of an asset the way the Odoo button does. `action_condemn`.
+
+        Until handoff 30 the Cadra app condemned with a PATCH of four fields,
+        one of which was the disposal DATE taken from the browser's clock. A
+        PATCH is `write()`, which stamps nothing, so the app had to send a
+        date, and a date a client sends is whatever the client's clock says.
+        This route sends none: `state`, `condition` and `disposal_date` are
+        set together, on the server, and the date is a LAGOS day — the same
+        definition of the day the register snapshot cuts on, NOT the acting
+        user's timezone, which for an API credential is unset and therefore
+        UTC, and would have dated every disposal made between 00:00 and
+        01:00 in Lagos to the day before.
+
+        It records WHO carried the disposal out — the actor of the
+        append-only `status_changed` event — which the register did not hold
+        anywhere before. It does NOT approve the disposal: that is
+        `POST /assets/<id>/approve-disposal`, a different scope, and
+        condemning an asset is not authorising it.
+
+        **409** — already disposed. Disposal is terminal.
+        """
+        rec, error = _browse_or_404(id)
+        if error:
+            return error
+        reason, error = _required_reason(get_params())
+        if error:
+            return error
+        if rec.state == "disposed":
+            return err(ERR_CONFLICT, "This asset has already been disposed of.",
+                       status=409,
+                       details={"asset_id": rec.id, "state": rec.state,
+                                "disposal_date": _date(rec.disposal_date)})
+        before = _last_event_id(rec)
+        rec.with_context(cadra_event_source="api_condemn").action_condemn(
+            reason=reason)
+        return {
+            "asset": serialize_asset(rec),
+            "disposal": _serialize_disposal(rec),
+            "event_id": _event_written(rec, "status_changed", before),
         }
 
     # ── Transfer custody: POST /api/v1/assets/<id>/transfer-custody ─
@@ -1705,7 +1900,12 @@ class CadraAssetsV1(http.Controller):
             return err(ERR_INVALID_REQUEST, str(e), details=e.details)
         # Absent means newest — the opposite default from the listing, whose
         # `oldest` predates `?sort`. Here there is no older behaviour to keep.
-        return rec.asset_history(newest_first=sort != "oldest")
+        return rec.asset_history(
+            newest_first=sort != "oldest",
+            # A maintenance request belongs to `requests:read`. Its reference
+            # is published to a caller who holds that too, and withheld —
+            # and SAID to be withheld — from one who does not (handoff 30).
+            request_references=caller_holds(SCOPE_REQUESTS_READ))
 
     # ── Confirm tagging: POST /api/v1/assets/<id>/tag-affixed ──────
 

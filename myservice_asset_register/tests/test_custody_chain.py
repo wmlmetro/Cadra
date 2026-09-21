@@ -213,6 +213,47 @@ class TestTheSourceIsTruthful(CustodyCase):
         self.assertEqual(link.source, "api_transfer")
         self.assertEqual(link.reason, "Previous custodian left")
 
+    def test_a_caller_cannot_file_a_custody_change_under_test(self):
+        """The context is caller-controlled over `call_kw`. `test` says the
+        link is an ARTEFACT, and until handoff 30 anybody able to change a
+        custodian could claim it and file a real change of custody as one.
+        Movement closed this when it was written; this model, which it was
+        copied from, did not — two copies of one rule, disagreeing for a
+        month. `test` is derived from the credential, never claimed."""
+        asset = self._asset(custodian_id=self.alice.id)
+        asset.with_context(cadra_custody_source="test").write(
+            {"custodian_id": self.bob.id})
+        link = self._links(asset)[-1]
+        self.assertEqual(link.to_custodian_id, self.bob)
+        self.assertEqual(link.source, "direct")
+
+    def test_a_caller_cannot_file_a_custody_change_as_a_reconstruction(self):
+        """`tracking_backfill` says the link was rebuilt from the message
+        log after the fact. Claimed on a live change it would mark a
+        contemporaneous record as a reconstruction — and `myservice_api`
+        exempts that label from the test-credential relabel, so it would
+        also have been a way to keep `test` OFF a fixture."""
+        asset = self._asset(custodian_id=self.alice.id)
+        asset.with_context(cadra_custody_source="tracking_backfill").write(
+            {"custodian_id": self.bob.id})
+        self.assertEqual(self._links(asset)[-1].source, "direct")
+
+    def test_a_source_nobody_defined_is_direct(self):
+        asset = self._asset()
+        asset.with_context(cadra_custody_source="the_board_said_so").write(
+            {"custodian_id": self.alice.id})
+        self.assertEqual(self._links(asset)[-1].source, "direct")
+
+    def test_first_party_code_can_still_pass_a_reconstruction_explicitly(self):
+        """Closing the context must not have closed the one honest door: a
+        backfill passes the label to `_record` as an argument, which an RPC
+        caller cannot reach — `_record` is private to `call_kw`."""
+        asset = self._asset()
+        link = self.Custody._record(
+            asset, self.env["hr.employee"], self.alice,
+            source="tracking_backfill")
+        self.assertEqual(link.source, "tracking_backfill")
+
     def test_a_completed_transfer_is_labelled_transfer(self):
         Location = self.env["generic.location"]
         origin = Location.create({"name": "Custody test origin"})
