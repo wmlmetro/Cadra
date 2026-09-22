@@ -512,7 +512,7 @@ export default function AssetDetail() {
                   health (handoff 34 §C). */}
               <WarrantyCard asset={asset} />
 
-              {(asset.maintenanceVendor || asset.pmCount || asset.requestCount) && (
+              {!!(asset.maintenanceVendor || asset.pmCount || asset.requestCount) && (
                 <section>
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Maintenance</h3>
                   <dl className="bg-card border border-card-border rounded-xl px-5 py-1">
