@@ -21,7 +21,8 @@ MOVEMENT_APPEND_KEY = 'cadra_movement_append'
 # The sources a CALLER may declare through the context. The others —
 # `test`, `tracking_backfill`, `location_deleted` — say something about the
 # evidence itself and are never taken from the context: see `_resolve_source`.
-_CONTEXT_SOURCES = ('api_move', 'api_write', 'transfer', 'direct')
+_CONTEXT_SOURCES = ('api_move', 'api_write', 'transfer', 'approval',
+                    'direct')
 
 
 # Literal inside the function, translated at the call — see
@@ -135,6 +136,12 @@ class NRSAssetMovement(models.Model):
         ('api_move', 'API — move'),
         ('api_write', 'API — asset create or update'),
         ('transfer', 'Asset transfer completion'),
+        # Handoff 35. A move a second person agreed to. It is a separate
+        # label from `api_move` rather than a flag on it, because the
+        # question an auditor asks is not *which endpoint wrote this* but
+        # *did anybody else agree* — and the answer has to be legible in the
+        # movement row itself, not only by following `nrs.asset.change.request`.
+        ('approval', 'Approved change request'),
         ('direct', 'Direct write (Odoo UI, import or script)'),
         ('location_deleted', 'The location was deleted'),
         # Nothing writes this today. Handoff 28 ruled that location is NOT

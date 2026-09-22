@@ -221,7 +221,16 @@ class NRSAssetImport(models.Model):
                         # No `status_note` key when there is nothing to say, so the
                         # validation step's own note survives instead of being
                         # blanked.
-                        existing.write(update_vals)
+                        # `cadra_approval_exempt='import'` — handoff 35 §A.
+                        # A file load is not a person deciding to move one
+                        # asset today. Approving eleven thousand rows one at
+                        # a time is not a control; it is a denial of service
+                        # against the people operating the register. The
+                        # movement recorder still runs underneath, so an
+                        # imported move is recorded — it is simply not asked
+                        # about.
+                        existing.with_context(
+                            cadra_approval_exempt='import').write(update_vals)
                         line.write(line_vals)
 
             except Exception as e:

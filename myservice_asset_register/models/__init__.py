@@ -6,6 +6,10 @@ from . import asset_movement
 from . import asset_event
 from . import asset
 from . import asset_transfer
+# After `asset_custody`, `asset_movement` and `asset_event`, whose context
+# keys it imports, and after `asset_transfer`, which an approved location
+# request creates. Handoff 35.
+from . import asset_change_request
 from . import asset_pm
 from . import asset_tag
 from . import asset_import

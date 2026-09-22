@@ -8,6 +8,14 @@
             <field name="padding">6</field>
             <field name="company_id" eval="False"/>
         </record>
+        <record id="seq_nrs_asset_change_request" model="ir.sequence">
+            <field name="name">NRS Asset Change Request</field>
+            <field name="code">nrs.asset.change.request</field>
+            <field name="prefix">CR/%(year)s/</field>
+            <field name="padding">4</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
         <record id="seq_nrs_asset_transfer" model="ir.sequence">
             <field name="name">NRS Asset Transfer</field>
             <field name="code">nrs.asset.transfer</field>

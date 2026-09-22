@@ -62,6 +62,161 @@ from .query_params import (
 )
 from .v1 import PAGINATION_QUERY_PARAMS, cadra_route
 
+# Handoff 35. The approval gate lives on `nrs.asset` and applies to every
+# writer; what these two helpers do is let the two ROUTES that are a person
+# deciding to move something answer well — with a request and a reference
+# number — instead of letting the model's `UserError` surface as a 400 on a
+# button the user was told to press.
+_CHANGE_REQUEST = "nrs.asset.change.request"
+
+
+def _approval_required():
+    """Whether this tenant needs a second person. Read per request.
+
+    Not cached anywhere, for the reason `approval_policy` gives at length:
+    the failure this control has is a worker serving `off` from an ormcache
+    for a tenant whose row now says `on`, which is a control that has stopped
+    applying with no symptom at all.
+    """
+    return request.env[_CHANGE_REQUEST].sudo().approval_is_required()
+
+
+def _resolve_approver(body, asset):
+    """(approver_user, error_envelope). WHO IS BEING ASKED, from the body.
+
+    This IS read from the body, and it is the one thing on this path that is
+    — because it is a nomination, not an authority. `approver_id` says whose
+    queue the request lands in and who the notification is addressed to; it
+    confers nothing. WHO DECIDED is `approved_by_id`, written from the token
+    by `action_approve` and never readable from any payload. Two fields, on
+    purpose and by instruction: a requester who can name the approver can
+    forge one, and that is only true if naming them is what makes them the
+    approver.
+    """
+    CR = request.env[_CHANGE_REQUEST].sudo()
+    raw = body.get("approver_id")
+    if raw in (None, "", 0, "0"):
+        candidates = CR.eligible_approvers(
+            exclude_user=request.env.user, limit=10)
+        return None, err(
+            ERR_INVALID_REQUEST,
+            "This register requires a second person to approve a change of "
+            "this kind, so `approver_id` is required: name who you are "
+            "asking. GET /api/v1/approvals/approvers lists who may be asked.",
+            details={
+                "asset_id": asset.id,
+                "approval_required": True,
+                "approvers": [{"id": u.id, "name": u.display_name}
+                              for u in candidates],
+            })
+    try:
+        approver_id = int(raw)
+    except (TypeError, ValueError):
+        return None, err(ERR_INVALID_REQUEST,
+                         "`approver_id` must be an integer")
+    approver = request.env["res.users"].sudo().browse(approver_id).exists()
+    if not approver:
+        return None, err(ERR_NOT_FOUND, f"User {approver_id} not found",
+                         status=404)
+    if approver.id == request.env.uid:
+        # Refused here AND by `_check_approver_is_not_the_requester` on the
+        # model. Here so the message is about what the caller did; there
+        # because a rule enforced only at the door is a rule with a back way
+        # in, which is the lesson of every handoff since 28.
+        return None, err(
+            ERR_INVALID_REQUEST,
+            "You cannot ask yourself to approve your own change. Name "
+            "somebody else.",
+            details={"asset_id": asset.id})
+    if not approver.has_group(CR.APPROVER_GROUP) \
+            and not approver._is_admin():
+        return None, err(
+            ERR_INVALID_REQUEST,
+            "%s cannot approve a change of this kind. An approver must be "
+            "somebody who could have made the change themselves."
+            % approver.display_name,
+            details={"asset_id": asset.id, "approver_id": approver.id})
+    return approver, None
+
+
+def _pending_conflict(asset):
+    """409 if something is already waiting on this asset, else None.
+
+    A database partial-unique index enforces one pending request per asset,
+    and it is the authority. This exists because the index answers with a
+    `psycopg2.IntegrityError` that aborts the transaction, and a person who
+    pressed Move deserves the reference number of the request in their way.
+    Proved by the model probe in handoff 35: the raw violation takes the
+    whole transaction with it.
+    """
+    existing = request.env[_CHANGE_REQUEST].sudo().pending_for_asset(asset)
+    if not existing:
+        return None
+    return err(
+        ERR_CONFLICT,
+        "%s is already waiting for approval on this asset — %s asked %s on "
+        "%s. Decide or withdraw that one first."
+        % (existing.name,
+           existing.requested_by_name or existing.requested_by_id.display_name,
+           existing.approver_id.display_name,
+           existing.requested_at and existing.requested_at.date() or "?"),
+        status=409,
+        details={
+            "asset_id": asset.id,
+            "pending_request": {
+                "id": existing.id,
+                "reference": existing.name,
+                "change_type": existing.change_type,
+                "requested_by": _ref(existing.requested_by_id),
+                "approver": _ref(existing.approver_id),
+            },
+        })
+
+
+def _raised_payload(req, asset, *, action):
+    """What a route answers when it raised a request instead of acting.
+
+    **Status stays 200 and the BODY carries the whole truth.** `pending_approval`
+    is `true`, `request` is the record, and `asset` is the asset UNCHANGED —
+    read back from the database in the same response, so a consumer that
+    trusts the asset rather than the verb sees that nothing moved.
+
+    200 rather than 202 is a judgement and worth stating: the per-call status
+    override this API does not have would have to be carried through the
+    idempotency cache as well, or a replay of the same key would answer 202
+    once and 200 afterwards — and an idempotent replay that is not byte-exact
+    is the property handoff 18 built and handoff 31 protected. Changing the
+    cache for one route's status code was not worth it; the body says it
+    three ways and `data._warnings` says it a fourth.
+    """
+    return {
+        # FIRST KEY, and a boolean rather than a string, so the cheapest
+        # possible read of this response is the correct one.
+        "pending_approval": True,
+        "action": action,
+        "request": {
+            "id": req.id,
+            "reference": req.name,
+            "state": req.state,
+            "change_type": req.change_type,
+            "approver": _ref(req.approver_id),
+            "requested_by": _ref(req.requested_by_id),
+            "requested_at": req.requested_at and req.requested_at.isoformat(),
+            "to_location": _ref(req.to_location_id),
+            "to_custodian": _ref(req.to_custodian_id),
+            "reason": req.reason or None,
+        },
+        # UNCHANGED. The whole point.
+        "asset": serialize_asset(asset),
+        # The two keys the old contract published. Null, explicitly, because
+        # a consumer reading `movement_id` must be able to tell "not yet"
+        # from "absent" — and both are what this call did NOT produce.
+        "movement_id": None,
+        "transfer": None,
+        "custody_change": None,
+    }
+
+
 # The instant a historical snapshot is taken at. A module function rather
 # than a model method because it is arithmetic on a date and has no record to
 # hang off; imported at module level, NOT inside the handler, so a rename in
@@ -1499,6 +1654,52 @@ class CadraAssetsV1(http.Controller):
             return refuse_unwritable(rejected, _WRITABLE_FIELDS)
         if not vals:
             return err(ERR_INVALID_REQUEST, "Empty patch — no writable fields supplied")
+
+        # ── Nobody moves an asset alone (handoff 35) ─────────────────
+        #
+        # PATCH is the ambiguous writer. It is how the Cadra app's edit form
+        # saves, and report 28 found it moves an asset with no reason and no
+        # transfer document — so it IS a person deciding, and it is gated.
+        #
+        # **Only when the value actually CHANGES.** The edit form re-sends
+        # `location_id` and `custodian_id` on every save whether or not
+        # anybody touched them, so refusing the mere presence of the key
+        # would make saving a note on an asset impossible. That is the trap
+        # `CLAUDE.md` names — *a screen that PATCHes back the object it
+        # GET-ed now fails* — and it is avoided by comparing, here and in the
+        # model, rather than by looking at the shape of the body.
+        #
+        # A 400 and not a raised request, deliberately. A PATCH carries a
+        # whole object; turning part of it into a request and writing the
+        # rest would leave the caller with a half-applied save and no way to
+        # tell which half. Refusing the WHOLE body is the contract handoff 31
+        # published for every write route, and the message names the route
+        # that does the job.
+        if _approval_required():
+            needs_approval = sorted(
+                f for f in ("location_id", "custodian_id")
+                if f in vals and rec._change_is_real(f, vals[f]))
+            if needs_approval:
+                routes = {"location_id": "POST /api/v1/assets/%s/move" % rec.id,
+                          "custodian_id":
+                              "POST /api/v1/assets/%s/transfer-custody" % rec.id}
+                return err(
+                    ERR_INVALID_REQUEST,
+                    "This register requires a second person to approve a "
+                    "change of %s, so it cannot be PATCHed: use %s, which "
+                    "raises a request. Nothing in this call was written."
+                    % (" or ".join("`%s`" % f for f in needs_approval),
+                       " and ".join(routes[f] for f in needs_approval)),
+                    details={
+                        "asset_id": rec.id,
+                        "approval_required": True,
+                        "rejected_fields": needs_approval,
+                        # The same two keys every other refusal publishes, so
+                        # a caller repairing itself from `details.writable`
+                        # finds it here too.
+                        "writable": sorted(_WRITABLE_FIELDS - set(needs_approval)),
+                        "use_instead": {f: routes[f] for f in needs_approval},
+                    })
         if vals:
             # `custodian_id` is in `_WRITABLE_FIELDS`, so this route moves
             # custody as surely as transfer-custody does — it just does not
@@ -1523,17 +1724,40 @@ class CadraAssetsV1(http.Controller):
                  summary="Move an asset to a location — or place one that has none",
                  scopes=[SCOPE_ASSETS_WRITE],
                  idempotent=True,
+                 error_statuses=(409,),
                  request_schema={
                      "type": "object",
                      "required": ["to_location_id"],
+                     "description": (
+                         "BREAKING since handoff 35 on any tenant where "
+                         "approval is required (the default): this route "
+                         "RAISES A REQUEST instead of moving the asset, and "
+                         "`approver_id` becomes required. The response then "
+                         "carries `pending_approval: true`, the `request`, "
+                         "and `asset` UNCHANGED. Read `pending_approval` "
+                         "before believing the asset moved. "
+                         "`GET /api/v1/settings/approvals` says which "
+                         "behaviour this tenant has."),
                      "properties": {
                          "to_location_id": {"type": "integer",
                                             "description": "Destination generic.location id"},
+                         "approver_id": {
+                             "type": "integer", "nullable": True,
+                             "description": "WHO IS BEING ASKED to approve "
+                                            "— a res.users id from "
+                                            "GET /api/v1/approvals/approvers. "
+                                            "Required when the tenant "
+                                            "requires approval, ignored when "
+                                            "it does not. A nomination only: "
+                                            "who DECIDED is taken from the "
+                                            "approving caller's own token "
+                                            "and can never be supplied."},
                          "reason": {"type": "string", "nullable": True},
                      },
                  },
                  request_example={
                      "to_location_id": 47,
+                     "approver_id": 12,
                      "reason": "Reassigned to new project room",
                  })
     def move_asset(self, id, **kwargs):
@@ -1574,6 +1798,36 @@ class CadraAssetsV1(http.Controller):
         # number does not, so a refused move used to leave a gap in the
         # transfer references, one per attempt, that no transfer explained.
         rec._assert_disposed_is_terminal({"location_id": to_loc.id})
+
+        # ── Nobody moves an asset alone (handoff 35) ─────────────────
+        #
+        # STILL ABOVE EVERY WRITE, for the reason the block above says: an
+        # `err(...)` return does not roll the transaction back, so anything
+        # that can refuse has to refuse before anything is drawn. The
+        # transfer document below is exactly what handoff 28 left behind on a
+        # refused move, and it took a doc fact-check to find.
+        #
+        # The model refuses this write anyway — the gate is on
+        # `nrs.asset._write_recorded`, under all twelve writers of
+        # `location_id`, not here. What is here is the good answer: a request
+        # with a reference number and somebody's name on it, instead of the
+        # model's `UserError` arriving as a 400 on a button the app told the
+        # user to press.
+        if _approval_required():
+            conflict = _pending_conflict(rec)
+            if conflict:
+                return conflict
+            approver, approver_err = _resolve_approver(body, rec)
+            if approver_err:
+                return approver_err
+            change = request.env["nrs.asset.change.request"].sudo().create({
+                "asset_id": rec.id,
+                "change_type": "location",
+                "to_location_id": to_loc.id,
+                "approver_id": approver.id,
+                "reason": reason or False,
+            })
+            return _raised_payload(change, rec, action="move")
 
         # AN ASSET THAT IS NOWHERE IS PLACED, NOT TRANSFERRED.
         # `nrs.asset.transfer` requires BOTH locations — it is a document about
@@ -1890,17 +2144,34 @@ class CadraAssetsV1(http.Controller):
                  summary="Transfer custody to a different hr.employee",
                  scopes=[SCOPE_ASSETS_WRITE],
                  idempotent=True,
+                 error_statuses=(409,),
                  request_schema={
                      "type": "object",
                      "required": ["to_custodian_id"],
+                     "description": (
+                         "BREAKING since handoff 35 on any tenant where "
+                         "approval is required (the default): this route "
+                         "RAISES A REQUEST instead of changing custody, and "
+                         "`approver_id` becomes required. The response then "
+                         "carries `pending_approval: true`, the `request`, "
+                         "and `asset` UNCHANGED — and `custody_change` is "
+                         "null, because none was made."),
                      "properties": {
                          "to_custodian_id": {"type": "integer",
                                              "description": "New custodian hr.employee id"},
+                         "approver_id": {
+                             "type": "integer", "nullable": True,
+                             "description": "WHO IS BEING ASKED to approve. "
+                                            "Required when the tenant "
+                                            "requires approval. A nomination "
+                                            "only — who DECIDED comes from "
+                                            "the approving caller's token."},
                          "reason": {"type": "string", "nullable": True},
                      },
                  },
                  request_example={
                      "to_custodian_id": 218,
+                     "approver_id": 12,
                      "reason": "Previous custodian left the company",
                  })
     def transfer_custody(self, id, **kwargs):
@@ -1943,6 +2214,28 @@ class CadraAssetsV1(http.Controller):
         reason = body.get("reason") or ""
         if reason and not isinstance(reason, str):
             return err(ERR_INVALID_REQUEST, "`reason` must be a string")
+
+        # ── Nobody hands an asset over alone (handoff 35) ────────────
+        #
+        # Above the write, like every other refusal on this route. The model
+        # gate under all thirteen writers of `custodian_id` is the rule; this
+        # is the good answer for the door a person actually presses.
+        if _approval_required():
+            conflict = _pending_conflict(rec)
+            if conflict:
+                return conflict
+            approver, approver_err = _resolve_approver(body, rec)
+            if approver_err:
+                return approver_err
+            change = request.env["nrs.asset.change.request"].sudo().create({
+                "asset_id": rec.id,
+                "change_type": "custody",
+                "to_custodian_id": to_cust.id,
+                "approver_id": approver.id,
+                "reason": reason or False,
+            })
+            return _raised_payload(change, rec, action="transfer-custody")
+
         # The source and the reason travel in the context because the ORM
         # write that carries a custody change has nowhere to put either. The
         # recorder is in `nrs.asset.write`, not here, because `custodian_id`

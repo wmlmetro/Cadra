@@ -6,8 +6,10 @@ from odoo import models, fields, api, release, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools import config
 
-from .asset_custody import CUSTODY_REASON_KEY
-from .asset_movement import MOVEMENT_REASON_KEY
+from ..approval_policy import (
+    APPROVAL_KEY, EXEMPT_KEY, EXEMPT_REASONS, approval_required, set_command)
+from .asset_custody import CUSTODY_REASON_KEY, CUSTODY_SOURCE_KEY
+from .asset_movement import MOVEMENT_REASON_KEY, MOVEMENT_SOURCE_KEY
 from .asset_event import (
     EVENT_REASON_KEY, EVENT_SOURCE_KEY, EVENT_REFERENCE_CHANGED,
     EVENT_STATUS_CHANGED, EVENT_VERIFICATION_DATE_SET, EVENT_VERIFIED,
@@ -489,6 +491,11 @@ class NRSAsset(models.Model):
         # BEFORE anything is written, and here rather than in a route for the
         # reason everything else in `write` is here.
         self._assert_disposed_is_terminal(vals)
+        # And, since handoff 35, whether a second person has agreed to it.
+        # Same placement, same argument: `location_id` has twelve writers and
+        # `custodian_id` thirteen, and a rule enforced in the three the app
+        # happens to call is a rule with ten doors round it.
+        self._assert_change_is_approved(vals)
         track_custody = 'custodian_id' in vals
         track_location = 'location_id' in vals
         # WHAT HAS HAPPENED TO IT, since handoff 30 — a verification, a
@@ -700,6 +707,179 @@ class NRSAsset(models.Model):
         if not chosen:
             return [('id', 'in', [])]
         return ['|'] * (len(chosen) - 1) + [t for c in chosen for t in c]
+
+    # ── Nobody moves an asset alone (handoff 35) ──────────────────────
+
+    #: Which field is gated, and which context key declares ITS source. A
+    #: move is announced through the movement key and a handover through the
+    #: custody key, because that is how the two recorders already work and a
+    #: third spelling of the same fact is how two answers start to differ.
+    _APPROVED_FIELDS = {
+        'location_id': MOVEMENT_SOURCE_KEY,
+        'custodian_id': CUSTODY_SOURCE_KEY,
+    }
+
+    def _assert_change_is_approved(self, vals):
+        """Refuse a move or a handover that nobody has agreed to.
+
+        HERE, under every writer, and not in the three routes the Cadra app
+        happens to call. Handoff 35 §A asked for the writers to be enumerated
+        before the rule was written, and the enumeration found **twelve**
+        distinct production writers of `location_id` and **thirteen** of
+        `custodian_id`. The two previous handoffs that guessed this list were
+        both wrong — handoff 14 said the transfer route was the only writer
+        of `custodian_id` and an exhaustive search found six — so a gate in
+        the routes would have been a gate with nine doors round it, one of
+        which is an editable field on the Odoo form.
+
+        WHAT IS GATED, AND WHAT IS NOT
+        ------------------------------
+        The owner's ruling is that **approval is about a person deciding to
+        move something.** A registration is not a move; an integration
+        delivering an asset is not a move; a bulk import is not a move. So:
+
+        * **`create` is never gated.** It is not overridden for this at all.
+          An asset registered at a location, or registered already assigned
+          to somebody, is a record being opened — there is no previous state
+          for a second person to be protecting. This is the door INT-03 from
+          Vendra comes through, and gating it would dead-letter every receipt.
+        * **Every `write` that CHANGES one of the two fields is gated**,
+          unless it declares itself. A write that NAMES a field without
+          changing it passes — the Cadra app's edit form re-sends every
+          field on every save, and refusing that would break saving a note on
+          an asset. This is the trap `CLAUDE.md` names: *a screen that
+          PATCHes back the object it GET-ed now fails the day the serializer
+          gains a read-only key.*
+        * **A declared exemption passes**, and every one is a row in §A's
+          table with an argument for why that writer is not a person deciding
+          to move something. `EXEMPT_REASONS` is the list; an unrecognised
+          value is treated as no exemption at all, which is
+          `approval_policy`'s rule applied to the other end.
+        * **An approved request passes**, and the clearance is checked rather
+          than believed — see `_approval_clears`.
+
+        The two writers this method cannot see are the two the database does
+        by itself, and both were already handled by handoff 28 and by
+        `asset_custody.HrEmployee.unlink`: deleting a location empties
+        `location_id` through `ON DELETE SET NULL`, and deleting an employee
+        empties `custodian_id` the same way. No ORM write runs, so no gate
+        can stand in front of them. Both are destructive administrative acts
+        that take custody or location AWAY rather than hand it to somebody,
+        and both already refuse outright when a disposed asset is involved
+        and append a record for every other. They are outside the rule on
+        purpose and are named in §A's table.
+
+        The guarantee is Python, like every other rule on this model. A
+        writer that goes round the ORM — raw SQL, `_write()`, a DBA's query
+        — is not gated, and `tests/test_recorder_bypass_guard.py` is what
+        watches for the first two.
+        """
+        gated = [f for f in self._APPROVED_FIELDS if f in vals]
+        if not gated or not self:
+            return
+        # The switch, read the way `database_class` is read — one indexed
+        # SELECT, never `get_param`. See `approval_policy` for the measured
+        # reason, which is that an ormcache once served `client` for a
+        # database whose row had been deleted while another worker said
+        # `test`, and twenty-four writing tests went through.
+        if not approval_required(self.env):
+            return
+        context = self.env.context
+        exempt = context.get(EXEMPT_KEY)
+        if exempt in EXEMPT_REASONS:
+            return
+        for record in self:
+            for field in gated:
+                if not record._change_is_real(field, vals[field]):
+                    # Named, not changed. Not a move.
+                    continue
+                if record._approval_clears(field, vals[field]):
+                    continue
+                raise UserError(record._approval_needed_message(field, vals))
+
+    def _change_is_real(self, field, value):
+        """Whether writing `value` to `field` actually changes this record.
+
+        The same before/after comparison the three recorders make after
+        `super().write()`, made before it. Without it the gate would refuse
+        every save of the app's edit form, which sends `location_id` and
+        `custodian_id` on every save whether or not the user touched them.
+        """
+        self.ensure_one()
+        current = self[field]
+        return (current.id or False) != (_m2o_id(value) or False)
+
+    def _approval_clears(self, field, value):
+        """Whether an approved request in the context covers THIS change.
+
+        **Checked, never believed.** The id arrives in the context, which any
+        caller controls, so a bare flag would mean *approval required* could
+        be turned off by anybody who had read the source. The request is
+        re-read from the database and has to be for this asset, still open or
+        just approved, and asking for exactly the change being written.
+
+        This is the same forgery path `nrs.asset.movement._record` closed for
+        `transfer_id`, in the same words: *a transfer belonging to another
+        asset, or one that names a different destination, would let somebody
+        borrow an approval for a move it never covered.* That comment was
+        written in handoff 28 about the approvals NRS had asked for and did
+        not yet have. This is them.
+        """
+        self.ensure_one()
+        request_id = self.env.context.get(APPROVAL_KEY)
+        if not request_id:
+            return False
+        request = self.env['nrs.asset.change.request'].sudo().browse(
+            request_id).exists()
+        if not request or request.asset_id.id != self.id:
+            return False
+        # `pending` because `action_approve` writes the asset before it
+        # stamps its own decision — one transaction, so a refusal below rolls
+        # the whole thing back. Nothing else is accepted: a rejected or
+        # withdrawn request clears nothing, ever.
+        if request.state not in ('pending', 'approved'):
+            return False
+        wanted = {'location_id': request.to_location_id.id,
+                  'custodian_id': request.to_custodian_id.id}.get(field)
+        return bool(wanted) and wanted == (_m2o_id(value) or False)
+
+    def _approval_needed_message(self, field, vals):
+        """What somebody reads when the register asks for a second person.
+
+        Names the asset, says what would have changed, and names the remedy
+        in full — including the command that turns the rule off for a tenant
+        that does not want it, for the reason `database_class.mark_command`
+        exists: an error naming a remedy the reader has to go and look up is
+        worse than one naming none.
+        """
+        self.ensure_one()
+        if field == 'location_id':
+            what = _(
+                "Moving %(asset)s to %(where)s needs somebody else to "
+                "approve it.",
+                asset=self.display_name,
+                where=self.env['generic.location'].browse(
+                    _m2o_id(vals[field])).display_name or _("a new location"))
+            how = _(
+                "Raise the move from the asset's page — the Move button "
+                "creates a request and asks somebody to agree to it — or use "
+                "POST /api/v1/assets/<id>/move, which does the same.")
+        else:
+            what = _(
+                "Handing %(asset)s to %(who)s needs somebody else to approve "
+                "it.",
+                asset=self.display_name,
+                who=self.env['hr.employee'].browse(
+                    _m2o_id(vals[field])).display_name or _("a new custodian"))
+            how = _(
+                "Raise it from the asset's page — Transfer custody creates a "
+                "request and asks somebody to agree to it — or use POST "
+                "/api/v1/assets/<id>/transfer-custody, which does the same.")
+        return "%s\n\n%s\n\n%s\n\n%s" % (
+            what, how,
+            _("If this register should not require a second person, an "
+              "administrator sets it once for this database:"),
+            set_command(self.env.cr.dbname))
 
     def _assert_disposed_is_terminal(self, vals):
         """Nothing leaves `disposed`, and a disposed asset is not moved or

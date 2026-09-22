@@ -34,7 +34,22 @@ class NrsAsset(models.Model):
     retrieval_date = fields.Date(string='Retrieved On')
 
     def action_mark_retrieved(self):
-        self.write({
+        """An asset coming back from somebody who has left.
+
+        `cadra_approval_exempt='clearance'` — handoff 35 §A. This clears
+        `custodian_id`, which since that handoff needs a second person to
+        agree when a PERSON is deciding to put an asset in somebody else's
+        hands. This is not that: it takes custody away and hands it to
+        nobody, at the end of a departure that SAP has already confirmed
+        (`sap_sync_log._apply` flags the retrieval on `exited`). There is no
+        second person to ask about an asset returning to the store, and
+        requiring one would leave a leaver's assets assigned to them while a
+        queue drained.
+
+        The chain of custody still records it — the recorder in
+        `nrs.asset.write` sits underneath the exemption, not behind it.
+        """
+        self.with_context(cadra_approval_exempt='clearance').write({
             'retrieval_flag': False,
             'retrieval_date': fields.Date.today(),
             'custodian_id': False,

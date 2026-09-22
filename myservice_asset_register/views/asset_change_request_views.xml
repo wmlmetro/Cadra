@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Handoff 35. The Odoo-side view of the approval queue.
+
+         The Cadra app is where an approver actually works (§E), and this is
+         the backend twin: an asset manager living in Odoo, and an auditor
+         reading the register, both need to see the same rows. Everything
+         here is READ plus the three buttons — no field on this model is
+         editable in a view, because `write` refuses anything that is not a
+         transition and a form offering an input that the model will refuse
+         is the "answer that looks like an answer" this codebase rejects. -->
+
+    <record id="view_nrs_asset_change_request_form" model="ir.ui.view">
+        <field name="name">nrs.asset.change.request.form</field>
+        <field name="model">nrs.asset.change.request</field>
+        <field name="arch" type="xml">
+            <form string="Approval Request" create="false" edit="false">
+                <header>
+                    <button name="action_approve" string="Approve" type="object"
+                            class="btn-primary"
+                            invisible="state != 'pending' or not premise_holds"
+                            confirm="Approve this change? The asset moves as soon as you confirm, and the move is recorded against your name."/>
+                    <button name="action_reject" string="Reject" type="object"
+                            invisible="state != 'pending'"/>
+                    <button name="action_withdraw" string="Withdraw" type="object"
+                            invisible="state != 'pending'"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="pending,approved"/>
+                </header>
+                <sheet>
+                    <!-- The premise banner. §D: a request whose premise no
+                         longer holds must not be approvable IN SILENCE. The
+                         Approve button above is gone in that case, and this
+                         says why rather than leaving somebody looking for it. -->
+                    <div class="alert alert-warning" role="alert"
+                         invisible="state != 'pending' or premise_holds">
+                        <strong>This can no longer be approved.</strong>
+                        <field name="premise_broken_reason" readonly="1" nolabel="1"/>
+                        <div>Raise a new request if the change is still wanted.</div>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="What is asked">
+                            <field name="asset_id" readonly="1"/>
+                            <field name="asset_code" readonly="1"/>
+                            <field name="change_type" readonly="1"/>
+                            <field name="to_location_id" readonly="1"
+                                   invisible="change_type != 'location'"/>
+                            <field name="to_custodian_id" readonly="1"
+                                   invisible="change_type != 'custody'"/>
+                            <field name="reason" readonly="1"/>
+                        </group>
+                        <group string="What it was when asked">
+                            <!-- The premise, in full. It is the difference
+                                 between "yes, move it to B" and "yes, move it
+                                 from A to B", and it is what makes the record
+                                 readable years after the asset moved again. -->
+                            <field name="from_location_name" readonly="1"
+                                   invisible="change_type != 'location'"/>
+                            <field name="from_custodian_name" readonly="1"
+                                   invisible="change_type != 'custody'"/>
+                            <field name="from_state" readonly="1"/>
+                            <field name="premise_holds" readonly="1"/>
+                        </group>
+                        <group string="Who asked">
+                            <field name="requested_by_id" readonly="1"/>
+                            <field name="requested_at" readonly="1"/>
+                            <!-- WHO IS BEING ASKED. Not who decided. -->
+                            <field name="approver_id" readonly="1"/>
+                        </group>
+                        <group string="Who decided" invisible="state == 'pending'">
+                            <!-- WHO CLICKED. A different column, always. -->
+                            <field name="approved_by_id" readonly="1"/>
+                            <field name="decided_at" readonly="1"/>
+                            <field name="decision_reason" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="What it produced" invisible="state != 'approved'">
+                        <!-- The append-only rows, written on approval and
+                             never on request. Shown so that the link from
+                             "who authorised it" to "the record nobody can
+                             alter" is one click and not a search. -->
+                        <field name="movement_id" readonly="1"
+                               invisible="change_type != 'location'"/>
+                        <field name="custody_id" readonly="1"
+                               invisible="change_type != 'custody'"/>
+                        <field name="transfer_id" readonly="1"/>
+                        <field name="transfer_reference" readonly="1"
+                               invisible="transfer_id != False"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_nrs_asset_change_request_tree" model="ir.ui.view">
+        <field name="name">nrs.asset.change.request.list</field>
+        <field name="model">nrs.asset.change.request</field>
+        <field name="arch" type="xml">
+            <list string="Approval Requests" create="false"
+                  decoration-warning="state == 'pending'"
+                  decoration-success="state == 'approved'"
+                  decoration-muted="state in ('rejected', 'withdrawn')">
+                <field name="name"/>
+                <field name="requested_at"/>
+                <field name="asset_id"/>
+                <field name="change_type"/>
+                <field name="from_location_name" optional="show"/>
+                <field name="to_location_id" optional="show"/>
+                <field name="from_custodian_name" optional="hide"/>
+                <field name="to_custodian_id" optional="show"/>
+                <field name="requested_by_id"/>
+                <field name="approver_id"/>
+                <field name="approved_by_id" optional="show"/>
+                <field name="premise_holds" optional="hide"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_nrs_asset_change_request_search" model="ir.ui.view">
+        <field name="name">nrs.asset.change.request.search</field>
+        <field name="model">nrs.asset.change.request</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="asset_id"/>
+                <field name="requested_by_id"/>
+                <field name="approver_id"/>
+                <!-- "What is waiting on me" is the question this screen
+                     exists to answer, so it is the first filter and the
+                     default one on the menu action below. Anyone eligible
+                     may approve anything, which is why "All pending" sits
+                     beside it rather than replacing it. -->
+                <filter name="waiting_on_me" string="Waiting on me"
+                        domain="[('state', '=', 'pending'),
+                                 ('approver_id', '=', uid)]"/>
+                <filter name="pending" string="All pending"
+                        domain="[('state', '=', 'pending')]"/>
+                <filter name="mine" string="Raised by me"
+                        domain="[('requested_by_id', '=', uid)]"/>
+                <separator/>
+                <filter name="approved" string="Approved"
+                        domain="[('state', '=', 'approved')]"/>
+                <filter name="rejected" string="Rejected"
+                        domain="[('state', '=', 'rejected')]"/>
+                <group>
+                    <filter name="grp_state" string="Status"
+                            context="{'group_by': 'state'}"/>
+                    <filter name="grp_type" string="Change"
+                            context="{'group_by': 'change_type'}"/>
+                    <filter name="grp_approver" string="Approver asked"
+                            context="{'group_by': 'approver_id'}"/>
+                    <filter name="grp_requester" string="Requested by"
+                            context="{'group_by': 'requested_by_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_nrs_asset_change_request" model="ir.actions.act_window">
+        <field name="name">Approval Requests</field>
+        <field name="res_model">nrs.asset.change.request</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id"
+               ref="view_nrs_asset_change_request_search"/>
+        <!-- Opens on what is waiting on the person who opened it. There are
+             no `ir.rule` records anywhere in this repository and this handoff
+             does not introduce the first one: the queue is a DOMAIN, not row
+             -level security, because every eligible approver is allowed to
+             see every request and the default is a convenience rather than a
+             boundary. -->
+        <field name="context">{'search_default_waiting_on_me': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing is waiting on you.</p>
+            <p>A request appears here when somebody asks to move an asset or
+               hand it to a different person. Nothing happens to the asset
+               until it is approved.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_asset_change_requests"
+              name="Approval Requests"
+              parent="menu_asset_root"
+              action="action_nrs_asset_change_request"
+              sequence="25"/>
+
+</odoo>

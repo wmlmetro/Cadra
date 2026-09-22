@@ -216,6 +216,19 @@ class NRSAssetTransfer(models.Model):
     _inherit = ['nrs.asset.transfer', 'cadra.test.fixture.mixin']
 
 
+class NRSAssetChangeRequest(models.Model):
+    """Approval requests raised by the suite say so on their face.
+
+    Handoff 35. The model refuses `unlink` outright, so anything a test run
+    raises against a real tenant is permanent — exactly the property that
+    made handoff 26 put this label on the other thirteen models. The guard in
+    `tests/test_source_guards.py` fails on any creatable model with no
+    self-label, so this is not optional.
+    """
+    _name = 'nrs.asset.change.request'
+    _inherit = ['nrs.asset.change.request', 'cadra.test.fixture.mixin']
+
+
 class NRSAssetCategory(models.Model):
     _name = 'nrs.asset.category'
     _inherit = ['nrs.asset.category', 'cadra.test.fixture.mixin']

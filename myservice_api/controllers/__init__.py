@@ -8,3 +8,5 @@ from . import v1_brand
 from . import v1_settings
 from . import v1_meta
 from . import v1_audit
+# Handoff 35 — the approval queue.
+from . import v1_approvals

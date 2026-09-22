@@ -88,6 +88,13 @@ _PUBLISHED_ENUMS = (
     # Selection like the rest: the register's warranty filter offers these.
     ("warranty_status", "nrs.asset",       "warranty_status",
      ("under_warranty", "expired", "none")),
+    # Handoff 35. Prefixed `approval_`, for the reason `asset_state` is
+    # prefixed: `state` is the most reused field name in this schema and a
+    # client keying a cache on the bare name would collide.
+    ("approval_state", "nrs.asset.change.request", "state",
+     ("pending", "approved", "rejected", "withdrawn")),
+    ("approval_change_type", "nrs.asset.change.request", "change_type",
+     ("location", "custody")),
     ("fuel_type",     "fleet.vehicle",     "fuel_type",
      ("diesel", "gasoline", "full_hybrid", "plug_in_hybrid_diesel",
       "plug_in_hybrid_gasoline", "cng", "lpg", "hydrogen", "electric")),
