@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Activity, AlertCircle, AlertTriangle, ArrowDown, ArrowRightLeft, ArrowUp,
   CalendarClock, CheckCircle2, ChevronDown, ChevronRight, CircleDot, Clock, Edit3,
-  FilePlus, FileSearch, FileText, Gauge, Info, MapPin, Printer, Send, ShieldCheck,
+  FilePlus, FileSearch, FileText, Gauge, Info, MapPin, Printer, ScrollText, Send, ShieldCheck,
   Tag, Trash2, Wrench,
   type LucideIcon,
 } from "lucide-react";
@@ -39,6 +39,9 @@ const EVENT_ICON: Record<string, LucideIcon> = {
   disposal_recorded: Trash2,
   details_changed: Edit3,
   provenance_changed: FileSearch,
+  // A change to a warranty's terms (handoff 34). Not the shield: a warranty
+  // says nothing about whether anybody has checked the asset.
+  warranty_changed: ScrollText,
   integration_event: Send,
   maintenance_request: Wrench,
 };

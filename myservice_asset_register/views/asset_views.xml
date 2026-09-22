@@ -119,12 +119,24 @@
                         <group string="Financial">
                             <field name="currency_id" invisible="1"/>
                             <field name="purchase_date"/>
-                            <field name="warranty_expiry"/>
                             <field name="purchase_value"/>
                             <field name="replacement_cost"/>
                             <field name="acquisition_date"/>
                             <field name="acquisition_cost"/>
                             <field name="current_value"/>
+                        </group>
+                        <!-- Handoff 34. The expiry is worked out from the start
+                             date and the duration when both are recorded, so it
+                             is read-only then; a bare date stays enterable for
+                             whoever holds only a date. -->
+                        <group string="Warranty">
+                            <field name="warranty_months"/>
+                            <field name="warranty_start_date"/>
+                            <field name="warranty_expiry"
+                                   readonly="warranty_start_date and warranty_months"/>
+                            <field name="warranty_status" readonly="1"/>
+                            <field name="warrantor"/>
+                            <field name="warranty_reference"/>
                         </group>
                         <group string="Acquisition Provenance">
                             <field name="grn_reference"/>

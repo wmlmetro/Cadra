@@ -110,8 +110,9 @@ NOT_RECORDED = (
      "overwritten last-done date, with no person and no row per visit."),
     ("deleted_records",
      "Anything whose record has since been deleted. A change of custodian, "
-     "a move, a verification, a change of status and a change to the GRN, "
-     "purchase order or SAP asset number are protected from deletion, each "
+     "a move, a verification, a change of status, a change to the GRN, "
+     "purchase order or SAP asset number and a change to the warranty are "
+     "protected from deletion, each "
      "from the date this history gives for it. Every other record here, and "
      "every one of those made before its date, can be removed without "
      "trace, so this history is a lower bound on what happened, never a "
@@ -134,6 +135,9 @@ _EVENT_TITLES = {
     "disposal_approved": "Disposal approved",
     "disposal_recorded": "Disposal details recorded",
     "provenance_changed": "Provenance changed",
+    # Handoff 34. Recorded append-only from the day the fields existed, so
+    # there is no earlier message-log stretch to fall back on.
+    "warranty_changed": "Warranty changed",
     "details_changed": "Details changed",
     "integration_event": "Event for an external system",
     "maintenance_request": "Maintenance request raised",
@@ -502,7 +506,9 @@ class NRSAssetHistory(models.Model):
         field_labels = {
             name: self._fields[name].get_description(self.env)["string"]
             for name in ("grn_reference", "purchase_order_reference",
-                         "sap_asset_number") if name in self._fields}
+                         "sap_asset_number", "warranty_start_date",
+                         "warranty_months", "warranty_expiry", "warrantor",
+                         "warranty_reference") if name in self._fields}
         for ev in self.event_ids:
             etype = ev.event_type
             for fname in self._EVENT_COVERS.get(etype, ()):
@@ -532,7 +538,12 @@ class NRSAssetHistory(models.Model):
                                "to": ev.to_value or None,
                                "reason": ev.reason or None})
             else:
-                published = "provenance_changed"
+                # A reference or a warranty field: the same shape, a field
+                # with a before and an after. The warranty fields carry no
+                # tracking, so `covered` finds nothing of theirs to drop.
+                published = ("warranty_changed"
+                             if etype == "warranty_changed"
+                             else "provenance_changed")
                 covered.add((ev.create_date, ev.field_name))
                 label = field_labels.get(ev.field_name, ev.field_name)
                 summary = "%s: %s → %s" % (
@@ -567,21 +578,43 @@ class NRSAssetHistory(models.Model):
             ("reference_changed", "provenance_changed",
              "a change to the GRN reference, the purchase order reference "
              "or the SAP asset number"),
+            ("warranty_changed", "warranty_changed",
+             "a change to the warranty"),
         )
         out = []
         for stored, published, what in kinds:
             began = Event.recording_began_at(stored)
-            out.append({
-                "event": published,
-                "recording_began_at": _iso(began),
-                "statement": (
+            if stored == "warranty_changed":
+                # No message-log fallback to promise. The five warranty
+                # fields were never tracked — they arrived with their event,
+                # in handoff 34 — so there is no earlier stretch at all, and
+                # the verification pass caught the generic sentence telling a
+                # reader to look for one.
+                statement = (
+                    "No warranty has been changed on this system yet, for "
+                    "any asset. Every change to a warranty is recorded so "
+                    "that nobody can edit or delete it; a warranty entered "
+                    "when an asset was registered is not a change, and is "
+                    "shown on the asset." if not began else
+                    "From %s, when the first one was made here, a change "
+                    "to the warranty is recorded so that nobody can edit or "
+                    "delete it. There is no earlier record to look for: a "
+                    "warranty was never recorded any other way." % _when(began))
+            elif not began:
+                statement = (
                     "No record of this kind has been written on this system "
                     "yet, for any asset: %s is shown only where the message "
-                    "log holds it." % what if not began else
+                    "log holds it." % what)
+            else:
+                statement = (
                     "From %s, %s is recorded so that nobody can edit or "
                     "delete it. An earlier one is shown only where the "
                     "message log holds it, and says so."
-                    % (_when(began), what)),
+                    % (_when(began), what))
+            out.append({
+                "event": published,
+                "recording_began_at": _iso(began),
+                "statement": statement,
             })
         return out
 

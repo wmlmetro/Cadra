@@ -157,6 +157,8 @@ EXPECTED_SETS = {
                "furniture", "other"],
     "condition": ["new", "good", "fair", "poor", "decommissioned"],
     "asset_state": ["active", "in_repair", "disposed", "transferred", "missing"],
+    # handoff 34 — three, not two: `none` is not `expired`
+    "warranty_status": ["under_warranty", "expired", "none"],
     # nine, rendered as three by the old front end
     "fuel_type": ["diesel", "gasoline", "full_hybrid", "plug_in_hybrid_diesel",
                   "plug_in_hybrid_gasoline", "cng", "lpg", "hydrogen", "electric"],

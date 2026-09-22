@@ -27,7 +27,7 @@ import { invalidateAssetQueries } from "@/components/AssetActionDialogs";
 import { apiGet, CadraApiError } from "@/lib/api";
 import type { ApiLocation } from "@/lib/adapters";
 import { ArrowLeft, AlertCircle, Loader2, Save } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, addMonthsIso, formatIsoDate } from "@/lib/utils";
 import { useEnum } from "@/hooks/useEnums";
 import { ENUM_DEFAULT, withCurrent } from "@/lib/enums";
 import { ApiErrorMessage } from "@/components/ApiErrorMessage";
@@ -70,8 +70,17 @@ type FormShape = {
   currency_id: number | null;
   // dates
   purchase_date: string;
-  warranty_expiry: string;
   acquisition_date: string;
+  // Warranty (handoff 34). A DURATION and a start date, from which the server
+  // derives the expiry — that is how a warranty is quoted, and a computed
+  // date cannot be mistyped. `warranty_expiry` here is ONLY the fallback for
+  // a warranty whose duration nobody knows; it is never loaded with a derived
+  // date, and never sent while a duration is filled in.
+  warranty_months: string;
+  warranty_start_date: string;
+  warrantor: string;
+  warranty_reference: string;
+  warranty_expiry: string;
   // numbers
   purchase_value: string;
   replacement_cost: string;
@@ -91,7 +100,8 @@ const blank: FormShape = {
   category_id: null, subcategory_id: null, asset_type_id: null,
   parent_id: null,
   location_id: null, custodian_id: null, maintenance_vendor_id: null, currency_id: null,
-  purchase_date: "", warranty_expiry: "", acquisition_date: "",
+  purchase_date: "", acquisition_date: "",
+  warranty_months: "", warranty_start_date: "", warrantor: "", warranty_reference: "", warranty_expiry: "",
   purchase_value: "", replacement_cost: "", acquisition_cost: "", current_value: "",
   notes: "",
 };
@@ -105,7 +115,13 @@ const blank: FormShape = {
 // cannot change has no business in a PATCH. Re-sending the same values would
 // also be accepted — this is the narrower of two correct bodies, not a
 // workaround.
-function toBody(f: FormShape, terminal = false): AssetWriteBody {
+//
+// `original` is the form as it was hydrated in edit mode. The warranty keys
+// are the one place this form CLEARS a value: dropping an empty field keeps
+// the server's copy, which for a warranty would make one impossible to take
+// off. So a warranty field that was filled when the form opened and is empty
+// now is sent as `null`; one that was empty and still is, is not sent at all.
+function toBody(f: FormShape, terminal = false, original?: FormShape | null): AssetWriteBody {
   const out: AssetWriteBody = {};
   const assignIfSet = <K extends keyof AssetWriteBody>(key: K, val: AssetWriteBody[K]) => {
     if (val === "" || val === null || val === undefined) return;
@@ -152,8 +168,27 @@ function toBody(f: FormShape, terminal = false): AssetWriteBody {
   assignIfSet("maintenance_vendor_id", f.maintenance_vendor_id);
   assignIfSet("currency_id", f.currency_id);
   assignIfSet("purchase_date", f.purchase_date);
-  assignIfSet("warranty_expiry", f.warranty_expiry);
   assignIfSet("acquisition_date", f.acquisition_date);
+  // Warranty. A filled field is sent; a field emptied since the form opened
+  // is sent as null so it actually clears.
+  const assignOrClear = <K extends keyof AssetWriteBody>(
+    key: K, formKey: keyof FormShape, val: AssetWriteBody[K],
+  ) => {
+    if (val !== "" && val !== null && val !== undefined) out[key] = val;
+    else if (original && original[formKey] !== "") out[key] = null as AssetWriteBody[K];
+  };
+  const months = f.warranty_months.trim() === "" ? null : Number(f.warranty_months);
+  assignOrClear("warranty_months", "warranty_months", months);
+  assignOrClear("warranty_start_date", "warranty_start_date", f.warranty_start_date);
+  assignOrClear("warrantor", "warrantor", f.warrantor.trim());
+  assignOrClear("warranty_reference", "warranty_reference", f.warranty_reference.trim());
+  // `warranty_expiry` is NOT named while a duration is being given: the
+  // server derives it from months + start and refuses one that disagrees, and
+  // emptying months + start in a write that does not name it clears the
+  // derived date too. Only with no duration at all is the bare date sent.
+  if (f.warranty_months.trim() === "" && f.warranty_start_date === "") {
+    assignOrClear("warranty_expiry", "warranty_expiry", f.warranty_expiry);
+  }
   assignIfSet("notes", f.notes);
   // Numbers come from text inputs — parse and skip if NaN.
   const parseNum = (s: string) => (s === "" ? null : Number(s));
@@ -225,6 +260,15 @@ export default function AssetForm({ mode }: Props) {
   const qc = useQueryClient();
 
   const [form, setForm] = useState<FormShape>(blank);
+  // The form as the server sent it, for `toBody` to tell a cleared warranty
+  // field from one that was never filled. Null in create mode.
+  const [original, setOriginal] = useState<FormShape | null>(null);
+  // The warranty start was filled in from the purchase date, not typed. Said
+  // beside the field until somebody changes it.
+  const [startFromPurchase, setStartFromPurchase] = useState(false);
+  // The expiry-date-only input is secondary, and folded away unless the
+  // record already holds a bare date.
+  const [showExpiryOnly, setShowExpiryOnly] = useState(false);
   const set = <K extends keyof FormShape>(k: K, v: FormShape[K]) => setForm(s => ({ ...s, [k]: v }));
 
   // Read once, here. These are hooks, so they cannot be called from inside the
@@ -269,7 +313,18 @@ export default function AssetForm({ mode }: Props) {
       const e = existing.data as Record<string, unknown>;
       const ref = (v: unknown) => (v && typeof v === "object" && "id" in v ? (v as { id: number }).id : null);
       const refName = (v: unknown) => (v && typeof v === "object" && "name" in v ? (v as { id: number; name: string }) : null);
-      setForm({
+      // The warranty block when the server sends one; the bare
+      // `dates.warranty_expiry` from a server that predates it. A derived
+      // expiry is NOT put in the expiry-only input — it is the answer to the
+      // duration above it, and would otherwise be sent back as a second,
+      // competing statement of the same date.
+      const w = (e.warranty as Record<string, string | number | null> | null | undefined) ?? null;
+      const wMonths = w?.warranty_months != null ? String(w.warranty_months) : "";
+      const wStart = (w?.warranty_start_date as string | null) ?? "";
+      const wExpiryOnly = w
+        ? (wMonths || wStart ? "" : ((w.warranty_expiry as string | null) ?? ""))
+        : (((e.dates as Record<string, string | null> | null)?.warranty_expiry) ?? "");
+      const hydrated: FormShape = {
         name: (e.name as string) ?? "",
         asset_tag: (e.tag as string) ?? "",
         legacy_asset_code: (e.legacy_asset_code as string) ?? "",
@@ -294,14 +349,21 @@ export default function AssetForm({ mode }: Props) {
         maintenance_vendor_id: ref(e.maintenance_vendor),
         currency_id: ref((e.financial as Record<string, unknown> | null)?.currency),
         purchase_date: ((e.dates as Record<string, string | null> | null)?.purchase_date) ?? "",
-        warranty_expiry: ((e.dates as Record<string, string | null> | null)?.warranty_expiry) ?? "",
+        warranty_months: wMonths,
+        warranty_start_date: wStart,
+        warrantor: (w?.warrantor as string | null) ?? "",
+        warranty_reference: (w?.warranty_reference as string | null) ?? "",
+        warranty_expiry: wExpiryOnly,
         acquisition_date: ((e.dates as Record<string, string | null> | null)?.acquisition_date) ?? "",
         purchase_value: String(((e.financial as Record<string, unknown> | null)?.purchase_value) ?? ""),
         replacement_cost: String(((e.financial as Record<string, unknown> | null)?.replacement_cost) ?? ""),
         acquisition_cost: String(((e.financial as Record<string, unknown> | null)?.acquisition_cost) ?? ""),
         current_value: String(((e.financial as Record<string, unknown> | null)?.current_value) ?? ""),
         notes: (e.notes as string) ?? "",
-      });
+      };
+      setForm(hydrated);
+      setOriginal(hydrated);
+      setShowExpiryOnly(!!wExpiryOnly);
       const loc = refName(e.current_location);
       const cust = refName(e.current_custodian);
       if (loc) setLocPick({ id: loc.id, label: loc.name });
@@ -324,7 +386,7 @@ export default function AssetForm({ mode }: Props) {
 
   const mutation = useMutation({
     mutationFn: () => mode === "edit"
-      ? updateAsset(id!, toBody(form, isDisposed))
+      ? updateAsset(id!, toBody(form, isDisposed, original))
       : createAsset(toBody(form)),
     onSuccess: (asset) => {
       // The shared list, not a shorter one of this form's own. This form can
@@ -342,6 +404,26 @@ export default function AssetForm({ mode }: Props) {
   useEffect(() => { set("custodian_id", custPick?.id ?? null); }, [custPick]);
 
   const heading = mode === "create" ? "New asset" : "Edit asset";
+
+  // ─── warranty, as the storekeeper reads it ───
+  const monthsNum = form.warranty_months.trim() === "" ? null : Number(form.warranty_months);
+  const monthsValid = monthsNum !== null && Number.isInteger(monthsNum) && monthsNum >= 1 && monthsNum <= 600;
+  const hasDuration = form.warranty_months.trim() !== "" || form.warranty_start_date !== "";
+  // Calendar months, clamped to the month's end — the server's own
+  // arithmetic, so the date shown is the date it will store.
+  const computedExpiry = monthsValid && form.warranty_start_date
+    ? addMonthsIso(form.warranty_start_date, monthsNum!)
+    : null;
+  const setWarrantyMonths = (v: string) => {
+    // Offer the purchase date as the start — VISIBLY, in the field, with a
+    // line saying where it came from. Never sent without being shown.
+    if (v.trim() !== "" && form.warranty_start_date === "" && form.purchase_date) {
+      setStartFromPurchase(true);
+      setForm(s => ({ ...s, warranty_months: v, warranty_start_date: s.purchase_date }));
+    } else {
+      set("warranty_months", v);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-5 py-5 space-y-5">
@@ -562,15 +644,76 @@ export default function AssetForm({ mode }: Props) {
         <Field label="Purchase date">
           <input className={inputCls} type="date" value={form.purchase_date} onChange={e => set("purchase_date", e.target.value)} />
         </Field>
-        <Field label="Warranty expiry">
-          <input className={inputCls} type="date" value={form.warranty_expiry} onChange={e => set("warranty_expiry", e.target.value)} />
-        </Field>
         <Field label="Acquisition date">
           <input className={inputCls} type="date" value={form.acquisition_date} onChange={e => set("acquisition_date", e.target.value)} />
         </Field>
         <Field label="Maintenance vendor id">
           <input className={inputCls} type="number" value={form.maintenance_vendor_id ?? ""} onChange={e => set("maintenance_vendor_id", e.target.value ? Number(e.target.value) : null)} />
         </Field>
+      </Section>
+
+      <Section title="Warranty" sub="Optional. Most assets have none, and that is recorded as no warranty — not as expired.">
+        <Field label="Duration (months)">
+          <input className={inputCls} type="number" min={1} max={600} step={1} inputMode="numeric"
+                 value={form.warranty_months} onChange={e => setWarrantyMonths(e.target.value)}
+                 placeholder="e.g. 24" data-testid="input-warranty-months" />
+          {form.warranty_months.trim() !== "" && !monthsValid && (
+            <p className="text-[10px] text-muted-foreground leading-snug" data-testid="hint-warranty-months">
+              A whole number of months, from 1 to 600.
+            </p>
+          )}
+        </Field>
+        <Field label="Start date">
+          <input className={inputCls} type="date" value={form.warranty_start_date}
+                 onChange={e => { setStartFromPurchase(false); set("warranty_start_date", e.target.value); }}
+                 data-testid="input-warranty-start" />
+          {startFromPurchase && form.warranty_start_date && form.warranty_start_date === form.purchase_date && (
+            <p className="text-[10px] text-muted-foreground leading-snug" data-testid="hint-warranty-start-from-purchase">
+              Filled in from the purchase date. Change it if the certificate gives another start.
+            </p>
+          )}
+        </Field>
+        <Field label="Who honours it">
+          <input className={inputCls} value={form.warrantor} onChange={e => set("warrantor", e.target.value)}
+                 placeholder="e.g. Dell Nigeria Ltd" data-testid="input-warrantor" />
+        </Field>
+        <Field label="Certificate / document reference">
+          <input className={inputCls} value={form.warranty_reference} onChange={e => set("warranty_reference", e.target.value)}
+                 placeholder="e.g. WC-88812" data-testid="input-warranty-reference" />
+        </Field>
+        {/* The answer AND its working — the sentence the asset page will
+            print, computed here the way the server computes it. */}
+        {computedExpiry && (
+          <div className="sm:col-span-2 rounded-xl border border-border bg-muted/40 px-3 py-2" data-testid="warranty-computed-expiry">
+            <p className="text-xs text-foreground">
+              Expires <span className="font-semibold">{formatIsoDate(computedExpiry)}</span> — {monthsNum} months from {formatIsoDate(form.warranty_start_date)}
+            </p>
+          </div>
+        )}
+        {hasDuration && !computedExpiry && monthsValid !== (form.warranty_start_date !== "") && (
+          <p className="sm:col-span-2 text-[10px] text-muted-foreground leading-snug" data-testid="hint-warranty-pair">
+            A duration and a start date go together: enter both, or clear both.
+          </p>
+        )}
+        {!hasDuration && (
+          showExpiryOnly ? (
+            <Field label="Expiry date only (no duration known)">
+              <input className={inputCls} type="date" value={form.warranty_expiry}
+                     onChange={e => set("warranty_expiry", e.target.value)} data-testid="input-warranty-expiry-only" />
+              <p className="text-[10px] text-muted-foreground leading-snug">
+                For a warranty whose length nobody knows. The asset page will say the date was entered on its own, with nothing to check it against.
+              </p>
+            </Field>
+          ) : (
+            <div className="sm:col-span-2">
+              <button type="button" onClick={() => setShowExpiryOnly(true)}
+                      className="text-[11px] text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                      data-testid="button-warranty-expiry-only">
+                No duration known? Enter the expiry date only
+              </button>
+            </div>
+          )
+        )}
       </Section>
 
       <Section title="Notes">

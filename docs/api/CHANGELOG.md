@@ -33,6 +33,40 @@ live at was never the point.
 
 ---
 
+## 2026-09-22 — handoff 34: warranty · `myservice_api` 19.0.3.12.0
+
+**Additive. Nothing renamed, nothing that used to be accepted is refused.**
+A consumer that sends none of the new keys sees one new block on every asset
+and nothing else.
+
+**The version that accepts the new keys is `myservice_api` 19.0.3.12.0**
+(with `myservice_asset_register` 19.0.1.18.0). An integration can check it
+without asking: `GET /api/v1/openapi.json` lists `warranty_months` among the
+properties of `POST /api/v1/assets`'s request body on a Cadra that accepts
+them, and not on one that does not. **Sending these keys to an older Cadra
+is a `400` for the whole body** (handoff 31), so check first.
+
+- **New writable keys on `POST` and `PATCH /api/v1/assets`:**
+  `warranty_start_date`, `warranty_months`, `warrantor`,
+  `warranty_reference`. `warranty_expiry` was already writable and is
+  unchanged in name and type; **it is now DERIVED when a start date and a
+  duration are both present, and a value that contradicts them is a `400
+  validation_failed`** — send the start and the duration and leave the
+  expiry out. Half a basis (one without the other) is also a `400`.
+- **New block `data.warranty`** on every asset: `status`,
+  `status_as_of`, the five writable keys under their writable names, and
+  `basis`. `dates.warranty_expiry` is unchanged.
+- **New list filters:** `warranty_status` (`under_warranty` | `expired` |
+  `none`) and `warranty_expires_within_days` (1–3650). Lagos days.
+- **New enum on `GET /api/v1/meta/enums`:** `warranty_status`.
+- **New history event type** on `GET /assets/<id>/history`:
+  `warranty_changed`, append-only, and a fifth entry in `fidelity.events`.
+  A reader that switches on event type should expect it.
+
+See the endpoint reference, §3.4 *Warranty*.
+
+---
+
 ## 2026-09-22 — handoff 32: the last two doors that dropped fields · `status` and four documented keys that were never read
 
 ### BREAKING — `POST /home/quick-submit` and `POST /integrations/sap/employee-sync` refuse a key they do not read

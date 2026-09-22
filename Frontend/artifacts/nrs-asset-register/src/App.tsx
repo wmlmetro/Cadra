@@ -229,7 +229,13 @@ function App() {
           // the server for exceptions and drops every row whose cached status
           // disagrees. The history object changed shape too (`eventRecording`
           // is mapped over, and a v2 one has no such key).
-          buster: "v3",
+          //
+          // v3 → v4 in handoff 34. `Asset` gained `warranty`, and a v3 object
+          // has none — which the asset page reads as "a server that predates
+          // the block" and draws no verdict from. Honest, but wrong about the
+          // server for as long as the copy is fresh, and the register's
+          // warranty filter would sit over rows that cannot show one.
+          buster: "v4",
         }}
       >
         <TooltipProvider>

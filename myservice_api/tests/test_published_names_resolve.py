@@ -355,6 +355,7 @@ _SERIALIZERS = {
     ("v1_assets.py", "_serialize_tagging"): "nrs.asset",
     ("v1_assets.py", "_serialize_sap"): "nrs.asset",
     ("v1_assets.py", "_serialize_disposal"): "nrs.asset",
+    ("v1_assets.py", "_serialize_warranty"): "nrs.asset",
     ("v1_assets.py", "_serialize_custody"): "nrs.asset.custody",
     ("v1_assets.py", "serialize_asset"): "nrs.asset",
     ("v1_requests.py", "serialize_request"): "request.request",

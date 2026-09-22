@@ -87,6 +87,9 @@ MODEL_SOURCED = {
     "asset_state": (
         REPO_ROOT / "myservice_asset_register" / "models" / "asset.py",
         "nrs.asset", "state"),
+    "warranty_status": (
+        REPO_ROOT / "myservice_asset_register" / "models" / "asset.py",
+        "nrs.asset", "warranty_status"),
     # `nrs.asset.domain` is `related='category_id.domain'`, so the Selection
     # it carries is the one declared on the category. Reading the related
     # field's own declaration would find no list at all.

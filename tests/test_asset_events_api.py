@@ -55,13 +55,14 @@ from .conftest import (assert_envelope_err, assert_envelope_ok,
 
 _EVENT_RECORD = "nrs.asset.event"
 
-# The four published event types an `nrs.asset.event` can appear as, in the
+# The five published event types an `nrs.asset.event` can appear as, in the
 # order `fidelity.events` lists them. `reference_changed` is the STORED type;
 # it is published as `provenance_changed`, the type a change to a GRN
 # reference has carried since handoff 28 — renaming a published type would
 # have been a breaking change for a reader who already filters on it.
+# `warranty_changed` is handoff 34's, stored and published under one name.
 _RECORDED_TYPES = ["verified", "verification_date_set", "status_changed",
-                   "provenance_changed"]
+                   "provenance_changed", "warranty_changed"]
 
 _HIERARCHY_FIELDS = ("building_id", "floor_id", "room_id")
 
@@ -1348,7 +1349,8 @@ def test_an_event_this_suite_wrote_says_so(client, test_location,
     assert_envelope_ok(client.patch(
         f"/api/v1/assets/{asset['id']}",
         json={"last_verified_date": "2026-01-15",
-              "grn_reference": "GRN-LABEL-AFTER"}))
+              "grn_reference": "GRN-LABEL-AFTER",
+              "warranty_expiry": "2027-01-15"}))
     assert_envelope_ok(_mark_missing(client, asset["id"], "label test"))
     assert_envelope_ok(_condemn(client, asset["id"], "label test"))
 
@@ -1378,13 +1380,14 @@ def test_the_history_says_from_when_each_kind_of_event_is_recorded(
     """
     asset = _new_asset(client, test_location, "pytest-events-fidelity",
                        grn_reference="GRN-FIDELITY-BEFORE")
-    # One of each, so that none of the four can honestly say "not yet".
+    # One of each, so that none of the five can honestly say "not yet".
     assert_envelope_ok(client.post(
         f"/api/v1/assets/{asset['id']}/verify", json={}))
     assert_envelope_ok(client.patch(
         f"/api/v1/assets/{asset['id']}",
         json={"last_verified_date": "2026-01-15",
-              "grn_reference": "GRN-FIDELITY-AFTER"}))
+              "grn_reference": "GRN-FIDELITY-AFTER",
+              "warranty_expiry": "2027-01-15"}))
     assert_envelope_ok(_mark_missing(client, asset["id"], "fidelity test"))
 
     fidelity = _history(client, asset["id"])["fidelity"]

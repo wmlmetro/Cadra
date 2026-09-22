@@ -99,6 +99,34 @@ export interface AssetKeyDates {
   nextServiceDate?: string;
 }
 
+/**
+ * The `warranty` block (handoff 34): a fact about a CONTRACT, not about the
+ * asset. Nothing here feeds `status`, `lifecycleState`, a pill or a count of
+ * working stock — an asset out of warranty is exactly as in service as it was
+ * the day before.
+ *
+ * Every key but `status` is optional and an absent key is an absent fact.
+ */
+export interface AssetWarranty {
+  /** `under_warranty` / `expired` / `none` — the server's verdict, the
+   *  model's key (`useEnumLabel("warranty_status")` for the words). `none`
+   *  means no expiry is recorded, which is the ordinary case and is never
+   *  shown as, or counted with, `expired`. */
+  status: string;
+  /** The Lagos date the status was judged against. */
+  statusAsOf?: string;
+  expiry?: string;
+  startDate?: string;
+  months?: number;
+  /** WHO HONOURS IT — the name as recorded, not a link to anything. */
+  warrantor?: string;
+  /** Certificate or document number, as given. */
+  reference?: string;
+  /** How the expiry was arrived at, in the server's sentence — "24 months
+   *  from 2026-03-12", or that it was entered as a bare date. */
+  basis?: string;
+}
+
 export interface AssetProvenance {
   /** `nrs.asset.import_source` — the MODEL's key (`vendra`, `sap`, …), and
    *  deliberately `string`: the set is the server's, `/meta/enums` does not
@@ -188,6 +216,11 @@ export interface Asset {
   imageUrl?: string;
   financials?: AssetFinancials;
   keyDates?: AssetKeyDates;
+  /** Absent when the server predates handoff 34 and sends no `warranty`
+   *  block. Absent is NOT `none`: an older server has not said whether a
+   *  warranty is recorded, so the page falls back to `keyDates.warrantyExpiry`
+   *  alone and draws no verdict. */
+  warranty?: AssetWarranty;
   /** `last_verified_by.name` — WHO verified, which the date cannot say.
    *  Read-only: written only by `POST /assets/<id>/verify`, from the acting
    *  user. Absent means NOBODY IS RECORDED, not that nobody checked — every

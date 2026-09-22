@@ -351,3 +351,31 @@ first, the API dropped it with a 200, and the screen said *"policy saved"*.
 19.0.3.10.0, one new table, no new column on an existing one. All eight local
 databases upgraded, one at a time, before the code was restarted onto them.
 
+
+## Handoff 34 — warranty
+
+**What was built.** A warranty on an asset, captured the way it is quoted — a
+duration and a start date, the expiry derived from them and a contradicting
+expiry refused — with who honours it (a name) and the certificate number.
+`data.warranty` publishes the answer and the working (`basis`), under the
+writable names. Three filter states and an *expiring soon* window, on a Lagos
+day; `warranty_status` on `/meta/enums`. Every later change is an append-only
+`warranty_changed` event; a create writes none. The app has a Warranty section
+on the asset form and page, a register filter that names its window, and four
+dashboard tiles that each open exactly the rows they counted. **Accepted from
+`myservice_api` 19.0.3.12.0** — Vendra's half is gated on that, and
+`openapi.json` says it.
+
+**How it was proved.** In-registry, CI's 11 modules on `test19`: 0 failed, 0
+error(s) of 820. HTTP and browser results with their denominators are in
+report 34 §6. Spec 34 acts list → asset → edit → asset → register filter →
+dashboard tile → register in one session and reads the record back.
+
+**Measured.** No warranty on any real tenant: 0 of 19,170 assets across the
+seven non-test databases, every one *no warranty recorded*. A multi-asset
+warranty write that would have told SAP of each disposal twice was found by
+the verification pass and proved to fail first (`2 != 1`).
+
+**Schema.** `myservice_asset_register` 19.0.1.18.0, `myservice_api`
+19.0.3.12.0; four new columns on `nrs_asset`. All eight local databases
+upgraded, one at a time, before the code was restarted onto them.

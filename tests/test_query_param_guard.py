@@ -118,6 +118,8 @@ INVENTORY = {
     ("v1_assets", "sap_asset_number"): ("text", "SAP's asset number; Cadra holds no list of the ones SAP has issued"),
     ("v1_assets", "has_sap_code"): ("bool", ""),
     ("v1_assets", "sap_reconciliation_state"): ("enum", ""),
+    ("v1_assets", "warranty_status"): ("enum", ""),
+    ("v1_assets", "warranty_expires_within_days"): ("int", ""),
     ("v1_assets", "include"): ("enum", ""),
     ("v1_assets", "sort"): ("enum", ""),
     ("v1_assets", "as_of"): ("date", "_parse_report_date — 400 for unparseable, absent-but-required, and a future date"),

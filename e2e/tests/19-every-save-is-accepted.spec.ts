@@ -79,7 +79,12 @@ test("asset create — every input this tenant can fill", async ({ page, api }) 
   await field(page, /^\s*acquisition cost/i).fill("1000");
   await field(page, /^\s*current value/i).fill("900");
   await field(page, /^\s*purchase date/i).fill("2026-01-15");
-  await field(page, /^\s*warranty expiry/i).fill("2029-01-15");
+  // Handoff 34: a duration, not a date. The start fills in from the purchase
+  // date above, visibly; the expiry is the server's to derive and is not sent.
+  await field(page, /^\s*duration \(months\)/i).fill("36");
+  await expect(field(page, /^\s*start date/i)).toHaveValue("2026-01-15");
+  await field(page, /^\s*who honours it/i).fill("E2E Warrantor Ltd");
+  await field(page, /^\s*certificate/i).fill("E2E-WC-1");
   await field(page, /^\s*acquisition date/i).fill("2026-01-20");
   await field(page, /^\s*internal notes/i, "textarea").fill("E2E — sweep");
   const locQ = searchTerm(loc?.name);
@@ -94,13 +99,15 @@ test("asset create — every input this tenant can fill", async ({ page, api }) 
     "name", "legacy_asset_code", "serial_number", "manufacturer", "make", "model_name",
     "category_id", "asset_level", "domain", "department", "parent_id", "condition", "state",
     "purchase_value", "replacement_cost", "acquisition_cost", "current_value",
-    "purchase_date", "warranty_expiry", "acquisition_date", "notes",
+    "purchase_date", "acquisition_date", "notes",
+    "warranty_months", "warranty_start_date", "warrantor", "warranty_reference",
     ...(pickedLoc ? ["location_id"] : []),
     ...(pickedEmp ? ["custodian_id"] : []),
     ...(seed.currency?.id ? ["currency_id"] : []),
   ];
   for (const k of expected) expect(body, `${k} was typed, so it is sent`).toHaveProperty(k);
   expect(body, "the tag is Cadra's to mint").not.toHaveProperty("asset_tag");
+  expect(body, "the expiry is derived from the duration, never sent beside it").not.toHaveProperty("warranty_expiry");
   // Read back: it was SAVED, not merely accepted.
   const fresh = await api.get(`/api/v1/assets/${data.id}`);
   expect(fresh?.name).toBe(name);
