@@ -132,6 +132,39 @@ Odoo 19 removed it. `odoo/orm/model_classes.py:162` logs *"Model attribute '_sql
 
 **A refusal happens before anything is written.** `err(...)` returns a response; it does NOT roll the transaction back — only an exception does. A route that validates after it has created something leaves that something behind on a 400. Handoff 28 did exactly this on `/move` and left a `done` transfer for a move that never happened.
 
+### A move and a handover need a second person, and the gate is on the model
+
+Since handoff 35, changing `location_id` or `custodian_id` on `nrs.asset`
+raises a `UserError` unless somebody has approved it. **This will bite you the
+first time you write either field from a script, a shell or a test.** Four
+things to know before you do:
+
+1. **The gate is `nrs.asset._assert_change_is_approved`, called from
+   `_write_recorded`** — the same place as the disposal guard, under every
+   ORM writer. It is NOT in the routes, because the enumeration in report 35
+   §A found twelve writers of `location_id` and thirteen of `custodian_id`,
+   one of them an editable field on the Odoo form.
+2. **A write that NAMES a field without changing it passes.** The app's edit
+   form re-sends every field on every save; only a real change is gated.
+3. **A caller that is genuinely not a person deciding declares itself:**
+   `cadra_approval_exempt='import'|'seed'|'clearance'|'migration'|'test'`.
+   **An unrecognised value is no exemption at all.** Five first-party call
+   sites, each a row in §A's table — adding one means adding a row to that
+   table. `create` is never gated, so a registration (including INT-03 from
+   Vendra) is unaffected.
+4. **The switch `cadra.approval.required` is read with raw SQL and ABSENT
+   MEANS ON**, so every tenant here requires approval unless somebody set it.
+   There is no bypass flag and it is deliberately not settable over the API —
+   `assets:write`, `approvals:write` and `settings:write` are all one group.
+   The refusal prints the command an administrator runs.
+
+**The record is `nrs.asset.change.request`** — who asked, who was asked, who
+clicked, when, and what the asset was before. It is not append-only (it has a
+state machine) but it is close: `unlink` always refuses, a decided request is
+frozen to everything including `sudo()`, and a pending one moves only through
+`action_approve` / `action_reject` / `action_withdraw`. Self-approval is
+refused in the model, not in the app.
+
 ### Multi-tenancy is a development and demo arrangement, not how a client runs
 
 **Every real client gets its own server and its own single-tenant deployment.** The shared cluster — `nrs19`, `jaizbankplc`, `gtb19`, `cadra19`, `nrs`, `lasg`, `gtb`, `test19` on one registry — exists so one machine can carry development work and demonstrations side by side. It is not the production topology and never was. `docs/DEPLOYMENT.md`'s `prod` profile — one VPS, one domain, Caddy — is the real shape; the Kubernetes cluster is the demo estate. **That profile brings up Odoo 19 since handoff 20**, which closed the last open half of the migration outside `dist/`. **This is load-bearing for how you read every measurement in any report.** Three consequences, in order of how easily they mislead:
@@ -203,6 +236,7 @@ done
 | 30 | **Before the fourth twin — what has happened to an asset, recorded so nobody can alter it.** Asked whether a third, fourth and fifth copy of custody was a design or an accident: ONE model, `nrs.asset.event`, for every verification, every change of status with its reason, and a change to the GRN, PO or SAP asset number — the guard written once as a mixin, custody and movement left where they are because their ids and names are PUBLISHED and a migration is a rewrite of the two tables whose value is that nobody rewrites them · **disposed is terminal, in the model** — two doors were open, not one: a completed transfer un-disposed whatever it was completed on · un-disposing refused outright on a measurement: the only asset that ever left `disposed` is handoff 29's own probe · `POST …/mark-missing` and `POST …/condemn`, a reason required on both · **`/condemn` as specified would have MOVED the one-hour-a-night bug onto the server** — every API credential's user has no timezone, so `context_today` is UTC; it stamps a Lagos day · `building_id`/`floor_id`/`room_id` not writable (BREAKING) — the one live sender was our own edit form, echoing fields it had no input for · the app shows `_warnings` for every write, and on that day found that **a category's depreciation method could never be changed from its settings screen** · `exception` wired as a review status: 811 rows, every one a fixture, the control live with an opening balance of zero · a refused `/move` no longer burns a transfer reference, proved to fail first |
 | 31 | **One answer per rule.** The append-only guard written ONCE — custody and movement adopt `nrs.asset.append.only.mixin`, and their ROWS deliberately stay where they are because their ids are published in the contract an auditor reads · **a body field a route does not accept is a 400 and NOTHING is written**, eleven routes, announced — report 30's ten plus one that dropped fields without even reporting them · the MODEL stamps a disposal's date and condition for every writer · `POST /assets/<id>/mark-found`, a reason required · a disposed asset is not on a leaver's clearance list · **and the 400 uncovered that `POST`/`PATCH /requests` had dropped a request's location for the life of the route** — the model's field became `generic_location_id` on 19 and the API went on asking for `location_id`; both of the first two readings of it were wrong, the second written into nine places on a count with no denominator |
 | 32 | **The name and the field — the sweep, kept as a guard.** Every published key in the API against the model field it claims to write, both directions, driven by the routing attribute and a parse of every controller so a new route or a new defensive read FAILS rather than being skipped (`myservice_api/tests/test_published_names_resolve.py`) · **its first draft could not see the helper it was written about** — `_location_field` spells its check with a loop variable — caught by the table's own staleness check · the twelfth door and the thirteenth: `POST /home/quick-submit` and `POST /integrations/sap/employee-sync` refuse a key they do not read, a batch refused whole, and quick-submit refuses an id it cannot resolve instead of swallowing it · **`status` on the SAP feed was published by the schema, the endpoint reference, the demo card and our own test, and never read by anything** — the third instance of a published name and the thing underneath answering to another · quick-submit's documented example sent four keys the route has never read · a disposal's date cannot be taken off, and only a date sent WITH the disposal is the caller's · four keys you can write and never read back, named not fixed · three audit-report tests that had begun failing because `test19` crossed the record cap on one date |
+| 35 | **Nobody moves an asset alone — the second thing NRS asked for.** A move or a custody change becomes a REQUEST, and the rule sits in `nrs.asset.write` under all **twelve** writers of `location_id` and **thirteen** of `custodian_id`, not in the two routes the app calls — the enumeration was done before the code because the last two guesses at this list were both wrong · `nrs.asset.change.request`, ONE model for both, because *what is waiting on me* is one question · `nrs.asset.transfer` NOT reused and measured to be safe to leave: all 265 rows on all four tenants are `done`, nothing in `draft`, and `approved_by` is set on 1 of them — it becomes the RESULT of an approval instead, carrying the real approver · nothing written to the asset on request; the append-only rows appear on approval, from the same recorders as every other writer · who is ASKED and who CLICKED are two columns · self-approval refused in the model, under `sudo()` and as SUPERUSER · a request records what the asset WAS and cannot be approved once that stopped being true · one pending request per asset, by partial unique index · `cadra.approval.required` read with raw SQL, absent means ON, read-only over the API because the people it constrains hold `settings:write` · BREAKING: `/move` and `/transfer-custody` stop moving the asset and require `approver_id` |
 | 34 | **Warranty — client scope from a demonstration, and the first handoff that spans both repositories.** Cadra goes first: **`myservice_api` 19.0.3.12.0 accepts the keys**, and `openapi.json` says so for Vendra to read, because since handoff 31 a Vendra sending them to an older Cadra would dead-letter every receipt · a duration and a start date, the expiry DERIVED from them and a contradicting one refused, `basis` published beside the date · who honours it as a name, and the certificate number · three states — *no warranty recorded* is the honest third and, measured, 100% of every real tenant — on a Lagos day, and an *expiring soon* window named on the screen · a change is an append-only `warranty_changed` event; a create writes none · a warranty moves nothing about the asset's state, condition or counts · the published block uses the writable names, so a block read can be sent back unchanged (an edited duration goes without the expiry it replaces) · the verification pass found a multi-asset save that would have told SAP of each disposal twice, proved to fail first |
 
 ## Backlog — see `docs/GO-LIVE.md` Part II
