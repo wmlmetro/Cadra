@@ -328,6 +328,20 @@ def test_the_table_is_the_eleven_routes():
     The ruling named ten. The eleventh is `POST /asset-categories` — see
     `_post_category` for how a count made by searching for `_warnings`
     could not have found a route that never wrote one.
+
+    **Eleven is the number of routes that take a body of FIELDS and are
+    reached the same way.** Handoff 32 closed two more doors of a different
+    shape — `POST /home/quick-submit`, whose refusal comes back through a
+    delegate written to answer a browser, and `POST /integrations/sap/
+    employee-sync`, an action endpoint answering 200 with no record to read
+    back — so the per-route properties below (a good field to send beside
+    the bad one, a record to GET afterwards) have no meaning for them. They
+    are in `tests/test_the_twelfth_door.py`, held to the same shared
+    `assert_fields_refused` contract. **The complete census of routes that
+    take a body — all 32 — is
+    `myservice_api/tests/test_published_names_resolve.py`, which is the one
+    that fails when a new route appears.** This number is not it, and
+    growing it to thirteen would suggest it was.
     """
     assert len(_ROUTES) == 11
     assert len({label for label, _ in _ROUTES}) == 11

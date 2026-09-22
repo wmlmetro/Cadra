@@ -13,6 +13,82 @@ _INTERNAL_ERROR = (
     "Sorry — we could not submit your request. Please try again shortly."
 )
 
+# Returned when the body named something this form does not collect. Also
+# written to be read by a member of the public on a phone: nothing they typed
+# is wrong, so there is nothing for them to correct — the page sent a key the
+# server does not accept, which means a stale tab or a modified form.
+_UNRECOGNISED_FIELDS = (
+    "Sorry — we could not submit your request. Some of the information sent "
+    "with this form was not recognised. Please reload the page and try again."
+)
+
+#: **Every key `quick_submit` reads, and the whole of what either door
+#: accepts.** `quick_submit` takes `**kwargs`, so until handoff 32 it
+#: accepted anything and dropped what it does not read: the sibling
+#: `POST /api/v1/requests` key `request_text` raised a request with no
+#: description and answered 201. That is `CLAUDE.md` rule 3 verbatim.
+#:
+#: The set lives here, once, because the same method answers TWO doors — the
+#: public homepage form at `/api/myservice/quick-submit` and the authenticated
+#: `POST /api/v1/home/quick-submit`. They render a refusal differently (a
+#: sentence for a visitor, `details.rejected_fields` for an integration) but
+#: they must not disagree about WHAT is refused.
+QUICK_SUBMIT_FIELDS = (
+    'type_id',
+    'service_id',
+    'location_id',
+    'priority',
+    'description',
+    'reporter_name',
+    'reporter_contact',
+)
+
+#: The three keys that must name a record. Ordered, because the refusal names
+#: them in this order and a test pins it.
+QUICK_SUBMIT_ID_FIELDS = (
+    ('type_id', 'request.type'),
+    ('service_id', 'generic.service'),
+    ('location_id', 'generic.location'),
+)
+
+#: What each of those is called on the form. A refusal shown to a visitor says
+#: "the service", never `service_id` — the same rule the asset-history
+#: statements are held to by `myservice_api/tests/test_asset_history.py::
+#: test_the_statements_are_words_not_field_names`.
+_QUICK_SUBMIT_LABELS = {
+    'type_id': 'request type',
+    'service_id': 'service',
+    'location_id': 'location',
+}
+
+
+def quick_submit_rejected_keys(body):
+    """The keys in `body` that `quick_submit` does not accept, as sent.
+
+    Pure: no environment, no records. The order is the caller's, so an
+    integration reading `details.rejected_fields` sees its own body back.
+    """
+    return [k for k in (body or {}) if k not in QUICK_SUBMIT_FIELDS]
+
+
+def _choose_from_the_list(keys):
+    """The sentence a person filling in the form reads when an id is unusable.
+
+    Unusable means one of two things and neither is worth distinguishing to
+    somebody on a phone: the value is not a number at all (what the bare
+    `except (ValueError, TypeError): pass` used to swallow), or it is a number
+    naming no record (what `if rec.exists()` used to swallow). Both used to
+    submit a request quietly missing that detail and answer success.
+    """
+    labels = [_QUICK_SUBMIT_LABELS[k] for k in keys]
+    if len(labels) == 1:
+        subject, lists = 'the %s' % labels[0], 'the list'
+    else:
+        subject = 'the %s and %s' % (', '.join(labels[:-1]), labels[-1])
+        lists = 'the lists'
+    return ('Please choose %s from %s on the form, then send your request '
+            'again.' % (subject, lists))
+
 
 class NRSHomepageAPI(http.Controller):
 
@@ -75,30 +151,72 @@ class NRSHomepageAPI(http.Controller):
         methods=['POST'], csrf=False,
     )
     def quick_submit(self, **kwargs):
-        """Handle homepage quick-submit form."""
+        """Handle homepage quick-submit form.
+
+        **Nothing is written until the body has been read whole** (handoff
+        32 §B). Two refusals come first and both used to be silences:
+
+        - a key this form does not collect — `request_text`, say, the sibling
+          `POST /api/v1/requests` key, which raised a request with no
+          description at all and answered 201;
+        - one of the three ids that cannot be resolved, either because it is
+          not a number (a bare `except (ValueError, TypeError): pass`) or
+          because it names no record (`if rec.exists()`), both of which used
+          to submit the request without that detail and report success.
+
+        The failure dict carries the machine-readable lists alongside the
+        sentence, because `myservice_api.controllers.v1.home_quick_submit`
+        delegates here and owes its callers the same
+        `details.rejected_fields` / `details.writable` 400 as the other
+        eleven write routes. One validator, two renderings.
+        """
         env = request.env
 
-        # Resolve type_id — required
-        type_id = None
-        raw_type = kwargs.get('type_id')
-        if raw_type:
-            try:
-                type_id = int(raw_type)
-            except (ValueError, TypeError):
-                pass
+        rejected = quick_submit_rejected_keys(kwargs)
+        if rejected:
+            return {
+                'success': False,
+                'error': _UNRECOGNISED_FIELDS,
+                'rejected_fields': rejected,
+            }
 
+        # The three ids, resolved before anything is created. A key that is
+        # absent is not an error — only one that is present and unusable.
+        resolved = {}
+        unusable = []
+        for key, model in QUICK_SUBMIT_ID_FIELDS:
+            raw = kwargs.get(key)
+            if raw in (None, '', False):
+                continue
+            try:
+                rec_id = int(raw)
+            except (ValueError, TypeError):
+                unusable.append(key)
+                continue
+            rec = env[model].sudo().browse(rec_id)
+            if not rec.exists():
+                unusable.append(key)
+                continue
+            resolved[key] = rec.id
+
+        if unusable:
+            return {
+                'success': False,
+                'error': _choose_from_the_list(unusable),
+                'unusable_fields': unusable,
+            }
+
+        type_id = resolved.get('type_id')
         if not type_id:
-            # Fall back to first active type
+            # No type sent at all — fall back to the first active one. An
+            # UNUSABLE type was refused above; this branch is for a body that
+            # never named one, which the public form does not send.
             first_type = env['request.type'].sudo().search(
                 [('active', '=', True)], limit=1)
             if first_type:
                 type_id = first_type.id
             else:
                 return {'success': False, 'error': 'No request type available'}
-
-        req_type = env['request.type'].sudo().browse(type_id)
-        if not req_type.exists():
-            return {'success': False, 'error': 'Invalid request type'}
 
         # Build request text with reporter info
         lines = []
@@ -119,25 +237,17 @@ class NRSHomepageAPI(http.Controller):
             'request_text': req_text,
         }
 
-        # Service
-        raw_service = kwargs.get('service_id')
-        if raw_service:
-            try:
-                svc = env['generic.service'].sudo().browse(int(raw_service))
-                if svc.exists():
-                    vals['service_id'] = svc.id
-            except (ValueError, TypeError):
-                pass
-
-        # Location
-        raw_loc = kwargs.get('location_id')
-        if raw_loc:
-            try:
-                loc = env['generic.location'].sudo().browse(int(raw_loc))
-                if loc.exists():
-                    vals['generic_location_id'] = loc.id
-            except (ValueError, TypeError):
-                pass
+        # Service and location — already resolved above, or the request was
+        # refused. Nothing is dropped here any more.
+        #
+        # `generic_location_id` and not `location_id`: the model's field was
+        # renamed in the move to Odoo 19 and handoff 31 found the sibling
+        # `POST /api/v1/requests` still asking for the old name and answering
+        # 201 without it. The published KEY stays `location_id` on both doors.
+        if 'service_id' in resolved:
+            vals['service_id'] = resolved['service_id']
+        if 'location_id' in resolved:
+            vals['generic_location_id'] = resolved['location_id']
 
         # Priority
         if kwargs.get('priority'):

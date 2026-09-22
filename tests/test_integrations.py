@@ -11,6 +11,14 @@ def test_sap_employee_sync(client, capture):
     has its own validation. We send a deliberately minimal payload; either
     a success envelope OR a model-side validation error is acceptable, as
     long as the API envelope shape is right.
+
+    **`status` used to be the last line of this payload** and was never once
+    read: `nrs.sap.sync.log` takes `employmentStatus` or `sap_status`, and
+    the route dropped anything else in silence and answered 200 (handoff 32
+    §B). The published `SapEmployee` schema, the endpoint reference's
+    canonical example and the demo card all sent it too. An unaccepted key
+    is now a 400 naming it — see `tests/test_the_twelfth_door.py` — so this
+    payload is corrected to the key the model actually reads.
     """
     r = client.post("/api/v1/integrations/sap/employee-sync", json={
         "ir_number": "PYTEST-IRTEST-001",
@@ -19,7 +27,7 @@ def test_sap_employee_sync(client, capture):
         "lastName": "Test",
         "department": "Pytest",
         "jobTitle": "Smoke Tester",
-        "status": "active",
+        "employmentStatus": "active",
     })
     capture("integrations/sap_employee_sync", r)
     # PRD envelope, success or error

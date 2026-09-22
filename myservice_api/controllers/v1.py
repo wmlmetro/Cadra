@@ -78,6 +78,7 @@ from .utils import (
     caller_ip_label as _caller_ip_label,
     ok,
     record_cap,
+    refuse_unwritable,
     require_jwt,
     scopes_for_user,
     turnstile_error,
@@ -1898,19 +1899,74 @@ class MyserviceApiV1(http.Controller):
                     },
                     "SapEmployee": {
                         "type": "object",
-                        "description": ("SuccessFactors employee payload. Either "
-                                        "`ir_number` or `userId` must be present so "
-                                        "the row can be matched."),
+                        "description": (
+                            "SuccessFactors employee payload. One of "
+                            "`ir_number`, `userId` or `personIdExternal` must "
+                            "be present so the row can be matched.\n\n"
+                            "**Since handoff 32 a key not listed here is a "
+                            "400 `invalid_request`** naming it in "
+                            "`details.rejected_fields`, with the whole "
+                            "accepted set in `details.writable`, and NOTHING "
+                            "is written — for the whole batch, not just the "
+                            "employee that carried it. Before that an "
+                            "unlisted key was dropped in silence and the "
+                            "route answered 200, so an employment status "
+                            "under the wrong name synced an employee without "
+                            "one.\n\n"
+                            "**BREAKING, and it corrects this document.** "
+                            "This schema published `status`, and so did the "
+                            "endpoint reference's canonical example and the "
+                            "demo card. `nrs.sap.sync.log` has never read "
+                            "`status`: it reads `employmentStatus` or "
+                            "`sap_status`. Per `CLAUDE.md` rule 4 the model "
+                            "wins and the document is what gets corrected."),
                         "properties": {
                             "ir_number": {"type": "string", "description": "Cadra IR/staff number"},
                             "userId": {"type": "string", "description": "SAP user id (fallback match key)"},
+                            "personIdExternal": {"type": "string",
+                                                 "description": "SuccessFactors external person id (second fallback match key)"},
+                            "displayName": {"type": "string",
+                                            "description": "Full name; used in preference to firstName + lastName"},
                             "firstName": {"type": "string"},
                             "lastName": {"type": "string"},
                             "email": {"type": "string", "format": "email"},
-                            "department": {"type": "string"},
+                            "phone": {"type": "string"},
+                            "mobile": {"type": "string"},
+                            "department": {"type": "string",
+                                           "description": "Department NAME; created if no department matches it"},
                             "jobTitle": {"type": "string"},
-                            "status": {"type": "string",
-                                       "enum": ["active", "inactive", "terminated"]},
+                            "costCenter": {"type": "string"},
+                            "gradeCode": {"type": "string"},
+                            "managerIR": {"type": "string",
+                                          "description": "The manager's IR number"},
+                            "hireDate": {"type": "string", "format": "date"},
+                            "terminationDate": {"type": "string", "format": "date"},
+                            "locationName": {"type": "string",
+                                             "description": "A `generic.location` name, matched case-insensitively"},
+                            "location": {"type": "string",
+                                         "description": "Fallback spelling of `locationName`"},
+                            "employmentStatus": {
+                                "type": "string",
+                                "enum": ["active", "terminated", "suspended",
+                                         "onLeave", "transferred"],
+                                "description": (
+                                    "Employment status. Capitalised spellings "
+                                    "(`Active`, `Terminated`, `On Leave`, …) "
+                                    "map to the same values; a value outside "
+                                    "the map is stored as `active`. "
+                                    "`terminated` flags the employee's "
+                                    "assets for retrieval."),
+                            },
+                            "sap_status": {"type": "string",
+                                           "description": "Fallback spelling of `employmentStatus`"},
+                            "previous_status": {
+                                "type": "string",
+                                "description": ("The status this employee held before. "
+                                                "Sent so an unchanged status triggers "
+                                                "nothing."),
+                            },
+                            "event": {"type": "string",
+                                      "description": "e.g. HireEmployee, TransferEmployee, TerminateEmployee. Recorded on the sync log."},
                         },
                     },
                 },
@@ -2515,6 +2571,21 @@ class MyserviceApiV1(http.Controller):
                  request_schema={
                      "type": "object",
                      "required": ["type_id", "description"],
+                     "description": (
+                         "**Since handoff 32 these seven keys are the whole "
+                         "of what this route accepts.** Anything else is a "
+                         "400 `invalid_request` naming it in "
+                         "`details.rejected_fields`, with the accepted set "
+                         "in `details.writable`, and nothing is written — "
+                         "the route used to take the sibling "
+                         "`POST /api/v1/requests` key `request_text`, raise "
+                         "a request with no description at all and answer "
+                         "201.\n\n"
+                         "`type_id`, `service_id` and `location_id` are also "
+                         "a 400 when they cannot be resolved — a value that "
+                         "is not a number, or a number naming no record — "
+                         "under `details.unusable_fields`. Both used to be "
+                         "dropped in silence."),
                      "properties": {
                          "type_id": {"type": "integer", "description": "request.type id"},
                          "service_id": {"type": "integer", "nullable": True},
@@ -2556,8 +2627,48 @@ class MyserviceApiV1(http.Controller):
                      "reporter_contact": "jane.doe@example.com",
                  })
     def home_quick_submit(self, **kwargs):
-        from odoo.addons.myservice_website_theme.controllers.api import NRSHomepageAPI
+        """The twelfth door (handoff 32 §B).
+
+        This route CREATES a record by handing the body to a function taking
+        `**kwargs`, so it accepted anything and dropped what the delegate does
+        not read — send it `request_text`, the sibling `POST /api/v1/requests`
+        key, and it raised a request with no description and answered 201.
+        That is `CLAUDE.md` rule 3 verbatim, and grepping for allow-lists
+        missed it twice because there is no allow-list here.
+
+        The rule now lives ONCE, in the delegate, because the same method
+        answers the public homepage form as well. What differs is the
+        rendering: a visitor gets a sentence, and an integration gets the same
+        400 as the other eleven — `details.rejected_fields` and
+        `details.writable`, nothing written.
+        """
+        from odoo.addons.myservice_website_theme.controllers.api import (
+            NRSHomepageAPI, QUICK_SUBMIT_FIELDS,
+        )
         result = NRSHomepageAPI().quick_submit(**(get_params() or {}))
+        if isinstance(result, dict):
+            # Both refusals happen in the delegate BEFORE it writes anything,
+            # which is the property `err()` cannot supply on its own: it
+            # returns a response, it does not roll back.
+            if result.get("rejected_fields"):
+                return refuse_unwritable(result["rejected_fields"],
+                                         QUICK_SUBMIT_FIELDS)
+            if result.get("unusable_fields"):
+                unusable = result["unusable_fields"]
+                # Not `refuse_unwritable`: these keys ARE accepted. What is
+                # wrong is the value — not a number, or a number naming no
+                # record — and both used to be swallowed by a bare
+                # `except (ValueError, TypeError): pass` and an unchecked
+                # `.exists()`, submitting a request quietly missing the
+                # detail. `unusable_fields` is named after `rejected_fields`
+                # on purpose: same 400, different reason.
+                return err(
+                    ERR_INVALID_REQUEST,
+                    "These fields name no record this register holds: %s. "
+                    "Nothing was written."
+                    % ", ".join("`%s`" % k for k in unusable),
+                    details={"unusable_fields": unusable,
+                             "writable": sorted(QUICK_SUBMIT_FIELDS)})
         return _delegate_failure(result, code=ERR_INVALID_REQUEST,
                                  status=400) or result
 
@@ -2576,6 +2687,10 @@ class MyserviceApiV1(http.Controller):
                      ],
                      "description": "Single employee object or a list of employee objects.",
                  },
+                 # `status` used to be the last line of this example and was
+                 # never read by anything — see the SapEmployee schema. It is
+                 # now a 400, so the example is corrected rather than left to
+                 # teach an integrator a key that is refused.
                  request_example=[{
                      "ir_number": "IR123456",
                      "userId": "u-123",
@@ -2584,7 +2699,7 @@ class MyserviceApiV1(http.Controller):
                      "email": "ada@example.com",
                      "department": "Engineering",
                      "jobTitle": "Principal Engineer",
-                     "status": "active",
+                     "employmentStatus": "active",
                  }])
     def sap_employee_sync(self, **kwargs):
         payload = get_params()
@@ -2599,6 +2714,29 @@ class MyserviceApiV1(http.Controller):
 
         results = []
         SyncLog = request.env["nrs.sap.sync.log"].sudo()
+
+        # The twelfth door's other half (handoff 32 §B). This route creates
+        # `hr.employee` rows by handing a dict to a method that reads the keys
+        # it knows and says nothing about the rest — so a feed sending
+        # `status`, or a mis-cased `jobtitle`, synced an employee missing
+        # exactly the field it was sent to carry, and answered 200.
+        #
+        # **Whole-body, and whole-BATCH, before anything is written.** A list
+        # is one request: refusing the eleventh employee after ten have been
+        # created would leave a partial sync under an idempotency key that
+        # replays the same answer on every retry. `err()` returns a response;
+        # it does not roll back.
+        rejected = []
+        for emp_data in employees:
+            if not isinstance(emp_data, dict):
+                return err(ERR_INVALID_REQUEST,
+                           "Each employee must be a JSON object")
+            for key in SyncLog.unknown_payload_keys(emp_data):
+                if key not in rejected:
+                    rejected.append(key)
+        if rejected:
+            return refuse_unwritable(rejected, SyncLog.accepted_payload_keys())
+
         for emp_data in employees:
             employee, log = SyncLog.process_sap_payload(emp_data, sync_type="api")
             results.append({

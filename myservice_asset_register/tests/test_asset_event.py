@@ -1169,13 +1169,44 @@ class TestADisposalIsStampedThroughAnyDoor(EventCase):
         self.assertEqual(asset.disposal_date, date(2026, 1, 31))
         self.assertEqual(asset.condition, "decommissioned")
 
-    def test_a_date_already_on_the_asset_is_kept(self):
-        """Paperwork written up BEFORE the act — the date was agreed at the
-        board of survey, and the status follows a week later."""
+    def test_a_date_already_on_the_asset_is_not_the_callers_date(self):
+        """Handoff 32 §C2, and it REVERSES handoff 31's reading.
+
+        `disposal_date` is writable on a LIVE asset, so a date can be sitting
+        on the record months before anything is disposed of — and the first
+        draft, which asked `self.disposal_date` AFTER the write, could not
+        tell that from a date sent WITH the disposal. An asset given last
+        year's date while still in service and disposed of today was dated
+        last year, and the register said it left a year before it did.
+
+        Only the date in THIS write is the caller's. The stale one is
+        overwritten by today — and `disposal_date` is tracked, so the day
+        that was there before is still in the record and a genuine
+        board-of-survey date can be put back by correcting it, which is a
+        write this allows.
+        """
         asset = self._asset(disposal_date="2026-01-31")
         with freeze_time("2031-03-01 23:30:00"):
             asset.write({"state": "disposed"})
-        self.assertEqual(asset.disposal_date, date(2026, 1, 31))
+        self.assertEqual(asset.disposal_date, date(2031, 3, 2))
+
+    def test_a_date_cleared_in_the_same_write_is_not_a_date(self):
+        """Disposing of an asset and emptying the date in one breath sends
+        no date at all, so the server dates it. The guard below cannot see
+        this one: the asset is not yet disposed when the write is checked."""
+        asset = self._asset(disposal_date="2026-01-31")
+        with freeze_time("2031-03-01 23:30:00"):
+            asset.write({"state": "disposed", "disposal_date": False})
+        self.assertEqual(asset.disposal_date, date(2031, 3, 2))
+
+    def test_condemning_stamps_today_over_a_stale_date(self):
+        """The button sends no date, so it never carried the caller's — and
+        it must not inherit one left on the record by an earlier PATCH."""
+        asset = self._asset(disposal_date="2026-01-31")
+        with freeze_time("2031-03-01 23:30:00"):
+            asset.action_condemn(reason="beyond economic repair")
+        self.assertEqual(asset.disposal_date, date(2031, 3, 2))
+        self.assertEqual(asset.state, "disposed")
 
     def test_an_asset_registered_as_already_disposed_gets_no_date(self):
         """NOT on `create`, deliberately. It was disposed of on some earlier
@@ -1235,3 +1266,95 @@ class TestADisposalIsStampedThroughAnyDoor(EventCase):
             asset.write({"state": "disposed", "notes": "saved from the form"})
         self.assertFalse(asset.disposal_date)
         self.assertEqual(asset.notes, "saved from the form")
+
+
+@tagged("post_install", "-at_install")
+class TestADisposalsDateCannotBeTakenAway(EventCase):
+    """Handoff 32 §C1. Handoff 31 put a date on every disposal whichever
+    door it came by; report 31 then found the door that takes one off again.
+
+    `disposal_date` is in the API's `_WRITABLE_FIELDS`, so `PATCH
+    {"disposal_date": null}` un-dated a disposal made ten minutes earlier —
+    the ONE remaining way to manufacture the disposal report's
+    `no_disposal_date` finding against a new disposal, on a register whose
+    real opening balance for that finding is zero. Refused in the model, in
+    `_assert_disposed_is_terminal`, because the field has many writers: the
+    API's PATCH, the Odoo form, the importer and the shell.
+
+    **Correcting the date is not clearing it.** A disposal recorded on the
+    wrong day is worth putting right, and a legacy disposal that never had a
+    date is dated the moment somebody finds out when it happened. Both stay.
+    """
+
+    def _disposed(self, **vals):
+        asset = self._asset(**vals)
+        asset.write({"state": "disposed"})
+        return asset
+
+    def test_a_disposed_assets_date_cannot_be_emptied(self):
+        with freeze_time("2031-03-01 23:30:00"):
+            asset = self._disposed()
+        self.assertEqual(asset.disposal_date, date(2031, 3, 2))
+        with self.assertRaises(UserError):
+            asset.write({"disposal_date": False})
+        self.assertEqual(asset.disposal_date, date(2031, 3, 2))
+
+    def test_the_refusal_says_why_and_names_the_asset(self):
+        """In the voice of the three refusals beside it: it explains what
+        would be lost, and it names the asset rather than a column."""
+        asset = self._disposed()
+        with self.assertRaises(UserError) as caught:
+            asset.write({"disposal_date": None})
+        message = str(caught.exception)
+        self.assertIn(asset.display_name, message)
+        self.assertIn("disposed of", message)
+        self.assertNotIn("disposal_date", message)
+
+    def test_nothing_else_in_the_write_lands_either(self):
+        """A refusal happens BEFORE `super()`, so the rest of the body goes
+        with it. A write half-applied is the defect handoff 28 shipped on
+        `/move`, arriving here instead."""
+        asset = self._disposed(notes="as it was")
+        with self.assertRaises(UserError):
+            asset.write({"notes": "SHOULD-NOT-BE-WRITTEN",
+                         "disposal_date": False})
+        self.assertEqual(asset.notes, "as it was")
+        self.assertTrue(asset.disposal_date)
+
+    def test_the_date_can_still_be_corrected(self):
+        """The board of survey sat on 31 January and the status followed a
+        week later. That is a correction, not an erasure, and it is the
+        legitimate act handoff 32 §C1 was careful to leave open."""
+        asset = self._disposed()
+        asset.write({"disposal_date": "2026-01-31"})
+        self.assertEqual(asset.disposal_date, date(2026, 1, 31))
+
+    def test_an_undated_disposal_can_still_be_dated(self):
+        """A legacy row — disposed, no date — is what the finding is FOR,
+        and dating it once somebody establishes when it happened is how the
+        finding is cleared. Refusing here would freeze every one of them."""
+        asset = self._asset(state="disposed")
+        self.assertFalse(asset.disposal_date)
+        asset.write({"disposal_date": "2020-06-30"})
+        self.assertEqual(asset.disposal_date, date(2020, 6, 30))
+
+    def test_an_undated_disposal_may_be_saved_from_the_form(self):
+        """NAMING the field is not CLEARING it — the rule the three beside
+        this one are compared rather than detected for. The Odoo form
+        re-sends every field it displays, so an edit form saving a legacy
+        undated disposal sends an empty date back. Refusing on presence
+        would make those rows uneditable from the one screen people edit
+        them on."""
+        asset = self._asset(state="disposed")
+        asset.write({"disposal_date": False, "notes": "saved from the form"})
+        self.assertFalse(asset.disposal_date)
+        self.assertEqual(asset.notes, "saved from the form")
+
+    def test_a_live_asset_is_untouched(self):
+        """The rule belongs to a disposal, not to the column. An asset still
+        in service whose date was keyed in by mistake must be able to lose
+        it, or the mistake is permanent."""
+        asset = self._asset(disposal_date="2026-01-31")
+        asset.write({"disposal_date": False})
+        self.assertFalse(asset.disposal_date)
+        self.assertEqual(asset.state, "active")

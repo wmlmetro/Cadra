@@ -110,9 +110,31 @@ def disposed_assets(client, test_location):
              'partial': {...}, 'date': 'YYYY-MM-DD'}.
     """
     prefix = f"pytest-disposal-{int(time.time())}"
-    # Yesterday, so a period test can put a boundary either side of it and a
-    # "created after the snapshot date" test has a date to sit before.
-    disposal_date = _iso(_today() - datetime.timedelta(days=1))
+    # A day in the past that is this RUN's, and nobody else's.
+    #
+    # It was "yesterday" until handoff 32, and that made every assertion below
+    # a bet on how many disposals the tenant happens to hold on one date. The
+    # bet came due: `test19` crossed 330 disposals dated 2026-09-21 — three
+    # more on every run of this file — and the disposal schedule is bounded by
+    # the credential's record cap to the first 100 of a period BY ASCENDING
+    # ASSET ID. A freshly created fixture has the highest id there is, so it
+    # fell outside the window it was created to be found in, and three tests
+    # that had passed for the life of the suite began failing on a report that
+    # was behaving exactly as documented (`_warnings.truncated` said so).
+    #
+    # Two other tests in this file already skip on `truncated`, honestly. A
+    # skip is the wrong answer here: these three assert the substance — that
+    # the finding appears, that both bounds are inclusive, that a read-only
+    # report writes nothing — and a test that skips for ever has stopped
+    # testing (handoff 22's two partition tests that never ran).
+    #
+    # So the period gets a day of its own instead. Still in the past, so a
+    # boundary test can sit either side of it and a "created after the
+    # snapshot date" test has a date to sit before — and now the period
+    # contains this run's three rows and, in all likelihood, nothing else, so
+    # the cap cannot bite and the comparisons actually run.
+    disposal_date = _iso(_today() - datetime.timedelta(
+        days=1 + int(time.time()) % 365))
 
     def _make(suffix, extra):
         body = {

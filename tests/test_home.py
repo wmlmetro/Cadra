@@ -35,12 +35,21 @@ def test_quick_submit(client, capture):
     thing that is ours to guarantee either way: the caller gets a branchable
     envelope — a canonical code, a request_id, and a status that agrees with
     the body.
+
+    **And the body it sent was wrong for the whole of that time** (handoff
+    32 §B). `name`, `email`, `phone` and `subject` are not keys this route
+    accepts — it takes `reporter_name`, `reporter_contact` and `description`
+    — so every submission this test ever made raised a request with no
+    reporter and a subject nobody could read, and answered 201. The route
+    took `**kwargs` and dropped what it did not recognise, which is why the
+    branchable-envelope assertion below stayed green over it. An unaccepted
+    key is now a 400 naming it, so the body is corrected here and the
+    refusals have a file of their own:
+    `tests/test_the_twelfth_door.py`.
     """
     r = client.post("/api/v1/home/quick-submit", json={
-        "name": "pytest homepage",
-        "email": "pytest@example.com",
-        "phone": "+2348000000000",
-        "subject": "Smoke test from tests/test_home.py",
+        "reporter_name": "pytest homepage",
+        "reporter_contact": "pytest@example.com",
         "description": "Created by the pytest suite — please ignore.",
     })
     capture("home/quick_submit", r)

@@ -96,7 +96,8 @@ class CadraTestFixtureMixin(models.AbstractModel):
         acting as Administrator.
 
         **The one exception, and it is real.**
-        `myservice_website_theme/controllers/api.py:198` creates a
+        `NRSHomepageAPI.quick_submit` (`myservice_website_theme/controllers/
+        api.py`) creates a
         `request.request` with `.with_user(SUPERUSER_ID)`, which REPLACES the
         acting user rather than elevating it. Records created through
         `POST /api/v1/home/quick-submit` therefore carry `create_uid =
