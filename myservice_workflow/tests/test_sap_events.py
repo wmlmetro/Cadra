@@ -32,6 +32,39 @@ EVENT_DISPOSED = 'asset.disposed'
 EVENT_TAG_AFFIXED = 'asset.tag.affixed'
 
 
+# Handoff 35 gates every writer of `location_id` and `custodian_id` behind a
+# second person. These tests are about what SAP is TOLD when an asset changes
+# hands, not about who agreed to the change, so each write that trips the gate
+# declares `cadra_approval_exempt='test'` AT ITS OWN CALL SITE — per call and
+# never once per file, for the reason `approval_policy.EXEMPT_REASONS` and
+# `myservice_nrs_base/database_class.py` both give.
+#
+# A write that re-sends a custodian the asset already has needs no
+# declaration: the gate compares before against after, so a no-op is not a
+# change. `test_rewriting_a_custodian_to_the_value_it_already_holds_is_not_an
+# _event` relies on that and is left exactly as it was.
+
+
+def _a_second_user(env):
+    """Somebody who is not the one creating the transfer.
+
+    `nrs.asset.transfer.action_approve` refuses its own creator since handoff
+    35, so a test that wants a COMPLETABLE transfer needs two people, exactly
+    as a real one does.
+    """
+    login = "cadra-sap-transfer-approver"
+    user = env["res.users"].sudo().search([("login", "=", login)], limit=1)
+    if not user:
+        user = env["res.users"].sudo().create({
+            "name": "Cadra SAP Transfer Approver", "login": login,
+            "group_ids": [
+                (4, env.ref("base.group_user").id),
+                (4, env.ref("myservice_asset_register.group_asset_manager").id),
+            ],
+        })
+    return user
+
+
 class FakeAdapter:
     """Stands in for SAP. Returns whatever the test told it to."""
 
@@ -450,7 +483,12 @@ class TestSAPAssetEvents(CadraTransactionCase):
             'to_custodian_id': incoming.id,
             'reason': 'Office relocation',
         })
-        transfer.action_approve()
+        # A SECOND PERSON approves it. Handoff 35 refuses a transfer whose
+        # approver is its own creator: `action_complete` is exempt from the
+        # approval gate only because the document carries an approver, so one
+        # person creating and approving their own would have been a way to
+        # move an asset alone.
+        transfer.with_user(_a_second_user(self.env)).action_approve()
         transfer.action_complete()
 
         moves = self._events(asset, EVENT_TRANSFERRED)
@@ -477,7 +515,8 @@ class TestSAPAssetEvents(CadraTransactionCase):
                             sap_code_source='import',
                             custodian_id=outgoing.id)
 
-        asset.write({'custodian_id': incoming.id})
+        asset.with_context(
+            cadra_approval_exempt='test').write({'custodian_id': incoming.id})
 
         events = self._events(asset, EVENT_CUSTODIAN)
         self.assertEqual(len(events), 1)
@@ -628,7 +667,8 @@ class TestSAPAssetEvents(CadraTransactionCase):
         asset = self._asset(custodian_id=outgoing.id)
         self.assertFalse(asset.sap_asset_number)
 
-        asset.write({'custodian_id': incoming.id})
+        asset.with_context(
+            cadra_approval_exempt='test').write({'custodian_id': incoming.id})
         self.assertFalse(self._events(asset, EVENT_CUSTODIAN))
 
         asset.write({'state': 'disposed', 'disposal_reason': 'Scrapped'})
