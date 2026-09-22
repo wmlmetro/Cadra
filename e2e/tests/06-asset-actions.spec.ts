@@ -1,5 +1,5 @@
 import { test, expect } from "../fixtures/test";
-import type { ApiClient } from "../fixtures/api";
+import { ApiClient } from "../fixtures/api";
 import { gotoApp, expectShell, pickRecord } from "../fixtures/helpers";
 import { markedName, recordCreated } from "../fixtures/marker";
 import { appPath } from "../config";
@@ -615,8 +615,30 @@ test("an asset with no location can be placed, and the dialog promises no transf
   const q = String(locs[0].name).replace(/[^A-Za-z ]/g, " ").trim().split(/\s+/)[0].slice(0, 6);
   const picked = await pickRecord(dialog, "Search locations", q.length >= 2 ? q : "of");
   test.skip(!picked, "location search returned no options");
-  await dialog.getByRole("button", { name: "Place asset" }).click();
-  await expect(dialog).toBeHidden({ timeout: 15_000 });
+
+  // A PLACEMENT is a move for this purpose — a person deciding, today, where
+  // a thing goes — so it goes through approval too. Approving it here rather
+  // than stopping at the request, because the second half of this test is
+  // about what the history says once the asset IS placed.
+  const needsApproval = await api.approvalRequired();
+  if (needsApproval) {
+    const approver = await api.anApprover();
+    test.skip(!approver, "no eligible approver other than the caller");
+    const pickedApprover = await pickRecord(dialog, "Search people who can approve", String(approver!.name).split(/\s+/)[0].slice(0, 5));
+    test.skip(!pickedApprover, "approver search returned no options");
+    await dialog.getByTestId("button-confirm-move").click();
+    await expect(dialog.getByTestId("approval-raised")).toBeVisible({ timeout: 15_000 });
+    const second = await ApiClient.forServiceCredential();
+    test.skip(!second, "set E2E_CLIENT_ID / E2E_CLIENT_SECRET to approve — "
+                     + "the model refuses self-approval, so one identity cannot");
+    const pending = await api.get<any[]>("/api/v1/approvals", { asset_id: Number(id), state: "pending" });
+    await second!.post(`/api/v1/approvals/${pending[0].id}/approve`, {});
+    await page.reload();
+    await expectShell(page);
+  } else {
+    await dialog.getByRole("button", { name: "Place asset" }).click();
+    await expect(dialog).toBeHidden({ timeout: 15_000 });
+  }
   await expect
     .poll(async () => (await api.get(`/api/v1/assets/${id}`))?.current_location?.id ?? null, { timeout: 15_000 })
     .not.toBeNull();
@@ -628,19 +650,67 @@ test("an asset with no location can be placed, and the dialog promises no transf
 
 // ── Move ─────────────────────────────────────────────────────────────────────
 
+/**
+ * BREAKING since handoff 35, and this spec is where it shows first.
+ *
+ * On a tenant that requires approval — which is EVERY tenant that has not
+ * been configured, because the switch is absent-means-on — `POST /move` no
+ * longer moves anything. It raises a request and answers `pending_approval:
+ * true` with the asset UNCHANGED.
+ *
+ * So this asserts both halves against whatever the tenant actually says,
+ * asked of the server rather than assumed: the request is raised and the
+ * asset has NOT moved, and then — only when a second credential exists,
+ * because the model refuses self-approval — it is approved and the asset
+ * HAS moved. On a tenant with approval off the old behaviour is asserted
+ * unchanged.
+ */
 test("move persists server-side (API)", async ({ api }) => {
   const locs = await api.twoBuildings();
   test.skip(locs.length < 2, "need two building locations");
   const id = await createAsset(api, "MoveApi", { location_id: locs[0].id });
-  await api.post(`/api/v1/assets/${id}/move`, { to_location_id: locs[1].id, reason: "e2e" });
-  const fresh = await api.get(`/api/v1/assets/${id}`);
-  expect(fresh?.current_location?.id).toBe(locs[1].id);
+  const needsApproval = await api.approvalRequired();
+
+  if (!needsApproval) {
+    await api.post(`/api/v1/assets/${id}/move`, { to_location_id: locs[1].id, reason: "e2e" });
+    expect((await api.get(`/api/v1/assets/${id}`))?.current_location?.id).toBe(locs[1].id);
+    return;
+  }
+
+  const approver = await api.anApprover();
+  test.skip(!approver, "no eligible approver other than the caller on this tenant");
+  const raised = await api.post(`/api/v1/assets/${id}/move`, {
+    to_location_id: locs[1].id, approver_id: approver!.id, reason: "e2e",
+  });
+  expect(raised?.pending_approval, "a move should now raise a request").toBe(true);
+  expect(raised?.movement_id, "nothing is recorded until it is approved").toBeNull();
+  // THE POINT OF THE WHOLE HANDOFF: the asset has not moved. Read back from
+  // the server rather than trusting the echo in the response.
+  expect((await api.get(`/api/v1/assets/${id}`))?.current_location?.id).toBe(locs[0].id);
+
+  const second = await ApiClient.forServiceCredential();
+  test.skip(!second, "set E2E_CLIENT_ID / E2E_CLIENT_SECRET to prove the approve half — "
+                   + "the model refuses self-approval, so one identity cannot");
+  // The SERVICE credential raised it above? No — `api` did. So the second
+  // credential is the approver here, and it must be eligible.
+  await second!.post(`/api/v1/approvals/${raised.request.id}/approve`, {});
+  expect((await api.get(`/api/v1/assets/${id}`))?.current_location?.id).toBe(locs[1].id);
 });
 
+/**
+ * The UI half. On an approval tenant the button says what it does and the
+ * dialog does NOT close on success — it is replaced by a panel naming the
+ * reference, because "a storekeeper who thinks they have moved something and
+ * has not is the defect this programme is named after" (handoff 35 §E).
+ */
 test("move via UI closes the dialog and persists", async ({ page, api }) => {
   const locs = await api.twoBuildings();
   test.skip(locs.length < 2, "need two building locations");
   const id = await createAsset(api, "MoveUI", { location_id: locs[0].id });
+  const needsApproval = await api.approvalRequired();
+  const approver = needsApproval ? await api.anApprover() : null;
+  test.skip(needsApproval && !approver, "no eligible approver other than the caller");
+
   await gotoApp(page, `/assets/${id}`);
   await expectShell(page);
   await page.getByTestId("button-move").click();
@@ -650,12 +720,27 @@ test("move via UI closes the dialog and persists", async ({ page, api }) => {
   const picked = await pickRecord(dialog, "Search locations", q.length >= 2 ? q : "of");
   test.skip(!picked, "location search returned no options");
   await dialog.getByPlaceholder(/floor reorganisation|reason/i).fill("E2E move");
-  await dialog.getByRole("button", { name: "Move asset" }).click();
-  // Fixed: the envelope is mapped correctly, so the move succeeds and closes.
-  await expect(dialog).toBeHidden({ timeout: 15_000 });
-  await expect
-    .poll(async () => (await api.get(`/api/v1/assets/${id}`))?.current_location?.id, { timeout: 15_000 })
-    .toBe(locs[1].id);
+
+  if (!needsApproval) {
+    await dialog.getByRole("button", { name: "Move asset" }).click();
+    await expect(dialog).toBeHidden({ timeout: 15_000 });
+    await expect
+      .poll(async () => (await api.get(`/api/v1/assets/${id}`))?.current_location?.id, { timeout: 15_000 })
+      .toBe(locs[1].id);
+    return;
+  }
+
+  // The dialog must SAY the asset does not move. Asserted on the words a
+  // person reads, not on a test id, because the wording is the control.
+  await expect(dialog).toContainText(/does not move|does NOT move/i);
+  const pickedApprover = await pickRecord(dialog, "Search people who can approve", String(approver!.name).split(/\s+/)[0].slice(0, 5));
+  test.skip(!pickedApprover, "approver search returned no options");
+  await dialog.getByTestId("button-confirm-move").click();
+  // It does NOT close. It shows the reference.
+  await expect(dialog.getByTestId("approval-raised")).toBeVisible({ timeout: 15_000 });
+  await expect(dialog.getByTestId("approval-raised-reference")).toContainText(/CR\//);
+  // And the asset has not moved. The real row, read from the server.
+  expect((await api.get(`/api/v1/assets/${id}`))?.current_location?.id).toBe(locs[0].id);
 });
 
 // ── Transfer custody ──────────────────────────────────────────────────────────
@@ -664,9 +749,27 @@ test("transfer custody persists server-side (API)", async ({ api }) => {
   const emp = await api.firstEmployee();
   test.skip(!emp, "no employees");
   const id = await createAsset(api, "CustodyApi");
-  await api.post(`/api/v1/assets/${id}/transfer-custody`, { to_custodian_id: emp.id, reason: "e2e" });
-  const fresh = await api.get(`/api/v1/assets/${id}`);
-  expect(fresh?.current_custodian?.id).toBe(emp.id);
+  const needsApproval = await api.approvalRequired();
+
+  if (!needsApproval) {
+    await api.post(`/api/v1/assets/${id}/transfer-custody`, { to_custodian_id: emp.id, reason: "e2e" });
+    expect((await api.get(`/api/v1/assets/${id}`))?.current_custodian?.id).toBe(emp.id);
+    return;
+  }
+
+  const approver = await api.anApprover();
+  test.skip(!approver, "no eligible approver other than the caller on this tenant");
+  const raised = await api.post(`/api/v1/assets/${id}/transfer-custody`, {
+    to_custodian_id: emp.id, approver_id: approver!.id, reason: "e2e",
+  });
+  expect(raised?.pending_approval).toBe(true);
+  expect(raised?.custody_change, "no custody link until it is approved").toBeNull();
+  expect((await api.get(`/api/v1/assets/${id}`))?.current_custodian?.id ?? null).toBeNull();
+
+  const second = await ApiClient.forServiceCredential();
+  test.skip(!second, "set E2E_CLIENT_ID / E2E_CLIENT_SECRET to prove the approve half");
+  await second!.post(`/api/v1/approvals/${raised.request.id}/approve`, {});
+  expect((await api.get(`/api/v1/assets/${id}`))?.current_custodian?.id).toBe(emp.id);
 });
 
 test("transfer custody via UI closes the dialog and persists", async ({ page, api }) => {
@@ -681,12 +784,24 @@ test("transfer custody via UI closes the dialog and persists", async ({ page, ap
   const q = String(emp.name).replace(/[^A-Za-z ]/g, " ").trim().split(/\s+/)[0].slice(0, 5);
   const picked = await pickRecord(dialog, "Search employees", q.length >= 2 ? q : "mo");
   test.skip(!picked, "employee search returned no options");
-  await dialog.getByRole("button", { name: "Transfer custody" }).click();
-  // Fixed: the envelope is mapped correctly, so the transfer succeeds and closes.
-  await expect(dialog).toBeHidden({ timeout: 15_000 });
-  await expect
-    .poll(async () => (await api.get(`/api/v1/assets/${id}`))?.current_custodian?.id, { timeout: 15_000 })
-    .toBe(emp.id);
+  const needsApproval = await api.approvalRequired();
+  if (!needsApproval) {
+    await dialog.getByRole("button", { name: "Transfer custody" }).click();
+    await expect(dialog).toBeHidden({ timeout: 15_000 });
+    await expect
+      .poll(async () => (await api.get(`/api/v1/assets/${id}`))?.current_custodian?.id, { timeout: 15_000 })
+      .toBe(emp.id);
+    return;
+  }
+  const approver = await api.anApprover();
+  test.skip(!approver, "no eligible approver other than the caller");
+  await expect(dialog).toContainText(/does not move|does NOT move|until.*approve/i);
+  const pickedApprover = await pickRecord(dialog, "Search people who can approve", String(approver!.name).split(/\s+/)[0].slice(0, 5));
+  test.skip(!pickedApprover, "approver search returned no options");
+  await dialog.getByTestId("button-confirm-transfer-custody").click();
+  await expect(dialog.getByTestId("approval-raised")).toBeVisible({ timeout: 15_000 });
+  // Custody has NOT changed.
+  expect((await api.get(`/api/v1/assets/${id}`))?.current_custodian?.id ?? null).toBeNull();
 });
 
 // ── Business rule ─────────────────────────────────────────────────────────────
@@ -702,10 +817,19 @@ test("move to the same location is rejected", async ({ page, api }) => {
   await page.getByTestId("button-move").click();
   await expect(page.getByRole("dialog")).toBeVisible();
 
-  // API: same-location move is rejected.
+  // API: same-location move is rejected — and still BEFORE any request is
+  // raised. Handoff 35 put the approval branch below every validation on the
+  // route, for the reason handoff 28 learned the hard way: an `err(...)`
+  // return does not roll the transaction back, so anything that can refuse
+  // must refuse before anything is written. A same-location move that left a
+  // pending request behind would be that bug wearing a new hat.
   let rejected = false;
   try {
-    await api.post(`/api/v1/assets/${id}/move`, { to_location_id: loc.id, reason: "same-loc" });
+    const approver = await api.anApprover();
+    await api.post(`/api/v1/assets/${id}/move`, {
+      to_location_id: loc.id, reason: "same-loc",
+      ...(approver ? { approver_id: approver.id } : {}),
+    });
   } catch (e) {
     rejected = /same|conflict|unprocess|validation|invalid|422/i.test(String(e));
   }

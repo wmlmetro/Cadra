@@ -17,7 +17,6 @@ from .utils import (
     ERR_INVALID_REQUEST,
     ERR_NOT_FOUND,
     SCOPE_ASSETS_READ,
-    SCOPE_SETTINGS_READ,
     SCOPE_SETTINGS_WRITE,
     err,
     get_params,
@@ -410,7 +409,20 @@ class CadraConfigV1(http.Controller):
     @cadra_route("/api/v1/settings/approvals", method="GET",
                  summary="Does this register require a second person to "
                          "approve a move or a custody change?",
-                 scopes=[SCOPE_SETTINGS_READ],
+                 # `assets:read`, NOT `settings:read`. Every other block on
+                 # this controller reads with `settings:read`, and this one
+                 # deliberately does not: the app has to ask this question
+                 # wherever it draws a Move button, and `settings:read` is
+                 # granted by `group_asset_manager` and `group_auditor` only.
+                 # Gating it that way would make the answer unreadable to
+                 # some signed-in users while the button was still on their
+                 # screen — and the front end fails CLOSED on an unreadable
+                 # answer, so the symptom would be a correct-looking dialog
+                 # asking for an approver on a tenant that does not want one.
+                 # The value is not sensitive: it says whether this register
+                 # asks for a second person, which anyone who can see an
+                 # asset may as well know.
+                 scopes=[SCOPE_ASSETS_READ],
                  response_schema={
                      "type": "object",
                      "properties": {

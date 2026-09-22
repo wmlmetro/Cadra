@@ -1,0 +1,709 @@
+/**
+ * The approval queue — *what is waiting on me* (handoff 35).
+ *
+ * A move or a custody change on a register that requires approval is not an
+ * act any more, it is a REQUEST: `POST /assets/<id>/move` raises one and moves
+ * nothing, and the change happens — or does not — when a second person decides
+ * here. This is the only screen on which that second person exists.
+ *
+ * WHAT THIS SCREEN IS NOT ALLOWED TO DO
+ * -------------------------------------
+ * **Offer a button the server will refuse.** Three of the server's rules are
+ * read off the record rather than re-implemented here, and every one of them
+ * is computed FRESH on each read:
+ *
+ *   `can_decide`     false on a request the caller raised themselves, and on
+ *                    one they could not have made the change for. Per caller.
+ *   `can_withdraw`   only the requester, only while pending.
+ *   `premise_holds`  whether the world the request was raised in still holds.
+ *                    An asset moved or disposed of underneath a pending
+ *                    request makes it unapprovable, and the server says what
+ *                    changed. **Only meaningful on a PENDING row** — the model
+ *                    returns `true` for every decided one rather than
+ *                    re-judging closed history, so this file never reads it
+ *                    without checking the state first.
+ *
+ * The model remains the authority in every case; this only declines to offer.
+ * A hidden button is a door closed on one screen, and report 30 found a
+ * disposed asset being un-disposed through a route nobody had looked at.
+ *
+ * THE FOUR TABS, AND THE ONE THAT CANNOT BE SERVER-FILTERED
+ * ---------------------------------------------------------
+ * `GET /api/v1/approvals` takes ONE `state`. Three of the tabs want one state
+ * or none; *Decided* wants "approved or rejected or withdrawn", which is three
+ * and is not expressible. Rather than fire three requests and interleave three
+ * cursors, that tab asks for every state and drops the pending rows in the
+ * browser — and then says so, because a count taken over a client-filtered
+ * page is not a count of the register and printing it as one is how
+ * *"1,146 tracked moves"* got into a report. The row counter under that tab
+ * names its denominator; a state picked explicitly goes back to the server.
+ */
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "wouter";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLayoutCtx } from "@/components/layout/AppLayout";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { ApiErrorMessage } from "@/components/ApiErrorMessage";
+import RecordLink from "@/components/RecordLink";
+import {
+  invalidateApprovalQueries, invalidateAssetQueries, useApprovalRequirement,
+} from "@/components/AssetActionDialogs";
+import { CadraApiError, apiConfigured } from "@/lib/api";
+import {
+  approveChangeRequest, fetchApprovalsPage, rejectChangeRequest, withdrawChangeRequest,
+  type ApprovalFilters, type ApprovalRequest, type ApprovalState, type ApprovalsPage,
+} from "@/lib/dataProvider";
+import { SCOPE, useScopes } from "@/hooks/use-scopes";
+import { cn } from "@/lib/utils";
+import {
+  AlertCircle, ArrowRight, CheckCircle2, Clock, Inbox, MapPin, Undo2, User, XCircle,
+} from "lucide-react";
+
+// ─── small shared bits ─────────────────────────────────────────────────────
+
+/**
+ * The server's own timestamp, printed as the server wrote it.
+ *
+ * `2026-09-22T14:05:11` → `2026-09-22 14:05`. NOT converted to the browser's
+ * zone, and that is the same choice `AssetHistoryTimeline` makes: every other
+ * clock in this system — the disposal date, the Lagos day a warranty expires
+ * on — is the server's, and a queue that showed *yesterday* for a request
+ * raised an hour ago because the reader is west of Greenwich would be the
+ * one-hour-a-night bug of handoff 30 in a new place.
+ */
+function stamp(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  return iso.replace("T", " ").slice(0, 16);
+}
+
+const STATE_STYLE: Record<ApprovalState, string> = {
+  pending:   "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200/70 dark:border-amber-800/30",
+  approved:  "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200/70 dark:border-emerald-800/30",
+  rejected:  "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200/70 dark:border-red-800/30",
+  withdrawn: "bg-muted text-muted-foreground border-border",
+};
+
+const STATE_WORD: Record<ApprovalState, string> = {
+  pending: "Waiting", approved: "Approved", rejected: "Rejected", withdrawn: "Withdrawn",
+};
+
+function StatePill({ state }: { state: ApprovalState }) {
+  return (
+    <span
+      className={cn("text-[10px] font-bold px-2 py-0.5 rounded-lg border", STATE_STYLE[state])}
+      data-testid="approval-state-pill"
+      data-state={state}
+    >
+      {STATE_WORD[state] ?? state}
+    </span>
+  );
+}
+
+/**
+ * From → to, in words, with the "from" labelled for what it actually is.
+ *
+ * `from_location_name` is a STRING COPY taken when the request was raised, not
+ * a live read — the record keeps it so that renaming a location or deleting an
+ * employee cannot empty the premise it was judged against. On a PENDING row
+ * whose `premise_holds` is true it is also what is true right now, because
+ * that is precisely what the premise check asserts (`_premise_check`: the
+ * asset's location, custodian and status all still match what was recorded).
+ * When the premise has broken, or the row is decided, the label says *when
+ * this was raised* instead — claiming "now" over a string taken days ago is
+ * the kind of quiet untruth this screen exists to stop.
+ */
+function ChangeSummary({ r }: { r: ApprovalRequest }) {
+  const live = r.state === "pending" && r.premise_holds;
+  const isLocation = r.change_type === "location";
+  const from = isLocation
+    ? (r.from_location_name ?? r.from_location?.name ?? null)
+    : (r.from_custodian_name ?? r.from_custodian?.name ?? null);
+  const to = isLocation
+    ? (r.to_location_name ?? r.to_location?.name ?? null)
+    : (r.to_custodian_name ?? r.to_custodian?.name ?? null);
+  return (
+    <div className="flex items-center gap-2 flex-wrap text-[12px]" data-testid="approval-change">
+      <span className="inline-flex items-center gap-1 text-muted-foreground">
+        {isLocation ? <MapPin size={11} /> : <User size={11} />}
+        {isLocation ? "Location" : "Custodian"}
+      </span>
+      <span className="text-foreground" data-testid="approval-change-from">
+        {from ?? <span className="italic text-muted-foreground">nobody / nowhere</span>}
+      </span>
+      <ArrowRight size={11} className="text-muted-foreground/60 shrink-0" />
+      <span className="font-semibold text-foreground" data-testid="approval-change-to">
+        {to ?? <span className="italic text-muted-foreground">—</span>}
+      </span>
+      <span className="text-[10px] text-muted-foreground/80">
+        ({live ? "left-hand value is where it is now" : "left-hand value is as at the request"})
+      </span>
+    </div>
+  );
+}
+
+// ─── the decision dialog ───────────────────────────────────────────────────
+
+type DecisionMode = "approve" | "reject" | "withdraw";
+
+const DECISION_COPY: Record<DecisionMode, {
+  title: string;
+  description: (r: ApprovalRequest) => string;
+  label: string;
+  reasonLabel: string;
+  reasonRequired: boolean;
+  placeholder: string;
+  tone: string;
+}> = {
+  approve: {
+    title: "Approve this change",
+    description: (r) => r.change_type === "location"
+      ? "Approving MOVES the asset, now. The move is written to the asset's movement record, which nobody can edit or delete afterwards, and your name is on the approval."
+      : "Approving HANDS THE ASSET OVER, now. The change is written to the asset's chain of custody, which nobody can edit or delete afterwards, and your name is on the approval.",
+    label: "Approve",
+    reasonLabel: "Note (optional)",
+    reasonRequired: false,
+    placeholder: "e.g. Checked with the store — fine.",
+    tone: "bg-emerald-600 hover:bg-emerald-700",
+  },
+  reject: {
+    title: "Reject this change",
+    description: () => "The asset stays exactly where it is and with whoever holds it. The person who asked sees your reason, so say something they can act on — a rejection without one only gets asked again.",
+    label: "Reject",
+    reasonLabel: "Why are you rejecting it?",
+    // The route 400s on a blank one. The button is disabled before that, so
+    // the requirement is visible rather than discovered.
+    reasonRequired: true,
+    placeholder: "Required — the person who asked reads this",
+    tone: "bg-red-600 hover:bg-red-700",
+  },
+  withdraw: {
+    title: "Withdraw your request",
+    description: () => "Takes your own request back. Nothing about the asset changes, the approver stops seeing it in their queue, and the record of having asked stays.",
+    label: "Withdraw",
+    reasonLabel: "Note (optional)",
+    reasonRequired: false,
+    placeholder: "e.g. Asked the wrong person.",
+    tone: "bg-slate-600 hover:bg-slate-700",
+  },
+};
+
+function DecisionDialog({
+  request, mode, open, onOpenChange,
+}: {
+  request: ApprovalRequest;
+  mode: DecisionMode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const qc = useQueryClient();
+  const [reason, setReason] = useState("");
+  const copy = DECISION_COPY[mode];
+
+  const mutation = useMutation({
+    mutationFn: () => {
+      if (mode === "approve") return approveChangeRequest(request.id, reason.trim() || undefined);
+      if (mode === "reject") return rejectChangeRequest(request.id, reason.trim());
+      return withdrawChangeRequest(request.id, reason.trim() || undefined);
+    },
+    onSuccess: () => {
+      // BOTH, and in this order of reasoning: the queue changed for every
+      // outcome, and the ASSET changed for exactly one of them — an approval
+      // moves it. The asset list is invalidated on a rejection too, which
+      // refetches a little for nothing; the alternative is a branch that has
+      // to stay right, and an approval that failed to refresh the register
+      // would leave the asset page showing the old location with a green
+      // "Approved" beside it.
+      invalidateApprovalQueries(qc, request.asset?.id);
+      invalidateAssetQueries(qc, request.asset ? String(request.asset.id) : undefined);
+      qc.invalidateQueries({ queryKey: ["dashboard-map"] });
+      qc.invalidateQueries({ queryKey: ["employee-assets"] });
+      setOpen(false, true);
+    },
+    // A 409 means this screen is out of date — somebody decided it first, or
+    // the premise broke under it. The dialog stays open on the server's
+    // sentence and the list behind it is refetched, so closing lands on the
+    // truth. Same shape as `CondemnAssetDialog`.
+    onError: (e) => {
+      if ((e as CadraApiError).status === 409) invalidateApprovalQueries(qc, request.asset?.id);
+    },
+  });
+  const err = mutation.error as CadraApiError | null;
+
+  // Reset on every close — see `AssetActionDialogs`, including why the success
+  // handler passes `done`: `isPending` still reads true in that closure.
+  const setOpen = (next: boolean, done = false) => {
+    if (!next && mutation.isPending && !done) return;
+    if (!next) {
+      setReason("");
+      mutation.reset();
+    }
+    onOpenChange(next);
+  };
+
+  const ready = !mutation.isPending && (!copy.reasonRequired || !!reason.trim());
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => setOpen(next)}>
+      <DialogContent className="sm:max-w-md" data-testid={`dialog-approval-${mode}`}>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {mode === "approve" ? <CheckCircle2 size={16} />
+              : mode === "reject" ? <XCircle size={16} />
+              : <Undo2 size={16} />}
+            {copy.title}
+          </DialogTitle>
+          <DialogDescription>{copy.description(request)}</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <div className="rounded-xl border border-border bg-muted/30 px-3 py-2.5">
+            <p className="text-[11px] font-mono font-semibold text-foreground">{request.reference}</p>
+            <p className="text-[12px] text-foreground mt-0.5">{request.asset?.name ?? "—"}</p>
+            <div className="mt-1.5"><ChangeSummary r={request} /></div>
+          </div>
+          <div>
+            <label
+              htmlFor={`approval-reason-${mode}`}
+              className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide"
+            >
+              {copy.reasonLabel}
+            </label>
+            <textarea
+              id={`approval-reason-${mode}`}
+              rows={3}
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              className="mt-1.5 w-full px-3 py-2 text-xs border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              placeholder={copy.placeholder}
+              data-testid={`input-approval-${mode}-reason`}
+            />
+          </div>
+          {err && (
+            <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-xl p-3" data-testid="approval-decision-error">
+              <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+              <ApiErrorMessage err={err} />
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={!ready}
+            onClick={() => mutation.mutate()}
+            data-testid={`button-confirm-approval-${mode}`}
+            className={cn(
+              "px-3 py-1.5 text-xs font-semibold rounded-xl text-white",
+              ready ? copy.tone : "bg-muted text-muted-foreground cursor-not-allowed",
+            )}
+          >
+            {mutation.isPending ? <Clock size={12} className="animate-pulse" /> : copy.label}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── one row ───────────────────────────────────────────────────────────────
+
+function ApprovalRow({ r }: { r: ApprovalRequest }) {
+  const scopes = useScopes();
+  const [mode, setMode] = useState<DecisionMode | null>(null);
+
+  const pending = r.state === "pending";
+  // `premise_holds` is only computed for a pending row; the model answers
+  // `true` for every decided one rather than re-judging closed history, so
+  // reading it without this guard would paint an old rejection as applicable.
+  const broken = pending && !r.premise_holds;
+  // The server decides; these only stop the interface offering a refusal.
+  // The scope check is the second half of the same idea — `approvals:write`
+  // is what the two decision routes require, and an Auditor holds none of it.
+  const mayDecide = pending && r.can_decide && !broken && scopes.has(SCOPE.approvalsWrite);
+  const mayWithdraw = pending && r.can_withdraw && scopes.has(SCOPE.assetsWrite);
+
+  return (
+    <li className="px-5 py-3.5" data-testid="approval-row" data-reference={r.reference} data-state={r.state}>
+      <div className="flex items-start gap-3 flex-wrap">
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[12px] font-mono font-semibold text-foreground">{r.reference}</span>
+            <StatePill state={r.state} />
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-muted text-muted-foreground border border-border">
+              {r.change_type === "location" ? "Move" : "Custody"}
+            </span>
+            {r.asset && (
+              <RecordLink to={`/assets/${r.asset.id}`} subtle>
+                <span className="text-[12px] font-semibold">{r.asset.name}</span>
+              </RecordLink>
+            )}
+            {r.asset_code && <span className="text-[11px] font-mono text-muted-foreground">{r.asset_code}</span>}
+          </div>
+
+          <ChangeSummary r={r} />
+
+          {/* WHO ASKED and WHO WAS ASKED, never folded together. The name is
+              read from the string copy first: `requested_by_name` survives the
+              user record being archived or renamed, which the link does not. */}
+          <p className="text-[11px] text-muted-foreground" data-testid="approval-who">
+            Asked by <span className="font-semibold text-foreground">
+              {r.requested_by_name ?? r.requested_by?.name ?? "—"}
+            </span>
+            {" "}on {stamp(r.requested_at)}
+            {r.approver && <> · waiting on <span className="font-semibold text-foreground">{r.approver.name}</span></>}
+          </p>
+
+          {r.reason && (
+            <p className="text-[12px] text-foreground/90" data-testid="approval-reason">
+              <span className="text-muted-foreground">Reason given: </span>{r.reason}
+            </p>
+          )}
+
+          {/* The decision, once there is one. `decided_by` is WHO CLICKED and
+              is a different field from `approver` on purpose — the person
+              asked and the person who answered need not be the same, because
+              anyone eligible may decide any pending request. */}
+          {!pending && (
+            <p className="text-[11px] text-muted-foreground" data-testid="approval-decision">
+              {STATE_WORD[r.state]} by <span className="font-semibold text-foreground">
+                {r.decided_by_name ?? r.decided_by?.name ?? "—"}
+              </span>
+              {" "}on {stamp(r.decided_at)}
+              {r.decision_reason && <> — “{r.decision_reason}”</>}
+            </p>
+          )}
+
+          {/* WHY THERE IS NO APPROVE BUTTON. Not a tooltip: this app is shown
+              to the client on a tablet, where nothing is ever hovered. */}
+          {broken && (
+            <div
+              className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/30 rounded-xl p-2.5 mt-1"
+              data-testid="approval-premise-broken"
+              role="note"
+            >
+              <AlertCircle size={13} className="text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-amber-800 dark:text-amber-300">
+                <span className="font-semibold">This can no longer be approved.</span>{" "}
+                {r.premise_broken_reason ?? "The asset has changed since this was raised."}{" "}
+                Reject it, or raise a new request if the change is still wanted.
+              </p>
+            </div>
+          )}
+          {pending && !broken && !r.can_decide && (
+            <p className="text-[11px] text-muted-foreground italic" data-testid="approval-not-yours">
+              {r.can_withdraw
+                ? "You raised this one, so you cannot approve it — that is the point of an approval."
+                : "This is not yours to decide: an approver has to be somebody who could have made the change themselves."}
+            </p>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+          {mayDecide && (
+            <>
+              <button
+                type="button"
+                onClick={() => setMode("approve")}
+                data-testid="button-approve"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-200/70 dark:border-emerald-800/30 text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+              >
+                <CheckCircle2 size={12} /> Approve
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("reject")}
+                data-testid="button-reject"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200/70 dark:border-red-800/30 text-xs font-semibold text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+              >
+                <XCircle size={12} /> Reject
+              </button>
+            </>
+          )}
+          {/* Rejecting is still open when the premise has broken: the request
+              is dead either way and somebody has to close it, and the route
+              allows it. Only APPROVE is withheld. */}
+          {pending && broken && r.can_decide && scopes.has(SCOPE.approvalsWrite) && (
+            <button
+              type="button"
+              onClick={() => setMode("reject")}
+              data-testid="button-reject"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200/70 dark:border-red-800/30 text-xs font-semibold text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+            >
+              <XCircle size={12} /> Reject
+            </button>
+          )}
+          {mayWithdraw && (
+            <button
+              type="button"
+              onClick={() => setMode("withdraw")}
+              data-testid="button-withdraw"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <Undo2 size={12} /> Withdraw
+            </button>
+          )}
+        </div>
+      </div>
+
+      {mode && (
+        <DecisionDialog
+          request={r}
+          mode={mode}
+          open
+          onOpenChange={(next) => { if (!next) setMode(null); }}
+        />
+      )}
+    </li>
+  );
+}
+
+// ─── the page ──────────────────────────────────────────────────────────────
+
+type TabKey = "waiting" | "pending" | "mine" | "decided";
+
+const TABS: { key: TabKey; label: string; hint: string }[] = [
+  { key: "waiting", label: "Waiting on me", hint: "Pending requests that name you as the approver" },
+  { key: "pending", label: "All pending",   hint: "Everything waiting on anybody" },
+  { key: "mine",    label: "Raised by me",  hint: "What you asked for, and what happened to it" },
+  { key: "decided", label: "Decided",       hint: "Approved, rejected and withdrawn" },
+];
+
+/** The three states a request can end in. Used only by the *Decided* tab's
+ *  narrowing select — the list route takes one `state` at a time. */
+const DECIDED_STATES: ApprovalState[] = ["approved", "rejected", "withdrawn"];
+
+export default function Approvals() {
+  const { setTitle, setSearchHandler } = useLayoutCtx();
+  const [, nav] = useLocation();
+  const [tab, setTab] = useState<TabKey>("waiting");
+  /** Empty string = "any outcome", which the server cannot express. See the
+   *  file docstring. */
+  const [decidedState, setDecidedState] = useState<"" | ApprovalState>("");
+  const approval = useApprovalRequirement();
+
+  useEffect(() => {
+    setTitle("Approvals");
+    setSearchHandler(undefined);
+  }, [setTitle, setSearchHandler]);
+
+  const filters: ApprovalFilters = useMemo(() => {
+    if (tab === "waiting") return { waiting_on_me: true, state: "pending" };
+    if (tab === "pending") return { state: "pending" };
+    if (tab === "mine") return { raised_by_me: true };
+    return decidedState ? { state: decidedState } : {};
+  }, [tab, decidedState]);
+
+  /** True when the rows that come back have to be narrowed in the browser. */
+  const clientFiltered = tab === "decided" && !decidedState;
+
+  const {
+    data, isLoading, error,
+    fetchNextPage, hasNextPage, isFetchingNextPage,
+  } = useInfiniteQuery<ApprovalsPage, CadraApiError>({
+    // `filters` is in the key, so switching tabs restarts the cursor walk —
+    // the API records the direction and the domain in the cursor and refuses
+    // one replayed against another.
+    queryKey: ["approvals", filters],
+    queryFn: ({ pageParam }) => fetchApprovalsPage(pageParam as string | undefined, filters),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    staleTime: 30_000,
+  });
+
+  const loaded = useMemo(() => (data?.pages ?? []).flatMap(p => p.requests), [data]);
+  const rows = useMemo(
+    () => (clientFiltered ? loaded.filter(r => r.state !== "pending") : loaded),
+    [loaded, clientFiltered],
+  );
+  const total = data?.pages[0]?.totalEstimate ?? null;
+
+  // Infinite-scroll sentinel — the same shape as `RequestsList`.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const io = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) fetchNextPage();
+    }, { root: scrollRef.current ?? null, rootMargin: "200px" });
+    io.observe(sentinelRef.current);
+    return () => io.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const activeTab = TABS.find(t => t.key === tab)!;
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="px-5 py-3 border-b border-border bg-card">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h1 className="text-[14px] font-bold text-foreground">Approvals</h1>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Moves and custody changes waiting for a second person. Nothing on this
+              list has happened yet.
+            </p>
+          </div>
+          {/* WHETHER THE CONTROL IS EVEN ON, said on the screen that exists
+              because of it. `configured` is the fact `required` cannot give:
+              an administrator who has never set this is getting the default,
+              and that is worth knowing before anybody concludes the queue is
+              empty because nothing is happening. */}
+          {approval.settings && (
+            <div
+              className={cn(
+                "text-[11px] px-2.5 py-1.5 rounded-xl border",
+                approval.settings.required
+                  ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-800/30"
+                  : "bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border-amber-200/70 dark:border-amber-800/30",
+              )}
+              data-testid="approval-setting-banner"
+              data-required={approval.settings.required ? "true" : "false"}
+            >
+              {approval.settings.required ? (
+                <>
+                  <span className="font-semibold">Approval is required</span> on this register
+                  {!approval.settings.configured && " (nobody has set the switch, so it is on by default)"}.
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold">Approval is switched OFF</span> on this register —
+                  moves and custody changes take effect immediately. Only requests raised
+                  while it was on are listed here.
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 mt-3 flex-wrap" role="tablist" aria-label="Approval views">
+          {TABS.map(t => (
+            <button
+              key={t.key}
+              role="tab"
+              aria-selected={tab === t.key}
+              onClick={() => setTab(t.key)}
+              data-testid={`tab-approvals-${t.key}`}
+              className={cn(
+                "px-3 py-1.5 text-xs font-semibold rounded-xl border transition-colors",
+                tab === t.key
+                  ? "bg-primary text-white border-primary"
+                  : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+          {tab === "decided" && (
+            <select
+              value={decidedState}
+              onChange={e => setDecidedState(e.target.value as "" | ApprovalState)}
+              data-testid="select-decided-state"
+              className="text-xs border border-border rounded-xl px-2.5 py-1.5 bg-background"
+            >
+              <option value="">Any outcome</option>
+              {DECIDED_STATES.map(s => (
+                <option key={s} value={s}>{STATE_WORD[s]}</option>
+              ))}
+            </select>
+          )}
+          <p className="ml-auto text-[11px] text-muted-foreground self-center" data-testid="approval-count">
+            {/* THE DENOMINATOR, every time, and a different one per tab.
+                `total_estimate` is the server's count of the caller's whole
+                domain — which on the *Decided/Any outcome* tab is a count of
+                EVERY request including the pending ones, because that is the
+                domain that was asked for. Printing it beside a
+                browser-narrowed list as though it were the number of decided
+                requests would be exactly the shape that put "1,146 tracked
+                moves" into a report. */}
+            {clientFiltered
+              ? <>{rows.length.toLocaleString()} decided, out of {loaded.length.toLocaleString()} loaded{total != null && <> of {total.toLocaleString()} in every state</>}</>
+              : <><span className="font-bold text-foreground">{rows.length.toLocaleString()}</span>{total != null && <> of <span className="font-bold text-foreground">{total.toLocaleString()}</span></>}</>}
+          </p>
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-1.5">{activeTab.hint}</p>
+      </div>
+
+      {error && (
+        <div className="px-5 py-2 bg-red-50 dark:bg-red-950/30 border-b border-red-200/70 dark:border-red-800/30 flex items-start gap-2" data-testid="approvals-error">
+          <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+          <div>
+            <ApiErrorMessage err={error} />
+            {!apiConfigured && (
+              <p className="text-[11px] text-red-700 dark:text-red-400 mt-0.5">No active session.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+        {isLoading && rows.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <Clock size={20} className="text-muted-foreground/40 animate-pulse" />
+            <p className="text-sm text-muted-foreground">Loading approvals…</p>
+          </div>
+        ) : rows.length === 0 ? (
+          // An empty queue says which emptiness it is. "No results" over a
+          // filtered view reads as "nothing is happening", and a person who
+          // draws that conclusion from the wrong tab stops looking.
+          <div className="flex flex-col items-center justify-center py-20 gap-3 px-6 text-center" data-testid="approvals-empty">
+            <Inbox size={24} className="text-muted-foreground/30" />
+            <p className="text-sm font-semibold">
+              {tab === "waiting" ? "Nothing is waiting on you."
+                : tab === "pending" ? "Nothing is waiting on anybody."
+                : tab === "mine" ? "You have not asked for any moves or custody changes."
+                : "Nothing has been decided yet."}
+            </p>
+            <p className="text-xs text-muted-foreground max-w-md">
+              {tab === "waiting"
+                ? "Requests naming you as the approver appear here. Somebody else's queue may not be empty — try All pending."
+                : "A move or a custody change started from an asset's page becomes a request here, when this register requires approval."}
+            </p>
+            {tab !== "pending" && (
+              <button
+                onClick={() => setTab("pending")}
+                className="text-xs text-primary hover:opacity-80"
+                data-testid="button-see-all-pending"
+              >
+                See everything pending
+              </button>
+            )}
+            <button
+              onClick={() => nav("/assets/list")}
+              className="text-xs text-muted-foreground hover:text-foreground"
+              data-testid="button-empty-to-register"
+            >
+              Back to the asset register
+            </button>
+          </div>
+        ) : (
+          <ul className="divide-y divide-border" data-testid="approvals-list">
+            {rows.map(r => <ApprovalRow key={r.id} r={r} />)}
+          </ul>
+        )}
+
+        {hasNextPage && (
+          <div ref={sentinelRef} className="py-5 text-center">
+            {isFetchingNextPage ? (
+              <div className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                <Clock size={12} className="animate-pulse" /> Loading more…
+              </div>
+            ) : (
+              <button onClick={() => fetchNextPage()} className="text-xs text-primary hover:opacity-80" data-testid="button-load-more-approvals">
+                Load more
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

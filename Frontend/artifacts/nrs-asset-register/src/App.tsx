@@ -38,6 +38,7 @@ const AssetRegister              = lazy(() => import("@/pages/AssetRegister"));
 const AssetRegisterDashboard     = lazy(() => import("@/pages/AssetRegisterDashboard"));
 const AssetDetail                = lazy(() => import("@/pages/AssetDetail"));
 const AssetForm                  = lazy(() => import("@/pages/AssetForm"));
+const Approvals                  = lazy(() => import("@/pages/Approvals"));
 const Locations                  = lazy(() => import("@/pages/Locations"));
 const LocationDetail             = lazy(() => import("@/pages/LocationDetail"));
 const LocationForm               = lazy(() => import("@/pages/LocationForm"));
@@ -128,6 +129,10 @@ function AppRoutes() {
           <Route path="/assets/list"         component={AssetRegister}         />
           <Route path="/assets/new"          component={() => <AssetForm mode="create" />} />
           <Route path="/assets/:id/edit"     component={() => <AssetForm mode="edit"   />} />
+          {/* Before `/assets/:id` would be harmless — `/approvals` is not under
+              `/assets` — but it sits with the register's routes because that
+              is the group it belongs to in the nav. Handoff 35. */}
+          <Route path="/approvals"           component={Approvals}      />
           <Route path="/assets/:id"          component={AssetDetail}    />
           <Route path="/locations"           component={Locations}      />
           <Route path="/locations/new"       component={() => <LocationForm mode="create" />} />

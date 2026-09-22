@@ -406,24 +406,109 @@ export async function updateAsset(id: string, body: AssetWriteBody): Promise<Ass
   return apiAssetToAsset(res.data);
 }
 
-export async function moveAsset(id: string, to_location_id: number, reason?: string): Promise<Asset> {
-  // The move endpoint returns an envelope { asset, transfer }, not a bare asset.
-  const res = await apiPost<{ asset: ApiAsset; transfer: ApiAssetTransfer }>(
-    `/api/v1/assets/${id}/move`,
-    { to_location_id, reason },
-    { idempotencyKey: newIdempotencyKey() },
-  );
-  return apiAssetToAsset(res.data.asset);
+/**
+ * WHAT A MOVE OR A CUSTODY CHANGE ACTUALLY DID — and since handoff 35 there
+ * are two answers, on the same HTTP 200.
+ *
+ * On a tenant that requires approval, `POST /assets/<id>/move` and
+ * `POST /assets/<id>/transfer-custody` no longer move anything: they raise an
+ * `nrs.asset.change.request` and answer `pending_approval: true` with the
+ * request and with the asset UNCHANGED, read back in the same response. The
+ * status stays 200 — the API has no per-call status override and the server
+ * explains at length why it did not invent one for this — so **the status
+ * tells the caller nothing and the body tells it everything.**
+ *
+ * That is why this returns a discriminated union rather than an `Asset`. A
+ * caller that took the asset out of the envelope and closed its dialog would
+ * report a move that has not happened, to a storekeeper standing next to the
+ * thing that has not moved. The union makes that unrepresentable: you cannot
+ * read `.asset` without having gone past `pendingApproval` in the type.
+ */
+export interface ApprovalRef { id: number; name: string }
+
+/** The `request` block of a raised request, as the two ASSET routes publish
+ *  it. Deliberately a subset of `ApprovalRequest` below — `/move` answers
+ *  with what it just created and not with the queue's computed view of it
+ *  (`premise_holds`, `can_decide`), and typing it as the full record would
+ *  invite a screen to read keys that are not on the wire. */
+export interface RaisedApprovalRequest {
+  id: number;
+  reference: string;
+  state: ApprovalState;
+  change_type: ApprovalChangeType;
+  approver: ApprovalRef | null;
+  requested_by: ApprovalRef | null;
+  requested_at: string | null;
+  to_location: ApprovalRef | null;
+  to_custodian: ApprovalRef | null;
+  reason: string | null;
 }
 
-export async function transferCustody(id: string, to_custodian_id: number, reason?: string): Promise<Asset> {
-  // The transfer-custody endpoint returns an envelope { asset, custody_change }.
-  const res = await apiPost<{ asset: ApiAsset; custody_change: unknown }>(
-    `/api/v1/assets/${id}/transfer-custody`,
-    { to_custodian_id, reason },
+export type AssetChangeResult =
+  | { pendingApproval: true; request: RaisedApprovalRequest; asset: Asset }
+  | { pendingApproval: false; asset: Asset };
+
+/** The shape both routes answer with, with every key either contract may
+ *  carry. `pending_approval` is absent on a tenant that does not require
+ *  approval; it is never `false` from the server today, and this reads it as
+ *  a strict `=== true` so that an absent key and an unexpected one both fall
+ *  to "it happened", which is what the old contract means. */
+interface AssetChangeResponse {
+  asset: ApiAsset;
+  pending_approval?: boolean;
+  action?: string;
+  request?: RaisedApprovalRequest;
+  transfer?: ApiAssetTransfer | null;
+  custody_change?: unknown;
+  movement_id?: number | null;
+}
+
+function readAssetChange(d: AssetChangeResponse): AssetChangeResult {
+  if (d.pending_approval === true && d.request) {
+    return { pendingApproval: true, request: d.request, asset: apiAssetToAsset(d.asset) };
+  }
+  return { pendingApproval: false, asset: apiAssetToAsset(d.asset) };
+}
+
+/**
+ * `approverId` is WHO IS BEING ASKED, and it is only ever sent when the
+ * tenant requires approval — the server refuses a nomination it did not ask
+ * for on some routes and ignores it on others, and sending a key the route
+ * does not want is the class of defect handoff 31 spent a whole handoff
+ * closing. The caller (`AssetMoveDialog`) reads
+ * `GET /api/v1/settings/approvals` and passes it only then.
+ */
+export async function moveAsset(
+  id: string,
+  to_location_id: number,
+  reason?: string,
+  approverId?: number,
+): Promise<AssetChangeResult> {
+  // The move endpoint returns an envelope { asset, transfer }, not a bare
+  // asset — or, on a tenant requiring approval, { pending_approval, request,
+  // asset } with the asset unchanged. See `readAssetChange`.
+  const res = await apiPost<AssetChangeResponse>(
+    `/api/v1/assets/${id}/move`,
+    { to_location_id, reason, ...(approverId ? { approver_id: approverId } : {}) },
     { idempotencyKey: newIdempotencyKey() },
   );
-  return apiAssetToAsset(res.data.asset);
+  return readAssetChange(res.data);
+}
+
+export async function transferCustody(
+  id: string,
+  to_custodian_id: number,
+  reason?: string,
+  approverId?: number,
+): Promise<AssetChangeResult> {
+  // The transfer-custody endpoint returns an envelope { asset, custody_change }
+  // — or the pending-approval envelope. See `moveAsset`.
+  const res = await apiPost<AssetChangeResponse>(
+    `/api/v1/assets/${id}/transfer-custody`,
+    { to_custodian_id, reason, ...(approverId ? { approver_id: approverId } : {}) },
+    { idempotencyKey: newIdempotencyKey() },
+  );
+  return readAssetChange(res.data);
 }
 
 // ─── ASSET COUNTS (cheap dashboard primitives) ───────────────────────────────
@@ -1946,3 +2031,221 @@ const BRANDING_KEYS = ["name", "short_name", "primary", "primary_dark", "logo"] 
 export const updateBranding = async (body: Partial<TenantBranding>) =>
   (await apiPatch<TenantBranding>("/api/v1/settings/branding",
     pickSet(body, BRANDING_KEYS))).data;
+
+// ── Approvals: nobody moves an asset alone (handoff 35) ───────────────────
+//
+// One queue over `nrs.asset.change.request`. A move or a custody change on a
+// tenant that requires approval is not an act any more, it is a REQUEST: the
+// two asset routes above raise one and change nothing, and the change happens
+// — or does not — when a second person decides here.
+//
+// Nothing in this block invents a rule. `can_decide`, `can_withdraw` and
+// `premise_holds` are computed by the server per caller and per read, and the
+// screens below only decline to OFFER what the server would refuse. The model
+// remains the authority: a hidden button is a door closed on one screen, and
+// report 30 found a disposed asset being un-disposed through a route nobody
+// had looked at.
+
+export type ApprovalState = "pending" | "approved" | "rejected" | "withdrawn";
+export type ApprovalChangeType = "location" | "custody";
+
+/**
+ * One approval request, in full — every key `serialize_request` in
+ * `myservice_api/controllers/v1_approvals.py` publishes, spelled the same way.
+ *
+ * Three groups of fields that are easy to confuse, and the API is careful
+ * about all three, so this is too:
+ *
+ *   `approver`     WHO IS BEING ASKED. A nomination, sent by the requester.
+ *   `decided_by`   WHO CLICKED. Taken from the bearer token, never a body
+ *                  field — a requester who could name the decider could
+ *                  appoint themselves an authority in the same breath.
+ *   `from_*_name`  WHAT IT WAS WHEN ASKED, as a plain string copy. The `_id`
+ *                  half can be emptied from outside the record (a location
+ *                  renamed, an employee deleted); the string cannot, which is
+ *                  why the queue shows the string and not the link's label.
+ */
+export interface ApprovalRequest {
+  id: number;
+  reference: string;
+  state: ApprovalState;
+  change_type: ApprovalChangeType;
+  asset: ApprovalRef | null;
+  asset_code: string | null;
+  to_location: ApprovalRef | null;
+  to_custodian: ApprovalRef | null;
+  reason: string | null;
+  from_location: ApprovalRef | null;
+  from_custodian: ApprovalRef | null;
+  from_location_name: string | null;
+  from_custodian_name: string | null;
+  to_location_name: string | null;
+  to_custodian_name: string | null;
+  from_state: string | null;
+  requested_by: ApprovalRef | null;
+  requested_by_name: string | null;
+  requested_at: string | null;
+  approver: ApprovalRef | null;
+  decided_by: ApprovalRef | null;
+  decided_by_name: string | null;
+  decided_at: string | null;
+  decision_reason: string | null;
+  /** Computed fresh on every read, never stored: whether the world the
+   *  request was raised about is still the world it would be applied to. */
+  premise_holds: boolean;
+  premise_broken_reason: string | null;
+  movement_id: number | null;
+  custody_id: number | null;
+  transfer: { id: number; reference: string } | null;
+  transfer_reference: string | null;
+  /** Per CALLER. False on a request the caller raised themselves, and on one
+   *  they could not have made the change for. */
+  can_decide: boolean;
+  can_withdraw: boolean;
+}
+
+/**
+ * What `GET /api/v1/settings/approvals` says. READ-ONLY on the server, on
+ * purpose and with an explanation: the people the rule constrains are exactly
+ * the people who hold `settings:write`, so a PATCH twin would be a control
+ * they could switch off, move the asset, and switch back on.
+ *
+ * `configured` is the key a screen needs and `required` cannot give it:
+ * *nobody ever set this and it is getting the default* and *somebody
+ * deliberately turned it on* are the same behaviour and very different facts.
+ */
+export interface ApprovalSettings {
+  required: boolean;
+  setting: "on" | "off" | null;
+  configured: boolean;
+  default_when_unset: boolean;
+  parameter: string;
+}
+
+export const fetchApprovalSettings = async (): Promise<ApprovalSettings> =>
+  (await apiGet<ApprovalSettings>("/api/v1/settings/approvals")).data;
+
+/**
+ * Who this caller may ask. The server already excludes the caller themselves
+ * — `_check_approver_is_not_the_requester` refuses the nomination anyway, and
+ * a picker offering a choice the model refuses is an answer that looks like
+ * an answer.
+ */
+export const fetchApprovers = async (q?: string, limit = 10): Promise<ApprovalRef[]> =>
+  (await apiGet<ApprovalRef[]>("/api/v1/approvals/approvers", { q, limit })).data;
+
+export interface ApprovalFilters {
+  state?: ApprovalState;
+  change_type?: ApprovalChangeType;
+  asset_id?: number;
+  /** Only requests NAMING the caller as the approver. A convenience, not a
+   *  boundary: anyone eligible may decide any pending request. */
+  waiting_on_me?: boolean;
+  raised_by_me?: boolean;
+}
+
+export interface ApprovalsPage {
+  requests: ApprovalRequest[];
+  nextCursor: string | null;
+  totalEstimate: number | null;
+}
+
+/**
+ * `waiting_on_me` and `raised_by_me` are sent ONLY when true. The server reads
+ * them with `parse_bool` and filters on `is True`, so `?waiting_on_me=false`
+ * correctly means "do not filter" — but `buildUrl` in `lib/api.ts` drops
+ * `undefined` and keeps `false`, and a URL carrying two explicit `false`s on
+ * every request is noise in the access log for no gain.
+ */
+export async function fetchApprovalsPage(
+  cursor: string | undefined,
+  f?: ApprovalFilters,
+): Promise<ApprovalsPage> {
+  if (!apiConfigured) return { requests: [], nextCursor: null, totalEstimate: 0 };
+  const res = await apiGet<ApprovalRequest[]>("/api/v1/approvals", {
+    state: f?.state,
+    change_type: f?.change_type,
+    asset_id: f?.asset_id,
+    waiting_on_me: f?.waiting_on_me ? true : undefined,
+    raised_by_me: f?.raised_by_me ? true : undefined,
+    limit: 100,
+    cursor,
+  });
+  return {
+    requests: res.data,
+    nextCursor: res.pagination?.next_cursor ?? null,
+    totalEstimate: res.pagination?.total_estimate ?? null,
+  };
+}
+
+/**
+ * How many are waiting on the signed-in user, for the sidebar badge.
+ *
+ * `limit: 1` and the pagination total, which is the cheap-count idiom this
+ * file already uses for every KPI (`countAssets` above). It is a count of the
+ * CALLER's own domain and not of the returned window — `paginate` guarantees
+ * that, and handoff 13 built the guarantee after a capped caller was told the
+ * register held exactly as many rows as it had just been shown.
+ *
+ * Null rather than 0 when the server sends no total: a badge reading "0" and
+ * a badge that could not be computed are different facts, and the sidebar
+ * draws nothing for the second.
+ */
+export async function fetchApprovalsWaitingCount(): Promise<number | null> {
+  if (!apiConfigured) return null;
+  const res = await apiGet<ApprovalRequest[]>("/api/v1/approvals", {
+    state: "pending", waiting_on_me: true, limit: 1,
+  });
+  return res.pagination?.total_estimate ?? null;
+}
+
+/**
+ * The one request blocking this asset, or null.
+ *
+ * A database partial-unique index allows at most ONE pending request per
+ * asset, so "the first of the list" is the whole answer rather than a
+ * shortcut — but this still reads the list rather than asserting the index,
+ * because an index is a fact about the database and this is a fact about the
+ * response.
+ */
+export async function fetchAssetPendingApproval(assetId: string | number): Promise<ApprovalRequest | null> {
+  if (!apiConfigured) return null;
+  const res = await apiGet<ApprovalRequest[]>("/api/v1/approvals", {
+    asset_id: assetId, state: "pending", limit: 1,
+  });
+  return res.data[0] ?? null;
+}
+
+/** What every decision route answers with: the request as it now stands, and
+ *  the asset as it now stands. The asset is included on a REJECTION too, and
+ *  that is not padding — the one thing the caller needs to know after any of
+ *  these three calls is whether the asset moved, and the asset proves it
+ *  rather than asking anybody to trust the verb. */
+export interface ApprovalDecision {
+  request: ApprovalRequest;
+  asset: Asset;
+}
+
+async function decide(
+  id: number,
+  action: "approve" | "reject" | "withdraw",
+  reason?: string,
+): Promise<ApprovalDecision> {
+  // `reason` and NOTHING else. All three routes refuse any other key with a
+  // 400 (`refuse_unwritable`), and refuse `decided_by`/`approved_by`/`state`
+  // with a sentence of their own — so an extra key here is not a dropped
+  // field, it is a failed decision.
+  const res = await apiPost<{ request: ApprovalRequest; asset: ApiAsset }>(
+    `/api/v1/approvals/${id}/${action}`,
+    reason ? { reason } : {},
+    { idempotencyKey: newIdempotencyKey() },
+  );
+  return { request: res.data.request, asset: apiAssetToAsset(res.data.asset) };
+}
+
+export const approveChangeRequest  = (id: number, reason?: string) => decide(id, "approve", reason);
+/** `reason` is REQUIRED by the route — it 400s on a blank one, because a
+ *  rejection without one tells the person who asked nothing they can act on
+ *  and they will simply ask again. */
+export const rejectChangeRequest   = (id: number, reason: string)  => decide(id, "reject", reason);
+export const withdrawChangeRequest = (id: number, reason?: string) => decide(id, "withdraw", reason);

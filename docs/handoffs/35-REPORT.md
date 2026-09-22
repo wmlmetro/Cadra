@@ -379,3 +379,123 @@ asset which ever left `disposed` was handoff 29's own probe. Somebody who
 changes their mind raises a new request, which leaves both records standing.
 
 ---
+
+## §E · The app
+
+**The switch is asked of the server and the front end fails CLOSED on it.**
+`useApprovalRequirement()` treats loading, an error and a 403 as *required* —
+the same direction as `REQUIRED_WHEN_UNSET` — and the submit button is
+disabled while the answer is in flight rather than showing one wording and
+flipping under the user's hand. When it cannot read the setting at all it
+says so on the dialog instead of guessing quietly.
+
+**One scope change came out of building the screen.** `GET
+/settings/approvals` was written with `settings:read`, which
+`group_asset_manager` and `group_auditor` hold and `group_asset_user` does
+not. Since the front end fails closed, that would have shown a correct-looking
+"who are you asking?" dialog to a user on a tenant that does not want one. It
+now takes `assets:read` — the value is not sensitive, it says whether this
+register asks for a second person, and anyone who can see an asset may as well
+know. Found by wiring the screen, not by reading the route.
+
+**The dialogs.** Move and Transfer custody gain an approver picker, shown only
+when approval is required. The title becomes *Request a move* / *Request a
+placement* / *Request a custody transfer*, the button becomes *Request
+approval to move*, and the description's FIRST clause is that the asset does
+not move. **On a tenant with approval off, the title, description and button
+label are byte-identical to today** — which is also what keeps the existing
+e2e specs meaningful on such a tenant.
+
+**On success the dialog does not close.** It is replaced by a panel naming the
+reference, who was asked, where it would go, and *"until then this asset is
+still at its current location, and that is what the register says"*. That is
+the handoff's sentence about the storekeeper, implemented: closing the dialog
+the way a completed move closes it is precisely how somebody comes away
+believing they moved something.
+
+**A 400 for want of an approver reveals the picker** with the server's own
+candidate list, so a wrong setting still ends in a name being chosen rather
+than an error about a field. A 409 gets its own panel naming the blocking
+reference with a link to the queue.
+
+**The queue** (`/approvals`): four tabs — *Waiting on me* (the default), *All
+pending*, *Raised by me*, *Decided*. Each row shows the reference, the state,
+the asset, `from → to`, who asked and when, who is waiting, the reason, and
+the decision. Approve/Reject/Withdraw are gated on `can_decide` /
+`can_withdraw` **and** on the caller's scopes. Reject will not submit without
+a reason. **`premise_holds: false` removes Approve** and shows
+`premise_broken_reason` in its place — Reject stays, because the row still has
+to be closed.
+
+**The asset page** carries a banner naming the reference, who asked, who was
+asked and what for, with Move and Transfer disabled while it is pending — the
+unique index is per ASSET, not per change type, so a pending custody request
+would 409 a move too and a live Move button would be a lie. On a failed read
+it renders nothing and leaves the buttons live: the server is the authority
+and the dialog prints the 409.
+
+**Sidebar**: *Approvals* with a live count badge that draws nothing on null or
+zero, so a 403 never reads as *your queue is empty*.
+
+### Three things the front end found in the contract
+
+1. **`GET /approvals` takes one `state`.** The *Decided* tab wants three, so
+   with "Any outcome" it fetches every state and filters in the browser — and
+   names its own denominator (*"N decided, out of M loaded of T in every
+   state"*) rather than printing `total_estimate` as if it counted decided
+   requests. A count without its denominator is the rule this programme has
+   broken three times.
+2. **`premise_holds` is `true` on every DECIDED row**, because
+   `_compute_premise` short-circuits rather than re-judging closed history —
+   deliberate, and documented in the compute, but a naive read would paint an
+   old rejection as still applicable. Every read of it in the UI is guarded on
+   `state === "pending"`.
+3. **`from_*_name` means "when asked", not "now".** It is shown as *now* only
+   when the row is pending AND the premise holds — which is exactly what
+   `_premise_check` asserts — and labelled *as at the request* otherwise.
+
+---
+
+## Judgement calls, stated so they can be overturned
+
+1. **200, not 202, when a route raises a request.** The body carries
+   `pending_approval: true`, the `request`, and the asset UNCHANGED, with
+   `movement_id`/`transfer`/`custody_change` explicitly null. 202 is the
+   better-looking answer; this API takes its success status from the
+   `cadra_route` decorator, and a per-call override would have to be carried
+   through the idempotency cache too or a replay would answer 202 once and 200
+   afterwards. A byte-exact replay is what handoff 18 built and handoff 31
+   protected. **Cheap to overturn** — one field in the cache.
+2. **PATCH refuses rather than raising a request.** A PATCH carries a whole
+   object; turning part of it into a request while writing the rest leaves the
+   caller with a half-applied save and no way to tell which half.
+3. **The Odoo form's `custodian_id` was left editable.** The model refuses the
+   change with a message naming the remedy, which is honest. Making the field
+   readonly would be a second statement of the same rule that goes wrong the
+   day a tenant turns approval off.
+4. **`nrs.asset.transfer` was left completely alone** — no new fields, no
+   changed meanings, no migration. It gains rows created BY approvals.
+5. **The `test` exemption exists but nothing first-party uses it in
+   production code.** It is for an in-registry test declaring, per call, that
+   it is writing a fixture. Per call and never globally, for the reason
+   `database_class.py` gives about bypass flags.
+
+---
+
+## Open, and for the Architect
+
+- **`POST /move` and `POST /transfer-custody` still do not refuse unknown body
+  keys.** They were not among handoff 31's eleven, so a stray `approver_id`
+  sent to a tenant with approval OFF is dropped with a 200. Benign today — a
+  misspelt `approver_id` on an approval tenant gets the *"approver_id is
+  required"* 400, which is the right answer — but it is the thirteenth and
+  fourteenth door, and handoff 33 is the one that widens these guards. Named,
+  not fixed, per the instruction to register new routes in the guards as they
+  stand.
+- **Who may approve is one method** (`_eligible_approver_domain`) plus
+  `_may_decide`, both meant to be replaced when NRS give us their structure.
+  Nothing about the RECORD changes when they are.
+- **The switch has to be set per tenant by hand.** No tenant on this machine
+  has it, so every one of them now requires approval. If any demonstration
+  tenant should not, that is one command per tenant and it belongs to the
+  owner.
