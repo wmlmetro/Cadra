@@ -650,7 +650,100 @@ did on both action routes.
 - **Who may approve is one method** (`_eligible_approver_domain`) plus
   `_may_decide`, both meant to be replaced when NRS give us their structure.
   Nothing about the RECORD changes when they are.
+- **`tests/test_frontend_enums.py` does not register the two new enums.**
+  `Frontend/.../src/lib/enums.ts` has no `approval_*` seed, so adding them to
+  `MODEL_SOURCED` would fail at once. The SPA reads them from
+  `GET /meta/enums` at runtime instead. Whether it should also seed them is
+  a choice, not a defect — named rather than quietly left.
+- **`/move` and `/transfer-custody` still do not refuse an unknown body key**
+  (see above). Handoff 33 is the one that widens these guards.
+- **`docs/api/smoke_test.py` hardcodes `to_location_id: 2`**, which 404s on
+  `test19`. Pre-existing, rendered cleanly, and left alone — but a liveness
+  check that reports a bogus 404 every run trains people to ignore it.
 - **The switch has to be set per tenant by hand.** No tenant on this machine
   has it, so every one of them now requires approval. If any demonstration
   tenant should not, that is one command per tenant and it belongs to the
   owner.
+
+---
+
+## The run log — every denominator quoted
+
+Run in CI's order: `pytest tests/` first, then the in-registry Odoo suites.
+All against `test19`, all after the eight-tenant fan-out.
+
+| Suite | Result |
+|---|---|
+| `pytest tests/` | **1090 passed, 9 skipped, 0 failed** (13m41s) |
+| `myservice_asset_register` (in-registry, `--workers=0`) | **0 failed, 0 error(s) of 432 tests** |
+| `myservice_api` (in-registry, `--workers=0`) | **0 failed, 0 error(s) of 282 tests** |
+| `e2e/tests/35-approvals.spec.ts` | **10 passed** |
+| `e2e` (whole suite) | **150 passed, 4 skipped, 2 failed** — both the depreciation specs `CLAUDE.md` records as failing on `dev` too |
+
+**The denominator, checked as the rule says.** `odoo.tests.stats` reported
+*566 tests* and *565 tests* for the asset register on two of those runs;
+`odoo.tests.result` is the line that counts and it says **432**. The two
+numbers differ because `stats` counts `setUpClass` and class-level entries.
+No run reported `of 0 tests` and no run logged `CRITICAL`.
+
+**The pytest skip count moved from 8 to 9, and `CLAUDE.md` now says why.** The
+documented eight are unchanged. The ninth is
+`test_approvals.py::test_somebody_elses_request_cannot_be_withdrawn`: both
+users this suite can authenticate as on `test19` are Odoo administrators, and
+an administrator may withdraw anybody's request by design, so the 403 cannot
+be proved there. It asserts what IS provable — `can_withdraw` is `false` on
+the record, which is what the screen reads — and then skips loudly.
+
+**The baseline was 13 failed, 1036 passed, 11 skipped**, and three of those
+eleven skips were a defect: see §8 above.
+
+### The per-tenant fan-out
+
+Required, because a new model is a new table on a registry shared by eight
+databases, and the switch is ON by default on every one of them — so until
+each was upgraded, `/move`, `/transfer-custody` and `/approvals` would have
+answered `UndefinedTable` on seven of the eight.
+
+`myservice_asset_register`, `myservice_api`, `myservice_workflow` and
+`myservice_identity` upgraded on **`cadra19`, `nrs19`, `gtb19`, `test19`,
+`nrs`, `lasg`, `gtb`, `jaizbankplc`** — all eight OK, verified afterwards by
+querying each for the table, the partial index and the row count:
+
+```
+cadra19  true / index 1 / requests 0      nrs          true / index 1 / requests 0
+nrs19    true / index 1 / requests 0      lasg         true / index 1 / requests 0
+gtb19    true / index 1 / requests 0      gtb          true / index 1 / requests 0
+test19   true / index 1 / requests 287    jaizbankplc  true / index 1 / requests 0
+```
+
+and by calling `GET /settings/approvals`, `GET /approvals` and `GET /assets`
+on `jaizbankplc`, `nrs19` and `gtb19` — **200, 200, 200** on each, every one
+reporting `required=True configured=False`.
+
+### Wall-clock, and the correction share
+
+About **four and a half hours** end to end, of which the build itself — the
+switch, the model, the gate, the API, the screens — was perhaps the first
+third. **The remaining two thirds were correction**, and that is the honest
+headline of this report rather than a footnote:
+
+- **Nine defects in my own work**, found after it was written and working:
+  the un-assign dead end, the `action_complete` exemption that was claimed
+  and not implemented, the two-call bypass, the reusable approval, the
+  committed false approval, `restrict` on the destination columns, the dead
+  Reject button, the front-end fail-open, and a refusal naming the wrong
+  rule. **Two of them were opened by the fix for an earlier one** — the
+  transfer self-approval hole is a direct consequence of the exemption added
+  two commits before it.
+- **Three pre-existing defects** surfaced by building on top of them: two
+  more `AccessError`s of the shape the first one had, and three tests that
+  had gone green-by-skipping.
+- **Four wrong claims in my own documents**, including a count over four
+  tenants presented as eight — in a report that contains a section about
+  exactly that mistake.
+
+**Not one of those was caught by a test I wrote while building.** They were
+caught by an adversarial read of the diff against `CLAUDE.md`, by writing
+the test the handoff asked for and watching it fail, by fact-checking the
+documents against the files, and by clicking the journey. The tests came
+after, and they are what will hold it.
