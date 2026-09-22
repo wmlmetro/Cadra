@@ -296,3 +296,38 @@ Note what the runbook adds: on a **client's own server** this rule collapses to 
 ### An asset-bundle change does not take effect on restart
 
 It needs the module upgrade. Handoff 11 established this the expensive way — a change that was live in the repo, absent in the browser, and looked like a caching problem.
+
+## `upgrade-19`'s `image` input is used VERBATIM — a bare tag is a 22-minute outage
+
+Handoff 35, 2026-09-22. The workflow's `image` field is only defaulted when
+it is **blank**:
+
+```yaml
+IMAGE="${{ inputs.image }}"
+[ -z "$IMAGE" ] && IMAGE="registry.digitalocean.com/${{ vars.DO_REGISTRY_NAME }}/cadra-odoo-19:dev-latest"
+```
+
+So a value you supply is passed to Kubernetes exactly as typed. Passing
+`cadra-odoo-19:dev-b280bc4` — the tag as `deploy-dev` prints it — sends the
+pod looking on Docker Hub. **The right form is fully qualified:**
+
+```
+registry.digitalocean.com/vendra-registry/cadra-odoo-19:dev-<sha>
+```
+
+**Why this is expensive rather than merely wrong.** `scale_down=true` takes
+every tenant to 0 replicas BEFORE the first Job runs. The pod then sits in
+`image can't be pulled`, and the per-tenant poll is `seq 1 40` at 30s — so
+the step waits the full **20 minutes** for a container that can never start,
+with Cadra down the whole time, and then fails on the first tenant. The guard
+behaves correctly at every step (no tenant upgraded, replicas restored, image
+rolled back) and the outage is total anyway.
+
+**The failure mode to recognise:** the run passes `Scale odoo-19 down`, then
+sits in `Run cadra-upgrade-19 Job for every tenant` far longer than the ~6
+minutes five tenants take. If it is past ~8 minutes on the FIRST tenant,
+it is not slow — check for `image can't be pulled` before waiting it out.
+
+**The remedy that costs nothing:** leave `image` BLANK unless you need a
+specific build. Blank resolves to `dev-latest`, which is whatever `deploy-dev`
+last pushed — correct whenever you are deploying the merge you just made.
