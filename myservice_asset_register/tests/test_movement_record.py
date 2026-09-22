@@ -18,6 +18,24 @@ empties the location of every asset in every room beneath it, in one
 statement, with no `write` and no tracking row. No search of the Python finds
 that writer. It was found by reading the foreign key.
 
+WHY THE GATED WRITES BELOW SAY `cadra_approval_exempt="test"`
+-------------------------------------------------------------
+Handoff 35 put a gate under every writer of `location_id` and
+`custodian_id`: on a tenant that has not turned the rule off — and absent
+means ON, so `test19` has not — a write that CHANGES either field raises
+unless a second person approved it. These fixtures are not a person
+deciding to move something, so each gated write declares itself with the
+reason `approval_policy.EXEMPT_REASONS` reserves for exactly this.
+
+**Per call, never once for the file or the class.** A module-level default
+would be the bypass flag `database_class.py` argues against at length: it
+becomes the way everything here is written by the end of the month, and
+then a test that should have discovered the gate never meets it. Spelling
+it at each site also means a grep for the constant finds every test that
+is standing outside the rule. Writes that do NOT change the two fields are
+left exactly as they were — a fixture that stops needing the declaration
+is a fixture whose meaning has changed.
+
 Run with:
     odoo -d <db> -u myservice_asset_register --test-enable \\
          --test-tags /myservice_asset_register --stop-after-init
@@ -101,7 +119,8 @@ class TestMovementAppendOnly(MovementCase):
 
     def test_duplicating_an_asset_does_not_copy_its_moves(self):
         asset, _ = self._a_move()
-        asset.write({"location_id": self.elsewhere.id})
+        asset.with_context(cadra_approval_exempt="test").write(
+            {"location_id": self.elsewhere.id})
         self.assertEqual(len(self._moves(asset)), 2)
         # NOT a bare `copy()`: that fails on every asset today, before it
         # reaches anything of ours — `asset_tag` is copied and then collides
@@ -134,7 +153,8 @@ class TestEveryMoveIsRecorded(MovementCase):
     def test_a_plain_write_is_recorded(self):
         """The quiet door: PATCH, the form, a shell. No transfer, no route."""
         asset = self._asset(location_id=self.room.id)
-        asset.write({"location_id": self.elsewhere.id})
+        asset.with_context(cadra_approval_exempt="test").write(
+            {"location_id": self.elsewhere.id})
         moves = self._moves(asset)
         self.assertEqual(len(moves), 2)
         self.assertEqual(moves[1].from_location_id, self.room)
@@ -157,19 +177,22 @@ class TestEveryMoveIsRecorded(MovementCase):
 
     def test_a_write_that_does_not_name_the_location_records_nothing(self):
         asset = self._asset(location_id=self.room.id)
-        asset.write({"name": "renamed", "custodian_id": self.alice.id})
+        asset.with_context(cadra_approval_exempt="test").write(
+            {"name": "renamed", "custodian_id": self.alice.id})
         self.assertEqual(len(self._moves(asset)), 1)
 
     def test_a_multi_record_write_records_only_what_moved(self):
         here = self._asset(location_id=self.elsewhere.id)
         there = self._asset(location_id=self.room.id)
-        (here | there).write({"location_id": self.elsewhere.id})
+        (here | there).with_context(cadra_approval_exempt="test").write(
+            {"location_id": self.elsewhere.id})
         self.assertEqual(len(self._moves(here)), 1, "was already there")
         self.assertEqual(len(self._moves(there)), 2)
 
     def test_clearing_the_location_is_a_move_to_nowhere(self):
         asset = self._asset(location_id=self.room.id)
-        asset.write({"location_id": False})
+        asset.with_context(cadra_approval_exempt="test").write(
+            {"location_id": False})
         last = self._moves(asset)[-1]
         self.assertEqual(last.from_location_id, self.room)
         self.assertFalse(last.to_location_id)
@@ -177,8 +200,9 @@ class TestEveryMoveIsRecorded(MovementCase):
 
     def test_custody_and_location_in_one_write_record_one_of_each(self):
         asset = self._asset(location_id=self.room.id)
-        asset.write({"location_id": self.elsewhere.id,
-                     "custodian_id": self.alice.id})
+        asset.with_context(cadra_approval_exempt="test").write(
+            {"location_id": self.elsewhere.id,
+             "custodian_id": self.alice.id})
         self.assertEqual(len(self._moves(asset)), 2)
         self.assertEqual(len(asset.custody_ids), 1)
 
@@ -196,6 +220,7 @@ class TestTheSourceAndTheTransfer(MovementCase):
         asset.with_context(
             cadra_movement_source="api_move",
             cadra_movement_reason="floor reorganisation",
+            cadra_approval_exempt="test",
         ).write({"location_id": self.elsewhere.id})
         last = self._moves(asset)[-1]
         self.assertEqual(last.source, "api_move")
@@ -208,6 +233,10 @@ class TestTheSourceAndTheTransfer(MovementCase):
             "from_location_id": self.room.id,
             "to_location_id": self.elsewhere.id,
             "reason": "handed to the annex",
+            # Approved, so `action_complete` declares
+            # `cadra_approval_exempt='transfer'`. See the note in
+            # `test_custody_chain.py`.
+            "approved_by": self.env.uid,
         })
         transfer.action_complete()
         last = self._moves(asset)[-1]
@@ -224,6 +253,7 @@ class TestTheSourceAndTheTransfer(MovementCase):
             "asset_id": asset.id,
             "from_location_id": self.room.id,
             "to_location_id": self.elsewhere.id,
+            "approved_by": self.env.uid,
         })
         transfer.action_complete()
         reference = transfer.name

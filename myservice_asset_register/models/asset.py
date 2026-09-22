@@ -856,17 +856,41 @@ class NRSAsset(models.Model):
         """
         self.ensure_one()
         request_id = self.env.context.get(APPROVAL_KEY)
-        if not request_id:
+        # An INTEGER, checked as one. `if not request_id` let `True` through
+        # to `browse(True)`, which dies with `TypeError: 'bool' object is not
+        # iterable` — where every other bad clearance gets a clean refusal.
+        # A bare `True` is the first thing somebody probing this reaches for,
+        # and a crash is a worse answer than a no. Found by the verification
+        # pass.
+        if not isinstance(request_id, int) or isinstance(request_id, bool) \
+                or request_id <= 0:
             return False
         request = self.env['nrs.asset.change.request'].sudo().browse(
             request_id).exists()
         if not request or request.asset_id.id != self.id:
             return False
-        # `pending` because `action_approve` writes the asset before it
-        # stamps its own decision — one transaction, so a refusal below rolls
-        # the whole thing back. Nothing else is accepted: a rejected or
-        # withdrawn request clears nothing, ever.
-        if request.state not in ('pending', 'approved'):
+        # APPROVED, WITH A DECIDER. Nothing else, ever.
+        #
+        # This used to accept `pending` as well, because `action_approve`
+        # wrote the asset before stamping its own decision — and that was a
+        # two-call bypass of the whole feature: raise a request properly,
+        # then write `location_id` directly over `call_kw` with
+        # `cadra_approval_id` naming your own PENDING request, and the gate
+        # waved it through. The approve path now stamps first (see
+        # `action_change_request.action_approve`), so the clearance can
+        # demand the thing only that method can produce.
+        #
+        # `approved_by_id` is checked separately from the state rather than
+        # trusted to follow it: the state is a Selection a future migration
+        # or a `_write_recorded` somewhere could set, and the decider is the
+        # fact that matters. And it must not be the requester — belt and
+        # braces over `_assert_may_decide`, because this is the last gate in
+        # front of the write itself.
+        if request.state != 'approved':
+            return False
+        if not request.approved_by_id:
+            return False
+        if request.approved_by_id.id == request.requested_by_id.id:
             return False
         wanted = {'location_id': request.to_location_id.id,
                   'custodian_id': request.to_custodian_id.id}.get(field)

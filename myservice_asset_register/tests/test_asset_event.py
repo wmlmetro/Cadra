@@ -22,6 +22,24 @@ All of it goes through the ORM, as `test_custody_chain.py` and
 API's PATCH, three action methods, a completed transfer and the form, and a
 recorder proved at one door is a recorder proved at one door.
 
+WHY THE GATED WRITES BELOW SAY `cadra_approval_exempt="test"`
+-------------------------------------------------------------
+Handoff 35 put a gate under every writer of `location_id` and
+`custodian_id`: on a tenant that has not turned the rule off — and absent
+means ON, so `test19` has not — a write that CHANGES either field raises
+unless a second person approved it. These fixtures are not a person
+deciding to move something, so each gated write declares itself with the
+reason `approval_policy.EXEMPT_REASONS` reserves for exactly this.
+
+**Per call, never once for the file or the class.** A module-level default
+would be the bypass flag `database_class.py` argues against at length: it
+becomes the way everything here is written by the end of the month, and
+then a test that should have discovered the gate never meets it. Spelling
+it at each site also means a grep for the constant finds every test that
+is standing outside the rule. Writes that do NOT change the two fields are
+left exactly as they were — a fixture that stops needing the declaration
+is a fixture whose meaning has changed.
+
 Run with:
     odoo -d <db> -u myservice_asset_register --test-enable \\
          --test-tags /myservice_asset_register --stop-after-init
@@ -332,8 +350,8 @@ class TestEveryStatusChangeIsRecorded(EventCase):
 
     def test_a_status_change_in_the_same_write_as_a_move_records_both(self):
         asset = self._asset(location_id=self.room.id)
-        asset.write({"state": "in_repair",
-                     "location_id": self.elsewhere.id})
+        asset.with_context(cadra_approval_exempt="test").write(
+            {"state": "in_repair", "location_id": self.elsewhere.id})
         self.assertEqual(len(self._events(asset)), 1)
         self.assertEqual(len(asset.movement_ids), 2)
 
@@ -1007,8 +1025,8 @@ class TestDisposedIsTerminal(EventCase):
         asset = self._asset(location_id=self.room.id,
                             custodian_id=self.alice.id)
         asset.action_mark_missing()
-        asset.write({"location_id": self.elsewhere.id,
-                     "custodian_id": self.bob.id})
+        asset.with_context(cadra_approval_exempt="test").write(
+            {"location_id": self.elsewhere.id, "custodian_id": self.bob.id})
         self.assertEqual(asset.location_id, self.elsewhere)
         self.assertEqual(asset.custodian_id, self.bob)
 
@@ -1022,6 +1040,9 @@ class TestDisposedIsTerminal(EventCase):
             "from_location_id": self.room.id,
             "to_location_id": self.elsewhere.id,
             "reason": "turned up at the annex",
+            # Approved, so `action_complete` declares
+            # `cadra_approval_exempt='transfer'` (handoff 35).
+            "approved_by": self.env.uid,
         })
         transfer.action_complete()
         self.assertEqual(asset.state, "active")
@@ -1037,6 +1058,7 @@ class TestDisposedIsTerminal(EventCase):
             "asset_id": asset.id,
             "from_location_id": self.room.id,
             "to_location_id": self.elsewhere.id,
+            "approved_by": self.env.uid,
         })
         transfer.action_complete()
         self.assertFalse(self._events(asset, "status_changed"))

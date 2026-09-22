@@ -2223,6 +2223,18 @@ class CadraAssetsV1(http.Controller):
         if reason and not isinstance(reason, str):
             return err(ERR_INVALID_REQUEST, "`reason` must be a string")
 
+        # ASKED EARLY, exactly as `/move` asks it, and ABOVE the approval
+        # block below. Whether a disposed asset may change hands is the
+        # model's rule (`nrs.asset._assert_disposed_is_terminal`), and until
+        # handoff 35 this route met it at the write — the write was the only
+        # thing this route did. Now the route can end in a REQUEST instead,
+        # and a request never writes, so the model would never be asked:
+        # this answered 200 with a pending request against a disposed asset
+        # that could never be approved, and which occupied that asset's one
+        # pending slot until somebody withdrew it. Introduced by this handoff
+        # and found by its verification pass.
+        rec._assert_disposed_is_terminal({"custodian_id": to_cust.id})
+
         # ── Nobody hands an asset over alone (handoff 35) ────────────
         #
         # Above the write, like every other refusal on this route. The model

@@ -16,6 +16,24 @@ is an editable field on the Odoo form. So the recorder lives in
 `nrs.asset.write`, where every one of those passes, and the tests below go
 through the ORM rather than through the route for exactly that reason.
 
+WHY THE GATED WRITES BELOW SAY `cadra_approval_exempt="test"`
+-------------------------------------------------------------
+Handoff 35 put a gate under every writer of `location_id` and
+`custodian_id`: on a tenant that has not turned the rule off — and absent
+means ON, so `test19` has not — a write that CHANGES either field raises
+unless a second person approved it. These fixtures are not a person
+deciding to move something, so each gated write declares itself with the
+reason `approval_policy.EXEMPT_REASONS` reserves for exactly this.
+
+**Per call, never once for the file or the class.** A module-level default
+would be the bypass flag `database_class.py` argues against at length: it
+becomes the way everything here is written by the end of the month, and
+then a test that should have discovered the gate never meets it. Spelling
+it at each site also means a grep for the constant finds every test that
+is standing outside the rule. Writes that do NOT change the two fields are
+left exactly as they were — a fixture that stops needing the declaration
+is a fixture whose meaning has changed.
+
 Run with:
     odoo -d <db> -u myservice_asset_register --test-enable \\
          --test-tags /myservice_asset_register --stop-after-init
@@ -127,7 +145,8 @@ class TestEveryChangeIsRecorded(CustodyCase):
 
     def test_one_change_is_exactly_one_link(self):
         asset = self._asset(custodian_id=self.alice.id)
-        asset.write({"custodian_id": self.bob.id})
+        asset.with_context(cadra_approval_exempt="test").write(
+            {"custodian_id": self.bob.id})
         links = self._links(asset)
         self.assertEqual(len(links), 2)
         self.assertEqual(links[-1].from_custodian_id, self.alice)
@@ -137,7 +156,8 @@ class TestEveryChangeIsRecorded(CustodyCase):
         """"Who moved it" is a different question from "who had it", and the
         two custodian columns cannot answer the first."""
         asset = self._asset(custodian_id=self.alice.id)
-        asset.write({"custodian_id": self.bob.id})
+        asset.with_context(cadra_approval_exempt="test").write(
+            {"custodian_id": self.bob.id})
         link = self._links(asset)[-1]
         self.assertEqual(link.changed_by_id, self.env.user)
         self.assertEqual(link.changed_by_name, self.env.user.name)
@@ -159,7 +179,8 @@ class TestEveryChangeIsRecorded(CustodyCase):
         an employee leaves. An asset going from held to unheld is the single
         most audit-relevant movement there is."""
         asset = self._asset(custodian_id=self.alice.id)
-        asset.write({"custodian_id": False})
+        asset.with_context(cadra_approval_exempt="test").write(
+            {"custodian_id": False})
         link = self._links(asset)[-1]
         self.assertEqual(link.from_custodian_id, self.alice)
         self.assertFalse(link.to_custodian_id)
@@ -168,7 +189,8 @@ class TestEveryChangeIsRecorded(CustodyCase):
         """One `write()` over a recordset is N custody events, not one."""
         first = self._asset(custodian_id=self.alice.id)
         second = self._asset(custodian_id=self.bob.id)
-        (first | second).write({"custodian_id": self.carol.id})
+        (first | second).with_context(cadra_approval_exempt="test").write(
+            {"custodian_id": self.carol.id})
         self.assertEqual(self._links(first)[-1].from_custodian_id, self.alice)
         self.assertEqual(self._links(second)[-1].from_custodian_id, self.bob)
         self.assertEqual(len(self._links(first)), 2)
@@ -208,6 +230,7 @@ class TestTheSourceIsTruthful(CustodyCase):
         asset.with_context(
             cadra_custody_source="api_transfer",
             cadra_custody_reason="Previous custodian left",
+            cadra_approval_exempt="test",
         ).write({"custodian_id": self.alice.id})
         link = self._links(asset)[-1]
         self.assertEqual(link.source, "api_transfer")
@@ -221,7 +244,8 @@ class TestTheSourceIsTruthful(CustodyCase):
         copied from, did not — two copies of one rule, disagreeing for a
         month. `test` is derived from the credential, never claimed."""
         asset = self._asset(custodian_id=self.alice.id)
-        asset.with_context(cadra_custody_source="test").write(
+        asset.with_context(cadra_custody_source="test",
+                           cadra_approval_exempt="test").write(
             {"custodian_id": self.bob.id})
         link = self._links(asset)[-1]
         self.assertEqual(link.to_custodian_id, self.bob)
@@ -234,13 +258,15 @@ class TestTheSourceIsTruthful(CustodyCase):
         exempts that label from the test-credential relabel, so it would
         also have been a way to keep `test` OFF a fixture."""
         asset = self._asset(custodian_id=self.alice.id)
-        asset.with_context(cadra_custody_source="tracking_backfill").write(
+        asset.with_context(cadra_custody_source="tracking_backfill",
+                           cadra_approval_exempt="test").write(
             {"custodian_id": self.bob.id})
         self.assertEqual(self._links(asset)[-1].source, "direct")
 
     def test_a_source_nobody_defined_is_direct(self):
         asset = self._asset()
-        asset.with_context(cadra_custody_source="the_board_said_so").write(
+        asset.with_context(cadra_custody_source="the_board_said_so",
+                           cadra_approval_exempt="test").write(
             {"custodian_id": self.alice.id})
         self.assertEqual(self._links(asset)[-1].source, "direct")
 
@@ -267,6 +293,12 @@ class TestTheSourceIsTruthful(CustodyCase):
             "from_custodian_id": self.alice.id,
             "to_custodian_id": self.bob.id,
             "reason": "Office move",
+            # An APPROVED transfer, because since handoff 35
+            # `action_complete` declares `cadra_approval_exempt='transfer'`
+            # only when `approved_by` is set — an unapproved one meets the
+            # gate like any other write. Given an approver rather than a
+            # test exemption, so this exercises the production path.
+            "approved_by": self.env.uid,
         })
         transfer.action_complete()
         link = self._links(asset)[-1]

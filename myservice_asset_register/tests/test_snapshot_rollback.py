@@ -42,6 +42,24 @@ here passes for the wrong reason. Worse, `nrs.asset.create` calls
 precommit runs — so a write issued after a create and before a flush produces
 NO tracking row. Both are why every fixture flushes between steps.
 
+WHY THE GATED WRITES BELOW SAY `cadra_approval_exempt="test"`
+-------------------------------------------------------------
+Handoff 35 put a gate under every writer of `location_id` and
+`custodian_id`: on a tenant that has not turned the rule off — and absent
+means ON, so `test19` has not — a write that CHANGES either field raises
+unless a second person approved it. These fixtures are not a person
+deciding to move something, so each gated write declares itself with the
+reason `approval_policy.EXEMPT_REASONS` reserves for exactly this.
+
+**Per call, never once for the file or the class.** A module-level default
+would be the bypass flag `database_class.py` argues against at length: it
+becomes the way everything here is written by the end of the month, and
+then a test that should have discovered the gate never meets it. Spelling
+it at each site also means a grep for the constant finds every test that
+is standing outside the rule. Writes that do NOT change the two fields are
+left exactly as they were — a fixture that stops needing the declaration
+is a fixture whose meaning has changed.
+
 Run with:
     odoo -d <db> -u myservice_asset_register --test-enable \\
          --test-tags /myservice_asset_register --stop-after-init
@@ -302,7 +320,8 @@ class TestRollback(SnapshotCase):
         it read, so the name in the tracking row wins over the name today."""
         asset = self._asset(location_id=self.place_a.id)
         mark = self._mark()
-        asset.write({"location_id": self.place_b.id})
+        asset.with_context(cadra_approval_exempt="test").write(
+            {"location_id": self.place_b.id})
         self._stamp_after(mark, AFTER_CUTOFF)
         self.place_a.write({"name": "Renamed long afterwards"})
         self._flush_tracking()
@@ -317,7 +336,8 @@ class TestRollback(SnapshotCase):
         become today's value."""
         asset = self._asset()
         mark = self._mark()
-        asset.write({"location_id": self.place_b.id})
+        asset.with_context(cadra_approval_exempt="test").write(
+            {"location_id": self.place_b.id})
         self._stamp_after(mark, AFTER_CUTOFF)
 
         self.assertIsNone(self._row(asset)["location_id"])
@@ -421,12 +441,14 @@ class TestCustodyBeatsTracking(SnapshotCase):
         """
         asset = self._asset(custodian_id=self.alice.id)
         mark = self._mark()
-        asset.write({"custodian_id": self.bob.id})
+        asset.with_context(cadra_approval_exempt="test").write(
+            {"custodian_id": self.bob.id})
         self._stamp_after(mark, BEFORE_CUTOFF)
         self._backdate_links(asset, BEFORE_CUTOFF)
 
         mark = self._mark()
-        asset.write({"custodian_id": self.carol.id})
+        asset.with_context(cadra_approval_exempt="test").write(
+            {"custodian_id": self.carol.id})
         self._stamp_after(mark, AFTER_CUTOFF)
         self.env.cr.execute(
             "UPDATE nrs_asset_custody SET changed_at = %s "
@@ -479,7 +501,8 @@ class TestCustodyBeatsTracking(SnapshotCase):
     def test_a_chain_entirely_before_the_date_stands(self):
         asset = self._asset(custodian_id=self.alice.id)
         mark = self._mark()
-        asset.write({"custodian_id": self.bob.id})
+        asset.with_context(cadra_approval_exempt="test").write(
+            {"custodian_id": self.bob.id})
         self._stamp_after(mark, BEFORE_CUTOFF)
         self._backdate_links(asset, BEFORE_CUTOFF)
 
@@ -625,8 +648,9 @@ class TestTheReportWritesNothing(SnapshotCase):
         moved = self._asset(condition="good", custodian_id=self.alice.id,
                             location_id=self.place_a.id)
         mark = self._mark()
-        moved.write({"condition": "poor", "location_id": self.place_b.id,
-                     "custodian_id": self.bob.id})
+        moved.with_context(cadra_approval_exempt="test").write(
+            {"condition": "poor", "location_id": self.place_b.id,
+             "custodian_id": self.bob.id})
         self._stamp_after(mark, AFTER_CUTOFF)
         still = self._asset()
         assets = moved | still

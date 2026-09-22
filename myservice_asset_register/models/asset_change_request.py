@@ -593,11 +593,41 @@ class NRSAssetChangeRequest(models.Model):
             vals = {'location_id': self.to_location_id.id}
         else:
             vals = {'custodian_id': self.to_custodian_id.id}
-        # THE write. Everything append-only about this change is recorded by
+
+        # THE DECISION IS STAMPED FIRST, BEFORE THE ASSET IS WRITTEN, and the
+        # order is a security property rather than a style.
+        #
+        # The first cut stamped it afterwards, which forced
+        # `nrs.asset._approval_clears` to accept a request that was still
+        # `pending` — and that was a two-call bypass of this entire feature.
+        # Anybody holding `group_asset_manager` could raise a request
+        # properly, then write `location_id` directly over `call_kw` with
+        # `cadra_approval_id` naming their own pending request: the gate
+        # found a request for the right asset and the right destination, let
+        # the write through, and the asset moved with nobody having agreed.
+        # The REST API was not a way in; the Odoo web client was — which is
+        # the argument this handoff makes for putting the gate on the model
+        # in the first place, turned back on itself.
+        #
+        # Stamping first means the clearance can demand `approved` WITH a
+        # decider, which only this method can produce. It is safe because
+        # this is one transaction: if the write below raises — a disposed
+        # asset, a broken constraint — the stamp rolls back with it and the
+        # request is still pending. Found by the verification pass, by
+        # writing the test for "nothing is written on request" and watching
+        # it fail.
+        self._transition({
+            'state': STATE_APPROVED,
+            'approved_by_id': approver.id,
+            'approved_by_name': approver.display_name,
+            'decided_at': now,
+            'decision_reason': decision_reason or False,
+        })
+
+        # Everything append-only about this change is recorded by
         # `nrs.asset.write`, underneath, exactly as it is for every other
-        # writer — not here. That is the point of §B's first non-negotiable:
-        # the rows appear now, at approval, and there was never a row for the
-        # request.
+        # writer — not here. That is §B's first non-negotiable: the rows
+        # appear now, at approval, and there was never a row for the request.
         asset.with_context(**ctx).write(vals)
 
         movement = (asset.movement_ids.sorted('id')[-1:]
@@ -607,12 +637,11 @@ class NRSAssetChangeRequest(models.Model):
                    if self.change_type == CHANGE_CUSTODY
                    else self.env['nrs.asset.custody'])
 
+        # The second half of the stamp: what the write above produced. Only
+        # knowable afterwards, which is why this is two transitions and not
+        # one. `write` lets it through on an already-decided request because
+        # `_transition` carries the context flag — see `write`.
         self._transition({
-            'state': STATE_APPROVED,
-            'approved_by_id': approver.id,
-            'approved_by_name': approver.display_name,
-            'decided_at': now,
-            'decision_reason': decision_reason or False,
             'movement_id': movement.id or False,
             'custody_id': custody.id or False,
             'transfer_id': transfer.id or False,
@@ -854,7 +883,11 @@ class NRSAssetChangeRequest(models.Model):
             vals['requested_by_id'] = self.env.uid
             vals['requested_by_name'] = self.env.user.display_name
             vals.setdefault('requested_at', fields.Datetime.now())
-            vals.setdefault('state', STATE_PENDING)
+            # FORCED, not defaulted. `setdefault` let a caller-supplied
+            # `state` survive, so a request could be created already
+            # `approved` — half of the bypass described in `action_approve`.
+            # A request is born pending; there is no other way to make one.
+            vals['state'] = STATE_PENDING
             # Decided-state columns are not settable at creation. A request
             # that arrives already approved is the forgery this model exists
             # to prevent.
