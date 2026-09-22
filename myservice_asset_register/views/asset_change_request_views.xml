@@ -21,8 +21,27 @@
                             class="btn-primary"
                             invisible="state != 'pending' or not premise_holds"
                             confirm="Approve this change? The asset moves as soon as you confirm, and the move is recorded against your name."/>
-                    <button name="action_reject" string="Reject" type="object"
-                            invisible="state != 'pending'"/>
+                    <!-- REJECT IS NOT HERE, and its absence is deliberate.
+                         `action_reject` REQUIRES a reason — the person who
+                         asked reads it, and a rejection without one tells
+                         them nothing they can act on — and a header button
+                         calls its method with no arguments. So a Reject
+                         button on this form would raise *"Say why this is
+                         being rejected"* every single time: an interface
+                         offering an action the model always refuses, which
+                         is the "answer that looks like an answer" this
+                         file's own header comment rejects. It did exactly
+                         that until the verification pass caught it.
+
+                         Rejecting is done in the Cadra app, which has the
+                         dialog to ask for the reason, or over
+                         `POST /api/v1/approvals/<id>/reject`. A wizard here
+                         would be a third place to state the same rule for a
+                         backend screen that exists to be READ; if somebody
+                         wants one later, that is the shape it takes.
+
+                         Withdraw stays: its reason is optional, so the
+                         no-argument call succeeds. -->
                     <button name="action_withdraw" string="Withdraw" type="object"
                             invisible="state != 'pending'"/>
                     <field name="state" widget="statusbar"

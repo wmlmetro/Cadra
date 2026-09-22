@@ -937,7 +937,7 @@ class TestApprovalAppliesTheChange(ChangeRequestCase):
             [("asset_id", "=", asset.id)]))
 
     def test_a_move_from_somewhere_makes_a_transfer_with_a_real_approver(self):
-        """`approved_by` has been null on 264 of the 265 transfer rows on
+        """`approved_by` has been null on 266 of the 267 transfer rows on
         this machine, because `/move` created them already `done`. From here
         it is the person who actually clicked."""
         asset = self._asset(location_id=self.room.id)

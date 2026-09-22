@@ -58,11 +58,16 @@ classified `production` or on one carrying no class at all.
    approved disposal, and the assets and locations a REAL service request
    points at (whose foreign keys are `set null`, so deleting the fixture
    would succeed while silently blanking a live request's field). The first
-   group was one model when this was written and is now three, each counted
+   group was one model when this was written and is now FOUR, each counted
    and printed under its own name: `nrs.asset.custody` (who held it),
-   `nrs.asset.movement` (where it has been, handoff 28) and `nrs.asset.event`
+   `nrs.asset.movement` (where it has been, handoff 28), `nrs.asset.event`
    (that it was verified, changed status or had a GRN, PO or SAP reference
-   changed, handoff 30). Those records stay. What changes is that they stop looking like register data:
+   changed, handoff 30) and `nrs.asset.change.request` (who asked to move it
+   or hand it over, and who agreed, handoff 35). The fourth is NOT
+   append-only — it is a state machine — but it pins an asset for the same
+   two reasons: `asset_id` is `ondelete='restrict'` and `unlink` refuses
+   unconditionally, in every state, a withdrawn request included. Those
+   records stay. What changes is that they stop looking like register data:
    a ` [TEST FIXTURE]` suffix goes on the name, which is the field every list
    view, every report and the public homepage dropdown already renders.
 
@@ -236,9 +241,12 @@ print()
 #     Append-only is the property the whole chain is worth having for, and
 #     carving one exception for tidiness is how it stops meaning anything.
 #     The same two facts hold, word for word, of a movement record
-#     (`nrs.asset.movement`, handoff 28) and of an event record
-#     (`nrs.asset.event`, handoff 30), and the removal script refuses on each
-#     BY NAME. One group in this list, three models under it.
+#     (`nrs.asset.movement`, handoff 28), of an event record
+#     (`nrs.asset.event`, handoff 30) and of an approval request
+#     (`nrs.asset.change.request`, handoff 35 — a state machine rather than
+#     an append-only row, but `ondelete='restrict'` and `unlink` refuses in
+#     every state), and the removal script refuses on each BY NAME. One group
+#     in this list, four models under it.
 #   * assets and locations a real service request points at — neither
 #     `nrs_asset_id` nor `generic_location_id` declares an `ondelete`, so the
 #     default `set null` applies and deleting the fixture would SUCCEED while

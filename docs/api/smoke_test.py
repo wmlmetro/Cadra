@@ -292,25 +292,85 @@ def main():
     else:
         render(status, r)
 
-    step(f"POST /api/v1/assets/{asset_id}/move  to location id=2")
-    status, r = POST(f"/api/v1/assets/{asset_id}/move", body={
-        "to_location_id": 2, "reason": "Smoke test move",
-    }, token=token)
+    # ── does a move take two people on this tenant? (handoff 35) ─────
+    #
+    # `cadra.approval.required` is read from the database and ABSENT MEANS
+    # ON, so the honest thing for a liveness script to do is ASK rather than
+    # assume. Without this the two steps below printed a traceback on every
+    # tenant where the control is on — `r["data"]["transfer"]` is None when
+    # the route raised a request instead of moving the asset — and a smoke
+    # test that crashes on correct behaviour is worse than no smoke test.
+    step("GET /api/v1/settings/approvals")
+    status, r = GET("/api/v1/settings/approvals", token=token)
+    needs_two_people = True
     if "error" not in r:
+        d = r["data"]
+        needs_two_people = bool(d["required"])
+        print(f"  HTTP {status}  required={d['required']}, "
+              f"setting={d['setting']!r}, configured={d['configured']}")
+    else:
+        render(status, r)
+
+    approver_id = None
+    if needs_two_people:
+        step("GET /api/v1/approvals/approvers  (who this caller may ask)")
+        status, r = GET("/api/v1/approvals/approvers",
+                        query={"limit": 5}, token=token)
+        if "error" not in r and r["data"]:
+            approver_id = r["data"][0]["id"]
+            print(f"  HTTP {status}  {len(r['data'])} candidate(s); "
+                  f"asking id={approver_id} ({r['data'][0]['name']!r})")
+        else:
+            render(status, r)
+
+    move_body = {"to_location_id": 2, "reason": "Smoke test move"}
+    if approver_id:
+        move_body["approver_id"] = approver_id
+    step(f"POST /api/v1/assets/{asset_id}/move  to location id=2")
+    status, r = POST(f"/api/v1/assets/{asset_id}/move", body=move_body,
+                     token=token)
+    if "error" not in r and r["data"].get("pending_approval"):
+        # NOT a move. The asset is exactly where it was and the body says so
+        # three ways; printing it as a move is the confusion this whole
+        # feature exists to prevent.
+        q = r["data"]["request"]
+        print(f"  HTTP {status}  NOT MOVED — approval requested: "
+              f"{q['reference']} waiting on {q['approver']['name']!r}; "
+              f"asset still at "
+              f"{(r['data']['asset']['current_location'] or {}).get('name')!r}")
+    elif "error" not in r:
         t = r["data"]["transfer"]
         from_name = t["from_location"]["name"] if t["from_location"] else None
         print(f"  HTTP {status}  moved: {from_name!r} → {t['to_location']['name']!r}, ref={t['reference']}")
     else:
         render(status, r)
 
+    custody_body = {"to_custodian_id": 1, "reason": "Smoke test custody"}
+    if approver_id:
+        custody_body["approver_id"] = approver_id
     step(f"POST /api/v1/assets/{asset_id}/transfer-custody  to employee id=1")
-    status, r = POST(f"/api/v1/assets/{asset_id}/transfer-custody", body={
-        "to_custodian_id": 1, "reason": "Smoke test custody",
-    }, token=token)
-    if "error" not in r:
+    status, r = POST(f"/api/v1/assets/{asset_id}/transfer-custody",
+                     body=custody_body, token=token)
+    if "error" not in r and r["data"].get("pending_approval"):
+        # One pending request per asset, so on an approval tenant this is
+        # expected to be the 409 naming the move above rather than a second
+        # request. Either way it is not a custody change.
+        q = r["data"]["request"]
+        print(f"  HTTP {status}  NOT TRANSFERRED — approval requested: "
+              f"{q['reference']} waiting on {q['approver']['name']!r}")
+    elif "error" not in r:
         c = r["data"]["custody_change"]
         from_name = c["from_custodian"]["name"] if c["from_custodian"] else None
         print(f"  HTTP {status}  custody: {from_name!r} → {c['to_custodian']['name']!r}, message_id={c['message_id']}")
+    else:
+        render(status, r)
+
+    step("GET /api/v1/approvals?state=pending  (the queue)")
+    status, r = GET("/api/v1/approvals",
+                    query={"state": "pending", "limit": 5}, token=token)
+    if "error" not in r:
+        print(f"  HTTP {status}  {len(r['data'])} pending of "
+              f"{r['pagination']['total_estimate']}")
     else:
         render(status, r)
 

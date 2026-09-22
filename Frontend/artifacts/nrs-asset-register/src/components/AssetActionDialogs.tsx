@@ -269,9 +269,9 @@ function ApproverField({
  */
 function RaisedConfirmation({
   request, action, onDone,
-}: { request: RaisedApprovalRequest; action: "move" | "custody"; onDone: () => void }) {
+}: { request: RaisedApprovalRequest | null; action: "move" | "custody"; onDone: () => void }) {
   const [, nav] = useLocation();
-  const target = action === "move" ? request.to_location : request.to_custodian;
+  const target = action === "move" ? request?.to_location : request?.to_custodian;
   return (
     <>
       <div
@@ -284,14 +284,27 @@ function RaisedConfirmation({
           <p>
             <span className="font-semibold">Approval requested — nothing has changed yet.</span>
           </p>
+          {/* A missing `request` is a server defect, not a reason to imply
+              the move happened — see `readAssetChange`, which deliberately
+              branches on `pending_approval` alone. The panel still renders
+              and still says the asset has not moved; what it cannot do is
+              name the reference. */}
           <p data-testid="approval-raised-reference">
-            <span className="font-mono font-semibold">{request.reference}</span> is now waiting on{" "}
-            <span className="font-semibold">{request.approver?.name ?? "the person you named"}</span>.
-            {target ? (
-              action === "move"
-                ? <> The asset will move to <span className="font-semibold">{target.name}</span> only when they approve it.</>
-                : <> The asset passes to <span className="font-semibold">{target.name}</span> only when they approve it.</>
-            ) : null}
+            {request ? (
+              <>
+                <span className="font-mono font-semibold">{request.reference}</span> is now waiting on{" "}
+                <span className="font-semibold">{request.approver?.name ?? "the person you named"}</span>.
+                {target ? (
+                  action === "move"
+                    ? <> The asset will move to <span className="font-semibold">{target.name}</span> only when they approve it.</>
+                    : <> The asset passes to <span className="font-semibold">{target.name}</span> only when they approve it.</>
+                ) : null}
+              </>
+            ) : (
+              <>The request was accepted, but the server did not return its
+              reference. Find it in the approvals queue before raising
+              another — this asset can only have one request waiting.</>
+            )}
           </p>
           <p className="opacity-90">
             {action === "move"
@@ -403,6 +416,11 @@ export function AssetMoveDialog({ assetId, open, onOpenChange, placed = true }: 
   /** The request this dialog raised, if it raised one. Its presence replaces
    *  the whole form — see `RaisedConfirmation`. */
   const [raised, setRaised] = useState<RaisedApprovalRequest | null>(null);
+  // SEPARATE from `raised`, because `raised` may legitimately be null on a
+  // response that said `pending_approval: true` and carried no request. The
+  // panel must still appear — the one thing that must never happen is the
+  // dialog closing as though the asset moved.
+  const [pendingRaised, setPendingRaised] = useState(false);
 
   const approval = useApprovalRequirement();
   const needsApprover = approval.required || forcedApprovers !== null;
@@ -424,6 +442,7 @@ export function AssetMoveDialog({ assetId, open, onOpenChange, placed = true }: 
         // not happen. Only the approval queue and this asset's banner moved.
         invalidateApprovalQueries(qc, assetId);
         setRaised(res.request);
+        setPendingRaised(true);
         return;
       }
       invalidateAssetQueries(qc, assetId);
@@ -468,6 +487,7 @@ export function AssetMoveDialog({ assetId, open, onOpenChange, placed = true }: 
       setApprover(null);
       setForcedApprovers(null);
       setRaised(null);
+      setPendingRaised(false);
       mutation.reset();
     }
     onOpenChange(next);
@@ -515,7 +535,7 @@ export function AssetMoveDialog({ assetId, open, onOpenChange, placed = true }: 
           </DialogDescription>
         </DialogHeader>
 
-        {raised ? (
+        {pendingRaised ? (
           <RaisedConfirmation request={raised} action="move" onDone={() => setOpen(false, true)} />
         ) : (
           <>
@@ -615,6 +635,11 @@ export function CustodyTransferDialog({ assetId, open, onOpenChange }: MoveProps
   const [approver, setApprover] = useState<ApprovalRef | null>(null);
   const [forcedApprovers, setForcedApprovers] = useState<ApprovalRef[] | null>(null);
   const [raised, setRaised] = useState<RaisedApprovalRequest | null>(null);
+  // SEPARATE from `raised`, because `raised` may legitimately be null on a
+  // response that said `pending_approval: true` and carried no request. The
+  // panel must still appear — the one thing that must never happen is the
+  // dialog closing as though the asset moved.
+  const [pendingRaised, setPendingRaised] = useState(false);
 
   // The whole approval block below is the twin of `AssetMoveDialog`'s and is
   // commented there. It is duplicated rather than abstracted because the two
@@ -634,6 +659,7 @@ export function CustodyTransferDialog({ assetId, open, onOpenChange }: MoveProps
         // Nothing changed hands. See `AssetMoveDialog`.
         invalidateApprovalQueries(qc, assetId);
         setRaised(res.request);
+        setPendingRaised(true);
         return;
       }
       invalidateAssetQueries(qc, assetId);
@@ -665,6 +691,7 @@ export function CustodyTransferDialog({ assetId, open, onOpenChange }: MoveProps
       setApprover(null);
       setForcedApprovers(null);
       setRaised(null);
+      setPendingRaised(false);
       mutation.reset();
     }
     onOpenChange(next);
@@ -689,7 +716,7 @@ export function CustodyTransferDialog({ assetId, open, onOpenChange }: MoveProps
           </DialogDescription>
         </DialogHeader>
 
-        {raised ? (
+        {pendingRaised ? (
           <RaisedConfirmation request={raised} action="custody" onDone={() => setOpen(false, true)} />
         ) : (
           <>

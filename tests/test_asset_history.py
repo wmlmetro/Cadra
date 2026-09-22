@@ -105,15 +105,20 @@ def test_a_new_asset_says_it_has_no_history_in_words(client, test_location):
     assert registered["actor"] is not None
 
 
-def test_a_custody_transfer_is_an_append_only_event(client, test_location):
+def test_a_custody_transfer_is_an_append_only_event(
+        client, test_location, second_person):
     pair = _two_employees(client)
     if not pair:
         pytest.skip("tenant has no two employees to transfer between")
     asset = _new_asset(client, test_location, "pytest-history-custody")
-    r = client.post(f"/api/v1/assets/{asset['id']}/transfer-custody",
-                    json={"to_custodian_id": pair[0],
-                          "reason": "test_asset_history.custody"})
-    link_id = assert_envelope_ok(r)["data"]["custody_change"]["custody_id"]
+    # Handoff 35: on a tenant that requires a second person this is a request
+    # and an approval rather than one call, and the append-only link is
+    # written by the APPROVAL, never by the request. `second_person` is the
+    # one place that knows which kind of tenant this is; what is asserted
+    # below is unchanged, because the record is meant to be unchanged.
+    link_id = second_person.transfer_custody(
+        asset["id"], pair[0],
+        reason="test_asset_history.custody")["custody_id"]
     _, data = _history(client, asset["id"])
     events = [e for e in data["events"] if e["type"] == "custody_changed"]
     assert len(events) == 1, (
@@ -140,33 +145,40 @@ def _real_moves(data):
 
 
 def test_a_move_is_one_event_and_says_what_its_record_is_worth(
-        client, test_location, any_location):
-    """`POST /move` leaves a movement, a transfer AND a chatter row: one line.
+        client, test_location, any_location, second_person):
+    """A move leaves a movement, a transfer AND a chatter row: one line.
 
     Handoff 27 asserted `editable_record` here, because a transfer row was
     the best record a move had. Since handoff 28 the move has a record of its
     own, written underneath every writer, and THAT is what it rests on.
+
+    Handoff 35 changed WHO writes it — `action_approve` rather than the route
+    — and changed nothing about what is written, which is the property this
+    test now also carries: the same three records, the same grade, the same
+    reason, whether the move took one person or two.
     """
     if any_location == test_location["id"]:
         pytest.skip("tenant has no second location to move to")
     asset = _new_asset(client, test_location, "pytest-history-move")
-    r = client.post(f"/api/v1/assets/{asset['id']}/move",
-                    json={"to_location_id": any_location,
-                          "reason": "test_asset_history.move"})
-    transfer = assert_envelope_ok(r)["data"]["transfer"]
-    # Additive on the route: the append-only record this call produced.
-    assert transfer["movement_id"]
+    moved = second_person.move(asset["id"], any_location,
+                               reason="test_asset_history.move")
+    # The append-only record this produced, and the document beside it. Both
+    # come back from `/move` directly or off the approved request; the helper
+    # normalises the two shapes and the ids are the same rows either way.
+    assert moved["movement_id"]
     _, data = _history(client, asset["id"])
     moves = _real_moves(data)
     assert len(moves) == 1
     move = moves[0]
     assert move["evidence"] == "append_only"
     assert move["record"] == {"model": "nrs.asset.movement",
-                              "id": transfer["movement_id"]}
-    # See test_custody.py: `test` is `api_move` relabelled by the credential.
-    assert move["source"] in ("api_move", "test")
+                              "id": moved["movement_id"]}
+    # See test_custody.py: `test` is the route's own source (`api_move`, or
+    # `approval` when a second person decided) relabelled by the credential
+    # that wrote the row.
+    assert move["source"] in ("api_move", "approval", "test")
     assert move["detail"]["reason"] == "test_asset_history.move"
-    assert move["detail"]["transfer"]["reference"] == transfer["reference"]
+    assert move["detail"]["transfer"]["reference"] == moved["transfer_reference"]
     assert move["detail"]["records"] == [
         "nrs.asset.movement", "nrs.asset.transfer", "mail.message"]
     assert move["actor"] is not None
@@ -174,18 +186,51 @@ def test_a_move_is_one_event_and_says_what_its_record_is_worth(
 
 
 def test_a_patched_location_is_recorded_like_any_other_move(
-        client, test_location, any_location):
-    """The quiet door. PATCH still writes no transfer row — and need not.
+        client, test_location, any_location, second_person):
+    """The quiet door — open on one kind of tenant, SHUT on the other.
 
     Handoff 27 asserted `chatter` here: PATCH moved an asset and left a
     message-log line and nothing else. Handoff 28 did NOT close this door
     and did NOT make it write a transfer; it recorded underneath every door.
+
+    **Handoff 35 closed it, but only where a move needs a second person.**
+    PATCH is how the Cadra app's edit form saves, and a whole object arrives
+    in it; turning the location half into an approval request and writing the
+    rest would leave the caller with a half-applied save and no way to tell
+    which half. So the WHOLE body is refused, 400, with `use_instead` naming
+    `/move`. On a tenant that has switched the rule off, PATCH still moves
+    the asset and this test asserts exactly what it asserted before.
+
+    Both branches assert the same underlying property from opposite sides:
+    **whatever happens to `location_id`, the register knows about it.** The
+    refusal branch proves the door is shut AND that nothing was written on
+    the way to the 400 — which is not free, because `err()` returns a
+    response and does not roll a transaction back (CLAUDE.md).
     """
     if any_location == test_location["id"]:
         pytest.skip("tenant has no second location to move to")
     asset = _new_asset(client, test_location, "pytest-history-patch-move")
     r = client.patch(f"/api/v1/assets/{asset['id']}",
                      json={"location_id": any_location})
+
+    if second_person.required:
+        details = assert_fields_refused(r, "location_id")
+        assert details["approval_required"] is True
+        assert "/move" in details["use_instead"]["location_id"]
+        assert "location_id" not in details["writable"], (
+            "the same response refuses `location_id` and lists it as "
+            "writable, so a caller repairing itself from `details.writable` "
+            "sends it straight back")
+        after = assert_envelope_ok(
+            client.get(f"/api/v1/assets/{asset['id']}"))["data"]
+        assert after["current_location"]["id"] == test_location["id"], (
+            "the PATCH was refused and the asset moved anyway")
+        _, data = _history(client, asset["id"])
+        assert _real_moves(data) == [], (
+            "a refused PATCH left a movement row behind — a permanent, "
+            "append-only record of a move that never happened")
+        return
+
     assert_envelope_ok(r)
     _, data = _history(client, asset["id"])
     moves = _real_moves(data)
@@ -392,7 +437,8 @@ def test_a_changed_grn_reference_is_recorded_where_nobody_can_alter_it(
     assert data["fidelity"]["provenance_tracked_from"]
 
 
-def test_a_movement_this_suite_wrote_says_so(client, test_location, any_location):
+def test_a_movement_this_suite_wrote_says_so(client, test_location,
+                                             any_location, second_person):
     """The suite moves real assets, and the record of a move is PERMANENT.
 
     Same argument as `test_custody.test_a_link_this_suite_wrote_says_so`: that
@@ -400,17 +446,24 @@ def test_a_movement_this_suite_wrote_says_so(client, test_location, any_location
     nothing about whether a move is recorded at all. What is not acceptable
     is a reader being unable to tell. `tests/test_source_guards.py` lists
     `nrs.asset.movement` as self-labelling on the strength of this.
+
+    **This is why `second_person` has the suite APPROVE rather than raise.**
+    The row is written by `action_approve`, under the approver's user, and
+    only a row written under a credential flagged `is_test_credential` gets
+    relabelled `test`. Had the suite raised and a human approved, every move
+    this suite makes on an approval-required tenant would come back
+    `approval` — accurate about the route and silent about the one thing this
+    test exists to assert. The full reasoning, and what that arrangement
+    costs elsewhere, is in the fixture's own docstring.
     """
     if any_location == test_location["id"]:
         pytest.skip("tenant has no second location to move to")
     asset = _new_asset(client, test_location, "pytest-history-move-label")
-    r = client.post(f"/api/v1/assets/{asset['id']}/move",
-                    json={"to_location_id": any_location})
-    assert_envelope_ok(r)
+    second_person.move(asset["id"], any_location)
     _, data = _history(client, asset["id"])
     sources = {e["source"] for e in data["events"]
                if e["type"] == "location_moved"}
-    if sources == {"api_write", "api_move"}:
+    if sources == {"api_write", "api_move"} or sources == {"approval"}:
         pytest.skip("this credential is not flagged `is_test_credential`; "
                     "its movements are labelled by route, not as artefacts")
     assert sources == {"test"}, (
@@ -445,7 +498,8 @@ def test_a_refused_move_leaves_nothing_behind(client, test_location, any_locatio
                 if e["type"] == "transfer_recorded"]
 
 
-def test_an_asset_with_no_location_can_be_placed(client, any_location, capture):
+def test_an_asset_with_no_location_can_be_placed(client, any_location,
+                                                 second_person, capture):
     """POST /assets/<id>/move on an asset that is nowhere — reported by the owner.
 
     It answered 400 *"Required field missing: from_location_id"*: the route
@@ -460,14 +514,18 @@ def test_an_asset_with_no_location_can_be_placed(client, any_location, capture):
     asset = assert_envelope_ok(r, expected_status=201)["data"]
     assert asset["current_location"] is None
 
-    r = client.post(f"/api/v1/assets/{asset['id']}/move",
-                    json={"to_location_id": any_location,
-                          "reason": "test_asset_history.placed"})
-    capture("assets/move_unplaced", r)
-    data = assert_envelope_ok(r)["data"]
-    assert data["asset"]["current_location"]["id"] == any_location
-    assert data["transfer"] is None, "no document for a journey from nowhere"
-    assert data["movement_id"], "the fact is recorded either way"
+    placed_by = second_person.move(asset["id"], any_location,
+                                   reason="test_asset_history.placed")
+    capture("assets/move_unplaced", placed_by["decision"] or placed_by["raised"])
+    assert placed_by["asset"]["current_location"]["id"] == any_location
+    # "From nowhere" is not a place, so no document is made — and that is
+    # true of BOTH writers: the route skips the transfer when there is no
+    # `from_location`, and `action_approve` skips it on the same condition.
+    # A test asserting it of only one of them would have left the other free
+    # to invent one.
+    assert placed_by["transfer_id"] is None, (
+        "no document for a journey from nowhere")
+    assert placed_by["movement_id"], "the fact is recorded either way"
 
     after = assert_envelope_ok(client.get(
         f"/api/v1/assets/{asset['id']}", params={"include": "transfers"}))["data"]
@@ -477,7 +535,7 @@ def test_an_asset_with_no_location_can_be_placed(client, any_location, capture):
     placed = [e for e in history["events"] if e["type"] == "location_moved"]
     assert len(placed) == 1
     assert placed[0]["record"] == {"model": "nrs.asset.movement",
-                                   "id": data["movement_id"]}
+                                   "id": placed_by["movement_id"]}
     assert placed[0]["evidence"] == "append_only"
     assert placed[0]["summary"].startswith("Placed at")
     assert placed[0]["detail"]["reason"] == "test_asset_history.placed"
@@ -488,16 +546,33 @@ def test_an_asset_with_no_location_can_be_placed(client, any_location, capture):
 
 
 def test_a_placed_asset_then_moves_with_a_transfer_as_before(
-        client, test_location, any_location):
-    """The ordinary case is untouched, and `movement_id` is in both places."""
+        client, test_location, any_location, second_person):
+    """The ordinary case is untouched, and `movement_id` is in both places.
+
+    The "both places" property belongs to `/move`'s own payload — the
+    top-level `movement_id` and the copy inside `transfer`, which handoff 28
+    left where it was so a consumer reading either kept working. An approved
+    request publishes the ids once, on the request, so there is no second
+    place for them to disagree; what is asserted there instead is that the
+    two rows both exist and that the movement points at the document.
+    """
     if any_location == test_location["id"]:
         pytest.skip("tenant has no second location to move to")
     asset = _new_asset(client, test_location, "pytest-history-move-both-keys")
-    r = client.post(f"/api/v1/assets/{asset['id']}/move",
-                    json={"to_location_id": any_location})
-    data = assert_envelope_ok(r)["data"]
-    assert data["transfer"]["reference"]
-    assert data["movement_id"] == data["transfer"]["movement_id"]
+    moved = second_person.move(asset["id"], any_location)
+    assert moved["transfer_reference"]
+    assert moved["movement_id"]
+
+    if not moved["pending"]:
+        data = moved["raised"].json()["data"]
+        assert data["movement_id"] == data["transfer"]["movement_id"]
+        return
+
+    _, history = _history(client, asset["id"])
+    move = _real_moves(history)[0]
+    assert move["record"]["id"] == moved["movement_id"]
+    assert move["detail"]["transfer"]["id"] == moved["transfer_id"]
+    assert move["detail"]["transfer"]["reference"] == moved["transfer_reference"]
 
 
 def test_placing_an_unplaced_asset_nowhere_real_is_still_refused(client):

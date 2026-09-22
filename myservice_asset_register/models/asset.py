@@ -892,6 +892,29 @@ class NRSAsset(models.Model):
             return False
         if request.approved_by_id.id == request.requested_by_id.id:
             return False
+        # SPENT. An approval authorises ONE change, and once it has produced
+        # its append-only record it authorises nothing further.
+        #
+        # Without this the clearance was a reusable key with no expiry: once
+        # request R (move asset A to room X) was approved, anybody could write
+        # `location_id = X` on A at any later date with `cadra_approval_id =
+        # R` and the gate waved it through — and a second, legitimate
+        # approval moving A to Y did not retire R, so an asset that had ever
+        # been approved into a room could be put back there, repeatedly, by
+        # one person. Found by the verification pass.
+        #
+        # The check is on the RECORD the approval produced rather than on a
+        # flag, because that record is append-only and cannot be cleared to
+        # make the key live again.
+        if request.movement_id or request.custody_id:
+            return False
+        # And the premise must STILL hold at the instant of the write, not
+        # merely at the instant somebody clicked. `action_approve` checks it
+        # before stamping; this is the same question asked one step later,
+        # where the write actually happens.
+        holds, _unused = request._premise_check()
+        if not holds:
+            return False
         wanted = {'location_id': request.to_location_id.id,
                   'custodian_id': request.to_custodian_id.id}.get(field)
         return bool(wanted) and wanted == (_m2o_id(value) or False)

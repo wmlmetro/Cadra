@@ -13,10 +13,11 @@ The handoff asked for the case both ways before the code. `nrs.asset.transfer`
 has carried `draft → approved → done → rejected`, an **Approve** button that
 stamps `approved_by`, and a **Complete** step that performs the move, since
 the beginning. Nothing in the API or the app has ever used it: measured
-2026-09-22, every transfer row on every local tenant is in state `done` —
-`test19` 161, `jaizbankplc` 103, `nrs19` 1, `cadra19` 0 — and the approver is
-set on exactly one of the 265, the single `nrs19` row somebody drove through
-the Odoo screen by hand.
+2026-09-22 across all eight local tenants, all 267 transfer rows are in state
+`done` — none in `draft`, none in `approved` — and the approver is set on
+exactly ONE of the 267, the single `nrs19` row somebody drove through the
+Odoo screen by hand. (`test19` 161, `jaizbankplc` 103, `gtb19` 2, `nrs19` 1;
+`cadra19`, `nrs`, `lasg` and `gtb` nil.)
 
 So the machinery is unused rather than load-bearing, and reusing it was the
 cheaper-looking option. It was rejected on four measured grounds, none of
@@ -36,7 +37,7 @@ them aesthetic:
    docstring: *"a pure custody change cannot be recorded in it at all."*
    Repurposing it for custody means making both location columns optional
    and dropping the constraint — that is not reuse, it is a different model
-   wearing the old one's name and the old one's 265 rows.
+   wearing the old one's name and the old one's 267 rows.
 
 3. **An asset manager can delete one.** `ir.model.access.csv` grants
    `group_asset_manager` 1,1,1,1 on `nrs.asset.transfer`, and `asset_id` is
@@ -52,8 +53,8 @@ them aesthetic:
    completes. Changing what those columns mean is an integration-visible
    change to a live interface, made as a side effect of a UI feature.
 
-The 265 existing `done` rows settle it. Under the alternative they would
-become "requests" retroactively — 265 rows with no requester, no approver
+The 267 existing `done` rows settle it. Under the alternative they would
+become "requests" retroactively — 267 rows with no requester, no approver
 and no premise, in the model an auditor is told to read for who authorised
 what. Leaving `nrs.asset.transfer` untouched keeps them meaning exactly what
 they have always meant.
@@ -164,10 +165,24 @@ class NRSAssetChangeRequest(models.Model):
 
     # ── What is being asked for ──────────────────────────────────────
 
+    # `set null`, NOT `restrict`, and the Char copies below are why — the
+    # same pairing `nrs.asset.custody` and `nrs.asset.movement` use on their
+    # from/to references, deliberately, so an append-only row never blocks a
+    # deletion somebody is entitled to make.
+    #
+    # `restrict` here was wrong in two ways at once, both found by the
+    # verification pass. It would have made `generic.location.unlink` do all
+    # of handoff 28's careful work — refusing on disposed assets, appending a
+    # `location_deleted` movement for every other — and then die on a foreign
+    # key it knows nothing about, handing the user a raw `IntegrityError`
+    # instead of Cadra's own words; the same for `hr.employee.unlink`. And it
+    # made two branches of `_premise_check` unreachable: the database could
+    # not produce a request whose destination had been deleted, while §D2 of
+    # the report lists exactly that as a live reason a premise breaks.
     to_location_id = fields.Many2one(
-        'generic.location', string='To Location', ondelete='restrict')
+        'generic.location', string='To Location', ondelete='set null')
     to_custodian_id = fields.Many2one(
-        'hr.employee', string='To Custodian', ondelete='restrict')
+        'hr.employee', string='To Custodian', ondelete='set null')
     reason = fields.Text(string='Reason')
 
     # ── The premise: what it was WHEN ASKED ──────────────────────────
@@ -559,8 +574,8 @@ class NRSAssetChangeRequest(models.Model):
         #
         # This is where the old machinery finally earns its keep: the
         # document is created already `done` AND already approved, by the
-        # person who actually clicked. `approved_by` has been null on 264 of
-        # the 265 transfer rows on this machine; from here it is the real
+        # person who actually clicked. `approved_by` has been null on 266 of
+        # the 267 transfer rows on this machine; from here it is the real
         # approver, and the INT-09 payload SAP receives carries a true one.
         transfer = self.env['nrs.asset.transfer']
         if self.change_type == CHANGE_LOCATION and self.from_location_id:

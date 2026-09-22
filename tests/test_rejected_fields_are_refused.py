@@ -303,6 +303,86 @@ def _patch_depreciation(request):
     }
 
 
+def _a_pending_request(request, raised_by_the_suite):
+    """A brand-new asset with ONE pending approval request against it.
+
+    Its own asset every time, because there is a partial unique index
+    allowing one pending request per asset: reusing a fixture asset across
+    the three rows below would make the second and third 409 rather than
+    reach the body-checking they are here to test.
+
+    `raised_by_the_suite` decides which credential asks, and it is not a
+    detail. Approve and reject are decisions on SOMEBODY ELSE's request —
+    self-approval is refused 403 in the model — so those two must be raised
+    by the second person. Withdraw is the opposite: only the requester may
+    take their own request back, so it must be raised by the suite.
+    """
+    client = request.getfixturevalue("client")
+    second_person = request.getfixturevalue("second_person")
+    if not second_person.required:
+        pytest.skip("this tenant does not require approval, so `/move` "
+                    "changes the asset and there is no request to decide")
+    location = request.getfixturevalue("test_location")
+    elsewhere = request.getfixturevalue("a_location")
+    asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+        "name": _uniq("pytest-refused-approval-asset"), "category_id": 1,
+        "location_id": location["id"]}), 201)["data"]
+
+    if raised_by_the_suite:
+        raiser, approver_id = client, second_person.other["id"]
+    else:
+        raiser, approver_id = second_person.requester, second_person.approver_id
+    raised = assert_envelope_ok(raiser.post(
+        f"/api/v1/assets/{asset['id']}/move",
+        json={"to_location_id": elsewhere["id"], "approver_id": approver_id,
+              "reason": "test_rejected_fields_are_refused"}))["data"]
+    assert raised["pending_approval"] is True
+    return raised["request"]["id"]
+
+
+def _approve(request):
+    _need(request.getfixturevalue("me"), "approvals:write")
+    client = request.getfixturevalue("client")
+    request_id = _a_pending_request(request, raised_by_the_suite=False)
+    path = f"/api/v1/approvals/{request_id}"
+    return {
+        "send": lambda extra: client.post(f"{path}/approve", json=extra),
+        "read": lambda: assert_envelope_ok(client.get(path))["data"],
+        "good": None,
+    }
+
+
+def _reject(request):
+    """The one row whose smallest acceptable body is not empty.
+
+    `reason` is REQUIRED on a rejection — the person who asked sees it — so
+    the refused key rides beside a real one here, which is the create-shaped
+    case rather than the PATCH-shaped one.
+    """
+    _need(request.getfixturevalue("me"), "approvals:write")
+    client = request.getfixturevalue("client")
+    request_id = _a_pending_request(request, raised_by_the_suite=False)
+    path = f"/api/v1/approvals/{request_id}"
+    return {
+        "send": lambda extra: client.post(
+            f"{path}/reject",
+            json={"reason": "test_rejected_fields_are_refused", **extra}),
+        "read": lambda: assert_envelope_ok(client.get(path))["data"],
+        "good": None,
+    }
+
+
+def _withdraw(request):
+    client = request.getfixturevalue("client")
+    request_id = _a_pending_request(request, raised_by_the_suite=True)
+    path = f"/api/v1/approvals/{request_id}"
+    return {
+        "send": lambda extra: client.post(f"{path}/withdraw", json=extra),
+        "read": lambda: assert_envelope_ok(client.get(path))["data"],
+        "good": None,
+    }
+
+
 _ROUTES = [
     ("POST /assets", _post_asset),
     ("PATCH /assets/<id>", _patch_asset),
@@ -315,6 +395,14 @@ _ROUTES = [
     ("PATCH /asset-categories/<id>", _patch_category),
     ("PATCH /settings/branding", _patch_branding),
     ("PATCH /settings/depreciation", _patch_depreciation),
+    # Handoff 35 — the three decisions on an approval request. They take a
+    # body of exactly one field (`reason`), which is the smallest a route can
+    # have and still have an allow-list, and that is precisely why they
+    # belong here: a route whose `writable` is one name is the easiest one to
+    # write with no refusal at all.
+    ("POST /approvals/<id>/approve", _approve),
+    ("POST /approvals/<id>/reject", _reject),
+    ("POST /approvals/<id>/withdraw", _withdraw),
 ]
 _PATCH_ROUTES = [row for row in _ROUTES if row[0].startswith("PATCH ")]
 _CREATE_ROUTES = [row for row in _ROUTES
@@ -322,14 +410,16 @@ _CREATE_ROUTES = [row for row in _ROUTES
                                 "POST /requests", "POST /asset-categories")]
 
 
-def test_the_table_is_the_eleven_routes():
-    """Non-vacuity for the parametrisation below: eleven rows, none twice.
+def test_the_table_is_the_fourteen_routes():
+    """Non-vacuity for the parametrisation below: fourteen rows, none twice.
 
     The ruling named ten. The eleventh is `POST /asset-categories` — see
     `_post_category` for how a count made by searching for `_warnings`
-    could not have found a route that never wrote one.
+    could not have found a route that never wrote one. Twelve, thirteen and
+    fourteen are handoff 35's three decisions on an approval request, added
+    when they were added rather than after somebody noticed.
 
-    **Eleven is the number of routes that take a body of FIELDS and are
+    **This is the number of routes that take a body of FIELDS and are
     reached the same way.** Handoff 32 closed two more doors of a different
     shape — `POST /home/quick-submit`, whose refusal comes back through a
     delegate written to answer a browser, and `POST /integrations/sap/
@@ -338,13 +428,12 @@ def test_the_table_is_the_eleven_routes():
     the bad one, a record to GET afterwards) have no meaning for them. They
     are in `tests/test_the_twelfth_door.py`, held to the same shared
     `assert_fields_refused` contract. **The complete census of routes that
-    take a body — all 32 — is
-    `myservice_api/tests/test_published_names_resolve.py`, which is the one
-    that fails when a new route appears.** This number is not it, and
-    growing it to thirteen would suggest it was.
+    take a body is `myservice_api/tests/test_published_names_resolve.py`,
+    which is the one that fails when a new route appears.** This number is
+    not it, and it has never been it.
     """
-    assert len(_ROUTES) == 11
-    assert len({label for label, _ in _ROUTES}) == 11
+    assert len(_ROUTES) == 14
+    assert len({label for label, _ in _ROUTES}) == 14
     assert len(_PATCH_ROUTES) == 6 and len(_CREATE_ROUTES) == 4
 
 

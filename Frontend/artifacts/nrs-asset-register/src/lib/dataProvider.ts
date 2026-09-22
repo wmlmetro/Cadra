@@ -445,7 +445,7 @@ export interface RaisedApprovalRequest {
 }
 
 export type AssetChangeResult =
-  | { pendingApproval: true; request: RaisedApprovalRequest; asset: Asset }
+  | { pendingApproval: true; request: RaisedApprovalRequest | null; asset: Asset }
   | { pendingApproval: false; asset: Asset };
 
 /** The shape both routes answer with, with every key either contract may
@@ -464,8 +464,17 @@ interface AssetChangeResponse {
 }
 
 function readAssetChange(d: AssetChangeResponse): AssetChangeResult {
-  if (d.pending_approval === true && d.request) {
-    return { pendingApproval: true, request: d.request, asset: apiAssetToAsset(d.asset) };
+  // BRANCH ON `pending_approval` ALONE. The first cut read
+  // `d.pending_approval === true && d.request`, and the `&& d.request` was
+  // on the wrong side of the safety argument: a 200 saying the change is
+  // PENDING but carrying no `request` object would have fallen into the
+  // success branch, closed the dialog, invalidated the asset and told the
+  // storekeeper it moved. The whole point of this function is that the one
+  // thing we must never get wrong is that direction. A missing `request` is
+  // a server defect, and the honest answer to it is "we do not know the
+  // reference", not "it happened". Found by the verification pass.
+  if (d.pending_approval === true) {
+    return { pendingApproval: true, request: d.request ?? null, asset: apiAssetToAsset(d.asset) };
   }
   return { pendingApproval: false, asset: apiAssetToAsset(d.asset) };
 }

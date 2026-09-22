@@ -440,14 +440,34 @@ class CadraApprovalsAPI(http.Controller):
                 details={"request_id": rec.id,
                          "premise_broken_reason": rec.premise_broken_reason,
                          "asset": _ref(rec.asset_id)})
+        # A SAVEPOINT, and it is load-bearing rather than defensive.
+        #
+        # `action_approve` stamps the decision and creates the transfer
+        # document BEFORE it writes the asset — it has to, because the
+        # clearance the write needs can only be an approved request (see
+        # `_approval_clears`). Its docstring says that is safe because a
+        # raise rolls the stamp back, and that is true only while the
+        # exception PROPAGATES. This `except` catches it, and `err()` returns
+        # a response without rolling anything back — `CLAUDE.md` says so in
+        # as many words, and handoff 28 left a `done` transfer behind on a
+        # refused move by exactly this mistake.
+        #
+        # Without the savepoint, any `UserError` raised under `asset.write`
+        # — a constraint, an ACL, `_assert_disposed_is_terminal`, anything a
+        # downstream module raises — committed a request saying *approved by
+        # somebody at some time*, a `done` transfer document for a move that
+        # never happened, and an asset that never moved. Found by the
+        # verification pass, which also noticed that `AccessError` and
+        # `ValidationError` are both `UserError` subclasses and so all of it
+        # came through this one clause.
         try:
-            rec.action_approve(decision_reason=reason or None)
+            with request.env.cr.savepoint():
+                rec.action_approve(decision_reason=reason or None)
         except UserError as e:
-            # The model refusing after the three checks above passed means
-            # the world changed between them and the write — another request
-            # approved in a parallel transaction, most likely. Its words are
-            # the accurate ones; 409 because it is still *the world is not as
-            # you believe*.
+            # Everything the attempt wrote is gone. The model's words are the
+            # accurate ones; 409 because it is still *the world is not as you
+            # believe*.
+            rec.invalidate_recordset()
             return err(ERR_CONFLICT, str(e), status=409,
                        details={"request_id": rec.id})
         return self._decided_payload(rec)
@@ -507,9 +527,14 @@ class CadraApprovalsAPI(http.Controller):
                 "decide on it.",
                 status=403,
                 details={"request_id": rec.id, "is_own_request": own})
+        # Savepointed for the reason `approve` is: `err()` does not roll
+        # back. These two write less, but a half-stamped decision is still a
+        # decision the record would carry.
         try:
-            rec.action_reject(decision_reason=reason)
+            with request.env.cr.savepoint():
+                rec.action_reject(decision_reason=reason)
         except UserError as e:
+            rec.invalidate_recordset()
             return err(ERR_CONFLICT, str(e), status=409,
                        details={"request_id": rec.id})
         return self._decided_payload(rec)
@@ -571,9 +596,14 @@ class CadraApprovalsAPI(http.Controller):
                 status=403,
                 details={"request_id": rec.id,
                          "requested_by": _ref(rec.requested_by_id)})
+        # Savepointed for the reason `approve` is: `err()` does not roll
+        # back. These two write less, but a half-stamped decision is still a
+        # decision the record would carry.
         try:
-            rec.action_withdraw(decision_reason=reason or None)
+            with request.env.cr.savepoint():
+                rec.action_withdraw(decision_reason=reason or None)
         except UserError as e:
+            rec.invalidate_recordset()
             return err(ERR_CONFLICT, str(e), status=409,
                        details={"request_id": rec.id})
         return self._decided_payload(rec)

@@ -25,7 +25,9 @@ people the rule constrains are exactly the people who hold `settings:write`.
 Three things are worth the owner's attention before the detail:
 
 1. **It applies to far more than the two buttons.** The enumeration §A asked
-   for found **twelve** production writers of `location_id` and **thirteen**
+   for found **twelve** production writers of `location_id` (fourteen table
+   rows below: rows 5+6 are one write, and rows 7+8 are one importer) and
+   **thirteen**
    of `custodian_id`. The rule is enforced in `nrs.asset.write`, underneath
    all of them, and not in the two routes the app happens to call — because
    one of the writers nobody would have listed is an editable field on the
@@ -33,10 +35,15 @@ Three things are worth the owner's attention before the detail:
    when a location or an employee is deleted.
 2. **The old approval machinery was never used, and is now the receipt.**
    `nrs.asset.transfer` has had `draft → approved → done → rejected` from the
-   beginning. Measured on 2026-09-22: every transfer row on every local
-   tenant is in `done` — `test19` 161, `jaizbankplc` 103, `nrs19` 1,
-   `cadra19` 0 — and `approved_by` is set on exactly **1 of those 265**, the
-   single `nrs19` row somebody once drove through the Odoo screen by hand. It
+   beginning. Measured on 2026-09-22, across **all eight** local tenants:
+   **267 transfer rows, every one of them in `done`, none in `draft` or
+   `approved`, and `approved_by` set on exactly 1 of the 267** — the single
+   `nrs19` row somebody once drove through the Odoo screen by hand.
+   (`test19` 161, `jaizbankplc` 103, `gtb19` 2, `nrs19` 1; `cadra19`, `nrs`,
+   `lasg` and `gtb` nil.) **The first cut of this report said "every local
+   tenant" over a count of four of them** — 265 — which is the denominator
+   rule this programme has now broken four times; the verification pass
+   caught it and the remaining four were measured rather than assumed. It
    was not reused as the request (four measured reasons, §B); it is now
    created *by* an approval, carrying the real approver, so those columns
    stop being always-empty and the INT-09 payload SAP receives starts
@@ -157,7 +164,7 @@ it had fitted, reuse would have been right.
    says so in its own docstring: *"a pure custody change cannot be recorded
    in it at all."* Making it fit means making both location columns optional
    and dropping the constraint, which is not reuse — it is a different model
-   wearing the old one's name and the old one's 265 rows.
+   wearing the old one's name and the old one's 267 rows.
 3. **An asset manager can delete one.** `ir.model.access.csv` grants
    `group_asset_manager` `1,1,1,1`, and `asset_id` is `ondelete='cascade'`,
    so a transfer dies with its asset. That is exactly why
@@ -171,10 +178,10 @@ it had fitted, reuse would have been right.
    completion. Redefining those columns is an integration-visible change to
    a live interface, made as a side effect of a UI feature.
 
-### What happens to the 161, the 103 and the 1
+### What happens to the 161, the 103, the 2 and the 1
 
-**Nothing, and that settles it.** Under the alternative those 265 `done`
-rows become "requests" retroactively: 265 rows with no requester, no
+**Nothing, and that settles it.** Under the alternative those 267 `done`
+rows become "requests" retroactively: 267 rows with no requester, no
 approver and no premise, sitting in the model an auditor is told to read for
 who authorised what. Leaving the model untouched keeps them meaning exactly
 what they have always meant — a completed move, mostly created by `/move` at

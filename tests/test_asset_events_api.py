@@ -923,9 +923,28 @@ def test_a_disposed_asset_somebody_finds_on_the_premises_can_be_verified(
 _OTHER_LOCATION = object()
 _AN_EMPLOYEE = object()
 
-# (label, method, path suffix, body, status, code). The sentinels are filled
-# in from the tenant; a door that needs something the tenant lacks skips, in
-# the idiom of `test_asset_history.py`.
+#: Three doors where, on a tenant that requires a second person to approve a
+#: move or a custody change, the APPROVAL gate answers before the
+#: disposed-is-terminal rule does — so the refusal is `400 invalid_request`
+#: *"this register requires a second person"* rather than `400
+#: validation_failed` *"...has been disposed of"*.
+#:
+#: **The door is still shut and nothing is written**, which is what this table
+#: is for, and the two rows below prove that unchanged. What is weaker is the
+#: SENTENCE: a caller is told to go and find an approver for a change that can
+#: never be approved, because `_premise_check` refuses a disposed asset at the
+#: far end. `POST /move` does NOT have this problem — handoff 28 put
+#: `_assert_disposed_is_terminal` above everything on that route, and handoff
+#: 35's block went in underneath it — so the asymmetry is between two doors
+#: onto the same rule, which is the shape report 30 called *"two doors, not
+#: one"*. Reported with handoff 35; recorded here rather than papered over,
+#: because a table that silently accepted either answer would stop being able
+#: to tell this from a real regression.
+_APPROVAL_ANSWERS_FIRST = (400, "invalid_request", "requires a second person")
+
+# (label, method, path suffix, body, status, code[, when_approval_required]).
+# The sentinels are filled in from the tenant; a door that needs something the
+# tenant lacks skips, in the idiom of `test_asset_history.py`.
 _CLOSED_DOORS = [
     ("PATCH state → missing", "patch", "",
      {"state": "missing"}, 400, "validation_failed"),
@@ -936,9 +955,11 @@ _CLOSED_DOORS = [
     ("PATCH state → transferred", "patch", "",
      {"state": "transferred"}, 400, "validation_failed"),
     ("PATCH location_id", "patch", "",
-     {"location_id": _OTHER_LOCATION}, 400, "validation_failed"),
+     {"location_id": _OTHER_LOCATION}, 400, "validation_failed",
+     _APPROVAL_ANSWERS_FIRST),
     ("PATCH custodian_id", "patch", "",
-     {"custodian_id": _AN_EMPLOYEE}, 400, "validation_failed"),
+     {"custodian_id": _AN_EMPLOYEE}, 400, "validation_failed",
+     _APPROVAL_ANSWERS_FIRST),
     # The refusal is for the WHOLE request: `notes` is an allowed edit, and
     # it must not be written on the way to a 400.
     ("PATCH notes + state → missing", "patch", "",
@@ -958,7 +979,7 @@ _CLOSED_DOORS = [
      400, "validation_failed"),
     ("POST /transfer-custody", "post", "/transfer-custody",
      {"to_custodian_id": _AN_EMPLOYEE, "reason": "a disposed asset handed on"},
-     400, "validation_failed"),
+     400, "validation_failed", _APPROVAL_ANSWERS_FIRST),
     ("POST /mark-missing", "post", "/mark-missing",
      {"reason": "a disposed asset went missing"}, 409, "conflict"),
     ("POST /condemn", "post", "/condemn",
@@ -967,11 +988,9 @@ _CLOSED_DOORS = [
 
 
 @pytest.mark.parametrize(
-    "label,method,suffix,body,status,code", _CLOSED_DOORS,
-    ids=[door[0] for door in _CLOSED_DOORS])
+    "door", _CLOSED_DOORS, ids=[door[0] for door in _CLOSED_DOORS])
 def test_nothing_leaves_disposed_by_any_door(
-        client, test_location, any_location, capture,
-        label, method, suffix, body, status, code):
+        client, test_location, any_location, second_person, capture, door):
     """Disposed is TERMINAL — not missing, not moved, not handed to anybody.
 
     Until handoff 30 a disposed asset could be marked missing, which
@@ -987,7 +1006,21 @@ def test_nothing_leaves_disposed_by_any_door(
     RESPONSE rather than an exception would answer 400 and leave a `done`
     transfer behind for a move that never happened. A refusal raised in the
     model rolls the transaction back, and the document goes with it.
+
+    **Three of these doors answer with a different refusal on a tenant that
+    requires a second person** — see `_APPROVAL_ANSWERS_FIRST` above for
+    which, and for why that is a weaker sentence rather than an open door.
+    The half of this test that matters, the whole-record comparison, is
+    identical in both worlds.
     """
+    label, method, suffix, body, status, code = door[:6]
+    instead = door[6] if len(door) > 6 else None
+    expects_disposed_in_message = True
+    if instead and second_person.required:
+        status, code, expects_disposed_in_message = (
+            instead[0], instead[1], False)
+        must_say = instead[2]
+
     filled = dict(body)
     if _OTHER_LOCATION in filled.values():
         if any_location == test_location["id"]:
@@ -1010,8 +1043,17 @@ def test_nothing_leaves_disposed_by_any_door(
     if label == "POST /move":
         capture("assets/disposed_is_terminal", r)
     error = assert_envelope_err(r, status, code)["error"]
-    assert "disposed" in error["message"], (
-        "the refusal does not say WHY: %r" % error["message"])
+    if expects_disposed_in_message:
+        assert "disposed" in error["message"], (
+            "the refusal does not say WHY: %r" % error["message"])
+    else:
+        # It says WHY, truthfully, about a different rule. Pinned to the
+        # exact sentence so that this branch cannot quietly become "any 400
+        # will do" — which is what would let a real regression through.
+        assert must_say in error["message"], (
+            "%s was expected to be refused by the approval gate on this "
+            "tenant and said something else instead: %r"
+            % (label, error["message"]))
 
     after = _status_snapshot(client, asset["id"])
     assert after == before, (
@@ -1020,8 +1062,72 @@ def test_nothing_leaves_disposed_by_any_door(
            {k: (before[k], after[k]) for k in before if before[k] != after[k]}))
 
 
+def test_a_disposed_asset_cannot_be_handed_on_even_through_an_approval(
+        client, test_location, second_person):
+    """The far end of the door `_APPROVAL_ANSWERS_FIRST` describes.
+
+    `POST /transfer-custody` on a disposed asset, WITH an `approver_id`, is
+    not refused: it raises an approval request, 200, and the asset sits in
+    somebody's queue asking them to hand on a thing that has been disposed
+    of. What refuses is the approval — `_premise_check` sees `state ==
+    'disposed'` and answers 409 — so the rule holds, but it holds one person
+    and one round trip later than it should, and the refusal's wording
+    ("since this was raised") is wrong about when the disposal happened.
+
+    `POST /move` does not behave this way: handoff 28 put
+    `_assert_disposed_is_terminal` above everything on that route, so a
+    disposed asset cannot even be ASKED about. This test exists so that the
+    difference is written down and measured rather than discovered again,
+    and so that the half that does hold — **nothing reaches the asset** —
+    has a guard of its own.
+    """
+    if not second_person.required:
+        pytest.skip("this tenant does not require a second person, so there "
+                    "is no approval for a disposed asset to slip into")
+    employee = _an_employee(client)
+    if not employee:
+        pytest.skip("tenant has no employee to hand the asset to")
+
+    asset = _condemned(client, test_location, "pytest-events-terminal-approval")
+    before = _status_snapshot(client, asset["id"])
+
+    # Raised by the second person and decided by the suite, the way round
+    # `tests/conftest.py::second_person` explains: nobody may approve their
+    # own request, so the two halves cannot be the same credential.
+    raised = second_person.requester.post(
+        f"/api/v1/assets/{asset['id']}/transfer-custody",
+        json={"to_custodian_id": employee,
+              "approver_id": second_person.approver_id,
+              "reason": "a disposed asset handed on, through the queue"})
+    if raised.status_code != 200:
+        # The day somebody moves the terminal check above the approval gate
+        # on this route, as `/move` has it, this is the branch that runs —
+        # and the refusal must still name the reason.
+        error = assert_envelope_err(raised, 400)["error"]
+        assert "disposed" in error["message"]
+        assert _status_snapshot(client, asset["id"]) == before
+        return
+
+    data = assert_envelope_ok(raised)["data"]
+    assert data["pending_approval"] is True
+    assert data["asset"]["state"] == "disposed"
+    # Nothing was written to the ASSET by raising it, which is the property
+    # the append-only records depend on: a request is not a change.
+    assert _status_snapshot(client, asset["id"]) == before
+
+    decided = second_person.suite.post(
+        "/api/v1/approvals/%s/approve" % data["request"]["id"], json={})
+    error = assert_envelope_err(decided, 409, "conflict")["error"]
+    assert "disposed" in error["message"], (
+        "the approval was refused without saying the asset had been "
+        "disposed of: %r" % error["message"])
+    assert error["details"]["premise_broken_reason"]
+    assert _status_snapshot(client, asset["id"]) == before, (
+        "a disposed asset changed hands because somebody approved it")
+
+
 def test_a_refused_move_does_not_burn_a_transfer_reference(
-        client, test_location):
+        client, test_location, second_person):
     """A refusal happens before anything is written — a sequence included.
 
     `/move` draws its transfer reference from an `ir.sequence` and then
@@ -1044,20 +1150,24 @@ def test_a_refused_move_does_not_burn_a_transfer_reference(
     live = _new_asset(client, test_location, "pytest-events-seq-live")
     dead = _condemned(client, test_location, "pytest-events-seq-dead")
 
-    def number(response):
-        ref = assert_envelope_ok(response)["data"]["transfer"]["reference"]
-        return int(re.search(r"(\d+)\D*$", ref).group(1))
+    def number(reference):
+        return int(re.search(r"(\d+)\D*$", reference).group(1))
 
-    before = number(client.post(
-        f"/api/v1/assets/{live['id']}/move",
-        json={"to_location_id": elsewhere["id"], "reason": "there"}))
-    assert_envelope_err(client.post(
+    # Two REAL moves either side of the refused one. On a tenant that needs a
+    # second person that is a request and an approval each, and the sequence
+    # is drawn by `action_approve` instead of by the route — which is exactly
+    # why this is worth re-asserting rather than retiring: the number is now
+    # taken in a different place, and the property has to survive the move.
+    before = number(second_person.move(
+        live["id"], elsewhere["id"], reason="there")["transfer_reference"])
+    assert_envelope_err(second_person.requester.post(
         f"/api/v1/assets/{dead['id']}/move",
-        json={"to_location_id": elsewhere["id"], "reason": "refused"}),
+        json={"to_location_id": elsewhere["id"], "reason": "refused",
+              "approver_id": second_person.approver_id}),
         400, "validation_failed")
-    after = number(client.post(
-        f"/api/v1/assets/{live['id']}/move",
-        json={"to_location_id": test_location["id"], "reason": "and back"}))
+    after = number(second_person.move(
+        live["id"], test_location["id"],
+        reason="and back")["transfer_reference"])
     assert after == before + 1, (
         "the refused move consumed transfer reference(s) %s"
         % list(range(before + 1, after)))
