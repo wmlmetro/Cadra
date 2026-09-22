@@ -507,6 +507,26 @@ class TestSAPAssetEvents(CadraTransactionCase):
         self.assertEqual(change['disposal_date'], '2026-08-31')
         self.assertEqual(change['condition_at_disposal'], 'decommissioned')
 
+    def test_a_disposal_beside_a_warranty_field_is_announced_ONCE_per_asset(
+            self):
+        """Handoff 34's verification pass. A write naming a warranty field is
+        resolved one asset at a time, and the first draft did it by calling
+        `write` again — from the TOP of the chain, so this override ran once
+        for the set and once per asset, and SAP was told each asset had been
+        disposed of twice. Two assets, one write, one event each."""
+        one = self._asset(sap_asset_number='4000005571',
+                          sap_code_source='import')
+        two = self._asset(sap_asset_number='4000005572',
+                          sap_code_source='import', serial_number='SN-2')
+
+        (one | two).write({'state': 'disposed',
+                           'warranty_reference': 'WC-AT-DISPOSAL'})
+
+        self.assertEqual(len(self._events(one, EVENT_DISPOSED)), 1)
+        self.assertEqual(len(self._events(two, EVENT_DISPOSED)), 1)
+        self.assertEqual((one | two).mapped('warranty_reference'),
+                         ['WC-AT-DISPOSAL', 'WC-AT-DISPOSAL'])
+
     def test_a_scrapping_is_announced_to_sap_as_a_RETIREMENT(self):
         """The one key on this event whose VALUE changed in handoff 16.
 

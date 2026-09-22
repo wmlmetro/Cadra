@@ -137,6 +137,14 @@ _SAP_RECONCILIATION_STATES = ("not_tagged", "pending", "reconciled",
                               "exception")
 
 # The optional embeds the two single-asset routes accept on `include=`.
+# nrs.asset.warranty_status (handoff 34). Three and not two: `none` is the
+# honest third and it is almost every asset.
+_WARRANTY_STATUSES = ("under_warranty", "expired", "none")
+
+# The widest `?warranty_expires_within_days=` window. Ten years is past any
+# warranty a register holds; beyond it the question is not "soon".
+_WARRANTY_WINDOW_MAX_DAYS = 3650
+
 _INCLUDE_SECTIONS = ("transfers", "custody", "pm", "children")
 
 
@@ -458,6 +466,44 @@ def _serialize_disposal(a):
     }
 
 
+def _serialize_warranty(a):
+    """The warranty — the answer AND the working (handoff 34).
+
+    `warranty_expiry` alone is the answer; `warranty_start_date` and
+    `warranty_months` are the working, and `basis` says them in words so a
+    reader holding the certificate can check the one against the other. A
+    bare date with no basis says so rather than inventing one.
+
+    The keys are the WRITABLE names, deliberately, not shorter ones under a
+    `warranty.` prefix: a client that reads this block, edits it and sends
+    the keys back must not be refused for having used the name we published
+    (handoff 33 §B2, found the week before this was written).
+
+    `status` is judged against `status_as_of`, a LAGOS day, and moves with
+    the calendar with no write to the record. A warranty is a fact about a
+    contract: `status` is not the asset's condition, lifecycle or review
+    state, and nothing on this API counts it as any of them.
+    """
+    start, months = a.warranty_start_date, a.warranty_months
+    if start and months:
+        basis = "%d months from %s" % (months, start.isoformat())
+    elif a.warranty_expiry:
+        basis = ("Entered as an expiry date; no start date or duration "
+                 "was recorded")
+    else:
+        basis = None
+    return {
+        "status": a.warranty_status,
+        "status_as_of": snapshot_today().isoformat(),
+        "warranty_expiry": _date(a.warranty_expiry),
+        "warranty_start_date": _date(start),
+        "warranty_months": months or None,
+        "warrantor": a.warrantor or None,
+        "warranty_reference": a.warranty_reference or None,
+        "basis": basis,
+    }
+
+
 def _serialize_custody(c):
     """One link in the chain of custody.
 
@@ -593,6 +639,10 @@ def serialize_asset(a, *, include=()):
         # they were — this block adds the four that did not exist and the
         # flag on the date, so the whole disposal reads as one thing.
         "disposal": _serialize_disposal(a),
+        # Handoff 34. `dates.warranty_expiry` above stays exactly where it
+        # was; this block adds who honours it, the certificate, and the
+        # basis the date was worked out from.
+        "warranty": _serialize_warranty(a),
         # Where the asset came from. Grouped rather than flattened so the
         # commercial hand-off (INT-03) reads as one block: `grn_reference`
         # and `purchase_order_reference` are Vendra's and SAP's identifiers
@@ -814,6 +864,31 @@ def _list_domain(qs):
     is_verified = parse_bool("is_verified", qs.get("is_verified"))
     if is_verified is not None:
         domain.append(("is_verified", "=", is_verified))
+    # Warranty (handoff 34). The status is a non-stored compute whose search
+    # method applies the same three rules the compute does, on the same
+    # Lagos day, so a row this filter returns publishes the status it was
+    # filtered on. `"null"` is not absent: `none` is a value here, and a JS
+    # caller stringifying an unset one must not be read as asking for it.
+    warranty_status = parse_enum(
+        "warranty_status", qs.get("warranty_status"),
+        selection_values("nrs.asset", "warranty_status", _WARRANTY_STATUSES))
+    if warranty_status is not None:
+        domain.append(("warranty_status", "=", warranty_status))
+    # Expiring soon: an expiry from today to today + N, both inclusive —
+    # so it is never an EXPIRED warranty, and a window of 1 is today and
+    # tomorrow. Stricter than the id filters: `"null"` is a 400, not "no
+    # filter", for the `tag_label_state` reason.
+    within = parse_int("warranty_expires_within_days",
+                       qs.get("warranty_expires_within_days"),
+                       null_is_absent=False, minimum=1,
+                       maximum=_WARRANTY_WINDOW_MAX_DAYS)
+    if within is not None:
+        today = snapshot_today()
+        domain += [
+            ("warranty_expiry", ">=", today),
+            ("warranty_expiry", "<=",
+             today + datetime.timedelta(days=within)),
+        ]
     return domain
 
 
@@ -847,7 +922,14 @@ _WRITABLE_FIELDS = {
     "location_id",
     "custodian_id", "department",
     "condition", "state",
-    "currency_id", "purchase_date", "warranty_expiry",
+    "currency_id", "purchase_date",
+    # Warranty (handoff 34). All optional. A start date and a duration go
+    # together and derive `warranty_expiry`; an expiry sent beside them that
+    # contradicts them is a 400 `validation_failed` from the model, not an
+    # overwrite (`nrs.asset._resolve_warranty`). Every change is an
+    # append-only `warranty_changed` event.
+    "warranty_expiry", "warranty_start_date", "warranty_months",
+    "warrantor", "warranty_reference",
     "purchase_value", "replacement_cost",
     "acquisition_date", "acquisition_cost", "current_value",
     "disposal_date", "disposal_reason",
@@ -1056,6 +1138,29 @@ class CadraAssetsV1(http.Controller):
                                      "list — this filter asks what has not been "
                                      "physically checked, and the whole register "
                                      "is not an answer to that."},
+                     {"name": "warranty_status", "schema": {"type": "string",
+                      "enum": list(_WARRANTY_STATUSES)},
+                      "description": (
+                          "`under_warranty` — an expiry on or after today; "
+                          "`expired` — an expiry before today; `none` — no "
+                          "warranty recorded, which is the ordinary case and "
+                          "is never folded into `expired`. Today is a LAGOS "
+                          "day (UTC+1), and every row returned publishes the "
+                          "same `warranty.status`. This EXPIRES with the "
+                          "calendar, with no write to the record. A warranty "
+                          "is a fact about a contract and says nothing about "
+                          "whether the asset is in service. "
+                          + _ENUM_FILTER_400)},
+                     {"name": "warranty_expires_within_days",
+                      "schema": {"type": "integer", "minimum": 1,
+                                 "maximum": _WARRANTY_WINDOW_MAX_DAYS},
+                      "description": (
+                          "Expiring soon: a warranty expiry from today to "
+                          "today + N days, both inclusive and both LAGOS "
+                          "days — never one already expired. Combines with "
+                          "every other filter. Outside 1–%d, or not an "
+                          "integer (the literal `null` included), is a 400 "
+                          "`invalid_request`." % _WARRANTY_WINDOW_MAX_DAYS)},
                      {"name": "grn_reference", "schema": {"type": "string"},
                       "description": "Exact match. Returns every asset created "
                                      "from that goods receipt (INT-03)."},
@@ -1240,7 +1345,41 @@ class CadraAssetsV1(http.Controller):
                                             "transferred", "missing"]},
                          "currency_id": {"type": "integer", "nullable": True},
                          "purchase_date": {"type": "string", "format": "date", "nullable": True},
-                         "warranty_expiry": {"type": "string", "format": "date", "nullable": True},
+                         "warranty_expiry": {
+                             "type": "string", "format": "date", "nullable": True,
+                             "description": (
+                                 "The last day the warranty covers. DERIVED "
+                                 "when `warranty_start_date` and "
+                                 "`warranty_months` are both sent — leave it "
+                                 "out then; a value that contradicts them is "
+                                 "a 400 `validation_failed`. Send it alone "
+                                 "only when a date is all that is known.")},
+                         "warranty_start_date": {
+                             "type": "string", "format": "date", "nullable": True,
+                             "description": (
+                                 "The day the warranty runs from — usually "
+                                 "the day of receipt. Goes together with "
+                                 "`warranty_months`: one without the other "
+                                 "is a 400 `validation_failed`.")},
+                         "warranty_months": {
+                             "type": "integer", "minimum": 1, "maximum": 600,
+                             "nullable": True,
+                             "description": (
+                                 "How long the warranty runs, in whole "
+                                 "calendar months, as quoted (24 for two "
+                                 "years).")},
+                         "warrantor": {
+                             "type": "string", "nullable": True,
+                             "description": (
+                                 "WHO HONOURS the warranty — manufacturer, "
+                                 "supplier or service agent — as a name, "
+                                 "recorded as sent. Not a link to any "
+                                 "record.")},
+                         "warranty_reference": {
+                             "type": "string", "nullable": True,
+                             "description": (
+                                 "The warranty certificate or document "
+                                 "number, free text, as given.")},
                          "purchase_value": {"type": "number", "nullable": True},
                          "replacement_cost": {"type": "number", "nullable": True},
                          "acquisition_date": {"type": "string", "format": "date", "nullable": True},
@@ -1288,6 +1427,10 @@ class CadraAssetsV1(http.Controller):
                      "import_source": "other",
                      "import_date": "2026-05-12",
                      "import_ref": "VENDRA-RCPT-00114",
+                     "warranty_start_date": "2026-05-12",
+                     "warranty_months": 24,
+                     "warrantor": "Dell Nigeria Ltd",
+                     "warranty_reference": "DL-WC-55120",
                  })
     def create_asset(self, **kwargs):
         body = get_params()

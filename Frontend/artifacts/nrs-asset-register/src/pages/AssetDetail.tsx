@@ -15,6 +15,7 @@ import AssetStatusPills from "@/components/AssetStatusPills";
 import ConditionBadge from "@/components/ConditionBadge";
 import DepreciationCard from "@/components/DepreciationCard";
 import AssetHistoryTimeline from "@/components/AssetHistoryTimeline";
+import WarrantyCard from "@/components/WarrantyCard";
 import {
   ArrowLeft, Monitor, Car, Sofa, User, MapPin, Clock,
   AlertCircle, ChevronRight, Edit3, ShieldCheck, AlertTriangle, Trash2, ArrowRightLeft, Loader2, SearchCheck,
@@ -505,6 +506,11 @@ export default function AssetDetail() {
                   </dl>
                 </section>
               )}
+
+              {/* Its own section, below the dates and nowhere near the pills
+                  in the hero: a warranty is a contract, not the asset's
+                  health (handoff 34 §C). */}
+              <WarrantyCard asset={asset} />
 
               {(asset.maintenanceVendor || asset.pmCount || asset.requestCount) && (
                 <section>

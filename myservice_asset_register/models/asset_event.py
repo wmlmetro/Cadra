@@ -19,6 +19,7 @@ EVENT_VERIFIED = 'verified'
 EVENT_VERIFICATION_DATE_SET = 'verification_date_set'
 EVENT_STATUS_CHANGED = 'status_changed'
 EVENT_REFERENCE_CHANGED = 'reference_changed'
+EVENT_WARRANTY_CHANGED = 'warranty_changed'
 
 # The three fields whose change is an event. They are what an auditor
 # reconciles against Vendra and against SAP, they change rarely, and a change
@@ -30,6 +31,25 @@ EVENT_REFERENCE_CHANGED = 'reference_changed'
 # about location, after the fact.
 REFERENCE_FIELDS = (
     'grn_reference', 'purchase_order_reference', 'sap_asset_number')
+
+# The five fields of a warranty (handoff 34), and a change to any of them is
+# an event. A warranty is a contractual fact somebody could have an interest
+# in altering — lengthened after the laptop broke so the repair is somebody
+# else's bill, or shortened so a replacement can be justified — and the
+# person holding the broken asset needs the record to be the one that stood
+# on the day. They are NOT tracked in the chatter: this is their record, and
+# a chatter row beside it would be the same fact twice, one of them
+# deletable.
+#
+# What it costs is what every event costs, and it is small here. An event is
+# a CHANGE, so an asset created WITH a warranty — every INT-03 receipt that
+# carries one — writes none and is not pinned; only a later edit is. The
+# derived expiry is recorded when it moves, because it did move: a duration
+# corrected from 24 to 36 months is two rows, the duration and the date,
+# and a reader who asks only "when did the expiry change" finds it.
+WARRANTY_FIELDS = (
+    'warranty_start_date', 'warranty_months', 'warranty_expiry',
+    'warrantor', 'warranty_reference')
 
 # What each type may carry. `_record` refuses a key that does not belong to
 # the type, so a status change cannot arrive with verification notes and the
@@ -44,6 +64,17 @@ _PAYLOAD_OF_TYPE = {
     # from, and a column no writer can fill reads as a reason nobody gave.
     EVENT_REFERENCE_CHANGED: frozenset(
         {'field_name', 'from_value', 'to_value'}),
+    # No `reason`, for the reason above: a PATCH of a duration carries none.
+    EVENT_WARRANTY_CHANGED: frozenset(
+        {'field_name', 'from_value', 'to_value'}),
+}
+
+# Which fields each field-carrying type may name. A reference change naming a
+# warranty field, or the reverse, is refused rather than filed under the
+# wrong heading.
+_FIELDS_OF_TYPE = {
+    EVENT_REFERENCE_CHANGED: REFERENCE_FIELDS,
+    EVENT_WARRANTY_CHANGED: WARRANTY_FIELDS,
 }
 
 # The sources a CALLER may declare through the context. `test` says something
@@ -83,6 +114,9 @@ class NRSAssetEvent(models.Model):
       `disposed` is who carried the disposal out.
     - **`reference_changed`** — a change to one of `REFERENCE_FIELDS`, with
       the value before and the value after AS THEY READ AT THE TIME.
+    - **`warranty_changed`** — a change to one of `WARRANTY_FIELDS` (handoff
+      34), recorded the same way: a date as its ISO string, a duration as
+      its number of months, a name as it was typed.
 
     Written by `nrs.asset.write`, where every writer passes — not by any
     route.
@@ -118,6 +152,7 @@ class NRSAssetEvent(models.Model):
         (EVENT_VERIFICATION_DATE_SET, 'Verification date written'),
         (EVENT_STATUS_CHANGED, 'Status changed'),
         (EVENT_REFERENCE_CHANGED, 'Reference changed'),
+        (EVENT_WARRANTY_CHANGED, 'Warranty changed'),
     ], string='Event', required=True, index=True)
 
     occurred_at = fields.Datetime(
@@ -131,7 +166,7 @@ class NRSAssetEvent(models.Model):
 
     # ── the typed payload — see `_PAYLOAD_OF_TYPE` ────────────────────
     field_name = fields.Selection(
-        [(name, name) for name in REFERENCE_FIELDS],
+        [(name, name) for name in REFERENCE_FIELDS + WARRANTY_FIELDS],
         string='Field', index=True)
     # Chars, AS RECORDED. A status is stored by its key (`missing`), a
     # verification by the ISO date written, a reference verbatim — none of
@@ -167,7 +202,7 @@ class NRSAssetEvent(models.Model):
         return _(
             "An asset event cannot be created directly. One is written only "
             "as a side effect of the asset actually being verified, changing "
-            "status or having a reference changed, so that the record says "
+            "status or having a reference or its warranty changed, so that the record says "
             "what happened rather than what somebody typed."
         )
 
@@ -202,11 +237,13 @@ class NRSAssetEvent(models.Model):
             raise UserError(_(
                 "An asset event of type %(type)s cannot carry %(keys)s.",
                 type=event_type, keys=', '.join(sorted(stray))))
-        if event_type == EVENT_REFERENCE_CHANGED \
-                and payload.get('field_name') not in REFERENCE_FIELDS:
+        fields_of_type = _FIELDS_OF_TYPE.get(event_type)
+        if fields_of_type is not None \
+                and payload.get('field_name') not in fields_of_type:
             raise UserError(_(
-                "A reference change must name one of: %s")
-                % ', '.join(REFERENCE_FIELDS))
+                "An asset event of type %(type)s must name one of: "
+                "%(fields)s", type=event_type,
+                fields=', '.join(fields_of_type)))
         user = actor if actor is not None else self.env.user
         vals = {
             'asset_id': asset.id,

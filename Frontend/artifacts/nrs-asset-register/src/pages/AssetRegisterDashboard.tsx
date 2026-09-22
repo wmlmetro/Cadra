@@ -5,6 +5,11 @@ import { useLayoutCtx } from "@/components/layout/AppLayout";
 import NigeriaMap, { type MapPinData } from "@/components/NigeriaMap";
 import {
   fetchAssetRegisterCounts,
+  fetchWarrantyCounts,
+  WARRANTY_VIEWS,
+  WARRANTY_SOON_DAYS,
+  warrantySoonWindow,
+  type WarrantyFilter,
   fetchDashboardKpis,
   fetchDashboardMap,
   fetchBarcodeRecentTags,
@@ -17,7 +22,8 @@ import {
   RefreshCw, ScanBarcode, ShieldAlert, ShieldCheck, Trash2,
   Wrench, ListChecks, Plus,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatIsoDate } from "@/lib/utils";
+import { useEnumLabel } from "@/hooks/useEnums";
 import BrandPill from "@/components/BrandPill";
 
 // There were four filter tabs over the map — All / Active / Repair /
@@ -41,6 +47,17 @@ export default function AssetRegisterDashboard() {
     queryFn: fetchAssetRegisterCounts,
     staleTime: 60_000,
   });
+
+  // Separate from `counts` on purpose: those are statements about stock and
+  // this is not. Each figure is `warrantyToServerFilter` of its view, the same
+  // query the tile's link opens the register on.
+  const warranty = useQuery({
+    queryKey: ["asset-warranty-counts"],
+    queryFn: fetchWarrantyCounts,
+    staleTime: 60_000,
+  });
+  const warrantyStatusLabel = useEnumLabel("warranty_status");
+  const soon = warrantySoonWindow();
 
   const mapData = useQuery({
     queryKey: ["dashboard-map"],
@@ -79,11 +96,12 @@ export default function AssetRegisterDashboard() {
       }));
   }, [mapData.data]);
 
-  const err = (counts.error ?? mapData.error ?? recent.error) as CadraApiError | null;
+  const err = (counts.error ?? warranty.error ?? mapData.error ?? recent.error) as CadraApiError | null;
 
   const refreshAll = () => {
     return Promise.all([
       counts.refetch(),
+      warranty.refetch(),
       mapData.refetch(),
       recent.refetch(),
       kpis.refetch(),
@@ -164,6 +182,45 @@ export default function AssetRegisterDashboard() {
         <Kpi label="Missing"            value={c.missing}    icon={AlertTriangle} color="text-red-600 dark:text-red-400"       />
         <Kpi label="Condemned"          value={c.disposed}   icon={Trash2}        color="text-muted-foreground"                />
       </div>
+
+      {/* ─── Warranty ─────────────────────────────────────────────────────
+          A fact about a CONTRACT, not about the asset: none of these is part
+          of the stock figures above, and none is coloured like them — an
+          expired warranty on a working asset is not a finding. "No warranty
+          recorded" is shown, not hidden: it is almost every asset, and it is
+          the honest third answer rather than a kind of expired. Every tile
+          opens the register on exactly the query it counted. */}
+      <section className="bg-card border border-border rounded-2xl p-4 space-y-3" data-testid="warranty-tiles">
+        <div className="flex items-baseline justify-between gap-3 flex-wrap">
+          <h2 className="text-[13px] font-bold">Warranty</h2>
+          <p className="text-[10px] text-muted-foreground">
+            About the contract, not the asset — not counted in the stock figures above.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {WARRANTY_VIEWS.map((v: WarrantyFilter) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => nav(`/assets/list?warranty=${v}`)}
+              className="text-left bg-background border border-border/60 rounded-xl px-4 py-3 hover:border-primary/30 hover:shadow-sm transition-all"
+              data-testid={`warranty-tile-${v}`}
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                {v === "expiring" ? `Expiring within ${WARRANTY_SOON_DAYS} days` : warrantyStatusLabel(v)}
+              </p>
+              <p className="text-[22px] font-extrabold leading-tight tabular-nums text-foreground mt-1">
+                {warranty.data ? warranty.data[v].toLocaleString() : "—"}
+              </p>
+              {v === "expiring" && (
+                <p className="text-[10px] text-muted-foreground mt-0.5" data-testid="warranty-tile-window">
+                  {formatIsoDate(soon.from)} – {formatIsoDate(soon.to)} (Lagos dates)
+                </p>
+              )}
+            </button>
+          ))}
+        </div>
+      </section>
 
       {/* ─── Main grid: map + sidebar ───────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

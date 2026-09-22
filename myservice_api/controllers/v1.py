@@ -843,6 +843,62 @@ class MyserviceApiV1(http.Controller):
                             "tagging": {"$ref": "#/components/schemas/AssetTagging"},
                             "sap": {"$ref": "#/components/schemas/AssetSap"},
                             "disposal": {"$ref": "#/components/schemas/AssetDisposal"},
+                            "warranty": {"$ref": "#/components/schemas/AssetWarranty"},
+                        },
+                    },
+                    "AssetWarranty": {
+                        "type": "object",
+                        "description": (
+                            "The warranty (handoff 34, from 19.0.3.12.0) — "
+                            "the answer and the working. Always present; "
+                            "every value may be null. A warranty is a fact "
+                            "about a CONTRACT: `status` is not the asset's "
+                            "condition, lifecycle or review state and is "
+                            "counted as none of them. The keys are the "
+                            "writable names, so a client may send back what "
+                            "it read. `dates.warranty_expiry` publishes the "
+                            "same column it always has."),
+                        "properties": {
+                            "status": {
+                                "type": "string",
+                                "enum": ["under_warranty", "expired", "none"],
+                                "description": (
+                                    "`under_warranty` through the expiry "
+                                    "day itself, `expired` after it, `none` "
+                                    "where no expiry is recorded — the "
+                                    "ordinary case, never folded into "
+                                    "`expired`; a `warrantor` or "
+                                    "`warranty_reference` may still be. "
+                                    "Judged against `status_as_of`.")},
+                            "status_as_of": {
+                                "type": "string", "format": "date",
+                                "description": (
+                                    "The LAGOS day `status` was judged "
+                                    "against. It moves with the calendar "
+                                    "with no write to the record.")},
+                            "warranty_expiry": {"type": "string", "format": "date",
+                                                "nullable": True},
+                            "warranty_start_date": {"type": "string", "format": "date",
+                                                    "nullable": True},
+                            "warranty_months": {"type": "integer", "nullable": True},
+                            "warrantor": {
+                                "type": "string", "nullable": True,
+                                "description": "Who honours it, as a name "
+                                               "recorded at the time."},
+                            "warranty_reference": {
+                                "type": "string", "nullable": True,
+                                "description": "Certificate or document "
+                                               "number."},
+                            "basis": {
+                                "type": "string", "nullable": True,
+                                "description": (
+                                    "How the expiry was arrived at, in "
+                                    "words: `\"24 months from 2026-03-12\"` "
+                                    "when a start date and a duration are "
+                                    "recorded (the expiry is then derived "
+                                    "from them), a sentence saying it was "
+                                    "entered as a date when only a date is, "
+                                    "and null when there is no warranty.")},
                         },
                     },
                     "AssetProvenance": {

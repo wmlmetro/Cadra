@@ -73,6 +73,9 @@ export function invalidateAssetQueries(qc: QueryClient, assetId: string | undefi
   qc.invalidateQueries({ queryKey: ["asset-history", assetId] });
   qc.invalidateQueries({ queryKey: ["assets"] });
   qc.invalidateQueries({ queryKey: ["asset-register-counts"] });
+  // The warranty tiles (handoff 34). The edit form is what changes a
+  // warranty, and it lands the user back here through this same function.
+  qc.invalidateQueries({ queryKey: ["asset-warranty-counts"] });
   qc.invalidateQueries({ queryKey: ["it-assets-dashboard"] });
   qc.invalidateQueries({ queryKey: ["dashboard-kpis"] });
   qc.invalidateQueries({ queryKey: ["dashboard"] });

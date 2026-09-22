@@ -1,8 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
-import { fetchAssetsPage, fetchAllLocations, type AssetsPage } from "@/lib/dataProvider";
+import {
+  fetchAssetsPage, fetchAllLocations, type AssetsPage,
+  WARRANTY_VIEWS, WARRANTY_SOON_DAYS, parseWarrantyFilter, warrantySoonWindow,
+  type WarrantyFilter,
+} from "@/lib/dataProvider";
 import NigeriaMap, { type MapPinData } from "@/components/NigeriaMap";
 import { apiConfigured, CadraApiError } from "@/lib/api";
 import type { ApprovalStatus, Asset } from "@/types";
@@ -17,7 +21,7 @@ import {
   useReactTable, getCoreRowModel, getSortedRowModel,
   flexRender, type SortingState, type ColumnDef,
 } from "@tanstack/react-table";
-import { cn } from "@/lib/utils";
+import { cn, formatIsoDate } from "@/lib/utils";
 import { useEnum, useEnumLabel } from "@/hooks/useEnums";
 
 const CATEGORIES = ["IT Equipment", "Fleet / Vehicles", "Furniture & Fittings"] as const;
@@ -270,9 +274,12 @@ function ListView({ assets, onSelect }: { assets: Asset[]; onSelect: (id: string
 
 // Custom dropdown component replacing native <select>
 function FilterDropdown({
-  label, value, options, onChange, labelOf,
+  label, value, options, onChange, labelOf, allLabel,
 }: {
   label: string;
+  /** The no-filter entry. Defaults to "All <label>s", which reads wrongly for
+   *  a label that is not a countable noun ("All Warrantys"). */
+  allLabel?: string;
   value: string;
   options: readonly string[];
   onChange: (v: string) => void;
@@ -313,7 +320,7 @@ function FilterDropdown({
               className={cn("w-full text-left px-3 py-2 text-xs transition-colors hover:bg-accent", !value && "font-semibold text-foreground")}
               onClick={() => { onChange(""); setOpen(false); }}
             >
-              All {label}s
+              {allLabel ?? `All ${label}s`}
             </button>
             {options.filter(Boolean).map((o) => (
               <button
@@ -333,7 +340,8 @@ function FilterDropdown({
 
 export default function AssetRegister() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
-  const [, setNavLocation] = useLocation();
+  const [path, setNavLocation] = useLocation();
+  const searchStr = useSearch();
 
   const [view, setView] = useState<"kanban" | "list" | "map">("kanban");
   const [search, setSearch] = useState("");
@@ -359,6 +367,21 @@ export default function AssetRegister() {
   // included.
   const conditionOptions = useEnum("condition");
   const conditionLabelOf = useEnumLabel("condition");
+  // The warranty view lives in the URL (`?warranty=expiring`), not in state:
+  // the dashboard's warranty tiles link here with it, and the number on a
+  // tile is only honest if clicking it opens exactly the query it counted.
+  // Anything that is not one of the four views reads as no filter.
+  const filterWarranty = parseWarrantyFilter(new URLSearchParams(searchStr).get("warranty"));
+  const setFilterWarranty = (v: string) => {
+    const qs = new URLSearchParams(searchStr);
+    if (v) qs.set("warranty", v); else qs.delete("warranty");
+    const q = qs.toString();
+    setNavLocation(`${path}${q ? `?${q}` : ""}`, { replace: true });
+  };
+  const warrantyStatusLabel = useEnumLabel("warranty_status");
+  const warrantyLabelOf = (v: string) =>
+    v === "expiring" ? `Expiring within ${WARRANTY_SOON_DAYS} days` : warrantyStatusLabel(v);
+  const soonWindow = filterWarranty === "expiring" ? warrantySoonWindow() : null;
 
   useEffect(() => {
     setTitle("Asset Register");
@@ -401,11 +424,14 @@ export default function AssetRegister() {
     // the held cursor into the opposite walk and 400 the page.
     // `filterStatus` is in the key for the same reason: it changes what the
     // server is asked, so it must start a fresh walk from page one.
-    queryKey: ["assets", { search, filterCondition, filterStatus, sortOrder }],
+    // `filterWarranty` likewise: it is a server filter (`warrantyToServerFilter`),
+    // exact on the server, with no narrowing after the fetch.
+    queryKey: ["assets", { search, filterCondition, filterStatus, filterWarranty, sortOrder }],
     queryFn: ({ pageParam }) => fetchAssetsPage(pageParam as string | undefined, {
       search: search || undefined,
       condition: filterCondition || undefined,
       status: filterStatus || undefined,
+      warranty: (filterWarranty || undefined) as WarrantyFilter | undefined,
       sort: sortOrder,
     }),
     initialPageParam: undefined as string | undefined,
@@ -458,10 +484,11 @@ export default function AssetRegister() {
     return Array.from(byCoord.values());
   }, [mapLocations]);
 
-  const hasFilters = !!(search || filterCategory || filterStatus || filterCondition);
+  const hasFilters = !!(search || filterCategory || filterStatus || filterCondition || filterWarranty);
 
   const clearFilters = () => {
     setSearch(""); setFilterCategory(""); setFilterStatus(""); setFilterCondition("");
+    if (filterWarranty) setFilterWarranty("");
   };
 
   const handleSelect = (id: string) => setNavLocation(`/assets/${id}`);
@@ -525,6 +552,14 @@ export default function AssetRegister() {
                         options={conditionOptions.map((o) => o.value)}
                         labelOf={conditionLabelOf}
                         onChange={setFilterCondition} />
+        {/* A contract, not a condition: this filter narrows the register by
+            what is recorded about a warranty and says nothing about whether
+            the asset is in service. */}
+        <FilterDropdown label="Warranty" value={filterWarranty}
+                        allLabel="Any warranty"
+                        options={WARRANTY_VIEWS}
+                        labelOf={warrantyLabelOf}
+                        onChange={setFilterWarranty} />
 
         <button
           onClick={() => setSortOrder(sortOrder === "newest" ? "oldest" : "newest")}
@@ -574,10 +609,10 @@ export default function AssetRegister() {
       </div>
 
       {/* Count bar */}
-      <div className="px-5 py-2 border-b border-border/50 bg-background/60 flex items-center gap-3">
+      <div className="px-5 py-2 border-b border-border/50 bg-background/60 flex flex-wrap items-center gap-3">
         <p className="text-xs text-muted-foreground">
           <span className="font-bold text-foreground tabular-nums">{assets.length.toLocaleString()}</span> of{" "}
-          <span className="font-bold text-foreground tabular-nums">{totalEstimate.toLocaleString()}</span> assets
+          <span className="font-bold text-foreground tabular-nums" data-testid="register-total">{totalEstimate.toLocaleString()}</span> assets
           {hasFilters && <span className="ml-1 text-primary/80">(filtered)</span>}
         </p>
         {hasFilters && (
@@ -585,7 +620,19 @@ export default function AssetRegister() {
             {filterCategory && <FilterTag label={filterCategory} onRemove={() => setFilterCategory("")} />}
             {filterStatus && <FilterTag label={filterStatus} onRemove={() => setFilterStatus("")} />}
             {filterCondition && <FilterTag label={conditionLabelOf(filterCondition)} onRemove={() => setFilterCondition("")} />}
+            {filterWarranty && <FilterTag label={`Warranty: ${warrantyLabelOf(filterWarranty)}`} onRemove={() => setFilterWarranty("")} />}
           </div>
+        )}
+        {/* The window is NAMED, not implied. "Expiring soon" means nothing a
+            person can check; two dates do. Lagos dates, because that is the
+            day the server judged against — a UTC date is a day behind for an
+            hour every night. */}
+        {soonWindow && (
+          <p className="text-[11px] text-muted-foreground" data-testid="warranty-window">
+            Warranty expires within {WARRANTY_SOON_DAYS} days — between{" "}
+            <span className="font-semibold text-foreground">{formatIsoDate(soonWindow.from)}</span> and{" "}
+            <span className="font-semibold text-foreground">{formatIsoDate(soonWindow.to)}</span> (Lagos dates)
+          </p>
         )}
       </div>
 

@@ -29,6 +29,7 @@ import {
 import { mockIdentityRecords } from "../mock/identity";
 import { apiConfigured, apiGet, apiPost, apiPatch, apiDelete, apiUpload, newIdempotencyKey } from "./api";
 import { ENUM_SEED } from "./enums";
+import { lagosToday, addDaysIso } from "./utils";
 import {
   apiEmployeeToEmployee, type ApiEmployee,
   apiAssetToAsset, type ApiAsset,
@@ -57,6 +58,9 @@ export interface AssetFilters {
    *  records the direction in the cursor and refuses one replayed against
    *  the other, so changing it has to restart the walk from page one. */
   sort?: "newest" | "oldest";
+  /** A warranty view — see `warrantyToServerFilter`, the one place it becomes
+   *  a server query. */
+  warranty?: WarrantyFilter;
 }
 export function listAssets(f?: AssetFilters): Asset[] {
   let r = allMockAssets;
@@ -64,6 +68,9 @@ export function listAssets(f?: AssetFilters): Asset[] {
   if (f?.status) r = r.filter((a) => a.status === f.status);
   if (f?.condition) r = r.filter((a) => a.condition === f.condition);
   if (f?.zone) r = r.filter((a) => a.location.zone === f.zone);
+  // Mock rows carry no warranty block, so every view but the server's is
+  // empty here — including `expiring`, which only the server can judge.
+  if (f?.warranty) r = r.filter((a) => a.warranty?.status === f.warranty);
   if (f?.search) {
     const q = f.search.toLowerCase();
     r = r.filter(
@@ -128,6 +135,61 @@ export function statusToServerFilter(status: string | undefined): Record<string,
   }
 }
 
+/**
+ * How far ahead "expiring soon" looks, in days. Named because the screen must
+ * NAME the window rather than imply it: every place that says "expiring soon"
+ * prints this number and the two Lagos dates it spans.
+ */
+export const WARRANTY_SOON_DAYS = 90;
+
+/** The dates `expiring` spans, as Lagos calendar dates, both inclusive —
+ *  the server's `warranty_expires_within_days` window, for printing beside
+ *  anything that says "expiring soon". */
+export function warrantySoonWindow(): { from: string; to: string } {
+  const from = lagosToday();
+  return { from, to: addDaysIso(from, WARRANTY_SOON_DAYS) };
+}
+
+/** The register's warranty views: the server's three verdicts, plus
+ *  `expiring` — under warranty, with the expiry inside `WARRANTY_SOON_DAYS`. */
+export type WarrantyFilter = "under_warranty" | "expired" | "none" | "expiring";
+
+/** The views in the order a person reads them: covered, about to lapse,
+ *  lapsed, and — the ordinary case — nothing recorded. */
+export const WARRANTY_VIEWS: readonly WarrantyFilter[] = ["under_warranty", "expiring", "expired", "none"];
+
+/** A `?warranty=` value, or "" for anything that is not one of the views. */
+export function parseWarrantyFilter(v: string | null | undefined): WarrantyFilter | "" {
+  return (WARRANTY_VIEWS as readonly string[]).includes(v ?? "") ? (v as WarrantyFilter) : "";
+}
+
+/**
+ * A warranty view as the query the server can answer — the ONE place the two
+ * are tied together, as `statusToServerFilter` is for status. The register's
+ * Warranty filter and the dashboard's warranty tiles both go through here, so
+ * a tile's number is the count of exactly the rows clicking it shows: a count
+ * that is not its filter is this repository's most repeated defect.
+ *
+ * All four are exact on the server — `warranty_status` and
+ * `warranty_expires_within_days` are native filters, the latter judged
+ * against the Lagos date (from today to today + N inclusive, so nothing
+ * already expired) — and there is no client-side narrowing after the fetch.
+ *
+ * Nothing here touches `state`. A warranty is a fact about a contract, not
+ * about whether the asset is in service: an expired one is not a condition,
+ * a lifecycle state or a review finding, and these views include disposed
+ * and missing assets exactly as the register does.
+ */
+export function warrantyToServerFilter(w: WarrantyFilter | "" | undefined): Record<string, unknown> {
+  switch (w) {
+    case "under_warranty": return { warranty_status: "under_warranty" };
+    case "expired":        return { warranty_status: "expired" };
+    case "none":           return { warranty_status: "none" };
+    case "expiring":       return { warranty_expires_within_days: WARRANTY_SOON_DAYS };
+    default:               return {};
+  }
+}
+
 export interface AssetsPage {
   assets: Asset[];
   nextCursor: string | null;
@@ -146,6 +208,7 @@ export async function fetchAssetsPage(
     q: f?.search,
     condition: f?.condition || undefined,
     ...statusToServerFilter(f?.status),
+    ...warrantyToServerFilter(f?.warranty),
     // Newest-first unless the caller says otherwise. The API's own default
     // is `oldest` and stays that way for every other consumer — this is the
     // register UI choosing its order, not the contract changing under
@@ -173,6 +236,9 @@ export async function fetchAssetsPage(
       q: f?.search,
       condition: f?.condition || undefined,
       ...server,
+      // The overlap is taken over the SAME query as the total it is taken
+      // from, warranty view included, or the subtraction mixes two sets.
+      ...warrantyToServerFilter(f?.warranty),
       sap_reconciliation_state: "exception",
     });
     totalEstimate = Math.max(0, totalEstimate - overlap);
@@ -304,7 +370,15 @@ export interface AssetWriteBody {
   state?: string;
   currency_id?: number | null;
   purchase_date?: string | null;
+  // Handoff 34. `warranty_expiry` is written ONLY when there is no duration:
+  // with `warranty_months` + `warranty_start_date` the server derives it, and
+  // refuses one sent that disagrees — so the form leaves it out entirely.
+  // Months and start date travel together; one without the other is refused.
   warranty_expiry?: string | null;
+  warranty_months?: number | null;
+  warranty_start_date?: string | null;
+  warrantor?: string | null;
+  warranty_reference?: string | null;
   purchase_value?: number | null;
   replacement_cost?: number | null;
   acquisition_date?: string | null;
@@ -359,6 +433,27 @@ async function countAssets(params: Record<string, unknown>): Promise<number> {
   if (!apiConfigured) return 0;
   const res = await apiGet<ApiAsset[]>("/api/v1/assets", { ...params, limit: 1 });
   return res.pagination?.total_estimate ?? 0;
+}
+
+/** One count per warranty view, keyed by the view. */
+export type WarrantyCounts = Record<WarrantyFilter, number>;
+
+/**
+ * The dashboard's warranty tiles. Each count is `warrantyToServerFilter` of
+ * its view and nothing else, which is also exactly what the tile's link opens
+ * the register on — so the number on the tile and the rows behind it are one
+ * query asked twice.
+ *
+ * Deliberately NOT part of `fetchAssetRegisterCounts`: those are statements
+ * about stock, and a warranty is not one.
+ */
+export async function fetchWarrantyCounts(): Promise<WarrantyCounts> {
+  const views = WARRANTY_VIEWS;
+  if (!apiConfigured) {
+    return Object.fromEntries(views.map(v => [v, 0])) as WarrantyCounts;
+  }
+  const counts = await Promise.all(views.map(v => countAssets(warrantyToServerFilter(v))));
+  return Object.fromEntries(views.map((v, i) => [v, counts[i]])) as WarrantyCounts;
 }
 
 export interface AssetRegisterCounts {

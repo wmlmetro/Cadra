@@ -316,7 +316,9 @@ Scope: `assets:read`. Success: **200**.
 Filters: `q`, `category_id`, `location_id`, `building_id`, `custodian_id`,
 `state`, `condition`, `domain`, `is_verified`, `grn_reference`,
 `purchase_order_reference`, `purchase_vendor`, `import_source`,
-`import_ref`, `limit` (default 50, max 200), `cursor`.
+`import_ref`, `warranty_status`, `warranty_expires_within_days`,
+`limit` (default 50, max 200), `cursor`. The two warranty filters are
+described under **Warranty** in §3.4.
 
 `condition` is one of `new | good | fair | poor | decommissioned`.
 `state` is one of `active | in_repair | disposed | transferred | missing`.
@@ -584,6 +586,81 @@ acurl -X POST $API/api/v1/assets \
 They are correctable via `PATCH` but write-once in practice: they record an
 event that already happened. Read them back with
 `GET /api/v1/assets?grn_reference=GRN-2026-00001`.
+
+### Warranty — from 19.0.3.12.0 (handoff 34)
+
+Optional, and absent on almost every asset: an asset with no warranty is
+the ordinary case, not a gap. Five writable fields on `POST` and `PATCH`,
+published back under `data.warranty` **under the same names**:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `warranty_months` | integer 1–600 | How long it runs, as quoted — `24` for two years |
+| `warranty_start_date` | date | The day it runs from — usually the day of receipt |
+| `warranty_expiry` | date | The last day it covers. **Derived** when the two above are sent |
+| `warrantor` | string | **Who honours it** — manufacturer, supplier or agent — a name as recorded, not a link |
+| `warranty_reference` | string | The certificate or document number to quote |
+
+**Send a duration and a start date; do not send the expiry.** With both,
+Cadra works the expiry out (calendar months; 24 months from 12 March 2026 is
+12 March 2028). Rules, each a `400 validation_failed` with nothing written:
+
+- `warranty_months` without `warranty_start_date`, or the reverse — half a basis;
+- a `warranty_months` that is not a whole number from 1 to 600;
+- a `warranty_expiry` that contradicts the start date and duration sent or
+  already on the asset. The same date is accepted.
+
+A bare `warranty_expiry` with no start or duration is accepted, for whoever
+holds only a date, and `basis` says so. Adding a start and a duration to such
+an asset replaces that date with the derived one (the old date stays in the
+history). Clearing the start and the duration clears an expiry that was
+derived from them.
+
+The block can be sent back **unchanged**. Change the duration or the start
+and leave `warranty_expiry` out: the date you read is the answer to the old
+basis and now contradicts the new one.
+
+```bash
+acurl -X POST $API/api/v1/assets -H 'Content-Type: application/json' \
+  -d '{"name": "Dell Latitude 7430", "category_id": 7,
+       "warranty_start_date": "2026-05-12", "warranty_months": 24,
+       "warrantor": "Dell Nigeria Ltd", "warranty_reference": "DL-WC-55120"}'
+```
+
+```json
+"warranty": {
+  "status": "under_warranty",
+  "status_as_of": "2026-09-22",
+  "warranty_expiry": "2028-05-12",
+  "warranty_start_date": "2026-05-12",
+  "warranty_months": 24,
+  "warrantor": "Dell Nigeria Ltd",
+  "warranty_reference": "DL-WC-55120",
+  "basis": "24 months from 2026-05-12"
+}
+```
+
+`status` is `under_warranty` through the expiry day itself, `expired`
+after it, and `none` where no expiry is recorded — **never folded into
+`expired`** (a warrantor or a certificate number may still be). It is judged against `status_as_of`, a **Lagos** day (UTC+1),
+and moves with the calendar with no write to the record. `basis` is how the
+expiry was reached, in words. `dates.warranty_expiry` still publishes the
+same column.
+
+**A warranty says nothing about whether the asset is in service.** It is
+not a condition, a lifecycle state or a review status, and no count on this
+API treats it as one.
+
+**Filters on `GET /api/v1/assets`:**
+`?warranty_status=under_warranty|expired|none` — every row returned
+publishes the same `warranty.status`; and
+`?warranty_expires_within_days=N` (1–3650) — an expiry from today to
+today + N, both inclusive and both Lagos days, so never an expired one. A
+value outside those is `400 invalid_request`, never the whole register.
+
+**Every change is recorded** as an append-only `warranty_changed` event in
+`GET /assets/<id>/history`, with the value before and after. Creating an
+asset with a warranty records none — an event is a change.
 
 ### Error — `400 invalid_request` (missing required field)
 

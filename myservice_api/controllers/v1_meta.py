@@ -84,6 +84,10 @@ _PUBLISHED_ENUMS = (
     # published here.
     ("asset_state",   "nrs.asset",         "state",
      ("active", "in_repair", "disposed", "transferred", "missing")),
+    # Handoff 34. Non-stored and computed against a Lagos day, but a
+    # Selection like the rest: the register's warranty filter offers these.
+    ("warranty_status", "nrs.asset",       "warranty_status",
+     ("under_warranty", "expired", "none")),
     ("fuel_type",     "fleet.vehicle",     "fuel_type",
      ("diesel", "gasoline", "full_hybrid", "plug_in_hybrid_diesel",
       "plug_in_hybrid_gasoline", "cng", "lpg", "hydrogen", "electric")),

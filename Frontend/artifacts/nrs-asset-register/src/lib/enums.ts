@@ -145,6 +145,22 @@ export const ENUM_SEED = {
     { value: "hydrogen", label: "Hydrogen" },
     { value: "electric", label: "Electric" },
   ],
+
+  /**
+   * `warranty.status` on every asset (handoff 34) — a verdict the SERVER
+   * reaches from the expiry and the Lagos date, published under this name by
+   * `/meta/enums`. It is not a column anybody writes; it is here so the
+   * register's filter and the asset page label it in the server's words.
+   *
+   * THREE values, and `none` is the ordinary one: almost every asset has no
+   * warranty recorded, and folding that into `expired` would be the register
+   * asserting something it does not know.
+   */
+  warranty_status: [
+    { value: "under_warranty", label: "Under warranty" },
+    { value: "expired", label: "Expired" },
+    { value: "none", label: "No warranty recorded" },
+  ],
 } satisfies Record<string, EnumOption[]>;
 
 export type EnumName = keyof typeof ENUM_SEED;

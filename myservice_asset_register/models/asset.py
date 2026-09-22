@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+from dateutil.relativedelta import relativedelta
+
 from odoo import models, fields, api, release, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools import config
@@ -9,7 +11,7 @@ from .asset_movement import MOVEMENT_REASON_KEY
 from .asset_event import (
     EVENT_REASON_KEY, EVENT_SOURCE_KEY, EVENT_REFERENCE_CHANGED,
     EVENT_STATUS_CHANGED, EVENT_VERIFICATION_DATE_SET, EVENT_VERIFIED,
-    REFERENCE_FIELDS)
+    EVENT_WARRANTY_CHANGED, REFERENCE_FIELDS, WARRANTY_FIELDS)
 
 # The status nothing leaves. See `NRSAsset._assert_disposed_is_terminal`.
 STATE_DISPOSED = 'disposed'
@@ -18,6 +20,32 @@ STATE_DISPOSED = 'disposed'
 # `action_verify` and the route that calls it. Under any other source somebody
 # wrote a verification DATE, and the record does not say who checked anything.
 _VERIFIER_SOURCES = ('action', 'api_verify')
+
+
+# The longest warranty the register will take, in months. Fifty years is past
+# anything a manufacturer quotes; a figure above it is a typo — a year typed
+# into the months box — and refusing it is kinder than an expiry in 2226.
+WARRANTY_MAX_MONTHS = 600
+
+def warranty_expiry_of(start, months):
+    """The day a warranty of `months` from `start` expires.
+
+    Calendar months, clamped to the end of a short month: 24 months from 29
+    February 2024 is 28 February 2026. The expiry day itself is still inside
+    the warranty — *"expires 12 March 2028"* is read by everybody who says it
+    as covered on the 12th.
+    """
+    return start + relativedelta(months=months)
+
+
+def _event_value(value):
+    """A warranty field's value as the event records it: a date as its ISO
+    string, a duration as its number, a name as typed, nothing as nothing."""
+    if not value:
+        return False
+    if hasattr(value, 'isoformat'):
+        return value.isoformat()
+    return str(value)
 
 
 def _m2o_id(value):
@@ -147,7 +175,71 @@ class NRSAsset(models.Model):
         'res.currency', string='Currency',
         default=lambda self: self.env.ref('base.NGN', raise_if_not_found=False))
     purchase_date = fields.Date(string='Purchase Date')
-    warranty_expiry = fields.Date(string='Warranty Expiry')
+
+    # ── Warranty (handoff 34) ─────────────────────────────────
+    # A fact about a CONTRACT, not about the asset. An expired warranty is
+    # not a condition, not a lifecycle state and not a review status, and
+    # nothing here feeds a pill, a filter default or any count read as
+    # working stock — the register has twice been bitten by exactly that
+    # confusion (*Good · Cleared* on a disposed asset; 282 assets no filter
+    # could reach).
+    #
+    # Everything is optional. Most assets have no warranty and never will,
+    # and an asset without one is the ordinary case, not a gap.
+    #
+    # `warranty_expiry` keeps its name, its type and its published key. It
+    # existed before this handoff with a form input and a published key,
+    # and no value had ever reached it (0 of 1,335 on `cadra19`, 0 of 4,164
+    # on `jaizbankplc`).
+    #
+    # THE ANSWER AND THE WORKING. When a start date and a duration are both
+    # recorded, the expiry is DERIVED from them in `_resolve_warranty` and a
+    # contradicting date is refused — *"24 months from 12 March 2026"* can be
+    # checked against the certificate; a bare *"expires 12 March 2028"*
+    # cannot. An expiry with no basis stays accepted, because somebody
+    # holding only a date should be able to record it; the API then says it
+    # was entered as a date.
+    #
+    # NOT tracked in the chatter: a change to any of the five is an
+    # append-only `nrs.asset.event` (`warranty_changed`), which is their
+    # record. Tracking them as well would add them to the register
+    # snapshot's roll-back contract, which warranty is not part of.
+    warranty_expiry = fields.Date(
+        string='Warranty Expiry',
+        help='The last day the warranty covers. Derived from the start date '
+             'and the duration when both are recorded.')
+    warranty_start_date = fields.Date(
+        string='Warranty Start',
+        help='The day the warranty runs from — usually the day the asset '
+             'was received.')
+    warranty_months = fields.Integer(
+        string='Warranty Duration (months)',
+        help='How long the warranty runs, as quoted: 24 for two years.')
+    # A NAME as recorded, and not a link to a partner record. Cadra holds no
+    # vendor record for an asset arriving from Vendra, and the custody
+    # chain's rule is the precedent: the name as it stood when the record
+    # was made, so a partner deleted or renamed later cannot empty the row.
+    warrantor = fields.Char(
+        string='Warranty Honoured By',
+        help='Who honours the warranty — the manufacturer, the supplier or '
+             'a service agent — as named on the certificate.')
+    warranty_reference = fields.Char(
+        string='Warranty Certificate / Reference',
+        help='The certificate or document number to quote when claiming.')
+    # Three states and not two: `none` is the honest third — nothing has
+    # been recorded — and it is almost every asset on every register.
+    # Folding it into `expired` would be the system asserting a lapsed
+    # contract it has never seen. Written inline because
+    # `tests/test_frontend_enums.py` reads a published Selection statically.
+    warranty_status = fields.Selection([
+        ('under_warranty', 'Under warranty'),
+        ('expired',        'Expired'),
+        ('none',           'No warranty recorded'),
+    ], string='Warranty',
+        compute='_compute_warranty_status',
+        search='_search_warranty_status',
+        help='Judged against today in Lagos. Not stored: it moves with the '
+             'calendar, and a stored column would need a job to push it.')
     purchase_value = fields.Monetary(string='Purchase Value (₦)', currency_field='currency_id')
     replacement_cost = fields.Monetary(string='Replacement Cost (₦)', currency_field='currency_id')
     acquisition_date = fields.Date('Acquisition Date')
@@ -295,6 +387,8 @@ class NRSAsset(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        vals_list = [self.browse()._resolve_warranty(vals)
+                     for vals in vals_list]
         for vals in vals_list:
             if not vals.get('asset_code'):
                 code = self.env['ir.sequence'].next_by_code('nrs.asset')
@@ -366,8 +460,34 @@ class NRSAsset(models.Model):
         # recorders below are: the date has more than one writer.
         if 'last_verified_date' in vals and 'last_verified_by' not in vals:
             vals = dict(vals, last_verified_by=False)
+        # A warranty's expiry is resolved against the record's OWN start and
+        # duration, so a write naming them is resolved one record at a time:
+        # "36 months" on two assets with different start dates is two
+        # different expiries, and one `vals` cannot say both.
+        #
+        # Per record through `_write_recorded`, NOT by calling `write` again.
+        # The first draft re-entered `record.write(vals)`, which starts again
+        # at the TOP of the chain — so every override above this one ran
+        # once for the set and once per record. `myservice_workflow`'s SAP
+        # lifecycle events read the state before, call super and queue after,
+        # with no dedup: a disposal written to two assets with a warranty
+        # field beside it would have told SAP each asset was disposed twice
+        # (found by the verification pass; no caller did it yet).
+        if set(WARRANTY_FIELDS) & set(vals) and self:
+            if len(self) > 1:
+                for record in self:
+                    record._write_recorded(record._resolve_warranty(vals))
+                return True
+            vals = self._resolve_warranty(vals)
+        return self._write_recorded(vals)
+
+    def _write_recorded(self, vals):
+        """The write itself, with its guard and its recorders — everything
+        in `write` after the values are settled. Separate only so a warranty
+        resolved per record can be written per record without re-entering
+        the overrides above `write`; nothing else should call it."""
         # BEFORE anything is written, and here rather than in a route for the
-        # reason everything else in this method is here.
+        # reason everything else in `write` is here.
         self._assert_disposed_is_terminal(vals)
         track_custody = 'custodian_id' in vals
         track_location = 'location_id' in vals
@@ -381,8 +501,10 @@ class NRSAsset(models.Model):
         track_status = 'state' in vals
         track_verified = 'last_verified_date' in vals
         track_refs = [f for f in REFERENCE_FIELDS if f in vals]
+        # After `_resolve_warranty`, so a derived expiry is watched too.
+        track_warranty = [f for f in WARRANTY_FIELDS if f in vals]
         if not (track_custody or track_location or track_status
-                or track_verified or track_refs):
+                or track_verified or track_refs or track_warranty):
             return super().write(vals)
         held = {r.id: r.custodian_id for r in self} if track_custody else {}
         placed = {r.id: r.location_id for r in self} if track_location else {}
@@ -390,6 +512,8 @@ class NRSAsset(models.Model):
         checked = ({r.id: (r.last_verified_date, r.last_verified_by.id)
                     for r in self} if track_verified else {})
         refs = {r.id: {f: r[f] for f in track_refs} for r in self}
+        warranty = {r.id: {f: _event_value(r[f]) for f in track_warranty}
+                    for r in self}
         result = super().write(vals)
         for record in self:
             if track_custody:
@@ -421,7 +545,161 @@ class NRSAsset(models.Model):
                     record._record_event(
                         EVENT_REFERENCE_CHANGED, field_name=name,
                         from_value=was, to_value=now)
+            for name in track_warranty:
+                was = warranty[record.id][name]
+                now = _event_value(record[name])
+                if was != now:
+                    record._record_event(
+                        EVENT_WARRANTY_CHANGED, field_name=name,
+                        from_value=was, to_value=now)
         return result
+
+    def _resolve_warranty(self, vals):
+        """`vals` with the warranty made consistent, or a refusal.
+
+        Called on an EMPTY recordset from `create` and on ONE record from
+        `write`, so "the value now" is the one in `vals` if it names it and
+        the record's otherwise. Four rules, and a refusal happens before
+        anything is written:
+
+        1. **A duration and a start date go together.** Either alone is half
+           a basis: *"24 months"* from when? The storekeeper who knows the
+           duration knows the day the asset arrived.
+        2. **A duration is a whole number of months, 1 to
+           `WARRANTY_MAX_MONTHS`.**
+        3. **With both, the expiry is derived** — and an expiry SENT beside
+           them that says anything else is refused, not overwritten. Two
+           statements of the same fact that disagree is a question for
+           whoever sent them; silently keeping one is this programme's
+           oldest defect. Sending the same date is accepted: a form that
+           re-sends what it displayed is not contradicting anything.
+        4. **An expiry derived from a basis goes with it.** Clearing the
+           start and the duration in a write that does not name the expiry
+           clears the expiry too, rather than leaving a date that now reads
+           as *entered as a date* when nobody entered it.
+        """
+        if not set(WARRANTY_FIELDS) & set(vals):
+            return vals
+
+        def current(name):
+            if name in vals:
+                return vals[name] or False
+            return self[name] if self else False
+
+        start = current('warranty_start_date')
+        start = fields.Date.to_date(start) if start else False
+        months = current('warranty_months')
+        months = (self._warranty_months_of(months)
+                  if months not in (False, None) else False)
+        if months is not False and not 1 <= months <= WARRANTY_MAX_MONTHS:
+            raise ValidationError(_(
+                "A warranty duration must be between 1 and %(max)s months; "
+                "%(months)s was sent.", max=WARRANTY_MAX_MONTHS,
+                months=months))
+        if bool(start) != bool(months):
+            raise ValidationError(_(
+                "A warranty's duration and its start date go together: "
+                "\"%(months)s months\" needs the day it runs from, and a "
+                "start date needs how long it runs. Send both, or neither.",
+                months=months or '…'))
+        out = dict(vals)
+        if 'warranty_months' in vals:
+            out['warranty_months'] = months or 0
+        if start and months:
+            derived = warranty_expiry_of(start, months)
+            if 'warranty_expiry' in vals:
+                sent = vals['warranty_expiry']
+                sent = fields.Date.to_date(sent) if sent else False
+                if sent != derived:
+                    raise ValidationError(_(
+                        "The warranty expiry sent (%(sent)s) contradicts its "
+                        "own basis: %(months)s months from %(start)s is "
+                        "%(derived)s. Send the start date and the duration "
+                        "and the expiry is worked out, or correct whichever "
+                        "of them is wrong.",
+                        sent=sent or _('none'), months=months,
+                        start=start.isoformat(),
+                        derived=derived.isoformat()))
+            out['warranty_expiry'] = derived
+        elif ('warranty_expiry' not in vals and self
+              and self.warranty_start_date and self.warranty_months):
+            out['warranty_expiry'] = False
+        return out
+
+    @api.onchange('warranty_start_date', 'warranty_months')
+    def _onchange_warranty_basis(self):
+        """Show the derived expiry on the Odoo form as soon as the basis is
+        complete — the field is read-only there, and without this it kept
+        the old date until the record was saved. Display only: the form does
+        not send a read-only field, and `_resolve_warranty` derives it on
+        save whatever this showed."""
+        months = self.warranty_months
+        if (self.warranty_start_date and months
+                and 1 <= months <= WARRANTY_MAX_MONTHS):
+            self.warranty_expiry = warranty_expiry_of(
+                self.warranty_start_date, months)
+
+    def _warranty_months_of(self, value):
+        """A duration as a whole number of months, or raise.
+
+        Checked here and not left to the ORM, which would turn `24.7` into
+        24 and `true` into 1 without a word — a duration nobody sent. A
+        method rather than a module function so the refusal can be
+        translated: `_()` finds the language through `self`.
+        """
+        if isinstance(value, bool):
+            raise ValidationError(_(
+                "A warranty duration is a number of months."))
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            raise ValidationError(_(
+                "A warranty duration is a number of months, not %r.")
+                % (value,))
+        if not number.is_integer():
+            raise ValidationError(_(
+                "A warranty duration is a whole number of months, not %s.")
+                % value)
+        return int(number)
+
+    @api.depends('warranty_expiry')
+    def _compute_warranty_status(self):
+        """Under warranty through the expiry day itself, expired after it,
+        and `none` where nothing is recorded — against a LAGOS day.
+
+        `snapshot_today`, not `fields.Date.today()`: the container's clock
+        is UTC, and *"expires today"* judged in UTC is wrong for one hour
+        every night — report 29 found exactly that in the register snapshot.
+        One definition of the day, shared with it.
+        """
+        from .asset_snapshot import snapshot_today
+        today = snapshot_today()
+        for record in self:
+            if not record.warranty_expiry:
+                record.warranty_status = 'none'
+            elif record.warranty_expiry >= today:
+                record.warranty_status = 'under_warranty'
+            else:
+                record.warranty_status = 'expired'
+
+    def _search_warranty_status(self, operator, value):
+        """The same three rules as the compute above, as a domain — so a
+        filter on the status and the status each row publishes cannot
+        disagree. Odoo 19 hands a search method `in` and negates it
+        itself."""
+        if operator != 'in':
+            return NotImplemented
+        from .asset_snapshot import snapshot_today
+        today = snapshot_today()
+        terms = {
+            'none': [('warranty_expiry', '=', False)],
+            'under_warranty': [('warranty_expiry', '>=', today)],
+            'expired': [('warranty_expiry', '<', today)],
+        }
+        chosen = [terms[v] for v in value if v in terms]
+        if not chosen:
+            return [('id', 'in', [])]
+        return ['|'] * (len(chosen) - 1) + [t for c in chosen for t in c]
 
     def _assert_disposed_is_terminal(self, vals):
         """Nothing leaves `disposed`, and a disposed asset is not moved or

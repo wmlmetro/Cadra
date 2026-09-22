@@ -332,6 +332,19 @@ interface ApiAssetExtras {
     last_verified_date: string | null;
     next_service_date: string | null;
   };
+  // Handoff 34. Additive: a server that predates it sends no block at all,
+  // and the adapter then leaves `warranty` absent rather than inventing a
+  // `none` the server never said.
+  warranty?: {
+    status: string;
+    status_as_of: string | null;
+    warranty_expiry: string | null;
+    warranty_start_date: string | null;
+    warranty_months: number | null;
+    warrantor: string | null;
+    warranty_reference: string | null;
+    basis: string | null;
+  } | null;
   maintenance_vendor?: ApiRef | null;
   notes?: string | null;
   pm_count?: number;
@@ -447,6 +460,19 @@ export function apiAssetToAsset(a: ApiAsset & ApiAssetExtras): Asset {
       disposalDate:     str(d.disposal_date),
       lastVerifiedDate: str(d.last_verified_date),
       nextServiceDate:  str(d.next_service_date),
+    } : undefined,
+    // Straight from the block, blanks left absent. `dates.warranty_expiry`
+    // above is the same date and stays where it was — it is a published key
+    // Vendra and the reports read, and the page's Key Dates still show it.
+    warranty: a.warranty ? {
+      status:    a.warranty.status,
+      statusAsOf: str(a.warranty.status_as_of),
+      expiry:    str(a.warranty.warranty_expiry),
+      startDate: str(a.warranty.warranty_start_date),
+      months:    num(a.warranty.warranty_months),
+      warrantor: str(a.warranty.warrantor),
+      reference: str(a.warranty.warranty_reference),
+      basis:     str(a.warranty.basis),
     } : undefined,
     // The name as the record holds it, or nothing. NOT filled from
     // `updated_by` or anywhere else: whoever last saved the asset is not
