@@ -33,6 +33,127 @@ live at was never the point.
 
 ---
 
+## 2026-09-22 — handoff 32: the last two doors that dropped fields · `status` and four documented keys that were never read
+
+### BREAKING — `POST /home/quick-submit` and `POST /integrations/sap/employee-sync` refuse a key they do not read
+
+Handoff 31 made eleven routes refuse a body key they do not accept. **It
+missed two**, and it missed them for a reason worth naming: those eleven were
+found by searching for routes that declare an allow-list, and these two
+create records by handing the body to a function taking `**kwargs`. There was
+nothing to find.
+
+| Route | Before | Now |
+|---|---|---|
+| `POST /home/quick-submit` | **201**, request created without the key | **400 `invalid_request`**, nothing written |
+| `POST /integrations/sap/employee-sync` | **200**, employee synced without the field | **400 `invalid_request`**, nothing written — **for the whole batch** |
+
+Same shape as the other eleven: `details.rejected_fields` names what was
+refused, `details.writable` is the whole accepted set so a caller can repair
+itself from the response.
+
+**A batch is refused whole.** `employee-sync` takes a list and a list is one
+request. Refusing the eleventh employee after ten have been created would
+leave a partial sync under an idempotency key that replays the same answer on
+every retry.
+
+**`POST /home/quick-submit` accepts exactly seven keys**: `type_id`,
+`description`, `service_id`, `location_id`, `priority`, `reporter_name`,
+`reporter_contact`.
+
+**`POST /integrations/sap/employee-sync` accepts exactly twenty-two**:
+`ir_number`, `userId`, `personIdExternal`, `displayName`, `firstName`,
+`lastName`, `email`, `phone`, `mobile`, `department`, `jobTitle`,
+`costCenter`, `gradeCode`, `managerIR`, `hireDate`, `terminationDate`,
+`locationName`, `location`, `employmentStatus`, `sap_status`,
+`previous_status`, `event`.
+
+### BREAKING — `status` on the SAP sync is refused, and it was never read
+
+`nrs.sap.sync.log` has never read `status`. Employment status arrives as
+**`employmentStatus`** (or `sap_status`). But `status` is what this API's
+OpenAPI `SapEmployee` schema published — with an enum,
+`active`/`inactive`/`terminated`, of which `inactive` is not a value this
+system has — what `docs/api/cadra_api_endpoint_reference.md` §9.1 sent, and
+what `docs/api/cadra_api_demo_card.md` sent. `officeCode`, also in that
+example, has never been read either.
+
+**So every integrator following our own documentation sent an employment
+status that went nowhere, under a `200`.** Both keys are now a `400`. Per
+rule 4 of `CLAUDE.md` the model is the published surface and the document is
+what gets corrected: the schema, the example, the demo card and this
+repository's own test are fixed.
+
+This is the third time a published name and the thing underneath it have
+been found disagreeing — after a category's `depreciation_method`/`method`
+(handoff 30) and a request's `location_id`/`generic_location_id`
+(handoff 31). A guard now watches every published key against the field it
+claims to write, in both directions, and fails when one stops resolving.
+
+### BREAKING — `POST /home/quick-submit` refuses an id it cannot resolve
+
+A `service_id`, `location_id` or `type_id` that is not a number, or is a
+number naming no record, used to be dropped by a bare
+`except (ValueError, TypeError): pass` or an unchecked `.exists()` — the
+request was created without it and the route answered **201**. It is now a
+**400 `invalid_request`** carrying **`details.unusable_fields`**.
+
+Deliberately **not** `rejected_fields`: those keys ARE accepted, and the
+repair is different. A caller told `service_id` is "not writable" would drop
+the key; what it must do is correct the value.
+
+### BREAKING — a disposed asset's `disposal_date` cannot be cleared
+
+`PATCH /assets/<id> {"disposal_date": null}` on a **disposed** asset is now a
+**400 `validation_failed`** and nothing is written. It was the one remaining
+way to produce the disposal report's `no_disposal_date` finding against a
+disposal made after handoff 31 dated every one of them.
+
+**Correcting the date to another day is unchanged and still allowed** — it is
+clearing it that is refused. A **live** asset's `disposal_date` can still be
+cleared, and an asset that is already undated may still be sent an empty date
+without a refusal, so the Odoo form — which re-sends every field it displays —
+can still save a legacy row.
+
+### BEHAVIOUR CHANGE — only a date sent WITH the disposal is the caller's
+
+A disposal is dated with the caller's date **when that date arrives in the
+same write as `state: "disposed"`**. Otherwise the register stamps today, in
+Lagos.
+
+Before this release the rule was "a date already on the asset is kept", which
+could not tell a date sent *with* the disposal from one PATCHed months
+earlier: `disposal_date` is writable on a live asset, so an asset given last
+year's date while still in service and disposed of today was dated last year,
+and the register said it left a year before it did.
+
+**If you record a disposal date agreed in advance** — at a board of survey,
+say — send it in the same request as the status:
+
+```json
+PATCH /api/v1/assets/1234
+{ "state": "disposed", "disposal_date": "2026-09-15" }
+```
+
+A date PATCHed first and a status PATCHed later is now stamped with today.
+Correcting it afterwards remains a legitimate write. `disposal_date` is
+tracked, so the previous value stays in the record either way.
+
+### BEHAVIOUR CHANGE — the documented quick-submit body was never the body
+
+`docs/api/cadra_api_endpoint_reference.md` §8.2 published an example sending
+`name`, `email`, `phone`, `subject` and `description`. **Four of those five
+have never been read by this route**, and it answered 201 to all of them,
+raising a request that carried only the description.
+`docs/api/cadra_api_demo_guide.md` sent `name`, `email`, `message` and
+`location_name` — four keys, none accepted, and no `type_id`. Both are
+corrected; both bodies are now a 400.
+
+If you copied either example, you are sending a body this route has never
+accepted. The accepted seven are listed above.
+
+---
+
 ## 2026-09-21 — handoff 31: a field the API does not accept is a 400 · `mark-found` · a disposal is dated whichever door it came by
 
 ### BREAKING — a body field a route does not accept is refused, and NOTHING is written

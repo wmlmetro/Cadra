@@ -17,6 +17,13 @@ disposal stamp underneath every writer, so a bare `PATCH {"state":
 "disposed"}` is dated and decommissioned exactly as `/condemn` is. It also
 ruled that a disposed asset can still be verified. All three are held here.
 
+Handoff 32 §C closed the two holes report 31 left open in that stamp, and
+both are about the same word: WHEN. A disposal's date cannot be taken off
+its record — `PATCH {"disposal_date": null}` was the one remaining way to
+raise the disposal report's `no_disposal_date` finding against a disposal
+made this week — and a date that was already sitting on a live asset is not
+a date the caller sent with the disposal, so it no longer survives one.
+
 The model's own guarantees — that an event cannot be edited, deleted or
 hand-written, and what each type may carry — are asserted in the registry, in
 `myservice_asset_register/tests/test_asset_event.py`, where the ORM can be
@@ -795,6 +802,92 @@ def test_an_asset_registered_as_already_disposed_is_given_no_date(
     assert dated["disposal"]["date"] == "2020-01-01"
 
 
+# ─── a stale date is not the caller's date, and a date cannot be taken
+#     away — handoff 32 §C ───────────────────────────────────────────
+
+def test_a_date_patched_long_before_the_disposal_is_not_the_callers_date(
+        client, test_location):
+    """Report 31 §C2. `disposal_date` is writable on a LIVE asset.
+
+    The first stamp asked "does the asset have a date?" AFTER the write,
+    which cannot tell a date sent WITH the disposal from one PATCHed months
+    earlier. So an asset given 2020's date while still in service and
+    disposed of today was dated 2020, and the register said it left the
+    estate six years before it did — a number that reconciles against
+    nothing and that no finding reports, because the row looks complete.
+
+    Only the date in the SAME write is the caller's. The asset ends this
+    test dated, so it does not grow `test19`'s `no_disposal_date` finding.
+    """
+    asset = _new_asset(client, test_location, "pytest-events-stamp-stale")
+    staled = assert_envelope_ok(client.patch(
+        f"/api/v1/assets/{asset['id']}",
+        json={"disposal_date": "2020-01-01"}))["data"]
+    assert staled["dates"]["disposal_date"] == "2020-01-01", (
+        "the stale date was not written, so the rest of this test would "
+        "prove nothing")
+    assert staled["state"] == "active"
+
+    before = _lagos_today()
+    data = assert_envelope_ok(client.patch(
+        f"/api/v1/assets/{asset['id']}", json={"state": "disposed"}))["data"]
+    after = _lagos_today()
+    assert data["state"] == "disposed"
+    assert data["dates"]["disposal_date"] in {
+        before.isoformat(), after.isoformat()}, (
+        "a disposal made today is dated %s — the date that was sitting on "
+        "the record before anybody disposed of anything"
+        % data["dates"]["disposal_date"])
+
+
+def test_a_disposals_date_cannot_be_taken_away_but_can_be_corrected(
+        client, test_location):
+    """Handoff 32 §C1, both halves in one act.
+
+    Emptying the date is refused — it is the one remaining way to raise
+    `no_disposal_date` against a disposal made this week, on a register
+    whose real opening balance for that finding is zero. Correcting it to
+    another day is the legitimate act beside it and is untouched: a board of
+    survey that sat before the status followed is a date worth putting
+    right.
+    """
+    asset = _condemned(client, test_location, "pytest-events-undate")
+    dated = _asset(client, asset["id"])["disposal"]["date"]
+    assert dated, "the fixture is undated, so there is nothing to take away"
+
+    refused = assert_envelope_err(
+        client.patch(f"/api/v1/assets/{asset['id']}",
+                     json={"disposal_date": None}),
+        400, "validation_failed")["error"]
+    assert "disposed" in refused["message"], (
+        "the refusal does not say WHY: %r" % refused["message"])
+    assert _asset(client, asset["id"])["disposal"]["date"] == dated
+
+    corrected = assert_envelope_ok(client.patch(
+        f"/api/v1/assets/{asset['id']}",
+        json={"disposal_date": "2026-01-31"}))["data"]
+    assert corrected["disposal"]["date"] == "2026-01-31"
+    assert corrected["dates"]["disposal_date"] == "2026-01-31"
+
+
+def test_a_live_assets_disposal_date_can_still_be_cleared(
+        client, test_location):
+    """The rule belongs to a DISPOSAL, not to the column. An asset still in
+    service whose date was keyed in by mistake has to be able to lose it, or
+    the mistake is permanent and the register carries a disposal date for
+    something nobody has disposed of."""
+    asset = _new_asset(client, test_location, "pytest-events-undate-live")
+    assert_envelope_ok(client.patch(
+        f"/api/v1/assets/{asset['id']}",
+        json={"disposal_date": "2020-01-01"}))
+    data = assert_envelope_ok(client.patch(
+        f"/api/v1/assets/{asset['id']}",
+        json={"disposal_date": None}))["data"]
+    assert data["state"] == "active"
+    assert data["dates"]["disposal_date"] is None
+    assert data["disposal"]["date"] is None
+
+
 def test_a_disposed_asset_somebody_finds_on_the_premises_can_be_verified(
         client, test_location, me):
     """Handoff 31 §C2 — ALLOWED, by ruling, and in these words: a disposed
@@ -849,6 +942,15 @@ _CLOSED_DOORS = [
     # it must not be written on the way to a 400.
     ("PATCH notes + state → missing", "patch", "",
      {"notes": "SHOULD-NOT-BE-WRITTEN", "state": "missing"},
+     400, "validation_failed"),
+    # Handoff 32 §C1. Not "nothing leaves disposed" but the same rule in the
+    # same place: a disposal's DAY cannot be taken off its record. This was
+    # the one remaining way to manufacture the disposal report's
+    # `no_disposal_date` finding against a new disposal.
+    ("PATCH disposal_date → null", "patch", "",
+     {"disposal_date": None}, 400, "validation_failed"),
+    ("PATCH notes + disposal_date → null", "patch", "",
+     {"notes": "SHOULD-NOT-BE-WRITTEN", "disposal_date": None},
      400, "validation_failed"),
     ("POST /move", "post", "/move",
      {"to_location_id": _OTHER_LOCATION, "reason": "a disposed asset moved"},

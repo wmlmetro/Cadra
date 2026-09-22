@@ -95,12 +95,16 @@ acurl -X POST $API/api/v1/integrations/sap/employee-sync \
     "lastName": "Eze",
     "department": "ICT",
     "jobTitle": "Senior Manager",
-    "status": "active",
-    "officeCode": "HQ"
+    "employmentStatus": "active"
   }'
 ```
 
-**Returns:** `{action: "created"|"updated", employee_id, partner_id}`.
+**Returns:** `{processed: 1, results: [{ir_number, status, employee_id,
+changes}]}` — where `results[].status` is the SYNC's outcome, not the
+employee's.
+
+**Corrected 22 September 2026 (handoff 32):** this card sent `status` and
+`officeCode`, neither of which the sync has ever read. Both are now a 400.
 **Talking point:** SAP pushes hire/move/terminate events; Cadra keeps
 `hr.employee` in sync. Idempotent — replays don't duplicate.
 

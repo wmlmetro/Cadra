@@ -408,7 +408,9 @@ class NRSAsset(models.Model):
                     from_value=status.get(record.id), to_value=record.state,
                     reason=self.env.context.get(EVENT_REASON_KEY))
                 if record.state == STATE_DISPOSED:
-                    record._stamp_disposal()
+                    # `vals` and not the record: only a date that arrived in
+                    # THIS write is the caller's. See `_stamp_disposal`.
+                    record._stamp_disposal(vals)
             if track_verified:
                 record._record_verification(
                     *checked.get(record.id, (False, False)), vals=vals)
@@ -446,12 +448,36 @@ class NRSAsset(models.Model):
         `disposal_method`, `disposal_reference`, the approval — is completed
         AFTER it is disposed. Compared here, before `super()`, so that a
         refusal happens before anything is written.
+
+        A FOURTH field is guarded, and only against being EMPTIED. Handoff
+        31 put a date on every disposal whichever door it came by, and
+        report 31 §C1 then found the door that takes one off again:
+        `disposal_date` is in the API's `_WRITABLE_FIELDS`, so `PATCH
+        {"disposal_date": null}` un-dated a disposal made ten minutes
+        earlier — the one remaining way to manufacture the disposal
+        report's `no_disposal_date` finding against a NEW disposal, on a
+        register whose real opening balance for it is zero. Correcting the
+        date to another day is a proper act and is untouched; taking it
+        away is not. An undated disposal that was already undated stays
+        undated and is not refused, for the reason the three above are
+        compared rather than counted: it is the state of a legacy row and
+        the app's edit form re-sends it on every save.
         """
-        if not ({'state', 'location_id', 'custodian_id'} & set(vals)):
+        if not ({'state', 'location_id', 'custodian_id', 'disposal_date'}
+                & set(vals)):
             return
         for record in self:
             if record.state != STATE_DISPOSED:
                 continue
+            if 'disposal_date' in vals and not vals['disposal_date'] \
+                    and record.disposal_date:
+                raise UserError(_(
+                    "%(asset)s has been disposed of, and the day it was "
+                    "disposed of cannot be taken off its record. Correcting "
+                    "it to another day is a proper thing to do; leaving the "
+                    "disposal with no day at all is not — the register would "
+                    "no longer be able to say when the asset left it.",
+                    asset=record.display_name))
             if 'state' in vals and vals['state'] != STATE_DISPOSED:
                 raise UserError(_(
                     "%(asset)s has been disposed of, and a disposed asset's "
@@ -472,7 +498,7 @@ class NRSAsset(models.Model):
                     "cannot change custodian. Its record keeps whoever held "
                     "it when it was disposed of.", asset=record.display_name))
 
-    def _stamp_disposal(self):
+    def _stamp_disposal(self, vals):
         """A disposal gets its date and its condition — through ANY door.
 
         Until handoff 31 only `action_condemn` did this, in two overrides.
@@ -485,11 +511,28 @@ class NRSAsset(models.Model):
 
         The date is a LAGOS day (`snapshot_today`), not `context_today` —
         that is UTC for every API credential, whose users have no timezone.
-        A date the caller SENT is respected: an integration carrying a
-        disposal made elsewhere knows when it happened and this does not.
+        A date the caller sent IN THIS WRITE is respected: an integration
+        carrying a disposal made elsewhere knows when it happened and this
+        does not.
         The condition is not negotiable. `decommissioned` is what disposed
         MEANS on this register, and a disposed asset in `good` condition is
         how the condition tiles came to count things that are gone.
+
+        **THE CALLER'S DATE IS THE ONE IN THIS WRITE, and not one that was
+        already sitting on the record** (report 31 §C2). The first draft
+        read `self.disposal_date` after `super()`, which cannot tell a date
+        sent WITH the disposal from one PATCHed months before it —
+        `disposal_date` is writable on a LIVE asset, so an asset given last
+        year's date while still in service and disposed of today was dated
+        last year, and the register said it left a year before it did.
+        `vals` is the whole difference and it is in scope at the one call
+        site, in `write`, so the two are told apart rather than guessed at.
+        A stale date is therefore OVERWRITTEN by today — which is a tracked
+        change, so the day that was there before is still in the record.
+        This does reverse handoff 31's "paperwork written up before the
+        act": a date agreed at a board of survey a week before the status
+        follows must now be sent WITH the status, or corrected afterwards,
+        which is a legitimate write and stays one.
 
         NOT on `create`. An asset REGISTERED as already disposed was disposed
         of on some earlier day this system never saw; stamping today would
@@ -498,13 +541,17 @@ class NRSAsset(models.Model):
         """
         self.ensure_one()
         from .asset_snapshot import snapshot_today
-        vals = {}
+        stamp = {}
         if self.condition != 'decommissioned':
-            vals['condition'] = 'decommissioned'
-        if not self.disposal_date:
-            vals['disposal_date'] = snapshot_today()
-        if vals:
-            self.write(vals)
+            stamp['condition'] = 'decommissioned'
+        # Falsy covers the caller who disposed of the asset and cleared the
+        # date in the same breath: nothing was sent, so the server dates it.
+        if not vals.get('disposal_date'):
+            today = snapshot_today()
+            if self.disposal_date != today:
+                stamp['disposal_date'] = today
+        if stamp:
+            self.write(stamp)
 
     def _record_event(self, event_type, **payload):
         """Append one `nrs.asset.event`. The source is read off the context

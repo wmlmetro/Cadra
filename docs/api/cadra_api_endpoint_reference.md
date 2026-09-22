@@ -59,12 +59,19 @@ document where a field depends on a module that is not installed; on every
 other route it is the route's allow-list. **A refusal does not use up the idempotency key:** errors are never
 stored under one, so a corrected body sent under the same key succeeds.
 
-**Not covered, and said so you need not find out:** routes that read the
-keys they know and ignore the rest — the action routes (`/move`, `/verify`,
+**Thirteen routes since 22 September 2026.** The two that CREATE records by
+handing the body to a function that reads what it knows —
+`POST /home/quick-submit` and `POST /integrations/sap/employee-sync` — answer
+the same way now (§8.2, §9.1). They were missed on the 21st because the
+eleven were found by searching for routes that declare a list of accepted
+fields, and neither of these has one.
+
+**Still not covered, and said so you need not find out:** the ACTION routes,
+which read the keys they know and ignore the rest — `/move`, `/verify`,
 `/mark-missing`, `/mark-found`, `/condemn`, `/transfer-custody`,
-`/tag-affixed`, a request's `/assign`, `/transition`, `/comment`), and two
-that CREATE records that way, `POST /home/quick-submit` and
-`POST /integrations/sap/employee-sync`.
+`/tag-affixed`, and a request's `/assign`, `/transition` and `/comment`.
+Their bodies are arguments to an act rather than fields of a record, and
+whether they should refuse a stray key is not ruled.
 
 Until that date these routes answered 2xx, wrote what they recognised,
 dropped the rest, and named the dropped keys in
@@ -834,6 +841,36 @@ which the register did not record anywhere before 21 September 2026.
 **It does not approve the disposal.** That is
 `POST /assets/<id>/approve-disposal`, which needs `approvals:write` — a
 scope that gates nothing else, so holding it is a deliberate act.
+
+### The date, whichever door the disposal came by — changed 22 September 2026
+
+The rules below are in the MODEL, so they hold for `/condemn`, for
+`PATCH /assets/<id> {"state": "disposed"}`, for the Odoo form and for the
+importer alike.
+
+- **A disposal is always dated.** If the caller sends no date, the register
+  stamps today, in Lagos.
+- **The caller's date is the one sent in the SAME request as the status.**
+  A `disposal_date` PATCHed onto an asset while it was still live, with the
+  status following later, is **not** the caller's date and is overwritten by
+  today. `disposal_date` is writable on a live asset, so an asset given last
+  year's date and disposed of this morning used to be dated last year, and
+  the register said it left a year before it did. To record a date agreed in
+  advance, send both together:
+  ```json
+  PATCH /api/v1/assets/1234
+  { "state": "disposed", "disposal_date": "2026-09-15" }
+  ```
+- **The date cannot be taken off a disposed asset.**
+  `PATCH {"disposal_date": null}` on a disposed asset is a
+  **`400 validation_failed`** and nothing is written. Correcting it to
+  another day is a proper act and is unchanged. A **live** asset's date can
+  still be cleared, and an asset that is already undated may still be sent an
+  empty date, so the edit form — which re-sends every field it displays — can
+  still save a legacy row.
+
+`disposal_date` is tracked, so a correction leaves the previous value in the
+record.
 
 | Status | Code | When |
 |---|---|---|
@@ -2835,6 +2872,31 @@ acurl $API/api/v1/home/form-data
 Scope: `requests:write`. Success: **201**. Idempotent via
 `X-Idempotency-Key`.
 
+> **BREAKING, 22 September 2026 (handoff 32).** This route takes **seven
+> keys and no others**. Anything else is a `400 invalid_request` and nothing
+> is written. **This section's own example was wrong for the life of the
+> route**: it sent `name`, `email`, `phone` and `subject`, four keys the
+> route has never read, and `description` — and the route answered 201 to
+> all five, raising a request that carried only the description. The test
+> suite's own quick-submit test was written from this example and had been
+> sending the same four since the day it was written. The example below is
+> the corrected one, and the suite now fails if it drifts again.
+>
+> `type_id`, `service_id` and `location_id` are also a 400 when the value
+> cannot be resolved — not a number, or a number naming no record — under
+> `details.unusable_fields`. Both used to be dropped in silence by a bare
+> `except: pass`, submitting a request quietly missing that detail.
+
+| Key | | |
+|---|---|---|
+| `type_id` | required | `request.type` id — `GET /home/form-data` lists them |
+| `description` | required | what the caller is reporting |
+| `service_id` | optional | `generic.service` id |
+| `location_id` | optional | `generic.location` id — **saved**, and published as `data.location` on `GET /requests/<id>` since handoff 31 |
+| `priority` | optional | `0`–`4`, default `1` |
+| `reporter_name` | optional | composed into the request text; there is no reporter field on the model |
+| `reporter_contact` | optional | phone or email; an email resolves or creates the `res.partner` recorded as author |
+
 ### Request
 
 ```bash
@@ -2842,11 +2904,13 @@ acurl -X POST $API/api/v1/home/quick-submit \
   -H 'Content-Type: application/json' \
   -H 'X-Idempotency-Key: demo-quicksubmit-001' \
   -d '{
-    "name": "Adamu Bello",
-    "email": "adamu.bello@firs.gov.ng",
-    "phone": "+2348000000000",
-    "subject": "AC not cooling in 4F open plan",
-    "description": "Started yesterday, ~10 staff affected"
+    "type_id": 1,
+    "service_id": 4,
+    "location_id": 12,
+    "priority": "2",
+    "description": "AC not cooling in 4F open plan — started yesterday, ~10 staff affected",
+    "reporter_name": "Adamu Bello",
+    "reporter_contact": "adamu.bello@firs.gov.ng"
   }'
 ```
 
@@ -2855,25 +2919,62 @@ acurl -X POST $API/api/v1/home/quick-submit \
 ```json
 {
   "data": {
+    "success": true,
     "request_id": 6,
-    "reference": "INCIDENT-062026-0000006",
-    "stage": { "id": 1, "name": "Draft", "code": "draft" }
+    "request_name": "INCIDENT-062026-0000006"
   },
   "meta": { "request_id": "…", "timestamp": "…", "version": "v1" }
 }
 ```
 
-### Error — `400 invalid_request` (missing required fields)
+### Error — `400 invalid_request` (a key this route does not accept)
 
 ```bash
 acurl -X POST $API/api/v1/home/quick-submit \
   -H 'Content-Type: application/json' \
-  -d '{"email": "adamu.bello@firs.gov.ng"}'
+  -d '{"type_id": 1, "request_text": "AC not cooling"}'
 ```
 
+`request_text` is the sibling `POST /api/v1/requests` key. Until handoff 32
+this body answered **201** and raised a request with no description at all.
+
 ```json
-{ "error": { "code": "invalid_request", "message": "`name`, `subject`, and `description` are required", "request_id": "…", "details": { "http_status": 400 } } }
+{ "error": { "code": "invalid_request",
+    "message": "This route does not accept: `request_text`. Nothing was written.",
+    "request_id": "…",
+    "details": { "rejected_fields": ["request_text"],
+                 "writable": ["description", "location_id", "priority", "reporter_contact", "reporter_name", "service_id", "type_id"],
+                 "http_status": 400 } } }
 ```
+
+### Error — `400 invalid_request` (an id that names no record)
+
+```json
+{ "error": { "code": "invalid_request",
+    "message": "These fields name no record this register holds: `service_id`. Nothing was written.",
+    "request_id": "…",
+    "details": { "unusable_fields": ["service_id"],
+                 "writable": ["description", "location_id", "…"],
+                 "http_status": 400 } } }
+```
+
+### What a member of the public sees
+
+The same function answers the unauthenticated homepage form at
+`POST /api/myservice/quick-submit` (`docs/api/EXTERNAL-SURFACES.md`). **One
+validator, two renderings** — the refusal is the same, the words are not:
+
+> Sorry — we could not submit your request. Some of the information sent with
+> this form was not recognised. Please reload the page and try again.
+
+and, for an id the register cannot resolve — the one refusal a visitor can
+act on:
+
+> Please choose the service from the list on the form, then send your request
+> again.
+
+No key names, because the reader is a person on a phone and nothing they
+typed is wrong.
 
 ---
 
@@ -2884,7 +2985,38 @@ Inbound webhooks for upstream systems.
 ## 9.1 POST `/api/v1/integrations/sap/employee-sync` — SAP SuccessFactors employee event
 
 Scope: `integrations:write`. Success: **200**.
-Accepted statuses: `active`, `terminated`, `on_leave`.
+Accepts a single employee object or a list of them.
+
+> **BREAKING, 22 September 2026 (handoff 32).** A key this route does not
+> read is now a `400 invalid_request` naming it in
+> `details.rejected_fields`, with the whole accepted set in
+> `details.writable` — and **nothing is written for the whole batch**, not
+> just the employee that carried it. A list is one request; refusing the
+> eleventh employee after ten had been created would leave a partial sync
+> under an idempotency key that replays the same answer on every retry.
+>
+> **`status` and `officeCode` are among the keys now refused, and this
+> document is the reason they were being sent.** `nrs.sap.sync.log` has
+> never read either: employment status arrives as `employmentStatus` (or
+> `sap_status`). The example below sent `status: "active"` for the life of
+> the route, the demo card sent it, and the API's own OpenAPI schema
+> published it with an enum — `active`/`inactive`/`terminated` — of which
+> only `active` and `terminated` are values this system has. So every
+> integrator following our documentation sent an employment status that went
+> nowhere, under a `200`. Per `CLAUDE.md` rule 4 the model is the published
+> surface and the document is what gets corrected.
+
+**Match keys** — one of `ir_number`, `userId`, `personIdExternal`.
+
+**Accepted** — `ir_number`, `userId`, `personIdExternal`, `displayName`,
+`firstName`, `lastName`, `email`, `phone`, `mobile`, `department`,
+`jobTitle`, `costCenter`, `gradeCode`, `managerIR`, `hireDate`,
+`terminationDate`, `locationName`, `location`, `employmentStatus`,
+`sap_status`, `previous_status`, `event`.
+
+`employmentStatus` takes `active`, `terminated`, `suspended`, `onLeave` or
+`transferred`; the capitalised spellings map to the same values.
+`terminated` flags the employee's assets for retrieval.
 
 ### Request
 
@@ -2898,8 +3030,7 @@ acurl -X POST $API/api/v1/integrations/sap/employee-sync \
     "lastName": "Eze",
     "department": "ICT",
     "jobTitle": "Senior Manager",
-    "status": "active",
-    "officeCode": "HQ"
+    "employmentStatus": "active"
   }'
 ```
 
@@ -2908,28 +3039,29 @@ acurl -X POST $API/api/v1/integrations/sap/employee-sync \
 ```json
 {
   "data": {
-    "ir_number": "FIRS-12345",
-    "employee_id": 717,
-    "partner_id": 5234,
-    "action": "created",
-    "status": "active"
+    "processed": 1,
+    "results": [
+      { "ir_number": "FIRS-12345", "status": "success",
+        "employee_id": 717, "changes": "…" }
+    ]
   },
   "meta": { "request_id": "…", "timestamp": "…", "version": "v1" }
 }
 ```
 
-(Subsequent calls with the same `ir_number` return `"action": "updated"`.)
+`results[].status` is the SYNC's outcome — `success`, `error` or `skipped` —
+and is not the employee's employment status. The two have always had the
+same name in this response and only one of them was ever an input.
 
-### Error — `400 invalid_request` (missing IR number)
-
-```bash
-acurl -X POST $API/api/v1/integrations/sap/employee-sync \
-  -H 'Content-Type: application/json' \
-  -d '{"userId":"x@firs.gov.ng","firstName":"X","lastName":"Y","status":"active"}'
-```
+### Error — `400 invalid_request` (a key this route does not read)
 
 ```json
-{ "error": { "code": "invalid_request", "message": "`ir_number` is required", "request_id": "…", "details": { "http_status": 400 } } }
+{ "error": { "code": "invalid_request",
+    "message": "This route does not accept: `status`, `officeCode`. Nothing was written.",
+    "request_id": "…",
+    "details": { "rejected_fields": ["status", "officeCode"],
+                 "writable": ["costCenter", "department", "displayName", "…"],
+                 "http_status": 400 } } }
 ```
 
 ## 9.2 POST `/api/v1/integrations/workflow/callback` — external workflow decision

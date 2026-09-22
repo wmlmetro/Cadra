@@ -16,12 +16,32 @@ def test_list(client, capture):
 
 
 def test_list_filtered_by_q(client, capture):
-    """GET /api/v1/locations?q=Lagos — narrowing filter."""
+    """GET /api/v1/locations?q=Lagos — narrowing filter.
+
+    `?q=` searches FOUR fields — `name`, `description`, `zone_code` and the
+    stored city (`v1_locations._list_domain`) — and this test asserted the
+    match was always in the name. It passed for the life of the suite because
+    no location on the test tenant happened to be in a city called Lagos.
+    Handoff 32's sweep created one — *Sweep probe location*, city Lagos — and
+    the test failed on a row the filter was right to return.
+
+    A test that only passes because of the data it happens to meet is a test
+    of the tenant, not of the route. It now asserts what the route actually
+    promises: the term appears in one of the fields the route searches.
+    """
     r = client.get("/api/v1/locations", params={"q": "Lagos", "limit": 5})
     capture("locations/list_filtered", r)
     body = assert_envelope_ok(r)
     for item in body["data"]:
-        assert "lagos" in item["name"].lower(), f"unexpected name in Lagos filter: {item['name']!r}"
+        haystack = " ".join(str(v or "") for v in (
+            item.get("name"),
+            item.get("description"),
+            (item.get("extras") or {}).get("zone_code"),
+            (item.get("address") or {}).get("city"),
+        )).lower()
+        assert "lagos" in haystack, (
+            f"{item['name']!r} matched ?q=Lagos and carries the term in none "
+            f"of the four fields the route searches")
 
 
 def test_list_pagination_cursor(client, capture):

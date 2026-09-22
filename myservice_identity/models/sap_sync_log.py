@@ -26,6 +26,42 @@ SAP_FIELD_MAP = {
     'terminationDate': 'employment_end_date',
 }
 
+#: **Every key `process_sap_payload` reads**, derived from the map above so
+#: it cannot drift when the map grows, plus the ones read by name in
+#: `process_sap_payload` and `_map_sap_to_odoo` themselves.
+#:
+#: Handoff 32 §B. `process_sap_payload(payload)` reads a dict, so every caller
+#: — `POST /api/v1/integrations/sap/employee-sync` among them — accepted
+#: anything and silently dropped what is not in here. `CLAUDE.md` rule 3:
+#: anything that silently degrades is a defect even when it returns 200, and
+#: an employment status that never arrives is the whole point of this feed.
+#:
+#: **`status` is NOT in this set and never was read** — this model takes
+#: `employmentStatus` or `sap_status` — although `status` is what the
+#: published `SapEmployee` schema, the endpoint reference's canonical example,
+#: the demo card and this repo's own pytest all send. That is the §A finding
+#: shape one route down: a published name and the thing underneath answering
+#: to another.
+SAP_PAYLOAD_KEYS = frozenset(SAP_FIELD_MAP) | {
+    # Match keys — any one of the three identifies the row.
+    'ir_number',
+    'personIdExternal',
+    # Recorded on the log row rather than on the employee.
+    'event',
+    # Name, if `firstName`/`lastName` are not sent.
+    'displayName',
+    'firstName',
+    'lastName',
+    # Employment status: the value `_handle_status_triggers` acts on, and the
+    # previous one it compares against to decide whether anything changed.
+    'employmentStatus',
+    'sap_status',
+    'previous_status',
+    # Location by name (`locationName` first, `location` as the fallback).
+    'locationName',
+    'location',
+}
+
 
 class NRSSapSyncLog(models.Model):
     _name = 'nrs.sap.sync.log'
@@ -62,6 +98,29 @@ class NRSSapSyncLog(models.Model):
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
+    @api.model
+    def accepted_payload_keys(self):
+        """What `process_sap_payload` reads, sorted — the published list.
+
+        A route publishes this as `details.writable` so a caller can repair
+        itself from the refusal, the way `allowed_values` lets one repair a
+        filter. Read from the model rather than copied into the controller:
+        a hand-copied list matches on the day it is written and nothing says
+        when it stops.
+        """
+        return sorted(SAP_PAYLOAD_KEYS)
+
+    @api.model
+    def unknown_payload_keys(self, payload):
+        """The keys in `payload` this method does not read, in the order sent.
+
+        A caller that will not silently drop them asks BEFORE calling
+        `process_sap_payload`, because that method creates its log row and
+        its employee as it goes, and a refusal afterwards is a refusal after
+        the write.
+        """
+        return [k for k in (payload or {}) if k not in SAP_PAYLOAD_KEYS]
+
     @api.model
     def process_sap_payload(self, payload, sync_type='webhook'):
         """Process an SAP SuccessFactors employee dict.

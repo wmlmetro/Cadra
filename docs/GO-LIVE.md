@@ -1418,3 +1418,66 @@ written, because how a thing stood is part of the record.
    stray key too is not ruled. `POST …/verify {"verified_by": 7}` answers 200
    and records the caller, which is right — and says nothing about the key.
 
+
+## 17 · Handoff 32 — the name and the field, 2026-09-22
+
+### 17.1 · What it closed — `[landed, keep it that way]`
+
+| Entry | Was | Now |
+|---|---|---|
+| §16.3 item 1 | *"worth a sweep nobody has done"* — every published key against the field it claims to write | **done, and kept as a guard.** `myservice_api/tests/test_published_names_resolve.py`, 12 tests, driven by the routing attribute and a parse of every controller so a new route or a new defensive read FAILS rather than being skipped. One write-side mismatch, the known one; 22 read-side guards, all resolving |
+| §16.3 item 10 | the twelfth door — two routes that create records from a body they do not filter | **both closed**, same 400 as the other eleven, before anything is written; the SAP feed refuses a whole batch rather than half-creating one |
+| *(new, found by the sweep)* | the SAP feed's `status` — published by the schema, the endpoint reference, the demo card and our own test, and **never read by anything** | refused, and all four documents corrected to `employmentStatus` |
+| *(new, found by the sweep)* | `POST /home/quick-submit`'s documented example sent four keys the route has never read | corrected; the suite's own test had been sending the same four since it was written |
+
+### 17.2 · Found — `[open]` unless it says otherwise
+
+1. **A key you can write and can never read back.** Four:
+   `salvage_rate` (published only as the derived `salvage_value`),
+   `verification_notes` (published only in the verify response),
+   `mobile`→`mobile_phone` (published by nothing), and — the inverse, and
+   the trap beside it — **six asset keys accepted under one name and
+   published under another**: `depreciation_method` →
+   `financial.depreciation.method`, `depreciation_start_date` →
+   `…start_date`, `use_category_policy` → `…uses_category_policy`,
+   `model_name` → `model`, `location_id` → `current_location`. A screen that
+   GETs an asset, edits it and PATCHes the whole object back is refused on
+   every one of those six, with a 400 since handoff 31. This is §16.3 item 5
+   with names attached. Renaming a published key is breaking; nothing was
+   renamed. **Needs a ruling: publish the missing four (additive, safe), or
+   accept the read/write asymmetry and say so once.**
+2. **The THIRTEENTH door, and it is unauthenticated.**
+   `myservice_identity/controllers/sap_webhook.py` — `POST
+   /api/sap/employee-sync`, `auth='none'` — hands the same unvalidated dict
+   to `process_sap_payload`, as do `/api/sap/employee-sync/test`, the xlsx
+   import job and the SAP import wizard. The accepted-key set now lives on
+   the model, so each is a two-line change. **Measured before deciding**:
+   `nrs.sap.sync.log.sync_type` records which door each sync came through,
+   and across all eight local databases `webhook` is **0 rows**, on every
+   one; `api` is 163, all of them on databases this repository's own suites
+   write to. So nothing here is evidence of a real SAP feed either way. Left
+   alone because it is an unauthenticated external surface and a refusal on
+   the door a live upstream may be pointed at is a decision about an outage.
+   **Needs a ruling before anything else goes near `myservice_identity`.**
+3. **`POST /home/quick-submit` enforces neither of the two keys its schema
+   declares required.** An empty body answers 201 and creates a request
+   titled *"Quick facilities request"* against the first active type —
+   measured, three ways. On the PUBLIC twin that is an unauthenticated way
+   to create an empty request; the homepage form enforces both in
+   JavaScript and nothing behind it does. Same genre as everything else
+   here; belongs in the same ruling as §16.3 item 11.
+4. **The guard that forbids field names in user-facing text reaches one
+   file.** It is `myservice_api/tests/test_asset_history.py::
+   test_the_statements_are_words_not_field_names`, over the asset-history
+   statements only. Handoff 32's public-form sentences were held to the same
+   rule and pinned by tests of their own, but nothing checks the rest of the
+   codebase's user-facing strings. A §A-shaped job; not done.
+5. **`tests/test_locations.py::test_list_filtered_by_q` asserted the wrong
+   thing and passed for the life of the suite.** `?q=` searches four fields
+   — name, description, zone code and the stored city — and the test asserted
+   the match was always in the name. It passed because no location on the
+   test tenant happened to be in a city called Lagos, until this handoff's
+   probe created one. `[landed]` — corrected to assert what the route
+   promises. **A test that only passes because of the data it happens to
+   meet is a test of the tenant, not of the route**, and there is no guard
+   against the next one.

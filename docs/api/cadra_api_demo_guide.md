@@ -340,8 +340,11 @@ curl -sH "Authorization: Bearer $TOKEN" \
 # Submit with idempotency — same key → same response, no duplicate request
 curl -sX POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -H 'X-Idempotency-Key: demo-abc-123' \
-  -d '{"name":"Adamu","email":"a@firs.gov.ng","message":"AC not working","location_name":"HQ Floor 4"}' \
+  -d '{"type_id":1,"description":"AC not working","location_id":12,"reporter_name":"Adamu","reporter_contact":"a@firs.gov.ng"}' \
   https://staging.app.cadra.ng/api/v1/home/quick-submit
+# Corrected 22 September 2026 (handoff 32): this line sent `name`, `email`,
+# `message` and `location_name` — four keys the route has never read, and no
+# `type_id` — and was answered 201. It is now a 400.
 ```
 
 ---
