@@ -1521,6 +1521,143 @@ class MyserviceApiV1(http.Controller):
                             },
                         },
                     },
+                    "ApprovalRequest": {
+                        "type": "object",
+                        "description": (
+                            "Somebody asking a second person to agree before "
+                            "an asset is moved or handed over (handoff 35). "
+                            "NOTHING happens to the asset while a request is "
+                            "pending: the append-only movement and custody "
+                            "records are written ON APPROVAL and never on "
+                            "request, because a row written when somebody "
+                            "merely asked would be a permanent record of a "
+                            "move that had not happened. "
+                            "READ `premise_holds` BEFORE OFFERING AN APPROVE "
+                            "BUTTON: it is computed fresh on every read and "
+                            "goes false when the asset has changed under the "
+                            "request — approving then is refused 409. "
+                            "A request cannot be edited or deleted, by "
+                            "anyone; a mistaken one is WITHDRAWN, which is a "
+                            "state and leaves the record standing."),
+                        "properties": {
+                            "id": {"type": "integer"},
+                            "reference": {"type": "string",
+                                          "description": "CR/<year>/NNNN"},
+                            "state": {
+                                "type": "string",
+                                "enum": ["pending", "approved", "rejected",
+                                         "withdrawn"],
+                                "description": (
+                                    "`pending` is the only state anything "
+                                    "can happen from; the other three are "
+                                    "terminal and there is no route back. "
+                                    "Somebody who changes their mind raises "
+                                    "a new request, which leaves both "
+                                    "records standing.")},
+                            "change_type": {"type": "string",
+                                            "enum": ["location", "custody"]},
+                            "asset": {"type": "object", "nullable": True},
+                            "asset_code": {"type": "string", "nullable": True},
+                            "to_location": {"type": "object", "nullable": True},
+                            "to_custodian": {"type": "object", "nullable": True},
+                            "reason": {"type": "string", "nullable": True},
+                            "from_location": {"type": "object", "nullable": True},
+                            "from_custodian": {"type": "object", "nullable": True},
+                            "from_location_name": {
+                                "type": "string", "nullable": True,
+                                "description": (
+                                    "WHAT IT WAS WHEN ASKED, as recorded. "
+                                    "The premise of the request: an approval "
+                                    "means *yes, move it from A to B*, not "
+                                    "*yes, move it to B*. Not derived from "
+                                    "`from_location`, which goes null if "
+                                    "that location is later deleted.")},
+                            "from_custodian_name": {"type": "string",
+                                                    "nullable": True},
+                            "to_location_name": {"type": "string",
+                                                 "nullable": True},
+                            "to_custodian_name": {"type": "string",
+                                                  "nullable": True},
+                            "from_state": {
+                                "type": "string", "nullable": True,
+                                "description": "The asset's lifecycle state "
+                                               "when the request was raised."},
+                            "requested_by": {
+                                "type": "object", "nullable": True,
+                                "description": "WHO ASKED. Taken from the "
+                                               "raising caller's token, "
+                                               "never from a payload."},
+                            "requested_by_name": {"type": "string",
+                                                  "nullable": True},
+                            "requested_at": {"type": "string",
+                                             "nullable": True},
+                            "approver": {
+                                "type": "object", "nullable": True,
+                                "description": (
+                                    "WHO IS BEING ASKED — a nomination made "
+                                    "by the requester. It decides whose "
+                                    "queue this lands in and who is "
+                                    "notified, and it confers no authority: "
+                                    "any eligible person may decide, and the "
+                                    "requester may not, whoever was named. "
+                                    "A DIFFERENT FIELD from `decided_by`, "
+                                    "always — a requester who can name the "
+                                    "approver can forge one.")},
+                            "decided_by": {
+                                "type": "object", "nullable": True,
+                                "description": (
+                                    "WHO CLICKED. Derived from the deciding "
+                                    "caller's own bearer token and never "
+                                    "readable from any request body — a body "
+                                    "naming it is refused 400. Null while "
+                                    "pending.")},
+                            "decided_by_name": {"type": "string",
+                                                "nullable": True},
+                            "decided_at": {"type": "string", "nullable": True},
+                            "decision_reason": {
+                                "type": "string", "nullable": True,
+                                "description": "Required on a rejection, "
+                                               "optional on an approval."},
+                            "premise_holds": {
+                                "type": "boolean",
+                                "description": (
+                                    "Whether the world this was raised in "
+                                    "still holds. Computed on every read, "
+                                    "never stored — the thing that breaks a "
+                                    "premise is somebody else moving the "
+                                    "asset, which touches no field on this "
+                                    "record.")},
+                            "premise_broken_reason": {
+                                "type": "string", "nullable": True,
+                                "description": "What changed, in the words "
+                                               "of the thing that changed."},
+                            "movement_id": {
+                                "type": "integer", "nullable": True,
+                                "description": "The append-only "
+                                               "`nrs.asset.movement` this "
+                                               "approval produced. Null "
+                                               "until approved."},
+                            "custody_id": {"type": "integer", "nullable": True},
+                            "transfer": {
+                                "type": "object", "nullable": True,
+                                "description": (
+                                    "The transfer DOCUMENT, where there was "
+                                    "one to make — only for a location "
+                                    "change on an asset that had a location. "
+                                    "It is paperwork beside the movement "
+                                    "record, and an asset manager can delete "
+                                    "it; `transfer_reference` survives that.")},
+                            "transfer_reference": {"type": "string",
+                                                   "nullable": True},
+                            "can_decide": {
+                                "type": "boolean",
+                                "description": "Whether THIS caller may "
+                                               "decide this request. For "
+                                               "shaping an interface; the "
+                                               "model is the authority."},
+                            "can_withdraw": {"type": "boolean"},
+                        },
+                    },
                     "AssetCustody": {
                         "type": "object",
                         "description": (

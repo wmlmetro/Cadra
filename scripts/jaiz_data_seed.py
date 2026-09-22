@@ -60,10 +60,20 @@ def _sp_create(env, Model, vals):
 
 
 def _sp_write(env, rec, vals):
-    """Write inside a savepoint; return True/False."""
+    """Write inside a savepoint; return True/False.
+
+    `cadra_approval_exempt='seed'` — handoff 35 §A. Since that handoff a
+    change of `location_id` or `custodian_id` needs a second person to agree,
+    and a demonstration seed is not a person deciding to move one asset
+    today: it deals out a whole register at once, with `random.choice`, from
+    a fixed seed. The declaration is here, on the one write helper every
+    caller in this script goes through, so it reads as a statement about the
+    script rather than something sprinkled at the call sites — and so a grep
+    for the constant finds the seeds.
+    """
     try:
         with env.cr.savepoint():
-            rec.write(vals)
+            rec.with_context(cadra_approval_exempt='seed').write(vals)
             return True
     # catch-all: reported — returns False, and the callers that own a counter
     # gate it on the return value, so the seed's printed totals count writes

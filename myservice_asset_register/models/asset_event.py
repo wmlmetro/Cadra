@@ -83,7 +83,7 @@ _FIELDS_OF_TYPE = {
 _CONTEXT_SOURCES = (
     'api_verify', 'api_condemn', 'api_mark_missing', 'api_mark_found',
     'api_write',
-    'action', 'transfer', 'direct')
+    'action', 'transfer', 'approval', 'direct')
 
 
 class NRSAssetEvent(models.Model):
@@ -185,6 +185,11 @@ class NRSAssetEvent(models.Model):
         ('action', 'A button on the asset (verify, condemn, mark missing '
                    'or found)'),
         ('transfer', 'Asset transfer completion'),
+        # Handoff 35. Completing an approved MOVE sets nothing about status
+        # today, but `nrs.asset.write` declares one source for all three
+        # recorders from one context, and a source a recorder cannot accept
+        # is a `UserError` on a write that had nothing to do with events.
+        ('approval', 'Approved change request'),
         ('direct', 'Direct write (Odoo UI, import or script)'),
         ('test', 'Written by the automated test suite'),
     ], string='Source', required=True, default='direct', index=True)

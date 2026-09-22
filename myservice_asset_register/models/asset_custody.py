@@ -19,7 +19,8 @@ CUSTODY_APPEND_KEY = 'cadra_custody_append'
 
 # The sources a CALLER may declare through the context. `test` and
 # `tracking_backfill` are never taken from it: see `_resolve_source`.
-_CONTEXT_SOURCES = ('api_transfer', 'api_write', 'transfer', 'direct')
+_CONTEXT_SOURCES = ('api_transfer', 'api_write', 'transfer', 'approval',
+                    'direct')
 
 
 # Translated at the call, not at import: `_()` evaluated at class-build time
@@ -126,6 +127,9 @@ class NRSAssetCustody(models.Model):
         ('api_transfer', 'API — transfer-custody'),
         ('api_write', 'API — asset create or update'),
         ('transfer', 'Asset transfer completion'),
+        # Handoff 35 — a change of custodian a second person agreed to. See
+        # the note beside the same value in `asset_movement.py`.
+        ('approval', 'Approved change request'),
         ('direct', 'Direct write (Odoo UI, import or script)'),
         ('tracking_backfill', 'Reconstructed from chatter tracking'),
         # Written by the automated test suite. The suite exercises the
@@ -197,6 +201,26 @@ class NRSAssetCustody(models.Model):
         """
         user = changed_by if changed_by is not None else self.env.user
         source = self._resolve_source(source, user)
+        # THE NAMES ARE READ AS SUPERUSER, and this is not tidiness.
+        #
+        # `hr.employee._check_private_fields` refuses an employee record to
+        # anybody outside `hr.group_hr_user`, and reading ONE field prefetches
+        # the whole record — so building `from_custodian.name` in the acting
+        # user's environment raised `AccessError: The fields
+        # "is_test_fixture,ir_number,sap_user_id,…" are not available for
+        # employee public profiles` for an Asset Manager who is not also an
+        # HR user. The `create` below was already `sudo()`; the READS above it
+        # were not, so the row never got that far.
+        #
+        # PRE-EXISTING — the Odoo asset form has always been able to hit it,
+        # and the REST API never does because `_browse_or_404` browses
+        # `sudo()`. Handoff 35 put a second Odoo-side door onto it (pressing
+        # Approve on a custody request), which is how the verification pass
+        # found it. `nrs.asset.movement._record` has the same shape and is
+        # safe only because `generic.location` has no private-field rule —
+        # left alone deliberately rather than changed on a guess.
+        from_custodian = from_custodian.sudo() if from_custodian else from_custodian
+        to_custodian = to_custodian.sudo() if to_custodian else to_custodian
         vals = {
             'asset_id': asset.id,
             'from_custodian_id': from_custodian.id if from_custodian else False,

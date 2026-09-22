@@ -9,6 +9,11 @@ Session-scoped fixtures (mint once, reuse across tests):
   - test_location  : creates one location via POST, reused as FK by asset/request tests
   - test_asset     : creates one asset against test_location
   - test_request   : creates one service request against test_location + test_asset
+  - approval_settings : GET /settings/approvals — does a move need two people?
+  - suite_user     : the user behind this suite's own credential (whoami)
+  - second_person  : the two people a move takes since handoff 35, and the
+                     `.move()` / `.transfer_custody()` helpers that raise a
+                     request and approve it so an asset actually moves
 
 Function-scoped:
   - capture        : helper that writes (request, response) pairs to docs/api/test-responses/
@@ -403,6 +408,228 @@ def client(api_base, token):
 def unauthed_client(api_base):
     """A client with NO Authorization header — used by negative tests."""
     return ApiClient(api_base, token=None)
+
+
+# ─── nobody moves an asset alone (handoff 35) ────────────────────────
+#
+# On a tenant where `cadra.approval.required` is on — and ABSENT MEANS ON, so
+# an unconfigured tenant like `test19` is one — `POST /assets/<id>/move` and
+# `POST /assets/<id>/transfer-custody` no longer move anything. They raise an
+# `nrs.asset.change.request`, answer 200 with `pending_approval: true` and the
+# asset UNCHANGED, and the change happens when a SECOND person approves.
+#
+# That is a breaking change for this suite, because a dozen tests across four
+# modules exist to assert what happens AFTER an asset has moved: the
+# append-only movement row, the custody chain, the history event, the transfer
+# document's reference number. Every one of them needs a real move, and a real
+# move now needs two people.
+#
+# So this is the one place that knows how. Each module having its own would
+# be four copies of a rule that will change the first time NRS reshapes who
+# may approve what — which the handoff says out loud is coming.
+
+#: The second person, by login. Overridable because this is an environment
+#: fact and not a property of the API: `admin`/`admin` is accepted on all
+#: eight local tenants (verified 2026-09-15, `docs/GO-LIVE.md` §8.1) and is
+#: what `scripts/bootstrap.sh` provisions in CI, but a tenant whose admin
+#: password has been changed is a legitimate target for this suite and should
+#: not need a code edit to run against.
+SECOND_PERSON_LOGIN = os.environ.get("CADRA_SECOND_PERSON_LOGIN", "admin")
+SECOND_PERSON_PASSWORD = os.environ.get("CADRA_SECOND_PERSON_PASSWORD", "admin")
+
+
+@pytest.fixture(scope="session")
+def approval_settings(client):
+    """`GET /api/v1/settings/approvals`, once — read, never assumed.
+
+    Whether this tenant requires a second person is a fact about the
+    DATABASE, not about the code: the switch is a system parameter read with
+    raw SQL (`myservice_asset_register/approval_policy.py`), absent means on,
+    and there is no environment variable that changes it. So the suite asks,
+    and every helper below branches on the answer rather than on what
+    `test19` happened to say the day this was written.
+    """
+    r = client.get("/api/v1/settings/approvals")
+    if r.status_code != 200:
+        pytest.fail(
+            "GET /api/v1/settings/approvals answered HTTP %s.\n%s\n\n"
+            "This suite cannot tell whether a move needs a second person, "
+            "and every move it makes would be guesswork. If the server "
+            "predates handoff 35 the route does not exist yet; upgrade "
+            "`myservice_api` on that database."
+            % (r.status_code, r.text[:300]))
+    return r.json()["data"]
+
+
+@pytest.fixture(scope="session")
+def suite_user(client):
+    """The user behind this suite's own credential.
+
+    NOT called `me`: `tests/test_rejected_fields_are_refused.py` already
+    defines a module-scoped `me`, and a session fixture of the same name
+    would be shadowed there — so `second_person` would silently receive that
+    module's narrower dict the moment anything in that file asked for it.
+    """
+    r = client.get("/api/v1/auth/whoami")
+    assert r.status_code == 200, r.text[:300]
+    return r.json()["data"]
+
+
+@pytest.fixture(scope="session")
+def second_person(api_base, client, suite_user, approval_settings):
+    """The two people a move takes, and which of them does what.
+
+    **The suite's credential APPROVES; the second person RAISES.** That is
+    the way round it is, and the reason is the provenance of the row rather
+    than the story: the append-only `nrs.asset.movement` and
+    `nrs.asset.custody` rows are written by `action_approve`, under the
+    APPROVER's user, and `myservice_api/models/append_only.py` relabels a row
+    written under a credential flagged `is_test_credential` as `source:
+    "test"`. These rows are permanent — `write` and `unlink` raise — so a
+    suite whose moves came back labelled `approval` would be leaving
+    artefacts in a register that a reader cannot tell from real history.
+    That is the property handoffs 26 and 28 built and
+    `test_custody.test_a_link_this_suite_wrote_says_so` guards, and it is
+    worth more than the alternative arrangement's prize.
+
+    **What that costs, said rather than glossed:** the
+    `nrs.asset.change.request` rows this helper creates are raised by the
+    second person, who is NOT an API credential, so they are not stamped
+    `is_test_fixture`. The request rows raised in `tests/test_approvals.py`
+    are raised by the suite's own credential and are stamped. One or the
+    other — a person cannot both raise and approve, which is the whole point
+    of the feature.
+
+    Fails rather than skips when the tenant needs a second person and there
+    is nobody to be one. Report 23 §3: a skip is a guard that passes, and a
+    dozen tests quietly skipping their way to green would leave the recorder
+    they exist to exercise untested on exactly the tenants where the control
+    is on.
+    """
+    r = requests.post(
+        f"{api_base}/api/v1/auth/login",
+        json={"login": SECOND_PERSON_LOGIN,
+              "password": SECOND_PERSON_PASSWORD},
+        timeout=30,
+    )
+    other = None
+    if r.status_code == 200:
+        other_client = ApiClient(api_base, r.json()["data"]["access_token"])
+        who = other_client.get("/api/v1/auth/whoami")
+        if who.status_code == 200:
+            data = who.json()["data"]
+            if data["id"] != suite_user["id"]:
+                other = {"client": other_client, "id": data["id"],
+                         "name": data["name"]}
+
+    if other is None and approval_settings["required"]:
+        pytest.fail(
+            "This register requires a second person to approve a move or a "
+            "custody change (`%s` = %r), and this session could not sign one "
+            "in.\n\n"
+            "  POST /api/v1/auth/login as %r -> HTTP %s\n  %s\n\n"
+            "Every test that needs an asset to actually MOVE needs two "
+            "different users. Set CADRA_SECOND_PERSON_LOGIN and "
+            "CADRA_SECOND_PERSON_PASSWORD to a user who holds "
+            "`myservice_asset_register.group_asset_manager` and is not the "
+            "suite's own credential (%s, id %s)."
+            % (approval_settings["parameter"], approval_settings["setting"],
+               SECOND_PERSON_LOGIN, r.status_code, r.text[:200],
+               suite_user["login"], suite_user["id"]))
+    return SecondPerson(suite=client, suite_id=suite_user["id"], other=other,
+                        required=bool(approval_settings["required"]))
+
+
+class SecondPerson:
+    """How this session moves an asset, on either kind of tenant.
+
+    `move()` and `transfer_custody()` answer the same normalised dict
+    whichever way the change got made, so a caller asserting *the asset ended
+    up there and the append-only row says so* does not have to know which
+    tenant it is running against:
+
+        pending             did this go through an approval at all
+        raised              the Response from /move or /transfer-custody
+        decision            the Response from /approvals/<id>/approve, or None
+        request             the decided approval request, or None
+        asset               the asset AFTER, as the API returned it
+        movement_id         the `nrs.asset.movement` row, or None
+        custody_id          the `nrs.asset.custody` row, or None
+        transfer_id         the `nrs.asset.transfer` document, or None
+        transfer_reference  its reference, or None
+
+    The two shapes it normalises are genuinely different and both are
+    published contract: `/move` answers `{asset, movement_id, transfer:
+    {id, reference, from_location, to_location, movement_id}}` and
+    `/approvals/<id>/approve` answers `{request, asset}` with the ids on the
+    request. A test that needs the route-specific shape asserts on `raised`
+    or `decision` itself; a test that needs the asset moved uses these keys.
+    """
+
+    def __init__(self, suite, suite_id, other, required):
+        self.suite = suite
+        self.suite_id = suite_id
+        self.other = other
+        self.required = required
+
+    @property
+    def requester(self):
+        """Whoever asks. The second person when approval is on."""
+        return self.other["client"] if self.required else self.suite
+
+    @property
+    def approver_id(self):
+        return self.suite_id if self.required else None
+
+    def move(self, asset_id, to_location_id, reason=None, **kw):
+        return self._act(asset_id, "move",
+                         {"to_location_id": to_location_id}, reason, **kw)
+
+    def transfer_custody(self, asset_id, to_custodian_id, reason=None, **kw):
+        return self._act(asset_id, "transfer-custody",
+                         {"to_custodian_id": to_custodian_id}, reason, **kw)
+
+    def _act(self, asset_id, verb, body, reason, headers=None):
+        body = dict(body)
+        if reason is not None:
+            body["reason"] = reason
+        if self.required:
+            body["approver_id"] = self.approver_id
+        raised = self.requester.post(f"/api/v1/assets/{asset_id}/{verb}",
+                                     json=body, headers=headers or {})
+        if not self.required:
+            data = assert_envelope_ok(raised)["data"]
+            custody = data.get("custody_change") or {}
+            transfer = data.get("transfer") or {}
+            return {
+                "pending": False, "raised": raised, "decision": None,
+                "request": None, "asset": data["asset"],
+                "movement_id": data.get("movement_id"),
+                "custody_id": custody.get("custody_id"),
+                "transfer_id": transfer.get("id"),
+                "transfer_reference": transfer.get("reference"),
+            }
+
+        data = assert_envelope_ok(raised)["data"]
+        assert data["pending_approval"] is True, (
+            "this tenant requires approval and %s answered without "
+            "`pending_approval`: %r" % (verb, data))
+        # The SUITE approves — see the fixture's docstring for why that is
+        # the way round, and why it is not merely a coincidence of who holds
+        # which credential on `test19`.
+        decision = self.suite.post(
+            "/api/v1/approvals/%s/approve" % data["request"]["id"], json={})
+        decided = assert_envelope_ok(decision)["data"]
+        req = decided["request"]
+        assert req["state"] == "approved", req
+        return {
+            "pending": True, "raised": raised, "decision": decision,
+            "request": req, "asset": decided["asset"],
+            "movement_id": req["movement_id"],
+            "custody_id": req["custody_id"],
+            "transfer_id": (req["transfer"] or {}).get("id"),
+            "transfer_reference": req["transfer_reference"],
+        }
 
 
 # ─── response capture ────────────────────────────────────────────────

@@ -16,10 +16,16 @@ model. An auditor has to be able to see that without knowing to ask.
 """
 import pytest
 
-from .conftest import assert_envelope_ok
+from .conftest import assert_envelope_ok, assert_fields_refused
 
 _SOURCES = {"api_transfer", "api_write", "transfer", "direct",
-            "tracking_backfill", "test"}
+            "tracking_backfill", "test", "approval"}
+
+# `approval` joined the set in handoff 35: when a tenant requires a second
+# person, the link is written by `action_approve` and declares that as its
+# source. It is what a real client's chain will be full of, so a reader of
+# this suite should see it named here even on a tenant where the credential
+# relabels it (see `_TEST_SOURCE` below).
 
 # What this suite's own links come back as. The suite moves a real asset's
 # custodian, and the recorder is append-only, so every link it writes is
@@ -55,24 +61,45 @@ def _two_employees(client):
     return rows[0]["id"], rows[1]["id"]
 
 
-def _build_a_chain(client, asset_id, links_wanted=3):
+def _build_a_chain(client, second_person, asset_id, links_wanted=3):
     """Move the custodian back and forth until the chain is long enough.
 
     Without this, a freshly created session asset has one link or none, and
     every pagination assertion below takes its early-return branch and tests
     nothing — a green run that checked nothing, which is worse than a red
     one. Returns the number of links now on the chain.
+
+    **Handoff 35 made this exact failure happen.** When `/transfer-custody`
+    started answering 400 *"`approver_id` is required"*, this loop's tolerant
+    `if r.status_code not in (200, 400, 404)` swallowed every call, no chain
+    was ever built, and three tests in this file went from passing to
+    SKIPPING — with the message "tenant has no two employees", which was not
+    true and was not the reason. The suite reported 11 skips instead of 8 and
+    nothing else changed colour. That is the shape report 23 §3 warned about:
+    a skip is a guard that passes. It is why the helper now goes through
+    `second_person`, which fails loudly when the tenant needs a second person
+    and there is nobody to be one.
     """
     pair = _two_employees(client)
     if not pair:
         return len(_whole_chain(client, asset_id))
+    held = None
+    chain = _whole_chain(client, asset_id)
+    if chain:
+        held = (chain[-1]["to_custodian"] or {}).get("id")
     for i in range(links_wanted):
         target = pair[i % 2]
-        r = client.post(f"/api/v1/assets/{asset_id}/transfer-custody",
-                        json={"to_custodian_id": target,
-                              "reason": "test_custody._build_a_chain"})
-        if r.status_code not in (200, 400, 404):
+        if target == held:
+            # The route refuses a transfer to the custodian already holding
+            # it, and rightly — but a refusal here writes no link, so the
+            # loop would run its full count and build a shorter chain than it
+            # reports. Alternate around it instead.
+            target = pair[(i + 1) % 2]
+        if target == held:
             break
+        second_person.transfer_custody(
+            asset_id, target, reason="test_custody._build_a_chain")
+        held = target
     return len(_whole_chain(client, asset_id))
 
 
@@ -112,7 +139,8 @@ def test_custody_route_returns_a_chain(client, test_asset, capture):
         assert "changed_at" in link
 
 
-def test_the_total_counts_the_chain_not_the_page(client, test_asset):
+def test_the_total_counts_the_chain_not_the_page(client, test_asset,
+                                                 second_person):
     """handoff 12's honesty, inherited rather than reimplemented.
 
     A one-record page of an N-link chain must still report N. This is the
@@ -121,7 +149,7 @@ def test_the_total_counts_the_chain_not_the_page(client, test_asset):
     it for free ONLY if it goes through `paginate()`, which is what this
     checks.
     """
-    _build_a_chain(client, test_asset["id"])
+    _build_a_chain(client, second_person, test_asset["id"])
     full = _whole_chain(client, test_asset["id"])
     length = len(full)
     if length < 2:
@@ -135,9 +163,9 @@ def test_the_total_counts_the_chain_not_the_page(client, test_asset):
     assert first["pagination"]["next_cursor"]
 
 
-def test_the_chain_pages_forwards(client, test_asset):
+def test_the_chain_pages_forwards(client, test_asset, second_person):
     """Oldest first, and the cursor walks it without repeating a link."""
-    _build_a_chain(client, test_asset["id"])
+    _build_a_chain(client, second_person, test_asset["id"])
     full = _whole_chain(client, test_asset["id"])
     if len(full) < 2:
         pytest.skip("tenant has no two employees to build a chain with")
@@ -161,9 +189,10 @@ def test_the_chain_pages_forwards(client, test_asset):
     assert seen == [link["id"] for link in full]
 
 
-def test_include_custody_is_not_capped(client, test_asset):
+def test_include_custody_is_not_capped(client, test_asset,
+                                       second_person):
     """The embed carries the WHOLE chain, and matches the route."""
-    _build_a_chain(client, test_asset["id"])
+    _build_a_chain(client, second_person, test_asset["id"])
     r = client.get(f"/api/v1/assets/{test_asset['id']}",
                    params={"include": "custody"})
     body = assert_envelope_ok(r)
@@ -172,26 +201,36 @@ def test_include_custody_is_not_capped(client, test_asset):
     assert [link["id"] for link in embedded] == [link["id"] for link in listed]
 
 
-def test_a_transfer_appends_exactly_one_link(client, test_asset, capture):
-    """POST /assets/<id>/transfer-custody — one physical act, one link."""
+def test_a_transfer_appends_exactly_one_link(client, test_asset,
+                                             second_person, capture):
+    """One physical act, one link — however many people it took to agree.
+
+    The old body tolerated a 400 and returned, on the grounds that "already
+    assigned to employee 1" says nothing about the chain. Handoff 35 turned
+    that tolerance into a hole: the 400 it started swallowing was *"`approver_id`
+    is required"*, and this test passed for the wrong reason while asserting
+    nothing at all. The target is now chosen so that it cannot be the
+    custodian already held, which removes the only refusal the branch existed
+    for — and the call goes through `second_person`, which asserts its own
+    2xx and fails rather than shrugging.
+
+    **The link is written on APPROVAL and never on the request.** That is
+    handoff 35 §B's first non-negotiable and it is what this test's counting
+    now also proves: one link for one act, not one for the asking and another
+    for the agreeing.
+    """
     before = _whole_chain(client, test_asset["id"])
     pair = _two_employees(client)
     if not pair:
         pytest.skip("tenant has no two employees to transfer between")
     held = (before[-1]["to_custodian"] or {}).get("id") if before else None
     target = pair[1] if held == pair[0] else pair[0]
-    r = client.post(f"/api/v1/assets/{test_asset['id']}/transfer-custody",
-                    json={"to_custodian_id": target,
-                          "reason": "test_custody.append_one"})
-    capture("assets/custody_transfer", r)
-    if r.status_code in (400, 404):
-        # 400: already assigned to employee 1. 404: this tenant has no
-        # employee 1. Both are the transfer route's own answers about its
-        # own inputs, and neither says anything about the chain — so this
-        # test has nothing to assert rather than something to fail on.
-        return
-    body = assert_envelope_ok(r)
-    link_id = body["data"]["custody_change"]["custody_id"]
+    if target == held:
+        pytest.skip("the asset already holds the only employee available")
+    moved = second_person.transfer_custody(
+        test_asset["id"], target, reason="test_custody.append_one")
+    capture("assets/custody_transfer", moved["decision"] or moved["raised"])
+    link_id = moved["custody_id"]
     assert link_id
     after = _whole_chain(client, test_asset["id"])
     assert len(after) == len(before) + 1
@@ -210,12 +249,30 @@ def test_a_transfer_appends_exactly_one_link(client, test_asset, capture):
     assert appended["changed_by"] is not None
 
 
-def test_a_patch_of_the_custodian_also_appends(client, test_asset):
-    """`custodian_id` is in `_WRITABLE_FIELDS`, so PATCH moves custody too.
+def test_a_patch_of_the_custodian_also_appends(client, test_asset,
+                                               second_person):
+    """`custodian_id` is in `_WRITABLE_FIELDS`, so PATCH moved custody too.
 
-    The handoff scoped the recorder to the transfer route on the grounds
-    that it is the only writer. It is not — and a chain missing this one
-    would have a gap that reads as a period of no movement.
+    The handoff that built the chain scoped the recorder to the transfer
+    route on the grounds that it was the only writer. It was not — and a
+    chain missing this one would have a gap that reads as a period of no
+    movement.
+
+    **Handoff 35 shut this door where a second person is required.** PATCH
+    now refuses a body that CHANGES `custodian_id`, whole, 400, naming
+    `/transfer-custody` in `details.use_instead`. So there are two properties
+    and this asserts whichever one is true of the tenant:
+
+      * door open  — the PATCH appends exactly one link, as it always did;
+      * door shut  — the PATCH appends NOTHING, and the chain is unchanged.
+
+    The second is the more important of the two to assert, because a refusal
+    is a response and not a rollback (CLAUDE.md): a route that refused after
+    writing would leave a permanent, unalterable link recording a change of
+    custodian that the caller was told had not happened.
+
+    The old body returned early on any non-200 and on any unchanged chain,
+    which on an approval tenant made it a test that ran and checked nothing.
     """
     before = _whole_chain(client, test_asset["id"])
     pair = _two_employees(client)
@@ -223,15 +280,23 @@ def test_a_patch_of_the_custodian_also_appends(client, test_asset):
         pytest.skip("tenant has no two employees to transfer between")
     held = (before[-1]["to_custodian"] or {}).get("id") if before else None
     target = pair[1] if held == pair[0] else pair[0]
+    if target == held:
+        pytest.skip("the asset already holds the only employee available")
+
     r = client.patch(f"/api/v1/assets/{test_asset['id']}",
                      json={"custodian_id": target})
-    if r.status_code != 200:
+
+    if second_person.required:
+        details = assert_fields_refused(r, "custodian_id")
+        assert details["approval_required"] is True
+        assert "/transfer-custody" in details["use_instead"]["custodian_id"]
+        assert _whole_chain(client, test_asset["id"]) == before, (
+            "a refused PATCH appended a link to an append-only chain — the "
+            "one kind of record nobody can go back and remove")
         return
+
+    assert_envelope_ok(r)
     after = _whole_chain(client, test_asset["id"])
-    if len(after) == len(before):
-        # The custodian did not actually move. Nothing to assert, and a link
-        # here would be the bug.
-        return
     assert len(after) == len(before) + 1
     # See the transfer test above: `test` is the same link relabelled by the
     # credential, not a different source.
@@ -249,7 +314,8 @@ def test_the_chain_has_no_write_endpoint(client, test_asset):
     assert r.status_code in (404, 405)
 
 
-def test_a_link_this_suite_wrote_says_so(client, test_asset):
+def test_a_link_this_suite_wrote_says_so(client, test_asset,
+                                         second_person):
     """The suite's own artefacts are identifiable FROM THE API ALONE.
 
     This suite writes permanent links into whichever tenant it is pointed
@@ -265,7 +331,7 @@ def test_a_link_this_suite_wrote_says_so(client, test_asset):
     failure would read as a defect in the labelling.
     """
     links_before = len(_whole_chain(client, test_asset["id"]))
-    _build_a_chain(client, test_asset["id"])
+    _build_a_chain(client, second_person, test_asset["id"])
     full = _whole_chain(client, test_asset["id"])
     if len(full) <= links_before:
         pytest.skip("tenant has no two employees to build a chain with")

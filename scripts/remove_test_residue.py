@@ -218,6 +218,22 @@ Movement = (env["nrs.asset.movement"].sudo()         # noqa: F821
 # the first query fails on a missing `nrs_asset_event` table.
 Event = (env["nrs.asset.event"].sudo()               # noqa: F821
          if "nrs.asset.event" in env else None)      # noqa: F821
+# `nrs.asset.change.request` (handoff 35) is the FOURTH pin, and it is NOT an
+# append-only record — it is a state machine, `pending → approved | rejected
+# | withdrawn`. What makes it pin an asset is the same two facts as the three
+# above: `asset_id` is `ondelete='restrict'` and the model refuses `unlink()`
+# unconditionally, because it records who authorised a change to a government
+# asset register.
+#
+# **It pins an asset that carries a request in ANY state, a withdrawn one
+# included.** A request raised in error is withdrawn rather than deleted —
+# that is the whole design — so a fixture asset somebody once raised a
+# request against is permanent. Same guard and same limit as the two above:
+# it covers a deployment without the module, NOT a database that has the
+# module and has not been upgraded, where the model is `in env` and the first
+# query dies on a missing table.
+ChangeRequest = (env["nrs.asset.change.request"].sudo()        # noqa: F821
+                 if "nrs.asset.change.request" in env else None)  # noqa: F821
 Location = env["generic.location"].sudo()            # noqa: F821
 Request = env["request.request"].sudo()              # noqa: F821
 
@@ -234,6 +250,8 @@ for asset in fixtures:
              if Movement is not None else 0)
     events = (Event.search_count([("asset_id", "=", asset.id)])
               if Event is not None else 0)
+    approvals = (ChangeRequest.search_count([("asset_id", "=", asset.id)])
+                 if ChangeRequest is not None else 0)
     requests = Request.search_count([("nrs_asset_id", "=", asset.id)])
     if asset.disposal_approved_by:
         refused.append((asset, "carries an APPROVED disposal — not reversible; "
@@ -254,6 +272,12 @@ for asset in fixtures:
                                "happened to an asset (verified, status "
                                "changed, reference changed) is append-only, "
                                "so the asset cannot be released" % events))
+    elif approvals:
+        refused.append((asset, "carries %d approval request(s); `asset_id` is "
+                               "ondelete=restrict and the record of who asked "
+                               "for a change and who decided it cannot be "
+                               "deleted, in any state — a withdrawn request "
+                               "is still a record" % approvals))
     elif requests:
         refused.append((asset, "%d service request(s) point at it; the field "
                                "is `set null`, so removing it would silently "

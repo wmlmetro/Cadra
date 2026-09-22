@@ -28,8 +28,105 @@ export class ApiClient {
     return new ApiClient(ctx, token, body?.data?.scope ?? "");
   }
 
+  /**
+   * A SECOND identity, for the one thing one identity cannot test.
+   *
+   * Handoff 35 refuses self-approval in the model, so the user who raises a
+   * request can never approve it — and this suite has exactly one login
+   * (`admin`). Proving the approve journey therefore needs somebody else,
+   * and there is no user-creation endpoint in the API to make one with.
+   *
+   * So it uses a SERVICE CREDENTIAL, which since handoff 08 has its own
+   * `res.users` distinct from `admin`: the client-credentials pair issues a
+   * token for that user, it raises the request naming `admin` as the
+   * approver, and `admin` approves it in the browser. That is the real
+   * journey — two people — rather than a simulation of it.
+   *
+   * **Defaults to nothing, never to something**, which is handoff 17's rule
+   * and the reason this is not wired to `docs/api/.creds.test19` by default:
+   * `ORIGIN` is env-overridable to any host, and a credential baked in next
+   * to it is a production credential waiting for an environment variable.
+   * Absent → null, and every spec that needs it skips with a reason naming
+   * the variables.
+   */
+  static async forServiceCredential(): Promise<ApiClient | null> {
+    const id = process.env.E2E_CLIENT_ID;
+    const secret = process.env.E2E_CLIENT_SECRET;
+    if (!id || !secret) return null;
+    const ctx = await pwRequest.newContext({ baseURL: ORIGIN, ignoreHTTPSErrors: true });
+    const res = await ctx.post("/api/v1/auth/token", {
+      data: { client_id: id, client_secret: secret },
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+    });
+    if (!res.ok()) return null;
+    const body = await res.json();
+    const token = body?.data?.access_token;
+    if (!token) return null;
+    return new ApiClient(ctx, token, body?.data?.scope ?? "");
+  }
+
   private headers() {
     return { Authorization: `Bearer ${this.token}`, Accept: "application/json" };
+  }
+
+  // ── Approvals (handoff 35) ────────────────────────────────────────
+
+  /**
+   * Whether THIS tenant needs a second person to agree to a move.
+   *
+   * Asked of the server on every run rather than assumed, because the
+   * answer differs per tenant and **absent means required** — so a tenant
+   * nobody has configured (which is every tenant on this machine) answers
+   * `true`. A spec that hard-coded either answer would pass on one tenant
+   * and lie on the next.
+   */
+  async approvalRequired(): Promise<boolean> {
+    const probe = await this.probe("/api/v1/settings/approvals");
+    // Unreadable → treat as required, the same direction the server and the
+    // front end both fail in. A spec that guessed "not required" here would
+    // assert the asset moved and fail confusingly.
+    if (!probe.ok) return true;
+    return probe.body?.data?.required !== false;
+  }
+
+  /** Somebody this caller may ask to approve, or null. */
+  async anApprover(): Promise<{ id: number; name: string } | null> {
+    const list = await this.get<any[]>("/api/v1/approvals/approvers", { limit: 5 });
+    return list?.[0] ?? null;
+  }
+
+  /** Whoever is holding this credential. Used to name the OTHER party. */
+  async whoami(): Promise<any> {
+    return this.get("/api/v1/auth/whoami");
+  }
+
+  /**
+   * Move an asset FOR REAL on a tenant that requires approval: raise, then
+   * approve as `approver`. Returns the request id.
+   *
+   * `approver` must be a different ApiClient — the model refuses
+   * self-approval under sudo and as SUPERUSER, so there is no shortcut.
+   */
+  async moveWithApproval(assetId: number | string, toLocationId: number,
+                         approver: ApiClient, approverUserId: number,
+                         reason = "e2e") {
+    const raised = await this.post(`/api/v1/assets/${assetId}/move`, {
+      to_location_id: toLocationId, approver_id: approverUserId, reason,
+    });
+    if (!raised?.pending_approval) return null;       // tenant has it off
+    await approver.post(`/api/v1/approvals/${raised.request.id}/approve`, {});
+    return raised.request.id as number;
+  }
+
+  async transferCustodyWithApproval(assetId: number | string, toCustodianId: number,
+                                    approver: ApiClient, approverUserId: number,
+                                    reason = "e2e") {
+    const raised = await this.post(`/api/v1/assets/${assetId}/transfer-custody`, {
+      to_custodian_id: toCustodianId, approver_id: approverUserId, reason,
+    });
+    if (!raised?.pending_approval) return null;
+    await approver.post(`/api/v1/approvals/${raised.request.id}/approve`, {});
+    return raised.request.id as number;
   }
 
   /** GET an enveloped endpoint; returns the `data` payload. */
@@ -143,6 +240,30 @@ export class ApiClient {
    * response mapper only handles locations that carry a building hierarchy —
    * see the reported adapters.ts bug — so tests move between buildings.
    */
+  /**
+   * Any two DISTINCT locations, whatever their type.
+   *
+   * `twoBuildings()` filters `location_type === "building"` and every
+   * location on `test19` has `location_type: null` — so it returns nothing
+   * and every spec that asks for it skips. That is a fact about the tenant's
+   * seed data, not about the feature, and it is already why `CLAUDE.md`
+   * records three move specs as skipping there.
+   *
+   * Approval cares about moving an asset from one place to another and not
+   * at all about what kind of place it is, so the approval specs ask for
+   * this instead and actually run.
+   */
+  async twoLocations(): Promise<any[]> {
+    const list = await this.locations(60);
+    const seen = new Set<number>();
+    const out: any[] = [];
+    for (const l of list) {
+      if (!seen.has(l.id)) { seen.add(l.id); out.push(l); }
+      if (out.length === 2) break;
+    }
+    return out;
+  }
+
   async twoBuildings(): Promise<any[]> {
     const list = await this.locations(60);
     const buildings = list.filter((l) => l.location_type === "building");

@@ -404,6 +404,70 @@ class CadraConfigV1(http.Controller):
 
         return request.env["cadra.depreciation.settings"].sudo().set_settings(vals)
 
+    # ── Approvals: GET /api/v1/settings/approvals ────────────────────
+
+    @cadra_route("/api/v1/settings/approvals", method="GET",
+                 summary="Does this register require a second person to "
+                         "approve a move or a custody change?",
+                 # `assets:read`, NOT `settings:read`. Every other block on
+                 # this controller reads with `settings:read`, and this one
+                 # deliberately does not: the app has to ask this question
+                 # wherever it draws a Move button, and `settings:read` is
+                 # granted by `group_asset_manager` and `group_auditor` only.
+                 # Gating it that way would make the answer unreadable to
+                 # some signed-in users while the button was still on their
+                 # screen — and the front end fails CLOSED on an unreadable
+                 # answer, so the symptom would be a correct-looking dialog
+                 # asking for an approver on a tenant that does not want one.
+                 # The value is not sensitive: it says whether this register
+                 # asks for a second person, which anyone who can see an
+                 # asset may as well know.
+                 scopes=[SCOPE_ASSETS_READ],
+                 response_schema={
+                     "type": "object",
+                     "properties": {
+                         "required": {"type": "boolean"},
+                         "setting": {"type": "string", "nullable": True,
+                                     "enum": ["on", "off", None]},
+                         "configured": {"type": "boolean"},
+                         "default_when_unset": {"type": "boolean"},
+                         "parameter": {"type": "string"},
+                     },
+                 })
+    def get_approval_settings(self, **kwargs):
+        """What the approval switch says, and whether anybody ever set it.
+
+        **READ-ONLY, and there is deliberately no PATCH twin.** Every other
+        settings block on this controller has one; this one does not, and the
+        reason is the point of the control. `assets:write`, `approvals:write`
+        and `settings:write` are all granted by a single group,
+        `group_asset_manager` — so a PATCH here would let exactly the people
+        the rule constrains switch it off, move the asset and switch it back
+        on. That is not a control; it is a speed bump with an audit trail
+        nobody reads.
+
+        An administrator sets it once, in the database, the way
+        `cadra.database_class` is set. The command is printed inside the
+        refusal a gated write raises, so nobody has to come looking for it.
+
+        `configured` is what a screen needs and `required` alone cannot say:
+        *nobody has ever set this and it is getting the default* and *somebody
+        deliberately turned it on* are the same behaviour and very different
+        facts.
+        """
+        from odoo.addons.myservice_asset_register.approval_policy import (
+            PARAM, REQUIRED_WHEN_UNSET, approval_setting)
+        env = request.env
+        setting = approval_setting(env)
+        return {
+            "required": env["nrs.asset.change.request"].sudo(
+            ).approval_is_required(),
+            "setting": setting,
+            "configured": setting is not None,
+            "default_when_unset": REQUIRED_WHEN_UNSET,
+            "parameter": PARAM,
+        }
+
     @cadra_route("/api/v1/settings/depreciation/recompute", method="POST",
                  summary="Recompute book values across the register",
                  scopes=[SCOPE_SETTINGS_WRITE],

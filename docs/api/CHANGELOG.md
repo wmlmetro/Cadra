@@ -33,6 +33,168 @@ live at was never the point.
 
 ---
 
+## 2026-09-22 — handoff 35: nobody moves an asset alone · `myservice_api` 19.0.3.13.0
+
+**BREAKING.** On any tenant where approval is required — **which is the
+default, and the default is what an unconfigured tenant gets** — `POST
+/api/v1/assets/<id>/move` and `POST /api/v1/assets/<id>/transfer-custody` no
+longer move the asset. They raise a request for a second person to agree to,
+and `approver_id` becomes required on both. `PATCH /api/v1/assets/<id>`
+refuses a `location_id` or `custodian_id` that would move the asset to a
+DIFFERENT one — re-sending the value it already has, and clearing it to
+`null`, both still save.
+
+**The version that behaves this way is `myservice_api` 19.0.3.13.0** (with
+`myservice_asset_register` 19.0.1.19.0). An integration can tell without
+asking: `GET /api/v1/settings/approvals` returns `{"required": …}`, and on a
+Cadra that predates this it is a `404`.
+
+### The status stays 200, and the body carries it
+
+A raised request answers **`200`**, not `202`, with:
+
+```json
+{ "data": { "pending_approval": true, "action": "move",
+            "request": { "id": 41, "reference": "CR/2026/0041", "state": "pending", "…": "…" },
+            "asset": { "…": "UNCHANGED, read back in this response" },
+            "movement_id": null, "transfer": null, "custody_change": null } }
+```
+
+`pending_approval` is the first key and a boolean, so the cheapest possible
+read of the response is the correct one. The three keys the old contract
+published are explicitly `null` rather than absent, because a consumer
+reading `movement_id` must be able to tell *not yet* from *gone*.
+
+**Why not 202.** This API has no per-call success status — it comes from the
+`cadra_route` decorator — and adding one would have to be carried through the
+idempotency cache as well, or a replay of the same `X-Idempotency-Key` would
+answer `202` once and `200` afterwards. An idempotent replay that is not
+byte-exact is the property handoff 18 built and handoff 31 protected, and
+that was judged worth more than a better-looking status code on one route.
+**Read `data.pending_approval`, or read `data.asset` — do not read the
+status.**
+
+### BREAKING — `POST /assets/<id>/move`
+
+| | Before | Now, where approval is required |
+|---|---|---|
+| the asset | moved | **unchanged** |
+| `approver_id` in the body | not read | **required** — `400 invalid_request` without it, `details.approvers` lists who may be asked |
+| `data.movement_id` | the new movement row | **`null`** |
+| `data.transfer` | the transfer document, or `null` | **`null`** |
+| another request already pending on this asset | n/a | **`409 conflict`**, `details.pending_request` names it |
+| the asset is disposed | `400 validation_failed` | `400 validation_failed` (unchanged — refused before anything is raised) |
+
+
+Where approval is NOT required the route behaves exactly as before,
+`approver_id` is ignored, and nothing in the response changes.
+
+### BREAKING — `POST /assets/<id>/transfer-custody`
+
+The same, with `data.custody_change` `null` instead of the custody block —
+**with one difference, and it is a defect rather than a decision.** `/move`
+refuses a disposed asset before it raises anything; `/transfer-custody` has
+no such check, so on a disposed asset it answers `200` with a pending request
+that can never be approved — the premise check refuses it when the approver
+clicks, saying the asset has been disposed of — and it occupies that asset's
+one pending slot until somebody withdraws it. Do not send one.
+
+### BREAKING — `PATCH /assets/<id>`
+
+A body that would CHANGE `location_id` or `custodian_id` is
+**`400 invalid_request`** and **nothing in the call is written** — not the
+other fields either, which is the whole-body refusal handoff 31 published.
+
+```json
+{ "error": { "code": "invalid_request",
+  "message": "This register requires a second person to approve a change of `location_id`, so it cannot be PATCHed: use POST /api/v1/assets/124/move, which raises a request. Nothing in this call was written.",
+  "details": { "asset_id": 124, "approval_required": true,
+               "rejected_fields": ["location_id"],
+               "writable": ["…everything else…"],
+               "use_instead": { "location_id": "POST /api/v1/assets/124/move" } } } }
+```
+
+**A body that NAMES either field with the value it already has still saves.**
+The Cadra app's edit form re-sends every field on every save, and refusing
+the presence of the key rather than the change would make saving a note on
+an asset impossible — the trap `CLAUDE.md` names about a screen that PATCHes
+back the object it GET-ed.
+
+**And CLEARING either field still saves.** `{"custodian_id": null}` and
+`{"location_id": null}` are not refused on any tenant: taking an asset back
+from somebody, or off a location, hands it to nobody. Going the other way —
+nobody to somebody, nowhere to somewhere — is a grant and is refused, so two
+calls buy a caller nothing one would not. Refusing a clear was the first
+draft's behaviour and was a dead end, not a control: the message named
+`POST …/transfer-custody`, which requires `to_custodian_id`, so un-assigning
+a custodian would have become impossible through the API.
+
+### New — seven endpoints
+
+| Route | Scope | Notes |
+|---|---|---|
+| `GET /api/v1/approvals` | `assets:read` | The queue. Cursor-paginated, newest first. Filters: `state`, `change_type`, `asset_id`, `waiting_on_me`, `raised_by_me` |
+| `GET /api/v1/approvals/<id>` | `assets:read` | One request |
+| `GET /api/v1/approvals/approvers` | `assets:write` | Who this caller may ask — everyone who could have made the change themselves, minus the caller. `?q=`, `?limit=` |
+| `POST /api/v1/approvals/<id>/approve` | `approvals:write` | Idempotent. `{"reason": …}` optional |
+| `POST /api/v1/approvals/<id>/reject` | `approvals:write` | Idempotent. **`reason` is REQUIRED** |
+| `POST /api/v1/approvals/<id>/withdraw` | `assets:write` | Idempotent. The requester's own |
+| `GET /api/v1/settings/approvals` | `assets:read` | Whether this tenant requires a second person, and whether anybody ever set it. **`assets:read`, not `settings:read`** — the app asks it wherever it draws a Move button, and `settings:read` is held only by Asset Manager and Auditor |
+
+Reading the queue is `assets:read` and not `approvals:write`, so an Auditor
+can read who authorised what without being able to authorise anything.
+Withdrawing is `assets:write`, because taking back your own request is not a
+decision about somebody else's — requiring `approvals:write` would leave a
+requester who cannot approve unable to cancel their own request.
+
+### Two fields that are never the same field
+
+* **`approver`** — WHO IS BEING ASKED. Sent by the requester as
+  `approver_id` on `/move` and `/transfer-custody`. A nomination: it puts the
+  request in somebody's queue and addresses the notification. It confers
+  nothing — anyone eligible may decide any pending request.
+* **`decided_by`** — WHO CLICKED. Taken from the bearer token, exactly as
+  `POST /assets/<id>/approve-disposal` takes its approver. **A body naming
+  `decided_by`, `approved_by`, `decided_at`, `requested_by` or `state` on any
+  of the three action routes — `/approve`, `/reject`, `/withdraw` — is
+  `400 invalid_request`**, not ignored. Those three accept `reason` and
+  nothing else.
+
+### The three ways an approval says no
+
+* **`403 forbidden`** — you raised it, or you could not have made the change
+  yourself. `details.is_own_request` tells the two apart.
+* **`409 conflict`** — already decided, or the premise no longer holds. A
+  request records what the asset WAS when it was raised; if somebody else has
+  moved it, disposed of it or changed its status since, it cannot be approved
+  and `details.premise_broken_reason` says what changed.
+* **`400 invalid_request`** — the body tries to say who decided, or sends a
+  key the route does not read (only `reason` is accepted).
+
+### New enums on `GET /api/v1/meta/enums`
+
+`approval_state` (`pending` | `approved` | `rejected` | `withdrawn`) and
+`approval_change_type` (`location` | `custody`). Prefixed for the reason
+`asset_state` is: `state` is the most reused field name in this schema.
+
+### The switch is read-only over the API, on purpose
+
+`GET /api/v1/settings/approvals` publishes it; **nothing sets it.** Every
+other settings block on that controller has a `PATCH` twin and this one does
+not, because `assets:write`, `approvals:write` and `settings:write` are all
+granted by the one group `group_asset_manager` — a `PATCH` would let exactly
+the people the rule constrains switch it off, act, and switch it back on. An
+administrator sets `cadra.approval.required` in the database, once, and the
+exact command is printed inside the refusal a gated write raises.
+
+**Absent, blank, misspelt and unrecognised all mean ON.** `configured` in the
+response is what tells *nobody has ever set this* from *somebody turned it
+on* — the same behaviour, two very different facts.
+
+See the endpoint reference, §3.5.2, §3.6, §3.7 and §11.
+
+---
+
 ## 2026-09-22 — handoff 34: warranty · `myservice_api` 19.0.3.12.0
 
 **Additive. Nothing renamed, nothing that used to be accepted is refused.**

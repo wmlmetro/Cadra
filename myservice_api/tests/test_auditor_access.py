@@ -63,6 +63,17 @@ import json
 import uuid
 from datetime import timedelta
 
+# Handoff 35 gates every writer of `location_id` and `custodian_id` behind a
+# second person, and these tests write both directly through the ORM to build
+# the history they then read. Each such write declares
+# `cadra_approval_exempt="test"` AT ITS OWN CALL SITE — per call and never
+# once per file or per class, for the reason `approval_policy.EXEMPT_REASONS`
+# and `myservice_nrs_base/database_class.py` both give: a flag added for one
+# legitimate afternoon becomes the way everybody runs by the end of the
+# month. A test declaring itself a fixture is not the same thing as a switch
+# that turns the rule off.
+
+
 from odoo import fields
 from odoo.tests import tagged
 from odoo.addons.myservice_nrs_base.tests.common import CadraHttpCase
@@ -147,7 +158,8 @@ class TestAuditorAccess(CadraHttpCase):
         # is the honest way to make one.
         cls.employee = cls.env["hr.employee"].sudo().create(
             {"name": "auditor probe custodian %s" % cls.marker})
-        cls.asset.write({"custodian_id": cls.employee.id})
+        cls.asset.with_context(
+            cadra_approval_exempt="test").write({"custodian_id": cls.employee.id})
 
         # ── the tenant's own configuration ───────────────────────────
         #

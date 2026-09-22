@@ -186,6 +186,16 @@ _BODY_ROUTES = {
         (None, None, "action: no body keys, and it already refuses any"),
     ("POST", "/api/v1/assets/<int:id>/condemn"):
         (None, None, "action: `reason`, recorded on the event"),
+    # Handoff 35. The three decisions on an approval request. Their bodies
+    # carry at most a `reason` — WHO decided is taken from the bearer token
+    # and a body naming it is refused 400, which is why none of them names a
+    # model's fields.
+    ("POST", "/api/v1/approvals/<int:id>/approve"):
+        (None, None, "action: `reason`, recorded on the decision"),
+    ("POST", "/api/v1/approvals/<int:id>/reject"):
+        (None, None, "action: `reason`, REQUIRED and recorded"),
+    ("POST", "/api/v1/approvals/<int:id>/withdraw"):
+        (None, None, "action: `reason`, optional and recorded"),
     ("POST", "/api/v1/assets/<int:id>/mark-found"):
         (None, None, "action: `reason`, recorded on the event"),
     ("POST", "/api/v1/assets/<int:id>/mark-missing"):
@@ -329,6 +339,10 @@ _GUARDED_READS = {
         # name here to drift. Three modules carry a copy of `_ref`.
         None,
     ("v1_identity.py", "_ref", "rec", "name"): None,
+    # Handoff 35's fourth copy of the same three-line helper. Same reasoning
+    # as `v1_assets._ref` above: the parser sees the DEFAULT `name_field`,
+    # and every caller passes a record of a different model.
+    ("v1_approvals.py", "_ref", "rec", "name"): None,
     ("v1_requests.py", "_ref", "rec", "name"): None,
     # `request` is werkzeug's, not a record: these read per-request state
     # the API puts there itself.
@@ -359,6 +373,13 @@ _SERIALIZERS = {
     ("v1_assets.py", "_serialize_custody"): "nrs.asset.custody",
     ("v1_assets.py", "serialize_asset"): "nrs.asset",
     ("v1_requests.py", "serialize_request"): "request.request",
+    # Handoff 35. NOTE the name collision with the line above: two functions
+    # called `serialize_request` in two controllers, for two unrelated models
+    # — a service-desk request and an approval request. This table is keyed
+    # by (file, function) so it is unambiguous here, but it is the kind of
+    # drift the last three defects in this codebase were made of, and the
+    # next person to add a third should rename rather than add.
+    ("v1_approvals.py", "serialize_request"): "nrs.asset.change.request",
     ("v1_locations.py", "serialize_location"): "generic.location",
     ("v1_identity.py", "serialize_employee"): "hr.employee",
     ("v1_fleet.py", "serialize_vehicle"): "fleet.vehicle",

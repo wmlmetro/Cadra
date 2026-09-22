@@ -1,6 +1,6 @@
 {
     'name': 'NRS Asset Register & PM Schedules',
-    'version': '19.0.1.18.0',
+    'version': '19.0.1.19.0',
     'summary': 'Fixed asset register, condition tracking, tagging, transfers, PM auto-scheduling',
     'category': 'Facilities',
     'author': 'WestMetro Limited',
@@ -29,6 +29,9 @@
         # "External ID not found"; an UPGRADE resolves it from the existing
         # row and passes, which is exactly how it reached CI unnoticed.
         'views/asset_sap_views.xml',
+        # Also after `asset_menu.xml`, for the reason above it: this hangs a
+        # menu off `menu_asset_root`. Handoff 35.
+        'views/asset_change_request_views.xml',
         'data/asset_cron.xml',
     ],
     'assets': {

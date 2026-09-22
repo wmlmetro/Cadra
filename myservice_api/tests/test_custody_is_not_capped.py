@@ -23,6 +23,17 @@ and there is no honest way to fake that from a TransactionCase. Needs
 import json
 import uuid
 
+# Handoff 35 gates every writer of `location_id` and `custodian_id` behind a
+# second person, and these tests write both directly through the ORM to build
+# the history they then read. Each such write declares
+# `cadra_approval_exempt="test"` AT ITS OWN CALL SITE — per call and never
+# once per file or per class, for the reason `approval_policy.EXEMPT_REASONS`
+# and `myservice_nrs_base/database_class.py` both give: a flag added for one
+# legitimate afternoon becomes the way everybody runs by the end of the
+# month. A test declaring itself a fixture is not the same thing as a switch
+# that turns the rule off.
+
+
 from odoo.tests import tagged
 from odoo.addons.myservice_nrs_base.tests.common import CadraHttpCase
 
@@ -59,7 +70,8 @@ class TestCustodyIsNotCapped(CadraHttpCase):
         # `nrs.asset.write`, not in the transfer route — handoff 14 — so an
         # ordinary ORM write is the honest way to build a chain.
         for i in range(cls.LINKS):
-            cls.asset.write({"custodian_id": cls.employees[i % 2].id})
+            cls.asset.with_context(
+                cadra_approval_exempt="test").write({"custodian_id": cls.employees[i % 2].id})
 
         cls.client_capped = cls.create_api_client({
             "name": "custody probe capped",
@@ -74,9 +86,22 @@ class TestCustodyIsNotCapped(CadraHttpCase):
             "scopes": "assets:read assets:write",
             "is_test_credential": True,
         })
+        # A SECOND test credential, because handoff 35 means a custody change
+        # takes two people and the model refuses self-approval. The link this
+        # file is about is written by `action_approve`, under the APPROVER's
+        # user — so for the relabel to still be the thing under test, the
+        # approver must itself be a test credential. That is the honest
+        # adaptation: the property is *a link written under a test credential
+        # says so*, and it is the writer that matters, not the requester.
+        cls.client_approver = cls.create_api_client({
+            "name": "custody probe approving credential",
+            "client_id": "custodyprobe_appr_%s" % marker,
+            "scopes": "assets:read assets:write approvals:write",
+            "is_test_credential": True,
+        })
         cls.secrets = {
             rec.client_id: rec.rotate_secret()
-            for rec in (cls.client_capped, cls.client_test)
+            for rec in (cls.client_capped, cls.client_test, cls.client_approver)
         }
 
         ICP = cls.env["ir.config_parameter"].sudo()
@@ -185,6 +210,38 @@ class TestCustodyIsNotCapped(CadraHttpCase):
 
     # ── handoff 15 B2 ────────────────────────────────────────────────
 
+    def _transfer_custody(self, token, body, approver_token=None):
+        """Change the custodian over HTTP, on either kind of tenant.
+
+        On a tenant that requires approval this raises a request and has the
+        SECOND credential approve it; on one that does not, it is the single
+        call it always was. Returns the response of whichever call was the
+        one that actually wrote the link.
+        """
+        required = self.env["nrs.asset.change.request"].sudo(
+        ).approval_is_required()
+        if required:
+            body = dict(body, approver_id=self.client_approver.user_id.id)
+        r = self.url_open(
+            "/api/v1/assets/%d/transfer-custody" % self.asset.id,
+            data=json.dumps(body),
+            headers={"Authorization": "Bearer %s" % token,
+                     "Content-Type": "application/json"})
+        if not required:
+            return r
+        self.assertEqual(r.status_code, 200, r.text)
+        payload = json.loads(r.text)["data"]
+        self.assertTrue(payload.get("pending_approval"),
+                        "the tenant requires approval, so this must be a "
+                        "request and not a change: %s" % r.text)
+        request_id = payload["request"]["id"]
+        return self.url_open(
+            "/api/v1/approvals/%d/approve" % request_id,
+            data=json.dumps({}),
+            headers={"Authorization": "Bearer %s" % (
+                approver_token or self._token(self.client_approver)),
+                "Content-Type": "application/json"})
+
     def test_a_link_written_by_a_test_credential_says_so(self):
         """`source: test`, decided from the credential and not from the call.
 
@@ -195,12 +252,9 @@ class TestCustodyIsNotCapped(CadraHttpCase):
         `tracking_backfill`, one step on.
         """
         token = self._token(self.client_test)
-        r = self.url_open(
-            "/api/v1/assets/%d/transfer-custody" % self.asset.id,
-            data=json.dumps({"to_custodian_id": self._other_custodian().id,
-                             "reason": "test_custody_is_not_capped"}),
-            headers={"Authorization": "Bearer %s" % token,
-                     "Content-Type": "application/json"})
+        r = self._transfer_custody(
+            token, {"to_custodian_id": self._other_custodian().id,
+                    "reason": "test_custody_is_not_capped"})
         self.assertEqual(r.status_code, 200, r.text)
 
         links = self._whole_chain(self.client_capped)
@@ -221,17 +275,25 @@ class TestCustodyIsNotCapped(CadraHttpCase):
         token = self._token(self.client_test)
         self.client_test.is_test_credential = False
         try:
-            r = self.url_open(
-                "/api/v1/assets/%d/transfer-custody" % self.asset.id,
-                data=json.dumps({"to_custodian_id": self._other_custodian().id,
-                                 "source": "test",
-                                 "reason": "trying to label my own write"}),
-                headers={"Authorization": "Bearer %s" % token,
-                         "Content-Type": "application/json"})
+            # The APPROVER must not be a test credential either, or the
+            # relabel would fire on it and mask what is being tested.
+            self.client_approver.is_test_credential = False
+            r = self._transfer_custody(
+                token, {"to_custodian_id": self._other_custodian().id,
+                        "source": "test",
+                        "reason": "trying to label my own write"})
             self.assertEqual(r.status_code, 200, r.text)
             links = self._whole_chain(self.client_capped)
-            self.assertEqual(
-                links[-1]["source"], "api_transfer",
+            # `api_transfer` on a tenant without approval, `approval` on one
+            # with it — whichever route wrote the link DECLARED its own
+            # source. What must never appear is `test`, which is the claim
+            # the body made.
+            self.assertIn(
+                links[-1]["source"], ("api_transfer", "approval"),
                 "`source` in the request body must be ignored entirely")
+            self.assertNotEqual(
+                links[-1]["source"], "test",
+                "a caller must not be able to label its own link a fixture")
         finally:
             self.client_test.is_test_credential = True
+            self.client_approver.is_test_credential = True

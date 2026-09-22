@@ -736,6 +736,79 @@ never saw. What `PATCH` still cannot carry is the REASON — that is §3.6.3.
 Until this date a disposed asset could be marked missing, which overwrote
 `disposed` and returned it to the register with a 200.
 
+## 3.5.2 Nobody moves an asset alone — from 19.0.3.13.0 (handoff 35)
+
+**On a tenant where approval is required, a move and a custody change need a
+second person, and `PATCH` cannot make either** — a move or a handover, that
+is. Clearing a location or a custodian is neither, and still saves. Whether this tenant requires
+it is `GET /api/v1/settings/approvals` (§11.7). **Absent means required**, so
+a tenant nobody has configured is a tenant that asks for an approver.
+
+The rule is on the asset model, underneath every writer of `location_id` and
+`custodian_id` — twelve and thirteen of them respectively — and not in the
+three routes below. That is why a `PATCH` is refused as well as a `/move`.
+
+| Through the API, on a tenant that requires approval | Answer |
+|---|---|
+| `POST …/move` with `approver_id` | **200**, `data.pending_approval: true`, asset UNCHANGED (§3.6) |
+| `POST …/move` without `approver_id` | **400** `invalid_request`, `details.approvers` lists who may be asked |
+| `POST …/transfer-custody` | the same (§3.7) |
+| `PATCH` a `location_id` or `custodian_id` to a **different value** | **400** `invalid_request`, **nothing in the call is written** |
+| `PATCH` a `location_id` or `custodian_id` with the value it already has | **200** — the edit form re-sends every field on every save |
+| `PATCH` `location_id` or `custodian_id` to **`null`** | **200 — allowed.** Clearing hands the asset to nobody; it is not a grant, and it is still recorded |
+| `PATCH` anything else | unchanged |
+| a second request while one is pending on the asset | **409** `conflict`, `details.pending_request` names the one in the way |
+
+### The PATCH refusal
+
+```bash
+acurl -X PATCH $API/api/v1/assets/124 \
+  -H 'Content-Type: application/json' \
+  -d '{"location_id": 905, "notes": "moved during the reshuffle"}'
+```
+
+```json
+{
+  "error": {
+    "code": "invalid_request",
+    "message": "This register requires a second person to approve a change of `location_id`, so it cannot be PATCHed: use POST /api/v1/assets/124/move, which raises a request. Nothing in this call was written.",
+    "request_id": "…",
+    "details": {
+      "asset_id": 124,
+      "approval_required": true,
+      "rejected_fields": ["location_id"],
+      "writable": ["…every other writable key…"],
+      "use_instead": { "location_id": "POST /api/v1/assets/124/move" },
+      "http_status": 400
+    }
+  }
+}
+```
+
+**`notes` was not written either.** A `PATCH` carries a whole object;
+applying half of it and refusing the other half would leave the caller with a
+save they cannot reason about, so the body is refused whole — the contract
+handoff 31 published for every write route.
+
+### Clearing is not a grant, and is not refused
+
+`PATCH {"custodian_id": null}` and `PATCH {"location_id": null}` still work
+on a tenant that requires approval. Taking an asset back from somebody, or
+off a location, hands it to nobody, and there is no second person to ask
+about an asset returning to the store — the same argument the register's
+employee-departure routine already makes.
+
+**It is not a way round the rule.** Going from nobody to somebody, or from
+nowhere to somewhere, IS a grant and IS refused, so dropping an asset and
+then placing it is two calls that get a caller exactly what one would: the
+second is refused. Both calls are recorded in the append-only movement and
+custody records either way.
+
+Refusing it was the first draft's behaviour and was a dead end rather than a
+control: the message named `POST …/transfer-custody`, and that route answers
+*"`to_custodian_id` is required"* — so un-assigning a custodian had become
+impossible through the API, having worked for the register's whole life.
+
 ## 3.6 POST `/api/v1/assets/<id>/move` — move to a new location
 
 Scope: `assets:write`. Success: **200**. Idempotent.
@@ -751,6 +824,18 @@ to be described here as the audit trail. It never was.
 `reason`, when sent, must be a string (400 `invalid_request` otherwise), and
 **every refusal on this route happens before anything is written.**
 
+**From 19.0.3.13.0, on a tenant that requires approval (§3.5.2) this route
+does not move the asset.** It raises a request and answers **200** with
+`data.pending_approval: true`, the request, and `data.asset` UNCHANGED —
+read back from the database in the same response. `approver_id` becomes
+required. `data.movement_id` and `data.transfer` are **`null`**, explicitly,
+because that is what this call did NOT produce.
+
+**Read `data.pending_approval`, not the status code.** It stays 200: this API
+has no per-call success status, and giving one route a 202 would have to be
+carried through the idempotency cache as well or a replay of the same
+`X-Idempotency-Key` would answer 202 once and 200 afterwards.
+
 **An asset with NO current location is placed, not transferred.** A transfer
 document needs both ends, so none is made: `data.transfer` is **`null`**,
 `location_id` is set, and the movement record holds the placement (no `from`;
@@ -760,7 +845,7 @@ always produces. Until 2026-09-21 this case answered 400 *"Required field
 missing: from_location_id"*, and such an asset could not be placed here at
 all.
 
-### Request
+### Request — where approval is NOT required
 
 ```bash
 acurl -X POST $API/api/v1/assets/124/move \
@@ -771,7 +856,7 @@ acurl -X POST $API/api/v1/assets/124/move \
   }'
 ```
 
-### Success — `200 OK`
+### Success — `200 OK`, the asset has moved
 
 ```json
 {
@@ -786,6 +871,9 @@ acurl -X POST $API/api/v1/assets/124/move \
 
 ### Error — `400 invalid_request` (same-location move forbidden)
 
+Whichever way the tenant is configured: this is refused at the door, and no
+request is raised for it either.
+
 *This section said `422 unprocessable` until handoff 28 and had never been
 true: the route has always answered 400. Corrected against a live response.*
 
@@ -798,6 +886,95 @@ acurl -X POST $API/api/v1/assets/124/move \
 
 ```json
 { "error": { "code": "invalid_request", "message": "Asset is already at the requested location", "request_id": "…", "details": { "current_location_id": 891, "http_status": 400 } } }
+```
+
+### Request — where approval is required
+
+```bash
+acurl -X POST $API/api/v1/assets/124/move \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "to_location_id": 905,
+    "approver_id": 12,
+    "reason": "Reshuffle after Q2 audit"
+  }'
+```
+
+### Success — `200 OK`, and the asset has not moved
+
+```json
+{
+  "data": {
+    "pending_approval": true,
+    "action": "move",
+    "request": {
+      "id": 41,
+      "reference": "CR/2026/0041",
+      "state": "pending",
+      "change_type": "location",
+      "approver": { "id": 12, "name": "Ngozi Bello" },
+      "requested_by": { "id": 8, "name": "Tunde Alabi" },
+      "requested_at": "2026-09-22T11:04:19",
+      "to_location": { "id": 905, "name": "HQ - 1F - Server Room" },
+      "to_custodian": null,
+      "reason": "Reshuffle after Q2 audit"
+    },
+    "asset": { "id": 124, "current_location": { "id": 891, "name": "HQ - GF - Mail Room" }, "...": "UNCHANGED" },
+    "movement_id": null,
+    "transfer": null,
+    "custody_change": null
+  },
+  "meta": { "request_id": "…", "timestamp": "…", "version": "v1" }
+}
+```
+
+### Error — `400 invalid_request` (no approver named)
+
+```bash
+acurl -X POST $API/api/v1/assets/124/move \
+  -H 'Content-Type: application/json' -d '{"to_location_id": 905}'
+```
+
+```json
+{
+  "error": {
+    "code": "invalid_request",
+    "message": "This register requires a second person to approve a change of this kind, so `approver_id` is required: name who you are asking. GET /api/v1/approvals/approvers lists who may be asked.",
+    "request_id": "…",
+    "details": {
+      "asset_id": 124,
+      "approval_required": true,
+      "approvers": [ { "id": 12, "name": "Ngozi Bello" }, { "id": 19, "name": "Sade Okonkwo" } ],
+      "http_status": 400
+    }
+  }
+}
+```
+
+The other four refusals of `approver_id`: **400** *"`approver_id` must be an
+integer"*, **404 `not_found`** if the user does not exist, **400** *"You
+cannot ask yourself to approve your own change. Name somebody else."*, and
+**400** if the person named could not have made the change themselves.
+
+### Error — `409 conflict` (something is already waiting on this asset)
+
+```json
+{
+  "error": {
+    "code": "conflict",
+    "message": "CR/2026/0041 is already waiting for approval on this asset — Tunde Alabi asked Ngozi Bello on 2026-09-22. Decide or withdraw that one first.",
+    "request_id": "…",
+    "details": {
+      "asset_id": 124,
+      "pending_request": {
+        "id": 41, "reference": "CR/2026/0041", "change_type": "location",
+        "requested_by": { "id": 8, "name": "Tunde Alabi" },
+        "approver": { "id": 12, "name": "Ngozi Bello" }
+      },
+      "http_status": 409
+    }
+  }
+}
 ```
 
 ## 3.6.1 POST `/api/v1/assets/<id>/verify` — record a verification, and who made it
@@ -988,6 +1165,37 @@ Until 9 September 2026 the chatter note WAS the audit trail. It no longer is:
 a `mail.message` is deletable by any user holding the groups that let them
 delete one, and the PRD requires a record that cannot be edited
 retrospectively.
+
+**From 19.0.3.13.0, on a tenant that requires approval (§3.5.2) this route
+does not change custody.** It raises a request and answers **200** with
+`data.pending_approval: true`, the request, and `data.asset` UNCHANGED.
+`approver_id` becomes required, and `data.custody_change` is **`null`** —
+no link was appended, because none was made. The same three refusals as
+`/move`: 400 without an approver, 404 for a user that does not exist, 409
+where a request is already pending on the asset.
+
+```json
+{
+  "data": {
+    "pending_approval": true,
+    "action": "transfer-custody",
+    "request": {
+      "id": 42, "reference": "CR/2026/0042", "state": "pending",
+      "change_type": "custody",
+      "approver": { "id": 12, "name": "Ngozi Bello" },
+      "requested_by": { "id": 8, "name": "Tunde Alabi" },
+      "requested_at": "2026-09-22T11:09:02",
+      "to_location": null,
+      "to_custodian": { "id": 42, "name": "Adaobi Eze" },
+      "reason": "Custodian handover at quarter-end"
+    },
+    "asset": { "id": 124, "current_custodian": null, "...": "UNCHANGED" },
+    "movement_id": null,
+    "transfer": null,
+    "custody_change": null
+  }
+}
+```
 
 ### Request
 
@@ -3532,6 +3740,404 @@ acurl "$API/api/v1/reports/depreciation?category_id=abc"
 
 ---
 
+# §11 — Approvals (7 endpoints, from 19.0.3.13.0)
+
+`nrs.asset.change.request` — a person asking a second person to agree before
+an asset is moved or handed to somebody else. **One model for both kinds of
+change**, because *"what is waiting on me"* is one question and an approver
+should not have to look in two places to answer it.
+
+The requests themselves are NOT raised here. They are raised by `POST
+/assets/<id>/move` and `POST /assets/<id>/transfer-custody` (§3.5.2), which
+on a tenant that requires approval create one instead of making the change.
+
+**Two fields that are never the same field.** `approver` is WHO IS BEING
+ASKED — a nomination, sent by the requester, which puts the request in
+somebody's queue and addresses the notification. `decided_by` is WHO CLICKED,
+taken from the bearer token and never readable from any body. A body naming
+`decided_by`, `approved_by`, `decided_at`, `approved_date`, `requested_by` or
+`state` on any of the three action routes — `/approve`, `/reject`,
+`/withdraw` — is **400 `invalid_request`**, not ignored. Those three accept
+`reason` and nothing else.
+
+**The record survives whatever NRS does to the rule later.** Who may approve
+what — by value, by category, by office — is expected to change; who asked,
+who approved, when, and what the asset was at the time are the columns that
+do not.
+
+## The request object
+
+Every route below that returns a request returns this shape.
+
+```json
+{
+  "id": 41,
+  "reference": "CR/2026/0041",
+  "state": "pending",
+  "change_type": "location",
+  "asset": { "id": 124, "name": "Dell OptiPlex 7090" },
+  "asset_code": "NRS-EV-FAL-FAP-00001",
+
+  "to_location": { "id": 905, "name": "HQ - 1F - Server Room" },
+  "to_custodian": null,
+  "reason": "Reshuffle after Q2 audit",
+
+  "from_location": { "id": 891, "name": "HQ - GF - Mail Room" },
+  "from_custodian": null,
+  "from_location_name": "HQ - GF - Mail Room",
+  "from_custodian_name": null,
+  "to_location_name": "HQ - 1F - Server Room",
+  "to_custodian_name": null,
+  "from_state": "active",
+
+  "requested_by": { "id": 8, "name": "Tunde Alabi" },
+  "requested_by_name": "Tunde Alabi",
+  "requested_at": "2026-09-22T11:04:19",
+  "approver": { "id": 12, "name": "Ngozi Bello" },
+
+  "decided_by": null,
+  "decided_by_name": null,
+  "decided_at": null,
+  "decision_reason": null,
+
+  "premise_holds": true,
+  "premise_broken_reason": null,
+
+  "movement_id": null,
+  "custody_id": null,
+  "transfer": null,
+  "transfer_reference": null,
+
+  "can_decide": true,
+  "can_withdraw": false
+}
+```
+
+### The keys worth reading twice
+
+* **`from_*` — what the asset WAS when the request was raised.** Recorded at
+  request time, not read from the asset at approval time. Without them an
+  approval means *"yes, move it to B"*; with them it means *"yes, move it
+  from A to B"*, and the difference is everything once somebody else has
+  moved it to C. The `_name` copies are what the record keeps when a location
+  is renamed or an employee is deleted, so the published premise cannot be
+  emptied from outside. `from_location.name` is the location's own name;
+  `from_location_name` is the display name as it was recorded, which for a
+  nested location carries its parents with it.
+* **`premise_holds` / `premise_broken_reason`** — computed fresh on every
+  read, never stored. A stored value would be a snapshot of the last time
+  something recomputed it, and the thing that breaks a premise is exactly the
+  thing that happens without touching this record. A queue showing a stale
+  `true` is the silent failure the field exists to prevent. `false` means
+  `/approve` will answer **409**, and the reason says what changed.
+* **`movement_id` / `custody_id`** — the append-only rows the approval
+  produced. `null` until then, **and there is never a row before then**: a
+  movement written when somebody merely ASKS would be a permanent record of a
+  move that had not happened.
+* **`transfer` / `transfer_reference`** — the `nrs.asset.transfer` document,
+  made only for an approved move of an asset that HAD a location. An asset
+  that is nowhere is placed, not transferred, and gets none. The reference is
+  kept as text beside it because the document is deletable and the approval
+  is not.
+* **`can_decide` / `can_withdraw`** — computed for the CALLER, so a queue can
+  grey out a row rather than offer a button the model will refuse. The model
+  is still the authority.
+
+## 11.1 GET `/api/v1/approvals` — the queue
+
+Scope: `assets:read`. Success: **200**. Cursor-paginated, **newest first**.
+
+`assets:read` and not `approvals:write`, so an Auditor can read who
+authorised what without being able to authorise anything.
+
+| Query parameter | |
+|---|---|
+| `state` | `pending` \| `approved` \| `rejected` \| `withdrawn` |
+| `change_type` | `location` \| `custody` |
+| `asset_id` | requests against one asset |
+| `waiting_on_me` | `true` — only requests NAMING the caller as the approver. This is *what is waiting on me*. Anyone eligible may approve any pending request, so it is a convenience and not a boundary |
+| `raised_by_me` | `true` — how a requester finds out what happened to theirs |
+| `limit`, `cursor` | as everywhere else |
+
+`?waiting_on_me=false` means *do not filter*, not *filter on nothing*.
+
+### Request
+
+```bash
+acurl "$API/api/v1/approvals?state=pending&waiting_on_me=true"
+```
+
+### Success — `200 OK`
+
+```json
+{
+  "data": [ { "id": 41, "reference": "CR/2026/0041", "...": "the request object above" } ],
+  "pagination": { "next_cursor": null, "previous_cursor": null, "total_estimate": 1 },
+  "meta": { "request_id": "…", "timestamp": "…", "version": "v1" }
+}
+```
+
+`total_estimate` counts the caller's own filter, not the capped window.
+
+### Error — `400 invalid_request` (a value the filter cannot read)
+
+```bash
+acurl "$API/api/v1/approvals?state=maybe"
+```
+
+```json
+{ "error": { "code": "invalid_request", "message": "`state` must be one of: pending, approved, rejected, withdrawn", "request_id": "…", "details": { "state": "maybe", "allowed_values": ["pending", "approved", "rejected", "withdrawn"], "http_status": 400 } } }
+```
+
+## 11.2 GET `/api/v1/approvals/<id>` — one request
+
+Scope: `assets:read`. Success: **200**. Returns the request object.
+
+### Error — `404 not_found`
+
+```json
+{ "error": { "code": "not_found", "message": "Approval request 99999999 not found", "request_id": "…", "details": { "http_status": 404 } } }
+```
+
+## 11.3 GET `/api/v1/approvals/approvers` — who this caller may ask
+
+Scope: `assets:write`. Success: **200**.
+
+Everyone who could have made the change themselves, **minus the caller**. The
+caller's own exclusion is here and not only in the dialog: a picker offering
+a choice the model refuses is an answer that looks like an answer.
+
+| Query parameter | |
+|---|---|
+| `q` | free-text on the person's name |
+| `limit` | default and cap as elsewhere |
+
+### Request
+
+```bash
+acurl "$API/api/v1/approvals/approvers?q=bel"
+```
+
+### Success — `200 OK`
+
+```json
+{ "data": [ { "id": 12, "name": "Ngozi Bello" } ], "meta": { "…": "…" } }
+```
+
+Today that is the members of `group_asset_manager`, including anyone holding
+it through another group — the one group granting `assets:write`, which is
+the whole of the rule *the approver is anyone who could have made the change
+themselves*. It is one method on the model (`_eligible_approver_domain`) so
+that NRS reshaping it does not touch the record.
+
+An Odoo system administrator may also DECIDE any request that is not their
+own — withholding it would be theatre, since such a user can execute
+arbitrary server actions — but is not offered by this picker.
+
+## 11.4 POST `/api/v1/approvals/<id>/approve` — agree, and make it happen
+
+Scope: `approvals:write`. Success: **200**. Idempotent.
+
+The body takes **`reason` and nothing else**; any other key is a 400 carrying
+`details.rejected_fields` and `details.writable`.
+
+### Request
+
+```bash
+acurl -X POST $API/api/v1/approvals/41/approve \
+  -H 'Content-Type: application/json' \
+  -d '{"reason": "Checked with the store — fine."}'
+```
+
+### Success — `200 OK`
+
+```json
+{
+  "data": {
+    "request": {
+      "id": 41, "reference": "CR/2026/0041", "state": "approved",
+      "approver": { "id": 12, "name": "Ngozi Bello" },
+      "decided_by": { "id": 12, "name": "Ngozi Bello" },
+      "decided_by_name": "Ngozi Bello",
+      "decided_at": "2026-09-22T13:40:55",
+      "decision_reason": "Checked with the store — fine.",
+      "movement_id": 3301,
+      "custody_id": null,
+      "transfer": { "id": 17, "reference": "TRF/2026/0017" },
+      "transfer_reference": "TRF/2026/0017",
+      "...": "the rest of the request object"
+    },
+    "asset": { "id": 124, "current_location": { "id": 905, "name": "HQ - 1F - Server Room" }, "...": "full asset record, MOVED" }
+  },
+  "meta": { "request_id": "…", "timestamp": "…", "version": "v1" }
+}
+```
+
+**The asset is in every decision response, including a rejection.** The one
+thing a caller needs to know after any of these three calls is whether the
+asset moved; on an approval it did, on a rejection and a withdrawal it did
+not, and the asset proves it rather than asking the caller to trust the verb.
+
+The `nrs.asset.transfer` this produces is created already `done` **and
+already approved, by the person who actually clicked** — `approved_by` had
+been null on 264 of the 265 transfer rows on the development cluster before
+this. A custody approval makes no transfer document at all: that model
+requires both locations and forbids them being equal, so a pure custody
+change cannot be recorded in it.
+
+### Error — `403 forbidden`
+
+Two reasons, told apart by `details.is_own_request`.
+
+```json
+{ "error": { "code": "forbidden", "message": "You raised this request and cannot approve it. The point of an approval is that a second person agrees.", "request_id": "…", "details": { "request_id": 41, "is_own_request": true, "requested_by": { "id": 8, "name": "Tunde Alabi" }, "http_status": 403 } } }
+```
+
+Self-approval is refused **in the model**, not by hiding a button: the same
+answer comes back from the Odoo screen and from a shell.
+
+### Error — `409 conflict` (already decided)
+
+```json
+{ "error": { "code": "conflict", "message": "This request was already approved by Ngozi Bello. A decision is taken once.", "request_id": "…", "details": { "request_id": 41, "state": "approved", "decided_by": { "id": 12, "name": "Ngozi Bello" }, "decided_at": "2026-09-22T13:40:55", "http_status": 409 } } }
+```
+
+### Error — `409 conflict` (the premise no longer holds)
+
+```json
+{ "error": { "code": "conflict", "message": "This request can no longer be approved. The asset was at HQ / GF / Mail Room when this was raised and is now at HQ / 2F / Store. Raise a new request if the change is still wanted.", "request_id": "…", "details": { "request_id": 41, "premise_broken_reason": "The asset was at HQ / GF / Mail Room when this was raised and is now at HQ / 2F / Store.", "asset": { "id": 124, "name": "Dell OptiPlex 7090" }, "http_status": 409 } } }
+```
+
+A disposed asset breaks the premise in the same way and says so in those
+words — a disposed asset cannot be moved or change hands by any route.
+
+## 11.5 POST `/api/v1/approvals/<id>/reject` — refuse, with a reason
+
+Scope: `approvals:write`. Success: **200**. Idempotent.
+
+**`reason` is REQUIRED.** A rejection without one leaves the requester with a
+dead request and nothing to act on, and they will simply raise it again —
+the shape of control that produces noise and no information. `/condemn`,
+`/mark-missing` and `/mark-found` require one for the same argument.
+
+### Request
+
+```bash
+acurl -X POST $API/api/v1/approvals/41/reject \
+  -H 'Content-Type: application/json' \
+  -d '{"reason": "That room is being repurposed next month — hold the asset where it is."}'
+```
+
+### Success — `200 OK`
+
+Same envelope as `/approve`: `data.request` with `state: "rejected"`, and
+`data.asset` **unchanged**.
+
+### Error — `400 invalid_request` (no reason)
+
+```json
+{ "error": { "code": "invalid_request", "message": "`reason` is required — say why this is being rejected. The person who asked sees it.", "request_id": "…", "details": { "http_status": 400 } } }
+```
+
+### Error — `403 forbidden`
+
+A requester who tries to reject their own is told to withdraw it instead.
+
+## 11.6 POST `/api/v1/approvals/<id>/withdraw` — take back your own
+
+Scope: **`assets:write`**, not `approvals:write`. Success: **200**.
+Idempotent.
+
+Withdrawing is not a decision about somebody else's request; it is taking
+back your own, and the people who raise requests are exactly the people
+holding `assets:write`. Requiring `approvals:write` would leave a requester
+who cannot approve unable to cancel their own request, and a dead row in
+somebody's queue for ever.
+
+`reason` is **optional** here and required on `/reject`, and that is the
+difference between the two acts: an approver refusing somebody else's request
+owes them an explanation; a requester withdrawing their own owes nobody one.
+
+### Request
+
+```bash
+acurl -X POST $API/api/v1/approvals/41/withdraw \
+  -H 'Content-Type: application/json' -d '{"reason": "Asked the wrong person."}'
+```
+
+### Error — `403 forbidden` (not yours)
+
+```json
+{ "error": { "code": "forbidden", "message": "Only Tunde Alabi, who raised this request, can withdraw it. Reject it instead if you are deciding on it.", "request_id": "…", "details": { "request_id": 41, "requested_by": { "id": 8, "name": "Tunde Alabi" }, "http_status": 403 } } }
+```
+
+## 11.7 GET `/api/v1/settings/approvals` — does this register need a second person?
+
+Scope: **`assets:read`**, and deliberately not `settings:read` like every
+other block on that controller. The app has to ask this question wherever it
+draws a Move button, and `settings:read` is granted only by Asset Manager and
+Auditor — gating it that way would make the answer unreadable to some
+signed-in users while the button was still on their screen, and the front end
+fails CLOSED on an unreadable answer, so the symptom would be a
+correct-looking dialog asking for an approver on a tenant that does not want
+one. The value is not sensitive: it says whether this register asks for a
+second person, which anybody who can see an asset may as well know.
+
+Success: **200**.
+
+### Request
+
+```bash
+acurl $API/api/v1/settings/approvals
+```
+
+### Success — `200 OK`
+
+```json
+{
+  "data": {
+    "required": true,
+    "setting": null,
+    "configured": false,
+    "default_when_unset": true,
+    "parameter": "cadra.approval.required"
+  },
+  "meta": { "request_id": "…", "timestamp": "…", "version": "v1" }
+}
+```
+
+* **`required`** — the answer. What every route above behaves by.
+* **`setting`** — the raw recorded value, `"on"`, `"off"` or **`null`** when
+  nothing recognisable is recorded.
+* **`configured`** — whether anybody ever set it. *Nobody has ever thought
+  about this and it is getting the default* and *somebody deliberately turned
+  it on* are the same behaviour and very different facts, and a screen that
+  cannot tell them apart cannot tell an administrator which one they are
+  looking at.
+* **`default_when_unset`** — `true`. **Absent, blank, misspelt and
+  unrecognised all mean required.** The two ways to be wrong are not equally
+  bad: a register that asks for a second person when it need not has a slower
+  afternoon and a visible symptom; one that skips the second person because a
+  parameter was misspelt has no symptom at all, and finds out when an auditor
+  asks who authorised a move.
+
+### There is deliberately no PATCH twin
+
+Every other settings block on this controller has one. This does not, and
+that is the point of the control: `assets:write`, `approvals:write` and
+`settings:write` are all granted by the single group `group_asset_manager`,
+so a `PATCH` here would let exactly the people the rule constrains switch it
+off, move the asset, and switch it back on. That is not a control; it is a
+speed bump with an audit trail nobody reads.
+
+An administrator sets `cadra.approval.required` in the database, once, and
+the exact command is printed inside the refusal a gated write raises. The
+value is read with a single indexed `SELECT` on every call — never through
+`ir.config_parameter.get_param`, which is cached per worker and once served
+a deleted parameter's old value to twenty-four writing tests.
+
+---
+
 # Endpoint index (alphabetical inside groups)
 
 | # | Method | Path | Scope |
@@ -3586,3 +4192,10 @@ acurl "$API/api/v1/reports/depreciation?category_id=abc"
 | 47 | POST   | `/api/v1/integrations/sap/employee-sync` | `integrations:write` |
 | 48 | POST   | `/api/v1/integrations/workflow/callback` | `integrations:write` |
 | 49 | GET    | `/api/v1/reports/depreciation` | `dashboards:read` |
+| 50 | GET    | `/api/v1/approvals` | `assets:read` |
+| 51 | GET    | `/api/v1/approvals/<id>` | `assets:read` |
+| 52 | GET    | `/api/v1/approvals/approvers` | `assets:write` |
+| 53 | POST   | `/api/v1/approvals/<id>/approve` | `approvals:write` |
+| 54 | POST   | `/api/v1/approvals/<id>/reject` | `approvals:write` |
+| 55 | POST   | `/api/v1/approvals/<id>/withdraw` | `assets:write` |
+| 56 | GET    | `/api/v1/settings/approvals` | `assets:read` |

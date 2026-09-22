@@ -1,5 +1,5 @@
 from odoo import models, fields, api, _
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 
 from .asset_custody import CUSTODY_REASON_KEY, CUSTODY_SOURCE_KEY
 from .asset_event import EVENT_REASON_KEY, EVENT_SOURCE_KEY
@@ -55,7 +55,41 @@ class NRSAssetTransfer(models.Model):
                 raise ValidationError(_('From and To locations must be different.'))
 
     def action_approve(self):
+        """Approve the transfer document — and never your own.
+
+        **This check is what makes the exemption in `action_complete` mean
+        anything, and it was missing.** Handoff 35 gates every writer of
+        `location_id` and `custodian_id` behind a second person, and exempts
+        a completed transfer on the grounds that this document has its own
+        two-person step. It did not have one: `approved_by` was stamped from
+        `self.env.uid` with no self-approval check, no requester column and
+        no state precondition, and `group_asset_manager` holds `1,1,1,1` on
+        this model and sees the Approve button.
+
+        So one asset manager, alone, in the Odoo interface: create a
+        transfer, press Approve (stamping themselves), press Complete
+        Transfer — and the asset moved with the gate skipped and no
+        `nrs.asset.change.request` row anywhere. The verification pass found
+        it and was right about the sequence: the fix that added the exemption
+        is what opened it, because before that the completion was refused
+        outright.
+
+        `create_uid` is the requester here. This model has no `requested_by`
+        column of its own — that is one of the four reasons handoff 35 did
+        not reuse it as the request model — so the person who made the
+        document is who the approver must not be.
+        """
         for r in self:
+            if r.approved_by:
+                raise UserError(_(
+                    "%(ref)s was already approved by %(who)s. An approval is "
+                    "taken once.", ref=r.name, who=r.approved_by.display_name))
+            if r.create_uid.id == self.env.uid and not self.env.su:
+                raise UserError(_(
+                    "%(who)s created this transfer and cannot approve it. "
+                    "The point of an approval is that a second person "
+                    "agrees — ask somebody else to approve it.",
+                    who=self.env.user.display_name))
             r.write({
                 'state': 'approved',
                 'approved_by': self.env.uid,
@@ -64,6 +98,19 @@ class NRSAssetTransfer(models.Model):
 
     def action_complete(self):
         for r in self:
+            # SECOND STATEMENT OF THE SAME RULE, and deliberately not
+            # trusting the first. `approved_by` is a plain writable column on
+            # this model — `group_asset_manager` holds write on it and the
+            # form makes it readonly, which is a screen and not a guard — so
+            # a row could carry an approver it never earned. The exemption
+            # below is granted on the strength of that column, so the column
+            # is checked here too rather than at the one place it is set.
+            if r.approved_by and r.approved_by.id == r.create_uid.id:
+                raise UserError(_(
+                    "%(ref)s was created and approved by the same person, "
+                    "%(who)s. Moving an asset needs a second person to "
+                    "agree; ask somebody else to approve this transfer.",
+                    ref=r.name, who=r.approved_by.display_name))
             # Update asset location and custodian
             vals = {'location_id': r.to_location_id.id, 'state': 'active'}
             if r.to_custodian_id:
@@ -74,6 +121,16 @@ class NRSAssetTransfer(models.Model):
             # The same for the movement record, plus the one thing only this
             # caller knows: WHICH transfer the move was the execution of.
             r.asset_id.with_context(
+                # Handoff 35. A move needs a second person — and for THIS
+                # writer the second person is the one who pressed Approve on
+                # the transfer itself, which is what `approved_by` records.
+                # Declared only when there is one: an unapproved transfer
+                # completing is a move nobody agreed to, and it meets the
+                # gate in `nrs.asset._write_recorded` like any other write.
+                # See `approval_policy.EXEMPT_REASONS` for why the condition
+                # is load-bearing rather than defensive.
+                **({'cadra_approval_exempt': 'transfer'}
+                   if r.approved_by else {}),
                 **{CUSTODY_SOURCE_KEY: 'transfer',
                    CUSTODY_REASON_KEY: r.reason or False,
                    MOVEMENT_SOURCE_KEY: 'transfer',

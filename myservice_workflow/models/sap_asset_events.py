@@ -98,9 +98,24 @@ def _date(value):
 def _employee(emp):
     """The custodian block. Absent on 44% of the live register — see the
     requirements document §7 — so every field here can legitimately be null.
+
+    **Read under `sudo()`.** `hr.employee._check_private_fields` refuses the
+    record to anybody outside `hr.group_hr_user`, and reading one field
+    prefetches the whole row — so an Asset Manager who is not also an HR user
+    got `AccessError: ... the field "version_id" on Employee` from the SAP
+    event this override queues, on an ordinary change of custodian. That is
+    PRE-EXISTING and reachable from the Odoo asset form; handoff 35 surfaced
+    it by adding another door (approving a custody request) and by running a
+    test as a manager without HR rights.
+
+    Nothing here writes, and the block is a name, an IR number and a
+    department that this system already publishes in the chain of custody —
+    so `sudo()` widens nothing that an asset manager could not already read
+    on `GET /assets/<id>/custody`.
     """
     if not emp:
         return None
+    emp = emp.sudo()
     return {
         'name': emp.name or None,
         # `ir_number` lives in myservice_identity, which this module does not

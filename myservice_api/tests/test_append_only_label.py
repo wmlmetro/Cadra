@@ -76,10 +76,17 @@ class TestOneRelabelReachesAllThree(CadraTransactionCase):
     def _one_write_that_causes_all_three(self, asset):
         """Custody moves, the asset moves, and its status changes — one
         `write`, with the source a route would declare on every key."""
-        asset.with_context(**_DECLARED).write({
-            "custodian_id": self.bob.id,
-            "location_id": self.elsewhere.id,
-            "state": "missing"})
+        asset.with_context(
+            # This file is about the LABEL a recorded row carries, not about
+            # who agreed to the change — so the write declares itself a
+            # fixture and goes straight through the gate handoff 35 put in
+            # front of `custodian_id` and `location_id`. Per call site, for
+            # the reason `approval_policy.EXEMPT_REASONS` gives.
+            cadra_approval_exempt="test",
+            **_DECLARED).write({
+                "custodian_id": self.bob.id,
+                "location_id": self.elsewhere.id,
+                "state": "missing"})
 
     def test_a_write_under_a_test_credential_says_test_on_all_three(self):
         asset = self._asset()

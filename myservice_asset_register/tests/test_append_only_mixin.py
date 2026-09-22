@@ -25,6 +25,24 @@ the thing those three files cannot see from inside one model:
 Every property is looped over the three models, deliberately. A test per
 model is three tests that can be edited apart, which is the defect.
 
+WHY THE GATED WRITES BELOW SAY `cadra_approval_exempt="test"`
+-------------------------------------------------------------
+Handoff 35 put a gate under every writer of `location_id` and
+`custodian_id`: on a tenant that has not turned the rule off — and absent
+means ON, so `test19` has not — a write that CHANGES either field raises
+unless a second person approved it. These fixtures are not a person
+deciding to move something, so each gated write declares itself with the
+reason `approval_policy.EXEMPT_REASONS` reserves for exactly this.
+
+**Per call, never once for the file or the class.** A module-level default
+would be the bypass flag `database_class.py` argues against at length: it
+becomes the way everything here is written by the end of the month, and
+then a test that should have discovered the gate never meets it. Spelling
+it at each site also means a grep for the constant finds every test that
+is standing outside the rule. Writes that do NOT change the two fields are
+left exactly as they were — a fixture that stops needing the declaration
+is a fixture whose meaning has changed.
+
 Run with:
     odoo -d <db> -u myservice_asset_register --test-enable \\
          --test-tags /myservice_asset_register --stop-after-init
@@ -285,6 +303,7 @@ class TestOneRuleAboutLabels(AppendOnlyCase):
             # One write that moves custody, moves the asset and changes its
             # status, with the label claimed on all three keys at once.
             asset.with_context(
+                cadra_approval_exempt="test",
                 **{key: claimed for key in _SOURCE_KEYS.values()}
             ).write({"custodian_id": self.bob.id,
                      "location_id": self.elsewhere.id,
@@ -317,11 +336,25 @@ class TestOneRuleAboutLabels(AppendOnlyCase):
     def test_custody_lets_a_caller_claim_exactly_what_it_did_before(self):
         """Pinned, because custody is the model whose behaviour CHANGED by
         adopting the mixin: its own `_resolve_source` took anything. These
-        four are what its routes and `nrs.asset.transfer` declare; a fifth
-        is a decision, not a convenience."""
+        were the four its routes and `nrs.asset.transfer` declare; a fifth
+        is a decision, not a convenience.
+
+        **`approval` is that fifth, and it was a decision** — handoff 35.
+        `nrs.asset.change.request.action_approve` declares it while it writes
+        the asset, so a link written because a second person agreed does not
+        read as an anonymous direct edit. It is claimable from the context
+        like the other four, which is safe for the same reason they are: it
+        is a statement about HOW the change was asked for, not about the
+        evidence. The two labels that ARE statements about the evidence —
+        `test` and `tracking_backfill` — are still unclaimable, which
+        `test_nothing_a_caller_may_claim_is_a_statement_about_the_evidence`
+        asserts by reading `_context_sources` off the model.
+
+        The pin stays a pin: a sixth is the next person's decision to argue
+        for, in a docstring, here."""
         self.assertEqual(
             tuple(self.env["nrs.asset.custody"]._context_sources),
-            ("api_transfer", "api_write", "transfer", "direct"))
+            ("api_transfer", "api_write", "transfer", "approval", "direct"))
 
     def test_first_party_code_may_still_say_a_row_is_a_reconstruction(self):
         """Refused from the CONTEXT, accepted as an ARGUMENT: the backfill

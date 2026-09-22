@@ -2,6 +2,8 @@
 import time
 import uuid
 
+import pytest
+
 
 def _uniq():
     """A token unique across concurrent runs, not just within one.
@@ -87,8 +89,20 @@ def test_patch(client, test_asset, capture):
     assert body["data"]["notes"] == "patched by test_assets.test_patch"
 
 
-def test_move(client, test_asset, capture):
-    """POST /api/v1/assets/<id>/move — location change creates transfer row."""
+def test_move(client, test_asset, second_person, capture):
+    """POST /api/v1/assets/<id>/move — the asset ends up at the location.
+
+    Handoff 35 made this two calls rather than one on any tenant that
+    requires a second person, which is every tenant that has not
+    deliberately switched the rule off. `second_person.move` is the one place
+    that knows which kind of tenant this is (`tests/conftest.py`), so what is
+    asserted here is the OUTCOME — the asset is there, and there is a
+    transfer document saying it went — rather than the shape of whichever
+    response carried it.
+
+    The route-specific shapes are asserted where they belong: the pending
+    payload in `tests/test_approvals.py`, the approved one in the same file.
+    """
     # Find a different location to move to
     list_r = client.get("/api/v1/locations", params={"limit": 5})
     current = test_asset.get("current_location") or {}
@@ -98,28 +112,47 @@ def test_move(client, test_asset, capture):
     )
     assert candidate, "no other location available to move to"
 
-    r = client.post(f"/api/v1/assets/{test_asset['id']}/move", json={
-        "to_location_id": candidate["id"],
-        "reason": "test_assets.test_move",
-    })
-    capture("assets/move", r)
-    body = assert_envelope_ok(r)
-    assert body["data"]["transfer"]["to_location"]["id"] == candidate["id"]
+    moved = second_person.move(test_asset["id"], candidate["id"],
+                               reason="test_assets.test_move")
+    capture("assets/move", moved["decision"] or moved["raised"])
+    assert moved["asset"]["current_location"]["id"] == candidate["id"]
+    # The append-only record is the FACT; the transfer is the paperwork. The
+    # asset had a location to leave, so there is one of each.
+    assert moved["movement_id"]
+    assert moved["transfer_reference"]
+    # Read back, not trusted: the response is one transaction's opinion and
+    # the row is what an auditor sees.
+    after = assert_envelope_ok(
+        client.get(f"/api/v1/assets/{test_asset['id']}"))["data"]
+    assert after["current_location"]["id"] == candidate["id"]
 
 
-def test_transfer_custody(client, test_asset, capture):
-    """POST /api/v1/assets/<id>/transfer-custody — custodian change."""
-    r = client.post(f"/api/v1/assets/{test_asset['id']}/transfer-custody", json={
-        "to_custodian_id": 1,
-        "reason": "test_assets.test_transfer_custody",
-    })
-    capture("assets/transfer_custody", r)
-    # If the asset is already assigned to employee 1, expect 400 'invalid_request'
-    if r.status_code == 400 and r.json()["error"]["code"] == "invalid_request":
-        # Already the same custodian — acceptable outcome.
-        return
-    body = assert_envelope_ok(r)
-    assert body["data"]["custody_change"]["to_custodian"]["id"] == 1
+def test_transfer_custody(client, test_asset, second_person, capture):
+    """POST /api/v1/assets/<id>/transfer-custody — custodian change.
+
+    `to_custodian_id: 1` used to be hard-coded here with a branch tolerating
+    the 400 the route gives when the asset already has that custodian. The
+    branch stays — this is a session-scoped asset that other modules also
+    hand about — but it now reads the employee off the register rather than
+    assuming id 1 exists, which is the same correction `test_custody.
+    _two_employees` made for the same reason.
+    """
+    employees = client.get("/api/v1/identity/employees", params={"limit": 2})
+    rows = (employees.json().get("data") or []) if employees.status_code == 200 else []
+    if not rows:
+        pytest.skip("tenant has no employee to transfer custody to")
+    held = (test_asset.get("current_custodian") or {}).get("id")
+    target = next((row["id"] for row in rows if row["id"] != held), None)
+    if target is None:
+        pytest.skip("the asset already holds the only employee on this tenant")
+
+    moved = second_person.transfer_custody(
+        test_asset["id"], target, reason="test_assets.test_transfer_custody")
+    capture("assets/transfer_custody", moved["decision"] or moved["raised"])
+    assert moved["asset"]["current_custodian"]["id"] == target
+    # The append-only link. `custody_change` on the direct route and
+    # `request.custody_id` on the approved one are the same row.
+    assert moved["custody_id"]
 
 
 def test_export(client, capture):

@@ -2,7 +2,10 @@ import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
-import { fetchAsset, markAssetVerified } from "@/lib/dataProvider";
+import {
+  fetchAsset, fetchAssetPendingApproval, markAssetVerified,
+  type ApprovalRequest,
+} from "@/lib/dataProvider";
 import { CadraApiError } from "@/lib/api";
 import {
   AssetMoveDialog, CustodyTransferDialog, CondemnAssetDialog, MarkMissingDialog,
@@ -19,6 +22,7 @@ import WarrantyCard from "@/components/WarrantyCard";
 import {
   ArrowLeft, Monitor, Car, Sofa, User, MapPin, Clock,
   AlertCircle, ChevronRight, Edit3, ShieldCheck, AlertTriangle, Trash2, ArrowRightLeft, Loader2, SearchCheck,
+  Hourglass,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEnumLabel } from "@/hooks/useEnums";
@@ -112,6 +116,34 @@ export default function AssetDetail() {
     staleTime: 60_000,
   });
 
+  /**
+   * THE REQUEST IN THE WAY, if there is one (handoff 35).
+   *
+   * At most one request can be pending against an asset — a partial-unique
+   * index in the database says so — and while there is one, `/move` and
+   * `/transfer-custody` answer 409 for everybody. Somebody opening this page
+   * should not have to press a button to find that out: *"a person opening an
+   * asset should not have to guess why the Move button is behaving
+   * differently"* is the handoff's sentence for it.
+   *
+   * Asked on EVERY asset, including on a register with approval switched off,
+   * because a tenant that has thrown the switch can still be holding requests
+   * raised while it was on, and one of them may be about this asset.
+   *
+   * On an error this renders NOTHING and the two buttons stay live. The banner
+   * is additive information; the server is the authority, and if the read
+   * failed the move route still refuses with the reference in its `details`,
+   * which the Move dialog prints (`PendingConflictNotice`). What must not
+   * happen is the opposite — an asset whose actions are switched off because a
+   * request that does not exist could not be read.
+   */
+  const { data: pendingApproval } = useQuery<ApprovalRequest | null, CadraApiError>({
+    queryKey: ["asset-approvals", id],
+    queryFn: () => fetchAssetPendingApproval(id ?? ""),
+    enabled: !!id,
+    staleTime: 30_000,
+  });
+
   const [moveOpen, setMoveOpen] = useState(false);
   const [custodyOpen, setCustodyOpen] = useState(false);
   const [condemnOpen, setCondemnOpen] = useState(false);
@@ -192,6 +224,17 @@ export default function AssetDetail() {
   const isMissing = asset.lifecycleState === "missing";
   const DISPOSED_TITLE = "This asset has been disposed of";
 
+  // A pending request blocks BOTH acts, not only the one it is about: the
+  // database's unique index is per ASSET and not per change type, so a
+  // custody request waiting for approval makes `/move` a 409 as well. The
+  // buttons say so rather than opening a dialog that will be refused — and
+  // the banner below says which request, who was asked, and what they were
+  // asked for, because "Move is greyed out" is not an explanation.
+  const blockedBy = pendingApproval ?? null;
+  const AWAITING_TITLE = blockedBy
+    ? `${blockedBy.reference} is already waiting for approval on this asset`
+    : undefined;
+
   const currentStep = workflowStep(asset);
 
   const iconBg =
@@ -270,8 +313,8 @@ export default function AssetDetail() {
             </button>
             <button
               onClick={() => setMoveOpen(true)}
-              disabled={isDisposed}
-              title={isDisposed ? DISPOSED_TITLE : undefined}
+              disabled={isDisposed || !!blockedBy}
+              title={isDisposed ? DISPOSED_TITLE : AWAITING_TITLE}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
               data-testid="button-move"
             >
@@ -279,8 +322,8 @@ export default function AssetDetail() {
             </button>
             <button
               onClick={() => setCustodyOpen(true)}
-              disabled={isDisposed}
-              title={isDisposed ? DISPOSED_TITLE : undefined}
+              disabled={isDisposed || !!blockedBy}
+              title={isDisposed ? DISPOSED_TITLE : AWAITING_TITLE}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
               data-testid="button-transfer-custody"
             >
@@ -353,6 +396,52 @@ export default function AssetDetail() {
                 It can still be marked verified: if it is physically found on the premises, that sighting is worth recording.
                 Its other details can still be corrected with Edit.
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* WHAT IS WAITING, and why two buttons are grey (handoff 35).
+            `role="status"` and not `alert`: it is a standing fact about this
+            record that the reader has just arrived at, not something that
+            happened while they were looking. It names the reference, who was
+            asked and what was asked for — the three things somebody needs
+            before they can do anything about it — and links to the queue,
+            because the answer to "why can I not move this" is a screen. */}
+        {blockedBy && (
+          <div className="px-5 py-3 border-b border-border" data-testid="asset-pending-approval" role="status">
+            <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/30 rounded-xl p-3">
+              <Hourglass size={14} className="text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="text-[12px] text-amber-800 dark:text-amber-300">
+                <p>
+                  <span className="font-semibold">
+                    {blockedBy.change_type === "location"
+                      ? "A move of this asset is waiting for approval."
+                      : "A change of custodian for this asset is waiting for approval."}
+                  </span>{" "}
+                  {/* The string copies, not the links: `requested_by_name` and
+                      the `to_*_name` fields survive a user being archived or a
+                      location renamed, which is the whole reason the record
+                      keeps both halves. */}
+                  <span className="font-mono font-semibold">{blockedBy.reference}</span> —{" "}
+                  {blockedBy.requested_by_name ?? blockedBy.requested_by?.name ?? "somebody"} asked{" "}
+                  {blockedBy.approver?.name ?? "an approver"}
+                  {blockedBy.change_type === "location"
+                    ? <> to move it to <span className="font-semibold">{blockedBy.to_location_name ?? blockedBy.to_location?.name ?? "another location"}</span></>
+                    : <> to hand it to <span className="font-semibold">{blockedBy.to_custodian_name ?? blockedBy.to_custodian?.name ?? "somebody else"}</span></>}.
+                </p>
+                <p className="mt-1 opacity-90">
+                  Nothing has changed yet, and nothing will until it is decided. Move and
+                  Transfer are switched off meanwhile — one request at a time per asset.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setNavLocation("/approvals")}
+                  className="mt-1.5 font-semibold underline underline-offset-2"
+                  data-testid="link-asset-approval-queue"
+                >
+                  Open the approvals queue
+                </button>
+              </div>
             </div>
           </div>
         )}

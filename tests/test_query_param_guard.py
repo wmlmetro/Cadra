@@ -173,6 +173,21 @@ INVENTORY = {
     ("v1_locations", "has_coordinates"): ("bool", ""),
     ("v1_locations", "include"): ("enum", ""),
 
+    # ── v1_approvals.py ───────────────────────────────────────────────
+    #
+    # Handoff 35's queue. `waiting_on_me` and `raised_by_me` are the two that
+    # matter most here and for a reason this file already knows: a boolean
+    # filter whose value the parser did not recognise used to append no
+    # domain term, so `?waiting_on_me=nonsense` would have answered with
+    # EVERY approval request in the register and called it the caller's
+    # queue. An approver reading that list has no way to tell it from theirs.
+    ("v1_approvals", "state"): ("enum", ""),
+    ("v1_approvals", "change_type"): ("enum", ""),
+    ("v1_approvals", "asset_id"): ("int", ""),
+    ("v1_approvals", "waiting_on_me"): ("bool", ""),
+    ("v1_approvals", "raised_by_me"): ("bool", ""),
+    ("v1_approvals", "q"): ("text", "free-text on an approver candidate's name; the set is the tenant's user list itself"),
+
     # ── v1_fleet.py ───────────────────────────────────────────────────
     ("v1_fleet", "q"): ("text", "free-text across plate, VIN, name, driver, model, brand, home location"),
     ("v1_fleet", "state_id"): ("int", ""),

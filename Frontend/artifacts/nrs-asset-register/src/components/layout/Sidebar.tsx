@@ -1,17 +1,32 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, MapPin, Bus, Car, BookOpen,
   Fingerprint, Users, Activity, ShieldAlert,
   Inbox, Briefcase, ScanBarcode, Upload, RefreshCw,
   Wrench, Tag, ChevronDown, Monitor, TrendingDown, SlidersHorizontal, Layers, Palette,
-  LogOut,
+  LogOut, Hourglass,
+  type LucideIcon,
 } from "lucide-react";
 import { logout, getScope, getExpiry } from "@/lib/auth";
 import { brandLogoSrc, getBrand } from "@/lib/brand";
+import { fetchApprovalsWaitingCount } from "@/lib/dataProvider";
 
-const navGroups = [
+interface NavItem {
+  name: string;
+  path: string;
+  icon: LucideIcon;
+  /** Draws a live count beside the label. One value today; it is a named
+   *  marker rather than a number on the item so the count stays a query and
+   *  not a constant somebody forgets to update. */
+  badge?: "approvals";
+}
+
+interface NavGroup { label: string; items: NavItem[] }
+
+const navGroups: NavGroup[] = [
   { label: "Dashboards", items: [
     { name: "Facility Command Center", path: "/",                     icon: LayoutDashboard },
     // Hidden for now (routes still work via direct URL):
@@ -26,6 +41,12 @@ const navGroups = [
   { label: "Asset Register", items: [
     { name: "Dashboard",               path: "/assets",               icon: LayoutDashboard },
     { name: "All Assets",              path: "/assets/list",          icon: BookOpen        },
+    // Under the register rather than in a group of its own: an approval here
+    // is always about an asset, and a person who has just been asked to agree
+    // to a move looks where the assets are. The badge is what makes it a
+    // queue rather than a page — an approval nobody notices is a move that
+    // never happens (handoff 35).
+    { name: "Approvals",               path: "/approvals",            icon: Hourglass, badge: "approvals" },
     { name: "+ New Asset",             path: "/assets/new",           icon: BookOpen        },
   ]},
   { label: "Operations", items: [
@@ -87,8 +108,33 @@ function NrsLogoImg() {
   );
 }
 
+/**
+ * How many approval requests name the signed-in user, for the badge.
+ *
+ * `limit: 1` and the pagination total — the cheap-count idiom the data
+ * provider uses for every KPI. Null, and NOTHING drawn, when the count cannot
+ * be had: an Auditor's credential can read the queue, a Tag-Issuing Unit's
+ * cannot, and a "0" over a 403 would tell somebody their queue was empty when
+ * what happened is that nobody asked.
+ *
+ * `retry: false` and a minute of `staleTime`: this is chrome on every screen
+ * in the app, and it must never be the reason a page makes three requests.
+ * It comes up to date the moment anything is decided —
+ * `invalidateApprovalQueries` invalidates the `approval-count` prefix.
+ */
+function useApprovalsWaiting(): number | null {
+  const { data } = useQuery<number | null>({
+    queryKey: ["approval-count", "waiting-on-me"],
+    queryFn: fetchApprovalsWaitingCount,
+    staleTime: 60_000,
+    retry: false,
+  });
+  return typeof data === "number" ? data : null;
+}
+
 export default function Sidebar() {
   const [location, navigate] = useLocation();
+  const waiting = useApprovalsWaiting();
 
   // Pick the single best-matching nav item rather than highlighting every
   // ancestor. "Best" = the longest path that is a prefix of the current URL.
@@ -198,6 +244,23 @@ export default function Sidebar() {
                           style={{ color: active ? "#FFFFFF" : "hsl(var(--sidebar-foreground) / 0.55)" }}
                         />
                         <span className="truncate">{item.name}</span>
+                        {/* Only when there is something to say. A badge
+                            reading "0" is an empty queue shouting, and this
+                            sits in the chrome of every screen. */}
+                        {item.badge === "approvals" && waiting !== null && waiting > 0 && (
+                          <span
+                            data-testid="nav-approvals-badge"
+                            aria-label={`${waiting} waiting on you`}
+                            className="ml-auto shrink-0 min-w-[18px] px-1.5 py-px rounded-full text-[10px] font-bold text-center"
+                            style={
+                              active
+                                ? { background: "#FFFFFF", color: getBrand().primary }
+                                : { background: getBrand().primary, color: "#FFFFFF" }
+                            }
+                          >
+                            {waiting > 99 ? "99+" : waiting}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
