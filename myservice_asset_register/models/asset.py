@@ -750,6 +750,10 @@ class NRSAsset(models.Model):
           an asset. This is the trap `CLAUDE.md` names: *a screen that
           PATCHes back the object it GET-ed now fails the day the serializer
           gains a read-only key.*
+        * **Clearing a field passes.** Un-assigning a custodian or taking an
+          asset off a location hands it to nobody — the same argument the
+          `clearance` exemption makes. Setting either from empty to a value
+          is a grant and is gated, so this buys a caller nothing.
         * **A declared exemption passes**, and every one is a row in §A's
           table with an argument for why that writer is not a person deciding
           to move something. `EXEMPT_REASONS` is the list; an unrecognised
@@ -792,6 +796,31 @@ class NRSAsset(models.Model):
             for field in gated:
                 if not record._change_is_real(field, vals[field]):
                     # Named, not changed. Not a move.
+                    continue
+                if not _m2o_id(vals[field]):
+                    # CLEARING IS NOT A GRANT, and this is the same argument
+                    # the `clearance` exemption already makes in words:
+                    # taking an asset back from somebody, or off a location,
+                    # hands it to nobody, and there is no second person to
+                    # ask about an asset returning to the store.
+                    #
+                    # It is here because the alternative was a DEAD END, and
+                    # the dead end was real: the verification pass found that
+                    # `PATCH {"custodian_id": false}` was refused with a
+                    # message naming `POST /transfer-custody`, and that route
+                    # answers *"`to_custodian_id` is required"* — so
+                    # un-assigning a custodian became impossible through the
+                    # API, having worked for the whole life of the register.
+                    # The same for `location_id`. A refusal that names a
+                    # remedy which cannot work is worse than one that names
+                    # none.
+                    #
+                    # **It is not a way round the rule.** Going from nobody
+                    # to somebody, or from nowhere to somewhere, IS a grant
+                    # and IS gated — so a person can drop custody of an asset
+                    # and still cannot hand it to anyone without a second
+                    # person agreeing. Two writes buy nothing that one does
+                    # not, and the chain of custody records both.
                     continue
                 if record._approval_clears(field, vals[field]):
                     continue

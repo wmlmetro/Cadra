@@ -1676,9 +1676,17 @@ class CadraAssetsV1(http.Controller):
         # published for every write route, and the message names the route
         # that does the job.
         if _approval_required():
+            # `vals[f]` truthy: CLEARING is not a grant and is not gated —
+            # see `nrs.asset._assert_change_is_approved`, where the rule
+            # lives. Repeated here only so the route does not refuse
+            # something the model would allow, which is how a refusal comes
+            # to name a remedy that cannot work: the verification pass found
+            # this exact pair, where un-assigning a custodian was refused
+            # with a message naming a route that requires a custodian.
             needs_approval = sorted(
                 f for f in ("location_id", "custodian_id")
-                if f in vals and rec._change_is_real(f, vals[f]))
+                if f in vals and vals[f]
+                and rec._change_is_real(f, vals[f]))
             if needs_approval:
                 routes = {"location_id": "POST /api/v1/assets/%s/move" % rec.id,
                           "custodian_id":

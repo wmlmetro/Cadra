@@ -99,6 +99,23 @@ EXEMPT_REASONS = (
     # A migration or a backfill, which runs before anybody can approve
     # anything and is not a decision about one asset.
     'migration',
+    # `nrs.asset.transfer.action_complete`, AND ONLY when the transfer it is
+    # completing carries an approver. That document has its own two-person
+    # step — `draft → approved → done`, with an Approve button restricted to
+    # `group_asset_manager` that stamps `approved_by` — so a transfer which
+    # went through it has already had its second person, and asking for
+    # another would be asking twice for the same decision.
+    #
+    # **The condition is the whole of it.** `action_complete` has no state
+    # precondition in the model: the button is only shown on an `approved`
+    # transfer, but the method can be called on a `draft` one from a shell
+    # or a server action. Exempting the SOURCE wholesale would therefore
+    # have turned "create a transfer and complete it" into a way round the
+    # rule — a door of exactly the kind report 30 found when a disposed
+    # asset could be un-disposed through a route nobody had looked at. So
+    # the caller declares this only when `approved_by` is set, and an
+    # unapproved completion meets the gate like any other write.
+    'transfer',
     # An automated test declaring, per call, that it is writing a fixture.
     # Per CALL and never globally: `database_class.py` explains at length why
     # a bypass flag becomes the way everybody runs by the end of the month.

@@ -76,7 +76,7 @@ typing a name.
 | 1 | `POST /assets/<id>/move` | REST route | **YES** | The designed door. A person, today, choosing where a thing goes. Now raises a request. |
 | 2 | `PATCH /assets/<id>` (`location_id` in `_WRITABLE_FIELDS`) | REST route | **YES, when the value changes** | The Cadra app's edit form. Report 28 found it moves an asset with no reason and no transfer document — it is a person deciding. Refused 400 pointing at `/move`. **Only when the value actually changes**: the edit form re-sends every field on every save, and refusing the mere presence of the key would make saving a note impossible. |
 | 3 | `POST /assets` (create) | REST route | **No** | Registration. This is the INT-03 door Vendra delivers through; there is no previous state for a second person to protect, and gating it would dead-letter every receipt. `create` is not overridden for this at all. |
-| 4 | `nrs.asset.transfer.action_complete` | Python, Odoo Transfers UI | **No** | It is the completion of a document that has its own approve step. Declares `source='transfer'`. |
+| 4 | `nrs.asset.transfer.action_complete` | Python, Odoo Transfers UI | **Only when the transfer was approved** | That document has its own two-person step, so a transfer carrying `approved_by` has already had its second person. It declares `cadra_approval_exempt='transfer'` **only then** — `action_complete` has no state precondition in the model, so exempting the source wholesale would have made *create a transfer, complete it* a way round the rule. **The first cut got this wrong in both directions at once** — see *What the verification pass found*. |
 | 5 | `@api.onchange` on `building_id`/`floor_id`/`room_id` → `location_id` | Odoo form | **YES** | A human picking a room on the Odoo form. Reaches `write` as `direct` and is refused there. |
 | 6 | The Odoo asset form (`asset_views.xml:97`, `readonly force_save`) | View | **YES** | Same write as #5. The field is readonly but `force_save`, so the form does persist it — that was handoff 28's fix. |
 | 7 | `nrs.asset.import` — create branch | Bulk import | **No** | A file load. |
@@ -92,7 +92,7 @@ typing a name.
 | 1 | `POST /assets/<id>/transfer-custody` | REST route | **YES** | The designed door. Now raises a request. |
 | 2 | `PATCH /assets/<id>` | REST route | **YES, when the value changes** | As location #2. |
 | 3 | `POST /assets` (create) | REST route | **No** | Registration. |
-| 4 | `nrs.asset.transfer.action_complete` | Python | **No** | As location #4. |
+| 4 | `nrs.asset.transfer.action_complete` | Python | **Only when the transfer was approved** | As location #4. |
 | 5 | `myservice_identity.action_mark_retrieved` | Python, Odoo button | **No** | The departure clearance. It clears `custodian_id` — it takes an asset BACK from somebody who has left and hands it to nobody. There is no second person to ask about an asset returning to the store, and requiring one would leave a leaver's assets assigned to them while a queue drained. Declares `cadra_approval_exempt='clearance'`. |
 | 6 | The Odoo asset form (`asset_views.xml:107`) | View | **YES** | **A freely editable field** — no `readonly`, no `groups`. `location_id` two lines above got the `readonly force_save` treatment in handoff 28 and `custodian_id` never did. A storekeeper with form access could reassign custody by typing a name and pressing save. Now refused by the model with a message naming the remedy. |
 | 7 | `default_custodian_id` from the employee record's *View Assets* action | Odoo context → create | **No** | Registration with a holder. |
@@ -104,14 +104,14 @@ typing a name.
 ### The exemption mechanism
 
 `cadra_approval_exempt=<reason>` in the context, where the reason must be one
-of `import`, `seed`, `clearance`, `migration`, `test`. **An unrecognised value
+of `import`, `seed`, `clearance`, `migration`, `transfer`, `test`. **An unrecognised value
 is treated as no exemption at all** — a typo must not open a door that a blank
 cannot, which is `approval_policy`'s own rule applied to the other end. Proved:
 `cadra_approval_exempt='yes-please'` is refused.
 
 It is a reason string and never `True`, so the declaration reads as a sentence
 at the call site and a grep for the constant finds every one of them. There
-are **five** call sites, and each is a row above.
+are **six** call sites, and each is a row above.
 
 ### What the gate cannot see, said plainly
 
@@ -453,6 +453,65 @@ zero, so a 403 never reads as *your queue is empty*.
 3. **`from_*_name` means "when asked", not "now".** It is shown as *now* only
    when the row is pending AND the premise holds — which is exactly what
    `_premise_check` asserts — and labelled *as at the request* otherwise.
+
+---
+
+## What the verification pass found — two defects I had written, both fixed here
+
+**Both were found by reading the code back against §A's own table and then
+proving it against the running server**, not by a test failing.
+
+### 1 · A refusal that named a remedy which could not work
+
+`PATCH {"custodian_id": false}` — un-assigning a custodian — was refused with
+*"use `POST /assets/<id>/transfer-custody`"*, and that route answers
+*"`to_custodian_id` is required"*. So **un-assigning a custodian became
+impossible through the API**, having worked for the whole life of the
+register, and the same for clearing a location. Proved live before fixing:
+
+```
+PATCH /api/v1/assets/58546  {"custodian_id": false}
+  400  "…so it cannot be PATCHed: use POST /api/v1/assets/58546/transfer-custody"
+POST /api/v1/assets/58546/transfer-custody  {"to_custodian_id": false, …}
+  400  "`to_custodian_id` is required"
+```
+
+The request model could not have expressed it either:
+`_check_change_is_complete` requires `to_custodian_id` on a custody request.
+
+**The fix is the argument the `clearance` exemption already made in words:
+clearing is not a grant.** Taking an asset back from somebody, or off a
+location, hands it to nobody, and there is no second person to ask about an
+asset returning to the store. **It is not a way round the rule** — going from
+nobody to somebody, or nowhere to somewhere, IS a grant and IS gated, so a
+person can drop custody and still cannot hand it to anyone without approval.
+Two writes buy nothing that one does not, and the chain of custody records
+both.
+
+### 2 · §A's table said the transfer completion was exempt; the code did not
+
+Row 4 of both tables claimed `nrs.asset.transfer.action_complete` was outside
+the rule because *"it declares `source='transfer'`"*. **The gate reads no
+source.** It reads `cadra_approval_exempt` and nothing else, and
+`action_complete` did not set it — so **completing an approved transfer from
+the Odoo Transfers UI would have raised**.
+
+This is the failure mode `CLAUDE.md` names twice over: a claim in a document
+nobody checked against the file it describes, and a rule asserted rather than
+traced. It was found by re-reading my own table against my own gate.
+
+**And the obvious fix would have opened a hole.** Exempting the `transfer`
+source wholesale is wrong, because `action_complete` has **no state
+precondition in the model** — the Approve button is only shown on an
+`approved` transfer, but the method can be called on a `draft` one from a
+shell or a server action. *Create a transfer, complete it* would have been a
+way round the whole handoff, of exactly the kind report 30 found when a
+disposed asset could be un-disposed through a route nobody had looked at.
+
+So `action_complete` declares the exemption **only when `approved_by` is
+set** — the second person for that writer is whoever pressed Approve on the
+document. An unapproved completion now meets the gate like any other write,
+which also closes a pre-existing hole nobody had noticed.
 
 ---
 

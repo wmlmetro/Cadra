@@ -74,6 +74,16 @@ class NRSAssetTransfer(models.Model):
             # The same for the movement record, plus the one thing only this
             # caller knows: WHICH transfer the move was the execution of.
             r.asset_id.with_context(
+                # Handoff 35. A move needs a second person — and for THIS
+                # writer the second person is the one who pressed Approve on
+                # the transfer itself, which is what `approved_by` records.
+                # Declared only when there is one: an unapproved transfer
+                # completing is a move nobody agreed to, and it meets the
+                # gate in `nrs.asset._write_recorded` like any other write.
+                # See `approval_policy.EXEMPT_REASONS` for why the condition
+                # is load-bearing rather than defensive.
+                **({'cadra_approval_exempt': 'transfer'}
+                   if r.approved_by else {}),
                 **{CUSTODY_SOURCE_KEY: 'transfer',
                    CUSTODY_REASON_KEY: r.reason or False,
                    MOVEMENT_SOURCE_KEY: 'transfer',
