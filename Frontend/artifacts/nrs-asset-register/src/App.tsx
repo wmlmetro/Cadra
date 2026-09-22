@@ -204,14 +204,35 @@ function App() {
         persistOptions={{
           persister,
           maxAge: 6 * 60 * 60_000,
-          // Never written to disk: who is signed in, and the raw record the
-          // Edit form hydrates from. Both must come from the server each
-          // time — a restored copy of the first names the wrong person, and
-          // of the second writes an old `state` back over a newer one.
+          // Never written to disk: who is signed in, the raw record the Edit
+          // form hydrates from, and anything about a PENDING APPROVAL. The
+          // first two must come from the server each time — a restored copy
+          // of one names the wrong person, and of the other writes an old
+          // `state` back over a newer one.
+          //
+          // The approval keys are the third for a reason found by clicking
+          // the journey (handoff 35). `asset-approvals` answers *is
+          // something blocking this asset right now*, and the asset page
+          // disables Move and Transfer custody on it. Persisted, a browser
+          // that approved a request and walked back to the asset restored
+          // the DECIDED request as pending out of its own localStorage, and
+          // sat there with both buttons disabled behind a request that no
+          // longer existed — for up to the 30s `staleTime`, and longer on a
+          // reload. Fail-closed, so nothing was lost; but it is the same
+          // shape as handoff 29's green pill surviving its own fix in the
+          // user's storage, and the answer is the same: a question about
+          // RIGHT NOW is never restored from disk.
+          //
+          // `approval-settings` is deliberately NOT excluded — it is a
+          // tenant-level switch that changes about once, and the dialogs
+          // fail closed on it anyway.
           dehydrateOptions: {
             shouldDehydrateQuery: (q) =>
               q.state.status === "success"
-              && q.queryKey[0] !== "whoami" && q.queryKey[0] !== "asset-raw",
+              && q.queryKey[0] !== "whoami" && q.queryKey[0] !== "asset-raw"
+              && q.queryKey[0] !== "asset-approvals"
+              && q.queryKey[0] !== "approvals"
+              && q.queryKey[0] !== "approval-count",
           },
           // BUMP THIS whenever an adapter changes what a cached object MEANS.
           // The persisted cache holds objects AFTER `lib/adapters.ts` has run,

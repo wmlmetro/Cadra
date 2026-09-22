@@ -69,13 +69,16 @@ test("the register says whether it needs a second person, and an unset tenant sa
 
 test("raising a request changes nothing about the asset (API)", async ({ api }) => {
   test.skip(!(await requiresApproval(api)), "this tenant does not require approval");
-  const locs = await api.twoBuildings();
-  test.skip(locs.length < 2, "need two building locations");
+  const locs = await api.twoLocations();
+  test.skip(locs.length < 2, "this tenant has fewer than two locations");
   const approver = await api.anApprover();
   test.skip(!approver, "no eligible approver other than the caller");
 
   const id = await createAsset(api, "ApprRaise", { location_id: locs[0].id });
   const before = await api.get(`/api/v1/assets/${id}`);
+  const historyBefore = await api.get<any>(`/api/v1/assets/${id}/history`);
+  const movesBefore = ((historyBefore?.events ?? []) as any[])
+    .filter(x => /moved|placed/i.test(String(x.type ?? x.kind ?? ""))).length;
   const raised = await api.post(`/api/v1/assets/${id}/move`, {
     to_location_id: locs[1].id, approver_id: approver!.id, reason: "e2e raise",
   });
@@ -93,31 +96,49 @@ test("raising a request changes nothing about the asset (API)", async ({ api }) 
   expect(after?.current_location?.id).toBe(before?.current_location?.id);
   expect(after?.state).toBe(before?.state);
 
-  // And no append-only row was written. This is the single most important
-  // assertion in the file: a movement written when somebody merely ASKED
-  // would be a permanent record of a move that never happened, in the table
-  // whose whole value is that nobody can correct it.
-  const history = await api.get<any>(`/api/v1/assets/${id}/history`);
-  const events = (history?.events ?? []) as any[];
-  expect(events.filter(e => /moved|placed/i.test(String(e.type ?? e.kind ?? ""))).length,
-         "no movement may be recorded before approval").toBe(0);
+  // And NO NEW append-only row was written. This is the single most
+  // important assertion in the file: a movement written when somebody merely
+  // ASKED would be a permanent record of a move that never happened, in the
+  // table whose whole value is that nobody can correct it.
+  //
+  // Compared BEFORE and AFTER rather than asserted as zero. An asset created
+  // AT a location opens its movement record there from birth — handoff 28
+  // decided that deliberately, so that the backfilled half and the live half
+  // agree about what a chain begins with — so the count here is 1 before
+  // anybody asks for anything. Asserting zero passed for the wrong reason on
+  // an asset with no location and failed on one with a location; what the
+  // rule actually says is that RAISING adds nothing.
+  const historyAfter = await api.get<any>(`/api/v1/assets/${id}/history`);
+  const moves = (e: any[]) =>
+    e.filter(x => /moved|placed/i.test(String(x.type ?? x.kind ?? ""))).length;
+  expect(moves((historyAfter?.events ?? []) as any[]),
+         "raising a request must add no movement").toBe(movesBefore);
 });
 
 test("a second request for the same asset is refused, naming the one in the way", async ({ api }) => {
   test.skip(!(await requiresApproval(api)), "this tenant does not require approval");
-  const locs = await api.twoBuildings();
-  test.skip(locs.length < 2, "need two building locations");
+  const locs = await api.twoLocations();
+  test.skip(locs.length < 2, "this tenant has fewer than two locations");
   const approver = await api.anApprover();
   test.skip(!approver, "no eligible approver other than the caller");
 
+  const emp = await api.firstEmployee();
+  test.skip(!emp, "no employee to raise a custody request for");
   const id = await createAsset(api, "ApprDup", { location_id: locs[0].id });
   const first = await api.post(`/api/v1/assets/${id}/move`, {
     to_location_id: locs[1].id, approver_id: approver!.id,
   });
+  // A CUSTODY request, deliberately — the index is on the ASSET and not on
+  // the kind of change, which is exactly why the asset page disables BOTH
+  // buttons while anything is pending. A second MOVE request cannot test
+  // this on a two-location tenant: the only other location is the one the
+  // asset is already at, and `/move` refuses that at the door, before the
+  // conflict check it is meant to be exercising. (It did, and this test
+  // passed for the wrong reason until the run caught it.)
   let refused = "";
   try {
-    await api.post(`/api/v1/assets/${id}/move`, {
-      to_location_id: locs[0].id, approver_id: approver!.id,
+    await api.post(`/api/v1/assets/${id}/transfer-custody`, {
+      to_custodian_id: emp.id, approver_id: approver!.id,
     });
   } catch (e) { refused = String(e); }
   expect(refused).toMatch(/HTTP 409/);
@@ -128,8 +149,8 @@ test("a second request for the same asset is refused, naming the one in the way"
 
 test("you cannot ask yourself, and you cannot approve your own request", async ({ api }) => {
   test.skip(!(await requiresApproval(api)), "this tenant does not require approval");
-  const locs = await api.twoBuildings();
-  test.skip(locs.length < 2, "need two building locations");
+  const locs = await api.twoLocations();
+  test.skip(locs.length < 2, "this tenant has fewer than two locations");
   const approver = await api.anApprover();
   test.skip(!approver, "no eligible approver other than the caller");
   const me = await api.whoami();
@@ -165,8 +186,8 @@ test("you cannot ask yourself, and you cannot approve your own request", async (
 
 test("a body that names who decided is refused, not ignored", async ({ api }) => {
   test.skip(!(await requiresApproval(api)), "this tenant does not require approval");
-  const locs = await api.twoBuildings();
-  test.skip(locs.length < 2, "need two building locations");
+  const locs = await api.twoLocations();
+  test.skip(locs.length < 2, "this tenant has fewer than two locations");
   const approver = await api.anApprover();
   test.skip(!approver, "no eligible approver other than the caller");
   const id = await createAsset(api, "ApprForge", { location_id: locs[0].id });
@@ -195,8 +216,8 @@ test("the approvals queue renders and shows what is waiting (UI)", async ({ page
 
 test("a request I raised offers me no Approve button (UI)", async ({ page, api }) => {
   test.skip(!(await requiresApproval(api)), "this tenant does not require approval");
-  const locs = await api.twoBuildings();
-  test.skip(locs.length < 2, "need two building locations");
+  const locs = await api.twoLocations();
+  test.skip(locs.length < 2, "this tenant has fewer than two locations");
   const approver = await api.anApprover();
   test.skip(!approver, "no eligible approver other than the caller");
   const id = await createAsset(api, "ApprMine", { location_id: locs[0].id });
@@ -224,8 +245,8 @@ test("list → asset → request → queue → approve → back, in one session"
   const second = await ApiClient.forServiceCredential();
   test.skip(!second, "set E2E_CLIENT_ID / E2E_CLIENT_SECRET — the model refuses "
                    + "self-approval, so one identity cannot walk this journey");
-  const locs = await api.twoBuildings();
-  test.skip(locs.length < 2, "need two building locations");
+  const locs = await api.twoLocations();
+  test.skip(locs.length < 2, "this tenant has fewer than two locations");
 
   // The SERVICE credential is the requester; `admin`, in the browser, is the
   // approver. Two people, which is the whole point of the feature.
@@ -290,8 +311,8 @@ test("a rejected request leaves the asset alone and tells the requester why", as
   test.skip(!(await requiresApproval(api)), "this tenant does not require approval");
   const second = await ApiClient.forServiceCredential();
   test.skip(!second, "set E2E_CLIENT_ID / E2E_CLIENT_SECRET to reject somebody else's request");
-  const locs = await api.twoBuildings();
-  test.skip(locs.length < 2, "need two building locations");
+  const locs = await api.twoLocations();
+  test.skip(locs.length < 2, "this tenant has fewer than two locations");
   const me = await api.whoami();
   const adminUserId = me?.id;
   test.skip(!adminUserId, "cannot resolve the browser user's id");
@@ -329,8 +350,8 @@ test("a request whose asset changed underneath cannot be approved in silence", a
   test.skip(!(await requiresApproval(api)), "this tenant does not require approval");
   const second = await ApiClient.forServiceCredential();
   test.skip(!second, "set E2E_CLIENT_ID / E2E_CLIENT_SECRET — two identities are needed twice over here");
-  const locs = await api.twoBuildings();
-  test.skip(locs.length < 2, "need two building locations");
+  const locs = await api.twoLocations();
+  test.skip(locs.length < 2, "this tenant has fewer than two locations");
   const me = await api.whoami();
   const adminUserId = me?.id;
   test.skip(!adminUserId, "cannot resolve the browser user's id");

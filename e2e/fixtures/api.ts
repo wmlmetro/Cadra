@@ -240,6 +240,30 @@ export class ApiClient {
    * response mapper only handles locations that carry a building hierarchy —
    * see the reported adapters.ts bug — so tests move between buildings.
    */
+  /**
+   * Any two DISTINCT locations, whatever their type.
+   *
+   * `twoBuildings()` filters `location_type === "building"` and every
+   * location on `test19` has `location_type: null` — so it returns nothing
+   * and every spec that asks for it skips. That is a fact about the tenant's
+   * seed data, not about the feature, and it is already why `CLAUDE.md`
+   * records three move specs as skipping there.
+   *
+   * Approval cares about moving an asset from one place to another and not
+   * at all about what kind of place it is, so the approval specs ask for
+   * this instead and actually run.
+   */
+  async twoLocations(): Promise<any[]> {
+    const list = await this.locations(60);
+    const seen = new Set<number>();
+    const out: any[] = [];
+    for (const l of list) {
+      if (!seen.has(l.id)) { seen.add(l.id); out.push(l); }
+      if (out.length === 2) break;
+    }
+    return out;
+  }
+
   async twoBuildings(): Promise<any[]> {
     const list = await this.locations(60);
     const buildings = list.filter((l) => l.location_type === "building");

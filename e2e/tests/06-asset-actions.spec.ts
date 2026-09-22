@@ -610,8 +610,18 @@ test("an asset with no location can be placed, and the dialog promises no transf
   await expect(page.getByTestId("button-move")).toHaveText(/Place/);
   await page.getByTestId("button-move").click();
   const dialog = page.getByRole("dialog");
-  await expect(dialog).toContainText("Place asset");
-  await expect(dialog).toContainText("No transfer document is created");
+  const needsApprovalHere = await api.approvalRequired();
+  if (needsApprovalHere) {
+    // On an approval tenant the dialog is about a REQUEST, and the wording
+    // has to say so before anything else — that is handoff 35 §E's whole
+    // point. The promise about the transfer document belongs to the act,
+    // which has not happened yet, so it is not made here.
+    await expect(dialog).toContainText("Request a placement");
+    await expect(dialog).toContainText(/does NOT place the asset/i);
+  } else {
+    await expect(dialog).toContainText("Place asset");
+    await expect(dialog).toContainText("No transfer document is created");
+  }
   const q = String(locs[0].name).replace(/[^A-Za-z ]/g, " ").trim().split(/\s+/)[0].slice(0, 6);
   const picked = await pickRecord(dialog, "Search locations", q.length >= 2 ? q : "of");
   test.skip(!picked, "location search returned no options");
@@ -620,8 +630,7 @@ test("an asset with no location can be placed, and the dialog promises no transf
   // a thing goes — so it goes through approval too. Approving it here rather
   // than stopping at the request, because the second half of this test is
   // about what the history says once the asset IS placed.
-  const needsApproval = await api.approvalRequired();
-  if (needsApproval) {
+  if (needsApprovalHere) {
     const approver = await api.anApprover();
     test.skip(!approver, "no eligible approver other than the caller");
     const pickedApprover = await pickRecord(dialog, "Search people who can approve", String(approver!.name).split(/\s+/)[0].slice(0, 5));
@@ -643,7 +652,20 @@ test("an asset with no location can be placed, and the dialog promises no transf
     .poll(async () => (await api.get(`/api/v1/assets/${id}`))?.current_location?.id ?? null, { timeout: 15_000 })
     .not.toBeNull();
   // Placed, so from now on it is MOVED — and the history has the placement.
-  await expect(page.getByTestId("button-move")).toHaveText(/Move/);
+  //
+  // The button's LABEL is only asserted on the path where the app itself did
+  // the placing. On the approval path above, the approval is made by a
+  // second credential OUT OF BAND — a thing no real user flow does — so this
+  // browser never learns of it and paints its own persisted copy of the
+  // asset for the rest of the five-minute `staleTime`. That is by design
+  // (`buster` in `App.tsx` exists precisely to manage it) and asserting
+  // against it here would be asserting that an out-of-band write is
+  // telepathic. **The label after an approval made THROUGH the app is
+  // covered**, in one session, by `35-approvals.spec.ts` — *list → asset →
+  // request → queue → approve → back*.
+  if (!needsApprovalHere) {
+    await expect(page.getByTestId("button-move")).toHaveText(/Move/);
+  }
   await page.getByTestId("tab-audit-review").click();
   await expect(page.getByTestId("asset-history-event").first()).toContainText("Placed at");
 });
