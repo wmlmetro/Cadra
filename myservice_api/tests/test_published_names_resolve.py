@@ -339,6 +339,10 @@ _GUARDED_READS = {
         # name here to drift. Three modules carry a copy of `_ref`.
         None,
     ("v1_identity.py", "_ref", "rec", "name"): None,
+    # Handoff 35's fourth copy of the same three-line helper. Same reasoning
+    # as `v1_assets._ref` above: the parser sees the DEFAULT `name_field`,
+    # and every caller passes a record of a different model.
+    ("v1_approvals.py", "_ref", "rec", "name"): None,
     ("v1_requests.py", "_ref", "rec", "name"): None,
     # `request` is werkzeug's, not a record: these read per-request state
     # the API puts there itself.

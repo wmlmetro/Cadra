@@ -1675,6 +1675,17 @@ class CadraAssetsV1(http.Controller):
         # tell which half. Refusing the WHOLE body is the contract handoff 31
         # published for every write route, and the message names the route
         # that does the job.
+        #
+        # THE TERMINAL RULE SPEAKS FIRST. A disposed asset cannot move or
+        # change hands at all, so telling somebody to go and raise an
+        # approval request for it names a remedy that cannot work however
+        # many people agree — the same fault as the clearing dead end, one
+        # route along. `_assert_disposed_is_terminal` is a no-op on every
+        # other asset and `_write_recorded` calls it again below; this is
+        # only about WHICH rule gets to answer. Found by the pytest pass,
+        # which pinned the old wording rather than letting it later read as
+        # a regression. Both ACTION routes already got this right.
+        rec._assert_disposed_is_terminal(vals)
         if _approval_required():
             # `vals[f]` truthy: CLEARING is not a grant and is not gated —
             # see `nrs.asset._assert_change_is_approved`, where the rule

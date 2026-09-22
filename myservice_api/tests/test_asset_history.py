@@ -25,6 +25,17 @@ Run with:
 """
 import uuid
 
+# Handoff 35 gates every writer of `location_id` and `custodian_id` behind a
+# second person, and these tests write both directly through the ORM to build
+# the history they then read. Each such write declares
+# `cadra_approval_exempt="test"` AT ITS OWN CALL SITE — per call and never
+# once per file or per class, for the reason `approval_policy.EXEMPT_REASONS`
+# and `myservice_nrs_base/database_class.py` both give: a flag added for one
+# legitimate afternoon becomes the way everybody runs by the end of the
+# month. A test declaring itself a fixture is not the same thing as a switch
+# that turns the rule off.
+
+
 from odoo.tests import tagged
 from odoo.tests.common import freeze_time
 from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
@@ -87,16 +98,19 @@ class TestAssetHistoryOrder(AssetHistoryCase):
     def _a_life(self):
         asset = self._asset()
         with freeze_time("2031-01-01 09:00:00"):
-            asset.write({"custodian_id": self.alice.id})
+            asset.with_context(
+                cadra_approval_exempt="test").write({"custodian_id": self.alice.id})
             self._flush_tracking()
         with freeze_time("2031-01-02 09:00:00"):
             asset.write({"state": "in_repair"})
             self._flush_tracking()
         with freeze_time("2031-01-03 09:00:00"):
-            asset.write({"location_id": self.place_b.id})
+            asset.with_context(
+                cadra_approval_exempt="test").write({"location_id": self.place_b.id})
             self._flush_tracking()
         with freeze_time("2031-01-04 09:00:00"):
-            asset.write({"custodian_id": self.bob.id})
+            asset.with_context(
+                cadra_approval_exempt="test").write({"custodian_id": self.bob.id})
             self._flush_tracking()
         return asset
 
@@ -139,7 +153,8 @@ class TestAssetHistoryOrder(AssetHistoryCase):
         self.assertTrue(asset.create_date.microsecond,
                         "needs a create_date inside its second to mean much")
         with freeze_time(asset.create_date.replace(microsecond=0)):
-            asset.write({"custodian_id": self.alice.id,
+            asset.with_context(
+                cadra_approval_exempt="test").write({"custodian_id": self.alice.id,
                          "location_id": self.place_b.id})
             self._flush_tracking()
         types = [e["type"] for e in
@@ -189,7 +204,8 @@ class TestAssetHistoryDoesNotOverclaim(AssetHistoryCase):
 
     def test_a_live_link_is_not_marked_reconstructed(self):
         asset = self._asset()
-        asset.write({"custodian_id": self.alice.id})
+        asset.with_context(
+            cadra_approval_exempt="test").write({"custodian_id": self.alice.id})
         event = next(e for e in asset.asset_history()["events"]
                      if e["type"] == "custody_changed")
         self.assertFalse(event["reconstructed"])
@@ -254,7 +270,8 @@ class TestAssetHistoryDoesNotOverclaim(AssetHistoryCase):
     def test_the_statements_are_words_not_field_names(self):
         """They are shown to a client on a screen, not only to a parser."""
         asset = self._asset()
-        asset.write({"custodian_id": self.alice.id})
+        asset.with_context(
+            cadra_approval_exempt="test").write({"custodian_id": self.alice.id})
         history = asset.asset_history()
         shown = [history["summary"]["statement"],
                  history["fidelity"]["custody"]["statement"],
@@ -395,7 +412,8 @@ class TestAssetHistoryDoesNotOverclaim(AssetHistoryCase):
         alterable one is a change of condition, which is still only a
         message-log line."""
         asset = self._asset(custodian_id=self.alice.id)
-        asset.write({"custodian_id": self.bob.id})
+        asset.with_context(
+            cadra_approval_exempt="test").write({"custodian_id": self.bob.id})
         asset.write({"state": "in_repair"})
         asset.write({"condition": "poor"})
         self._flush_tracking()
@@ -451,7 +469,8 @@ class TestAssetHistoryDoesNotOverclaim(AssetHistoryCase):
 
     def test_every_grade_used_is_a_grade_defined(self):
         asset = self._asset()
-        asset.write({"custodian_id": self.alice.id, "state": "in_repair"})
+        asset.with_context(
+            cadra_approval_exempt="test").write({"custodian_id": self.alice.id, "state": "in_repair"})
         self._flush_tracking()
         history = asset.asset_history()
         defined = [g["grade"] for g in history["fidelity"]["evidence_grades"]]
@@ -874,6 +893,13 @@ class TestAssetHistoryMoves(AssetHistoryCase):
             cadra_movement_source="api_move",
             cadra_movement_reason="history test move",
             cadra_movement_transfer_id=transfer.id,
+            # The route this imitates raises an approval REQUEST on a tenant
+            # that wants one; what it does after the approval is exactly the
+            # write below. These tests are about what the history says of a
+            # move, not about who agreed to it, so they declare the fixture
+            # exemption and write the move directly. `test_change_request.py`
+            # owns the approval path.
+            cadra_approval_exempt="test",
         ).write({"location_id": to.id})
         self._flush_tracking()
         return transfer
@@ -915,7 +941,8 @@ class TestAssetHistoryMoves(AssetHistoryCase):
     def test_a_plain_write_is_append_only_too_and_invents_no_transfer(self):
         """PATCH, the Odoo form, an import. The quiet door, no longer quiet."""
         asset = self._asset()
-        asset.write({"location_id": self.place_b.id})
+        asset.with_context(
+            cadra_approval_exempt="test").write({"location_id": self.place_b.id})
         self._flush_tracking()
         moves = self._moves(asset)
         self.assertEqual(len(moves), 1)
@@ -972,7 +999,8 @@ class TestAssetHistoryMoves(AssetHistoryCase):
 
     def test_an_old_move_with_no_transfer_row_is_still_only_chatter(self):
         asset = self._asset()
-        asset.write({"location_id": self.place_b.id})
+        asset.with_context(
+            cadra_approval_exempt="test").write({"location_id": self.place_b.id})
         self._flush_tracking()
         self._forget_the_movements(asset)
         moves = self._moves(asset)
@@ -1012,9 +1040,11 @@ class TestAssetHistoryMoves(AssetHistoryCase):
 
     def test_a_first_movement_with_a_from_says_so_too(self):
         asset = self._asset()
-        asset.write({"location_id": self.place_b.id})
+        asset.with_context(
+            cadra_approval_exempt="test").write({"location_id": self.place_b.id})
         self._forget_the_movements(asset, keep_opening=False)  # all of them
-        asset.write({"location_id": self.place_c.id})           # first row
+        asset.with_context(
+            cadra_approval_exempt="test").write({"location_id": self.place_c.id})           # first row
         location = asset.asset_history()["fidelity"]["location"]
         self.assertEqual(location["movements"], 1)
         self.assertTrue(location["located_before_first_movement"])
@@ -1034,6 +1064,7 @@ class TestAssetHistoryMoves(AssetHistoryCase):
         mine.with_context(
             cadra_movement_source="transfer",
             cadra_movement_transfer_id=approved.id,
+            cadra_approval_exempt="test",
         ).write({"location_id": self.place_b.id})
         move = self._moves(mine)[0]
         self.assertIsNone(move["detail"]["transfer"])
@@ -1042,7 +1073,8 @@ class TestAssetHistoryMoves(AssetHistoryCase):
 
     def test_a_caller_cannot_file_a_move_under_test(self):
         asset = self._asset()
-        asset.with_context(cadra_movement_source="test").write(
+        asset.with_context(cadra_movement_source="test",
+                          cadra_approval_exempt="test").write(
             {"location_id": self.place_b.id})
         self.assertEqual(self._moves(asset)[0]["source"], "direct")
 
@@ -1058,9 +1090,11 @@ class TestAssetHistoryMoves(AssetHistoryCase):
         """The FK nulls the movement's location id; the tracking value keeps
         the original. The join falls back to the recorded name."""
         asset = self._asset()
-        asset.write({"location_id": self.place_c.id})
+        asset.with_context(
+            cadra_approval_exempt="test").write({"location_id": self.place_c.id})
         self._flush_tracking()
-        asset.write({"location_id": self.place_b.id})
+        asset.with_context(
+            cadra_approval_exempt="test").write({"location_id": self.place_b.id})
         self._flush_tracking()
         self.place_c.unlink()
         self.env.invalidate_all()
@@ -1072,9 +1106,11 @@ class TestAssetHistoryMoves(AssetHistoryCase):
         """The LEGACY join, each side used once."""
         asset = self._asset()
         self._move_like_the_route(asset, self.place_b)
-        asset.write({"location_id": self.place_a.id})
+        asset.with_context(
+            cadra_approval_exempt="test").write({"location_id": self.place_a.id})
         self._flush_tracking()
-        asset.write({"location_id": self.place_b.id})
+        asset.with_context(
+            cadra_approval_exempt="test").write({"location_id": self.place_b.id})
         self._flush_tracking()
         self._forget_the_movements(asset)
         moves = self._moves(asset)
@@ -1098,10 +1134,12 @@ class TestAssetHistoryMoves(AssetHistoryCase):
 
     def test_old_and_new_moves_sit_in_one_list_graded_differently(self):
         asset = self._asset()
-        asset.write({"location_id": self.place_b.id})
+        asset.with_context(
+            cadra_approval_exempt="test").write({"location_id": self.place_b.id})
         self._flush_tracking()
         self._forget_the_movements(asset)
-        asset.write({"location_id": self.place_c.id})
+        asset.with_context(
+            cadra_approval_exempt="test").write({"location_id": self.place_c.id})
         self._flush_tracking()
         self.assertEqual(sorted(m["evidence"] for m in self._moves(asset)),
                          ["append_only", "chatter"])
@@ -1129,7 +1167,8 @@ class TestAssetHistorySaysWhereItBegins(AssetHistoryCase):
         self.assertEqual(asset.asset_history()["summary"]
                          ["events_after_registration"], 0,
                          "created already assigned: the opening state")
-        asset.write({"custodian_id": self.bob.id})
+        asset.with_context(
+            cadra_approval_exempt="test").write({"custodian_id": self.bob.id})
         summary = asset.asset_history()["summary"]
         self.assertEqual(summary["events_after_registration"], 1)
         self.assertFalse(summary["statement"].startswith("There is no"))
@@ -1160,7 +1199,8 @@ class TestAssetHistorySaysWhereItBegins(AssetHistoryCase):
 
     def test_an_asset_assigned_under_the_recorder_is_not_flagged(self):
         asset = self._asset()
-        asset.write({"custodian_id": self.alice.id})
+        asset.with_context(
+            cadra_approval_exempt="test").write({"custodian_id": self.alice.id})
         custody = asset.asset_history()["fidelity"]["custody"]
         self.assertFalse(custody["custodian_held_before_first_link"])
         self.assertTrue(custody["recording_began_at"])

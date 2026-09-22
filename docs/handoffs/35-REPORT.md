@@ -522,6 +522,95 @@ which also closes a pre-existing hole nobody had noticed.
 
 ---
 
+### 3–7 · What a fresh reviewer found afterwards, and one that my own fix caused
+
+A verification agent that wrote none of this reviewed the diff against
+`CLAUDE.md` and against §A's table. **Its first finding is that the fix in §2
+above opened a hole**, which is the most useful sentence anyone wrote today.
+
+**3 · One person could still move an asset — and the §2 fix is what let them.**
+`nrs.asset.transfer.action_approve` stamps `approved_by = self.env.uid` with
+**no self-approval check, no requester column and no state precondition**, and
+`group_asset_manager` holds `1,1,1,1` on that model and sees the Approve
+button. Once §2 exempted a completed transfer *whenever `approved_by` was
+set*, one asset manager alone could: create a transfer → press Approve
+(stamping themselves) → press Complete Transfer → and the asset moved, gate
+skipped, no `nrs.asset.change.request` row anywhere. Before §2 the completion
+was refused outright, so the exemption is precisely what opened it.
+`action_approve` now refuses your own transfer and a second approval;
+`action_complete` refuses one whose approver is its creator, because
+`approved_by` is a plain writable column and the form making it readonly is a
+screen, not a guard.
+
+**4 · An approved request was a reusable key with no expiry.** Once request R
+was approved (move asset A to room X), anybody could write `location_id = X`
+on A at any later date with `cadra_approval_id = R`, repeatedly — and a
+second, legitimate approval moving A to Y did not retire R. An approval now
+**spends** itself: the clearance refuses once the request carries its
+`movement_id`/`custody_id`, which is an append-only row and cannot be cleared
+to make the key live again. It also re-checks the premise at the instant of
+the write rather than trusting the instant somebody clicked.
+
+**5 · A refused approval committed a false one.** `action_approve` stamps the
+decision and creates the transfer document *before* writing the asset — it
+must, because the clearance the write needs can only be an approved request.
+Its docstring claimed a raise rolls that back, which is true only while the
+exception PROPAGATES; the route **catches** `UserError` and answers 409, and
+`err()` does not roll back. `AccessError` and `ValidationError` are both
+`UserError` subclasses, so any refusal under `asset.write` committed: a
+request saying *approved by somebody at a time*, a `done` transfer for a move
+that never happened, and an asset that never moved — which finding 4 then
+turned into a permanent key. All three decision routes are now savepointed.
+**This is handoff 28's bug, in new code, found the same way.**
+
+**6 · `ondelete='restrict'` on the destination columns** contradicted
+`nrs.asset.custody` and `nrs.asset.movement`, which deliberately use `set
+null` with Char copies beside them so an append-only row never blocks a
+deletion. It would have made `generic.location.unlink` do all of handoff 28's
+careful work and then die on a foreign key it knows nothing about — a raw
+`IntegrityError` instead of Cadra's words — and it made two branches of
+`_premise_check` unreachable while §D2 listed one of them as live. Now `set
+null`.
+
+**7 · The Odoo Reject button could never succeed.** A header button calls its
+method with no arguments; `action_reject` requires a reason. The backend twin
+could approve and never reject — an interface offering an action the model
+always refuses, which the same file's header comment rejects in those words.
+Removed, with the reasoning, since rejecting belongs where there is a dialog
+to ask for the reason.
+
+Also from that pass: the front end branched on `pending_approval && request`,
+so a 200 saying *pending* with no request object fell into the SUCCESS branch
+and told the storekeeper it moved — it branches on `pending_approval` alone
+now; handoff 32's two guard tables gained the three new routes and the new
+serializer, which they were written to FAIL over rather than skip; and
+`remove_test_residue.py`, `mark_test_fixtures.py` and `CLAUDE.md` learned that
+there is now a **fourth** thing that pins an asset (a request in any state,
+withdrawn included).
+
+### 8 · Three tests had gone silently green-by-skipping
+
+The pytest pass found that three tests in `tests/test_custody.py` **went from
+passing to SKIPPING** the moment this handoff landed, and nothing changed
+colour. `_build_a_chain` had `if r.status_code not in (200, 400, 404): break`
+— the new 400 (*"`approver_id` is required"*) was swallowed, no chain was
+built, and the tests skipped saying *"tenant has no two employees"*, which was
+false. Two more in the same file were passing **vacuously** through the same
+tolerance. That is the whole of the gap between `CLAUDE.md`'s documented 8
+skips and the 11 the baseline showed, and it is the silent-instrument class
+handoff 26 spent a section on. Fixed; the file now runs 8 passed, 0 skipped.
+
+### 9 · A refusal that named the wrong rule
+
+`PATCH {"location_id": …}` on a DISPOSED asset answered *"requires a second
+person — use `POST /assets/<id>/move`"*, and `/move` would itself refuse it
+as disposed. Nothing was written, so it was a wording fault rather than an
+open door — but it is the same shape as the clearing dead end: a remedy that
+cannot work. The terminal rule now answers first on `PATCH`, as it already
+did on both action routes.
+
+---
+
 ## Judgement calls, stated so they can be overturned
 
 1. **200, not 202, when a route raises a request.** The body carries

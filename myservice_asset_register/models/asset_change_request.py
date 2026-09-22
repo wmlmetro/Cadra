@@ -313,6 +313,18 @@ class NRSAssetChangeRequest(models.Model):
         an approve that refuses it can never disagree.
         """
         self.ensure_one()
+        # SUDO for the reads, for the same reason `nrs.asset.custody._record`
+        # does it: `hr.employee._check_private_fields` refuses the record to
+        # anybody outside `hr.group_hr_user`, and reading one field
+        # prefetches the whole row — so an Asset Manager who is not also an
+        # HR user got `AccessError: ... the field "version_id" on Employee`
+        # when they pressed Approve on a custody request. Found by the
+        # in-registry run, after the first fix caught only custody's own copy.
+        #
+        # This method only ever READS, and it reads to compare ids and to
+        # build a sentence; the decision it feeds is enforced elsewhere. So
+        # there is nothing here that sudo could widen.
+        self = self.sudo()
         asset = self.asset_id
         if not asset.exists():
             return False, _("The asset no longer exists.")
@@ -792,7 +804,16 @@ class NRSAssetChangeRequest(models.Model):
                 summary=self._activity_summary(),
                 note=self._activity_note())
             return True
-        except Exception:                      # noqa: BLE001 — see docstring
+        # catch-all: reported — scheduling an activity touches `mail.activity`,
+        # `mail.activity.type` and the approver's user record, and a tenant
+        # can be missing the To-Do type, have the approver archived between
+        # the nomination and this line, or refuse the write through an ACL
+        # nothing here controls. NONE of that is a reason to lose the
+        # request: the doorbell is not the record, and the queue still holds
+        # it. Logged with a traceback and reported to the caller through the
+        # API's response, so a tenant whose notifications are silently
+        # failing can be found rather than guessed at.
+        except Exception:                      # noqa: BLE001
             import logging
             logging.getLogger(__name__).exception(
                 "Could not schedule the approval activity for %s (asset %s, "
@@ -842,6 +863,12 @@ class NRSAssetChangeRequest(models.Model):
         self.ensure_one()
         try:
             self.sudo().activity_ids.unlink()
+        # catch-all: reported — the mirror of `_schedule_activity`, and the
+        # decision has ALREADY been taken and written by the time this runs.
+        # An activity that cannot be cleared leaves a stale row in somebody's
+        # inbox, which is untidy; letting it raise would roll back the
+        # approval itself, which is a move that did not happen. Logged, never
+        # silent.
         except Exception:                      # noqa: BLE001
             import logging
             logging.getLogger(__name__).exception(
@@ -870,6 +897,13 @@ class NRSAssetChangeRequest(models.Model):
                 body=body, partner_ids=[partner.id],
                 message_type='comment', subtype_xmlid='mail.mt_note')
             return True
+        # catch-all: reported — same argument as `_close_activity`, one step
+        # on: the decision is written and the asset has already moved. A
+        # `message_post` can fail on a partner with no email, a mail server
+        # that is down, or a `mail.thread` subtype a tenant has deleted, and
+        # none of those is a reason to undo an approval. `sap_asset_events.py`
+        # and `workflow_dispatch_log.py` wrap their own `message_post` calls
+        # for exactly this reason and say so.
         except Exception:                      # noqa: BLE001
             import logging
             logging.getLogger(__name__).exception(
@@ -926,14 +960,17 @@ class NRSAssetChangeRequest(models.Model):
         true.
         """
         self.ensure_one()
-        asset = self.asset_id
-        self.with_context(**{TRANSITION_KEY: True}).write({
+        # Sudo for the reads, as `_premise_check` does and for the same
+        # reason: these are the Char copies of an employee's and a location's
+        # name, taken so the premise survives either being deleted.
+        asset = self.asset_id.sudo()
+        self.sudo().with_context(**{TRANSITION_KEY: True}).write({
             'from_location_id': asset.location_id.id or False,
             'from_location_name': asset.location_id.display_name or False,
             'from_custodian_id': asset.custodian_id.id or False,
             'from_custodian_name': asset.custodian_id.display_name or False,
-            'to_location_name': self.to_location_id.display_name or False,
-            'to_custodian_name': self.to_custodian_id.display_name or False,
+            'to_location_name': self.sudo().to_location_id.display_name or False,
+            'to_custodian_name': self.sudo().to_custodian_id.display_name or False,
             'from_state': asset.state or False,
         })
 

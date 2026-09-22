@@ -53,6 +53,29 @@ from odoo.tools import mute_logger
 from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 
+#: A user who is NOT the one creating the transfer.
+#:
+#: Handoff 35 made `nrs.asset.transfer.action_complete` exempt from the
+#: approval gate only when the document carries an approver, and
+#: `action_approve`/`action_complete` refuse a transfer whose approver is its
+#: own creator — otherwise the exemption would have been a way for one person
+#: to move an asset alone, which is the hole the verification pass found. So a
+#: test that wants a COMPLETABLE transfer needs two people, exactly as a real
+#: one does. `self.env.uid` creates it; this approves it.
+def _a_second_user(env):
+    login = "cadra-transfer-approver"
+    user = env["res.users"].sudo().search([("login", "=", login)], limit=1)
+    if not user:
+        user = env["res.users"].sudo().create({
+            "name": "Cadra Transfer Approver", "login": login,
+            "group_ids": [
+                (4, env.ref("base.group_user").id),
+                (4, env.ref("myservice_asset_register.group_asset_manager").id),
+            ],
+        })
+    return user
+
+
 class EventCase(CadraTransactionCase):
 
     def setUp(self):
@@ -1042,7 +1065,7 @@ class TestDisposedIsTerminal(EventCase):
             "reason": "turned up at the annex",
             # Approved, so `action_complete` declares
             # `cadra_approval_exempt='transfer'` (handoff 35).
-            "approved_by": self.env.uid,
+            "approved_by": _a_second_user(self.env).id,
         })
         transfer.action_complete()
         self.assertEqual(asset.state, "active")
@@ -1058,7 +1081,7 @@ class TestDisposedIsTerminal(EventCase):
             "asset_id": asset.id,
             "from_location_id": self.room.id,
             "to_location_id": self.elsewhere.id,
-            "approved_by": self.env.uid,
+            "approved_by": _a_second_user(self.env).id,
         })
         transfer.action_complete()
         self.assertFalse(self._events(asset, "status_changed"))

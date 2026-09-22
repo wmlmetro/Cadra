@@ -923,24 +923,26 @@ def test_a_disposed_asset_somebody_finds_on_the_premises_can_be_verified(
 _OTHER_LOCATION = object()
 _AN_EMPLOYEE = object()
 
-#: Three doors where, on a tenant that requires a second person to approve a
-#: move or a custody change, the APPROVAL gate answers before the
-#: disposed-is-terminal rule does — so the refusal is `400 invalid_request`
-#: *"this register requires a second person"* rather than `400
-#: validation_failed` *"...has been disposed of"*.
+#: Nothing here any more, and the history is why the name survives.
 #:
-#: **The door is still shut and nothing is written**, which is what this table
-#: is for, and the two rows below prove that unchanged. What is weaker is the
-#: SENTENCE: a caller is told to go and find an approver for a change that can
-#: never be approved, because `_premise_check` refuses a disposed asset at the
-#: far end. `POST /move` does NOT have this problem — handoff 28 put
-#: `_assert_disposed_is_terminal` above everything on that route, and handoff
-#: 35's block went in underneath it — so the asymmetry is between two doors
-#: onto the same rule, which is the shape report 30 called *"two doors, not
-#: one"*. Reported with handoff 35; recorded here rather than papered over,
-#: because a table that silently accepted either answer would stop being able
-#: to tell this from a real regression.
-_APPROVAL_ANSWERS_FIRST = (400, "invalid_request", "requires a second person")
+#: These two PATCH doors used to answer with the APPROVAL refusal rather than
+#: the disposed-is-terminal one — `400 invalid_request` *"this register
+#: requires a second person"* instead of `400 validation_failed` *"...has
+#: been disposed of"* — because the approval gate sat above the write and the
+#: terminal rule lives in the write.
+#:
+#: The door was never open and nothing was written; what was wrong was the
+#: SENTENCE, which told the caller to go and use `/move` or
+#: `/transfer-custody` on an asset those routes would themselves refuse. That
+#: is a remedy which cannot work, the same shape as the un-assign dead end
+#: handoff 35 found one route along, and it was fixed rather than kept:
+#: `patch_asset` now calls `_assert_disposed_is_terminal` above the approval
+#: block, as both ACTION routes already did.
+#:
+#: **This tuple is kept as an empty override so the table's shape does not
+#: change and this paragraph stays attached to the two rows it is about.**
+#: Both now expect the ordinary answer.
+_APPROVAL_ANSWERS_FIRST = None
 
 # (label, method, path suffix, body, status, code[, when_approval_required]).
 # The sentinels are filled in from the tenant; a door that needs something the
@@ -979,7 +981,7 @@ _CLOSED_DOORS = [
      400, "validation_failed"),
     ("POST /transfer-custody", "post", "/transfer-custody",
      {"to_custodian_id": _AN_EMPLOYEE, "reason": "a disposed asset handed on"},
-     400, "validation_failed", _APPROVAL_ANSWERS_FIRST),
+     400, "validation_failed"),
     ("POST /mark-missing", "post", "/mark-missing",
      {"reason": "a disposed asset went missing"}, 409, "conflict"),
     ("POST /condemn", "post", "/condemn",
@@ -1062,24 +1064,38 @@ def test_nothing_leaves_disposed_by_any_door(
            {k: (before[k], after[k]) for k in before if before[k] != after[k]}))
 
 
+def _pending_change_requests(client, asset_id):
+    """Every pending approval request against one asset. Handoff 35.
+
+    An asset may hold ONE, enforced by a partial unique index, so a refused
+    route that left one behind does not merely litter — it blocks the next
+    legitimate request until somebody withdraws a request nobody made on
+    purpose.
+    """
+    body = assert_envelope_ok(client.get(
+        "/api/v1/approvals", params={"asset_id": asset_id,
+                                     "state": "pending", "limit": 20}))
+    return body["data"]
+
+
 def test_a_disposed_asset_cannot_be_handed_on_even_through_an_approval(
         client, test_location, second_person):
-    """The far end of the door `_APPROVAL_ANSWERS_FIRST` describes.
+    """A disposed asset cannot even be ASKED about — and if it ever can
+    again, the approval must still refuse it.
 
-    `POST /transfer-custody` on a disposed asset, WITH an `approver_id`, is
-    not refused: it raises an approval request, 200, and the asset sits in
-    somebody's queue asking them to hand on a thing that has been disposed
-    of. What refuses is the approval — `_premise_check` sees `state ==
-    'disposed'` and answers 409 — so the rule holds, but it holds one person
-    and one round trip later than it should, and the refusal's wording
-    ("since this was raised") is wrong about when the disposal happened.
+    Handoff 35 opened this and its own verification pass shut it. For a few
+    hours `/transfer-custody` answered 200 to a disposed asset, raising a
+    request that could never be approved and that occupied that asset's one
+    pending slot until somebody withdrew it — because the route used to meet
+    the model at the write, and a request never writes, so the model was
+    never asked. `_assert_disposed_is_terminal` now sits above the approval
+    block on both action routes.
 
-    `POST /move` does not behave this way: handoff 28 put
-    `_assert_disposed_is_terminal` above everything on that route, so a
-    disposed asset cannot even be ASKED about. This test exists so that the
-    difference is written down and measured rather than discovered again,
-    and so that the half that does hold — **nothing reaches the asset** —
-    has a guard of its own.
+    So the first branch below is the live one, and the second is the guard
+    that matters: **if the terminal check is ever moved or lost, the approval
+    itself must still refuse**, `_premise_check` must say why, and nothing
+    must reach the asset. A door closed in one place is a door with one
+    lock, which is the lesson of every handoff since 28.
     """
     if not second_person.required:
         pytest.skip("this tenant does not require a second person, so there "
@@ -1100,14 +1116,19 @@ def test_a_disposed_asset_cannot_be_handed_on_even_through_an_approval(
               "approver_id": second_person.approver_id,
               "reason": "a disposed asset handed on, through the queue"})
     if raised.status_code != 200:
-        # The day somebody moves the terminal check above the approval gate
-        # on this route, as `/move` has it, this is the branch that runs —
-        # and the refusal must still name the reason.
-        error = assert_envelope_err(raised, 400)["error"]
+        # THE LIVE BRANCH. The route asks the model before it asks anybody
+        # to approve anything, so no request is ever raised and no pending
+        # slot is occupied.
+        error = assert_envelope_err(raised, 400, "validation_failed")["error"]
         assert "disposed" in error["message"]
         assert _status_snapshot(client, asset["id"]) == before
+        assert not _pending_change_requests(client, asset["id"]), (
+            "a refused request was created anyway, and it now blocks every "
+            "later request on this asset until somebody withdraws it")
         return
 
+    # The fallback, kept on purpose: if the terminal check is ever moved
+    # below the approval block again, the approval must still refuse.
     data = assert_envelope_ok(raised)["data"]
     assert data["pending_approval"] is True
     assert data["asset"]["state"] == "disposed"

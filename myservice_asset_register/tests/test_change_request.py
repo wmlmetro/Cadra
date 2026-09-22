@@ -517,8 +517,14 @@ class TestWhatIsOutsideTheRule(ChangeRequestCase):
             "to_location_id": self.elsewhere.id,
             "reason": "office move",
         })
-        transfer.action_approve()
+        # A SECOND PERSON approves it. `action_approve` refuses the creator
+        # since handoff 35's verification pass: the exemption
+        # `action_complete` carries is granted on the strength of
+        # `approved_by`, so one person creating and approving their own
+        # transfer would have been a way to move an asset alone.
+        transfer.with_user(self.approver).action_approve()
         self.assertTrue(transfer.approved_by)
+        self.assertNotEqual(transfer.approved_by, transfer.create_uid)
         transfer.action_complete()
         self.assertEqual(asset.location_id, self.elsewhere)
         self.assertEqual(self._moves(asset)[-1].source, "transfer")
@@ -1085,20 +1091,46 @@ class TestThePremise(ChangeRequestCase):
         self.assertFalse(req.premise_holds)
         self.assertIn("in_repair", req.premise_broken_reason)
 
-    def test_the_destination_cannot_be_deleted_under_a_request(self):
+    def test_deleting_the_destination_breaks_the_premise(self):
+        """A destination that is deleted under a request breaks its premise.
+
+        **This test asserted the opposite until the verification pass.**
+        `to_location_id` was `ondelete='restrict'`, so the request protected
+        the destination and the deletion was refused — which looked like a
+        better answer than the handoff imagined, and was wrong in two ways.
+
+        It contradicted `nrs.asset.custody` and `nrs.asset.movement`, which
+        deliberately take `set null` on their from/to references WITH Char
+        copies beside them, precisely so a record never blocks a deletion
+        somebody is entitled to make. And it meant `generic.location.unlink`
+        would do all of handoff 28's careful work — refusing on disposed
+        assets, appending a `location_deleted` movement for every other — and
+        then die on a foreign key it knows nothing about, handing the user a
+        raw `IntegrityError` instead of Cadra's own words.
+
+        It also made this branch of `_premise_check` unreachable while §D2 of
+        the report listed it as a live reason a premise breaks. Now the
+        deletion succeeds, the reference goes null, the Char copy survives,
+        and the request says why it can no longer be approved.
+        """
         asset = self._asset(location_id=self.room.id)
         req = self._request(asset, "location", to_location_id=self.third.id)
         self.assertTrue(req.premise_holds)
-        # `to_location_id` is `restrict`, so the request itself protects the
-        # destination — which is the answer, and better than the one the
-        # handoff imagined. Proved rather than asserted from the field
-        # definition: `restrict` on a m2o is easy to write and easy to read
-        # past.
+        recorded = req.to_location_name
+        self.assertTrue(recorded)
+
+        self.third.unlink()
         self.env.flush_all()
-        with self.assertRaises(Exception), mute_logger("odoo.sql_db"), \
-                self.env.cr.savepoint():
-            self.third.unlink()
-            self.env.flush_all()
+        req.invalidate_recordset()
+
+        self.assertFalse(req.to_location_id,
+                         "`set null`, so the reference goes and the row stays")
+        self.assertEqual(req.to_location_name, recorded,
+                         "the name AS RECORDED survives the deletion")
+        self.assertFalse(req.premise_holds)
+        self.assertIn("deleted", (req.premise_broken_reason or "").lower())
+        with self.assertRaises(UserError):
+            req.with_user(self.approver).action_approve()
 
     def test_an_untouched_request_still_holds(self):
         asset = self._asset(location_id=self.room.id)
@@ -1182,12 +1214,24 @@ class TestTheClearanceCannotBeForged(ChangeRequestCase):
 
     def test_the_genuine_request_for_this_change_does_clear_it(self):
         """The positive control. Without it every assertion above would pass
-        on a gate that refused everything."""
+        on a gate that refused everything.
+
+        It goes through `action_approve` rather than putting a request's id
+        in the context by hand, because that is now the ONLY thing that
+        clears the gate: the clearance demands a request that is `approved`
+        WITH a decider, and only `action_approve` can produce one. Writing
+        the id of a pending request — which this test used to do — is the
+        two-call bypass the verification pass found, and it is asserted as a
+        refusal in `TestTheBypassThatWasFound`.
+        """
         asset = self._asset(location_id=self.room.id)
         req = self._request(asset, "location")
-        asset.with_context(**{APPROVAL_KEY: req.id}).write(
-            {"location_id": self.elsewhere.id})
+        req.with_user(self.approver).action_approve()
+        asset.invalidate_recordset()
         self.assertEqual(asset.location_id, self.elsewhere)
+        self.assertEqual(req.state, "approved")
+        self.assertTrue(req.movement_id,
+                        "the approval must have produced its record")
 
 
 # ═════════════════════════════════════════════════════════════════════
