@@ -644,9 +644,19 @@ did on both action routes.
   sent to a tenant with approval OFF is dropped with a 200. Benign today — a
   misspelt `approver_id` on an approval tenant gets the *"approver_id is
   required"* 400, which is the right answer — but it is the thirteenth and
-  fourteenth door, and handoff 33 is the one that widens these guards. Named,
-  not fixed, per the instruction to register new routes in the guards as they
-  stand.
+  fourteenth door. Named, not fixed, per the instruction to register new
+  routes in the guards as they stand.
+
+  > **CORRECTION, handoff 36.** This paragraph originally ended *"and handoff
+  > 33 is the one that widens these guards"*. **Handoff 33 does not contain
+  > this item** — a grep for it across
+  > `docs/handoffs/33-the-whole-surface.md` returns zero. It belongs to
+  > `docs/GO-LIVE.md` §16.3 item 11, and
+  > `myservice_api/tests/test_published_names_resolve.py` records it as **not
+  > ruled**. I assigned unfinished work to a handoff that had not asked for
+  > it, which makes it look owned when it is homeless. Found by handoff 36's
+  > assessment of 33. It is the only occurrence in this report — checked,
+  > because the first draft of this correction claimed there were two.
 - **Who may approve is one method** (`_eligible_approver_domain`) plus
   `_may_decide`, both meant to be replaced when NRS give us their structure.
   Nothing about the RECORD changes when they are.

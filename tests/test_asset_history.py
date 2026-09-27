@@ -179,8 +179,25 @@ def test_a_move_is_one_event_and_says_what_its_record_is_worth(
     assert move["source"] in ("api_move", "approval", "test")
     assert move["detail"]["reason"] == "test_asset_history.move"
     assert move["detail"]["transfer"]["reference"] == moved["transfer_reference"]
-    assert move["detail"]["records"] == [
-        "nrs.asset.movement", "nrs.asset.transfer", "mail.message"]
+    # `nrs.asset.change.request` joins the list when a SECOND PERSON decided
+    # the move — handoff 36 §C. On a tenant with approval switched off the
+    # same move has three records and no approval block, so the list is
+    # asserted against what the tenant actually does rather than pinned to
+    # one shape. `records` names the models the event was read FROM, and on
+    # an approved move it was genuinely read from four.
+    expected_records = ["nrs.asset.movement", "nrs.asset.transfer"]
+    if move["detail"].get("approval"):
+        expected_records.append("nrs.asset.change.request")
+    expected_records.append("mail.message")
+    assert move["detail"]["records"] == expected_records, (
+        "records must name every model the event was read from")
+    # BOTH PEOPLE, on a move that took two. The whole point of the block.
+    if move["detail"].get("approval"):
+        block = move["detail"]["approval"]
+        assert block["requested_by"] and block["approved_by"]
+        assert block["requested_by"]["id"] != block["approved_by"]["id"], (
+            "an approval is two people, and never the same one twice")
+        assert block["evidence"] == "append_only"
     assert move["actor"] is not None
     _assert_registration_is_oldest(client, asset["id"])
 

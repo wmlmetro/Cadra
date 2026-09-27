@@ -1899,7 +1899,27 @@ class MyserviceApiV1(http.Controller):
                                     "included — is read live from a "
                                     "document an asset manager can edit, "
                                     "and `transfer.id` is null once that "
-                                    "document is gone.")},
+                                    "document is gone. "
+                                    "A `location_moved` or `custody_changed` "
+                                    "also carries `approval`: BOTH PEOPLE on "
+                                    "a change that took two — `requested_by` "
+                                    "(who asked), `approver_asked` (who was "
+                                    "nominated) and `approved_by` (who "
+                                    "decided), with the `*_name` copies that "
+                                    "survive a user being deleted. It is "
+                                    "NULL, never absent, on a change that "
+                                    "took one person — every change before "
+                                    "handoff 35 and every change on a tenant "
+                                    "with approval switched off — so a "
+                                    "consumer can tell that from a server "
+                                    "too old to publish it. Graded "
+                                    "`append_only` in band and it earns it: "
+                                    "a DECIDED nrs.asset.change.request "
+                                    "refuses write and unlink for everyone, "
+                                    "an administrator using sudo included. "
+                                    "The event's own `actor` is unchanged "
+                                    "and is the DECIDER, on every event "
+                                    "type.")},
                         },
                     },
                     "AssetTagging": {
