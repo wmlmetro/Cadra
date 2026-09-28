@@ -1204,3 +1204,134 @@ class TestAssetHistorySaysWhereItBegins(AssetHistoryCase):
         custody = asset.asset_history()["fidelity"]["custody"]
         self.assertFalse(custody["custodian_held_before_first_link"])
         self.assertTrue(custody["recording_began_at"])
+
+
+@tagged("post_install", "-at_install")
+class TestBothPeopleAreInTheRecord(AssetHistoryCase):
+    """An approved change names the person who ASKED as well as the one who
+    agreed. Handoff 36 §C.
+
+    Vendra's report 43 walked the approval flow handoff 35 built and found
+    that the history of an approved move recorded the APPROVER as the actor
+    and *the requester appeared nowhere*. That is half of a two-person
+    control missing from the artefact the control exists to produce: an
+    auditor reading it learns who authorised the move and cannot learn who
+    wanted it.
+
+    **`actor` is deliberately unchanged.** It means the same thing on every
+    event type — the person the record names as having done it — and the
+    approver's click is what moved the asset. Changing its meaning on one
+    event is the defect `test_published_names_resolve.py` exists to catch.
+    The second person arrives as an additive `approval` block.
+    """
+
+    def _two_users(self):
+        Users = self.env["res.users"].sudo()
+        groups = [(4, self.env.ref("base.group_user").id),
+                  (4, self.env.ref(
+                      "myservice_asset_register.group_asset_manager").id)]
+        out = []
+        for login in ("history-36-asker", "history-36-approver"):
+            user = Users.search([("login", "=", login)], limit=1)
+            if not user:
+                user = Users.create({"name": login, "login": login,
+                                     "group_ids": groups})
+            else:
+                user.write({"group_ids": groups})
+            out.append(user)
+        return out
+
+    def _approved_move(self):
+        """Raise a move as one person and approve it as another."""
+        asker, approver = self._two_users()
+        asset = self._asset(location_id=self.place_a.id)
+        req = self.env["nrs.asset.change.request"].with_user(asker).create({
+            "asset_id": asset.id,
+            "change_type": "location",
+            "to_location_id": self.place_b.id,
+            "approver_id": approver.id,
+            "reason": "handoff 36 history test",
+        })
+        req.with_user(approver).action_approve()
+        asset.invalidate_recordset()
+        return asset, req, asker, approver
+
+    def _moved_event(self, asset):
+        events = asset.asset_history()["events"]
+        moves = [e for e in events if e["type"] == "location_moved"]
+        self.assertTrue(moves, "the approved move must appear in the history")
+        return moves[0]
+
+    def test_the_requester_is_in_the_record_and_the_actor_is_not_changed(self):
+        asset, req, asker, approver = self._approved_move()
+        event = self._moved_event(asset)
+
+        # UNCHANGED: the actor is still whoever moved it.
+        self.assertEqual(event["actor"]["id"], approver.id)
+
+        block = event["detail"]["approval"]
+        self.assertTrue(block, "an approved move must carry its approval")
+        self.assertEqual(block["reference"], req.name)
+        self.assertEqual(block["requested_by"]["id"], asker.id)
+        self.assertEqual(block["approved_by"]["id"], approver.id)
+        # The two halves are DIFFERENT people, which is the whole control.
+        self.assertNotEqual(block["requested_by"]["id"],
+                            block["approved_by"]["id"])
+
+    def test_the_names_survive_the_users_being_deleted(self):
+        """The `*_name` copies are the evidence; the links are convenience.
+
+        Same rule as every other `*_name` in this file — a link goes null
+        when the row it points at is deleted, and an audit record whose
+        content can be emptied from outside is not one.
+        """
+        asset, req, asker, approver = self._approved_move()
+        block = self._moved_event(asset)["detail"]["approval"]
+        self.assertEqual(block["requested_by_name"], asker.display_name)
+        self.assertEqual(block["approved_by_name"], approver.display_name)
+
+    def test_a_move_nobody_approved_says_so_rather_than_omitting_the_key(self):
+        """`approval` is null, not absent.
+
+        Every move made before handoff 35, and every move on a tenant with
+        the switch off, had one person. A consumer must be able to tell that
+        from a server too old to publish the key at all, which it can only
+        do if the key is always there.
+        """
+        asset = self._asset(location_id=self.place_a.id)
+        asset.with_context(cadra_approval_exempt="test").write(
+            {"location_id": self.place_b.id})
+        event = self._moved_event(asset)
+        self.assertIn("approval", event["detail"])
+        self.assertIsNone(event["detail"]["approval"])
+
+    def test_an_approved_custody_change_carries_it_too(self):
+        asker, approver = self._two_users()
+        asset = self._asset(custodian_id=self.alice.id)
+        req = self.env["nrs.asset.change.request"].with_user(asker).create({
+            "asset_id": asset.id,
+            "change_type": "custody",
+            "to_custodian_id": self.bob.id,
+            "approver_id": approver.id,
+        })
+        req.with_user(approver).action_approve()
+        asset.invalidate_recordset()
+        events = asset.asset_history()["events"]
+        changes = [e for e in events if e["type"] == "custody_changed"
+                   and e["detail"].get("approval")]
+        self.assertTrue(changes, "the approved custody change must carry it")
+        block = changes[0]["detail"]["approval"]
+        self.assertEqual(block["requested_by"]["id"], asker.id)
+        self.assertEqual(block["approved_by"]["id"], approver.id)
+
+    def test_the_block_is_graded_and_the_grade_is_one_that_is_published(self):
+        """A bare word a reader has to look up is what the grades table
+        exists to prevent, so the block's own grade must be in it."""
+        from odoo.addons.myservice_api.models.asset_history import (
+            EVIDENCE_GRADES)
+        asset, _req, _a, _b = self._approved_move()
+        block = self._moved_event(asset)["detail"]["approval"]
+        self.assertIn(block["evidence"], [g for g, _ in EVIDENCE_GRADES])
+        # `append_only` is asserted against the grade's own words: a DECIDED
+        # request refuses `write` and `unlink` for everyone, sudo included.
+        self.assertEqual(block["evidence"], "append_only")

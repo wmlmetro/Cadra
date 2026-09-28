@@ -452,6 +452,7 @@ class NRSAssetHistory(models.Model):
 
     def _history_custody(self):
         events = []
+        approvals = self._history_approvals()
         for link in self.custody_ids:
             before = link.from_custodian_name or "unassigned"
             after = link.to_custodian_name or "unassigned"
@@ -480,6 +481,9 @@ class NRSAssetHistory(models.Model):
                     "from_custodian_name": link.from_custodian_name or None,
                     "to_custodian_name": link.to_custodian_name or None,
                     "reason": link.reason or None,
+                    # See the movement event: both people, or null.
+                    "approval": self._history_approval_block(
+                        approvals.get(("nrs.asset.custody", link.id))),
                 }))
         return events
 
@@ -745,6 +749,7 @@ class NRSAssetHistory(models.Model):
         # than listed beside it. Everything below this loop is unchanged and
         # now describes only what happened BEFORE recording began — which is
         # still most of `nrs19`, and the list has to keep saying so.
+        approvals = self._history_approvals()
         for m in self.movement_ids:
             row = self._history_chatter_row_of(m, unmatched)
             if row:
@@ -794,8 +799,18 @@ class NRSAssetHistory(models.Model):
                         "approved_by": _user_ref(t.approved_by) if t else None,
                         "approved_at": _iso(t.approved_date) if t else None,
                     } if m.transfer_reference else None),
+                    # BOTH PEOPLE, on a move that took two. Null on a move
+                    # that took one — which is every move made before
+                    # handoff 35 and every move on a tenant with the switch
+                    # off, and a reader can tell those apart from this being
+                    # absent only because the key is always present.
+                    "approval": self._history_approval_block(
+                        approvals.get(("nrs.asset.movement", m.id))),
                     "records": ["nrs.asset.movement"]
                                + (["nrs.asset.transfer"] if t else [])
+                               + (["nrs.asset.change.request"]
+                                  if approvals.get(
+                                      ("nrs.asset.movement", m.id)) else [])
                                + (["mail.message"] if row else []),
                 },
                 initial=(not m.from_location_id
@@ -874,6 +889,92 @@ class NRSAssetHistory(models.Model):
                     "records": ["mail.message"],
                 }))
         return events
+
+    def _history_approvals(self):
+        """The approved change requests for this asset, by what they produced.
+
+        `{('nrs.asset.movement', id): request}` and the same for custody, so
+        the two event builders can each ask one dict rather than searching
+        per row. ONE query for the asset, not one per movement.
+
+        WHY THIS EXISTS (handoff 36 §C). An approved move records the
+        APPROVER as its actor — `nrs.asset.movement.moved_by_id` is whoever
+        clicked, which is right, because their authority is what moved the
+        asset. But Vendra's report 43 read the history of an approved move
+        and found that *the requester appears nowhere*: the artefact an
+        auditor reads answered *who approved this* while losing *who asked
+        for it*, which is exactly half of the two-person control it is meant
+        to evidence.
+
+        **The fix is ADDITIVE and `actor` is left alone.** `actor` means the
+        same thing on all fourteen event types — the person the record names
+        as having done it — and repurposing it here would be a published key
+        changing meaning on one event, which is the defect handoff 32 built a
+        guard against. So the second person arrives as a new `approval`
+        block, and a reader who wants one name still gets the one they
+        always got.
+        """
+        self.ensure_one()
+        index = {}
+        CR = self.env.get("nrs.asset.change.request")
+        if CR is None:
+            # Belt and braces, and HONESTLY LABELLED: `myservice_api` names
+            # `myservice_asset_register` in its `depends`, so if this code is
+            # running the model is in the registry and this branch is dead.
+            #
+            # It does NOT protect against the case somebody will assume it
+            # does — a tenant carrying this Python against an un-upgraded
+            # schema. There the model IS in the registry and the TABLE is
+            # missing, so the search below raises `UndefinedTable` and this
+            # check never fires. That case is covered by upgrading every
+            # tenant before the code ships, which is the rule in `CLAUDE.md`,
+            # and by nothing here.
+            return index
+        for req in CR.sudo().search([("asset_id", "=", self.id),
+                                     ("state", "=", "approved")]):
+            if req.movement_id:
+                index[("nrs.asset.movement", req.movement_id.id)] = req
+            if req.custody_id:
+                index[("nrs.asset.custody", req.custody_id.id)] = req
+        return index
+
+    @api.model
+    def _history_approval_block(self, req):
+        """The two-person evidence, or None when the change had one person.
+
+        Graded `append_only` IN-BAND and deliberately, against the same
+        definition the grades table publishes — *the application refuses to
+        edit or delete it for anyone, an administrator included*. A DECIDED
+        `nrs.asset.change.request` meets that exactly: `unlink` refuses
+        unconditionally and `write` refuses on a decided record, both under
+        `sudo()`. It is a state machine rather than an append-only row, so
+        the grade is asserted here rather than assumed from the model's
+        name — and it is only ever attached to a request in `approved`.
+
+        Contrast the `transfer` block a few lines below, which is
+        `editable_record` and says so for the opposite reason.
+        """
+        if not req:
+            return None
+        return {
+            "evidence": "append_only",
+            "reference": req.name,
+            # WHO ASKED. The name as recorded, beside the live link, for the
+            # reason every other `*_name` in this file exists: the link goes
+            # null if the user is deleted and the evidence must not.
+            "requested_by": _user_ref(req.requested_by_id),
+            "requested_by_name": req.requested_by_name or None,
+            "requested_at": _iso(req.requested_at),
+            # WHO WAS ASKED — a nomination, and not necessarily who decided.
+            "approver_asked": _user_ref(req.approver_id),
+            # WHO DECIDED. The same person as the event's `actor`, published
+            # again here so the block reads as a complete account of the two
+            # halves without the reader having to join it to the event.
+            "approved_by": _user_ref(req.approved_by_id),
+            "approved_by_name": req.approved_by_name or None,
+            "approved_at": _iso(req.decided_at),
+            "decision_reason": req.decision_reason or None,
+        }
 
     @api.model
     def _history_chatter_row_of(self, movement, rows):
