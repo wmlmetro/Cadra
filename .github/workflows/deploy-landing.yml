@@ -157,7 +157,26 @@ jobs:
           # --resolve pins the LB, so this proves the cluster and the
           # certificate without depending on the runner's DNS cache. A plain
           # lookup follows, which proves the public record too.
-          BODY=$(curl -fsS --resolve "cadra.ng:443:${LB_IP}" https://cadra.ng/)
+          #
+          # The Certificate reaching Ready is not the same instant as
+          # ingress-nginx serving it: the controller picks the new Secret up a
+          # few seconds later and presents its self-signed fallback until then.
+          # The first run failed exactly there, on a site that was up. So retry
+          # the TLS handshake for up to two minutes; every check after it is
+          # still a single, strict attempt.
+          BODY=""
+          for attempt in $(seq 1 24); do
+            if BODY=$(curl -fsS --resolve "cadra.ng:443:${LB_IP}" https://cadra.ng/ 2>/tmp/curl.err); then
+              break
+            fi
+            echo "attempt ${attempt}: $(tr '\n' ' ' </tmp/curl.err)"
+            BODY=""
+            sleep 5
+          done
+          if [ -z "$BODY" ]; then
+            echo "::error title=cadra.ng not served over TLS::https://cadra.ng/ did not answer with a verified certificate within two minutes of cadra-landing-tls becoming Ready."
+            exit 1
+          fi
           grep -q 'Every asset. Every place.' <<<"$BODY" || { echo "::error title=Wrong page::https://cadra.ng/ answered, but not with the landing page."; exit 1; }
           echo "https://cadra.ng/ serves the landing page (via ${LB_IP})."
 
