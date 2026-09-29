@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cadra — Asset and facilities register</title>
 <meta name="description" content="Cadra tracks what an agency owns, where each item is, who holds it and what has happened to it — connected to SAP, Vendra and your identity provider.">
-<link rel="icon" type="image/png" href="assets/cadra-mark.png">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="200x200" href="favicon.png">
 <script>
   // Before first paint, so a stored light theme never flashes dark.
   try { var t = localStorage.getItem('cadra-theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
@@ -16,11 +17,12 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<svg class="sprite" aria-hidden="true" focusable="false"><symbol id="cadra-mark" viewBox="11.75 8.75 25.5 31.5"><path d="M36.398 15.4209L31.3321 18.1181C31.2211 18.1773 31.0878 18.1765 30.9773 18.1162L26.3636 15.5964C26.249 15.5339 26.1102 15.5356 25.9972 15.601L19.5248 19.3474C19.4094 19.4142 19.3383 19.5374 19.3383 19.6708V23.1015C19.3383 23.2355 19.41 23.3592 19.5262 23.4258L25.9976 27.1339C26.1104 27.1985 26.2486 27.1999 26.3627 27.1375L36.447 21.6251C36.6961 21.4889 37 21.6692 37 21.953V27.5208C37 27.6545 36.9286 27.7781 36.8127 27.8448L34.5124 29.1687L26.36 33.6751C26.2474 33.7373 26.1108 33.7373 25.9983 33.6751L12.1928 26.0384C12.0739 25.9726 12 25.8473 12 25.7114V17.4322C12 17.2989 12.071 17.1757 12.1863 17.1089L25.9943 9.10712C26.1088 9.04074 26.2499 9.03991 26.3652 9.10491L36.4059 14.7655C36.663 14.9104 36.6585 15.2822 36.398 15.4209Z" fill="currentColor" stroke="currentColor" stroke-width="0.249161"/><path d="M12.5524 28.3489L25.9954 35.667C26.1095 35.7292 26.2478 35.7276 26.3604 35.6628L34.5124 30.9732L36.434 29.8352C36.684 29.6872 37 29.8673 37 30.1578V33.1918C37 33.3221 36.9321 33.443 36.8208 33.5109L26.3638 39.8874C26.2495 39.9571 26.1068 39.9603 25.9895 39.896L12.194 32.3297C12.0744 32.2641 12 32.1385 12 32.002V28.6772C12 28.3936 12.3034 28.2134 12.5524 28.3489Z" fill="currentColor" stroke="currentColor" stroke-width="0.249161"/></symbol></svg>
 
 <header class="site-header">
   <div class="wrap header-row">
     <a href="#top" class="brand">
-      <img src="assets/cadra-mark.png" alt="" width="23" height="26">
+      <svg class="mark mark-header" aria-hidden="true" focusable="false"><use href="#cadra-mark"></use></svg>
       <span>CADRA</span>
     </a>
     <nav class="nav-wide" aria-label="Primary">
@@ -227,7 +229,7 @@
         </div>
         <div class="station-stage">
           <div class="tag-label" role="img" aria-label="Example asset tag HQ-IT-004218">
-            <div class="tag-top"><span><img src="assets/cadra-mark.png" alt="" width="12" height="14">Property of FMW</span><span>Do not remove</span></div>
+            <div class="tag-top"><span><svg class="mark mark-tag" aria-hidden="true" focusable="false"><use href="#cadra-mark"></use></svg>Property of FMW</span><span>Do not remove</span></div>
             <div class="tag-grid">
               <div>
                 <div class="barcode" id="barcode" aria-hidden="true"></div>
@@ -348,7 +350,7 @@
 
 <footer class="site-footer">
   <div class="wrap footer-row">
-    <div class="footer-brand"><img src="assets/cadra-mark.png" alt="" width="17" height="20"><span class="mono">ASSETS · LOCATIONS · SERVICES</span></div>
+    <div class="footer-brand"><svg class="mark mark-footer" aria-hidden="true" focusable="false"><use href="#cadra-mark"></use></svg><span class="mono">ASSETS · LOCATIONS · SERVICES</span></div>
     <span>Cadra is built and operated by WestMetro Limited.</span>
   </div>
 </footer>

@@ -99,7 +99,7 @@ jobs:
         id: content
         run: |
           set -euo pipefail
-          FILES=(landing/index.html landing/styles.css landing/main.js landing/assets/cadra-mark.png landing/nginx.conf)
+          FILES=(landing/index.html landing/styles.css landing/main.js landing/favicon.svg landing/favicon.png landing/nginx.conf)
           SHA=$(cat "${FILES[@]}" | sha256sum | cut -c1-16)
           echo "content sha: ${SHA}"
           echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
@@ -108,7 +108,8 @@ jobs:
             --from-file=index.html=landing/index.html \
             --from-file=styles.css=landing/styles.css \
             --from-file=main.js=landing/main.js \
-            --from-file=cadra-mark.png=landing/assets/cadra-mark.png \
+            --from-file=favicon.svg=landing/favicon.svg \
+            --from-file=favicon.png=landing/favicon.png \
             --dry-run=client -o yaml | kubectl apply -f -
           kubectl -n "$NAMESPACE" create configmap landing-nginx \
             --from-file=default.conf=landing/nginx.conf \
@@ -180,7 +181,7 @@ jobs:
           grep -q 'Every asset. Every place.' <<<"$BODY" || { echo "::error title=Wrong page::https://cadra.ng/ answered, but not with the landing page."; exit 1; }
           echo "https://cadra.ng/ serves the landing page (via ${LB_IP})."
 
-          for f in styles.css main.js assets/cadra-mark.png; do
+          for f in styles.css main.js favicon.svg favicon.png; do
             curl -fsS -o /dev/null --resolve "cadra.ng:443:${LB_IP}" "https://cadra.ng/${f}"
             echo "  /${f} ok"
           done
