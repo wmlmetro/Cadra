@@ -1,0 +1,95 @@
+# Cadra landing page — the public site at https://cadra.ng/ (source: landing/).
+#
+# No image of our own: the stock unprivileged nginx serves four static files
+# that deploy-landing.yml loads into two ConfigMaps from landing/ —
+#   landing-site   index.html, styles.css, main.js, cadra-mark.png
+#   landing-nginx  default.conf (landing/nginx.conf)
+# The page is ~75 KB, far under the 1 MiB ConfigMap limit, and this keeps a
+# fourth repository out of the container registry and a build out of the path.
+#
+# The workflow replaces REPLACE_ME_CONTENT_SHA with a hash of those files, so
+# a content change rolls the pod (RollingUpdate, no gap) and an unchanged one
+# does not. Neither ConfigMap is optional: a pod without them does not start,
+# rather than serving nginx's welcome page on the company domain.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: landing
+  namespace: cadra-dev
+  labels:
+    app: landing
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: landing
+  template:
+    metadata:
+      labels:
+        app: landing
+      annotations:
+        cadra.ng/content-sha: REPLACE_ME_CONTENT_SHA
+    spec:
+      containers:
+        - name: landing
+          image: nginxinc/nginx-unprivileged:1.27-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          volumeMounts:
+            - name: site
+              mountPath: /usr/share/nginx/html
+              readOnly: true
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 101
+            runAsGroup: 101
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: site
+          configMap:
+            name: landing-site
+            items:
+              - { key: index.html, path: index.html }
+              - { key: styles.css, path: styles.css }
+              - { key: main.js, path: main.js }
+              - { key: cadra-mark.png, path: assets/cadra-mark.png }
+        - name: nginx-conf
+          configMap:
+            name: landing-nginx
+            items:
+              - { key: default.conf, path: default.conf }

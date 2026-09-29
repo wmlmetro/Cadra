@@ -40,6 +40,8 @@ on:
       - "**.md"
       - "docs/**"
       - ".gitignore"
+      # The landing page (https://cadra.ng/) has its own workflow, deploy-landing.yml.
+      - "landing/**"
   workflow_dispatch:
     inputs:
       roll_odoo:

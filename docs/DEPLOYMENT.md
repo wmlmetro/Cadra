@@ -487,7 +487,13 @@ a client deployment, and they have their own runbooks:
   [MULTI-TENANT.md](../k8s/dev/MULTI-TENANT.md). Tenant onboarding, the
   database-name-equals-subdomain rule, the filestore-move rule and the
   cutover procedure are all there.
-- **The 18 GitHub Actions workflows** in `.github/workflows/`, which are how
+- **The public landing page at `https://cadra.ng/`** — static files in
+  `landing/`, served from the same cluster by its own pod, Ingress and
+  certificate (`k8s/dev/45-landing-deployment.yaml`, `46-landing-service.yaml`,
+  `63-ingress-landing.yaml`) and published by `deploy-landing.yml` on any push
+  to `dev` that touches them. It is the company's site, not part of what a
+  client is given, and no client server runs it.
+- **The 20 GitHub Actions workflows** in `.github/workflows/`, which are how
   the cluster is actually operated: `deploy-dev.yml`, `upgrade-19.yml`,
   `tenant-cutover-19.yml`, `audit-tenant.yml`, `db-query.yml`,
   `drop-db.yml` and the rest. Each carries its own header explaining what it

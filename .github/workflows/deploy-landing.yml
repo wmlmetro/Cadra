@@ -1,0 +1,187 @@
+name: deploy-landing
+
+# Publishes the Cadra landing page (landing/) at https://cadra.ng/ on the DOKS
+# cluster, beside the tenant sites and independent of them:
+#
+#   1. DNS     — A records for `cadra.ng` and `www.cadra.ng`, pointed at the
+#                same load balancer the live tenant hosts use. Created if
+#                missing; an existing record pointing ELSEWHERE is not touched
+#                and fails the run, because it is somebody's decision.
+#   2. Content — landing/ loaded into two ConfigMaps; the pod is the stock
+#                unprivileged nginx (k8s/dev/45-landing-deployment.yaml).
+#   3. Route   — its own Ingress and certificate (63-ingress-landing.yaml), so
+#                a failed challenge here cannot take the tenants' SAN cert down.
+#   4. Proof   — waits for the certificate, then fetches https://cadra.ng/ and
+#                checks the page came back, and that www redirects to it. A run
+#                that goes green has served the page over TLS, not only applied
+#                manifests.
+#
+# Touches nothing odoo-19 depends on, so it does not queue behind the
+# 40-minute backend deploys in `cadra-cluster-deploy`.
+#
+# Required: secret DIGITALOCEAN_ACCESS_TOKEN (k8s + DNS read/write on the
+# cadra.ng zone), var DO_CLUSTER_NAME — the same ones deploy-dev uses.
+
+on:
+  push:
+    branches: ["dev"]
+    paths:
+      - "landing/**"
+      - "k8s/dev/45-landing-deployment.yaml"
+      - "k8s/dev/46-landing-service.yaml"
+      - "k8s/dev/63-ingress-landing.yaml"
+      - ".github/workflows/deploy-landing.yml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: cadra-landing-deploy
+  cancel-in-progress: false
+
+env:
+  NAMESPACE: cadra-dev
+  ZONE: cadra.ng
+  # A live tenant host whose record defines "where the cluster is". Read, never written.
+  REFERENCE_HOST: lasg
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    environment:
+      name: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Save DOKS kubeconfig
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 1200 "${{ vars.DO_CLUSTER_NAME }}"
+
+      - name: Ensure DNS — cadra.ng and www.cadra.ng point at the ingress LB
+        id: dns
+        run: |
+          set -euo pipefail
+          if ! RECORDS=$(doctl compute domain records list "$ZONE" --format Type,Name,Data --no-header 2>&1); then
+            echo "$RECORDS"
+            echo "::error title=Cannot read the ${ZONE} DNS zone::The DIGITALOCEAN_ACCESS_TOKEN cannot list records in ${ZONE}. Give it DNS (domain) read/write scope, or create A records for @ and www pointing at the ingress load balancer by hand, then re-run."
+            exit 1
+          fi
+
+          LB_IP=$(awk -v h="$REFERENCE_HOST" '$1=="A" && $2==h {print $3; exit}' <<<"$RECORDS")
+          if [ -z "$LB_IP" ]; then
+            echo "::error title=No reference record::There is no A record for ${REFERENCE_HOST}.${ZONE}, so this run cannot tell where the cluster's load balancer is. Set REFERENCE_HOST to a live tenant host."
+            exit 1
+          fi
+          echo "ingress load balancer (from ${REFERENCE_HOST}.${ZONE}): ${LB_IP}"
+          echo "lb_ip=${LB_IP}" >> "$GITHUB_OUTPUT"
+
+          for NAME in @ www; do
+            FQDN=$([ "$NAME" = "@" ] && echo "$ZONE" || echo "${NAME}.${ZONE}")
+            CURRENT=$(awk -v n="$NAME" '($1=="A" || $1=="CNAME") && $2==n {print $1" "$3}' <<<"$RECORDS")
+            if [ -z "$CURRENT" ]; then
+              doctl compute domain records create "$ZONE" \
+                --record-type A --record-name "$NAME" --record-data "$LB_IP" --record-ttl 300 >/dev/null
+              echo "created   ${FQDN}  A  ${LB_IP}"
+            elif [ "$CURRENT" = "A ${LB_IP}" ]; then
+              echo "present   ${FQDN}  A  ${LB_IP}"
+            else
+              echo "::error title=${FQDN} already points elsewhere::${FQDN} has '${CURRENT}', not 'A ${LB_IP}'. Not overwriting a record somebody set; change or delete it deliberately, then re-run."
+              exit 1
+            fi
+          done
+
+      - name: Load landing/ into ConfigMaps
+        id: content
+        run: |
+          set -euo pipefail
+          FILES=(landing/index.html landing/styles.css landing/main.js landing/assets/cadra-mark.png landing/nginx.conf)
+          SHA=$(cat "${FILES[@]}" | sha256sum | cut -c1-16)
+          echo "content sha: ${SHA}"
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+
+          kubectl -n "$NAMESPACE" create configmap landing-site \
+            --from-file=index.html=landing/index.html \
+            --from-file=styles.css=landing/styles.css \
+            --from-file=main.js=landing/main.js \
+            --from-file=cadra-mark.png=landing/assets/cadra-mark.png \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n "$NAMESPACE" create configmap landing-nginx \
+            --from-file=default.conf=landing/nginx.conf \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Apply Service + Deployment
+        env:
+          SHA: ${{ steps.content.outputs.sha }}
+        run: |
+          set -euo pipefail
+          kubectl apply -f k8s/dev/46-landing-service.yaml
+          RENDERED=$(sed "s|REPLACE_ME_CONTENT_SHA|\"${SHA}\"|" k8s/dev/45-landing-deployment.yaml)
+          if printf '%s\n' "$RENDERED" | grep -q 'REPLACE_ME'; then
+            printf '%s\n' "$RENDERED" | grep -n 'REPLACE_ME'
+            echo "::error title=Placeholder not substituted::45-landing-deployment.yaml still has a REPLACE_ME after substitution. Refusing to apply."
+            exit 1
+          fi
+          printf '%s\n' "$RENDERED" | kubectl apply -f -
+          kubectl -n "$NAMESPACE" rollout status deployment/landing --timeout=5m
+
+      - name: Apply Ingress
+        run: kubectl apply -f k8s/dev/63-ingress-landing.yaml
+
+      - name: Wait for the TLS certificate
+        run: |
+          set -euo pipefail
+          # cert-manager creates the Certificate from the Ingress annotation a
+          # moment after the apply; wait for it to exist before waiting on it.
+          for _ in $(seq 1 30); do
+            kubectl -n "$NAMESPACE" get certificate cadra-landing-tls >/dev/null 2>&1 && break
+            sleep 2
+          done
+          if ! kubectl -n "$NAMESPACE" wait --for=condition=Ready certificate/cadra-landing-tls --timeout=10m; then
+            kubectl -n "$NAMESPACE" describe certificate cadra-landing-tls || true
+            kubectl -n "$NAMESPACE" get certificaterequest,order,challenge -o wide || true
+            kubectl -n "$NAMESPACE" describe challenge || true
+            echo "::error title=Certificate for cadra.ng not issued::Let's Encrypt did not issue cadra-landing-tls within 10 minutes. The challenge details are in the step log; the usual cause is DNS that has not propagated yet — re-run once 'dig +short cadra.ng' returns the load balancer."
+            exit 1
+          fi
+
+      - name: Prove the page is served
+        env:
+          LB_IP: ${{ steps.dns.outputs.lb_ip }}
+        run: |
+          set -euo pipefail
+          # --resolve pins the LB, so this proves the cluster and the
+          # certificate without depending on the runner's DNS cache. A plain
+          # lookup follows, which proves the public record too.
+          BODY=$(curl -fsS --resolve "cadra.ng:443:${LB_IP}" https://cadra.ng/)
+          grep -q 'Every asset. Every place.' <<<"$BODY" || { echo "::error title=Wrong page::https://cadra.ng/ answered, but not with the landing page."; exit 1; }
+          echo "https://cadra.ng/ serves the landing page (via ${LB_IP})."
+
+          for f in styles.css main.js assets/cadra-mark.png; do
+            curl -fsS -o /dev/null --resolve "cadra.ng:443:${LB_IP}" "https://cadra.ng/${f}"
+            echo "  /${f} ok"
+          done
+
+          LOC=$(curl -sS -o /dev/null -w '%{redirect_url}' --resolve "www.cadra.ng:443:${LB_IP}" https://www.cadra.ng/)
+          case "$LOC" in
+            https://cadra.ng/*|https://cadra.ng) echo "https://www.cadra.ng/ redirects to ${LOC}" ;;
+            *) echo "::error title=www does not redirect::https://www.cadra.ng/ redirected to '${LOC}', not to https://cadra.ng/."; exit 1 ;;
+          esac
+
+          if PUBLIC=$(dig +short A cadra.ng @1.1.1.1) && [ "$PUBLIC" = "$LB_IP" ]; then
+            echo "public DNS (1.1.1.1): cadra.ng -> ${PUBLIC}"
+          else
+            echo "::warning title=Public DNS not propagated yet::1.1.1.1 answers '${PUBLIC:-nothing}' for cadra.ng; the site is live at the load balancer and will resolve for visitors as caches expire."
+          fi
+
+      - name: Show state on failure
+        if: failure()
+        run: |
+          kubectl -n "$NAMESPACE" get pods,svc,ingress,certificate -l app=landing -o wide || true
+          kubectl -n "$NAMESPACE" get ingress cadra-landing -o wide || true
+          kubectl -n "$NAMESPACE" describe deployment/landing || true
+          kubectl -n "$NAMESPACE" logs -l app=landing --tail=100 || true
