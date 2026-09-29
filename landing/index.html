@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cadra — Asset and facilities register</title>
+<meta name="description" content="Cadra tracks what an agency owns, where each item is, who holds it and what has happened to it — connected to SAP, Vendra and your identity provider.">
+<link rel="icon" type="image/png" href="assets/cadra-mark.png">
+<script>
+  // Before first paint, so a stored light theme never flashes dark.
+  try { var t = localStorage.getItem('cadra-theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap header-row">
+    <a href="#top" class="brand">
+      <img src="assets/cadra-mark.png" alt="" width="23" height="26">
+      <span>CADRA</span>
+    </a>
+    <nav class="nav-wide" aria-label="Primary">
+      <a href="#platform">Platform</a>
+      <a href="#integrations">Integrations</a>
+      <a href="#station">Barcode station</a>
+      <a href="#deploy">Deployment</a>
+    </nav>
+    <button type="button" class="icon-btn" id="theme-toggle" aria-label="Switch to light theme" title="Switch to light theme">
+      <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
+      <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+    </button>
+    <a href="#demo" class="btn btn-primary btn-sm"><span class="cta-long">Request a demo</span><span class="cta-short">Demo</span></a>
+    <button type="button" class="icon-btn menu-btn" id="menu-toggle" aria-label="Menu" aria-expanded="false" aria-controls="mobile-nav">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+    </button>
+  </div>
+  <nav class="nav-mobile" id="mobile-nav" aria-label="Primary" hidden>
+    <a href="#platform">Platform</a>
+    <a href="#integrations">Integrations</a>
+    <a href="#station">Barcode station</a>
+    <a href="#deploy">Deployment</a>
+  </nav>
+</header>
+
+<main id="top">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-grid" aria-hidden="true"></div>
+    <div class="wrap hero-inner">
+      <div class="pill"><span class="dot pulse"></span>System of record for physical infrastructure</div>
+      <h1>Every asset. Every place. <span class="dim">One record.</span></h1>
+      <div class="hero-row">
+        <p class="hero-lead">Cadra tracks what an agency owns, where each item is, who holds it and what has happened to it. It connects to SAP, Vendra and your identity provider, so purchase orders become tagged assets without anyone re-keying them.</p>
+        <div class="btn-row">
+          <a href="#demo" class="btn btn-primary">Request a demo</a>
+          <a href="#platform" class="btn btn-ghost">How it works →</a>
+        </div>
+      </div>
+
+      <!-- Product console, wide: a fixed 1144px layout scaled to fit -->
+      <div class="console-slot" id="console-slot" aria-hidden="true">
+        <div class="console-wide-box" id="console-box">
+          <div class="console" id="console">
+            <div class="console-bar">
+              <div class="traffic"><span></span><span></span><span></span></div>
+              <div class="crumbs mono">Federal Ministry of Works <span class="faint">/</span> Assets <span class="faint">/</span> <span class="text">IT equipment</span></div>
+              <div class="search"><span>Search tag, room or request</span><span class="kbd mono">⌘K</span></div>
+            </div>
+            <div class="console-body">
+              <div class="console-side">
+                <div class="side-item"><span>Overview</span><span class="mono"></span></div>
+                <div class="side-item"><span>Locations</span><span class="mono">1,284</span></div>
+                <div class="side-item is-active"><span>Assets</span><span class="mono">48,211</span></div>
+                <div class="side-item"><span>Requests</span><span class="mono">312</span></div>
+                <div class="side-item"><span>Approvals</span><span class="mono">9</span></div>
+                <div class="side-item"><span>Connectors</span><span class="mono">7</span></div>
+                <div class="side-item"><span>Audit log</span><span class="mono"></span></div>
+                <div class="side-foot mono">
+                  <div class="health"><span class="dot"></span>7 connectors healthy</div>
+                  <div>Last sync SAP · 00:42 ago</div>
+                </div>
+              </div>
+              <div class="console-main">
+                <div class="kpis">
+                  <div><div class="kpi-label">Assets in register</div><div class="kpi-value">48,211</div></div>
+                  <div><div class="kpi-label">Open requests</div><div class="kpi-value">312</div></div>
+                  <div><div class="kpi-label">SLA at risk</div><div class="kpi-value c-amber">14</div></div>
+                  <div><div class="kpi-label">Awaiting receipt</div><div class="kpi-value c-blue">86</div></div>
+                </div>
+                <div class="table">
+                  <div class="tr th"><span>Tag</span><span>Asset</span><span>Location</span><span>State</span><span>Custodian</span></div>
+                  <div class="tr"><span class="mono tag">HQ-IT-004218</span><span class="name">Dell Latitude 5440</span><span class="loc">HQ › F2 › R204</span><span><span class="st st-deployed">Deployed</span></span><span class="who">A. Okafor</span></div>
+                  <div class="tr tr-flag"><span class="mono tag">HQ-FM-000871</span><span class="name">Daikin split AC 2.5HP</span><span class="loc">HQ › F2 › R204</span><span><span class="st st-service">In service</span></span><span class="who">Facilities</span></div>
+                  <div class="tr"><span class="mono tag">HQ-IT-004219</span><span class="name">Dell Latitude 5440</span><span class="loc">HQ › F2 › R211</span><span><span class="st st-deployed">Deployed</span></span><span class="who">I. Bello</span></div>
+                  <div class="tr"><span class="mono tag">KN-GN-000014</span><span class="name">Perkins 250kVA generator</span><span class="loc">Kano › Yard</span><span><span class="st st-deployed">Deployed</span></span><span class="who">K. Musa</span></div>
+                  <div class="tr"><span class="mono tag">PRE-22871-07</span><span class="name">HP LaserJet M507</span><span class="loc">Store B</span><span><span class="st st-procured">Procured</span></span><span class="who">Unassigned</span></div>
+                  <div class="tr"><span class="mono tag">HQ-VH-000093</span><span class="name">Toyota Hilux 2024</span><span class="loc">Fleet depot</span><span><span class="st st-deployed">Deployed</span></span><span class="who">Fleet</span></div>
+                  <div class="tr"><span class="mono tag">LG-IT-001302</span><span class="name">Cisco C9200 switch</span><span class="loc">Lagos › Comms rm</span><span><span class="st st-received">Received</span></span><span class="who">IT</span></div>
+                  <div class="tr"><span class="mono tag">HQ-FU-010442</span><span class="name">Executive desk</span><span class="loc">HQ › F5 › R502</span><span><span class="st st-deployed">Deployed</span></span><span class="who">Admin</span></div>
+                </div>
+              </div>
+              <div class="console-events">
+                <div class="events-head"><span>Event stream</span><span class="live mono"><span class="dot pulse-fast"></span>LIVE</span></div>
+                <div class="events" id="events"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product console, narrow -->
+      <div class="console console-narrow" aria-hidden="true">
+        <div class="narrow-bar mono"><span>FMW / Assets</span><span class="live"><span class="dot pulse-fast"></span>LIVE</span></div>
+        <div class="kpis-2">
+          <div><div class="kpi-label">Assets in register</div><div class="kpi-value">48,211</div></div>
+          <div><div class="kpi-label">Open requests</div><div class="kpi-value">312</div></div>
+          <div><div class="kpi-label">SLA at risk</div><div class="kpi-value c-amber">14</div></div>
+          <div><div class="kpi-label">Awaiting receipt</div><div class="kpi-value c-blue">86</div></div>
+        </div>
+        <div class="narrow-row"><span class="mono tag">HQ-IT-004218</span><span class="st st-deployed">Deployed</span><span class="sub">Dell Latitude 5440 · HQ › F2 › R204</span></div>
+        <div class="narrow-row"><span class="mono tag">HQ-FM-000871</span><span class="st st-service">In service</span><span class="sub">Daikin split AC 2.5HP · HQ › F2 › R204</span></div>
+        <div class="narrow-row"><span class="mono tag">HQ-IT-004219</span><span class="st st-deployed">Deployed</span><span class="sub">Dell Latitude 5440 · HQ › F2 › R211</span></div>
+        <div class="narrow-row"><span class="mono tag">KN-GN-000014</span><span class="st st-deployed">Deployed</span><span class="sub">Perkins 250kVA generator · Kano › Yard</span></div>
+        <div class="narrow-latest" id="latest-event"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Integrations strip -->
+  <section class="strip">
+    <div class="wrap strip-row">
+      <span class="strip-label mono">Connects to</span>
+      <span>SAP</span><span>Vendra</span><span>Oracle</span><span>Microsoft 365</span><span>Azure AD</span><span>Okta</span><span>Ariba</span><span>Workday</span>
+    </div>
+  </section>
+
+  <div class="wrap">
+
+    <!-- 01 Platform -->
+    <section id="platform" class="section">
+      <div class="eyebrow">01 / Platform</div>
+      <h2 class="h2 w-18">Three registers that share one data model.</h2>
+      <p class="lead w-58">Locations, assets and service requests share one event log, one API and one audit trail. They aren't three separate products joined together, so every record links to the others.</p>
+      <div class="grid g-280">
+        <article class="card domain">
+          <div class="code mono">LOC</div>
+          <h3>Locations</h3>
+          <p>Campus, building, floor and room in one hierarchy, with coordinates and floor plans. Every asset and request is attached to a location.</p>
+          <div class="snippet mono"><div>Abuja HQ</div><div>└ Floor 2</div><div>&nbsp;&nbsp;&nbsp;└ R204 · 18 assets · 1 open</div></div>
+        </article>
+        <article class="card domain">
+          <div class="code mono">AST</div>
+          <h3>Assets</h3>
+          <p>Every laptop, vehicle, generator and medical device has a tag, a custodian, a lifecycle state and a full history.</p>
+          <div class="snippet mono"><div>HQ-IT-004218 · deployed</div><div>custodian&nbsp;&nbsp;A. Okafor</div><div>events&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;14 since 2026-03-12</div></div>
+        </article>
+        <article class="card domain">
+          <div class="code mono">REQ</div>
+          <h3>Service requests</h3>
+          <p>Repairs, transfers, inspections and disposals, each with an SLA, an assignee and a link to the asset or room.</p>
+          <div class="snippet mono"><div>REQ-10492 · P2 · HVAC</div><div>source&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;whatsapp</div><div>sla&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;04:00:00 remaining</div></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- 02 Lifecycle -->
+    <section id="lifecycle" class="section">
+      <div class="eyebrow">02 / Automated lifecycle</div>
+      <div class="split-head">
+        <h2 class="h2 w-16">From purchase order to disposal.</h2>
+        <p class="lead w-46">Cadra creates the asset record as soon as the PO is raised. Delivery, tagging, moves, repairs and retirement are then added to that same record, with approvals where you require them.</p>
+      </div>
+      <ol class="grid g-240 steps" id="steps">
+        <li class="step"><div class="step-top mono"><span>01</span><span class="step-state">procured</span></div><div class="step-title">PO raised</div><div class="step-body">Vendra or SAP sends the PO, and Cadra creates asset records before delivery.</div><div class="step-src mono">connector.vendra</div></li>
+        <li class="step"><div class="step-top mono"><span>02</span><span class="step-state">received</span></div><div class="step-title">Goods received</div><div class="step-body">Staff scan the delivery against the PO. Nothing is typed in twice.</div><div class="step-src mono">station.receive</div></li>
+        <li class="step is-active"><div class="step-top mono"><span>03</span><span class="step-state">tagged</span></div><div class="step-title">Tag printed</div><div class="step-body">The station prints a barcode and QR label in your agency’s tag format.</div><div class="step-src mono">station.print</div></li>
+        <li class="step"><div class="step-top mono"><span>04</span><span class="step-state">deployed</span></div><div class="step-title">Assigned</div><div class="step-body">The asset is linked to a room and a custodian and joins the active register.</div><div class="step-src mono">asset.deployed</div></li>
+        <li class="step"><div class="step-top mono"><span>05</span><span class="step-state">in_service</span></div><div class="step-title">Maintained</div><div class="step-body">Repairs, transfers, costs and downtime are added to its history.</div><div class="step-src mono">request.*</div></li>
+        <li class="step"><div class="step-top mono"><span>06</span><span class="step-state">disposed</span></div><div class="step-title">Retired</div><div class="step-body">Disposal goes through approval. The asset’s history is kept.</div><div class="step-src mono">approval.disposal</div></li>
+      </ol>
+    </section>
+
+    <!-- 03 Integrations -->
+    <section id="integrations" class="section">
+      <div class="grid g-420 duo">
+        <div>
+          <div class="eyebrow">03 / Integration fabric</div>
+          <h2 class="h2">Works alongside your existing systems.</h2>
+          <p class="lead w-46">Each connector has its own credentials, health monitoring, retries and a queue for failed messages. Everything in Cadra is also available through the API first, and changes are published as signed webhooks.</p>
+          <dl class="facts">
+            <div><dt class="mono">API</dt><dd>REST · OpenAPI 3.1</dd></div>
+            <div><dt class="mono">Events</dt><dd>Signed webhooks + DLQ</dd></div>
+            <div><dt class="mono">Identity</dt><dd>SAML · OIDC · SCIM</dd></div>
+            <div><dt class="mono">SDKs</dt><dd>Python · TS · Java · .NET</dd></div>
+          </dl>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">Connectors</span><span class="mono panel-meta">tenant: fmw-prod</span></div>
+          <div class="connector"><div class="c-name"><span class="dot"></span><span>Vendra</span><span class="dir mono">IN ⇄ OUT</span></div><span class="c-stat mono">synced 42s</span><div class="c-what">Purchase orders become asset records before delivery</div></div>
+          <div class="connector"><div class="c-name"><span class="dot"></span><span>SAP MM / FICO</span><span class="dir mono">IN ⇄ OUT</span></div><span class="c-stat mono">synced 1m</span><div class="c-what">Procurement feed, asset master and financial values</div></div>
+          <div class="connector"><div class="c-name"><span class="dot"></span><span>Oracle Financials</span><span class="dir mono">IN ⇄ OUT</span></div><span class="c-stat mono">synced 6m</span><div class="c-what">Fixed-asset and cost reconciliation</div></div>
+          <div class="connector"><div class="c-name"><span class="dot"></span><span>Microsoft 365</span><span class="dir mono">OUT</span></div><span class="c-stat mono">synced 3m</span><div class="c-what">Documents stored in SharePoint, linked to records</div></div>
+          <div class="connector"><div class="c-name"><span class="dot"></span><span>Azure AD</span><span class="dir mono">IN</span></div><span class="c-stat mono">SCIM ok</span><div class="c-what">Single sign-on and user provisioning</div></div>
+          <div class="connector"><div class="c-name"><span class="dot dot-amber"></span><span>Ariba</span><span class="dir mono">IN</span></div><span class="c-stat mono">retrying 2</span><div class="c-what">Sourcing and PO events</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 Barcode station -->
+    <section id="station" class="section">
+      <div class="grid g-420 duo">
+        <div class="station-copy">
+          <div class="eyebrow">04 / Barcode station</div>
+          <h2 class="h2">Print the tag when the goods arrive.</h2>
+          <p class="lead w-46">The barcode station sits at the receiving desk. Staff scan the delivery against the purchase order, print a barcode and QR label, and stick it on the item. From then on, one scan brings up the asset's full record.</p>
+          <ol class="features">
+            <li><span class="mono">01</span><div><div class="f-title">Barcode and QR on every tag</div><div class="f-body">Tag layouts follow each agency’s numbering format.</div></div></li>
+            <li><span class="mono">02</span><div><div class="f-title">Print when goods are received</div><div class="f-body">Items are tagged as they come in, not weeks later.</div></div></li>
+            <li><span class="mono">03</span><div><div class="f-title">Scan to act</div><div class="f-body">Scan once to transfer an item, report a fault or see its history.</div></div></li>
+            <li><span class="mono">04</span><div><div class="f-title">Room-by-room audit</div><div class="f-body">Scan a room to see what is missing, misplaced or unexpected.</div></div></li>
+          </ol>
+        </div>
+        <div class="station-stage">
+          <div class="tag-label" role="img" aria-label="Example asset tag HQ-IT-004218">
+            <div class="tag-top"><span><img src="assets/cadra-mark.png" alt="" width="12" height="14">Property of FMW</span><span>Do not remove</span></div>
+            <div class="tag-grid">
+              <div>
+                <div class="barcode" id="barcode" aria-hidden="true"></div>
+                <div class="tag-code mono">HQ-IT-004218</div>
+                <div class="tag-sub">Laptop · HQ › F2 › R204</div>
+              </div>
+              <div class="qr" id="qr" aria-hidden="true"></div>
+            </div>
+          </div>
+          <div class="station-log mono">
+            <div><span class="c-accent">✓</span> PO-22871 matched · 24 of 24 items</div>
+            <div><span class="c-accent">✓</span> 24 tags queued → Station 01</div>
+            <div><span class="c-blue">→</span> asset.received → webhook × 3</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 Requests -->
+    <section id="requests" class="section">
+      <div class="grid g-420 duo">
+        <div>
+          <div class="eyebrow">05 / Service requests</div>
+          <h2 class="h2">Staff report problems on WhatsApp or email. Cadra logs them.</h2>
+          <p class="lead w-46">Cadra reads each message, matches it to an asset and a room, opens a ticket with an SLA and replies in the same thread. If the match is uncertain, it asks the sender instead of guessing.</p>
+          <div class="tabs" role="tablist" aria-label="Request channel">
+            <button type="button" role="tab" id="tab-WhatsApp" aria-selected="true" aria-controls="channel-panel" data-channel="WhatsApp">WhatsApp</button>
+            <button type="button" role="tab" id="tab-Email" aria-selected="false" aria-controls="channel-panel" data-channel="Email" tabindex="-1">Email</button>
+            <button type="button" role="tab" id="tab-Portal" aria-selected="false" aria-controls="channel-panel" data-channel="Portal" tabindex="-1">Portal</button>
+          </div>
+        </div>
+        <div class="panel" id="channel-panel" role="tabpanel" aria-labelledby="tab-WhatsApp">
+          <div class="panel-head"><span class="panel-title" id="channel-label">WhatsApp</span><span class="mono panel-meta" id="channel-addr">+234 · service line</span></div>
+          <div class="chat">
+            <div class="bubble-in" id="channel-inbound">AC not cooling in HQ-F2-R204</div>
+            <div class="bubble-out">
+              <div class="mono bubble-kicker">CADRA · REQ-10492 OPENED</div>
+              <div>Logged: air conditioner <span class="mono">HQ-FM-000871</span>, Room 204, Floor 2. Assigned to the HVAC team. Response due within 4 hours.</div>
+            </div>
+            <div class="triage">
+              <div><div class="mono">MATCH</div><div>Asset + room · 0.96</div></div>
+              <div><div class="mono">PRIORITY</div><div class="c-amber">P2 · Comfort</div></div>
+              <div><div class="mono">SLA</div><div>04:00:00</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 Deployment -->
+    <section id="deploy" class="section">
+      <div class="eyebrow">06 / Deployment</div>
+      <div class="split-head">
+        <h2 class="h2 w-16">Deploy it the way your agency requires.</h2>
+        <p class="lead w-46">Every option runs the same codebase. You can choose shared SaaS, a single-instance deployment for your agency, or a fully sovereign install on your own infrastructure.</p>
+      </div>
+      <div class="grid g-300">
+        <article class="card edition">
+          <div class="ed-top mono"><span>Shared SaaS</span><span class="c-accent"></span></div>
+          <h3>Standard</h3>
+          <p>Hosted by WestMetro on shared infrastructure. Each agency’s data is kept in its own isolated database schema. Suitable for most ministries, states and parastatals.</p>
+          <dl class="ed-rows"><div><dt>Uptime SLA</dt><dd class="mono">99.5%</dd></div><div><dt>RPO / RTO</dt><dd class="mono">24h / 8h</dd></div><div><dt>Connectors</dt><dd class="mono">Standard</dd></div></dl>
+        </article>
+        <article class="card edition is-featured">
+          <div class="ed-top mono"><span>Single instance</span><span class="c-accent">ONE CLIENT</span></div>
+          <h3>Enterprise</h3>
+          <p>A dedicated Cadra instance for one agency, hosted by WestMetro on isolated infrastructure and configured to your processes.</p>
+          <dl class="ed-rows"><div><dt>Uptime SLA</dt><dd class="mono">99.9%</dd></div><div><dt>RPO / RTO</dt><dd class="mono">1h / 2h</dd></div><div><dt>Connectors</dt><dd class="mono">Premium</dd></div></dl>
+        </article>
+        <article class="card edition">
+          <div class="ed-top mono"><span>On-premise</span><span class="c-accent"></span></div>
+          <h3>Sovereign</h3>
+          <p>Installed on the agency’s own servers or cloud account, for strict data-residency or classification requirements.</p>
+          <dl class="ed-rows"><div><dt>Uptime SLA</dt><dd class="mono">Agency-defined</dd></div><div><dt>Hosting</dt><dd class="mono">Your infrastructure</dd></div><div><dt>Source escrow</dt><dd class="mono">Included</dd></div></dl>
+        </article>
+      </div>
+    </section>
+
+    <!-- 07 Security -->
+    <section id="security" class="section">
+      <div class="eyebrow">07 / Security</div>
+      <h2 class="h2 w-18">Built to government security standards.</h2>
+      <div class="grid g-260 trust">
+        <div class="card"><div class="code mono c-accent">ISO-01</div><div class="t-title">Tenant isolation</div><div class="t-body">Each agency has its own database schema, credentials and webhooks.</div></div>
+        <div class="card"><div class="code mono c-accent">ENC-02</div><div class="t-title">Encryption</div><div class="t-body">Data is encrypted with AES-256 at rest and TLS 1.3 in transit, plus mTLS between internal services.</div></div>
+        <div class="card"><div class="code mono c-accent">AUD-03</div><div class="t-title">Immutable audit log</div><div class="t-body">Every read and write is recorded with who made it and what changed.</div></div>
+        <div class="card"><div class="code mono c-accent">IDP-04</div><div class="t-title">Your identity provider</div><div class="t-body">Works with SAML 2.0, OIDC and SCIM. Your IdP stays the source of truth for users.</div></div>
+        <div class="card"><div class="code mono c-accent">NDP-05</div><div class="t-title">NDPA · NDPR</div><div class="t-body">Designed to comply with Nigeria’s data protection law and regulation.</div></div>
+        <div class="card"><div class="code mono c-accent">A11-06</div><div class="t-title">WCAG 2.1 AA</div><div class="t-body">Meets the accessibility standard that public procurement requires.</div></div>
+      </div>
+    </section>
+
+    <!-- Demo -->
+    <section id="demo" class="section section-last">
+      <div class="demo">
+        <div>
+          <h2 class="h2 h2-demo">See your own estate in Cadra.</h2>
+          <p class="lead w-42">In the demo we'll load a sample of your locations and assets, connect a test ERP feed and print your first tags.</p>
+        </div>
+        <div id="demo-slot">
+          <form class="demo-form" id="demo-form" novalidate>
+            <input name="name" required autocomplete="name" placeholder="Full name" aria-label="Full name">
+            <input name="organisation" required autocomplete="organization" placeholder="Agency or organisation" aria-label="Agency or organisation">
+            <input name="email" required type="email" autocomplete="email" placeholder="Work email" aria-label="Work email">
+            <button type="submit" class="btn btn-primary btn-block">Request a demo</button>
+            <p class="form-error" id="demo-error" role="alert" hidden></p>
+          </form>
+          <div class="demo-done" id="demo-done" hidden tabindex="-1">
+            <div class="mono c-accent">REQUEST RECEIVED</div>
+            <p>Thanks. We'll contact you within two working days to schedule your demo.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-row">
+    <div class="footer-brand"><img src="assets/cadra-mark.png" alt="" width="17" height="20"><span class="mono">ASSETS · LOCATIONS · SERVICES</span></div>
+    <span>Cadra is built and operated by WestMetro Limited.</span>
+  </div>
+</footer>
+
+<script src="main.js"></script>
+</body>
+</html>

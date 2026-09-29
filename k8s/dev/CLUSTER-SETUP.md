@@ -246,6 +246,33 @@ modules or re-seed.
 
 ---
 
+## 6. The landing page (`https://cadra.ng/`)
+
+The public site in `landing/` runs beside the tenants, not inside them:
+its own pod (`45-landing-deployment.yaml`, stock `nginxinc/nginx-unprivileged`
+serving files from two ConfigMaps), Service (`46-`) and Ingress (`63-`). **Its
+certificate is a separate secret, `cadra-landing-tls`**, on purpose: adding
+`cadra.ng` to the tenants' SAN certificate in `60-ingress.yaml` would let one
+failed challenge on the landing page block renewal for every live tenant.
+
+`deploy-landing.yml` does all of it on a push to `dev` that touches those files
+(or by hand from the Actions tab): it creates the `@` and `www` A records in the
+`cadra.ng` zone if they are missing, pointed at the address the `lasg` record
+already uses; loads the files; rolls the pod only when their hash changed; waits
+for the certificate; and fails unless `https://cadra.ng/` actually returns the
+page and `www` redirects to it. It refuses to overwrite a DNS record that points
+somewhere else. The token needs DNS read/write on the zone as well as the
+registry and Kubernetes scopes listed above.
+
+```bash
+curl -sS -o /dev/null -w "%{http_code}\n" https://cadra.ng/          # expect 200
+curl -sS -o /dev/null -w "%{redirect_url}\n" https://www.cadra.ng/   # expect https://cadra.ng/
+kubectl -n cadra-dev get pods -l app=landing
+kubectl -n cadra-dev get certificate cadra-landing-tls
+```
+
+---
+
 ## Quick health check
 
 ```bash

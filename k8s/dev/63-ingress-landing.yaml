@@ -1,0 +1,40 @@
+# The public landing page on the apex domain: cadra.ng (and www.cadra.ng,
+# which redirects to it). Routes everything to the `landing` Service.
+#
+# Deliberately its OWN Ingress and its OWN certificate secret, not two more
+# hosts on the `cadra` Ingress (60-ingress.yaml). That Ingress carries one SAN
+# certificate for every live tenant; a host on it whose HTTP-01 challenge
+# fails — DNS not yet pointing here, say — fails the whole certificate, and
+# with it the renewal for jaizbankplc.cadra.ng and lasg.cadra.ng. Here a
+# landing-page problem stays a landing-page problem.
+#
+# DNS: A records for `@` and `www` in the cadra.ng zone must point at the
+# ingress LB; deploy-landing.yml ensures both before this is applied.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cadra-landing
+  namespace: cadra-dev
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # With the rule on the apex and www in the tls list, ingress-nginx answers
+    # www.cadra.ng with a 308 to https://cadra.ng/.
+    nginx.ingress.kubernetes.io/from-to-www-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - cadra.ng
+        - www.cadra.ng
+      secretName: cadra-landing-tls
+  rules:
+    - host: cadra.ng
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: landing
+                port:
+                  number: 80
