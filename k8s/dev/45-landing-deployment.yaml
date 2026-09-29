@@ -2,7 +2,7 @@
 #
 # No image of our own: the stock unprivileged nginx serves four static files
 # that deploy-landing.yml loads into two ConfigMaps from landing/ —
-#   landing-site   index.html, styles.css, main.js, cadra-mark.png
+#   landing-site   index.html, styles.css, main.js, favicon.svg, favicon.png
 #   landing-nginx  default.conf (landing/nginx.conf)
 # The page is ~75 KB, far under the 1 MiB ConfigMap limit, and this keeps a
 # fourth repository out of the container registry and a build out of the path.
@@ -87,7 +87,8 @@ spec:
               - { key: index.html, path: index.html }
               - { key: styles.css, path: styles.css }
               - { key: main.js, path: main.js }
-              - { key: cadra-mark.png, path: assets/cadra-mark.png }
+              - { key: favicon.svg, path: favicon.svg }
+              - { key: favicon.png, path: favicon.png }
         - name: nginx-conf
           configMap:
             name: landing-nginx
