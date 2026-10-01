@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -11,8 +11,9 @@ import {
 import { invalidateTagQueries } from "@/components/TagReplacementDialogs";
 import { ApiErrorMessage } from "@/components/ApiErrorMessage";
 import { formatIsoDateTime } from "@/lib/utils";
-import { AlertCircle, Check, Info, Loader2, Tag } from "lucide-react";
+import { AlertCircle, Camera, Check, Info, Keyboard, Loader2, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
+import BarcodeScanner from "@/components/BarcodeScanner";
 
 /**
  * Confirming that a printed label is on the asset — handoff 39.
@@ -52,6 +53,24 @@ import { cn } from "@/lib/utils";
  *             dialog says so, with the original date — not "done", because
  *             nothing was done, and not an error, because nothing went wrong.
  *             Told apart by reading the block before posting, not by a clock.
+ *
+ * Handoff 40 adds the CAMERA as a second way into the tag field (and the
+ * serial field), as a Type / Camera toggle like the station's own. The
+ * handheld-scanner path above is the primary design and is unchanged: the
+ * tag field is auto-focused, the scanner's trailing Enter submits, and
+ * switching the camera off returns focus to the field. The camera is
+ * `BarcodeScanner` as it is — the same component the station's lookup box
+ * uses — mounted under whichever field asked for it, one at a time.
+ *
+ * **A camera detection fills the field. It does not submit.** This will read
+ * as an inconsistency next to the Enter-submits rule, so: a trigger pull on
+ * a handheld is a deliberate act — the person aimed at THIS label and
+ * squeezed. A camera is looking at the room continuously and will read
+ * whatever passes the lens: the neighbouring label, a box, another asset's
+ * tag, the one still on the desk. Filling the field lets the person see
+ * what was read before they commit, so a misread costs a glance instead of
+ * a false record (or a refusal that names the issued number, see above).
+ * Confirm is one more tap, or Enter, exactly as for a typed number.
  */
 
 const inputCls = "mt-1.5 w-full px-3 py-2 text-xs border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20";
@@ -60,6 +79,42 @@ const cancelCls = "px-3 py-1.5 text-xs font-medium text-muted-foreground hover:t
 
 type Outcome =
   | { kind: "already"; tagging: AssetTagging };
+
+/** Which field, if any, has the camera open under it. One at a time: a
+ *  second live camera would be two streams and two detect loops for one
+ *  pair of hands. */
+type CameraFor = "tag" | "serial" | null;
+
+/** The station's Type / Camera control (`ModeButton` in `BarcodeStation.tsx`,
+ *  which is a page and cannot be imported by a component the page itself
+ *  imports), in the same classes, so it reads as the same control in a
+ *  smaller place. */
+function ModeToggle({ mode, onChange, disabled, idPrefix }: {
+  mode: "type" | "camera"; onChange: (m: "type" | "camera") => void; disabled: boolean; idPrefix: string;
+}) {
+  const btn = (m: "type" | "camera", Icon: typeof Tag, label: string) => (
+    <button
+      type="button"
+      onClick={() => onChange(m)}
+      disabled={disabled}
+      aria-pressed={mode === m}
+      data-testid={`${idPrefix}-mode-${m}`}
+      className={cn(
+        "inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold",
+        mode === m ? "bg-primary text-white" : "text-muted-foreground hover:bg-muted/40",
+        disabled && "opacity-50 cursor-not-allowed",
+      )}
+    >
+      <Icon size={10} /> {label}
+    </button>
+  );
+  return (
+    <div className="flex items-center gap-0.5 rounded-lg border border-border p-0.5" role="group" aria-label="How to enter the number">
+      {btn("type", Keyboard, "Type")}
+      {btn("camera", Camera, "Camera")}
+    </div>
+  );
+}
 
 interface Props {
   assetId: number;
@@ -84,6 +139,24 @@ export function ConfirmAffixedDialog({
   const [serial, setSerial] = useState("");
   const [fittedBy, setFittedBy] = useState("");
   const [outcome, setOutcome] = useState<Outcome | null>(null);
+  // Default Type, as the station does. Never auto-selected on a small screen
+  // or anywhere else: the handheld path is the primary design.
+  const [cameraFor, setCameraFor] = useState<CameraFor>(null);
+  const tagRef = useRef<HTMLInputElement>(null);
+  const serialRef = useRef<HTMLInputElement>(null);
+  const prevCameraRef = useRef<CameraFor>(null);
+
+  // Switching the camera off — by the toggle or by a detection — puts the
+  // cursor back in the field it was open for, so the handheld path (Enter
+  // submits) is exactly where it was before. A submit also switches it off,
+  // but the field is disabled while the request is pending, so focus is lost
+  // there exactly as it is on the typed path.
+  useEffect(() => {
+    const prev = prevCameraRef.current;
+    prevCameraRef.current = cameraFor;
+    if (!open || cameraFor !== null || prev === null) return;
+    (prev === "tag" ? tagRef : serialRef).current?.focus();
+  }, [cameraFor, open]);
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -135,6 +208,10 @@ export function ConfirmAffixedDialog({
       setSerial("");
       setFittedBy("");
       setOutcome(null);
+      // Unmounting `BarcodeScanner` stops its stream (its own unmount
+      // effect); a camera left running after the dialog is gone is a battery
+      // problem and the kind of thing somebody notices on a projector.
+      setCameraFor(null);
       mutation.reset();
     }
     onOpenChange(next);
@@ -142,18 +219,31 @@ export function ConfirmAffixedDialog({
 
   const submit = () => {
     if (!ready || mutation.isPending || outcome) return;
+    // A submit with the camera open stops it, for the same reason as close.
+    setCameraFor(null);
     mutation.mutate();
   };
 
+  const locked = mutation.isPending || outcome !== null;
+  const camera = (field: Exclude<CameraFor, null>) => cameraFor === field ? "camera" : "type";
+  const toggleCamera = (field: Exclude<CameraFor, null>, m: "type" | "camera") =>
+    setCameraFor(m === "camera" ? field : null);
+
   return (
     <Dialog open={open} onOpenChange={(next) => setOpen(next)}>
-      <DialogContent className="sm:max-w-md" data-testid="dialog-confirm-affixed">
-        <DialogHeader>
+      {/* A column whose middle scrolls: with the camera preview open the
+          form is taller than a 720px viewport, and the first run of spec 40
+          found Confirm scrolled out of sight below it. The header and the
+          footer stay put; the fields and the preview scroll between them.
+          (A sticky footer was tried first and floated over the form.) */}
+      <DialogContent className="sm:max-w-md max-h-[calc(100vh-2rem)] flex flex-col" data-testid="dialog-confirm-affixed">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Tag size={16} className="text-primary" /> Confirm the label is on the asset
           </DialogTitle>
           <DialogDescription>
-            Scan the label fixed to <span className="font-semibold text-foreground">{assetName}</span>.
+            Scan the label fixed to <span className="font-semibold text-foreground">{assetName}</span>,
+            with a handheld scanner or the camera.
             Cadra checks the number you scan against the tag it issued for this asset and refuses
             the confirmation if it is not the same label. The expected number is deliberately not
             shown here: the check is only worth something if the number comes off the label in
@@ -166,23 +256,37 @@ export function ConfirmAffixedDialog({
         <form
           id="affix-form"
           onSubmit={(e) => { e.preventDefault(); submit(); }}
-          className="space-y-3"
+          className="space-y-3 min-h-0 overflow-y-auto -mx-1 px-1"
         >
           <div>
-            <label htmlFor="affix-tag-number" className={labelCls}>Tag number on the label</label>
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="affix-tag-number" className={labelCls}>Tag number on the label</label>
+              <ModeToggle idPrefix="affix-tag" mode={camera("tag")} onChange={m => toggleCamera("tag", m)} disabled={locked} />
+            </div>
+            {/* The input stays mounted in camera mode, as the station's does:
+                a handheld scanner emulates a keyboard and still lands here. */}
             <input
               id="affix-tag-number"
+              ref={tagRef}
               type="text"
               autoFocus
               autoComplete="off"
               spellCheck={false}
               value={tagNumber}
               onChange={e => setTagNumber(e.target.value)}
-              disabled={mutation.isPending || outcome !== null}
+              disabled={locked}
               className={cn(inputCls, "font-mono")}
               placeholder="Scan the label"
               data-testid="input-affix-tag-number"
             />
+            {cameraFor === "tag" && (
+              <div className="mt-2" data-testid="affix-camera" data-for="tag">
+                {/* Fills the field and switches back to Type (which returns
+                    focus to the field). It does NOT submit — see the file
+                    comment: the camera reads whatever passes the lens. */}
+                <BarcodeScanner onDetected={(value) => { setTagNumber(value); setCameraFor(null); }} />
+              </div>
+            )}
           </div>
 
           <div>
@@ -193,7 +297,7 @@ export function ConfirmAffixedDialog({
               autoComplete="off"
               value={fittedBy}
               onChange={e => setFittedBy(e.target.value)}
-              disabled={mutation.isPending || outcome !== null}
+              disabled={locked}
               className={inputCls}
               placeholder="Optional — the person who fixed it, if not you"
               data-testid="input-affix-fitted-by"
@@ -202,19 +306,28 @@ export function ConfirmAffixedDialog({
 
           {hasSerialOnFile ? (
             <div>
-              <label htmlFor="affix-serial" className={labelCls}>Serial number on the asset</label>
+              <div className="flex items-center justify-between gap-2">
+                <label htmlFor="affix-serial" className={labelCls}>Serial number on the asset</label>
+                <ModeToggle idPrefix="affix-serial" mode={camera("serial")} onChange={m => toggleCamera("serial", m)} disabled={locked} />
+              </div>
               <input
                 id="affix-serial"
+                ref={serialRef}
                 type="text"
                 autoComplete="off"
                 spellCheck={false}
                 value={serial}
                 onChange={e => setSerial(e.target.value)}
-                disabled={mutation.isPending || outcome !== null}
+                disabled={locked}
                 className={cn(inputCls, "font-mono")}
                 placeholder="Optional — scan the manufacturer serial too, if legible"
                 data-testid="input-affix-serial"
               />
+              {cameraFor === "serial" && (
+                <div className="mt-2" data-testid="affix-camera" data-for="serial">
+                  <BarcodeScanner onDetected={(value) => { setSerial(value); setCameraFor(null); }} />
+                </div>
+              )}
               <p className="text-[11px] text-muted-foreground mt-1">
                 If you scan it, it is checked against the record as well: the tag check proves the
                 label is the one Cadra issued, the serial check proves it went onto the right box.
@@ -248,7 +361,7 @@ export function ConfirmAffixedDialog({
           )}
         </form>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0">
           {outcome ? (
             <button type="button" onClick={() => setOpen(false, true)} data-testid="button-close-affix" className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-border hover:bg-muted/40">
               Close
