@@ -4199,3 +4199,77 @@ a deleted parameter's old value to twenty-four writing tests.
 | 54 | POST   | `/api/v1/approvals/<id>/reject` | `approvals:write` |
 | 55 | POST   | `/api/v1/approvals/<id>/withdraw` | `assets:write` |
 | 56 | GET    | `/api/v1/settings/approvals` | `assets:read` |
+
+
+## 12 · People and roles — read only (handoff 41)
+
+Three admin-scoped reads. There is deliberately no write twin: granting and
+removing is handoff 42, creating and deactivating is 43.
+
+## 12.1 GET `/api/v1/roles` — the role vocabulary
+
+Derived from the group→scope table that mints session tokens, never
+restated. One entry per group that grants API scopes, in table order.
+
+### Success — `200 OK`
+
+```json
+{"data": [
+  {"key": "asset_manager", "name": "Asset Manager",
+   "xmlid": "myservice_asset_register.group_asset_manager",
+   "scopes": ["approvals:write", "assets:write", "ingestion:write",
+              "integrations:write", "locations:write", "settings:read",
+              "settings:write"],
+   "description": "Full access — create, edit, transfer, dispose, manage PM schedules.",
+   "installed": true, "implies": ["asset_user"]}
+]}
+```
+
+`implies` lists the OTHER roles in this vocabulary a holder of this one
+also holds. A role whose group is not installed on the tenant is still
+listed, with `installed: false`.
+
+## 12.2 GET `/api/v1/users` — who has what
+
+### Request
+
+`q` (name, login or email, substring) · `role` (a key from 12.1 — EFFECTIVE
+membership, *who can act as*) · `role_direct` (direct membership only) ·
+`active` (`true`/`false`; absent returns both) · `is_api_client`
+(`true`/`false`; absent returns both) · `limit`, `cursor`. An unknown role
+key is `400 invalid_request` with `details.allowed_values`.
+
+### Success — `200 OK`
+
+```json
+{"data": [
+  {"id": 7427, "name": "H41 Manager (probe)", "login": "h41_manager",
+   "email": "h41.manager@example.invalid", "active": true,
+   "kind": "person", "api_client": null,
+   "roles_direct":    [{"key": "asset_manager", "name": "Asset Manager"}],
+   "roles_effective": [{"key": "asset_user", "name": "Asset User", "via": ["Asset Manager"]},
+                       {"key": "asset_manager", "name": "Asset Manager", "via": []}],
+   "scopes": ["approvals:write", "assets:read", "assets:write", "..."],
+   "scopes_source": "roles",
+   "last_login_at": "2026-10-01T21:12:40", "created_at": "2026-10-01T21:04:07"}
+ ],
+ "pagination": {"next_cursor": null, "previous_cursor": null, "total_estimate": 6}}
+```
+
+**`roles_direct` and `roles_effective` are different questions.** On Odoo
+19 an implication grants rights without writing a membership row, so the
+manager above is a MEMBER of one group and HOLDS two; `via` names the
+account's direct group(s) that imply the role, which may be a group outside
+this vocabulary (an administrator holding Security Officer through Security
+Administrator). A screen that shows
+one of these as if it were the other is wrong about access; the SPA leads
+with direct (what somebody granted) and shows the implied beside it.
+
+For an API credential `kind` is `"api_credential"`, `api_client` names it,
+and `scopes` are the credential's own with `scopes_source: "credential"` —
+a client's token is not minted from its groups.
+
+## 12.3 GET `/api/v1/users/<id>` — one account
+
+The same row. `404 not_found` for an unknown id, a structural account
+(`__system__`, `public`, `portaltemplate`) or a portal user.

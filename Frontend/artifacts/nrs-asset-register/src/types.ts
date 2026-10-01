@@ -639,3 +639,112 @@ export interface DashboardStats {
   employees: number;
   reviewQueue: number;
 }
+
+// ─── ADMINISTRATION — who has what (handoff 41) ──────────────────────────────
+// Read-only shapes for `GET /api/v1/roles`, `GET /api/v1/users[/<id>]` and
+// `GET /api/v1/reports/access-changes`. Nothing here is written back: the
+// handoff adds no way to grant, remove, create or disable anything.
+
+/** One of the eight roles the API publishes, in the API's own display order. */
+export interface AdminRole {
+  key: string;
+  name: string;
+  xmlid: string;
+  scopes: string[];
+  description: string | null;
+  installed: boolean;
+  /** Keys of the roles this one implies — on Odoo 19 implication is computed
+   *  at read time and materialises no membership rows. */
+  implies: string[];
+}
+
+/** `via` is on `roles_effective` only: the account's direct groups (any group, not only roles) that imply this one; empty when held directly. */
+export interface AdminRoleRef { key: string; name: string; via?: string[] }
+
+export interface AdminUserCredential {
+  id: number;
+  name: string;
+  client_id: string;
+  active: boolean;
+  is_test_credential: boolean;
+}
+
+export interface AdminUser {
+  id: number;
+  name: string;
+  login: string;
+  email: string | null;
+  active: boolean;
+  kind: "person" | "api_credential";
+  api_client: AdminUserCredential | null;
+  /** The roles somebody actually granted — what handoff 42 will act on. */
+  roles_direct: AdminRoleRef[];
+  /** Direct roles plus everything they imply. */
+  roles_effective: AdminRoleRef[];
+  scopes: string[];
+  scopes_source: "roles" | "credential";
+  last_login_at: string | null;
+  created_at: string;
+}
+
+/** One row of `data.events` on the access-changes report. The first six
+ *  keys are on every event; `group`/`attributable` only on the two
+ *  membership events read from the forward record (`granted`/`removed`). */
+export interface AccessChangeEvent {
+  event: "account_created" | "account_modified" | "granted" | "removed" | string;
+  precision: "exact" | "last_write_only" | string;
+  at: string;
+  actor: { id: number | null; name: string } | null;
+  user_id: number;
+  login: string;
+  evidence: string;
+  groups_now: string[];
+  group?: string;
+  attributable?: boolean;
+}
+
+export interface AccessChangeRosterRow {
+  user_id: number;
+  login: string;
+  name: string;
+  active: boolean;
+  is_api_client: boolean;
+  api_scopes: string[];
+  groups: string[];
+  created_at: string | null;
+  created_by: { id: number; name: string } | null;
+  last_modified_at: string | null;
+  last_modified_by: { id: number; name: string } | null;
+}
+
+export interface AccessChangeSummary {
+  accounts: number;
+  accounts_active: number;
+  events_in_period: number;
+  group_changes_in_period: number;
+  implication_changes_in_period: number;
+  group_changes_not_shown: number;
+  coverage: string;
+  statement: string;
+}
+
+export interface AccessChangeFidelity {
+  recoverable: string[];
+  not_recoverable: string[];
+  groups_field: string | null;
+  groups_field_tracked: boolean;
+  membership_audit_columns: string[];
+  tracking_rows: number;
+  logging_rows: number;
+  record_starts_at: string | null;
+  record_rows: number;
+  notes: Record<string, string>;
+}
+
+export interface AccessChangeReport {
+  period: { date_from: string; date_to: string; inclusive: string };
+  summary: AccessChangeSummary;
+  fidelity: AccessChangeFidelity;
+  events: AccessChangeEvent[];
+  roster: AccessChangeRosterRow[];
+}

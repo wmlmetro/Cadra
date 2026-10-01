@@ -33,6 +33,45 @@ live at was never the point.
 
 ---
 
+## 2026-10-01 — handoff 41: who has what · `myservice_api` 19.0.3.15.0
+
+Three new READ routes, all scope `admin`, and one behaviour change on four
+existing reads. Nothing here changes membership; that is handoff 42.
+
+### New — `GET /api/v1/users`, `GET /api/v1/users/{user_id}`, `GET /api/v1/roles`
+
+The people on this tenant and what they hold. Every row publishes TWO role
+lists, because on Odoo 19 implication is computed at read time and
+materialises no rows:
+
+| Key | Meaning |
+|---|---|
+| `roles_direct` | the Cadra roles this account is a MEMBER of — what somebody granted |
+| `roles_effective` | the roles it HOLDS once implication is applied (Asset Manager implies Asset User) |
+| `scopes` | what a token minted for this account carries |
+| `scopes_source` | `"roles"` for a person (the union over `roles_effective`), `"credential"` for an API credential, whose token is not minted from groups |
+| `kind` | `"person"` or `"api_credential"`; `api_client` carries the credential's `id`, `name`, `client_id`, `active`, `is_test_credential` |
+
+Role keys: `system`, `asset_user`, `asset_manager`, `tag_issuing_unit`,
+`auditor`, `identity_manager`, `security_officer`, `bus_user` — the eight
+groups that grant API scopes, in that order, each with its `scopes` and
+`implies` on `/roles`. Filters on `/users`: `q`, `role` (EFFECTIVE), `role_direct`,
+`active`, `is_api_client`, plus `limit`/`cursor`. Structural accounts
+(`__system__`, `public`, `portaltemplate`) and portal users are never listed
+and answer `404` on the detail route.
+
+### BEHAVIOUR CHANGE — `GET /barcode/lookup`, `/barcode/kpis`, `/barcode/recent-tags`, `/barcode/print-url`
+
+These four read as the TOKEN'S user, where every other route reads under
+sudo; a session user holding `assets:read` without an Odoo access rule on
+the models behind them got `403 forbidden` with an ORM sentence in it
+(*You are not allowed to access 'Asset Barcode Tag' records*, or
+*'Location'* on recent-tags). They now read under sudo like every other
+route: the scope is the only gate, as documented. An API credential never
+saw the difference. No payload changed.
+
+---
+
 ## 2026-10-01 — handoff 38: a scanned serial finds its asset, and a faded tag can be replaced · `myservice_api` 19.0.3.14.0
 
 Two things NRS asked for on 30 September. Both additive, with one

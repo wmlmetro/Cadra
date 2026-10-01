@@ -212,6 +212,33 @@ def cadra_route(path, *, method="GET", summary="", scopes=(), idempotent=False,
 
 # ─── controller ──────────────────────────────────────────────────────
 
+def _delegate_reads_as_superuser():
+    """Run the barcode station's delegates under sudo, as every other route.
+
+    Four `/barcode/*` reads hand the request to
+    `myservice_barcode_station.controllers.main.BarcodeStationController`,
+    whose methods read `request.env` — the TOKEN'S user, because
+    `require_jwt` switches the environment to it. Every other route in this
+    API runs `sudo()`, so the scope is the gate and an Odoo access rule never
+    decides an API answer (handoff 09 made that true for the dashboards; the
+    reasoning is at `SCOPE_GROUPS` in `utils.py`). These four were the
+    exception nobody had driven: handoff 41 signed in as a person holding
+    Asset User + Tag-Issuing Unit and `/barcode/recent-tags` answered
+    `403 forbidden: You are not allowed to access 'Location'
+    (generic.location) records` — an ORM refusal naming an Odoo group in the
+    published envelope, on a station every other control of which worked.
+    A person holding a group that grants `assets:read` without the tag
+    label's read rule (Auditor, Identity Manager) gets the same shape with
+    `'Asset Barcode Tag'` in it, which is the sentence the owner hit.
+
+    `su=True` keeps `env.uid`, so anything the delegates stamp still names
+    the real person; and the back-office station's own `/barcode/*` JSON
+    routes are untouched — they are `auth='user'` and keep honouring the
+    access rules, because there the rules ARE the gate.
+    """
+    request.update_env(su=True)
+
+
 class MyserviceApiV1(http.Controller):
 
     # ── Auth ────────────────────────────────────────────────────────
@@ -2182,6 +2209,120 @@ class MyserviceApiV1(http.Controller):
                                       "description": "e.g. HireEmployee, TransferEmployee, TerminateEmployee. Recorded on the sync log."},
                         },
                     },
+                    # ── handoff 41: who has what ────────────────────
+                    "UserRole": {
+                        "type": "object",
+                        "description": (
+                            "A role as it appears on an account row: the "
+                            "published `key` and the display `name`. The "
+                            "full entry — scopes, implication, xmlid — is "
+                            "`Role`, from `GET /roles`."),
+                        "properties": {
+                            "key": {"type": "string"},
+                            "name": {"type": "string"},
+                            "via": {
+                                "type": "array", "items": {"type": "string"},
+                                "description": (
+                                    "On `roles_effective` only. For a role "
+                                    "held by implication, the names of the "
+                                    "account's DIRECT groups that imply it — "
+                                    "any group, not only those in `/roles`. "
+                                    "Empty for a role held directly.")},
+                        },
+                    },
+                    "Role": {
+                        "type": "object",
+                        "description": (
+                            "One entry of the role vocabulary, DERIVED from "
+                            "the group→scope table `POST /auth/login` mints "
+                            "from (`utils.GROUP_SCOPES`) and never restated. "
+                            "`scopes` is exactly what holding this role puts "
+                            "on a person's session token. `implies` names "
+                            "the OTHER roles in this vocabulary a holder "
+                            "also holds: on Odoo 19 implication is computed "
+                            "at read time and writes no membership row, so "
+                            "an Asset Manager is a member of one role and "
+                            "holds two. `installed: false` means this "
+                            "tenant does not have the role's group; it is "
+                            "still listed so a consumer can tell a role the "
+                            "tenant lacks from a key that does not exist. "
+                            "`base.group_system` is published as 'System "
+                            "Administrator' — Odoo's own name for it is "
+                            "'Settings', which means nothing to NRS."),
+                        "properties": {
+                            "key": {"type": "string",
+                                    "description": "Stable key: the xmlid's tail with `group_` removed"},
+                            "name": {"type": "string"},
+                            "xmlid": {"type": "string"},
+                            "scopes": {"type": "array", "items": {"type": "string"},
+                                       "description": "Sorted; the scopes this role produces"},
+                            "description": {"type": "string", "nullable": True,
+                                            "description": "The group's own comment, or null"},
+                            "installed": {"type": "boolean"},
+                            "implies": {"type": "array", "items": {"type": "string"},
+                                        "description": "Keys of other roles held by implication"},
+                        },
+                    },
+                    "User": {
+                        "type": "object",
+                        "description": (
+                            "An account on this tenant and what it holds. "
+                            "READ `roles_direct` AND `roles_effective` AS "
+                            "TWO DIFFERENT QUESTIONS: `roles_direct` is the "
+                            "membership table — what somebody GRANTED; "
+                            "`roles_effective` is what the account HOLDS "
+                            "once implication is applied, which on Odoo 19 "
+                            "is computed at read time and writes no row. "
+                            "Both are restricted to the role vocabulary of "
+                            "`GET /roles` and ordered as it is. `scopes` is "
+                            "what a token minted for this account carries, "
+                            "and `scopes_source` says where from: `roles` "
+                            "for a person (the union over the effective "
+                            "roles' scopes), `credential` for an API "
+                            "credential, whose token comes from its client "
+                            "record and NOT from its groups. `kind` is "
+                            "`api_credential` for the `res.users` the API "
+                            "provisions per client, so it is not mistaken "
+                            "for staff; `api_client` is then its public "
+                            "identity — never a secret. Structural logins "
+                            "and portal/public users are not accounts here, "
+                            "on the list or by id. Nothing on this surface "
+                            "writes."),
+                        "properties": {
+                            "id": {"type": "integer"},
+                            "name": {"type": "string"},
+                            "login": {"type": "string"},
+                            "email": {"type": "string", "nullable": True},
+                            "active": {"type": "boolean"},
+                            "kind": {"type": "string",
+                                     "enum": ["person", "api_credential"]},
+                            "api_client": {
+                                "type": "object", "nullable": True,
+                                "properties": {
+                                    "id": {"type": "integer"},
+                                    "name": {"type": "string"},
+                                    "client_id": {"type": "string"},
+                                    "active": {"type": "boolean"},
+                                    "is_test_credential": {"type": "boolean"},
+                                },
+                            },
+                            "roles_direct": {
+                                "type": "array",
+                                "items": {"$ref": "#/components/schemas/UserRole"},
+                                "description": "Membership rows, restricted to the vocabulary"},
+                            "roles_effective": {
+                                "type": "array",
+                                "items": {"$ref": "#/components/schemas/UserRole"},
+                                "description": "Held once implication is applied"},
+                            "scopes": {"type": "array", "items": {"type": "string"},
+                                       "description": "Sorted; what a token for this account carries"},
+                            "scopes_source": {"type": "string",
+                                              "enum": ["roles", "credential"]},
+                            "last_login_at": {"type": "string", "format": "date-time",
+                                              "nullable": True},
+                            "created_at": {"type": "string", "format": "date-time"},
+                        },
+                    },
                 },
             },
             "paths": {},
@@ -2594,6 +2735,7 @@ class MyserviceApiV1(http.Controller):
         than *not found*.
         """
         from odoo.addons.myservice_barcode_station.controllers.main import BarcodeStationController
+        _delegate_reads_as_superuser()
         query = kwargs.get("query", "")
         result = BarcodeStationController().lookup_tag(query=query)
         details = {"query": query}
@@ -2611,6 +2753,7 @@ class MyserviceApiV1(http.Controller):
                  summary="Barcode station KPIs", scopes=[SCOPE_ASSETS_READ])
     def barcode_kpis(self, **kwargs):
         from odoo.addons.myservice_barcode_station.controllers.main import BarcodeStationController
+        _delegate_reads_as_superuser()
         return BarcodeStationController().get_kpis()
 
     @cadra_route("/api/v1/barcode/recent-tags", method="GET",
@@ -2631,6 +2774,7 @@ class MyserviceApiV1(http.Controller):
                           null_is_absent=False, minimum=1)
         if limit is None:          # absent or empty — the documented default
             limit = 50
+        _delegate_reads_as_superuser()
         return BarcodeStationController().get_recent_tags(
             domain_filter=kwargs.get("domain_filter", ""),
             limit=limit,
@@ -2691,6 +2835,7 @@ class MyserviceApiV1(http.Controller):
         # fixed map in the delegate rather than a model Selection, so they
         # are named here rather than read.
         size = parse_enum("size", kwargs.get("size"), _LABEL_SIZES) or "medium"
+        _delegate_reads_as_superuser()
         result = BarcodeStationController().get_print_url(
             tag_id=raw_tag_id,
             size=size,

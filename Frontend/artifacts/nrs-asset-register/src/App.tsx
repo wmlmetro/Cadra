@@ -51,6 +51,8 @@ const Fleet                      = lazy(() => import("@/pages/Fleet"));
 const FleetDetail                = lazy(() => import("@/pages/Fleet").then(m => ({ default: m.FleetDetail })));
 const StaffBus                   = lazy(() => import("@/pages/StaffBus"));
 const Identity                   = lazy(() => import("@/pages/Identity"));
+const AdminUsers                 = lazy(() => import("@/pages/admin/Users"));
+const AdminAccessChanges         = lazy(() => import("@/pages/admin/AccessChanges"));
 const NotFound                   = lazy(() => import("@/pages/not-found"));
 
 const FleetRosterReport          = lazy(() => import("@/pages/reports/FleetRosterReport"));
@@ -155,6 +157,11 @@ function AppRoutes() {
           <Route path="/hr/employees/by-ir/:ir" component={EmployeeByIr}          />
           <Route path="/hr/employees/:id"       component={EmployeeDetail}        />
           <Route path="/hr/identity"            component={Identity}              />
+          {/* Administration — read only, end to end (handoff 41). `/admin/users/:id`
+              deep-links the detail panel on the same page. */}
+          <Route path="/admin/users"            component={AdminUsers}            />
+          <Route path="/admin/users/:id"        component={AdminUsers}            />
+          <Route path="/admin/access-changes"   component={AdminAccessChanges}    />
           {/* specific fleet routes must precede the dynamic :id catch-all */}
           <Route path="/fleet/staff-bus"     component={StaffBus}       />
           <Route path="/fleet"               component={Fleet}          />
@@ -226,13 +233,22 @@ function App() {
           // `approval-settings` is deliberately NOT excluded — it is a
           // tenant-level switch that changes about once, and the dialogs
           // fail closed on it anyway.
+          //
+          // The four Administration keys (handoff 41) are the fourth group,
+          // for the same reason as `whoami`: who holds what access is a
+          // question about RIGHT NOW, and a restored roster would show a
+          // role somebody removed yesterday as held today.
           dehydrateOptions: {
             shouldDehydrateQuery: (q) =>
               q.state.status === "success"
               && q.queryKey[0] !== "whoami" && q.queryKey[0] !== "asset-raw"
               && q.queryKey[0] !== "asset-approvals"
               && q.queryKey[0] !== "approvals"
-              && q.queryKey[0] !== "approval-count",
+              && q.queryKey[0] !== "approval-count"
+              && q.queryKey[0] !== "users"
+              && q.queryKey[0] !== "user"
+              && q.queryKey[0] !== "roles"
+              && q.queryKey[0] !== "access-changes",
           },
           // BUMP THIS whenever an adapter changes what a cached object MEANS.
           // The persisted cache holds objects AFTER `lib/adapters.ts` has run,
