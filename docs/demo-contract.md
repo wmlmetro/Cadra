@@ -368,6 +368,16 @@ against it in a way that changes anything.
 
 This is the only call in the API that can make an asset read as tagged.
 
+> **Since handoff 39 (2026-10-01) a person can make this call from the app:**
+> the barcode station's card carries *Confirm affixed*, which opens a dialog
+> the tagger scans the physical label into and sends exactly this request
+> (`tag_number`, optional `serial_number` when the record has one, optional
+> `affixed_by_name`). The dialog never pre-fills or suggests the expected
+> number; the serial field is offered only when the record has a serial.
+> The tag and serial mismatches below render in the dialog in the server's
+> words (so the wrong-tag refusal names the issued number, as it does over
+> HTTP); a repeat is shown as *already confirmed on <date>*.
+
 ```http
 POST /api/v1/assets/11909/tag-affixed
 Authorization: Bearer <tag_issuing_unit token>
