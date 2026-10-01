@@ -441,6 +441,98 @@ Cadra's API and app read, is empty on that tenant; on the other seven, 193 of
 `decision_reason`), `myservice_api` 19.0.3.14.0. All eight local databases
 upgraded one at a time.
 
+## 40 — The camera in the dialog (2026-10-01)
+
+**Built.** The camera as a second way into the confirm dialog's tag field —
+and, because it fell out of the same state, its serial field — as a Type /
+Camera toggle drawn like the station's own, so it reads as the same control
+in a smaller place. The camera is `components/BarcodeScanner.tsx` exactly as
+the station's lookup box uses it, mounted under whichever field asked for
+it, one at a time (`cameraFor: "tag" | "serial" | null`); the component
+needed no change to be mounted a second time — it holds no module state and
+stops its own stream on detection and on unmount. Default Type, never
+auto-selected on a small screen or anywhere else. Nothing on the server
+changed; `git diff --stat` shows no Python, XML or manifest.
+
+**The one rule that differs from the handheld.** A trigger pull on a
+handheld is a deliberate act — the person aimed at THIS label — so its
+trailing Enter submits, as it did in report 39. A camera is looking at the
+room continuously and reads whatever passes the lens: the neighbouring
+label, a box, another asset's tag. So **a camera detection fills the field
+and does not submit**; the toggle flips back to Type and the cursor returns
+to the field, and Confirm is one more tap or Enter. The reasoning is in the
+file comment because it will look like an inconsistency to the next reader.
+Switching the camera off by any route — the toggle, a detection, a submit —
+returns focus to the field it was open for; a close or a submit with the
+camera open unmounts the scanner, which stops the stream.
+
+**Found by the spec's first run.** With the preview open the dialog is
+taller than a 720px viewport and *Confirm* was scrolled out of sight inside
+it — the handoff's third check, *the preview does not reposition the dialog*,
+read literally, and the dialog had not moved; its footer had. The first fix,
+a sticky footer, floated between *Fitted by* and the serial field in the
+screenshot with the serial input visible beneath it; it is not kept and the
+reason is not claimed. The dialog is now a flex column capped at the viewport — header and
+footer fixed, the form scrolling between them — and the spec asserts the
+dialog's box is inside the viewport and *Confirm* is in view with the camera
+running.
+
+**How it was proved.** `e2e/tests/40-the-camera-in-the-dialog.spec.ts`, on
+`test19`, with a REAL decode and no physical camera: Playwright's Chromium
+on this Mac has `BarcodeDetector` and `*.localhost` is a secure context, so
+the spec launches Chromium with its fake capture device playing a file, and
+before each *Start camera* writes into that file a JPEG of the label Cadra
+would PRINT for the number — `code128Svg`, the label printer's own encoder,
+imported from the app's source — which the platform decodes off the video
+(`docs/ENVIRONMENT-FACTS.md` has the recipe and its one race). Four tests:
+camera on with nothing in front of it — the dialog's full markup without the
+expected number, the scan box empty, the page marked blurred, the dialog
+inside the viewport and *Confirm* in view, one live track; the label — the
+field filled, the dialog still open, no refusal, the row read back unchanged,
+the toggle on Type, the field focused, the track `ended`; the serial the same
+way into its own field; *Confirm* — the row `affixed` / `is_tagged` /
+`affixed_by_name` / `affixed_by` = the token's user, and every stream ever
+opened `ended`. The WRONG label through the camera — filled and not sent,
+then on *Confirm* the server's sentence as written and the input kept, the
+row untouched; then the right number typed and Enter — the keyboard-wedge
+path — records. Camera off: auto-focus, a toggle on and off (started and not)
+returns focus, `pressSequentially` + Enter records. Cancel with the camera
+running: every track `ended`, the page unblurred, the dialog reopened on Type
+with the field focused and nothing written. Five screenshots in
+`docs/handoffs/40-evidence/`. In Postgres on `test19` (final run, 19:36 WAT):
+tag 29563 `NRS-ACS-817` `affixed` 18:36:44 UTC by uid 2, `E2E Camera Tagger`
+(asset 66029); 29564 `NRS-ACS-818` affixed 18:36:48 after the camera-read
+`NRS-ACS-8189` was refused (asset 66030); 29565 `NRS-ACS-819` affixed by
+Enter (66031); 29566 `NRS-ACS-820` still `issued` — the close test wrote
+nothing (66032). Seven earlier runs during the build left the same shape on
+29297–29367, plus one `issued` orphan (29321) from the helper race before it
+was fixed. Suites, in CI's order: HTTP (`tests/`, test19) 1127 passed, 10
+skipped in 1126.85s (0:18:46), exit 0, 0 lines matching `of 0 tests` or
+`CRITICAL`; the whole Playwright suite on `test19` with the service
+credential, retries off: 163 passed, 2 failed, 4 skipped of 169 (7.3m) — the
+2 are the two depreciation specs that fail on `dev` as well (`docs/GO-LIVE.md`
+§13.5 item 13), the 4 are the three building-less move specs and
+`08-requests` *create a request end-to-end* (no `type_id` in seed data), all
+pre-existing; specs 39 + 40 re-run after the verification pass's fixes: 7
+passed of 7, 0 skipped. In-registry suites not run: `git diff --stat` shows
+no Python, XML or manifest change.
+
+**Measured.** `test19` labels at 19:37 WAT, after every run above: 405
+`affixed`, 6,455 `issued` on an active tag, 32 `issued` on a pending one, 23
+`scrapped` (of 6,915). Report 39 counted 360 `affixed` of 6,354 before its
+run; the difference is this evening's suites, not a tagger. No
+schema change.
+
+**Not proved, and said so.** A physical camera and a printed label: there is
+no device here, and the fake-device proof covers the decode and the wiring,
+not a lens, a focus distance or a glare. **The first real use on a device
+prompts for camera permission**, before the preview appears; the component
+already names the two other refusals (not https, no detector — Safari and
+Firefox) and typing stays available under all three. One observation, not
+fixed because the station is on the do-not-touch list: if the station's own
+camera is running when *Confirm affixed* is clicked, it keeps running behind
+the blurred page.
+
 ## 39 — The tagger confirms (2026-10-01)
 
 **Built.** The one control the tagging integration had no person for. `POST

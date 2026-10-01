@@ -377,6 +377,14 @@ This is the only call in the API that can make an asset read as tagged.
 > The tag and serial mismatches below render in the dialog in the server's
 > words (so the wrong-tag refusal names the issued number, as it does over
 > HTTP); a repeat is shown as *already confirmed on <date>*.
+>
+> **Since handoff 40 (2026-10-01) the dialog's tag and serial fields also
+> offer the camera** — the station's own Type / Camera toggle, default Type.
+> A camera read FILLS the field and does not send this request; the person
+> sees the number and taps *Confirm* (a handheld scanner's Enter still sends
+> it directly). **The first use on a device prompts for camera permission**,
+> and the camera needs https (staging is) or `*.localhost`; Safari and
+> Firefox have no barcode detector and the dialog says so, typing remaining.
 
 ```http
 POST /api/v1/assets/11909/tag-affixed
