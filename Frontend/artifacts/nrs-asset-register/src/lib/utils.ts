@@ -56,3 +56,21 @@ export function formatIsoDate(iso: string | null | undefined): string {
     day: "numeric", month: "short", year: "numeric", timeZone: "UTC",
   });
 }
+
+/** `2026-10-01T11:32:07` → `1 Oct 2026, 12:32` in the viewer's zone.
+ *
+ *  The API's `*_at` datetimes are UTC with no zone suffix (`isoformat()` of a
+ *  naive Odoo datetime), so one is appended before parsing; a value that
+ *  already carries a zone is left alone. A bare date falls back to
+ *  `formatIsoDate`, and anything unparseable comes back as given rather than
+ *  as "Invalid Date". */
+export function formatIsoDateTime(iso: string | null | undefined): string {
+  if (!iso) return "";
+  if (!iso.includes("T")) return formatIsoDate(iso);
+  const zoned = /(?:Z|[+-]\d{2}:?\d{2})$/.test(iso) ? iso : `${iso}Z`;
+  const t = new Date(zoned);
+  if (Number.isNaN(t.getTime())) return iso;
+  return t.toLocaleString("en-GB", {
+    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+}

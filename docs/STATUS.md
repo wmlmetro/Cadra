@@ -440,3 +440,69 @@ Cadra's API and app read, is empty on that tenant; on the other seven, 193 of
 `nrs_asset_tag_label`: `approver_id`, `rejected_by`, `rejected_date`,
 `decision_reason`), `myservice_api` 19.0.3.14.0. All eight local databases
 upgraded one at a time.
+
+## 39 — The tagger confirms (2026-10-01)
+
+**Built.** The one control the tagging integration had no person for. `POST
+/api/v1/assets/<id>/tag-affixed` has existed, tested, since handoff 03 and is
+the only thing that makes an asset `is_tagged`; nothing in the React app or
+the legacy station called it, so the only way it had ever been done was
+Postman. The barcode station's card now carries *Confirm affixed* beside
+*Print label* and *Replace tag*, shown for an active tag whose label is
+neither `affixed` nor `scrapped`; once it is affixed the card shows the
+record — when, and who fitted it — instead of a button.
+
+**The dialog.** An empty field the tagger scans the physical label into, an
+optional *Fitted by*, and an optional serial field offered only when the
+record has a serial to check against (the route refuses a scanned serial it
+cannot check, so for such a record the dialog says why instead of offering
+the field). Enter from a handheld scanner submits. **The expected number is
+never handed over**: no default, no placeholder, no suggestion — and, after
+the first screenshots showed it legibly in the scan box behind the overlay,
+the card's number line is replaced, the scan box is emptied (query restored
+on close) and the page is blurred while the dialog is open. The one place it
+appears is the server's wrong-tag refusal, shown verbatim because the
+handoff forbids paraphrasing it; the verification pass named the tension
+and it is open for the Architect (`docs/DECISIONS.md`, 2026-10-01).
+
+**The refusals, in sentences.** The server's message as written through the
+app's standard error panel, the inputs kept: *Scanned tag X does not match
+the tag issued for this asset (Y). The label on the asset is not the one
+Cadra issued for it.*; the serial mismatch; *This asset has no active tag to
+confirm* while a replacement is pending; a 403 through the same panel. A
+scrapped label in hand is refused as a mismatch naming the tag NOW issued —
+the model's own scrapped sentence is unreachable through the route, which
+resolves `active_tag_id` first (`docs/DECISIONS.md`, 2026-10-01). A repeat
+confirmation is shown in the dialog as *Already confirmed on <date> by
+<name>. Nothing was changed* — detected by reading the `tagging` block before
+posting, not by a clock, because the server answers a repeat exactly as it
+answers a first.
+
+**How it was proved.** Built (`BASE_PATH=/app/ npm run build`, served by the
+local proxy from `dist/public`) and driven on `test19` by
+`e2e/tests/39-the-tagger-confirms.spec.ts`: the dialog's full markup asserted
+not to contain the number at open, every field empty, the scan box empty
+and the page marked blurred; the wrong number refused with the sentence intact and
+the input kept, the row read back unchanged; the wrong serial refused; the
+right label with the serial and a name recorded, and the row read back
+`affixed` / `is_tagged` / `affixed_by_name` / `affixed_by` = the token's
+user; two tabs confirm the same label and the second says *already
+confirmed*, the row's `affixed_at` and `affixed_by_name` unchanged; the
+service credential asks for a replacement and `admin` approves while the
+tagger's card is open, and the old number is refused first as *no active tag*
+and then as a mismatch naming the new number. Six screenshots in
+`docs/handoffs/39-evidence/`. In Postgres on `test19`: tag 29249
+`NRS-ACS-733` `affixed` at `2026-10-01 17:30:41` by uid 2, `E2E Tagger`; tag
+29250 `FIRST Tagger`; tag 29251 `scrapped` and 29252 `issued` on the same
+asset (two earlier runs, before the scan-box leak was covered and before the
+verification pass's fixes, left the same shape on tags 29004–29007 and
+29008–29011). Suites: HTTP (`tests/`, test19) 1127 passed, 10 skipped in 1016.65s (0:16:56); 0 lines matching `of 0 tests` or `CRITICAL`; Playwright on `test19` 41 passed (1.5m) — the 38 of report 38 plus spec 39's 3; 0 skipped in 39.
+In-registry suites not run: `git diff --stat` shows no Python, XML or
+manifest change.
+
+**Measured.** `test19` labels by state before the run: 360 `affixed`, 5,968
+`issued`, 16 `issued`+`pending`, 10 `scrapped`, 0 `printed` (of 6,354). The
+station's five tiles count none of these states — they read 6,348 / 6,332 /
+24 / 16 / 24 before and after the confirmation in the screenshots — so "the
+counters follow" is query invalidation that changes nothing visible today.
+No schema change.

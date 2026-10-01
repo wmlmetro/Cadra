@@ -1419,6 +1419,71 @@ export const rejectTagReplacement = async (tagId: number, reason: string) =>
     `/api/v1/tags/${tagId}/reject-replacement`, { reason: reason.trim() },
     { idempotencyKey: newIdempotencyKey() })).data;
 
+// ── Confirm a label affixed (handoff 39) ─────────────────────────────────
+//
+// `POST /api/v1/assets/<id>/tag-affixed` has existed since handoff 03 and is
+// the only thing that makes an asset `is_tagged`: the number READ OFF the
+// physical label is checked against the tag Cadra issued, and a mismatch is
+// refused with a sentence naming both. Until this handoff nothing in the app
+// called it. The control's whole value is that the number comes off the
+// label in the person's hand, so NOTHING here hands the caller the expected
+// number — not a default, not a suggestion.
+
+/** `_serialize_tagging` in `myservice_api/controllers/v1_assets.py` — the
+ *  `tagging` block on every asset payload. It reads the label PHYSICALLY on
+ *  the asset (`physical_tag_id`), which is the active tag whenever there is
+ *  one; `label_id` is the `nrs.asset.tag.label` id and is what to compare
+ *  with the scan box's `tag_id`. `label_state` is `issued` → `printed` →
+ *  `affixed`, or `scrapped`. `*_at` are ISO datetimes with no zone, in UTC. */
+export interface AssetTagging {
+  label_id: number | null;
+  tag_number: string | null;
+  label_state: string | null;
+  is_tagged: boolean;
+  printed_at: string | null;
+  printed_by: ApprovalRef | null;
+  affixed_at: string | null;
+  affixed_by: ApprovalRef | null;
+  affixed_by_name: string | null;
+}
+
+/** The `tagging` block alone, read fresh. The lookup payload carries the
+ *  tag's `state` (active / pending / scrapped) but not its `label_state`,
+ *  so the station reads this to know whether a label is still waiting to be
+ *  confirmed and, once it is, who fitted it and when. */
+export const fetchAssetTagging = async (assetId: number): Promise<AssetTagging> =>
+  (await apiGet<{ tagging: AssetTagging }>(`/api/v1/assets/${assetId}`)).data.tagging;
+
+export interface ConfirmAffixedBody {
+  /** The number READ OFF the label on the asset. Never pre-filled. */
+  tag_number: string;
+  /** The manufacturer serial read off the asset, if legible. Checked against
+   *  the record when sent; refused when the record has no serial to check. */
+  serial_number?: string;
+  /** Who fitted it — often not the signed-in user. */
+  affixed_by_name?: string;
+}
+
+export interface ConfirmAffixedResult {
+  asset: ApiAsset;
+  tagging: AssetTagging;
+}
+
+/** Record that the label is on the asset. Only the keys the route reads are
+ *  sent, blanks omitted: since handoff 31 a key a route does not accept is a
+ *  400 and nothing is written. A REPEAT confirmation is not an error — the
+ *  server logs it, keeps the original record and answers normally with the
+ *  original `affixed_at` — so a caller that needs to tell the two apart reads
+ *  the block before it posts (`fetchAssetTagging`) rather than a clock. */
+export const confirmTagAffixed = async (assetId: number, body: ConfirmAffixedBody) => {
+  const payload: ConfirmAffixedBody = { tag_number: body.tag_number.trim() };
+  if (body.serial_number?.trim()) payload.serial_number = body.serial_number.trim();
+  if (body.affixed_by_name?.trim()) payload.affixed_by_name = body.affixed_by_name.trim();
+  return (await apiPost<ConfirmAffixedResult>(
+    `/api/v1/assets/${assetId}/tag-affixed`, payload,
+    { idempotencyKey: newIdempotencyKey() })).data;
+};
+
 export async function fetchLocation(id: string): Promise<Location | null> {
   if (!apiConfigured) return getLocation(id) ?? null;
   try {
