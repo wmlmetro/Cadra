@@ -5,9 +5,9 @@ import { useLayoutCtx } from "@/components/layout/AppLayout";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import {
   fetchBarcodeKpis, fetchBarcodeRecentTags, lookupBarcode,
-  fetchUntaggedAssets, generateBarcodes, fetchTag, fetchPendingTagReplacements,
+  fetchUntaggedAssets, generateBarcodes, fetchTag, fetchPendingTagReplacements, fetchAssetTagging,
   type BarcodeTag, type BarcodeLookupHit, type BarcodeMatchedBy, type UntaggedAsset, type TagLabel,
-  type TagReplacementRaised, type TagReplacementApproved,
+  type TagReplacementRaised, type TagReplacementApproved, type AssetTagging, type ConfirmAffixedResult,
 } from "@/lib/dataProvider";
 // The FM domain set and its labels come from the server, not from a constant
 // in dataProvider. There used to be two identical hand-written copies of that
@@ -18,12 +18,13 @@ import { printLabels, floorRoomFromTag, LABEL_SIZES, type LabelData, type LabelS
 import {
   RequestTagReplacementDialog, ApproveTagReplacementDialog, RejectTagReplacementDialog,
 } from "@/components/TagReplacementDialogs";
+import { ConfirmAffixedDialog } from "@/components/ConfirmAffixedDialog";
 import {
   ScanBarcode, AlertCircle, Tag, Package, AlertTriangle, XCircle,
   ArrowRight, Search, Printer, Keyboard, Camera, SearchX, Sparkles, Check,
   RefreshCw, Hourglass,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatIsoDateTime } from "@/lib/utils";
 
 const MATCHED_BY_WORDS: Record<BarcodeMatchedBy, string> = {
   tag_number: "Found by tag",
@@ -123,6 +124,36 @@ export default function BarcodeStation() {
     queryFn: fetchPendingTagReplacements,
     staleTime: 30_000,
   });
+
+  // ── Confirm affixed (handoff 39) ──────────────────────────────────────
+  //
+  // The lookup payload carries the TAG's state (active / pending / scrapped)
+  // and not the LABEL's (issued → printed → affixed), so the card reads the
+  // asset's `tagging` block to know whether this label is still waiting to
+  // be confirmed on the asset or, once it is, who fitted it and when. Read
+  // only for an active tag: a pending one is somebody else's decision and a
+  // card with no tag has nothing to confirm. `label_id` is compared with the
+  // scan box's `tag_id` so a block describing another label is not trusted.
+  const tagging = useQuery({
+    queryKey: ["asset-tagging", hit?.asset_id],
+    queryFn: () => fetchAssetTagging(hit!.asset_id),
+    enabled: Boolean(hit && hit.tag_id && hit.tag_state === "active"),
+    staleTime: 10_000,
+  });
+  const label: AssetTagging | null =
+    hit && tagging.data && tagging.data.label_id === hit.tag_id ? tagging.data : null;
+  // The block describes a different label from the one scanned: the asset
+  // carries more than one non-scrapped label (the lookup returns the matched
+  // active tag, the block the one physically on the asset). Rare, and said
+  // rather than rendered as nothing.
+  const labelMismatch = Boolean(
+    hit && tagging.data && tagging.data.label_id !== null && tagging.data.label_id !== hit.tag_id,
+  );
+  const canConfirmAffixed = Boolean(
+    label && hit?.tag_state === "active"
+      && label.label_state !== "affixed" && label.label_state !== "scrapped",
+  );
+  const [affixOpen, setAffixOpen] = useState(false);
 
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [deciding, setDeciding] = useState<{ tag: TagLabel; action: "approve" | "reject" } | null>(null);
@@ -326,6 +357,26 @@ export default function BarcodeStation() {
     if (hit && hit.asset_id === tag.asset.id && hit.asset_code) relookup(hit.asset_code);
   }
 
+  // The card is not re-looked-up after a confirmation: the lookup answer does
+  // not change (the tag stays `active`), only the `tagging` block does, and
+  // the dialog invalidates that query. The success notice names the number
+  // because the dialog has closed by then. The "already" notice does NOT —
+  // that dialog stays open, in its result state, over the blurred page.
+  function onAffixConfirmed(res: ConfirmAffixedResult) {
+    const who = res.tagging.affixed_by_name ?? res.tagging.affixed_by?.name;
+    setNotice({
+      kind: "ok",
+      text: `Label ${res.tagging.tag_number} confirmed on ${res.asset.name}${who ? `, fitted by ${who}` : ""}. The asset now reads as tagged.`,
+    });
+  }
+
+  function onAffixAlready(t: AssetTagging) {
+    setNotice({
+      kind: "warn",
+      text: `This label was already confirmed on ${formatIsoDateTime(t.affixed_at)}; nothing was changed.`,
+    });
+  }
+
   const printNewTag = () =>
     printableNewTag && print([{
       tag_number: printableNewTag.tag_number,
@@ -335,7 +386,14 @@ export default function BarcodeStation() {
     }], true);
 
   return (
-    <div className="p-6 space-y-5 max-w-[1100px] mx-auto">
+    // Blurred while the confirm dialog is open. The dialog's overlay dims the
+    // page but leaves it legible, and the tag number is on this page in
+    // several places — the scan box, the card, the recent-tags table — any
+    // of which would hand the person the number the check exists to take
+    // off the physical label. A blur, not a removal: the text stays in the
+    // DOM, illegible and unselectable. The dialog is portaled, so it is not
+    // blurred.
+    <div className={cn("p-6 space-y-5 max-w-[1100px] mx-auto", affixOpen && "blur-md select-none")} data-testid="barcode-station" data-blurred={affixOpen ? "true" : undefined}>
       <div>
         <h1 className="text-xl font-bold text-foreground">Barcode Station</h1>
         <p className="text-xs text-muted-foreground mt-1">
@@ -394,12 +452,16 @@ export default function BarcodeStation() {
         <form onSubmit={(e) => { e.preventDefault(); runLookup(query); }} className="flex gap-2">
           <div className="relative flex-1">
             <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 pointer-events-none" />
+            {/* Emptied while the confirm dialog is open: when the lookup was
+                by tag, this box IS the expected number. The query itself is
+                kept, so nothing is lost on close. */}
             <input
               autoFocus
               type="search"
-              value={query}
+              value={affixOpen ? "" : query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Tag, asset code or serial number — e.g. NRS-LT-00422"
+              data-testid="scan-box"
+              placeholder={affixOpen ? "Hidden while you confirm" : "Tag, asset code or serial number — e.g. NRS-LT-00422"}
               className="w-full pl-7 pr-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
@@ -453,7 +515,14 @@ export default function BarcodeStation() {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[14px] font-bold text-foreground">{hit.asset_name}</p>
-                <p className="text-[12px] text-muted-foreground font-mono">{hit.tag_number || "No tag"}</p>
+                {/* Covered while the confirm dialog is open: the number has
+                    to come off the label in the person's hand, not off the
+                    card behind the dialog. */}
+                <p className="text-[12px] text-muted-foreground font-mono" data-testid="lookup-tag-number">
+                  {affixOpen
+                    ? <span className="font-sans italic" data-testid="lookup-tag-number-hidden">Tag number hidden while you confirm</span>
+                    : (hit.tag_number || "No tag")}
+                </p>
               </div>
               <div className="shrink-0 flex items-center gap-1.5">
                 {/* Which field the scan hit. A serial lookup that looked like a
@@ -512,6 +581,15 @@ export default function BarcodeStation() {
               </div>
             )}
 
+            {hit.tag_state === "active" && hit.tag_id && (
+              <LabelStatePanel
+                label={label}
+                mismatch={labelMismatch}
+                loading={tagging.isLoading}
+                error={tagging.error as CadraApiError | null}
+              />
+            )}
+
             {hit.tag_state === "pending" && (
               <PendingTagPanel
                 tag={pendingTag.data ?? null}
@@ -530,6 +608,16 @@ export default function BarcodeStation() {
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-white text-xs font-semibold hover:opacity-90"
                 >
                   <Printer size={12} /> Print label
+                </button>
+              )}
+              {canConfirmAffixed && (
+                <button
+                  type="button"
+                  onClick={() => setAffixOpen(true)}
+                  data-testid="button-confirm-affixed"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-green-600 text-white text-xs font-semibold hover:bg-green-700"
+                >
+                  <Check size={12} /> Confirm affixed
                 </button>
               )}
               {hit.tag_state === "active" && hit.tag_id && (
@@ -805,6 +893,17 @@ export default function BarcodeStation() {
       </div>
 
       {hit && hit.tag_id && (
+        <ConfirmAffixedDialog
+          assetId={hit.asset_id}
+          assetName={hit.asset_name}
+          hasSerialOnFile={Boolean(hit.serial_number)}
+          open={affixOpen}
+          onOpenChange={setAffixOpen}
+          onConfirmed={onAffixConfirmed}
+          onAlready={onAffixAlready}
+        />
+      )}
+      {hit && hit.tag_id && (
         <RequestTagReplacementDialog
           tagId={hit.tag_id}
           tagNumber={hit.tag_number}
@@ -829,6 +928,72 @@ export default function BarcodeStation() {
           onRejected={() => onReplacementRejected(deciding.tag)}
         />
       )}
+    </div>
+  );
+}
+
+/** Words for `label_state`. Display only — the set is the server's, and a
+ *  value outside these two prints as itself rather than as nothing. */
+const LABEL_STATE_WORDS: Record<string, string> = {
+  issued: "Label issued",
+  printed: "Label printed",
+};
+
+/**
+ * Where this label is in its life, on the card — and once it is affixed, the
+ * RECORD instead of a button: who fitted it and when. The confirm button is
+ * in the card's action row beside Print label and Replace tag; this panel
+ * says what it would do, or what has been done.
+ */
+function LabelStatePanel({ label, mismatch, loading, error }: {
+  label: AssetTagging | null;
+  mismatch: boolean;
+  loading: boolean;
+  error: CadraApiError | null;
+}) {
+  if (error) {
+    return (
+      <p className="text-[12px] text-red-700 dark:text-red-400" data-testid="tag-label-state-error">
+        <span className="font-semibold">{error.code}:</span> {error.message}
+      </p>
+    );
+  }
+  if (mismatch) {
+    return (
+      <p className="text-[11px] text-muted-foreground" data-testid="tag-label-state-mismatch">
+        This asset carries more than one label and the one on record is not the one scanned, so it cannot be confirmed from here. Open the asset.
+      </p>
+    );
+  }
+  if (!label) {
+    return loading
+      ? <p className="text-[11px] text-muted-foreground" data-testid="tag-label-state-loading">Checking the label…</p>
+      : null;
+  }
+  if (label.label_state === "affixed") {
+    const who = label.affixed_by_name ?? label.affixed_by?.name;
+    return (
+      <div className="bg-green-50 dark:bg-green-950/30 border border-green-200/70 dark:border-green-800/30 rounded-xl p-3" data-testid="tag-affixed-state">
+        <p className="text-[12px] font-semibold text-green-700 dark:text-green-400 inline-flex items-center gap-1.5">
+          <Check size={13} /> Label confirmed on the asset
+        </p>
+        <p className="text-[11px] text-green-700/90 dark:text-green-400/90 mt-0.5">
+          {formatIsoDateTime(label.affixed_at) || "date not recorded"}
+          {who ? <> · fitted by <span className="font-semibold" data-testid="tag-affixed-by">{who}</span></> : null}
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="bg-muted/30 border border-border rounded-xl p-3" data-testid="tag-label-state">
+      <p className="text-[12px] font-semibold text-foreground inline-flex items-center gap-1.5">
+        <Tag size={13} className="text-muted-foreground" />
+        {LABEL_STATE_WORDS[label.label_state ?? ""] ?? label.label_state}
+        {label.label_state === "printed" && label.printed_at ? ` ${formatIsoDateTime(label.printed_at)}` : ""}
+      </p>
+      <p className="text-[11px] text-muted-foreground mt-0.5">
+        Not yet confirmed on the asset. When the label is fixed on, scan it with <span className="font-semibold">Confirm affixed</span>; the asset reads as tagged only after that.
+      </p>
     </div>
   );
 }
