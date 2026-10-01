@@ -50,6 +50,21 @@ class NRSAssetTag(models.Model):
     requested_date = fields.Datetime('Requested On')
     approved_by = fields.Many2one('res.users', string='Approved By')
     approved_date = fields.Datetime('Approved On')
+    # Handoff 38. WHO IS ASKED and WHO CLICKED are two columns, as they are
+    # on `nrs.asset.change.request` and for the same reason: `approver_id`
+    # is a nomination made by the requester and confers nothing; the two
+    # `*_by` columns are stamped from the acting user by the decision
+    # methods below and by nothing else (`_REPLACEMENT_STAMPS`).
+    approver_id = fields.Many2one(
+        'res.users', string='Approval Asked Of',
+        help='The person asked to decide this replacement. Anybody eligible '
+             'may decide it; this is whose queue it sits in.')
+    rejected_by = fields.Many2one('res.users', string='Rejected By')
+    rejected_date = fields.Datetime('Rejected On')
+    decision_reason = fields.Text(
+        'Decision Reason',
+        help='Why the replacement was approved or rejected. Required on a '
+             'rejection, because the requester is told.')
 
     # ── Tag date ──────────────────────────────────────────────
     # NOT the date the tag was printed or affixed: it defaults to the day the
@@ -108,32 +123,198 @@ class NRSAssetTag(models.Model):
                         _('Tag number %s is already active on asset: %s') % (
                             r.name, dup.asset_id.name))
 
-    def action_request_replacement(self):
-        self.write({
-            'state': 'pending',
-            'requested_by': self.env.uid,
-            'requested_date': fields.Datetime.now(),
-        })
+    # ── Replacement: a request, then a SECOND person decides ──────────
+    #
+    # Handoff 38. The three steps (active → pending → scrapped-and-reissued)
+    # and the requester/approver columns were already here; what the model
+    # lacked was everything handoff 35 settled for a move — who is ASKED,
+    # self-approval refused in the model, a reason that is actually
+    # recorded, a rejection that says why, and stamps nobody can edit
+    # afterwards. `nrs.asset.change.request` is deliberately NOT reused: it
+    # is hard-wired to location and custody, and its one-pending-per-asset
+    # index would make a pending tag replacement block a move. The RULE of
+    # who may decide is shared, read off that model, so "who is an approver
+    # here" has one answer.
 
-    def action_approve_replacement(self):
+    REPLACEMENT_KEY = 'cadra_tag_replacement'
+
+    #: Written by the three methods below and nowhere else. `readonly=True`
+    #: on the form is not an ORM guard, and the model is writable by
+    #: group_asset_manager over XML-RPC — the same reasoning as
+    #: `_CAPTURE_FIELDS`. `approver_id`, `replacement_reason` and
+    #: `replacement_notes` are NOT in it: they are what the requester types
+    #: on the Odoo form before pressing the button.
+    _REPLACEMENT_STAMPS = frozenset({
+        'requested_by', 'requested_date',
+        'approved_by', 'approved_date',
+        'rejected_by', 'rejected_date', 'decision_reason',
+        'replaces_id', 'replaced_by_id',
+    })
+
+    @api.model
+    def _approver_group(self):
+        return self.env['nrs.asset.change.request'].APPROVER_GROUP
+
+    def _replacement_ctx(self):
+        return self.with_context(**{self.REPLACEMENT_KEY: True})
+
+    def _may_decide(self, user):
+        """The same rule as `nrs.asset.change.request._may_decide`: never
+        the requester; a system administrator; otherwise the approver group,
+        through `has_group` so an implied membership counts."""
+        self.ensure_one()
+        if user.id == self.requested_by.id:
+            return False
+        if user._is_superuser() or user._is_admin():
+            return True
+        return user.has_group(self._approver_group())
+
+    def _assert_may_decide(self, user):
+        self.ensure_one()
+        if user.id == self.requested_by.id:
+            raise UserError(_(
+                '%(user)s raised the replacement request for tag %(tag)s '
+                'and cannot decide it. The point of an approval is that a '
+                'second person agrees.'
+            ) % {'user': user.display_name, 'tag': self.name})
+        if not self._may_decide(user):
+            raise UserError(_(
+                '%(user)s cannot decide a tag replacement. An approver must '
+                'be somebody who could have made the change themselves.'
+            ) % {'user': user.display_name})
+
+    def _reason_label(self, value):
+        return dict(self._fields['replacement_reason'].selection).get(
+            value, value)
+
+    def action_request_replacement(self, reason=None, notes=None,
+                                   approver=None):
+        """Ask a second person to agree that this tag be scrapped and
+        reissued.
+
+        Callable with no arguments from the Odoo form, where
+        `replacement_reason` and `approver_id` are typed onto the record
+        before the button; the API route passes all three. Until handoff 38
+        this wrote the state and the requester and never the reason, so
+        "why was this tag replaced" — the whole point of the record — was
+        recorded only if somebody remembered the form field.
+        """
+        allowed = [v for v, _label in
+                   self._fields['replacement_reason'].selection]
         for r in self:
-            # Scrap this tag
-            r.with_context(cadra_tag_capture=True).write({
+            if r.state != 'active':
+                raise UserError(_(
+                    'Tag %(tag)s is %(state)s; only an active tag can have '
+                    'a replacement requested.'
+                ) % {'tag': r.name,
+                     'state': dict(r._fields['state'].selection)[r.state]})
+            why = reason or r.replacement_reason
+            if why not in allowed:
+                raise UserError(_(
+                    'A reason is required to request a replacement for tag '
+                    '%(tag)s — one of %(allowed)s.'
+                ) % {'tag': r.name, 'allowed': ', '.join(allowed)})
+            who = approver if approver is not None else r.approver_id
+            if not who:
+                raise UserError(_(
+                    'Name who you are asking to approve the replacement of '
+                    'tag %s. A tag is reissued only when a second person '
+                    'agrees.') % r.name)
+            if who.id == self.env.uid:
+                raise UserError(_(
+                    'You cannot ask yourself to approve your own request. '
+                    'Name somebody else.'))
+            if not who.has_group(self._approver_group()) \
+                    and not who._is_admin():
+                raise UserError(_(
+                    '%s cannot approve a tag replacement. An approver must '
+                    'be somebody who could have made the change themselves.'
+                ) % who.display_name)
+            r._replacement_ctx().write({
+                'state': 'pending',
+                'replacement_reason': why,
+                'replacement_notes': (
+                    notes if notes is not None else r.replacement_notes
+                ) or False,
+                'approver_id': who.id,
+                'requested_by': self.env.uid,
+                'requested_date': fields.Datetime.now(),
+                # A new request is a new slot: an earlier rejection's stamps
+                # do not describe this one. The chatter keeps the old ones.
+                'approved_by': False, 'approved_date': False,
+                'rejected_by': False, 'rejected_date': False,
+                'decision_reason': False,
+            })
+            r.message_post(
+                body=_('Replacement of tag %(tag)s requested by %(by)s: '
+                       '%(why)s. Waiting on %(who)s.') % {
+                    'tag': r.name, 'by': self.env.user.display_name,
+                    'why': r._reason_label(why), 'who': who.display_name},
+                partner_ids=who.partner_id.ids)
+        return True
+
+    def action_approve_replacement(self, decision_reason=None):
+        """Scrap this tag and mint its successor. Returns the NEW tags.
+
+        The old number is never reissued: `_generate_tag` checks every tag
+        on the asset's prefix, scrapped ones included, before it picks a
+        sequence number.
+        """
+        new_tags = self.browse()
+        for r in self:
+            if r.state != 'pending':
+                raise UserError(_(
+                    'Tag %(tag)s is %(state)s, not awaiting a replacement '
+                    'decision.'
+                ) % {'tag': r.name,
+                     'state': dict(r._fields['state'].selection)[r.state]})
+            r._assert_may_decide(self.env.user)
+            r._replacement_ctx().with_context(cadra_tag_capture=True).write({
                 'state': 'scrapped',
                 'label_state': 'scrapped',
                 'scrapped_date': fields.Date.today(),
                 'approved_by': self.env.uid,
                 'approved_date': fields.Datetime.now(),
+                'decision_reason': (decision_reason or '').strip() or False,
             })
-            # Generate new tag for the asset
             new_tag = r.asset_id._generate_tag(source='manual')
-            new_tag.write({'replaces_id': r.id})
-            r.write({'replaced_by_id': new_tag.id})
-            r.message_post(body=_(
-                'Tag %s scrapped. New tag %s generated.') % (r.name, new_tag.name))
+            new_tag._replacement_ctx().write({'replaces_id': r.id})
+            r._replacement_ctx().write({'replaced_by_id': new_tag.id})
+            r.message_post(
+                body=_('Replacement approved by %(who)s. Tag %(old)s '
+                       'scrapped; new tag %(new)s generated.') % {
+                    'who': self.env.user.display_name,
+                    'old': r.name, 'new': new_tag.name},
+                partner_ids=r.requested_by.partner_id.ids)
+            new_tags |= new_tag
+        return new_tags
 
-    def action_reject_replacement(self):
-        self.write({'state': 'active'})
+    def action_reject_replacement(self, decision_reason=None):
+        """Back to `active`, with who said no and why."""
+        for r in self:
+            if r.state != 'pending':
+                raise UserError(_(
+                    'Tag %(tag)s is %(state)s, not awaiting a replacement '
+                    'decision.'
+                ) % {'tag': r.name,
+                     'state': dict(r._fields['state'].selection)[r.state]})
+            r._assert_may_decide(self.env.user)
+            why = (decision_reason or r.decision_reason or '').strip()
+            if not why:
+                raise UserError(_(
+                    'A reason is required to reject the replacement of tag '
+                    '%s: the requester is told why.') % r.name)
+            r._replacement_ctx().write({
+                'state': 'active',
+                'rejected_by': self.env.uid,
+                'rejected_date': fields.Datetime.now(),
+                'decision_reason': why,
+            })
+            r.message_post(
+                body=_('Replacement rejected by %(who)s: %(why)s') % {
+                    'who': self.env.user.display_name, 'why': why},
+                partner_ids=r.requested_by.partner_id.ids)
+        return True
 
     # Fields that describe an event Cadra observed. They are written by the
     # two methods below and nowhere else — `readonly=True` only stops the web
@@ -153,6 +334,18 @@ class NRSAssetTag(models.Model):
                 'confirmation carrying the tag number scanned off the asset '
                 '(POST /api/v1/assets/<id>/tag-affixed).'
             ) % ', '.join(sorted(self._CAPTURE_FIELDS & set(vals))))
+        if (self._REPLACEMENT_STAMPS & set(vals)
+                and not self.env.context.get(self.REPLACEMENT_KEY)):
+            raise ValidationError(_(
+                'Replacement fields (%s) are stamped by the request, approve '
+                'and reject methods and cannot be set directly.'
+            ) % ', '.join(sorted(self._REPLACEMENT_STAMPS & set(vals))))
+        if vals.get('state', 'scrapped') != 'scrapped' \
+                and any(r.state == 'scrapped' for r in self):
+            raise ValidationError(_(
+                'A scrapped tag stays scrapped: %s. Its number is never '
+                'reissued; approving a replacement mints a new one.'
+            ) % ', '.join(r.name for r in self if r.state == 'scrapped'))
         return super().write(vals)
 
     def _mark_printed(self):

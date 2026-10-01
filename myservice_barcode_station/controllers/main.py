@@ -34,37 +34,117 @@ def _selection_label(record, field_name):
     return dict(selection).get(value, value)
 
 
+def _escape_like(value):
+    """Make `value` literal under LIKE/ILIKE: `%`, `_` and `\\` are wildcards."""
+    return (value.replace('\\', '\\\\')
+                 .replace('%', '\\%')
+                 .replace('_', '\\_'))
+
+
+def _resolve_lookup(env, query, sudo=False):
+    """What a scanned string names. ONE resolution for both lookup routes.
+
+    Precedence is TAG NUMBER, then ASSET CODE, then SERIAL NUMBER, each an
+    exact match, so a scanned tag can never lose to a serial that happens to
+    read the same. Measured before this was written (handoff 38, all eight
+    local tenants, 2026-10-01): 0 serials equal to any tag number, 0 equal to
+    any asset code, 0 tag numbers equal to an asset code — the order is for
+    determinism, not because a collision has been seen.
+
+    Until handoff 38 the serial branch did not exist, while the published
+    description of both `/api/v1` twins said *"Tag, asset code, or serial
+    number"* — so the serial of a TAGGED asset found nothing, and that is
+    exactly what an auditor with a scanner does.
+
+    The serial rule: the query is stripped and compared case-insensitively
+    and EXACTLY (`=ilike` with the wildcards escaped). Internal whitespace and
+    leading zeros are significant — `nrs19` holds 574 serials with a space
+    inside and ten beginning with `0` — and no stored serial on any tenant
+    carries leading or trailing whitespace (0 of 11,704 with a serial), so
+    stripping the query is enough for a scanner's trailing space.
+
+    A serial can be AMBIGUOUS: `nrs19` has 1,291 serial values on more than
+    one asset (`PROBOOK` on 94), model names typed where a serial should be.
+    More than one match is reported as a miss that says how many, never a
+    silent first-row pick.
+
+    The tag-number branch is unchanged: only an `active` tag resolves by its
+    number. An asset found by code or serial carries its active tag, or — when
+    it has none — its `physical_tag_id` (a tag whose replacement is pending,
+    still stuck to the asset), so the station can show *replacement pending*
+    rather than *untagged* for a label that is physically there.
+    """
+    q = (query or '').strip()
+    Tag = env['nrs.asset.tag.label']
+    Asset = env['nrs.asset']
+    if sudo:
+        Tag, Asset = Tag.sudo(), Asset.sudo()
+    if not q:
+        return {'found': False, 'error': 'No query provided'}
+
+    tag = Tag.search([('name', '=', q.upper()), ('state', '=', 'active')],
+                     limit=1)
+    if tag and tag.asset_id:
+        return {'found': True, 'matched_by': 'tag_number',
+                'asset': tag.asset_id, 'tag': tag, 'tagged': True}
+
+    asset = Asset.search([('asset_code', '=', q)], limit=1)
+    matched_by = 'asset_code'
+    if not asset:
+        matches = Asset.search(
+            [('serial_number', '=ilike', _escape_like(q))], limit=2)
+        if len(matches) > 1:  # capped-count-ok: a "more than one" probe, not a count; the count is taken below
+            # `limit=2` says "more than one", which is all the answer needs;
+            # the count is taken over the register so the message is true.
+            count = Asset.search_count(
+                [('serial_number', '=ilike', _escape_like(q))])
+            return {
+                'found': False, 'ambiguous': True,
+                'matched_by': 'serial_number', 'matches': count,
+                'error': 'Serial number %s is on %d assets; scan the tag or '
+                         'the asset code instead' % (q, count),
+            }
+        asset = matches
+        matched_by = 'serial_number'
+    if not asset:
+        return {'found': False,
+                'error': 'No active tag, asset code or serial number '
+                         'matches: %s' % q}
+    active = asset.active_tag_id
+    return {'found': True, 'matched_by': matched_by, 'asset': asset,
+            'tag': active or asset.physical_tag_id, 'tagged': bool(active)}
+
+
 class BarcodeStationController(http.Controller):
 
     # ── Backend JSON API ─────────────────────────────────────
 
     @http.route('/barcode/lookup', type='json', auth='user')
     def lookup_tag(self, query=''):
-        """Look up asset by tag number or asset code."""
+        """Look up an asset by tag number, asset code or serial number.
+
+        Precedence and matching rules are `_resolve_lookup`'s; this method is
+        the authenticated station's shape of its answer and
+        `/api/v1/barcode/lookup` publishes it unchanged.
+        """
         if not query:
             return {'found': False, 'error': 'No query provided'}
-        env = request.env
-        # Search tag first
-        tag = env['nrs.asset.tag.label'].search(
-            [('name', '=', query.strip().upper()), ('state', '=', 'active')], limit=1)
-        if not tag:
-            # Try asset code
-            asset = env['nrs.asset'].search(
-                [('asset_code', '=', query.strip())], limit=1)
-            if asset:
-                tag = asset.active_tag_id
-        if not tag or not tag.asset_id:
-            return {'found': False, 'error': 'Tag or asset not found: %s' % query}
-        asset = tag.asset_id
+        hit = _resolve_lookup(request.env, query)
+        if not hit['found']:
+            return hit
+        asset, tag = hit['asset'], hit['tag']
         return {
             'found': True,
-            'tag_id': tag.id,
-            'tag_number': tag.name,
-            'tag_state': tag.state,
-            'tag_date': str(tag.tag_date) if tag.tag_date else '',
+            'matched_by': hit['matched_by'],
+            'tagged': hit['tagged'],
+            'tag_id': tag.id if tag else None,
+            'tag_number': tag.name if tag else '',
+            'tag_state': tag.state if tag else '',
+            'tag_date': str(tag.tag_date) if tag and tag.tag_date else '',
             'asset_id': asset.id,
             'asset_name': asset.name,
             'asset_code': asset.asset_code or '',
+            'serial_number': asset.serial_number or '',
             'category': asset.category_id.name if asset.category_id else '',
             'domain': _selection_label(asset, 'domain'),
             'location': asset.location_id.name if asset.location_id else '',
@@ -265,24 +345,27 @@ class BarcodeStationController(http.Controller):
 
     @http.route('/tags/lookup', type='json', auth='public')
     def portal_lookup(self, query=''):
-        """Public lookup endpoint for portal scanner."""
+        """Public lookup endpoint for portal scanner.
+
+        Same resolution as `/barcode/lookup` (`_resolve_lookup`), narrower
+        answer: the public portal publishes no ids.
+        """
         if not query:
             return {'found': False}
         env = request.env(user=request.env.ref('base.public_user').id)
-        tag = env['nrs.asset.tag.label'].sudo().search(
-            [('name', '=', query.strip().upper()), ('state', '=', 'active')], limit=1)
-        if not tag:
-            asset = env['nrs.asset'].sudo().search(
-                [('asset_code', '=', query.strip())], limit=1)
-            if asset:
-                tag = asset.sudo().active_tag_id
-        if not tag or not tag.asset_id:
-            return {'found': False}
-        asset = tag.asset_id.sudo()
+        hit = _resolve_lookup(env, query, sudo=True)
+        if not hit['found']:
+            return hit
+        asset, tag = hit['asset'].sudo(), hit['tag']
         return {
             'found': True,
-            'tag_number': tag.name,
+            'matched_by': hit['matched_by'],
+            'tagged': hit['tagged'],
+            'tag_number': tag.name if tag else '',
+            'tag_state': tag.state if tag else '',
             'asset_name': asset.name,
+            'asset_code': asset.asset_code or '',
+            'serial_number': asset.serial_number or '',
             'category': asset.category_id.name if asset.category_id else '',
             'location': asset.location_id.name if asset.location_id else '',
             'condition': asset.condition or '',

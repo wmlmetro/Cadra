@@ -2498,18 +2498,114 @@ class MyserviceApiV1(http.Controller):
     # ── Asset lookup (barcode + portal) ────────────────────────────
 
     @cadra_route("/api/v1/barcode/lookup", method="GET",
-                 summary="Lookup asset by tag/barcode",
+                 summary="Look up an asset by tag number, asset code or "
+                         "serial number",
                  scopes=[SCOPE_ASSETS_READ],
                  query_params=[
                      {"name": "query", "schema": {"type": "string"},
                       "description": "Tag, asset code, or serial number to look up"},
-                 ])
+                 ],
+                 response_schema={
+                     "type": "object",
+                     "description": (
+                         "The barcode station's own payload, unchanged, plus "
+                         "`matched_by`, `tagged` and `serial_number` "
+                         "(handoff 38). Resolution is tag number, then asset "
+                         "code, then serial number, each an exact match — "
+                         "the serial compared case-insensitively after the "
+                         "query is stripped, so a scanner's trailing space "
+                         "still finds it. A serial on MORE THAN ONE asset is "
+                         "a 404 that says so (`details.ambiguous`, "
+                         "`details.matches`), never a silent first pick."),
+                     "properties": {
+                         "found": {"type": "boolean",
+                                   "description": "Always `true` on a 200; "
+                                                  "a miss is the 404."},
+                         "matched_by": {
+                             "type": "string",
+                             "enum": ["tag_number", "asset_code",
+                                      "serial_number"],
+                             "description": "Which field the query matched. "
+                                            "A screen says *found by serial "
+                                            "number* from this."},
+                         "tagged": {
+                             "type": "boolean",
+                             "description": "Whether the asset has an ACTIVE "
+                                            "tag. False for an asset found "
+                                            "by code or serial whose tag is "
+                                            "awaiting replacement, or that "
+                                            "has none."},
+                         "tag_id": {
+                             "type": "integer", "nullable": True,
+                             "description": "`nrs.asset.tag.label` id — the "
+                                            "active tag, or the PENDING one "
+                                            "when `tagged` is false and a "
+                                            "replacement is waiting. `null` "
+                                            "when the asset has no tag at "
+                                            "all (BEHAVIOUR CHANGE, handoff "
+                                            "38: this was never null before, "
+                                            "because an untagged asset was "
+                                            "never found)."},
+                         "tag_number": {"type": "string",
+                                        "description": "`''` when no tag."},
+                         "tag_state": {"type": "string",
+                                       "enum": ["active", "pending", ""],
+                                       "description": "`pending` is a tag "
+                                                      "whose replacement is "
+                                                      "waiting; `''` is no "
+                                                      "tag."},
+                         "tag_date": {"type": "string"},
+                         "asset_id": {"type": "integer"},
+                         "asset_name": {"type": "string"},
+                         "asset_code": {"type": "string"},
+                         "serial_number": {"type": "string",
+                                           "description": "`''` when none."},
+                         "category": {"type": "string"},
+                         "domain": {"type": "string",
+                                    "description": "The human LABEL, not "
+                                                   "the key."},
+                         "location": {"type": "string"},
+                         "custodian": {"type": "string"},
+                         "condition": {"type": "string",
+                                       "description": "The human label."},
+                         "state": {"type": "string",
+                                   "description": "The human label."},
+                         "last_service_date": {"type": "string"},
+                         "next_service_date": {"type": "string"},
+                         "sap_asset_number": {"type": "string"},
+                         "import_source": {"type": "string"},
+                     },
+                 })
     def barcode_lookup(self, **kwargs):
+        """One scanned string → one asset, and WHICH field it matched.
+
+        Until handoff 38 the parameter description above promised a serial
+        lookup the code did not do: `lookup_tag` searched tag number and
+        asset code only, so the serial of a TAGGED asset found nothing —
+        and that is exactly what an auditor with a scanner does. The
+        resolution now lives in `myservice_barcode_station.controllers.main.
+        _resolve_lookup`, shared with `/tags/lookup`; the description is
+        true rather than narrowed.
+
+        A miss is a 404 `not_found` with `details.query`. When the miss is
+        a serial on more than one asset, `details.ambiguous` is `true`,
+        `details.matches` is how many and `details.matched_by` is
+        `serial_number` — so a screen can say *scan the tag instead* rather
+        than *not found*.
+        """
         from odoo.addons.myservice_barcode_station.controllers.main import BarcodeStationController
         query = kwargs.get("query", "")
         result = BarcodeStationController().lookup_tag(query=query)
+        details = {"query": query}
+        if isinstance(result, dict):
+            # An ambiguous serial is a different kind of miss from an
+            # unknown string, and the station says which; pass it through
+            # rather than flattening both to "not found".
+            details.update({k: result[k] for k in
+                            ("ambiguous", "matches", "matched_by")
+                            if k in result})
         return _delegate_failure(result, code=ERR_NOT_FOUND, status=404,
-                                 details={"query": query}) or result
+                                 details=details) or result
 
     @cadra_route("/api/v1/barcode/kpis", method="GET",
                  summary="Barcode station KPIs", scopes=[SCOPE_ASSETS_READ])
@@ -2662,13 +2758,55 @@ class MyserviceApiV1(http.Controller):
                  query_params=[
                      {"name": "query", "schema": {"type": "string"},
                       "description": "Tag, asset code, or serial to look up"},
-                 ])
+                 ],
+                 response_schema={
+                     "type": "object",
+                     "description": (
+                         "The portal scanner's narrower payload — it "
+                         "publishes NO ids — resolved exactly as "
+                         "`/barcode/lookup` is (tag number, then asset code, "
+                         "then serial number; handoff 38), plus `matched_by`, "
+                         "`tagged`, `serial_number`, `asset_code` and "
+                         "`tag_state`."),
+                     "properties": {
+                         "found": {"type": "boolean"},
+                         "matched_by": {
+                             "type": "string",
+                             "enum": ["tag_number", "asset_code",
+                                      "serial_number"]},
+                         "tagged": {"type": "boolean"},
+                         "tag_number": {"type": "string"},
+                         "tag_state": {"type": "string",
+                                       "enum": ["active", "pending", ""]},
+                         "asset_name": {"type": "string"},
+                         "asset_code": {"type": "string"},
+                         "serial_number": {"type": "string"},
+                         "category": {"type": "string"},
+                         "location": {"type": "string"},
+                         "condition": {"type": "string",
+                                       "description": "The KEY, not the "
+                                                      "label — unlike "
+                                                      "`/barcode/lookup`."},
+                         "state": {"type": "string",
+                                   "description": "The key, as above."},
+                         "last_service_date": {"type": "string"},
+                     },
+                 })
     def tags_lookup(self, **kwargs):
+        """The same resolution as `/barcode/lookup`, through the portal's
+        payload. `matched_by` says which field the query matched; a miss is
+        a 404 carrying `details.query`, and an ambiguous serial carries
+        `details.ambiguous` and `details.matches` beside it."""
         from odoo.addons.myservice_barcode_station.controllers.main import BarcodeStationController
         query = kwargs.get("query", "")
         result = BarcodeStationController().portal_lookup(query=query)
+        details = {"query": query}
+        if isinstance(result, dict):
+            details.update({k: result[k] for k in
+                            ("ambiguous", "matches", "matched_by")
+                            if k in result})
         return _delegate_failure(result, code=ERR_NOT_FOUND, status=404,
-                                 details={"query": query}) or result
+                                 details=details) or result
 
     # ── Assets bulk export (legacy / CSV) ──────────────────────────
 

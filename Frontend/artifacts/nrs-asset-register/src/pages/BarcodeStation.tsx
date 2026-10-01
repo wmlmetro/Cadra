@@ -5,8 +5,9 @@ import { useLayoutCtx } from "@/components/layout/AppLayout";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import {
   fetchBarcodeKpis, fetchBarcodeRecentTags, lookupBarcode,
-  fetchUntaggedAssets, generateBarcodes,
-  type BarcodeTag, type BarcodeLookupHit, type UntaggedAsset,
+  fetchUntaggedAssets, generateBarcodes, fetchTag, fetchPendingTagReplacements,
+  type BarcodeTag, type BarcodeLookupHit, type BarcodeMatchedBy, type UntaggedAsset, type TagLabel,
+  type TagReplacementRaised, type TagReplacementApproved,
 } from "@/lib/dataProvider";
 // The FM domain set and its labels come from the server, not from a constant
 // in dataProvider. There used to be two identical hand-written copies of that
@@ -15,10 +16,20 @@ import { useEnum, useEnumLabel } from "@/hooks/useEnums";
 import { CadraApiError } from "@/lib/api";
 import { printLabels, floorRoomFromTag, LABEL_SIZES, type LabelData, type LabelSize } from "@/lib/labels";
 import {
+  RequestTagReplacementDialog, ApproveTagReplacementDialog, RejectTagReplacementDialog,
+} from "@/components/TagReplacementDialogs";
+import {
   ScanBarcode, AlertCircle, Tag, Package, AlertTriangle, XCircle,
   ArrowRight, Search, Printer, Keyboard, Camera, SearchX, Sparkles, Check,
+  RefreshCw, Hourglass,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const MATCHED_BY_WORDS: Record<BarcodeMatchedBy, string> = {
+  tag_number: "Found by tag",
+  asset_code: "Found by asset code",
+  serial_number: "Found by serial number",
+};
 
 type Mode = "type" | "camera";
 type Notice = { kind: "error" | "warn" | "ok"; text: string } | null;
@@ -39,6 +50,10 @@ export default function BarcodeStation() {
   // front of a tagging clerk. The model's labels are what the rest of the app
   // shows; this screen now agrees with it.
   const conditionLabelOf = useEnumLabel("condition");
+  // The tag's state pill used to print the raw key (`pending`); the model's
+  // label is "Replacement Pending", which is what a clerk needs to read.
+  const tagStateLabelOf = useEnumLabel("tag_state");
+  const replacementReasonLabelOf = useEnumLabel("tag_replacement_reason");
 
   const kpis   = useQuery({ queryKey: ["barcode-kpis"],   queryFn: fetchBarcodeKpis,   staleTime: 30_000 });
   const recent = useQuery({ queryKey: ["barcode-recent"], queryFn: () => fetchBarcodeRecentTags({ limit: 200 }), staleTime: 30_000 });
@@ -72,12 +87,46 @@ export default function BarcodeStation() {
     lookup.mutate(trimmed);
   }
 
-  // A miss comes back as HTTP 200 with {found: false}, so "no result" has to be
-  // read off the payload — it never lands in `lookup.error`.
+  // A re-lookup the page triggers itself (after a write) keeps the notice
+  // and puts the query it is actually running into the box, so the "Found
+  // by …" badge never describes a different string from the one shown.
+  function relookup(q: string) {
+    setQuery(q);
+    lookup.mutate(q);
+  }
+
+  // A miss is a 404 `not_found` — `/api/v1/barcode/lookup` runs the station
+  // controller's `{found: false}` through `_delegate_failure` and the error
+  // envelope is thrown by `parseEnvelope` — so it lands in `lookup.error`,
+  // never in `lookup.data`. An ambiguous serial (one serial on several
+  // assets) is the same 404 with `details.ambiguous` and `details.matches`.
   const result = lookup.data;
   const hit: BarcodeLookupHit | null = result && result.found ? result : null;
-  const missed = Boolean(result && !result.found);
   const lookupErr = lookup.error as CadraApiError | null;
+  const missed = lookupErr?.code === "not_found";
+  const missDetails = (missed ? lookupErr?.details : null) as
+    { ambiguous?: boolean; matches?: number; matched_by?: string } | null | undefined;
+  const ambiguousCount = missDetails?.ambiguous && typeof missDetails.matches === "number"
+    ? missDetails.matches : null;
+
+  // The pending replacement, when the hit's tag is one. `fetchTag` is what
+  // knows the reason, who asked, who was asked and whether THIS user may
+  // decide; the lookup payload carries only the tag's number and state.
+  const pendingTag = useQuery({
+    queryKey: ["tag", hit?.tag_id],
+    queryFn: () => fetchTag(hit!.tag_id!),
+    enabled: Boolean(hit && hit.tag_id && hit.tag_state === "pending"),
+    staleTime: 10_000,
+  });
+  const pendingList = useQuery({
+    queryKey: ["tag-pending"],
+    queryFn: fetchPendingTagReplacements,
+    staleTime: 30_000,
+  });
+
+  const [replaceOpen, setReplaceOpen] = useState(false);
+  const [deciding, setDeciding] = useState<{ tag: TagLabel; action: "approve" | "reject" } | null>(null);
+  const [printableNewTag, setPrintableNewTag] = useState<TagLabel | null>(null);
 
   const tags = recent.data ?? [];
   const visible = useMemo(
@@ -233,12 +282,64 @@ export default function BarcodeStation() {
     })), true);
   }
 
+  // ── Tag replacement (handoff 38) ──────────────────────────────────────
+  //
+  // Every handler below re-runs the LOOKUP rather than patching the card:
+  // the card is the server's answer to a scan, and after any of these the
+  // answer has changed. A pending tag's NUMBER stops resolving (only active
+  // tags match by number — unchanged, on purpose), so the re-run goes by
+  // asset code; after an approval it goes by the NEW number, which proves
+  // the new label resolves before anybody prints it.
+
+  /** Mint a barcode for the asset on the card, then look it up again so the
+   *  card shows the number it just got. */
+  async function generateForHit() {
+    if (!hit) return;
+    const code = hit.asset_code;
+    try {
+      await generate.mutateAsync([hit.asset_id]);
+    } catch {
+      return;  // the mutation's onError has already surfaced it
+    }
+    if (code) relookup(code);
+  }
+
+  function onReplacementRaised(res: TagReplacementRaised) {
+    setNotice({
+      kind: "ok",
+      text: `Replacement of ${res.tag.tag_number} requested — waiting on ${res.tag.approver?.name ?? "the approver"}. Nothing is scrapped or minted until they decide; look the asset up by its code meanwhile.`,
+    });
+    if (hit?.asset_code) relookup(hit.asset_code);
+  }
+
+  function onReplacementApproved(res: TagReplacementApproved) {
+    setPrintableNewTag(res.new_tag);
+    setNotice({
+      kind: "ok",
+      text: `${res.tag.tag_number} scrapped; new tag ${res.new_tag.tag_number} minted for ${res.new_tag.asset.name}. Print it.`,
+    });
+    relookup(res.new_tag.tag_number);
+  }
+
+  function onReplacementRejected(tag: TagLabel) {
+    setNotice({ kind: "warn", text: `Replacement of ${tag.tag_number} rejected — the label stays active.` });
+    if (hit && hit.asset_id === tag.asset.id && hit.asset_code) relookup(hit.asset_code);
+  }
+
+  const printNewTag = () =>
+    printableNewTag && print([{
+      tag_number: printableNewTag.tag_number,
+      asset_name: printableNewTag.asset.name,
+      asset_code: printableNewTag.asset_code,
+      floor_room: floorRoomFromTag(printableNewTag.tag_number),
+    }], true);
+
   return (
     <div className="p-6 space-y-5 max-w-[1100px] mx-auto">
       <div>
         <h1 className="text-xl font-bold text-foreground">Barcode Station</h1>
         <p className="text-xs text-muted-foreground mt-1">
-          Look up a tag, generate barcodes for untagged assets, and print labels.
+          Look up an asset by tag, asset code or serial number, generate barcodes for untagged assets, replace a damaged tag, and print labels.
         </p>
       </div>
 
@@ -261,13 +362,26 @@ export default function BarcodeStation() {
       </div>
 
       {notice && <Notice notice={notice} />}
+      {printableNewTag && (
+        <div className="flex items-center gap-2 -mt-2">
+          <button
+            type="button"
+            onClick={() => void printNewTag()}
+            data-testid="button-print-new-tag"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-white text-[11px] font-semibold hover:opacity-90"
+          >
+            <Printer size={12} /> Print new label {printableNewTag.tag_number}
+          </button>
+          <SizePicker value={size} onChange={setSize} />
+        </div>
+      )}
 
       {/* Scan / lookup */}
       <div className="bg-card border border-border rounded-2xl p-5 space-y-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <ScanBarcode size={14} className="text-primary" />
-            <h2 className="text-[13px] font-bold">Scan or type tag</h2>
+            <h2 className="text-[13px] font-bold">Scan or type a tag, asset code or serial number</h2>
           </div>
           <div className="flex items-center gap-1 rounded-xl border border-border p-0.5">
             <ModeButton active={mode === "type"}   onClick={() => setMode("type")}   icon={Keyboard} label="Type" />
@@ -285,7 +399,7 @@ export default function BarcodeStation() {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="e.g. NRS-LT-00422"
+              placeholder="Tag, asset code or serial number — e.g. NRS-LT-00422"
               className="w-full pl-7 pr-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
@@ -305,7 +419,7 @@ export default function BarcodeStation() {
           <BarcodeScanner onDetected={(value) => { setMode("type"); runLookup(value); }} />
         )}
 
-        {lookupErr && (
+        {lookupErr && !missed && (
           <div className="bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-xl p-3 flex items-start gap-2">
             <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
             <p className="text-[12px] text-red-700 dark:text-red-400">
@@ -314,33 +428,56 @@ export default function BarcodeStation() {
           </div>
         )}
 
-        {missed && !lookupErr && (
-          <div className="bg-muted/30 border border-border rounded-xl p-3 flex items-start gap-2">
+        {missed && (
+          <div className="bg-muted/30 border border-border rounded-xl p-3 flex items-start gap-2" data-testid="lookup-miss">
             <SearchX size={14} className="text-muted-foreground shrink-0 mt-0.5" />
             <p className="text-[12px] text-muted-foreground">
-              No active tag or asset matches <span className="font-mono font-semibold text-foreground">{query}</span>.
-              Check the code, or search the register if the asset was never tagged.
+              {ambiguousCount !== null ? (
+                <>
+                  Serial number <span className="font-mono font-semibold text-foreground">{query}</span> is
+                  on <span className="font-semibold text-foreground">{ambiguousCount}</span> assets, so
+                  it cannot pick one. Scan the tag or the asset code instead.
+                </>
+              ) : (
+                <>
+                  No active tag, asset code or serial number matches <span className="font-mono font-semibold text-foreground">{query}</span>.
+                  Check the code, or search the register.
+                </>
+              )}
             </p>
           </div>
         )}
 
         {hit && (
-          <div className="bg-background border border-primary/30 rounded-xl p-4 space-y-3">
+          <div className="bg-background border border-primary/30 rounded-xl p-4 space-y-3" data-testid="lookup-result">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[14px] font-bold text-foreground">{hit.asset_name}</p>
-                <p className="text-[12px] text-muted-foreground font-mono">{hit.tag_number}</p>
+                <p className="text-[12px] text-muted-foreground font-mono">{hit.tag_number || "No tag"}</p>
               </div>
-              <span className={cn(
-                "shrink-0 inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-semibold border",
-                hit.tag_state === "active"
-                  ? "bg-green-50 dark:bg-green-950/30 border-green-200/70 text-green-700 dark:text-green-400"
-                  : "bg-muted border-border text-muted-foreground",
-              )}>{hit.tag_state}</span>
+              <div className="shrink-0 flex items-center gap-1.5">
+                {/* Which field the scan hit. A serial lookup that looked like a
+                    tag lookup is how a wrong claim gets made in a demo. */}
+                <span
+                  className="inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-semibold border bg-primary/5 border-primary/30 text-primary"
+                  data-testid="lookup-matched-by"
+                >{MATCHED_BY_WORDS[hit.matched_by] ?? `Found by ${hit.matched_by}`}</span>
+                {hit.tag_state && (
+                  <span className={cn(
+                    "inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-semibold border",
+                    hit.tag_state === "active"
+                      ? "bg-green-50 dark:bg-green-950/30 border-green-200/70 text-green-700 dark:text-green-400"
+                      : hit.tag_state === "pending"
+                      ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200/70 text-amber-700 dark:text-amber-400"
+                      : "bg-muted border-border text-muted-foreground",
+                  )} data-testid="lookup-tag-state">{tagStateLabelOf(hit.tag_state)}</span>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-[11px]">
               <Field label="Asset code" value={hit.asset_code} mono />
+              <Field label="Serial number" value={hit.serial_number} mono />
               <Field label="Category"   value={hit.category} />
               <Field label="Domain"     value={domainLabelOf(hit.domain)} />
               <Field label="Location"   value={hit.location} />
@@ -351,13 +488,60 @@ export default function BarcodeStation() {
               <Field label="SAP number"   value={hit.sap_asset_number} mono />
             </div>
 
+            {/* No active tag and no pending one either: the asset was found by
+                code or serial and has never been labelled, or its label was
+                scrapped. Mint one here rather than sending the clerk to the
+                picker below to find it again. */}
+            {!hit.tagged && !hit.tag_id && (
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/30 rounded-xl p-3 flex items-center justify-between gap-3 flex-wrap" data-testid="lookup-no-tag">
+                <p className="text-[12px] text-amber-700 dark:text-amber-400 inline-flex items-center gap-1.5">
+                  <AlertTriangle size={13} /> No active tag on this asset.
+                </p>
+                <button
+                  type="button"
+                  disabled={generate.isPending}
+                  onClick={() => void generateForHit()}
+                  data-testid="button-generate-for-hit"
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold",
+                    generate.isPending ? "bg-muted text-muted-foreground cursor-not-allowed" : "bg-primary text-white hover:opacity-90",
+                  )}
+                >
+                  <Tag size={12} /> {generate.isPending ? "Generating…" : "Generate barcode"}
+                </button>
+              </div>
+            )}
+
+            {hit.tag_state === "pending" && (
+              <PendingTagPanel
+                tag={pendingTag.data ?? null}
+                loading={pendingTag.isLoading}
+                error={pendingTag.error as CadraApiError | null}
+                reasonLabelOf={replacementReasonLabelOf}
+                onApprove={(t) => setDeciding({ tag: t, action: "approve" })}
+                onReject={(t) => setDeciding({ tag: t, action: "reject" })}
+              />
+            )}
+
             <div className="flex flex-wrap items-center gap-2 pt-1">
-              <button
-                onClick={() => void printHit()}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-white text-xs font-semibold hover:opacity-90"
-              >
-                <Printer size={12} /> Print label
-              </button>
+              {hit.tagged && (
+                <button
+                  onClick={() => void printHit()}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-white text-xs font-semibold hover:opacity-90"
+                >
+                  <Printer size={12} /> Print label
+                </button>
+              )}
+              {hit.tag_state === "active" && hit.tag_id && (
+                <button
+                  type="button"
+                  onClick={() => setReplaceOpen(true)}
+                  data-testid="button-replace-tag"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border text-xs font-semibold hover:bg-muted/40"
+                >
+                  <RefreshCw size={12} /> Replace tag
+                </button>
+              )}
               {hit.asset_id > 0 && (
                 <button
                   onClick={() => nav(`/assets/${hit.asset_id}`)}
@@ -368,6 +552,58 @@ export default function BarcodeStation() {
               )}
               <SizePicker value={size} onChange={setSize} />
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Tag replacements waiting on a decision */}
+      <div className="bg-card border border-border rounded-2xl p-5" data-testid="pending-replacements">
+        <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+          <div>
+            <h2 className="text-[13px] font-bold inline-flex items-center gap-1.5">
+              <Hourglass size={13} className="text-amber-600 dark:text-amber-400" /> Pending replacements
+            </h2>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Labels somebody has asked to replace. The old number is scrapped and a new one minted only on approval.
+            </p>
+          </div>
+        </div>
+
+        {pendingList.error && (
+          <p className="text-[12px] text-red-700 dark:text-red-400 py-2">
+            {(pendingList.error as CadraApiError).code}: {(pendingList.error as CadraApiError).message}
+          </p>
+        )}
+
+        {pendingList.isLoading ? (
+          <p className="text-[12px] text-muted-foreground py-4 text-center">Loading…</p>
+        ) : (pendingList.data ?? []).length === 0 ? (
+          <p className="text-[12px] text-muted-foreground py-4 text-center inline-flex items-center gap-1.5 w-full justify-center" data-testid="pending-replacements-empty">
+            <Check size={12} className="text-green-600 dark:text-green-400" /> Nothing waiting.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px]">
+              <thead>
+                <tr className="border-b border-border">
+                  {["Tag", "Asset", "Reason", "Requested by", "Asked", ""].map((h, i) => (
+                    <th key={i} className="text-left px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(pendingList.data ?? []).map((t) => (
+                  <PendingRow
+                    key={t.id}
+                    tag={t}
+                    reasonLabelOf={replacementReasonLabelOf}
+                    onOpen={() => nav(`/assets/${t.asset.id}`)}
+                    onApprove={() => setDeciding({ tag: t, action: "approve" })}
+                    onReject={() => setDeciding({ tag: t, action: "reject" })}
+                  />
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
@@ -567,7 +803,143 @@ export default function BarcodeStation() {
           </div>
         )}
       </div>
+
+      {hit && hit.tag_id && (
+        <RequestTagReplacementDialog
+          tagId={hit.tag_id}
+          tagNumber={hit.tag_number}
+          open={replaceOpen}
+          onOpenChange={setReplaceOpen}
+          onRaised={onReplacementRaised}
+        />
+      )}
+      {deciding && deciding.action === "approve" && (
+        <ApproveTagReplacementDialog
+          tag={deciding.tag}
+          open
+          onOpenChange={(o) => { if (!o) setDeciding(null); }}
+          onApproved={onReplacementApproved}
+        />
+      )}
+      {deciding && deciding.action === "reject" && (
+        <RejectTagReplacementDialog
+          tag={deciding.tag}
+          open
+          onOpenChange={(o) => { if (!o) setDeciding(null); }}
+          onRejected={() => onReplacementRejected(deciding.tag)}
+        />
+      )}
     </div>
+  );
+}
+
+/**
+ * What a pending replacement is waiting on, read from the tag itself. The
+ * Approve / Reject buttons appear only when the server says THIS user may
+ * decide (`can_decide`), which is false for the requester — the refusal is
+ * in the model, and the screen simply does not offer it.
+ */
+function PendingTagPanel({ tag, loading, error, reasonLabelOf, onApprove, onReject }: {
+  tag: TagLabel | null;
+  loading: boolean;
+  error: CadraApiError | null;
+  reasonLabelOf: (v: string | null | undefined) => string;
+  onApprove: (t: TagLabel) => void;
+  onReject: (t: TagLabel) => void;
+}) {
+  return (
+    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/30 rounded-xl p-3 space-y-2" data-testid="tag-pending-panel">
+      <p className="text-[12px] font-semibold text-amber-700 dark:text-amber-400 inline-flex items-center gap-1.5">
+        <Hourglass size={13} /> Replacement pending
+      </p>
+      {error && (
+        <p className="text-[12px] text-red-700 dark:text-red-400">
+          <span className="font-semibold">{error.code}:</span> {error.message}
+        </p>
+      )}
+      {loading && !tag && <p className="text-[12px] text-muted-foreground">Loading…</p>}
+      {tag && (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-[11px]">
+            <Field label="Reason" value={reasonLabelOf(tag.replacement_reason)} />
+            <Field label="Requested by" value={tag.requested_by?.name} />
+            <Field label="Approver asked" value={tag.approver?.name} />
+            {tag.replacement_notes && (
+              <div className="col-span-2 sm:col-span-3 min-w-0">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Notes</p>
+                <p className="text-foreground">{tag.replacement_notes}</p>
+              </div>
+            )}
+          </div>
+          {tag.can_decide ? (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => onApprove(tag)}
+                data-testid="button-approve-replacement"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-green-600 text-white text-[11px] font-semibold hover:bg-green-700"
+              >
+                <Check size={12} /> Approve
+              </button>
+              <button
+                type="button"
+                onClick={() => onReject(tag)}
+                data-testid="button-reject-replacement"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border text-[11px] font-semibold hover:bg-muted/40"
+              >
+                <XCircle size={12} /> Reject
+              </button>
+            </div>
+          ) : (
+            <p className="text-[11px] text-muted-foreground">
+              Waiting on {tag.approver?.name ?? "the approver"}. {tag.requested_by ? "The person who asked cannot approve it." : ""}
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function PendingRow({ tag, reasonLabelOf, onOpen, onApprove, onReject }: {
+  tag: TagLabel;
+  reasonLabelOf: (v: string | null | undefined) => string;
+  onOpen: () => void;
+  onApprove: () => void;
+  onReject: () => void;
+}) {
+  return (
+    <tr className="border-b border-border/40 hover:bg-muted/20" data-testid="pending-replacement-row" data-tag={tag.tag_number}>
+      <td onClick={onOpen} className="px-3 py-2 text-[12px] font-mono cursor-pointer">{tag.tag_number}</td>
+      <td onClick={onOpen} className="px-3 py-2 text-[12px] truncate max-w-[200px] cursor-pointer">{tag.asset.name}</td>
+      <td className="px-3 py-2 text-[12px]">{reasonLabelOf(tag.replacement_reason)}</td>
+      <td className="px-3 py-2 text-[12px] text-muted-foreground">{tag.requested_by?.name ?? "—"}</td>
+      <td className="px-3 py-2 text-[12px] text-muted-foreground">{tag.approver?.name ?? "—"}</td>
+      <td className="px-3 py-2 text-[11px]">
+        {tag.can_decide ? (
+          <div className="flex items-center gap-1.5 justify-end">
+            <button
+              type="button"
+              onClick={onApprove}
+              data-testid="button-approve-replacement"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700"
+            >
+              <Check size={11} /> Approve
+            </button>
+            <button
+              type="button"
+              onClick={onReject}
+              data-testid="button-reject-replacement"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-border font-semibold hover:bg-muted/40"
+            >
+              <XCircle size={11} /> Reject
+            </button>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">Not yours to decide</span>
+        )}
+      </td>
+    </tr>
   );
 }
 

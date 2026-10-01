@@ -10,3 +10,4 @@ from . import test_asset_event
 from . import test_append_only_mixin
 from . import test_warranty
 from . import test_change_request
+from . import test_tag_replacement

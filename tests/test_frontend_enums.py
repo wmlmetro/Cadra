@@ -96,6 +96,16 @@ MODEL_SOURCED = {
     "domain": (
         REPO_ROOT / "myservice_asset_register" / "models" / "asset.py",
         "nrs.asset.category", "domain"),
+    # Handoff 38. The tag label's replacement lifecycle and the reasons a
+    # replacement may be asked for — the barcode station's replace dialog
+    # offers the second and labels the first. Published as `tag_state`
+    # rather than `state` for the reason `asset_state` is.
+    "tag_replacement_reason": (
+        REPO_ROOT / "myservice_asset_register" / "models" / "asset_tag.py",
+        "nrs.asset.tag.label", "replacement_reason"),
+    "tag_state": (
+        REPO_ROOT / "myservice_asset_register" / "models" / "asset_tag.py",
+        "nrs.asset.tag.label", "state"),
 }
 
 #: `fuel_type` is Odoo CORE (`fleet.vehicle`), which is not in this checkout —

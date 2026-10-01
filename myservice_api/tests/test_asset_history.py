@@ -846,6 +846,16 @@ class TestAssetHistoryTags(AssetHistoryCase):
         """A bare date sorts at midnight — before the tag existed."""
         asset = self._asset()
         tag = asset.tag_ids[:1]
+        # Since handoff 38 a replacement is REQUESTED by one person and
+        # decided by another, and the model refuses a decision on a tag
+        # nobody asked to replace. The requester here is a second user;
+        # this test's own user is the approver it names.
+        requester = self.env["res.users"].create({
+            "name": "History Tag Requester",
+            "login": "history-tag-requester-%s" % uuid.uuid4().hex[:8],
+            "email": "history-tag-requester@example.com"})
+        tag.with_user(requester).sudo().action_request_replacement(
+            reason="damaged", approver=self.env.user)
         tag.action_approve_replacement()
         events = asset.asset_history(newest_first=False)["events"]
         mine = [e["type"] for e in events

@@ -379,3 +379,64 @@ the verification pass and proved to fail first (`2 != 1`).
 **Schema.** `myservice_asset_register` 19.0.1.18.0, `myservice_api`
 19.0.3.12.0; four new columns on `nrs_asset`. All eight local databases
 upgraded, one at a time, before the code was restarted onto them.
+
+## 38 — Before the demo (2026-10-01)
+
+**Built.** Two of the things said to NRS on 30 September, made true the day
+before the 2 October demonstration, with the handoff's governing rule — do
+not break the demo — deciding every shape below.
+
+**A scanned serial number finds its asset.** `/barcode/lookup` and
+`/tags/lookup` (and their `/api/v1` twins) resolve through ONE helper,
+`_resolve_lookup`: tag number, then asset code, then serial number, each an
+exact match. The serial is compared after stripping the query, case-
+insensitively, with LIKE wildcards escaped; internal whitespace and leading
+zeros stay significant. A serial on more than one asset is a 404 that says
+how many (`details.ambiguous`, `details.matches`); every hit carries
+`matched_by`, `tagged` and `serial_number`. The tag-number path is unchanged:
+only an active tag resolves by number. The station's heading, placeholder
+and result card say which field matched; its "no match" panel — never
+reachable before, because a miss is a 404 the page caught as a generic
+error — now renders.
+
+**A faded tag is replaced by two people.** On `nrs.asset.tag.label`'s own
+state machine, completed with handoff 35's conventions: `approver_id` named
+at request; the decider from the token; self-approval refused in the model
+(under `sudo()` too); a reason required to ask and to reject; nine stamp
+fields refused by `write` without `cadra_tag_replacement`; a scrapped tag
+cannot leave `scrapped`. Five routes in `myservice_api/controllers/v1_tags.py`
+(`GET /tags/pending-replacements`, `GET /tags/<id>`, `POST …/request-
+replacement`, `…/approve-replacement`, `…/reject-replacement`), the station's
+*Replace tag* dialog, a *Replacement pending* panel with Approve / Reject,
+and a *Pending replacements* card. `nrs.asset.change.request` was deliberately
+not reused (`docs/DECISIONS.md`, 2026-10-01).
+
+**How it was proved.** HTTP suite on `test19`: 1127 passed, 10 skipped (the
+tenth is the new, named one: the API cannot create an untagged asset). In-
+registry: `myservice_asset_register` 0 failed, 0 error(s) of 448;
+`myservice_barcode_station` 0 of 20; `myservice_api` 0 of 287. Playwright
+on `test19` with the service credential: 38 passed across specs 01, 10 and
+38 — spec 38 scans tag, code, serial and serial-with-trailing-space and reads
+the badge each time, then the service credential asks and `admin` approves
+from the station in the SAME session; the old label is read back scrapped
+with its reason and approver, the new one active and linked, the old number
+a miss. Driven again by hand with screenshots and an API transcript (report
+38 §E). In Postgres on `test19`: tag 28994 `NRS-GEN-5565` scrapped,
+`replaced_by` 28997 `NRS-GEN-5568`, the old number existing exactly once.
+
+**Measured.** Serials: 0 collide with a tag number or an asset code on any of
+the eight tenants; `nrs19` has 11,332 of 11,951 assets with a serial, 1,291
+serial values on more than one asset (3,455 rows; `PROBOOK` ×94), 574 with a
+space inside, 10 beginning `0`; 0 stored serials carry padding (of 11,704
+with one). Tag replacements: 0 had ever happened on any tenant
+(`replaces_id`/`replaced_by_id` empty everywhere). IR numbers (handoff §C,
+NOT built): `nrs19` holds NRS's real ones in a studio column `x_ir_number` —
+11,385 of 11,386 employees, all digits, 10,498 five long and 887 eight long,
+none containing a letter `O`, no duplicates — while `ir_number`, the field
+Cadra's API and app read, is empty on that tenant; on the other seven, 193 of
+193 IR numbers are `LASG-IR-00001`/`JAIZ-IR-…` seeds or `PYTEST-…` fixtures.
+
+**Schema.** `myservice_asset_register` 19.0.1.20.0 (four columns on
+`nrs_asset_tag_label`: `approver_id`, `rejected_by`, `rejected_date`,
+`decision_reason`), `myservice_api` 19.0.3.14.0. All eight local databases
+upgraded one at a time.
