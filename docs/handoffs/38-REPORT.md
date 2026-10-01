@@ -394,7 +394,10 @@ not know the tag model's `pending` state; nothing is blocked by it.
 
 ## Commits
 
-Filled in below after the push.
+- `c511d36` docs: handoffs 37 and 38, and the 30 September NRS meeting evaluation (Step 0, on `dev`)
+- `0592c56` feat: a scanned serial finds its asset, and a faded tag is replaced by two people
+- `3445cd5` docs: report 38 — before the demo
+- the commit carrying this list, on `fix/before-the-demo`; PR opened against `dev`
 
 ---
 
