@@ -474,4 +474,11 @@ it; the invitation it sends needs the mail above.
 
 ## Commits
 
-COMMITS_TABLE
+| Hash | What |
+|---|---|
+| `03a3bad` | docs: handoff 41 — the instruction file, on `dev` |
+| `b6acc47` | feat: the work — privileges, the three routes, the two pages, the barcode sudo helper, the suites, the docs, the evidence, and the first version of this report |
+| (next) | docs: report 41 — this file with the hashes filled in |
+
+PR: `fix/who-has-what` → `dev`, opened after the push; the number is in the
+PR itself and in the Architect notification.
