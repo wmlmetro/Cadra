@@ -155,9 +155,14 @@ the parameter.
 
 `GET /api/v1/tags/lookup` requires a JWT carrying `assets:read`.
 `/tags/lookup` is `auth='public'`, `type='json'`, runs `sudo()`, and has no
-scope check of any kind. Both answer the same question — hand it a tag number
-or asset code and it returns the asset's name, category, location, condition,
-state and last service date. The public one exists for the field-team portal
+scope check of any kind. Both answer the same question — hand it a tag number,
+an asset code or, since handoff 38, a serial number, and it returns the
+asset's name, category, location, condition, state and last service date, plus
+`matched_by` saying which of the three it was. (Until handoff 38 the serial
+branch did not exist on either route while the `/api/v1` twins documented it,
+so the serial of a tagged asset found nothing.) Both resolve through one
+helper, `_resolve_lookup` in `myservice_barcode_station/controllers/main.py`,
+so they cannot drift apart again. The public one exists for the field-team portal
 scanner at `/tags`, which is deliberately login-free; the point is only that
 the gate on one is not the gate on the other, and a reader who has seen the
 `/api/v1` route will assume it is.
@@ -282,7 +287,7 @@ same module. `auth='user'`, `type='json'`, no external consumer.
 | `/myservice/dashboard/map` | `main.py:13` | `dashboard.js:115` | No |
 | `/myservice/dashboard/fleet_command` | `main.py:18` | `dashboard.js:290` | No |
 | `/myservice/fm_dashboard/data` | `myservice_fm_dashboard/controllers/dashboard.py:33` | `static/src/js/fm_dashboard.js:80`, and `tests/test_honest_counts.py:69` | No |
-| `/barcode/lookup` | `myservice_barcode_station/controllers/main.py:41` | `static/src/js/barcode_station.js:135` | No |
+| `/barcode/lookup` | `myservice_barcode_station/controllers/main.py` (`lookup_tag`, over `_resolve_lookup`) | `static/src/js/barcode_station.js:135`; the SPA calls its `/api/v1/barcode/lookup` twin | No — handoff 38 ADDED `matched_by`, `serial_number` and `tagged`, and made `tag_id` null (and `tag_number`/`tag_state` empty) for an asset found by code or serial that has no active tag; before that such an asset was a miss |
 | `/barcode/kpis` | `main.py:80` | `barcode_station.js:104` | No |
 | `/barcode/recent_tags` | `main.py:97` | `barcode_station.js:116` | No |
 | `/barcode/print_url` | `main.py:199` | `barcode_station.js:178` and `:236`; covered by `myservice_barcode_station/tests/test_print_url_route.py` | No — but it is the **only path in the repo that renders a label PDF end to end** (handoff 10), so "not breaking for an integrator" is not the same as "safe to break" |

@@ -75,8 +75,17 @@
                     </group>
                     <group string="Approval">
                         <group>
+                            <!-- Typed by the requester BEFORE "Request
+                                 Replacement": the method refuses a request
+                                 that names nobody (handoff 38). -->
+                            <field name="approver_id"
+                                   readonly="state != 'active'"/>
                             <field name="requested_by" readonly="1"/>
                             <field name="requested_date" readonly="1"/>
+                            <!-- Typed by the decider BEFORE "Reject", which
+                                 refuses without one; stamped by "Approve". -->
+                            <field name="decision_reason"
+                                   readonly="state != 'pending'"/>
                         </group>
                         <group string="Physical Tagging (INT-04/05)">
                             <field name="printed_date" readonly="1"/>
@@ -88,6 +97,8 @@
                         <group>
                             <field name="approved_by" readonly="1"/>
                             <field name="approved_date" readonly="1"/>
+                            <field name="rejected_by" readonly="1"/>
+                            <field name="rejected_date" readonly="1"/>
                         </group>
                     </group>
                 </sheet>

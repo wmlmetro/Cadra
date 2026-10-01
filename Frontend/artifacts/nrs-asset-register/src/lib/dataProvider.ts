@@ -1242,12 +1242,30 @@ export interface BarcodeTag {
 // beginning of the same drift.
 
 /**
- * `/barcode/lookup` answers 200 with `{found: false}` when nothing matches —
- * a miss is not an HTTP error — so callers must check `found` rather than
- * relying on the request rejecting.
+ * A miss on `/api/v1/barcode/lookup` is a 404 `not_found`, NOT a 200 with
+ * `{found: false}`: the route hands the station controller's
+ * `{found: False, error: ...}` to `_delegate_failure` (`v1.py`), which turns
+ * it into an error envelope, and `parseEnvelope` in `lib/api.ts` throws that
+ * as a `CadraApiError`. So `lookupBarcode` either resolves with a hit or
+ * rejects — a caller reads the miss off the error (`code === "not_found"`),
+ * and an ambiguous serial carries `details.ambiguous`, `details.matches` and
+ * `details.matched_by` on the same error (handoff 38).
+ *
+ * `matched_by` says which field the query hit — tag number, asset code or
+ * serial number, tried in that order, each an exact match — so a screen can
+ * say "found by serial number" instead of letting a lookup silently change
+ * meaning. `tagged` is whether the asset has an ACTIVE tag; when it does not,
+ * `tag_id` is null and the tag strings are empty UNLESS the asset has a
+ * pending replacement, in which case the tag block describes that pending
+ * tag (`tag_state: "pending"`).
  */
-export interface BarcodeLookupHit extends BarcodeTag {
+export type BarcodeMatchedBy = "tag_number" | "asset_code" | "serial_number";
+export interface BarcodeLookupHit extends Omit<BarcodeTag, "tag_id"> {
   found: true;
+  tag_id: number | null;
+  matched_by: BarcodeMatchedBy;
+  serial_number: string;
+  tagged: boolean;
   asset_code: string;
   category: string;
   custodian: string;
@@ -1258,6 +1276,12 @@ export interface BarcodeLookupHit extends BarcodeTag {
   sap_asset_number: string;
   import_source: string;
 }
+/**
+ * The `{found: false}` arm does not come back through `/api/v1/barcode/lookup`
+ * (see above) — it is kept in the union only because
+ * `pages/AssetRegisterDashboard.tsx` narrows on it, and that file is outside
+ * this change. Nothing should branch on it; branch on the thrown error.
+ */
 export type BarcodeLookupResult = BarcodeLookupHit | { found: false; error?: string };
 
 /**
@@ -1294,6 +1318,106 @@ export const fetchBarcodeRecentTags = async (params?: { domain_filter?: string; 
   (await apiGet<BarcodeTag[]>("/api/v1/barcode/recent-tags", params)).data;
 export const lookupBarcode = async (query: string) =>
   (await apiGet<BarcodeLookupResult>(`/api/v1/barcode/lookup`, { query })).data;
+
+// ── Tag replacement (handoff 38) ─────────────────────────────────────────
+//
+// A faded or damaged label is REPLACED, not reprinted: the old number is
+// scrapped and never reissued (`_generate_tag` searches every tag, scrapped
+// ones included, before it settles on a number), a new one is minted, and
+// `replaces` / `replaced_by` keep the chain. It is the two-person pattern of
+// handoff 35 on the tag model's own state machine — somebody asks and names
+// an approver, and somebody ELSE decides — rather than a reuse of
+// `nrs.asset.change.request`, whose one-pending-per-asset index would let a
+// pending label block a move.
+
+export type TagState = "active" | "pending" | "scrapped";
+
+/** `serialize_tag` in `myservice_api/controllers/v1_tags.py`. `*_at` are ISO
+ *  datetimes; `tag_date` / `scrapped_date` are dates. */
+export interface TagLabel {
+  id: number;
+  tag_number: string;
+  state: TagState;
+  label_state: string;
+  source: string;
+  tag_date: string | null;
+  scrapped_date: string | null;
+  asset: { id: number; name: string };
+  asset_code: string;
+  serial_number: string;
+  replacement_reason: string | null;
+  replacement_notes: string | null;
+  requested_by: ApprovalRef | null;
+  requested_at: string | null;
+  /** WHO WAS ASKED. Not who clicked — that is `approved_by` / `rejected_by`. */
+  approver: ApprovalRef | null;
+  approved_by: ApprovalRef | null;
+  approved_at: string | null;
+  rejected_by: ApprovalRef | null;
+  rejected_at: string | null;
+  decision_reason: string | null;
+  replaces: { id: number; tag_number: string } | null;
+  replaced_by: { id: number; tag_number: string } | null;
+  /** Pending AND the caller may decide it (`_may_decide`, which refuses the
+   *  requester). The server's answer, so a screen does not have to guess. */
+  can_decide: boolean;
+}
+
+export const fetchTag = async (id: number): Promise<TagLabel> =>
+  (await apiGet<TagLabel>(`/api/v1/tags/${id}`)).data;
+
+/** Every tag in `pending`, newest first. One page — the station lists what
+ *  is waiting, it is not a register. */
+export const fetchPendingTagReplacements = async (): Promise<TagLabel[]> =>
+  (await apiGet<TagLabel[]>("/api/v1/tags/pending-replacements", { limit: 100 })).data;
+
+export interface TagReplacementRequest {
+  /** One of `useEnum("tag_replacement_reason")`; anything else is a 400. */
+  reason: string;
+  notes?: string;
+  /** `res.users` id of the person asked. Required; the server refuses the
+   *  caller's own id. */
+  approver_id: number;
+}
+
+export interface TagReplacementRaised {
+  pending_approval: true;
+  tag: TagLabel;
+  asset: ApiAsset;
+}
+
+/** Ask for a replacement. Nothing happens to the label until the approver
+ *  acts — the tag goes to `pending` and, by design, its NUMBER stops
+ *  resolving on the lookup until the decision; the asset code still does.
+ *  Only the three keys below: the route refuses any other with a 400. */
+export const requestTagReplacement = async (tagId: number, body: TagReplacementRequest) => {
+  const payload: TagReplacementRequest = { reason: body.reason, approver_id: body.approver_id };
+  if (body.notes?.trim()) payload.notes = body.notes.trim();
+  return (await apiPost<TagReplacementRaised>(
+    `/api/v1/tags/${tagId}/request-replacement`, payload,
+    { idempotencyKey: newIdempotencyKey() })).data;
+};
+
+export interface TagReplacementApproved {
+  /** The OLD tag, now scrapped. */
+  tag: TagLabel;
+  /** The new label, active, carrying `replaces`. */
+  new_tag: TagLabel;
+  asset: ApiAsset;
+}
+
+export const approveTagReplacement = async (tagId: number, reason?: string) =>
+  (await apiPost<TagReplacementApproved>(
+    `/api/v1/tags/${tagId}/approve-replacement`,
+    reason?.trim() ? { reason: reason.trim() } : {},
+    { idempotencyKey: newIdempotencyKey() })).data;
+
+/** `reason` is REQUIRED by the route (400 on a blank one): the tag goes
+ *  back to `active` and the person who asked is told why. */
+export const rejectTagReplacement = async (tagId: number, reason: string) =>
+  (await apiPost<{ tag: TagLabel; asset: ApiAsset }>(
+    `/api/v1/tags/${tagId}/reject-replacement`, { reason: reason.trim() },
+    { idempotencyKey: newIdempotencyKey() })).data;
 
 export async function fetchLocation(id: string): Promise<Location | null> {
   if (!apiConfigured) return getLocation(id) ?? null;

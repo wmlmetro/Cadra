@@ -95,6 +95,15 @@ _PUBLISHED_ENUMS = (
      ("pending", "approved", "rejected", "withdrawn")),
     ("approval_change_type", "nrs.asset.change.request", "change_type",
      ("location", "custody")),
+    # Handoff 38. The tag label's two sets, prefixed `tag_` for the reason
+    # `asset_state` and `approval_state` are: `state` is the most reused
+    # field name in this schema. `tag_state` is the REPLACEMENT lifecycle
+    # (`label_state`, the physical one, is not offered here — it moves only
+    # through printing and a confirmed affix, never through a control).
+    ("tag_replacement_reason", "nrs.asset.tag.label", "replacement_reason",
+     ("damaged", "lost", "stolen", "reassign", "other")),
+    ("tag_state", "nrs.asset.tag.label", "state",
+     ("active", "pending", "scrapped")),
     ("fuel_type",     "fleet.vehicle",     "fuel_type",
      ("diesel", "gasoline", "full_hybrid", "plug_in_hybrid_diesel",
       "plug_in_hybrid_gasoline", "cng", "lpg", "hydrogen", "electric")),

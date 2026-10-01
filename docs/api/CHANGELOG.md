@@ -33,6 +33,119 @@ live at was never the point.
 
 ---
 
+## 2026-10-01 — handoff 38: a scanned serial finds its asset, and a faded tag can be replaced · `myservice_api` 19.0.3.14.0
+
+Two things NRS asked for on 30 September. Both additive, with one
+behaviour change on the lookup payload that is called out below.
+
+### The serial lookup now works — `GET /barcode/lookup` and `GET /tags/lookup`
+
+Both routes have documented their parameter as *"Tag, asset code, or serial
+number to look up"* since June 2026 (`e189ff0`), and neither searched serial
+numbers: the serial of a TAGGED asset answered `404`. The description is
+now true. Resolution is **tag number, then asset code, then serial number**,
+each an exact match; the serial is compared case-insensitively after the
+query is stripped, so a scanner's trailing space or Enter still finds it.
+Internal whitespace and leading zeros stay significant. Scrapped and
+pending tags still do not resolve by their number — that branch is
+unchanged.
+
+**Additive, both routes:**
+
+| Key | Meaning |
+|---|---|
+| `matched_by` | `"tag_number"`, `"asset_code"` or `"serial_number"` — which field the query matched |
+| `tagged` | whether the asset has an ACTIVE tag |
+| `serial_number` | the asset's serial, `""` when none |
+
+`/tags/lookup` also gains `asset_code` and `tag_state`, which it did not
+publish before.
+
+**BEHAVIOUR CHANGE — `/barcode/lookup` `tag_id` can be `null`.** An asset
+found by code or serial that has no ACTIVE tag now answers `200` with
+`tagged: false`. If a replacement is pending, the tag block (`tag_id`,
+`tag_number`, `tag_state: "pending"`, `tag_date`) describes that pending
+label; if the asset has no tag at all, `tag_id` is `null` and the three
+strings are `""`. Before this release such an asset could not be found at
+all, so no consumer has seen a `200` with an empty tag block — but a client
+that indexes `tag_id` on every hit must now allow for `null`.
+`/tags/lookup` has never published an id and still does not.
+
+**A serial on more than one asset is a `404` that says so.** `nrs19` carries
+1,291 serial values on more than one asset (model names typed into the
+serial field — `PROBOOK` on 94). Resolving one to whichever row sorts first
+would show the wrong asset with a green tick on it, so:
+
+```json
+{ "error": { "code": "not_found",
+  "message": "Serial number PROBOOK is on 94 assets; scan the tag or the asset code instead",
+  "details": { "query": "PROBOOK", "ambiguous": true,
+               "matched_by": "serial_number", "matches": 94 } } }
+```
+
+A plain miss carries `details.query` only; `details.ambiguous` is PRESENT
+only on the ambiguous kind, so a screen branches on its presence.
+
+### New — tag labels: five endpoints
+
+A tag replacement is a request and a decision by two different people, on
+the pattern handoff 35 published for a move: a nominated `approver_id` at
+request time, the decider taken from the bearer token, self-approval refused
+in the model, a reason required when asking and when refusing, and a
+decision taken once. The model has had the state machine (`active → pending
+→ scrapped`) since the barcode station was built; it was reachable only from
+the Odoo back office.
+
+| Route | Scope | Notes |
+|---|---|---|
+| `GET /api/v1/tags/pending-replacements` | `assets:read` | Labels in `pending`, newest request first. Cursor-paginated |
+| `GET /api/v1/tags/<id>` | `assets:read` | One label — the `nrs.asset.tag.label` id (`tagging.label_id` on an asset, `tag_id` on a lookup), NOT an asset id |
+| `POST /api/v1/tags/<id>/request-replacement` | `assets:write` | Idempotent. `{"reason", "notes"?, "approver_id"}`. `reason` is one of `tag_replacement_reason` (below), else `400` with `details.allowed_values`. `approver_id` required, resolved exactly as `/assets/<id>/move` does. `409 conflict` when the label is not `active` — `details` name `requested_by`, `approver` and `replaced_by` |
+| `POST /api/v1/tags/<id>/approve-replacement` | `approvals:write` | Idempotent. `{"reason"?}`. Scraps the label, mints the next number, links the two. `403 forbidden` with `details.is_own_request` for the requester; `409` once decided, naming `decided_by` / `decided_at` |
+| `POST /api/v1/tags/<id>/reject-replacement` | `approvals:write` | Idempotent. **`reason` is REQUIRED.** The label returns to `active` |
+
+A request answers `200` with `pending_approval: true` first, the label, and
+the asset UNCHANGED — the same shape and the same reasoning as a raised move
+(handoff 35: the status cannot vary per call without breaking byte-exact
+idempotent replay). An approval answers `{tag, new_tag, asset}`; a rejection
+`{tag, asset}`. Every label is published as:
+
+```json
+{ "id": 913, "tag_number": "NRS-ITC-041", "state": "scrapped", "label_state": "scrapped",
+  "source": "auto", "tag_date": "2026-09-30", "scrapped_date": "2026-10-01",
+  "asset": {"id": 124, "name": "…"}, "asset_code": "AST-00124", "serial_number": "5CD1234ABC",
+  "replacement_reason": "damaged", "replacement_notes": "faded past reading",
+  "requested_by": {"id": 2, "name": "…"}, "requested_at": "2026-10-01T09:12:03",
+  "approver": {"id": 7, "name": "…"},
+  "approved_by": {"id": 7, "name": "…"}, "approved_at": "2026-10-01T09:40:11",
+  "rejected_by": null, "rejected_at": null, "decision_reason": "sighted it — unreadable",
+  "replaces": null, "replaced_by": {"id": 914, "tag_number": "NRS-ITC-042"},
+  "can_decide": false }
+```
+
+`approver` is WHO IS BEING ASKED and comes from the requester's body;
+`approved_by` / `rejected_by` is WHO CLICKED and comes from the token. A
+body naming either, or `requested_by`, `state`, `label_state` or a date, is
+**refused `400`** with `details.rejected_fields` and `details.writable`,
+as is any key the route does not accept — nothing is written. `can_decide`
+is computed for the CALLER.
+
+**The old number is never reissued.** `nrs.asset._generate_tag` checks every
+label on the tenant, scrapped ones included, before minting;
+`tests/test_tag_replacement.py` proves it by doing one. A pending label's
+number does not resolve on the lookup routes until the decision — look the
+asset up by its code or serial meanwhile; after approval the new number
+resolves and the old one answers `404`.
+
+### `GET /api/v1/meta/enums` — two more sets
+
+`tag_replacement_reason` (`damaged`, `lost`, `stolen`, `reassign`, `other`)
+and `tag_state` (`active`, `pending`, `scrapped`), read from
+`nrs.asset.tag.label` like every other set. Prefixed `tag_` for the reason
+`asset_state` and `approval_state` are.
+
+---
+
 ## 2026-09-22 — handoff 35: nobody moves an asset alone · `myservice_api` 19.0.3.13.0
 
 **BREAKING.** On any tenant where approval is required — **which is the

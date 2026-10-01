@@ -161,6 +161,22 @@ export const ENUM_SEED = {
     { value: "expired", label: "Expired" },
     { value: "none", label: "No warranty recorded" },
   ],
+
+  /** `nrs.asset.tag.label.replacement_reason` — myservice_asset_register/models/asset_tag.py (handoff 38) */
+  tag_replacement_reason: [
+    { value: "damaged", label: "Damaged / Unreadable" },
+    { value: "lost", label: "Lost / Missing" },
+    { value: "stolen", label: "Stolen" },
+    { value: "reassign", label: "Reassignment" },
+    { value: "other", label: "Other" },
+  ],
+
+  /** `nrs.asset.tag.label.state` — myservice_asset_register/models/asset_tag.py (handoff 38) */
+  tag_state: [
+    { value: "active", label: "Active" },
+    { value: "pending", label: "Replacement Pending" },
+    { value: "scrapped", label: "Scrapped" },
+  ],
 } satisfies Record<string, EnumOption[]>;
 
 export type EnumName = keyof typeof ENUM_SEED;

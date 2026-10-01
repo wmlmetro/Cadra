@@ -196,6 +196,21 @@ _BODY_ROUTES = {
         (None, None, "action: `reason`, REQUIRED and recorded"),
     ("POST", "/api/v1/approvals/<int:id>/withdraw"):
         (None, None, "action: `reason`, optional and recorded"),
+    # Handoff 38. A tag replacement is the same two-person shape on
+    # `nrs.asset.tag.label`: `reason` here is a SELECTION value (the model's
+    # `replacement_reason`) rather than free text, `notes` is the free text,
+    # and `approver_id` is a nomination resolved by `_resolve_approver` —
+    # none of them is written as a field of the same name, which is why the
+    # route is an action and not a resource.
+    ("POST", "/api/v1/tags/<int:id>/request-replacement"):
+        (None, None, "action: `reason` (a selection value), `notes` and "
+                     "`approver_id`, passed to "
+                     "`action_request_replacement`"),
+    ("POST", "/api/v1/tags/<int:id>/approve-replacement"):
+        (None, None, "action: `reason`, recorded as `decision_reason`"),
+    ("POST", "/api/v1/tags/<int:id>/reject-replacement"):
+        (None, None, "action: `reason`, REQUIRED and recorded as "
+                     "`decision_reason`"),
     ("POST", "/api/v1/assets/<int:id>/mark-found"):
         (None, None, "action: `reason`, recorded on the event"),
     ("POST", "/api/v1/assets/<int:id>/mark-missing"):
@@ -380,6 +395,10 @@ _SERIALIZERS = {
     # drift the last three defects in this codebase were made of, and the
     # next person to add a third should rename rather than add.
     ("v1_approvals.py", "serialize_request"): "nrs.asset.change.request",
+    # Handoff 38. Reads `t.asset_id.asset_code` and `.serial_number` through
+    # the Many2one as well; the parser sees only the attributes on `t`
+    # itself, which is the record this names.
+    ("v1_tags.py", "serialize_tag"): "nrs.asset.tag.label",
     ("v1_locations.py", "serialize_location"): "generic.location",
     ("v1_identity.py", "serialize_employee"): "hr.employee",
     ("v1_fleet.py", "serialize_vehicle"): "fleet.vehicle",
