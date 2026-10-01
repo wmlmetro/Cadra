@@ -439,4 +439,7 @@ the bundle rebuilt, and spec 39 re-run (below).
 
 ## Commits
 
-<!--COMMITS-->
+- `7b7d4fb` docs: handoff 39 — the tagger confirms (Step 0, on `dev`)
+- `9cfbf0b` feat: the tagger confirms the label is on the asset, from the station
+- `eda7bde` docs: report 39 — the tagger confirms
+- the commit carrying this list, on `fix/the-tagger-confirms`; PR opened against `dev`
