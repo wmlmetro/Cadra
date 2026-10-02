@@ -1739,6 +1739,18 @@ found is here.
   a re-send, so both links work until their own expiry; a sign-in or a
   deactivation kills both. Said in §12.6 rather than fixed: revoking would
   need a nonce on the partner, a stored field. `[verified]`
+- **The cluster's `nrs` database has never had `myservice_api`.** Read
+  through `db-query` after the handoff 43 roll (2026-10-02): base
+  19.0.1.3, `auth_signup` installed, `website` NOT installed, first-party
+  modules installed = `myservice_email_relay` only, 1 active user, 0 share
+  users; no ingress host serves it (`nrs.cadra.ng` does not resolve) and
+  `X-Odoo-Database: nrs` on `staging.app.cadra.ng` answers 404 on
+  `/web/signup`. So `upgrade-19`'s *"upgrade succeeded: nrs"* has been a
+  no-op on every run, and that database's `auth_signup.invitation_scope`
+  is still `b2c` with nothing — no website row, no Cadra constant — to
+  override it, reachable by nobody today. The local `nrs` and `nrs19` are
+  not this database. For the owner: is the cluster `nrs` a tenant-to-be
+  (then it needs the bootstrap), or a leftover to drop? `[open]`
 - **An invitation sent by an integration names the credential as sender**
   (*"this one was sent by Smoke Test (API client)"*). Correct, and odd to
   read; a credential inviting people is not a path NRS will use. `[verified]`
