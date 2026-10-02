@@ -1555,7 +1555,15 @@ is here; what it built is in `docs/STATUS.md`.
   relay parameters set on 0 of 8; the cluster gets both from
   `CADRA_EMAIL_RELAY_URL` / `_SECRET` via bootstrap. **The owner holds the
   secret.** `[open]`, owner — the one thing between 43's invitation email
-  and a delivered one.
+  and a delivered one. **Found on the first invitation after the merge
+  (2026-10-02):** the module was in `.env.example`'s bootstrap list and NOT
+  in `k8s/dev/11-configmap-bootstrap-19.yaml`'s, so 0 staging tenants had
+  it and the mail went over SMTP (`553 Sender is not allowed to relay
+  emails`, Zoho refusing a From that is not the authenticated account).
+  The list is fixed for future tenants; existing ones need `upgrade-19`
+  with `install_modules=myservice_email_relay` (every tenant), then
+  `set-email-relay.yml`, then a roll — the workflow prints the module state
+  per tenant so the three steps cannot be done out of order unnoticed.
 - **`auth_signup` is installed on all 8 tenants** (`ir_module_module.state =
   installed`), with `auth_signup.invitation_scope = b2c` and
   `auth_signup.reset_password = True` everywhere. Its
