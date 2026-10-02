@@ -1527,12 +1527,19 @@ is here; what it built is in `docs/STATUS.md`.
   `base.group_system` to anybody, including the credential's own user. For a
   PERSON the `admin` scope is minted only from `base.group_system`, so there
   is nothing left to escalate to; the exposure is an **API credential with
-  the `admin` scope**, whose user is deliberately NOT a system administrator
-  (`SCOPE_GROUPS` maps `admin` to no group). The access record would write
-  the grant down and refuse nothing. **Handoff 42 has to put the refusal in
-  the model, under every writer**, the way the approval gate and the
-  disposal guard are — and must also decide whether `base.group_system` is
-  grantable over the API at all. `[open]`, for the Architect, with 42.
+  the `admin` scope**. ~~whose user is deliberately NOT a system
+  administrator (`SCOPE_GROUPS` maps `admin` to no group)~~ — **CORRECTED
+  2026-10-02 by handoff 42:** `SCOPE_GROUPS` maps `admin` to no group, but
+  `scripts/bootstrap.py:509` then grants `base.group_system` to the user of
+  every credential holding `admin`, so on every bootstrapped tenant that
+  user IS a system administrator (`test19`'s `cadra_client_test_client`
+  held *Role / Administrator*). The access record would write the grant
+  down and refuse nothing. **`[landed, keep it that way]` handoff 42** —
+  the refusal is in the model under every writer (`access_guard.py`), no
+  `base.*` group is grantable over the API, and the drive strips the
+  credential's user of the group first so the exposure named here is the
+  one refused (report 42 §D). Whether bootstrap should grant it at all is
+  §19.2.
 - **Mail is configured on no tenant.** 0 of 8 local databases have a row in
   `ir_mail_server` (`test19 nrs19 cadra19 gtb19 nrs lasg gtb jaizbankplc`,
   all `outgoing_servers=0`); `mail.catchall.domain` is unset on all 8. The
@@ -1580,3 +1587,48 @@ is here; what it built is in `docs/STATUS.md`.
   schema block.** Verified after the fact by diff rather than prevented by
   partition — the rule in `CLAUDE.md` was broken and the breach is recorded
   here so it is not repeated. `[verified]`
+
+## 19 · Handoff 42 — the grant, and the refusal, 2026-10-02
+
+### 19.1 · What it closed — `[landed, keep it that way]`
+
+- **No `base.*` group is grantable over the API, and nobody adds a role to
+  their own account** — `myservice_api/models/access_guard.py`, under every
+  writer of membership, keyed on `request.jwt_claims` (what only our API
+  sets). §18.2's escalation finding is closed by it: an `admin`-scoped
+  credential asking for `base.group_system` on its own user is refused with
+  the model's sentence, driven over HTTP in report 42.
+- **`POST /api/v1/users/<id>/roles`** with a dry run that is a real write
+  rolled back, and the *Change roles* section on the Users page; the access
+  record's row names the person who clicked (actor read back in the spec).
+- **11 of 11 first-party groups carry a privilege** on the user form (the
+  seven from §18.2 done here).
+
+### 19.2 · Found — `[open]` unless it says otherwise
+
+- **The sign-up door on the cluster is shut, measured.** Anonymous
+  `GET /web/signup` → 404 on all four hosts (`staging.app`, `jaizbankplc`,
+  `lasg`, `gtb`); login and reset-password → 200. Handoff 43 §0 still owes
+  WHY (the parameter's value on the cluster, and what shuts the route), and
+  the ruling to set `b2b` deliberately stands. `[verified]`, cause open.
+- **`ACCESS_CHANGE_SKIP_KEY` and `ACCESS_CHANGE_SOURCE_KEY` are read and set
+  nowhere.** `access_change.py:123-126` says a setter exists "below"; it
+  does not. Harmless today (absent means record, with source `direct`), but
+  a comment that names a mechanism that does not exist is the kind this
+  programme deletes. `[open]`, one-line fix.
+- **`myservice_nrs_base/caller_ip.py:49` uses `getattr(request, …)` without
+  testing `bool(request)` first.** Outside an HTTP request the proxy RAISES
+  `RuntimeError: object is not bound` rather than returning the default, so
+  that helper would raise from a cron or a shell. Not reached today.
+  `[open]`.
+- **`scripts/bootstrap.py:509` makes every admin-scoped credential's user a
+  system administrator.** It is what lets such a credential call the
+  handful of routes that still read as the user, and it is exactly the
+  power ruling 1 says a credential must not reach by itself. The guard
+  closes the API route to it; the shell still grants it. For the Architect:
+  should bootstrap stop, and what breaks if it does. `[open]`
+- **The recorder's group-side `write` hook does not watch `implied_by_ids`.**
+  Core writes the same relation from the other side; a change through it
+  would be an implication change the record misses. The guard refuses it
+  over the API; the back office could still make one unrecorded. `[open]`,
+  for the recorder.

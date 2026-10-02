@@ -2261,6 +2261,17 @@ class MyserviceApiV1(http.Controller):
                             "installed": {"type": "boolean"},
                             "implies": {"type": "array", "items": {"type": "string"},
                                         "description": "Keys of other roles held by implication"},
+                            "grantable": {
+                                "type": "boolean",
+                                "description": (
+                                    "Handoff 42. Whether `POST /users/{id}/roles` "
+                                    "may grant or remove this role. Exactly the "
+                                    "four Cadra roles (Asset User, Asset Manager, "
+                                    "Tag-Issuing Unit, Auditor); `system` and "
+                                    "every other Odoo group are `false` and are "
+                                    "refused by the model, not hidden by the "
+                                    "route. Read off the same constant the "
+                                    "refusal uses.")},
                         },
                     },
                     "User": {
@@ -2321,6 +2332,59 @@ class MyserviceApiV1(http.Controller):
                             "last_login_at": {"type": "string", "format": "date-time",
                                               "nullable": True},
                             "created_at": {"type": "string", "format": "date-time"},
+                        },
+                    },
+                    # ── handoff 42: the grant, and the refusal ──────
+                    "RoleChange": {
+                        "type": "object",
+                        "description": (
+                            "The answer to `POST /users/{id}/roles`: the "
+                            "account as `GET /users/{id}` would now publish "
+                            "it, what it held `before` and `after` (both "
+                            "lists, direct AND effective, so a grant of "
+                            "Asset Manager shows Asset User arriving by "
+                            "implication), the keys `granted` and `revoked` "
+                            "— the diff of the DIRECT lists — and whether "
+                            "it was `applied`. With `dry_run: true` the "
+                            "same write is computed by Odoo and rolled "
+                            "back: `after` is what the account WOULD hold, "
+                            "`applied` is `false`, and nothing is written. "
+                            "A refusal (`403 forbidden`) carries none of "
+                            "this: the model's sentence is the whole "
+                            "answer and nothing was written, on a dry run "
+                            "or a real one. A replay under the same "
+                            "`X-Idempotency-Key` returns this body "
+                            "unchanged."),
+                        "properties": {
+                            "user": {"$ref": "#/components/schemas/User"},
+                            "before": {
+                                "type": "object",
+                                "properties": {
+                                    "roles_direct": {
+                                        "type": "array",
+                                        "items": {"$ref": "#/components/schemas/UserRole"}},
+                                    "roles_effective": {
+                                        "type": "array",
+                                        "items": {"$ref": "#/components/schemas/UserRole"}},
+                                },
+                            },
+                            "after": {
+                                "type": "object",
+                                "properties": {
+                                    "roles_direct": {
+                                        "type": "array",
+                                        "items": {"$ref": "#/components/schemas/UserRole"}},
+                                    "roles_effective": {
+                                        "type": "array",
+                                        "items": {"$ref": "#/components/schemas/UserRole"}},
+                                },
+                            },
+                            "granted": {"type": "array", "items": {"type": "string"},
+                                        "description": "Role keys now held directly that were not"},
+                            "revoked": {"type": "array", "items": {"type": "string"},
+                                        "description": "Role keys held directly that no longer are"},
+                            "applied": {"type": "boolean",
+                                        "description": "`false` on a dry run; nothing was written"},
                         },
                     },
                 },

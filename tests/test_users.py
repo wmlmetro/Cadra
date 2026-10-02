@@ -54,6 +54,9 @@ _USER_KEYS = frozenset({
 })
 _ROLE_KEYS = frozenset({
     "key", "name", "xmlid", "scopes", "description", "installed", "implies",
+    # Handoff 42: whether `POST /users/<id>/roles` may grant or remove it.
+    # Exactly which four are true is `tests/test_user_roles.py`'s to assert.
+    "grantable",
 })
 _API_CLIENT_KEYS = frozenset({
     "id", "name", "client_id", "active", "is_test_credential",

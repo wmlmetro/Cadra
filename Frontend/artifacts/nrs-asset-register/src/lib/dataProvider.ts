@@ -2456,7 +2456,7 @@ export const withdrawChangeRequest = (id: number, reason?: string) => decide(id,
 // about access" the handoff names as worse than no screen.
 
 import type {
-  AdminRole, AdminUser, AccessChangeReport,
+  AdminRole, AdminUser, AccessChangeReport, RoleChange,
 } from "../types";
 
 export async function fetchRoles(): Promise<AdminRole[]> {
@@ -2540,4 +2540,38 @@ export async function fetchAccessChanges(
     nextCursor: res.pagination?.next_cursor ?? null,
     totalEstimate: res.pagination?.total_estimate ?? null,
   };
+}
+
+// ─── ADMINISTRATION — the grant, and the refusal (handoff 42) ────────────────
+
+/**
+ * Grant and remove roles on a person: `POST /api/v1/users/<id>/roles`.
+ *
+ * `roles` is the FULL desired set of DIRECT roles among the GRANTABLE ones
+ * (`AdminRole.grantable`) — the server computes the grants and the
+ * revocations from it and leaves every role outside that set untouched, so
+ * the caller never sends `system` and never has to. `dryRun` answers with the
+ * same shape, `applied: false`, and writes nothing — and a change the server
+ * would refuse is refused on the dry run too, in the same sentence.
+ *
+ * Every refusal arrives as a `CadraApiError` and is SHOWN, verbatim: the
+ * self-grant ("Nobody grants themselves a role …"), the non-grantable role,
+ * an unknown key (`400`, `details.allowed_values`). Nothing here pre-empts
+ * the server's answer.
+ *
+ * A fresh idempotency key per call, as every other write in this file: a
+ * retried apply replays the apply, and a dry run never stands in for one.
+ */
+export async function changeUserRoles(
+  id: number | string,
+  roles: string[],
+  dryRun = false,
+): Promise<RoleChange> {
+  if (!apiConfigured) throw new Error("No active session");
+  const body: { roles: string[]; dry_run?: boolean } = { roles };
+  if (dryRun) body.dry_run = true;
+  const res = await apiPost<RoleChange>(`/api/v1/users/${id}/roles`, body, {
+    idempotencyKey: newIdempotencyKey(),
+  });
+  return res.data;
 }

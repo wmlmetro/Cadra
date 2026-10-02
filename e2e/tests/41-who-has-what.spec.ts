@@ -138,25 +138,49 @@ test("the role filter is on EFFECTIVE membership: Asset User includes h41_manage
 
 // ── The absence proof ────────────────────────────────────────────────────────
 
-test("ABSENCE: no control on either page would change anything", async ({ page }) => {
+test("ABSENCE: nothing on either page changes anything — except handoff 42's one role control", async ({ page }) => {
   await openUsers(page);
   await expect(page.getByTestId("user-row").first()).toBeVisible({ timeout: 20_000 });
   await page.getByTestId("user-row").first().click();
   await expect(page.getByTestId("user-detail")).toBeVisible();
 
-  let buttons = await buttonTexts(page, "admin-users-page");
-  for (const b of buttons) expect(b, `users page button: "${b}"`).not.toMatch(CHANGE_WORDS);
-  let inputs = await inputTypes(page, "admin-users-page");
-  for (const t of inputs) expect(["search"], `users page input type "${t}"`).toContain(t);
+  // Handoff 41 built this page with no control that changes anything.
+  // Handoff 42 added exactly one, by instruction: the "Change roles" section
+  // of the detail panel — its checkboxes and its Preview / Apply buttons —
+  // and nothing else. Everything outside that section is still held to 41's
+  // rule, and the section itself is held to its own spec (42-…). So the
+  // proof here is: outside `user-section-change-roles`, no button matches a
+  // change word and the only input is the search box; inside it, only
+  // checkboxes and the two named buttons exist.
+  const root = page.getByTestId("admin-users-page");
+  const section = root.getByTestId("user-section-change-roles");
+  const outsideButtons = await root.locator("button").all();
+  for (const b of outsideButtons) {
+    const inSection = await b.evaluate((el) => !!el.closest('[data-testid="user-section-change-roles"]'));
+    if (inSection) continue;
+    const text = ((await b.textContent()) ?? "") + " " + ((await b.getAttribute("aria-label")) ?? "") + " " + ((await b.getAttribute("title")) ?? "");
+    expect(text.trim(), `users page button outside the role section: "${text.trim()}"`).not.toMatch(CHANGE_WORDS);
+  }
+  const outsideInputs = await root.locator("input, textarea, select").all();
+  for (const i of outsideInputs) {
+    const inSection = await i.evaluate((el) => !!el.closest('[data-testid="user-section-change-roles"]'));
+    const type = (await i.getAttribute("type")) ?? (await i.evaluate((el) => el.tagName.toLowerCase()));
+    if (inSection) expect(["checkbox"], `role section input type "${type}"`).toContain(type);
+    else expect(["search"], `users page input type "${type}"`).toContain(type);
+  }
+  if (await section.count()) {
+    const names = (await section.locator("button").allTextContents()).map((t) => t.trim());
+    for (const n of names) expect(["Preview", "Apply"], `role section button "${n}"`).toContain(n);
+  }
   // The page has nothing a form would need.
-  await expect(page.getByTestId("admin-users-page").locator("form, textarea, select, input[type=text], input[type=password], input[type=email]")).toHaveCount(0);
+  await expect(root.locator("form, textarea, select, input[type=text], input[type=password], input[type=email]")).toHaveCount(0);
 
   await gotoApp(page, "/admin/access-changes");
   await expect(page.getByTestId("admin-access-changes-page")).toBeVisible();
   await expect(page.getByTestId("report-summary")).toBeVisible({ timeout: 30_000 });
-  buttons = await buttonTexts(page, "admin-access-changes-page");
+  let buttons = await buttonTexts(page, "admin-access-changes-page");
   for (const b of buttons) expect(b, `access-changes button: "${b}"`).not.toMatch(CHANGE_WORDS);
-  inputs = await inputTypes(page, "admin-access-changes-page");
+  const inputs = await inputTypes(page, "admin-access-changes-page");
   for (const t of inputs) expect(["date"], `access-changes input type "${t}"`).toContain(t);
   await expect(page.getByTestId("admin-access-changes-page").locator("form, textarea, select")).toHaveCount(0);
 });

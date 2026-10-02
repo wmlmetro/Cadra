@@ -1,12 +1,27 @@
 /**
- * Users — who has what (handoff 41). READ ONLY, END TO END.
+ * Users — who has what (handoff 41), and the grant and the refusal (42).
  *
- * Every control that would change something is ABSENT, not disabled. There
- * is no create, edit, remove, deactivate, invite, grant, revoke or reset here
- * and nothing greyed out standing in for one; the only inputs on the page
- * are the search box and the three filters. The mechanism is handoff 42,
- * deliberately separate, because an endpoint that writes `group_ids` is the
- * most dangerous surface this API could grow.
+ * Handoff 41 built this page READ ONLY, END TO END: no create, edit, remove,
+ * deactivate, invite, grant, revoke or reset, and nothing greyed out standing
+ * in for one. Handoff 42 adds exactly ONE thing that writes — the *Change
+ * roles* section of the detail panel (`ChangeRolesSection`) — and nothing
+ * else on the page changed. The rules it keeps:
+ *
+ *   - a control only for a role the API says is GRANTABLE (`/roles`);
+ *     `system` has no checkbox, so the sentence for a non-grantable role is
+ *     not reachable from here;
+ *   - what will change is shown BEFORE it is applied — the grants, the
+ *     revocations, and both lists (held / can act as) before → after — from
+ *     a dry run of the real route, so what is previewed is what the server
+ *     will do and not what the screen guesses;
+ *   - Apply is enabled only after a dry run that found something to change
+ *     and only while the boxes still say what that dry run was asked;
+ *   - EVERY refusal is the server's own sentence, verbatim, in a red panel
+ *     as the tag dialog does it — nothing pre-empted, not even the
+ *     viewer's own row: the server says "Nobody grants themselves a role"
+ *     and the screen shows it;
+ *   - no second audit: `access_recorder.py` records the grant with the
+ *     person who clicked, and the spec reads that row back.
  *
  * THE ONE DISTINCTION THIS SCREEN MUST NOT BLUR
  * ---------------------------------------------
@@ -23,18 +38,18 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import { ApiErrorMessage } from "@/components/ApiErrorMessage";
 import { useScopes } from "@/hooks/use-scopes";
 import {
-  fetchRoles, fetchUser, fetchUsersPage, type UserFilters, type UsersPage,
+  changeUserRoles, fetchRoles, fetchUser, fetchUsersPage, type UserFilters, type UsersPage,
 } from "@/lib/dataProvider";
 import { apiConfigured, CadraApiError } from "@/lib/api";
 import { formatIsoDateTime } from "@/lib/utils";
-import type { AdminRole, AdminUser } from "@/types";
+import type { AdminRole, AdminRoleRef, AdminUser, RoleChange } from "@/types";
 import {
-  AlertCircle, ChevronDown, Clock, History, KeyRound, Search, ShieldCheck, User as UserIcon, X,
+  AlertCircle, CheckCircle2, ChevronDown, Clock, History, KeyRound, Search, ShieldCheck, User as UserIcon, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -164,6 +179,242 @@ function FilterBtn({ label, value, options, onChange, testId }: {
   );
 }
 
+// ─── CHANGE ROLES (handoff 42) ────────────────────────────────────────────────
+/** The checked set as one string, so "has anything changed since the preview"
+ *  is one comparison. Sorted: order is not a change. */
+function sig(keys: Iterable<string>) { return Array.from(keys).sort().join(","); }
+
+function RoleNames({ refs, roles, empty }: { refs: AdminRoleRef[]; roles: AdminRole[]; empty: string }) {
+  if (refs.length === 0) return <span className="text-muted-foreground">{empty}</span>;
+  // A ref carries its own name; fall back to the vocabulary, then the key,
+  // so a role the vocabulary has not heard of is still printed, not hidden.
+  const name = (r: AdminRoleRef) => r.name || roles.find(x => x.key === r.key)?.name || r.key;
+  return <>{refs.map(name).join(", ")}</>;
+}
+
+function keysToNames(keys: string[], roles: AdminRole[]) {
+  return keys.map(k => roles.find(r => r.key === k)?.name ?? k);
+}
+
+function BeforeAfter({ label, testId, before, after, roles }: {
+  label: string; testId: string; before: AdminRoleRef[]; after: AdminRoleRef[]; roles: AdminRole[];
+}) {
+  return (
+    <div
+      className="text-[12px]"
+      data-testid={testId}
+      data-before={before.map(r => r.key).join("|")}
+      data-after={after.map(r => r.key).join("|")}
+    >
+      <span className="text-muted-foreground">{label}: </span>
+      <span className="text-foreground"><RoleNames refs={before} roles={roles} empty="none" /></span>
+      <span className="text-muted-foreground mx-1.5">→</span>
+      <span className="text-foreground font-semibold"><RoleNames refs={after} roles={roles} empty="none" /></span>
+    </div>
+  );
+}
+
+/**
+ * The one writing control on the page. `roles` is the vocabulary from
+ * `/roles`; only the grantable ones get a checkbox. The initial state of the
+ * boxes is the person's DIRECT roles among them — what somebody actually
+ * granted — never the effective ones, because the route acts on direct
+ * membership and a box ticked for an implied role would "revoke" a thing
+ * the person never directly held.
+ */
+function ChangeRolesSection({ user, roles, onApplied }: {
+  user: AdminUser; roles: AdminRole[]; onApplied: (u: AdminUser) => void;
+}) {
+  const qc = useQueryClient();
+  const grantable = useMemo(() => roles.filter(r => r.grantable), [roles]);
+  const grantableKeys = useMemo(() => new Set(grantable.map(r => r.key)), [grantable]);
+  const initial = useMemo(
+    () => new Set(user.roles_direct.map(r => r.key).filter(k => grantableKeys.has(k))),
+    [user.roles_direct, grantableKeys],
+  );
+  const initialSig = sig(initial);
+
+  const [checked, setChecked] = useState<Set<string>>(initial);
+  // The dry run's answer, pinned to the boxes it was asked about: Apply is
+  // live only while `forSig` still equals what is ticked now.
+  const [preview, setPreview] = useState<{ result: RoleChange; forSig: string } | null>(null);
+  const [applied, setApplied] = useState<RoleChange | null>(null);
+  const [err, setErr] = useState<CadraApiError | null>(null);
+
+  // Reset to the record whenever what the person DIRECTLY holds changes —
+  // another row opened, or this one re-read after an apply. Not on every
+  // refetch: a background re-read that found the same roles must not throw
+  // away half-ticked boxes.
+  useEffect(() => {
+    setChecked(new Set(initial));
+    setPreview(null);
+    setErr(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.id, initialSig]);
+
+  const currentSig = sig(checked);
+  const desired = () => grantable.map(r => r.key).filter(k => checked.has(k));
+
+  const previewMut = useMutation<RoleChange, CadraApiError, string>({
+    mutationFn: () => changeUserRoles(user.id, desired(), true),
+    onMutate: () => { setErr(null); setApplied(null); },
+    onSuccess: (result, forSig) => setPreview({ result, forSig }),
+    onError: (e) => { setPreview(null); setErr(e); },
+  });
+  const applyMut = useMutation<RoleChange, CadraApiError>({
+    mutationFn: () => changeUserRoles(user.id, desired(), false),
+    onMutate: () => setErr(null),
+    onSuccess: (result) => {
+      setPreview(null);
+      setApplied(result);
+      onApplied(result.user);
+      qc.invalidateQueries({ queryKey: ["users"] });
+      qc.invalidateQueries({ queryKey: ["user"] });
+      qc.invalidateQueries({ queryKey: ["access-changes"] });
+    },
+    onError: (e) => { setPreview(null); setErr(e); },
+  });
+  const busy = previewMut.isPending || applyMut.isPending;
+
+  const toggle = (key: string) => {
+    setChecked(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+    // A changed box makes the last answer — preview or refusal — about
+    // something else. Apply goes dark by the signature; the panels go too.
+    setErr(null);
+    setApplied(null);
+  };
+
+  const previewCurrent = preview && preview.forSig === currentSig ? preview.result : null;
+  const previewHasChange = !!previewCurrent && (previewCurrent.granted.length > 0 || previewCurrent.revoked.length > 0);
+  const canApply = previewHasChange && !busy;
+
+  // "Asset Manager also confers Asset User" — one line per ticked role that
+  // implies something, so what the person will be ABLE to do is on the
+  // screen before Preview is pressed, and the dry run then confirms it.
+  const implications = grantable
+    .filter(r => checked.has(r.key) && r.implies.length > 0)
+    .map(r => ({ role: r, confers: keysToNames(r.implies, roles) }));
+
+  if (user.kind === "api_credential") {
+    return (
+      <Section title="Change roles" testId="user-section-change-roles">
+        <p className="text-[12px] text-muted-foreground" data-testid="roles-follow-scopes">
+          A credential's roles follow its scopes and are not changed here.
+        </p>
+      </Section>
+    );
+  }
+
+  return (
+    <Section title="Change roles" testId="user-section-change-roles">
+      {grantable.length === 0 ? (
+        <p className="text-[12px] text-muted-foreground" data-testid="roles-none-grantable">
+          No role can be granted over the API.
+        </p>
+      ) : (
+        <ul className="space-y-1.5" data-testid="role-checkboxes">
+          {grantable.map(r => (
+            <li key={r.key} className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                id={`role-${r.key}`}
+                data-testid="role-checkbox"
+                data-role={r.key}
+                checked={checked.has(r.key)}
+                disabled={busy}
+                onChange={() => toggle(r.key)}
+                className="mt-0.5 h-3.5 w-3.5 rounded border-border accent-[hsl(var(--primary))]"
+              />
+              <label htmlFor={`role-${r.key}`} className="text-[12px] text-foreground cursor-pointer leading-snug">
+                <span className="font-medium">{r.name}</span>
+                {r.description && <span className="block text-[11px] text-muted-foreground">{r.description}</span>}
+              </label>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {implications.length > 0 && (
+        <ul className="mt-2 space-y-0.5" data-testid="role-implications">
+          {implications.map(({ role, confers }) => (
+            <li key={role.key} className="text-[11px] text-muted-foreground" data-testid="role-implication-note" data-role={role.key}>
+              {role.name} also confers {confers.join(", ")}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="mt-3 flex items-center gap-2">
+        <button
+          type="button"
+          data-testid="button-preview-roles"
+          disabled={busy || grantable.length === 0}
+          onClick={() => previewMut.mutate(currentSig)}
+          className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-border hover:bg-muted/40 disabled:opacity-50"
+        >
+          {previewMut.isPending ? "Previewing…" : "Preview"}
+        </button>
+        <button
+          type="button"
+          data-testid="button-apply-roles"
+          disabled={!canApply}
+          onClick={() => applyMut.mutate()}
+          className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-primary text-white hover:opacity-90 disabled:opacity-50"
+        >
+          {applyMut.isPending ? "Applying…" : "Apply"}
+        </button>
+      </div>
+
+      {previewCurrent && (
+        <div className="mt-3 bg-muted/30 border border-border rounded-xl p-3 space-y-1.5" data-testid="roles-preview" data-applied={String(previewCurrent.applied)}>
+          {!previewHasChange ? (
+            <p className="text-[12px] text-foreground" data-testid="roles-preview-nochange">No change.</p>
+          ) : (
+            <>
+              <p className="text-[12px]" data-testid="roles-preview-grant" data-keys={previewCurrent.granted.join("|")}>
+                <span className="text-muted-foreground">Will grant: </span>
+                <span className="text-foreground font-semibold">{previewCurrent.granted.length ? keysToNames(previewCurrent.granted, roles).join(", ") : "nothing"}</span>
+              </p>
+              <p className="text-[12px]" data-testid="roles-preview-revoke" data-keys={previewCurrent.revoked.join("|")}>
+                <span className="text-muted-foreground">Will revoke: </span>
+                <span className="text-foreground font-semibold">{previewCurrent.revoked.length ? keysToNames(previewCurrent.revoked, roles).join(", ") : "nothing"}</span>
+              </p>
+              <BeforeAfter label="Roles held" testId="roles-preview-direct" roles={roles}
+                before={previewCurrent.before.roles_direct} after={previewCurrent.after.roles_direct} />
+              <BeforeAfter label="Can act as (with implication)" testId="roles-preview-effective" roles={roles}
+                before={previewCurrent.before.roles_effective} after={previewCurrent.after.roles_effective} />
+              <p className="text-[11px] text-muted-foreground pt-0.5">Nothing has been changed yet. Apply makes it so.</p>
+            </>
+          )}
+        </div>
+      )}
+
+      {err && (
+        <div className="mt-3 flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-xl p-3" data-testid="roles-refusal" role="alert">
+          <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+          <ApiErrorMessage err={err} />
+        </div>
+      )}
+
+      {applied && (
+        <div className="mt-3 flex items-start gap-2 bg-green-50 dark:bg-green-950/30 border border-green-200/60 dark:border-green-800/30 rounded-xl p-3" data-testid="roles-applied" role="status"
+          data-granted={applied.granted.join("|")} data-revoked={applied.revoked.join("|")}>
+          <CheckCircle2 size={14} className="text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+          <div className="text-[12px] text-green-700 dark:text-green-400">
+            <p className="font-semibold">Applied.</p>
+            {applied.granted.length > 0 && <p>Granted: {keysToNames(applied.granted, roles).join(", ")}</p>}
+            {applied.revoked.length > 0 && <p>Revoked: {keysToNames(applied.revoked, roles).join(", ")}</p>}
+          </div>
+        </div>
+      )}
+    </Section>
+  );
+}
+
 // ─── DETAIL PANEL ─────────────────────────────────────────────────────────────
 function Section({ title, testId, children }: { title: string; testId: string; children: React.ReactNode }) {
   return (
@@ -174,7 +425,13 @@ function Section({ title, testId, children }: { title: string; testId: string; c
   );
 }
 
-function DetailPanel({ user, onClose }: { user: AdminUser; onClose: () => void }) {
+function DetailPanel({ user: fromList, roles, onClose }: { user: AdminUser; roles: AdminRole[]; onClose: () => void }) {
+  // After an apply the route answers with the user as it now is; the panel
+  // shows THAT until the list's re-read (invalidated at the same moment)
+  // delivers a new row object, which drops the override.
+  const [applied, setApplied] = useState<AdminUser | null>(null);
+  useEffect(() => { setApplied(null); }, [fromList]);
+  const user = applied && applied.id === fromList.id ? applied : fromList;
   const { direct, implied } = splitRoles(user);
   const isCredential = user.kind === "api_credential";
   return (
@@ -226,6 +483,8 @@ function DetailPanel({ user, onClose }: { user: AdminUser; onClose: () => void }
               </li>
             ))}</ul>}
       </Section>
+
+      <ChangeRolesSection user={user} roles={roles} onApplied={setApplied} />
 
       <Section title="What this account can do" testId="user-section-scopes">
         {isCredential && (
@@ -474,7 +733,7 @@ export default function AdminUsers() {
         {selectedId != null && (
           <aside className="lg:w-[380px] lg:shrink-0 border-t lg:border-t-0 lg:border-l border-border lg:overflow-y-auto p-4 sm:p-5 bg-background" data-testid="user-detail-panel">
             {selected ? (
-              <DetailPanel user={selected} onClose={() => select(null)} />
+              <DetailPanel user={selected} roles={rolesQuery.data ?? []} onClose={() => select(null)} />
             ) : userQuery.error ? (
               <div className="bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-2xl p-4" data-testid="user-detail-error">
                 <ApiErrorMessage err={userQuery.error} stacked />

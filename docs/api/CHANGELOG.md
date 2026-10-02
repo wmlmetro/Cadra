@@ -33,6 +33,63 @@ live at was never the point.
 
 ---
 
+## 2026-10-02 — handoff 42: the grant, and the refusal · `myservice_api` 19.0.3.16.0
+
+One new WRITE route, scope `admin`, and one additive key on `GET /roles`.
+Nothing on an existing response changed shape.
+
+### New — `POST /api/v1/users/{user_id}/roles`
+
+Set the Cadra roles an account holds DIRECTLY. The body is `{"roles":
+[...], "dry_run": false}`: `roles` is the **full set** of direct role keys
+the account should hold afterwards, among the vocabulary of `/roles` — not
+a delta. A key present and not held is granted; a key held and absent is
+revoked; groups outside the vocabulary are never touched. Any other body
+key is `400 invalid_request` with `details.rejected_fields` and
+`details.writable`; an unknown key is `400` with `details.allowed_values`.
+Idempotent under `X-Idempotency-Key`. `404` for a structural account, a
+portal user or an unknown id, through the same domain as `GET /users/{id}`.
+
+The answer (`RoleChange`) is the account as `GET /users/{id}` would now
+publish it, `before` and `after` (each `roles_direct` AND `roles_effective`,
+so a grant of Asset Manager shows Asset User arriving by implication),
+`granted`, `revoked` and `applied`. **`dry_run: true` previews**: the same
+write is computed by Odoo and rolled back, `after` is what the account
+would hold, `applied` is `false`, and nothing is written — a refusal is
+previewed too.
+
+**Two refusals, both `403 forbidden`, both raised on the MODEL under every
+writer of membership and shown in the model's own sentence** (handoff 42
+§2–3; `models/access_guard.py`):
+
+| Refused | The sentence begins |
+|---|---|
+| naming any role `/roles` does not mark `grantable` — `system` first among them, and every other Odoo group | *Over the API only these roles can be granted or removed: Asset User, Asset Manager, Tag-Issuing Unit, Auditor. '…' is not one of them. …* |
+| adding a role to the caller's OWN account (removing one is allowed) | *Nobody grants themselves a role. `<login>` asked to add `<role>` to their own account; another administrator has to do that. …* |
+
+`system` is a VALID key at the route on purpose: it reaches the write so the
+refusal the caller reads is the model's. A refused call writes nothing — the
+access record included, because the refusal is an exception and the
+transaction rolls back. The record of an applied change (`GET
+/reports/access-changes`) names the token's user as the actor, a credential
+or a person, never Administrator, although the route runs under sudo.
+
+The same guard refuses, over the API only and from any route that might
+ever try: creating or deleting a group, changing what a group implies,
+deleting an account, and a membership change from the group side — with
+sentences of their own. Nothing without a bearer token is guarded: the back
+office, `odoo shell`, migrations, security XML and `auth_signup` work as
+before.
+
+### Additive — `grantable` on every `GET /roles` entry
+
+`true` for exactly the four Cadra roles (`asset_user`, `asset_manager`,
+`tag_issuing_unit`, `auditor`); `false` for `system` and the rest. Read off
+the same constant the model refuses on, so a screen that disables what
+`grantable` is `false` for disables exactly what the server would refuse.
+
+---
+
 ## 2026-10-01 — handoff 41: who has what · `myservice_api` 19.0.3.15.0
 
 Three new READ routes, all scope `admin`, and one behaviour change on four

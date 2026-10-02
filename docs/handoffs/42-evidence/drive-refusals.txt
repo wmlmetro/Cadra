@@ -1,0 +1,31 @@
+access rows at start: 9
+--- A. BACK OFFICE (XML-RPC as admin, no JWT): remove base.group_system from the credential's user 6, so the credential is a non-administrator
+write ok: True
+access rows: 10
+--- B. credential (admin scope, user 6 now NOT a system administrator) asks for system on ITS OWN user
+"forbidden: Over the API only these roles can be granted or removed: Asset User, Asset Manager, Tag-Issuing Unit, Auditor. 'Role / Administrator' is not one of them. Making somebody a system administrator, or changing any other Odoo group, is done in the Odoo back office, signed in as a person."
+access rows: 10
+--- C. same credential asks for system on h41_manager
+"forbidden: Over the API only these roles can be granted or removed: Asset User, Asset Manager, Tag-Issuing Unit, Auditor. 'Role / Administrator' is not one of them. Making somebody a system administrator, or changing any other Odoo group, is done in the Odoo back office, signed in as a person."
+access rows: 10
+--- D. person (admin) adds auditor to own account
+"forbidden: Nobody grants themselves a role. admin asked to add Auditor to their own account; another administrator has to do that. Removing your own roles is allowed."
+access rows: 10
+--- E. same person removes asset_manager from own account (allowed)
+{"before": ["system", "asset_manager", "|", "system", "asset_user", "asset_manager", "security_officer"], "after": ["system", "|", "system", "security_officer"], "granted": [], "revoked": ["asset_manager"], "applied": true}
+access rows: 11
+--- E'. ...and cannot give it back to themselves
+"forbidden: Nobody grants themselves a role. admin asked to add Asset Manager to their own account; another administrator has to do that. Removing your own roles is allowed."
+--- F. dry run: admin grants tag_issuing_unit to h41_manager
+{"before": ["asset_manager", "|", "asset_user", "asset_manager"], "after": ["asset_manager", "tag_issuing_unit", "|", "asset_user", "asset_manager", "tag_issuing_unit"], "granted": ["tag_issuing_unit"], "revoked": [], "applied": false}
+access rows: 11
+--- G. BACK OFFICE restores: admin's Asset Manager, and the credential user's system group (unguarded, recorded)
+admin asset_manager back: True
+credential user system back: True
+access rows: 13
+17133|removed|cadra_client_test_client|Role / Administrator|Administrator|admin|t|user_write
+17137|removed|admin|Asset Register / Asset Manager|Administrator|admin|t|user_write
+17140|granted|admin|Asset Register / Asset Manager|Administrator|admin|t|user_write
+17141|granted|cadra_client_test_client|Role / Administrator|Administrator|admin|t|user_write
+17938|granted|admin|Audit / Auditor|__system__|f|group_write
+17939|removed|admin|Audit / Auditor|__system__|f|group_write

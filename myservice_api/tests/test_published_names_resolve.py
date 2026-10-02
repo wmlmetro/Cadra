@@ -229,6 +229,19 @@ _BODY_ROUTES = {
         (None, None, "action: a message posted to the thread"),
     ("POST", "/api/v1/requests/<int:id>/transition"):
         (None, None, "action: the stage route to take"),
+    # Handoff 42. The one writer of membership on the API. `roles` is the
+    # FULL set of DIRECT role keys the account should hold, among
+    # `v1_users.ROLE_KEYS`; each key is resolved to its `res.groups` record
+    # and the set is written as ONE `(6, 0, ids)` on `res.users.group_ids`,
+    # restricted to the vocabulary's groups so nothing outside it moves.
+    # `dry_run` is a savepoint the route rolls back. Neither key is a field
+    # of any model, and the body's gate is `v1_users.ROLE_CHANGE_BODY_KEYS`
+    # (a stray key is `refuse_unwritable`'s 400). What may be WRITTEN is
+    # decided on the model (`models/access_guard.py`), not in the route.
+    ("POST", "/api/v1/users/<int:user_id>/roles"):
+        (None, None, "action: `roles` (direct role keys, resolved to "
+                     "groups and written as `group_ids`) and `dry_run`; "
+                     "grantability is refused on the model"),
 }
 
 #: A published key whose model field has a different name. **The published

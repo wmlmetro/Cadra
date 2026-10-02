@@ -4201,10 +4201,10 @@ a deleted parameter's old value to twenty-four writing tests.
 | 56 | GET    | `/api/v1/settings/approvals` | `assets:read` |
 
 
-## 12 · People and roles — read only (handoff 41)
+## 12 · People and roles (handoffs 41, 42)
 
-Three admin-scoped reads. There is deliberately no write twin: granting and
-removing is handoff 42, creating and deactivating is 43.
+Three admin-scoped reads (handoff 41) and one write (handoff 42, §12.4).
+Creating and deactivating people is handoff 43.
 
 ## 12.1 GET `/api/v1/roles` — the role vocabulary
 
@@ -4227,7 +4227,10 @@ restated. One entry per group that grants API scopes, in table order.
 
 `implies` lists the OTHER roles in this vocabulary a holder of this one
 also holds. A role whose group is not installed on the tenant is still
-listed, with `installed: false`.
+listed, with `installed: false`. `grantable` (handoff 42) says whether §12.4
+may grant or remove it: `true` for exactly `asset_user`, `asset_manager`,
+`tag_issuing_unit` and `auditor`, `false` for `system` and every other
+group — read off the same constant the model refuses on.
 
 ## 12.2 GET `/api/v1/users` — who has what
 
@@ -4273,3 +4276,101 @@ a client's token is not minted from its groups.
 
 The same row. `404 not_found` for an unknown id, a structural account
 (`__system__`, `public`, `portaltemplate`) or a portal user.
+
+## 12.4 POST `/api/v1/users/<id>/roles` — grant and revoke, as one set
+
+Scope: `admin`. Success: **200**. Idempotent.
+
+The body takes **`roles` and `dry_run` and nothing else**; any other key is
+a 400 carrying `details.rejected_fields` and `details.writable`, and nothing
+is written. `roles` is the **full set of DIRECT roles** the account should
+hold afterwards, among the keys of §12.1 — not a delta. Groups outside the
+vocabulary (`base.group_user`, a mail or fleet group) are never touched.
+
+### Request
+
+```bash
+acurl -X POST $API/api/v1/users/7427/roles \
+  -H 'Content-Type: application/json' \
+  -H 'X-Idempotency-Key: 6d1f…' \
+  -d '{"roles": ["asset_manager", "tag_issuing_unit"], "dry_run": true}'
+```
+
+### Success — `200 OK`
+
+```json
+{
+  "data": {
+    "user": { "id": 7427, "login": "h41_manager", "...": "the row GET /users/7427 would now publish" },
+    "before": {
+      "roles_direct":    [{"key": "asset_manager", "name": "Asset Manager"}],
+      "roles_effective": [{"key": "asset_user", "name": "Asset User", "via": ["Asset Manager"]},
+                          {"key": "asset_manager", "name": "Asset Manager", "via": []}]
+    },
+    "after": {
+      "roles_direct":    [{"key": "asset_manager", "name": "Asset Manager"},
+                          {"key": "tag_issuing_unit", "name": "Tag-Issuing Unit"}],
+      "roles_effective": [{"key": "asset_user", "name": "Asset User", "via": ["Asset Manager"]},
+                          {"key": "asset_manager", "name": "Asset Manager", "via": []},
+                          {"key": "tag_issuing_unit", "name": "Tag-Issuing Unit", "via": []}]
+    },
+    "granted": ["tag_issuing_unit"],
+    "revoked": [],
+    "applied": false
+  },
+  "meta": { "request_id": "…", "timestamp": "…", "version": "v1" }
+}
+```
+
+**`dry_run: true` is the same write, rolled back.** Odoo computes the
+change exactly as it would apply it — implication included, which is why
+`after.roles_effective` is what the screen shows before anybody clicks —
+and the savepoint is rolled back: `applied` is `false` and nothing is
+written. A change the model refuses is refused on preview as well.
+
+`granted` and `revoked` are the diff of the two DIRECT lists. A replay
+under the same `X-Idempotency-Key` returns this body unchanged and applies
+nothing twice.
+
+**No second audit.** An applied change is recorded by the hooks on the
+models (`GET /reports/access-changes`), naming the TOKEN'S user as the
+actor — the credential or the person who called — not Administrator,
+although the route runs under sudo.
+
+### Error — `403 forbidden` (not grantable)
+
+```json
+{ "error": { "code": "forbidden", "message": "Over the API only these roles can be granted or removed: Asset User, Asset Manager, Tag-Issuing Unit, Auditor. 'Administration / Settings' is not one of them. Making somebody a system administrator, or changing any other Odoo group, is done in the Odoo back office, signed in as a person.", "request_id": "…" } }
+```
+
+`system` is a valid key at the route **on purpose**: it reaches the write,
+and the refusal is raised on the model under every writer of membership
+(`models/access_guard.py`), so what the caller reads is the model's own
+sentence. Not by an administrator, not by a credential, not with a flag.
+
+### Error — `403 forbidden` (your own account)
+
+```json
+{ "error": { "code": "forbidden", "message": "Nobody grants themselves a role. h41_manager asked to add Auditor to their own account; another administrator has to do that. Removing your own roles is allowed.", "request_id": "…" } }
+```
+
+A caller may remove their own roles — a downgrade, within Odoo's
+last-administrator guard — and may not add one. The same shape as a move
+and a tag replacement: an action that matters takes a second person.
+
+**A refusal writes nothing**, the access record included: it is an
+exception, and the transaction rolls back.
+
+### Error — `400 invalid_request`
+
+An unknown key in `roles` names the vocabulary in `details.allowed_values`
+and the offenders in `details.rejected_values`; `roles` that is not a list
+of strings, or `dry_run` that is not a boolean, is the same code with
+`details.field`. A key the body does not accept is the standard refusal
+with `details.rejected_fields` and `details.writable` (`["dry_run",
+"roles"]`).
+
+### Error — `404 not_found`
+
+An unknown id, a structural account (`__system__`, `public`,
+`portaltemplate`) or a portal user — through the same domain as §12.3.
