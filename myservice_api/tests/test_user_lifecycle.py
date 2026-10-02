@@ -122,6 +122,15 @@ class TestUserLifecycle(CadraHttpCase, MockEmail):
     def _email(self, tag):
         return "%s.%s@example.invalid" % (self.marker, tag)
 
+    @staticmethod
+    def _prose(html):
+        """The letter with every URL removed — what the "no Odoo anywhere"
+        assertion is about. The sign-up link carries `db=<database>`, and
+        CI's database is called `odoo` (`.env.example`), which is how the
+        first CI run after the merge matched the word in a URL and failed
+        a letter that says nothing about Odoo (report 43 §E)."""
+        return re.sub(r"https?://[^\s\"'<]+", "", html)
+
     def _sent(self):
         """The mails the gateway mock saw that STILL EXIST. In test mode a
         write route is served first on a read-only cursor and retried on a
@@ -202,7 +211,7 @@ class TestUserLifecycle(CadraHttpCase, MockEmail):
         self.assertIn("#123456", body, "the brand colour is the tenant's")
         self.assertIn(self.base_url() + "/api/v1/brand/logo", body, "the logo is a URL, not a data: URI")
         self.assertNotIn("data:image", body)
-        self.assertNotRegex(body, re.compile(r"odoo", re.I), "no Odoo anywhere in the letter")
+        self.assertNotRegex(self._prose(body), re.compile(r"odoo", re.I), "no Odoo anywhere in the letter")
         self.assertNotRegex(body, re.compile(r"password:\s*\S", re.I), "no secret in the body")
         links = re.findall(r'href="([^"]+/web/signup\?[^"]+)"', body)
         self.assertTrue(links, "the letter carries the sign-up link")
@@ -249,7 +258,7 @@ class TestUserLifecycle(CadraHttpCase, MockEmail):
         self.assertEqual(len(mail), 1)
         self.assertIn("reset your password", mail.subject)
         self.assertIn("A password reset was requested", mail.body_html)
-        self.assertNotRegex(mail.body_html, re.compile(r"odoo", re.I))
+        self.assertNotRegex(self._prose(mail.body_html), re.compile(r"odoo", re.I))
         self.assertIn("/web/reset_password?", mail.body_html)
         # a reset stamps no invitation
         self.assertFalse(self.admin.cadra_invitation_sent_at)
