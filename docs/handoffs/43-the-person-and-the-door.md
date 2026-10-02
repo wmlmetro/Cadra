@@ -39,6 +39,28 @@ Creating a person, and taking their access away. The last piece that stands betw
 
 ---
 
+## 1b · The invitation is a letter from their own organisation, not from Odoo
+
+Added 2 October, at the owner's request. The default invitation is Odoo's, and it looks like it — Odoo's wording, Odoo's styling, Odoo's footer. The first thing an NRS officer will ever see of this system is that email, and it should not be an advertisement for a framework they have never heard of.
+
+**And the brand it carries is the tenant's, not ours.** This is already solved elsewhere and you must reuse it rather than invent a second answer: `cadra.brand_short_name` is a config parameter owned by the per-client `cadra_brand_<client>` modules, `myservice_nrs_base/models/ir_http.py` exposes it to the web client, and `Frontend/…/src/lib/brand.ts` already applies colour and title per tenant from one static build — *"jaizbankplc shows its own, NRS shows NRS's red."* A person invited to the NRS tenant gets an NRS letter. A person invited to jaizbankplc does not see NRS anywhere in it.
+
+There is precedent for our own templates in `myservice_fleet_maintenance/data/mail_templates.xml` and `myservice_security/data/mail_templates.xml`; start from how those are structured rather than from scratch.
+
+**Six things to get right:**
+
+1. **The tenant's brand, resolved at send time** — not baked per module and not hard-coded. If a brand module supplies a logo, use it; if a tenant has none, the fallback must still be a dignified letter rather than a broken image and the word NRS on somebody else's tenant.
+2. **The link points at the tenant's own host.** An invitation to `jaizbankplc.cadra.ng` that lands someone on `staging.app.cadra.ng` is a dead end, and getting this wrong is easy because the sender does not know the host the request came from unless somebody passes it.
+3. **Readable with images blocked.** Government mail clients strip images and sometimes HTML. Write a plain-text part that stands on its own and says what to do; do not let the instruction live only in a styled button.
+4. **No secret in the body.** A link the person redeems, as §1 already says. Not a password, not a temporary one.
+5. **Say what it is in one line.** The recipient has not heard of Cadra and may not know why they are getting this. *"You have been given access to the Nigeria Revenue Service asset register"* beats anything clever.
+6. **The reset-password email too.** It is the same person's next encounter with us and it would be odd for one to be branded and the other to be Odoo's. Check which templates Odoo actually sends on both paths before assuming there is one.
+
+**Verification:** send a real invitation to a real inbox on at least two differently-branded tenants, and put both received emails in the report — as they arrive, with images blocked and with images on. Screenshot the actual inbox, not the template source. A template that renders in a test and not in a mail client is the shape of failure this programme keeps finding.
+
+
+---
+
 ## 2 · The part I expect to be wrong, and want you to measure
 
 **Deactivating somebody is not just a flag, and this is where I would look for the defect.**
