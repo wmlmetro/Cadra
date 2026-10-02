@@ -318,4 +318,7 @@ The runs went in CI's order: the HTTP suite first, then the in-registry suite. *
 
 ## Commits
 
-[filled in after push]
+- `2cbcbea` fix: an API credential is not a system administrator — bootstrap and the 19.0.3.2.0 migration stop granting base.group_system; owner script to strip it; one published name per role
+- `57a49ef` docs: report 44
+- this commit: the commit list
+- PR: https://github.com/wmlmetro/Cadra/pull/102
