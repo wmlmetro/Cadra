@@ -7,10 +7,11 @@ import {
   Fingerprint, Users, Activity, ShieldAlert,
   Inbox, Briefcase, ScanBarcode, Upload, RefreshCw,
   Wrench, Tag, ChevronDown, Monitor, TrendingDown, SlidersHorizontal, Layers, Palette,
-  LogOut, Hourglass,
+  LogOut, Hourglass, ShieldCheck, History,
   type LucideIcon,
 } from "lucide-react";
 import { logout, getScope, getExpiry } from "@/lib/auth";
+import { useScopes } from "@/hooks/use-scopes";
 import { brandLogoSrc, getBrand } from "@/lib/brand";
 import { fetchApprovalsWaitingCount } from "@/lib/dataProvider";
 
@@ -22,11 +23,16 @@ interface NavItem {
    *  marker rather than a number on the item so the count stays a query and
    *  not a constant somebody forgets to update. */
   badge?: "approvals";
+  /** Shown only to a session holding this scope (or the wildcard). Nav
+   *  items were not scope-gated before handoff 41; the Administration
+   *  entries are, because a page that opens on a refusal panel is a
+   *  door drawn for somebody who cannot open it. The server still decides. */
+  scope?: string;
 }
 
 interface NavGroup { label: string; items: NavItem[] }
 
-const navGroups: NavGroup[] = [
+const ALL_NAV_GROUPS: NavGroup[] = [
   { label: "Dashboards", items: [
     { name: "Facility Command Center", path: "/",                     icon: LayoutDashboard },
     // Hidden for now (routes still work via direct URL):
@@ -75,6 +81,12 @@ const navGroups: NavGroup[] = [
     { name: "Asset Categories",        path: "/settings/categories",   icon: Layers },
     { name: "Branding",                path: "/settings/branding",     icon: Palette },
     { name: "Depreciation",            path: "/settings/depreciation", icon: SlidersHorizontal },
+  ]},
+  // Read only, end to end (handoff 41): who holds which role, and the record
+  // of grants and removals. Nothing under it changes anything — that is 42.
+  { label: "Administration", items: [
+    { name: "Users",                   path: "/admin/users",           icon: ShieldCheck, scope: "admin" },
+    { name: "Access changes",          path: "/admin/access-changes",  icon: History,     scope: "admin" },
   ]},
   { label: "Tools", items: [
     { name: "Barcode Station",         path: "/tools/barcode",        icon: ScanBarcode    },
@@ -135,6 +147,13 @@ function useApprovalsWaiting(): number | null {
 export default function Sidebar() {
   const [location, navigate] = useLocation();
   const waiting = useApprovalsWaiting();
+  const scopes = useScopes();
+
+  // Items the session cannot act on are not drawn; a group left with no
+  // items is not drawn either.
+  const navGroups = ALL_NAV_GROUPS
+    .map(g => ({ ...g, items: g.items.filter(it => !it.scope || scopes.has(it.scope)) }))
+    .filter(g => g.items.length > 0);
 
   // Pick the single best-matching nav item rather than highlighting every
   // ancestor. "Best" = the longest path that is a prefix of the current URL.

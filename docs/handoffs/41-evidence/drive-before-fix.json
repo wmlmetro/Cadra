@@ -1,0 +1,1102 @@
+{
+  "TIU-only": {
+    "steps": {
+      "login": {
+        "scope": "tagging:write",
+        "texts": [
+          "scope: tagging:write · 59m left"
+        ]
+      },
+      "station": {
+        "texts": [
+          "scope: tagging:write · 59m left",
+          "forbidden: Missing required scope(s): assets:read",
+          "forbidden: Missing required scope(s): assets:read",
+          "forbidden: Missing required scope(s): assets:read",
+          "forbidden: Missing required scope(s): assets:read"
+        ]
+      },
+      "station-lookup": {
+        "texts": [
+          "scope: tagging:write · 59m left",
+          "forbidden: Missing required scope(s): assets:read",
+          "forbidden: Missing required scope(s): assets:read",
+          "forbidden: Missing required scope(s): assets:read",
+          "forbidden: Missing required scope(s): assets:read",
+          "forbidden: Missing required scope(s): assets:read"
+        ]
+      },
+      "station-confirm-open": {
+        "note": "no confirm button rendered"
+      },
+      "assets-list": {
+        "texts": [
+          "scope: tagging:write · 59m left",
+          "forbidden: Missing required scope(s): assets:read"
+        ]
+      },
+      "asset": {
+        "texts": [
+          "scope: tagging:write · 59m left",
+          "forbidden",
+          "Missing required scope(s): assets:read"
+        ]
+      }
+    },
+    "calls": [
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/brand",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/approvals?state=pending&waiting_on_me=true&limit=1",
+        "status": 401,
+        "body": {
+          "code": "unauthorized",
+          "message": "Invalid token",
+          "details": {
+            "http_status": 401
+          }
+        }
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/auth/whoami",
+        "status": 401,
+        "body": {
+          "code": "unauthorized",
+          "message": "Invalid token",
+          "details": {
+            "http_status": 401
+          }
+        }
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/brand",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "POST",
+        "path": "/api/v1/auth/login",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/approvals?state=pending&waiting_on_me=true&limit=1",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/auth/whoami",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/identity/employees?limit=1",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): identity:read",
+          "details": {
+            "required_scopes": [
+              "identity:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/locations?limit=1",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): locations:read",
+          "details": {
+            "required_scopes": [
+              "locations:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/assets?state=active&is_verified=false&sort=newest&limit=200",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/assets?limit=1",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/dashboard/kpis",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): dashboards:read",
+          "details": {
+            "required_scopes": [
+              "dashboards:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/assets?state=active&limit=1",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/assets?is_verified=false&state=active&limit=1",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/assets?sap_reconciliation_state=exception&state=active&limit=1",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/assets?sap_reconciliation_state=exception&is_verified=false&state=active&limit=1",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/dashboard/map",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): dashboards:read",
+          "details": {
+            "required_scopes": [
+              "dashboards:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/auth/whoami",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/assets?limit=1",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "station",
+        "method": "GET",
+        "path": "/api/v1/brand",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "station",
+        "method": "GET",
+        "path": "/api/v1/auth/whoami",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "station",
+        "method": "GET",
+        "path": "/api/v1/approvals?state=pending&waiting_on_me=true&limit=1",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "station",
+        "method": "GET",
+        "path": "/api/v1/tags/pending-replacements?limit=100",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "station",
+        "method": "GET",
+        "path": "/api/v1/barcode/untagged?limit=200",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "station",
+        "method": "GET",
+        "path": "/api/v1/barcode/recent-tags?limit=200",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "station",
+        "method": "GET",
+        "path": "/api/v1/meta/enums",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "station",
+        "method": "GET",
+        "path": "/api/v1/barcode/kpis",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "station",
+        "method": "GET",
+        "path": "/api/v1/tags/pending-replacements?limit=100",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "station",
+        "method": "GET",
+        "path": "/api/v1/barcode/untagged?limit=200",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "station",
+        "method": "GET",
+        "path": "/api/v1/barcode/recent-tags?limit=200",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "station",
+        "method": "GET",
+        "path": "/api/v1/barcode/kpis",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "station-lookup",
+        "method": "GET",
+        "path": "/api/v1/barcode/lookup?query=NRS-ACS-820",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "assets-list",
+        "method": "GET",
+        "path": "/api/v1/brand",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "assets-list",
+        "method": "GET",
+        "path": "/api/v1/approvals?state=pending&waiting_on_me=true&limit=1",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "assets-list",
+        "method": "GET",
+        "path": "/api/v1/auth/whoami",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "assets-list",
+        "method": "GET",
+        "path": "/api/v1/assets?sort=newest&limit=200",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "assets-list",
+        "method": "GET",
+        "path": "/api/v1/assets?sort=newest&limit=200",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "asset",
+        "method": "GET",
+        "path": "/api/v1/brand",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "asset",
+        "method": "GET",
+        "path": "/api/v1/auth/whoami",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "asset",
+        "method": "GET",
+        "path": "/api/v1/approvals?state=pending&waiting_on_me=true&limit=1",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "asset",
+        "method": "GET",
+        "path": "/api/v1/approvals?asset_id=66032&state=pending&limit=1",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "asset",
+        "method": "GET",
+        "path": "/api/v1/assets/66032",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "asset",
+        "method": "GET",
+        "path": "/api/v1/approvals?asset_id=66032&state=pending&limit=1",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "asset",
+        "method": "GET",
+        "path": "/api/v1/assets/66032",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "Missing required scope(s): assets:read",
+          "details": {
+            "required_scopes": [
+              "assets:read"
+            ],
+            "granted_scopes": [
+              "tagging:write"
+            ],
+            "http_status": 403
+          }
+        }
+      }
+    ]
+  },
+  "AssetUser+TIU": {
+    "steps": {
+      "login": {
+        "scope": "assets:read dashboards:read identity:read locations:read requests:read requests:write tagging:write",
+        "texts": [
+          "scope: assets:read dashboards:read identity:read locations:read requests:read requests:write tagging:write · 59m left"
+        ]
+      },
+      "station": {
+        "texts": [
+          "scope: assets:read dashboards:read identity:read locations:read requests:read requests:write tagging:write · 59m left",
+          "NRS-GEN-5989\tpytest-tagrepl-reject-1790879030-5e23c7c4\tLost / Missing\tAdministrator\tSmoke Test (API client)\tNot yours to decide",
+          "NRS-GEN-5760\tpytest-tagrepl-reject-1790875541-5d9e37dc\tLost / Missing\tAdministrator\tSmoke Test (API client)\tNot yours to decide",
+          "NRS-GEN-5561\tpytest-tagrepl-reject-1790869924-d875ab2c\tLost / Missing\tAdministrator\tSmoke Test (API client)\tNot yours to decide",
+          "NRS-GEN-5488\tpytest-tagrepl-reject-1790869645-21cbed58\tLost / Missing\tAdministrator\tSmoke Test (API client)\tNot yours to decide",
+          "forbidden: You are not allowed to access 'Location' (generic.location) records. This operation is allowed for the following groups: - Generic location manager - Generic location user (implicit) Contact your administrator to request access if necessary."
+        ]
+      },
+      "station-lookup": {
+        "texts": [
+          "scope: assets:read dashboards:read identity:read locations:read requests:read requests:write tagging:write · 59m left",
+          "NRS-GEN-5989\tpytest-tagrepl-reject-1790879030-5e23c7c4\tLost / Missing\tAdministrator\tSmoke Test (API client)\tNot yours to decide",
+          "NRS-GEN-5760\tpytest-tagrepl-reject-1790875541-5d9e37dc\tLost / Missing\tAdministrator\tSmoke Test (API client)\tNot yours to decide",
+          "NRS-GEN-5561\tpytest-tagrepl-reject-1790869924-d875ab2c\tLost / Missing\tAdministrator\tSmoke Test (API client)\tNot yours to decide",
+          "NRS-GEN-5488\tpytest-tagrepl-reject-1790869645-21cbed58\tLost / Missing\tAdministrator\tSmoke Test (API client)\tNot yours to decide",
+          "forbidden: You are not allowed to access 'Location' (generic.location) records. This operation is allowed for the following groups: - Generic location manager - Generic location user (implicit) Contact your administrator to request access if necessary."
+        ]
+      },
+      "station-confirm-open": {
+        "texts": [
+          "scope: assets:read dashboards:read identity:read locations:read requests:read requests:write tagging:write · 59m left",
+          "NRS-GEN-5989\tpytest-tagrepl-reject-1790879030-5e23c7c4\tLost / Missing\tAdministrator\tSmoke Test (API client)\tNot yours to decide",
+          "NRS-GEN-5760\tpytest-tagrepl-reject-1790875541-5d9e37dc\tLost / Missing\tAdministrator\tSmoke Test (API client)\tNot yours to decide",
+          "NRS-GEN-5561\tpytest-tagrepl-reject-1790869924-d875ab2c\tLost / Missing\tAdministrator\tSmoke Test (API client)\tNot yours to decide",
+          "NRS-GEN-5488\tpytest-tagrepl-reject-1790869645-21cbed58\tLost / Missing\tAdministrator\tSmoke Test (API client)\tNot yours to decide",
+          "forbidden: You are not allowed to access 'Location' (generic.location) records. This operation is allowed for the following groups: - Generic location manager - Generic location user (implicit) Contact your administrator to request access if necessary."
+        ],
+        "dialog": 1
+      },
+      "assets-list": {
+        "texts": [
+          "scope: assets:read dashboards:read identity:read locations:read requests:read requests:write tagging:write · 59m left",
+          "E2E-1790879563348-6396 MissingNoReason",
+          "E2E-1790879359338-4614 FlowMissing",
+          "Missing",
+          "E2E-1790879359338-4614 MissingNoNative",
+          "Missing",
+          "E2E-1790879359338-4614 Missing",
+          "Missing",
+          "Missing"
+        ]
+      },
+      "asset": {
+        "texts": [
+          "scope: assets:read dashboards:read identity:read locations:read requests:read requests:write tagging:write · 59m left",
+          "Mark missing"
+        ]
+      }
+    },
+    "calls": [
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/brand",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/auth/whoami",
+        "status": 401,
+        "body": {
+          "code": "unauthorized",
+          "message": "Invalid token",
+          "details": {
+            "http_status": 401
+          }
+        }
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/approvals?state=pending&waiting_on_me=true&limit=1",
+        "status": 401,
+        "body": {
+          "code": "unauthorized",
+          "message": "Invalid token",
+          "details": {
+            "http_status": 401
+          }
+        }
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/brand",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "POST",
+        "path": "/api/v1/auth/login",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/auth/whoami",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/assets?limit=1",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/approvals?state=pending&waiting_on_me=true&limit=1",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/locations?limit=1",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/identity/employees?limit=1",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/assets?state=active&is_verified=false&sort=newest&limit=200",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/dashboard/kpis",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/assets?state=active&limit=1",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/assets?is_verified=false&state=active&limit=1",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/assets?sap_reconciliation_state=exception&state=active&limit=1",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/assets?sap_reconciliation_state=exception&is_verified=false&state=active&limit=1",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/auth/whoami",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/dashboard/map",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/assets?limit=1",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "login",
+        "method": "GET",
+        "path": "/api/v1/assets?state=active&is_verified=false&sap_reconciliation_state=exception&limit=1",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "station",
+        "method": "GET",
+        "path": "/api/v1/brand",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "station",
+        "method": "GET",
+        "path": "/api/v1/approvals?state=pending&waiting_on_me=true&limit=1",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "station",
+        "method": "GET",
+        "path": "/api/v1/auth/whoami",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "station",
+        "method": "GET",
+        "path": "/api/v1/meta/enums",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "station",
+        "method": "GET",
+        "path": "/api/v1/tags/pending-replacements?limit=100",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "station",
+        "method": "GET",
+        "path": "/api/v1/barcode/recent-tags?limit=200",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "You are not allowed to access 'Location' (generic.location) records.\n\nThis operation is allowed for the following groups:\n\t- Generic location manager\n\t- Generic location user (implicit)\n\nContact your administrator to request access if necessary.",
+          "details": {
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "station",
+        "method": "GET",
+        "path": "/api/v1/barcode/kpis",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "station",
+        "method": "GET",
+        "path": "/api/v1/barcode/untagged?limit=200",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "station",
+        "method": "GET",
+        "path": "/api/v1/barcode/recent-tags?limit=200",
+        "status": 403,
+        "body": {
+          "code": "forbidden",
+          "message": "You are not allowed to access 'Location' (generic.location) records.\n\nThis operation is allowed for the following groups:\n\t- Generic location manager\n\t- Generic location user (implicit)\n\nContact your administrator to request access if necessary.",
+          "details": {
+            "http_status": 403
+          }
+        }
+      },
+      {
+        "step": "station-lookup",
+        "method": "GET",
+        "path": "/api/v1/barcode/lookup?query=NRS-ACS-820",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "station-lookup",
+        "method": "GET",
+        "path": "/api/v1/assets/66032",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "assets-list",
+        "method": "GET",
+        "path": "/api/v1/brand",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "assets-list",
+        "method": "GET",
+        "path": "/api/v1/approvals?state=pending&waiting_on_me=true&limit=1",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "assets-list",
+        "method": "GET",
+        "path": "/api/v1/auth/whoami",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "assets-list",
+        "method": "GET",
+        "path": "/api/v1/assets?sort=newest&limit=200",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "asset",
+        "method": "GET",
+        "path": "/api/v1/brand",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "asset",
+        "method": "GET",
+        "path": "/api/v1/approvals?state=pending&waiting_on_me=true&limit=1",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "asset",
+        "method": "GET",
+        "path": "/api/v1/auth/whoami",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "asset",
+        "method": "GET",
+        "path": "/api/v1/approvals?asset_id=66032&state=pending&limit=1",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "asset",
+        "method": "GET",
+        "path": "/api/v1/assets/66032",
+        "status": 200,
+        "body": "ok"
+      },
+      {
+        "step": "asset",
+        "method": "GET",
+        "path": "/api/v1/settings/approvals",
+        "status": 200,
+        "body": "ok"
+      }
+    ]
+  }
+}

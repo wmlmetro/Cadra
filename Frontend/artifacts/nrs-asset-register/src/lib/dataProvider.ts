@@ -2447,3 +2447,97 @@ export const approveChangeRequest  = (id: number, reason?: string) => decide(id,
  *  and they will simply ask again. */
 export const rejectChangeRequest   = (id: number, reason: string)  => decide(id, "reject", reason);
 export const withdrawChangeRequest = (id: number, reason?: string) => decide(id, "withdraw", reason);
+
+// ─── ADMINISTRATION — who has what (handoff 41) ──────────────────────────────
+// Reads only. The three routes scope `admin`; the report scopes
+// `identity:read`, which the admin wildcard covers. When there is no live
+// session every fetcher answers empty rather than mock — there is no mock
+// roster, and a page that invented one would be the "confident wrong answer
+// about access" the handoff names as worse than no screen.
+
+import type {
+  AdminRole, AdminUser, AccessChangeReport,
+} from "../types";
+
+export async function fetchRoles(): Promise<AdminRole[]> {
+  if (!apiConfigured) return [];
+  const res = await apiGet<AdminRole[]>("/api/v1/roles");
+  return res.data;
+}
+
+export interface UserFilters {
+  /** Server-side search over name / login / email. */
+  q?: string;
+  /** Filters on EFFECTIVE membership — a role held by implication counts. */
+  role?: string;
+  /** Filters on DIRECT membership only. */
+  role_direct?: string;
+  /** `"true"` / `"false"`, or omitted for both. */
+  active?: "true" | "false";
+  is_api_client?: "true" | "false";
+}
+
+export interface UsersPage {
+  users: AdminUser[];
+  nextCursor: string | null;
+  totalEstimate: number | null;
+}
+
+export async function fetchUsersPage(
+  cursor: string | undefined,
+  f?: UserFilters,
+): Promise<UsersPage> {
+  if (!apiConfigured) return { users: [], nextCursor: null, totalEstimate: 0 };
+  const res = await apiGet<AdminUser[]>("/api/v1/users", {
+    q: f?.q || undefined,
+    role: f?.role || undefined,
+    role_direct: f?.role_direct || undefined,
+    active: f?.active,
+    is_api_client: f?.is_api_client,
+    limit: 100,
+    cursor,
+  });
+  return {
+    users: res.data,
+    nextCursor: res.pagination?.next_cursor ?? null,
+    totalEstimate: res.pagination?.total_estimate ?? null,
+  };
+}
+
+/** 404s (as `CadraApiError`) for an id nobody has. */
+export async function fetchUser(id: number | string): Promise<AdminUser> {
+  if (!apiConfigured) throw new Error("No active session");
+  const res = await apiGet<AdminUser>(`/api/v1/users/${id}`);
+  return res.data;
+}
+
+export interface AccessChangesPage {
+  report: AccessChangeReport;
+  nextCursor: string | null;
+  totalEstimate: number | null;
+}
+
+/**
+ * One page of the access-changes report. A page is a window of ACCOUNTS in
+ * ascending id — `events` and `roster` describe the same accounts — and
+ * `summary` / `fidelity` describe the whole period on every page, so the
+ * caller reads them off the first page and walks the cursor for the rows.
+ * `from` and `to` are required by the route, `YYYY-MM-DD`, both inclusive.
+ */
+export async function fetchAccessChanges(
+  from: string,
+  to: string,
+  cursor?: string,
+): Promise<AccessChangesPage> {
+  if (!apiConfigured) {
+    throw new Error("No active session");
+  }
+  const res = await apiGet<AccessChangeReport>("/api/v1/reports/access-changes", {
+    from, to, limit: 100, cursor,
+  });
+  return {
+    report: res.data,
+    nextCursor: res.pagination?.next_cursor ?? null,
+    totalEstimate: res.pagination?.total_estimate ?? null,
+  };
+}

@@ -193,6 +193,13 @@ INVENTORY = {
     ("v1_fleet", "state_id"): ("int", ""),
     ("v1_fleet", "fuel_type"): ("enum", ""),
     ("v1_fleet", "is_staff_bus"): ("bool", ""),
+
+    # ── v1_users.py — handoff 41, who has what ────────────────────────
+    ("v1_users", "q"): ("text", "free-text across name, login and email; the set is the tenant's user list itself"),
+    ("v1_users", "role"): ("enum", ""),
+    ("v1_users", "role_direct"): ("enum", ""),
+    ("v1_users", "active"): ("bool", ""),
+    ("v1_users", "is_api_client"): ("bool", ""),
 }
 
 #: Pagination is shared by every list route and validated once, in

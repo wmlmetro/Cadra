@@ -66,4 +66,6 @@ export const SCOPE = {
   approvalsWrite: "approvals:write",
   dashboardsRead: "dashboards:read",
   identityRead: "identity:read",
+  /** The wildcard. Pages under Administration require it (handoff 41). */
+  admin: "admin",
 } as const;

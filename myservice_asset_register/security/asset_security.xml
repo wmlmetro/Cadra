@@ -6,13 +6,61 @@
             <field name="sequence">35</field>
         </record>
 
+        <!--
+            WHY THESE TWO RECORDS EXIST (handoff 41).
+
+            On Odoo 19 a group is placed on the user form through a
+            `res.groups.privilege`, not through `category_id` — `res.groups`
+            no longer has that field at all. The form widget
+            (`web/static/src/webclient/res_user_group_ids_field/`) renders one
+            SELECTION per privilege, listing that privilege's groups as
+            mutually exclusive options under a "No" placeholder, grouped by
+            the privilege's category. A group with NO privilege is rendered
+            only under "Extra Rights", and only when developer mode is on —
+            which is exactly how the owner found these three: invisible on
+            every user form, assignable only from the Groups menu in debug.
+
+            So the category above was empty for the whole life of the module,
+            and the fix is two privileges, not one:
+
+            * "Asset Register" holds Asset User and Asset Manager. They are
+              one choice — Manager implies User — so a selection is the
+              right control, and the widget orders them by implication.
+            * "Tag Issuing" holds the Tag-Issuing Unit ALONE. If it sat in
+              the same privilege as the other two, the form could not give
+              one person Asset User AND Tag-Issuing Unit, because a privilege
+              is a single selection — and that pairing is how a human tagger
+              is provisioned (see the comment on the group below, and
+              `docs/DECISIONS.md`, 2026-10-01, handoff 41).
+
+            This is DISPLAY GROUPING ONLY. A privilege creates no implication
+            and no access rule; the Tag-Issuing Unit stays implied by nothing
+            and implying nothing. Do not "tidy" the two privileges into one.
+        -->
+        <record id="privilege_asset_register" model="res.groups.privilege">
+            <field name="name">Asset Register</field>
+            <field name="sequence">10</field>
+            <field name="category_id" ref="module_category_nrs_assets"/>
+            <field name="description">What this person may do in the asset register.</field>
+        </record>
+        <record id="privilege_tag_issuing" model="res.groups.privilege">
+            <field name="name">Tag Issuing</field>
+            <field name="sequence">20</field>
+            <field name="category_id" ref="module_category_nrs_assets"/>
+            <field name="description">Whether this person may confirm that a printed label is physically on the asset it names. Separate from the register role on purpose: pair it with Asset User for a human tagger.</field>
+        </record>
+
         <record id="group_asset_user" model="res.groups">
             <field name="name">Asset User</field>
+            <field name="privilege_id" ref="privilege_asset_register"/>
+            <field name="sequence">10</field>
             <field name="comment">Can view assets, log verifications, raise requests.</field>
         </record>
 
         <record id="group_asset_manager" model="res.groups">
             <field name="name">Asset Manager</field>
+            <field name="privilege_id" ref="privilege_asset_register"/>
+            <field name="sequence">20</field>
             <field name="implied_ids" eval="[(4, ref('group_asset_user'))]"/>
             <field name="comment">Full access — create, edit, transfer, dispose, manage PM schedules.</field>
         </record>
@@ -28,9 +76,20 @@
 
             Kept out of `implied_ids` in BOTH directions on purpose — do not
             "tidy" this by hanging it under Asset Manager.
+
+            A HUMAN in this group holds it alongside Asset User. The group
+            grants the `tagging:write` scope and no `ir.model.access` row,
+            which is complete for the API credential it was built for (every
+            route runs sudo(), the scope is the gate) and incomplete for a
+            person, who also needs to read the register they are tagging.
+            Handoff 41 drove the station as a user holding ONLY this group
+            and chose to document the pairing rather than add a read rule
+            that would duplicate what Asset User already says — the reasons
+            are in `docs/DECISIONS.md` (2026-10-01, handoff 41).
         -->
         <record id="group_tag_issuing_unit" model="res.groups">
             <field name="name">Tag-Issuing Unit</field>
+            <field name="privilege_id" ref="privilege_tag_issuing"/>
             <field name="comment">Confirms a printed label is physically affixed to the asset it names (INT-04/05). Grants the `tagging:write` API scope and nothing else. Independent of Asset Manager by design.</field>
         </record>
     </data>

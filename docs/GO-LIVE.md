@@ -1481,3 +1481,80 @@ written, because how a thing stood is part of the record.
    promises. **A test that only passes because of the data it happens to
    meet is a test of the tenant, not of the route**, and there is no guard
    against the next one.
+
+## 18 · Handoff 41 — who has what, 2026-10-01
+
+The first of three on people and access. It adds no way to change anything;
+42 is granting and removing, 43 is creating and deactivating. What it found
+is here; what it built is in `docs/STATUS.md`.
+
+### 18.1 · What it closed — `[landed, keep it that way]`
+
+- **The three register groups and the Auditor are on the user form**, under
+  *NRS Asset Register*, as *Asset Register* (User / Manager), *Tag Issuing*
+  and *Audit* — three `res.groups.privilege` records, because on Odoo 19 a
+  group with no privilege is shown only under *Extra Rights* and only in
+  developer mode. Screenshot: `docs/handoffs/41-evidence/01-user-form-after-privileges.png`.
+- **The four `/barcode/*` reads run under sudo** like every other v1 route.
+  Until now they read as the token's user, and a person holding Asset User +
+  Tag-Issuing Unit got `403 … not allowed to access 'Location'` on *Recent
+  tags* from a station every other control of which worked
+  (`docs/handoffs/41-evidence/03-station-paired-before-sudo-fix.png`).
+- **`GET /api/v1/users`, `/users/<id>`, `/roles`** — admin-scoped reads, and
+  the *Users* and *Access changes* pages under a new *Administration* nav
+  group, with no control that changes anything.
+
+### 18.2 · Found — `[open]` unless it says otherwise
+
+- **Seven first-party groups are still invisible on the user form** for the
+  same reason the three were: `myservice_security.group_security_officer`,
+  `group_security_manager`, `group_security_admin`,
+  `myservice_staff_bus.group_bus_user`, `group_bus_manager`,
+  `myservice_workflow.group_workflow_admin`,
+  `myservice_identity.group_identity_manager` — 7 of the 11 first-party
+  groups on `test19`, none with a `privilege_id`. Two of them
+  (`identity_manager`, `security_officer`, plus `bus_user`) grant API scopes
+  through `GROUP_SCOPES`. Each is one `res.groups.privilege` record in its
+  own module; not done here because the handoff names three and the Auditor
+  is the one widening already taken. `[open]`
+- **Nothing in Cadra refuses a privilege escalation through the API.** Odoo
+  core has exactly two guards on `group_ids`: the user-type groups are
+  disjoint (`_check_disjoint_groups`) and there must remain at least one
+  administrator (`_check_at_least_one_administrator`). Writing `group_ids`
+  needs the *Access Rights* ACL (`base.group_erp_manager`) — and every v1
+  route runs `sudo()`, which does not consult it. So a route that wrote
+  `group_ids` tomorrow would let any `admin`-scoped caller grant
+  `base.group_system` to anybody, including the credential's own user. For a
+  PERSON the `admin` scope is minted only from `base.group_system`, so there
+  is nothing left to escalate to; the exposure is an **API credential with
+  the `admin` scope**, whose user is deliberately NOT a system administrator
+  (`SCOPE_GROUPS` maps `admin` to no group). The access record would write
+  the grant down and refuse nothing. **Handoff 42 has to put the refusal in
+  the model, under every writer**, the way the approval gate and the
+  disposal guard are — and must also decide whether `base.group_system` is
+  grantable over the API at all. `[open]`, for the Architect, with 42.
+- **Mail is configured on no tenant.** 0 of 8 local databases have a row in
+  `ir_mail_server` (`test19 nrs19 cadra19 gtb19 nrs lasg gtb jaizbankplc`,
+  all `outgoing_servers=0`); `mail.catchall.domain` is unset on all 8. The
+  staging deploy workflow wires `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` and a
+  `CADRA_EMAIL_RELAY_URL` as optional variables (`.github/workflows/deploy-dev.yml`
+  lines 26–29, 172–174) — whether the cluster has them set is the owner's
+  to say. So handoff 43 cannot assume an invitation email will be delivered,
+  and a design that sets a password has to find a way to hand it over that is
+  not a document. `[open]`, decides 43's design.
+- **`auth_signup` is installed on all 8 tenants** (`ir_module_module.state =
+  installed`), with `auth_signup.invitation_scope = b2c` and
+  `auth_signup.reset_password = True` everywhere. Its
+  `_create_user_from_template` is a `copy()` of `base.default_user`
+  (groups cloned, never in `vals`), which `access_recorder.py`'s `create`
+  hook already diffs correctly. 43 can create people through it; the
+  invitation it sends needs the mail above. `[verified]`
+- **The access record's `group_name` snapshot changed shape on 2026-10-01.**
+  `res.groups.full_name` prefixes the privilege, so rows written from now
+  on read *Asset Register / Asset Manager* where earlier rows read *Asset
+  Manager*. A reader grouping by that column across the boundary sees two
+  labels for one group; `group_id` is unchanged. `[verified]`, not a defect.
+- **The barcode wrapper fix touched `v1.py` while another agent owned its
+  schema block.** Verified after the fact by diff rather than prevented by
+  partition — the rule in `CLAUDE.md` was broken and the breach is recorded
+  here so it is not repeated. `[verified]`

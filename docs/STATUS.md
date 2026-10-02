@@ -598,3 +598,90 @@ station's five tiles count none of these states — they read 6,348 / 6,332 /
 24 / 16 / 24 before and after the confirmation in the screenshots — so "the
 counters follow" is query invalidation that changes nothing visible today.
 No schema change.
+
+## 41 — Who has what (2026-10-01)
+
+**Built.** Read only, end to end, and the first of three on people. On the
+server: three `res.groups.privilege` records so the register groups and the
+Auditor reach the Odoo 19 user form (`asset_security.xml`, `api_groups.xml`);
+`GET /api/v1/users`, `/users/<id>` and `/roles` (`controllers/v1_users.py`,
+`myservice_api` 19.0.3.15.0); and the four `/barcode/*` wrappers delegating
+under sudo (`_delegate_reads_as_superuser`, `v1.py`). In the app: an
+*Administration* nav group holding *Users* (`/admin/users`, deep link
+`/admin/users/:id`) and *Access changes* (`/admin/access-changes?user_id=`),
+both admin-scoped, both with no control that changes anything. Nothing in
+this handoff writes membership; the in-registry suite counts the access
+record, the membership relation and the implication relation before and
+after every route and filter and asserts none moved.
+
+**The two defects, and what each really was.**
+
+*The groups were invisible.* Not because `category_id` was unset — `res.groups`
+has no `category_id` on 19. A group reaches the user form through a
+`res.groups.privilege`, rendered as one SELECTION per privilege; a group with
+no privilege is shown only under *Extra Rights* and only in developer mode.
+11 of 11 first-party groups on `test19` had none. Two privileges, not one:
+*Asset Register* (User / Manager, one choice) and *Tag Issuing* (the
+Tag-Issuing Unit alone), because a privilege's groups are mutually exclusive
+on the form and a human tagger holds Asset User AND Tag-Issuing Unit. The
+Auditor got *Audit*. The seven other groups are `docs/GO-LIVE.md` §18.2.
+Screenshot: `docs/handoffs/41-evidence/01-user-form-after-privileges.png`.
+
+*The refusal.* Driven, as a person holding ONLY the Tag-Issuing Unit
+(`h41_tagger`, token scope `tagging:write`): on the station, every read
+refused at the SCOPE gate — `/tags/pending-replacements`,
+`/barcode/untagged`, `/barcode/recent-tags`, `/barcode/kpis` on load,
+`/barcode/lookup` on scan, each `403 forbidden: Missing required scope(s):
+assets:read`; no scan card, no *Confirm affixed*. No access rule grants a
+scope, so the `ir.model.access` row the handoff weighed would have changed
+none of it. With Asset User beside it (`h41_tagger_paired`) the station
+loads and the scan resolves — and ONE read still refused: `/barcode/recent-tags`
+→ `403 forbidden: You are not allowed to access 'Location' (generic.location)
+records…`. Four barcode wrappers read as the token's user where every other
+route reads under sudo; the owner's sentence (*'Asset Barcode Tag'*) is the
+same defect for a user holding `assets:read` through a group with no rule on
+the tag model. Fixed in one helper. After it: 0 refusals for the paired
+tagger across login, station, lookup, dialog, register and asset page
+(`41-evidence/drive-after-fix.json`: 40 API calls, 0 of them 403, the only
+two non-2xx being the pre-login 401 probes every session makes; before the
+fix the same drive had 2 of 41 at 403).
+
+**The read API, and the trap it was written around.** `roles_direct` is
+`group_ids` ∩ vocabulary, `roles_effective` is `all_group_ids` ∩ vocabulary
+— on `test19`, `h41_manager` reads direct `[asset_manager]`, effective
+`[asset_user, asset_manager]`; `admin` reads direct `[system, asset_manager]`,
+effective `[system, asset_user, asset_manager, security_officer]`, the last
+arriving through Security Administrator, a group outside the vocabulary — so an
+effective role can come from a group the row does not name. The vocabulary
+and the scopes per role are `GROUP_SCOPES` re-expressed (`/roles`), and the
+HTTP suite recomputes every person's `scopes` from `/roles` × `roles_effective`.
+`?role=` filters on `all_group_ids`, which is searchable on 19
+(`_search_all_group_ids` → `group_ids.all_implied_ids`); proved live:
+`?role=asset_user` returns `h41_manager`, `?role_direct=asset_user` does not.
+An API credential's `scopes` are the credential's own (`scopes_source:
+"credential"`).
+
+**The screen leads with direct.** What somebody granted is what handoff 42
+will act on; the implied roles are rendered beside them as lighter, dashed
+pills marked *implied*, and the scopes block is derived from the effective
+set in plain words. The role filter is on EFFECTIVE membership (*Can act
+as*) and the page says so under the table.
+
+**The access-changes link.** The report existed as a route and nowhere in
+the app; `/admin/access-changes` renders it for a period (auto-walking the
+cursor, because the report pages by account id and a filtered person may be
+on any page) and filters client-side by `user_id`. No new data.
+
+**Proved.** Playwright `e2e/tests/41-who-has-what.spec.ts`: 6 of 6 on
+`test19`, including the absence proof (every button on both pages fails the
+change-word regex; the only inputs are one search and two dates). The spec's
+first run skipped its inactive-filter test on a tenant that HAS an inactive
+account — it read an empty table mid-refetch as "none" — and its second run
+counted zero events for a person with two, in the gap between request and
+render; both races fixed in the spec, neither in the page.
+
+**Found, for 42 and 43** (`docs/GO-LIVE.md` §18.2): nothing in Cadra refuses
+a privilege escalation over the API — Odoo core guards only the disjoint
+user-type groups and the last administrator, and every v1 route is sudo;
+mail is configured on 0 of 8 local tenants; `auth_signup` is installed on
+8 of 8.
