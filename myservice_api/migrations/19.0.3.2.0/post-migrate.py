@@ -38,7 +38,6 @@ def migrate(cr, version):
 
     env = api.Environment(cr, SUPERUSER_ID, {})
     admin = env.ref("base.user_admin")
-    system_group = env.ref("base.group_system")
     Client = env["myservice.api.client"].sudo()
     Token = env["myservice.api.refresh_token"].sudo()
 
@@ -50,23 +49,21 @@ def migrate(cr, version):
         _logger.info("myservice_api: no API client is still running as admin")
         return
 
-    groups_field = ("group_ids" if "group_ids" in env["res.users"]._fields
-                    else "groups_id")
 
     for client in clients:
         user = client._provision_client_user(
             client.client_id, client.name, client.scopes)
-        # A client holding the `admin` wildcard keeps the access it already
-        # had — the few controller reads that do not sudo() would otherwise
-        # start failing on a client whose token still says `admin`. This
-        # grants nothing new; it stops the change from being a silent
-        # narrowing dressed up as an audit fix.
-        # Token match, not substring: `scopes` is a space-separated list and
-        # `"*" in "assets:read"` is the kind of check that quietly grants a
-        # wildcard to something that merely contains the character.
-        scopes = (client.scopes or "").split()
-        if "admin" in scopes or "*" in scopes:
-            user.write({groups_field: [(4, system_group.id)]})
+        # NO `base.group_system`, whatever the scopes (handoff 44). This
+        # migration used to grant it to a client holding `admin` or `*`, so
+        # that "the few controller reads that do not sudo()" kept working —
+        # they had all sudo()'d since handoff 09, and handoff 44 drove an
+        # `admin` credential without the group through the whole HTTP suite
+        # and every integration leg with nothing failing (report 44 §A). It
+        # is also the grant that made `test_client` a system administrator
+        # on exactly the three local tenants whose credential held `admin`
+        # on 2026-09-07. A database upgraded across this version later — a
+        # 15-era client cut over to 19 — would otherwise mint root again.
+        # What a credential is entitled to: `docs/DECISIONS.md` 2026-10-02.
         client.user_id = user
 
         families = Token.search([

@@ -453,6 +453,7 @@ class ResUsersAccessReport(models.Model):
             for c in self.env['myservice.api.client'].sudo().search(
                 [('user_id', 'in', users.ids)])
             if c.user_id}
+        Change = self.env['myservice.api.access.change']
         events = []
         roster = []
         # Reused by the group-change events below, so the membership shown
@@ -460,10 +461,13 @@ class ResUsersAccessReport(models.Model):
         # the two can never disagree on one page.
         membership = {}
         for user in users:
+            # `_group_label` — the recorder's own namer — so a roster row and
+            # the recorded change beside it name a group identically, the
+            # published alias included (handoff 44 §3).
             member_of = sorted(
-                (user[groups_field] if groups_field else user.browse()
-                 ).mapped('full_name' if 'full_name' in
-                          self.env['res.groups']._fields else 'name'))
+                Change._group_label(g)
+                for g in (user[groups_field] if groups_field
+                          else self.env['res.groups'].browse()))
             membership[user.id] = member_of
             client = clients_by_user.get(user.id)
             roster.append({

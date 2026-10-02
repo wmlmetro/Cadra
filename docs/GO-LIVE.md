@@ -1631,7 +1631,10 @@ is here; what it built is in `docs/STATUS.md`.
   handful of routes that still read as the user, and it is exactly the
   power ruling 1 says a credential must not reach by itself. The guard
   closes the API route to it; the shell still grants it. For the Architect:
-  should bootstrap stop, and what breaks if it does. `[open]`
+  should bootstrap stop, and what breaks if it does. ~~`[open]`~~ —
+  **`[landed]` handoff 44 (§21):** nothing breaks; bootstrap stopped, and
+  the grants already made are the owner's to remove with
+  `scripts/strip_credential_system_group.py`.
 - **The recorder's group-side `write` hook does not watch `implied_by_ids`.**
   Core writes the same relation from the other side; a change through it
   would be an implication change the record misses. The guard refuses it
@@ -1757,4 +1760,68 @@ found is here.
 - **An invitation sent by an integration names the credential as sender**
   (*"this one was sent by Smoke Test (API client)"*). Correct, and odd to
   read; a credential inviting people is not a path NRS will use. `[verified]`
+
+## 21 · Handoff 44 — the credential that is already root, 2026-10-02
+
+### 21.1 · What it closed — `[landed, keep it that way]`
+
+- **An API credential is not a system administrator, and nothing needed it
+  to be.** `base.group_system` stripped from `test19`'s `admin` credential
+  (with the owner script below) and the credential driven: each of the 37
+  calls `44-evidence/drive_credentials.py` makes as that credential answers
+  the same status with and without the group (`test19` has no Vendra or
+  Tag-Issuing Unit credential; those legs were driven on `boot44`), and the HTTP suite as the stripped credential is
+  1,181 passed, 0 failed, 10 skipped of 1,191 — against 1,176 passed, 2
+  failed, 12 skipped of 1,190 with it (the two failures were the suite
+  outgrowing `test19`, fixed here, §21.2). The two skips that disappear are
+  refusals that could not be proved while the credential was root, and
+  now are. Neither `scripts/bootstrap.py` nor the `19.0.3.2.0` migration
+  grants it any more (two sites, the second found by search, both under a
+  source guard); a database
+  bootstrapped from nothing (`boot44`) has 0 of 3 credentials holding it,
+  and INT-03 (Vendra creates, replays exactly) and INT-05 (the Tag-Issuing
+  Unit confirms the label) work end to end, the record naming each.
+- **One name per role.** `models/role_names.py`; the guard's refusal, the
+  access record, the roster, `/users`, `/roles` and the schema all say
+  *System Administrator*.
+
+### 21.2 · Found — `[open]` unless it says otherwise
+
+- **The grants already made are still there.** Locally 3 of 12 API
+  credentials hold `base.group_system`: `test_client` on `cadra19`,
+  `nrs19` and `test19` — all three the `admin`-scoped smoke credential;
+  `test19`'s is now removed. They are exactly the credentials that held
+  `admin` when the `19.0.3.2.0` migration ran on 2026-09-07. Vendra's, the Tag-Issuing Unit's and the two
+  approver credentials hold it on none. The cluster was NOT measured — the
+  Builder's permission layer refuses reads of the cluster's databases. The
+  procedure, per database, is `scripts/strip_credential_system_group.py`:
+  dry run first (it performs every removal in a savepoint and rolls it
+  back, so a refusal shows there and not in the apply), then
+  `CADRA_APPLY=1`. Order: any test database, then a demo, then a client's.
+  What an operator would see if it went wrong: a `403`/`400` naming an Odoo
+  model or group on a call made with that credential — put the group back
+  from *Settings › Users* (`cadra_client_<client_id>`) and report the
+  route. Note that any future change to `ALL_SCOPES` re-syncs every client
+  user's groups wholesale on the next bootstrap, which would remove the
+  group silently; running the script first keeps the removal on the
+  record with a log. `[open]`, owner.
+- **`test19`'s smoke credential lacks `settings:read`/`settings:write`**,
+  which a fresh bootstrap gives it (`boot44`). The scopes are re-synced
+  only when bootstrap runs, and `test19` has not been re-bootstrapped since
+  those scopes were added. Harmless for the suite today (it skips nothing
+  for it); named because "the suite's credential holds every scope" is
+  assumed in places. `[open]`
+- **Two audit-report tests had outgrown `test19`.** The access-changes
+  report pages accounts (50 by default) and `test19` holds 61; one test
+  compared the whole period's count with one page (198 vs 170), the other
+  gave the cursor walk a fixed 60-page budget. Both now walk the report.
+  The report was right throughout. `[landed]`
+- **The routes of handoffs 41, 42 and 43 are live on the cluster.** An
+  unauthenticated `GET /api/v1/roles`, `GET /api/v1/users` and `POST
+  /api/v1/users/1/{roles,invite,deactivate}` answer the JSON `401
+  unauthorized` envelope on `staging.app.cadra.ng`, `jaizbankplc`, `lasg`
+  and `gtb`, where a route that does not exist answers Odoo's HTML 404 on
+  the same hosts. So report 42's worry about a cached image does not
+  describe today: whatever ran `upgrade-19` last (five successful runs on
+  2026-10-02) put the code there. `[verified]`
 

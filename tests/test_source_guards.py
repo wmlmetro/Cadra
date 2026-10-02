@@ -5862,3 +5862,64 @@ def test_no_controller_reports_a_refused_field_beside_a_success():
     assert len(callers) >= 4, (
         "only %s call `refuse_unwritable`; the four controllers that hold "
         "the ten routes all did" % callers)
+
+
+# ─── one name per role (handoff 44 §3) ───────────────────────────────
+
+def test_a_role_alias_is_chosen_in_one_place():
+    """`base.group_system` is published as *System Administrator* by
+    `models/role_names.py` and by nothing else.
+
+    The alias used to live in `controllers/v1_users.py`, which the guard in
+    `models/access_guard.py` cannot import, so the guard named the same group
+    by Odoo's `full_name` — *Role / Administrator* — in the same response
+    stream (report 42 §F.5). A second alias table is how that comes back: a
+    mapping keyed on a group xmlid anywhere else in first-party code fails
+    here, naming the file.
+    """
+    pattern = re.compile(r'["\']base\.group_\w+["\']\s*:\s*["\']')
+    owner = REPO_ROOT / "myservice_api/models/role_names.py"
+    offenders = []
+    for path in _first_party_python_files():
+        if "/tests/" in str(path) or path == owner:
+            continue
+        for lineno, line in enumerate(
+                path.read_text(encoding="utf-8").splitlines(), 1):
+            if pattern.search(line):
+                offenders.append("%s:%d" % (path.relative_to(REPO_ROOT), lineno))
+    assert not offenders, (
+        "A role's published name is chosen in myservice_api/models/"
+        "role_names.py and read everywhere else; these define another: "
+        + ", ".join(offenders))
+    assert pattern.search(owner.read_text(encoding="utf-8")), (
+        "role_names.py no longer maps base.group_system to a published name "
+        "— this guard is now checking nothing")
+
+
+def test_no_provisioning_path_grants_a_credential_system_administrator():
+    """Handoff 44: an API credential's user never holds `base.group_system`.
+
+    Two places granted it, and the handoff's first search found one:
+    `scripts/bootstrap.py::ensure_test_client`, on every run, and the
+    `19.0.3.2.0` migration that gave each credential its own user, to any
+    client holding `admin`. Both said it kept "the few controller reads that
+    do not sudo()" working; there were none left (report 44 §A). This fails
+    on a `(4, …)` membership write naming the system group in bootstrap or
+    in any first-party migration — the shapes both grants had.
+    """
+    grant = re.compile(r"\(\s*4\s*,[^)]*(group_system|system_group)")
+    paths = [REPO_ROOT / "scripts/bootstrap.py"]
+    for glob in FIRST_PARTY_GLOBS:
+        paths += sorted(REPO_ROOT.glob(glob + "/migrations/**/*.py"))
+    assert len(paths) > 1, "found no migrations to check — the glob is wrong"
+    offenders = []
+    for path in paths:
+        for lineno, line in enumerate(
+                path.read_text(encoding="utf-8").splitlines(), 1):
+            if grant.search(line):
+                offenders.append("%s:%d" % (path.relative_to(REPO_ROOT), lineno))
+    assert not offenders, (
+        "These grant base.group_system to a user in a provisioning path. An "
+        "API credential's power is its scopes; its user holds "
+        "groups_for_scopes(scopes) and never the system group "
+        "(docs/DECISIONS.md 2026-10-02): " + ", ".join(offenders))

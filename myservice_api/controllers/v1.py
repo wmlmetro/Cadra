@@ -2247,8 +2247,11 @@ class MyserviceApiV1(http.Controller):
                             "still listed so a consumer can tell a role the "
                             "tenant lacks from a key that does not exist. "
                             "`base.group_system` is published as 'System "
-                            "Administrator' — Odoo's own name for it is "
-                            "'Settings', which means nothing to NRS."),
+                            "Administrator' — Odoo 19's own name for it is "
+                            "'Role / Administrator', which does not say it "
+                            "is the omnipotent role. The same name is said "
+                            "by every refusal that names the group and by "
+                            "the access-change record from 2026-10-02."),
                         "properties": {
                             "key": {"type": "string",
                                     "description": "Stable key: the xmlid's tail with `group_` removed"},

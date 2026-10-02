@@ -113,11 +113,12 @@ role produces which scope; `tests/test_users.py` asserts that every person's
 `scopes` is exactly the union over `/roles` of their `roles_effective`,
 which is the drift check for this file and for the login route together.
 
-The one name this module chooses rather than reads is `base.group_system`,
-published as "System Administrator": Odoo calls the group "Settings" (and
-its `full_name` "Administration / Settings"), which means nothing to NRS
-and reads as a permission over a settings page rather than as the
-omnipotent role it is.
+The one name chosen rather than read is `base.group_system`, published as
+"System Administrator": Odoo 19 calls the group "Role / Administrator" (15
+called it "Settings"), neither of which says it is the omnipotent role. The
+alias lives in `models/role_names.py`, not here, because the guard and the
+access-change record say the same name and a model cannot import a
+controller — which is how they came to say a different one (report 42 §F.5).
 
 
 WHAT IS DELIBERATELY LEFT OUT
@@ -151,6 +152,10 @@ from odoo.addons.base.models.ir_mail_server import MailDeliveryException
 from ..models.audit_access import _STRUCTURAL_LOGINS
 # ONE constant, two readers: the model refuses on it, `/roles` publishes it.
 from ..models.access_guard import API_GRANTABLE_XMLIDS
+# ONE alias table, three readers: these routes, the guard's refusal and the
+# access-change record (handoff 44 §3 — it lived here, and the guard said
+# Odoo's name for the same group).
+from ..models.role_names import PUBLISHED_ROLE_NAMES
 
 
 # ─── the vocabulary ──────────────────────────────────────────────────
@@ -161,13 +166,6 @@ KIND_API_CREDENTIAL = "api_credential"
 SCOPES_SOURCE_ROLES = "roles"
 SCOPES_SOURCE_CREDENTIAL = "credential"
 
-#: The one place a role's published name is chosen rather than read off the
-#: group record. Odoo's own name for `base.group_system` is "Settings",
-#: which to NRS reads as a permission over a settings page and not as the
-#: omnipotent role `admin` is.
-_PUBLISHED_NAMES = {
-    "base.group_system": "System Administrator",
-}
 
 
 def role_key(xmlid):
@@ -229,7 +227,7 @@ def role_catalogue(env):
                        if other and other.id in closure]
             entry = {
                 "key": key,
-                "name": _PUBLISHED_NAMES.get(xmlid, group.name),
+                "name": PUBLISHED_ROLE_NAMES.get(xmlid, group.name),
                 "xmlid": xmlid,
                 "scopes": sorted(scopes),
                 "description": group.comment or None,
@@ -240,7 +238,7 @@ def role_catalogue(env):
         else:
             entry = {
                 "key": key,
-                "name": _PUBLISHED_NAMES.get(xmlid, _humanise(key)),
+                "name": PUBLISHED_ROLE_NAMES.get(xmlid, _humanise(key)),
                 "xmlid": xmlid,
                 "scopes": sorted(scopes),
                 "description": None,
@@ -341,7 +339,7 @@ def _users_domain(qs, resolved):
 
 
 def _role_ref(key, xmlid, group):
-    return {"key": key, "name": _PUBLISHED_NAMES.get(xmlid, group.name)}
+    return {"key": key, "name": PUBLISHED_ROLE_NAMES.get(xmlid, group.name)}
 
 
 def _iso(value):
