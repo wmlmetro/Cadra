@@ -1,0 +1,22 @@
+[bootstrap: INFO] Cadra bootstrap starting
+[bootstrap: INFO] database marked 'test'
+[bootstrap: INFO] JWT secret generated and stored
+[bootstrap: INFO] CADRA_TURNSTILE_SECRET is empty — leaving Turnstile config as-is
+[bootstrap: INFO] added admin to 'Asset Manager'
+[bootstrap: INFO] admin already in 'Security Administrator'
+[bootstrap: INFO] created API client 'test_client' running as 'cadra_client_test_client'
+[bootstrap: INFO] client_secret generated for 'test_client'
+[bootstrap: INFO] created API client 'tag_issuing_unit' (scopes: tagging:write) running as 'cadra_client_tag_issuing_unit'
+[bootstrap: INFO] client_secret generated for 'tag_issuing_unit'
+[bootstrap: INFO] created API client 'vendra' (scopes: assets:read assets:write) running as 'cadra_client_vendra'
+[bootstrap: INFO] client_secret generated for 'vendra'
+[bootstrap: INFO] SMTP_HOST not set — skipping mail-server setup
+[bootstrap: INFO] CADRA_EMAIL_RELAY_* not set — relay disabled, native SMTP will be used
+[bootstrap: INFO] running seed profile: core
+[bootstrap: INFO]   → ITSM Structure (/mnt/extra-addons/itsm_structure.py)
+[bootstrap: INFO]     ✓ ITSM Structure
+[bootstrap: INFO]   → Location Skeleton (/mnt/extra-addons/load_locations.py)
+[bootstrap: INFO]     ✓ Location Skeleton
+[bootstrap: INFO]   → FIRS Offices (415) (/mnt/extra-addons/load_offices.py)
+[bootstrap: INFO]     ✓ FIRS Offices (415)
+[bootstrap: INFO] Cadra bootstrap complete

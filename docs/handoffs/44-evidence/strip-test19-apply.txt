@@ -1,0 +1,10 @@
+database: test19 · APPLY
+1 API client(s) on this database
+  ✓ test_client              cadra_client_test_client           scopes: admin approvals:write assets:read assets:write dashboards:read identity:read ingestion:write integrations:write locations:read locations:write requests:read requests:write tagging:write webhooks:admin
+1 of 1 client users hold base.group_system directly; 1 removed, 0 refused.
+f|18548
+  id   |  event  |        user_name        |      group_name      |   actor    | attributable |   source   |        create_date        
+-------+---------+-------------------------+----------------------+------------+--------------+------------+---------------------------
+ 18548 | removed | Smoke Test (API client) | System Administrator | __system__ | f            | user_write | 2026-10-02 20:46:36.50326
+(1 row)
+
