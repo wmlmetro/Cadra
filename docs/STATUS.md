@@ -685,3 +685,86 @@ a privilege escalation over the API — Odoo core guards only the disjoint
 user-type groups and the last administrator, and every v1 route is sudo;
 mail is configured on 0 of 8 local tenants; `auth_signup` is installed on
 8 of 8.
+
+## 42 — The grant, and the refusal (2026-10-02)
+
+**Built, in the order the handoff set.** First the line that cannot be
+crossed, in the model: `myservice_api/models/access_guard.py`, two
+`_inherit` classes under every writer of membership the recorder
+enumerated. Over the API — and only over the API — a membership change may
+touch nothing but the four grantable groups (Asset User, Asset Manager,
+Tag-Issuing Unit, Auditor; one constant, read by the guard and by
+`GET /roles` as `grantable`); a caller may remove their own roles and may
+not add one; groups cannot be created, deleted or re-meant; an account
+cannot be deleted. A person created over the API may hold what Odoo gives
+every new internal user (`_default_groups()`) plus the four, so handoff 43
+can create people without loosening it. Then the write: `POST
+/api/v1/users/<id>/roles` (`myservice_api` 19.0.3.16.0), and the *Change
+roles* section on the Users page.
+
+**How the guard tells our API from the system.** `bool(request)` and
+`request.jwt_claims` — set by `require_jwt` on every `@cadra_route` and by
+nothing else. The back office, XML-RPC, `odoo shell` (bootstrap), migrations,
+hooks, security XML on install and upgrade, `auth_signup`'s template copy
+and cron all lack it and are untouched. No context key, deliberately; the
+markers that were considered and rejected are in `docs/DECISIONS.md`.
+Diff-then-raise after `super()`, like the recorder, because `vals` cannot be
+parsed honestly; the `AccessError` rolls the transaction back, recorder
+rows included — the id gaps in `test19`'s access record (17133 → 17137 →
+17140) are the refused writes' rows being rolled back after the sequence
+had moved.
+
+**Driven, verbatim** (`docs/handoffs/42-evidence/drive-refusals.txt`): the
+suite credential, its user first stripped of `base.group_system` through
+the back office so it is what report 41 claimed it was, asking for `system`
+on its own user → `403 forbidden: Over the API only these roles can be
+granted or removed: … 'Role / Administrator' is not one of them…`; the same
+on `h41_manager` → the same sentence; the administrator adding Auditor to
+their own account → `403 forbidden: Nobody grants themselves a role. admin
+asked to add Auditor to their own account; another administrator has to do
+that. Removing your own roles is allowed.`; the administrator removing their
+own Asset Manager → 200, applied, effective loses Asset User; asking for it
+back → refused; a dry run of a grant to `h41_manager` → 200, `applied:
+false`, nothing written; the back office putting both groups back → two
+rows, actor `Administrator`, `changed_by_login admin`, attributable. The
+access record moved on exactly the allowed writes and on none of the
+refused ones (9 → 10 → 10 → 10 → 10 → 11 → 11 → 13).
+
+**Found by the drive, and corrected.** `scripts/bootstrap.py:509` grants
+`base.group_system` to the user of every credential holding the `admin`
+scope, so report 41's §G sentence — *the credential's user is deliberately
+NOT a system administrator* — was false on every bootstrapped tenant; on
+`test19` the suite credential's user held `Role / Administrator`. The
+guard closes the escalation regardless (the group is not grantable over
+the API whether or not the caller already holds it), and the drive proves
+it on a credential that does not. The first draft of the route subtracted
+the whole vocabulary before applying the desired set, so any change from
+the screen on a row holding a non-grantable role (every administrator's
+own) tried to remove `base.group_system` and was refused for that rather
+than for what was asked; the route now replaces only the grantable four.
+
+**The screen.** One section, hidden for a credential (*A credential's roles
+follow its scopes and are not changed here.*): one checkbox per grantable
+role, implication notes (*Asset Manager also confers Asset User*), Preview
+(a dry run: *Will grant / Will revoke*, roles held and *Can act as* before →
+after), Apply enabled only on a preview whose boxes have not changed since,
+every refusal in the server's sentence. Screenshots in `42-evidence/`.
+
+**Proved.** Playwright 41 (6, the absence proof rewritten to exempt exactly
+the one section) + 42 (4: a grant through the screen read back from the
+report with the admin session's own name as actor, then reverted the same
+way; the self-grant refusal in words with Apply dark; one checkbox per
+grantable role and none for `system`; the credential sentence) — 10 of 10.
+The spec's first run found its own grant "missing": `Date.parse` on the
+report's zoneless UTC `at` reads local time, an hour early in Lagos — the
+bug report 39 fixed in the app, now fixed in the spec. Suites with
+denominators in the report.
+
+**And §5:** the seven remaining first-party groups have privileges —
+Security (Officer / Manager / Administrator, one choice), Staff Bus (User /
+Manager), WorkSpace Integration (its own category), Identity (the register's
+category). 11 of 11.
+
+**Measured ahead of 43.** Anonymous `GET /web/signup` → 404 on all four
+cluster hosts; `/web/login` and `/web/reset_password` → 200. The door is
+shut; why is 43's to say.

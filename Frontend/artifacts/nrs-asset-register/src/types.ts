@@ -656,6 +656,11 @@ export interface AdminRole {
   /** Keys of the roles this one implies — on Odoo 19 implication is computed
    *  at read time and materialises no membership rows. */
   implies: string[];
+  /** Whether `POST /users/<id>/roles` may grant or remove this role (handoff
+   *  42): exactly four are — asset_user, asset_manager, tag_issuing_unit,
+   *  auditor. `system` is never grantable over the API, by ruling. The screen
+   *  draws a control for a grantable role only; the rest have none. */
+  grantable: boolean;
 }
 
 /** `via` is on `roles_effective` only: the account's direct groups (any group, not only roles) that imply this one; empty when held directly. */
@@ -747,4 +752,24 @@ export interface AccessChangeReport {
   fidelity: AccessChangeFidelity;
   events: AccessChangeEvent[];
   roster: AccessChangeRosterRow[];
+}
+
+// ─── ADMINISTRATION — the grant, and the refusal (handoff 42) ────────────────
+
+/**
+ * `data` of `POST /api/v1/users/<id>/roles`, for a dry run and for the real
+ * thing alike — the only difference is `applied`. `roles` sent is the FULL
+ * desired set of DIRECT roles among the grantable ones; whatever the account
+ * holds outside those four is left as it is. `before`/`after` carry the two
+ * lists the user row carries, because direct and effective are different
+ * questions on Odoo 19 and a grant of Asset Manager silently confers Asset
+ * User. `granted`/`revoked` are role keys.
+ */
+export interface RoleChange {
+  user: AdminUser;
+  before: { roles_direct: AdminRoleRef[]; roles_effective: AdminRoleRef[] };
+  after: { roles_direct: AdminRoleRef[]; roles_effective: AdminRoleRef[] };
+  granted: string[];
+  revoked: string[];
+  applied: boolean;
 }

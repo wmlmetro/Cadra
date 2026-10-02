@@ -6,13 +6,32 @@
             <field name="sequence">30</field>
         </record>
 
+        <!--
+            Handoff 42, finishing what 41 started: on Odoo 19 a group reaches
+            the user form only through a `res.groups.privilege` (one SELECTION
+            per privilege, grouped by its category); a group with none is shown
+            only under *Extra Rights* in developer mode. Display grouping only —
+            no implication, no access rule changes. See the comment in
+            `myservice_asset_register/security/asset_security.xml`.
+        -->
+        <record id="privilege_staff_bus" model="res.groups.privilege">
+            <field name="name">Staff Bus</field>
+            <field name="sequence">10</field>
+            <field name="category_id" ref="module_category_staff_bus"/>
+            <field name="description">User sees the staff bus dashboards; Manager runs routes and schedules.</field>
+        </record>
+
         <record id="group_bus_user" model="res.groups">
             <field name="name">Staff Bus User</field>
+            <field name="privilege_id" ref="privilege_staff_bus"/>
+            <field name="sequence">10</field>
             <field name="comment">Can view routes, book seats, and log fuel.</field>
         </record>
 
         <record id="group_bus_manager" model="res.groups">
             <field name="name">Staff Bus Manager</field>
+            <field name="privilege_id" ref="privilege_staff_bus"/>
+            <field name="sequence">20</field>
             <field name="implied_ids" eval="[(4, ref('group_bus_user'))]"/>
             <field name="comment">Full access — routes, schedules, manifests, fuel, compliance.</field>
         </record>

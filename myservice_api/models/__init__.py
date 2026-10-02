@@ -7,5 +7,8 @@ from . import asset_history
 from . import test_fixture
 from . import access_change
 from . import access_recorder
+# AFTER the recorder, so the guard WRAPS it: a refused change is judged on
+# the diff the recorder also sees, and the exception takes its rows back.
+from . import access_guard
 from . import audit_access
 from . import audit_configuration

@@ -1,19 +1,30 @@
 """Who has what — the accounts on this tenant and the access each one holds.
 
-Handoff 41 §4B. Three routes, every one of them a READ:
+Handoff 41 §4B built the reads; handoff 42 §4 added the one write:
 
-    GET /api/v1/roles                 the role vocabulary          admin
-    GET /api/v1/users                 the accounts, paged          admin
-    GET /api/v1/users/<int:user_id>   one account                  admin
+    GET  /api/v1/roles                        the role vocabulary       admin
+    GET  /api/v1/users                        the accounts, paged       admin
+    GET  /api/v1/users/<int:user_id>          one account               admin
+    POST /api/v1/users/<int:user_id>/roles    set an account's roles    admin
 
-**This module adds no writer.** Nothing here touches `group_ids`,
-`user_ids` or `implied_ids`; nothing here creates, writes or unlinks a
-`res.users` or a `res.groups`. The forward record of membership changes
-(`models/access_change.py`) is on the models, not on any route, so the day a
-later handoff adds a writer it is recorded without this file changing — and
-`myservice_api/tests/test_users_endpoint.py` asserts that calling all three
-routes leaves that record, and the membership relation itself, exactly as
-long as it found them.
+**The write is one `(6, 0, ids)` on `res.users.group_ids`, and it decides
+nothing.** What may be granted or removed over the API — only the four
+Cadra roles, never `base.group_system`, never to the caller's own account —
+is refused on the MODEL (`models/access_guard.py`), under every writer of
+membership, because `access_change.py` enumerates six of them and a rule
+in this route would be a rule with five doors round it. The route resolves
+keys to groups, writes, and shows the refusal in the server's own
+sentence as a `403 forbidden`. It deliberately does not pre-check: a
+`system` key reaches the write so that the model's refusal is what the
+caller reads.
+
+The forward record of membership changes (`models/access_change.py`) is on
+the models too, so a grant made here is recorded with no code in this file
+— and `myservice_api/tests/test_access_guard.py` reads the row back and
+asserts the actor is the person whose token made the call, not whatever
+the route ran as. `test_users_endpoint.py` still asserts that the three
+reads leave that record, and the membership relation itself, exactly as
+long as they found them.
 
 
 DIRECT AND EFFECTIVE ARE TWO QUESTIONS, AND ON ODOO 19 THEY HAVE TWO ANSWERS
@@ -100,12 +111,14 @@ from odoo.http import request
 
 from .v1 import cadra_route, PAGINATION_QUERY_PARAMS
 from .utils import (
-    ok, err, get_params, parse_limit, paginate,
+    ok, err, get_params, parse_limit, paginate, refuse_unwritable,
     ERR_INVALID_REQUEST, ERR_NOT_FOUND, SCOPE_ADMIN,
     GROUP_SCOPES, scopes_for_user,
 )
 from .query_params import BadFilter, parse_bool, parse_enum
 from ..models.audit_access import _STRUCTURAL_LOGINS
+# ONE constant, two readers: the model refuses on it, `/roles` publishes it.
+from ..models.access_guard import API_GRANTABLE_XMLIDS
 
 
 # ─── the vocabulary ──────────────────────────────────────────────────
@@ -171,7 +184,9 @@ def role_catalogue(env):
     itself is removed before publication. A role whose group is not
     installed here is still listed, with `installed: false`, so a consumer
     can tell "this tenant does not have the role" from "the role does not
-    exist".
+    exist". `grantable` (handoff 42) is whether `POST /users/<id>/roles`
+    may grant or remove it — read off the model's own constant, so the
+    screen and the refusal cannot disagree.
     """
     resolved = _resolved_roles(env)
     catalogue = []
@@ -188,6 +203,7 @@ def role_catalogue(env):
                 "description": group.comment or None,
                 "installed": True,
                 "implies": implies,
+                "grantable": xmlid in API_GRANTABLE_XMLIDS,
             }
         else:
             entry = {
@@ -198,6 +214,7 @@ def role_catalogue(env):
                 "description": None,
                 "installed": False,
                 "implies": [],
+                "grantable": xmlid in API_GRANTABLE_XMLIDS,
             }
         catalogue.append(entry)
     return catalogue
@@ -299,8 +316,10 @@ def _iso(value):
     return value.isoformat() if value else None
 
 
-def _user_row(user, resolved, client):
-    """One published account. Every key is always present."""
+def _role_lists(user, resolved):
+    """`{"roles_direct": [...], "roles_effective": [...]}` for one account —
+    the two lists every user row carries, and the `before` / `after` of a
+    role change (handoff 42), so a consumer compares like with like."""
     direct_ids = set(user.group_ids.ids)
     effective_ids = set(user.all_group_ids.ids)
 
@@ -324,6 +343,14 @@ def _user_row(user, resolved, client):
                 g.name for g in user.group_ids
                 if g.id != group.id and group.id in g.all_implied_ids.ids)
         roles_effective.append(ref)
+    return {"roles_direct": roles_direct, "roles_effective": roles_effective}
+
+
+def _user_row(user, resolved, client):
+    """One published account. Every key is always present."""
+    lists = _role_lists(user, resolved)
+    roles_direct = lists["roles_direct"]
+    roles_effective = lists["roles_effective"]
 
     if client:
         # The credential's token is minted by `/auth/token` from the client
@@ -363,6 +390,60 @@ def _user_row(user, resolved, client):
         "last_login_at": _iso(user.login_date),
         "created_at": _iso(user.create_date),
     }
+
+
+# ─── the one write ───────────────────────────────────────────────────
+
+#: The body `POST /users/<id>/roles` accepts, and nothing else — a key
+#: outside this is `400 invalid_request` with `details.rejected_fields`
+#: and `details.writable`, and nothing is written (`refuse_unwritable`,
+#: handoff 31). Neither key is a field of any model: `roles` is resolved to
+#: groups and written as `group_ids`, `dry_run` is a savepoint.
+ROLE_CHANGE_BODY_KEYS = ("roles", "dry_run")
+
+#: The four grantable keys, derived from the model's constant through the
+#: same `role_key` every other key here comes from — for the request
+#: schema's description only; the MODEL decides at write time.
+GRANTABLE_ROLE_KEYS = tuple(role_key(x) for x in API_GRANTABLE_XMLIDS)
+
+
+class _DryRun(Exception):
+    """Raised inside the savepoint to roll a previewed change back. Private:
+    nothing outside `set_user_roles` raises or catches it."""
+
+
+_ROLE_CHANGE_REQUEST_SCHEMA = {
+    "type": "object",
+    "required": ["roles"],
+    "additionalProperties": False,
+    "properties": {
+        "roles": {
+            "type": "array",
+            "items": {"type": "string", "enum": list(ROLE_KEYS)},
+            "description": (
+                "The FULL set of DIRECT roles the account should hold "
+                "afterwards, among the vocabulary of `GET /roles` — not a "
+                "delta. A key present here and not held is granted; a key "
+                "held and absent here is revoked; groups outside the "
+                "vocabulary are never touched. Only the roles `/roles` "
+                "marks `grantable` (%s) can be granted or removed over the "
+                "API; naming any other, `system` included, is refused by "
+                "the model with `403 forbidden` and nothing is written — "
+                "as is adding a role to your own account."
+                % ", ".join(GRANTABLE_ROLE_KEYS)),
+        },
+        "dry_run": {
+            "type": "boolean",
+            "default": False,
+            "description": (
+                "`true` previews: the change is computed by Odoo exactly as "
+                "it would be applied — implication included — and rolled "
+                "back, so `after` is what the account WOULD hold and "
+                "`applied` is `false`. A refusal is previewed too: a dry run "
+                "of a change the model refuses is the same `403`."),
+        },
+    },
+}
 
 
 # ─── OpenAPI query parameters ────────────────────────────────────────
@@ -452,3 +533,122 @@ class CadraUsersV1(http.Controller):
         resolved = _resolved_roles(request.env)
         clients = _clients_by_user([user.id])
         return ok(data=_user_row(user, resolved, clients.get(user.id)))
+
+    # ── POST /api/v1/users/<id>/roles ────────────────────────────────
+
+    @cadra_route("/api/v1/users/<int:user_id>/roles", method="POST",
+                 summary="Set the Cadra roles an account holds directly",
+                 scopes=[SCOPE_ADMIN],
+                 idempotent=True,
+                 request_schema=_ROLE_CHANGE_REQUEST_SCHEMA,
+                 request_example={"roles": ["asset_manager",
+                                            "tag_issuing_unit"],
+                                  "dry_run": True},
+                 response_schema={"$ref": "#/components/schemas/RoleChange"},
+                 error_statuses=(403, 404))
+    def set_user_roles(self, user_id, **kwargs):
+        """Grant and revoke, as one `(6, 0, ids)` on the vocabulary subset.
+
+        The body's `roles` is the whole set of DIRECT roles the account
+        should hold AMONG THE GRANTABLE FOUR; the write replaces only those
+        four groups and leaves every other group the account is in —
+        `base.group_user`, a mail or fleet group, AND a vocabulary role
+        that is not grantable (`system`, `identity_manager`, …) — exactly
+        where it was. The first draft subtracted the whole vocabulary, so
+        any change from the screen on an administrator's own row tried to
+        REMOVE `base.group_system` and was refused for that rather than for
+        what was asked; a non-grantable role is never removed here, only
+        ever asked for, and asking is what the model refuses.
+
+        What may be written is NOT decided here. The model refuses a group
+        outside the grantable four and a grant to the caller's own account
+        (`models/access_guard.py`), raising `AccessError`, which the
+        envelope answers as `403 forbidden` with the model's own sentence —
+        and an exception rolls the transaction back, so a refusal writes
+        nothing, access record included. `system` is a valid key on
+        purpose: it reaches the write so that the refusal the caller reads
+        is the model's and not a paraphrase of it.
+
+        `dry_run` runs the SAME write inside a savepoint and rolls it back
+        by raising `_DryRun`, so the preview is exactly what Odoo would
+        compute — implication included, because `after.roles_effective` is
+        read off `all_group_ids` after the write — and a refused change is
+        refused on preview as well. The write runs on the caller's own
+        environment under `sudo()`: `env.uid` stays the token's user, which
+        is who the access record names as the actor and who the self-grant
+        rule compares against.
+        """
+        body = get_params()
+        rejected = [k for k in body if k not in ROLE_CHANGE_BODY_KEYS]
+        if rejected:
+            return refuse_unwritable(rejected, ROLE_CHANGE_BODY_KEYS)
+
+        roles = body.get("roles")
+        if (not isinstance(roles, list)
+                or not all(isinstance(k, str) for k in roles)):
+            return err(ERR_INVALID_REQUEST,
+                       "`roles` must be a list of role keys: the full set "
+                       "of direct roles the account should hold",
+                       details={"field": "roles",
+                                "allowed_values": list(ROLE_KEYS)})
+        unknown = [k for k in roles if k not in ROLE_KEYS]
+        if unknown:
+            return err(ERR_INVALID_REQUEST,
+                       "Unknown role key(s): %s"
+                       % ", ".join("`%s`" % k for k in unknown),
+                       details={"field": "roles",
+                                "rejected_values": unknown,
+                                "allowed_values": list(ROLE_KEYS)})
+        dry_run = body.get("dry_run", False)
+        if not isinstance(dry_run, bool):
+            return err(ERR_INVALID_REQUEST, "`dry_run` must be true or false",
+                       details={"field": "dry_run",
+                                "allowed_values": [True, False]})
+
+        user = _users_model().search(
+            [("id", "=", int(user_id))] + _users_base_domain(), limit=1)
+        if not user:
+            return err(ERR_NOT_FOUND, f"User {user_id} not found", status=404)
+
+        resolved = _resolved_roles(request.env)
+        groups_by_key = {key: group for key, _x, _s, group in resolved}
+        not_installed = [k for k in roles if not groups_by_key[k]]
+        if not_installed:
+            return err(ERR_INVALID_REQUEST,
+                       "This tenant does not have the group behind: %s"
+                       % ", ".join("`%s`" % k for k in not_installed),
+                       details={"field": "roles",
+                                "rejected_values": not_installed,
+                                "allowed_values": [
+                                    k for k, g in groups_by_key.items() if g]})
+
+        grantable_ids = {groups_by_key[k].id for k in GRANTABLE_ROLE_KEYS
+                         if groups_by_key.get(k)}
+        desired_ids = {groups_by_key[k].id for k in roles}
+        current_ids = set(user.group_ids.ids)
+        # Only the grantable four are replaced; a non-grantable key in
+        # `roles` is ADDED (and refused by the model), never subtracted.
+        new_ids = (current_ids - grantable_ids) | desired_ids
+
+        before = _role_lists(user, resolved)
+        clients = _clients_by_user([user.id])
+        try:
+            with request.env.cr.savepoint():
+                user.sudo().write({"group_ids": [(6, 0, sorted(new_ids))]})
+                after = _role_lists(user, resolved)
+                row = _user_row(user, resolved, clients.get(user.id))
+                if dry_run:
+                    raise _DryRun()
+        except _DryRun:
+            pass
+
+        before_keys = [r["key"] for r in before["roles_direct"]]
+        after_keys = [r["key"] for r in after["roles_direct"]]
+        return ok(data={
+            "user": row,
+            "before": before,
+            "after": after,
+            "granted": [k for k in after_keys if k not in before_keys],
+            "revoked": [k for k in before_keys if k not in after_keys],
+            "applied": not dry_run,
+        })
