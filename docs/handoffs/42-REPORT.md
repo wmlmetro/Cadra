@@ -326,4 +326,8 @@ route checks — is 43 §0's question and is not claimed here.
 
 ## Commits
 
-COMMITS_PLACEHOLDER
+| Hash | What |
+|---|---|
+| `8be1c0c` / `e3c0a0b` | docs: handoffs 42 and 43 — the instruction files, on `dev` |
+| `fbcb3d6` | feat: the guard, the route, the screen, the seven privileges, the suites, the docs, the evidence, this report |
+| (next) | docs: report 42 — this file with the hashes filled in |
