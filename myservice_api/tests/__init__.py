@@ -15,3 +15,4 @@ from . import test_append_only_label
 from . import test_published_names_resolve
 from . import test_users_endpoint
 from . import test_access_guard
+from . import test_user_lifecycle

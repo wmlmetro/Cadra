@@ -1574,10 +1574,15 @@ is here; what it built is in `docs/STATUS.md`.
 - **`auth_signup` is installed on all 8 tenants** (`ir_module_module.state =
   installed`), with `auth_signup.invitation_scope = b2c` and
   `auth_signup.reset_password = True` everywhere. Its
-  `_create_user_from_template` is a `copy()` of `base.default_user`
-  (groups cloned, never in `vals`), which `access_recorder.py`'s `create`
-  hook already diffs correctly. 43 can create people through it; the
-  invitation it sends needs the mail above. `[verified]`
+  `_create_user_from_template` is a `copy()` of ~~`base.default_user`~~ —
+  **CORRECTED 2026-10-02 by handoff 43: on Odoo 19 it copies the PORTAL
+  template, `base.template_portal_user_id` (login `portaltemplate`,
+  `base.group_portal`); `base.default_user` does not exist on 19.** So 43
+  did NOT create people through it — such an account would be a share user
+  invisible to `/users`, and the guard refuses `base.group_portal` on an API
+  create anyway. `POST /api/v1/users` is a plain `res.users.create` with
+  `_default_groups()` ∪ the roles asked, which the recorder's `create` hook
+  diffs correctly. `[verified]`, corrected
 - **The access record's `group_name` snapshot changed shape on 2026-10-01.**
   `res.groups.full_name` prefixes the privilege, so rows written from now
   on read *Asset Register / Asset Manager* where earlier rows read *Asset
@@ -1632,3 +1637,109 @@ is here; what it built is in `docs/STATUS.md`.
   would be an implication change the record misses. The guard refuses it
   over the API; the back office could still make one unrecorded. `[open]`,
   for the recorder.
+
+## 20 · Handoff 43 — the person, and the door, 2026-10-02
+
+The last of three on people. What it built is in `docs/STATUS.md`; what it
+found is here.
+
+### 20.1 · What it closed — `[landed, keep it that way]`
+
+- **The front door is shut by code.** `res.users._get_signup_invitation_scope`
+  returns `b2b` on every tenant; anonymous `/web/signup` is a 404 whatever
+  any row says, and the migration set both rows the Settings screen reads to
+  `b2b`. Why it was shut before: §19.2's question, answered — the `website`
+  module's per-site field, `b2b` by default, overrides the parameter; the
+  parameter's `b2c` (8 of 8 local tenants) had never been read.
+- **A person is created, invited, re-invited, deactivated and reactivated
+  over the API and from the Users page**, with the letter in the tenant's
+  brand on the request's host, and every refusal in words. Proved end to
+  end on `test19`: the letter received (Mailpit), the link redeemed, the
+  password set, the API signed into with the roles given, the row reading
+  `redeemed`.
+- **A deactivated account's live token is refused now** (`require_jwt`),
+  not at `exp`. Until this handoff a person deactivated at 09:00 kept the
+  app until their access token ran out.
+- **A deactivated nominee is refused on `/move`, `/transfer-custody` and tag
+  replacement.** The picker hid archived users; the gate did not.
+- **Odoo's *unregistered users* reminder cron is off** on 8 of 8 (and on a
+  fresh install): the third Odoo-branded letter, found by the verification
+  pass.
+- **An anonymous reset cannot choose its link's host.** The first draft
+  took the host from the request for every caller; under `proxy_mode` that
+  is `X-Forwarded-Host`, client-supplied where a proxy does not overwrite
+  it. Authenticated callers only; the dev proxy sets the header itself.
+
+### 20.2 · Found — `[open]` unless it says otherwise
+
+- **The page the letter leads to is still Odoo's.** `/web/signup?token=…`
+  renders *"Sign up login | My Website"* in Odoo's own styling, and so does
+  `/web/reset_password`. The LETTER is the organisation's; the first SCREEN
+  the person sees is not. The sign-up form is core's QWeb (`auth_signup.signup`,
+  `web.login_layout`); rebranding it is a view inheritance in a brand-aware
+  module, not done here because the handoff names the email. `[open]`
+- **The HTTPS relay discards the plain-text part.** `myservice_email_relay`
+  posts `{to_email, to_name, subject, body}` with the first `text/html`
+  part only (its manifest says so). The text alternative this handoff
+  writes — the one a government mail client that strips HTML would show —
+  never reaches a recipient on the cluster. The relay payload has no field
+  for it. `[open]`, relay.
+- **`web.base.url` lacked its port on 8 of 8 local tenants**
+  (`http://<db>.localhost`), because `config/nginx.dev.conf` forwarded
+  `Host $host`. Fixed to `$http_host`; the letters no longer read the
+  parameter inside a request, but anything else that builds an absolute URL
+  from it is wrong on a local tenant until an administrator signs in again.
+  `[verified]`, proxy fixed.
+- **A pending request whose approver is deactivated is stranded, silently.**
+  Measured on `test19` (report 43 §2): request 1426 raised naming
+  `h41_manager`, then `h41_manager` deactivated. The queue row publishes
+  `approver: {id, name}` and nothing about `active`; `/approvals/approvers`
+  no longer lists the person; the requester cannot decide it (self); the
+  only way out is another eligible person deciding it (the `admin` person
+  rejected it) — and the request cannot be re-nominated, because the model
+  refuses every write but a transition. Proposed, for the Architect: publish
+  `approver.active` on the queue row and say *"the approver cannot sign in"*
+  on the screen; and either allow re-nomination of a PENDING request as a
+  recorded act (who changed the nominee, when) or make deactivation refuse
+  while the person is the nominee on anything pending (`nrs19`: 1 pending
+  request; `test19`: 205 pending of 632). `[open]`, Architect.
+- **Deactivating a custodian does nothing to custody, and nothing can see
+  it.** Nothing first-party reacts to `res.users.active`; the *Identity
+  (clearance)* screen is 20 hard-coded mock rows behind a `MockDataBanner`
+  with no route behind it; the real departure routine is SAP-status-driven
+  (`hr.employee.action_flag_retrieval` on `exited`, `nrs.asset.action_mark_retrieved`
+  clearing `custodian_id` under `cadra_approval_exempt='clearance'`), both
+  Odoo-form buttons with no API route. And on the real register custody is
+  not tied to accounts at all: `nrs19` links 1 of 11,386 employees to a
+  user, and 87 of its 6,646 custodied assets are held by one of its 207
+  ARCHIVED employees, 0 of them flagged for retrieval and 0 employees
+  `exited`. `test19`: 1 of 88 employees has a user, and 158 of 169
+  custodied assets are theirs. NRS's own question (*"use whatever process
+  you want to determine how those assets are retrieved"*) is therefore not
+  about accounts; it is about the employee record, and the mechanism that
+  exists for it is reachable only from the back office. `[open]`, NRS and
+  the Architect.
+- **§18.2's "`base.default_user`" was wrong on 19** — corrected in place
+  above. `[verified]`
+- **§19.2's "read and set nowhere" is half right.** `ACCESS_CHANGE_SKIP_KEY`
+  IS read (`access_recorder.py:86, 160, 229`) and set nowhere;
+  `ACCESS_CHANGE_SOURCE_KEY` is read only in `_record()`, which has no
+  callers. Still one-line fixes, still not done here. `[open]`
+- **On Odoo 19 `Savepoint.close()` rolls back by default**, so core's own
+  `contextlib.closing(cr.savepoint())` around the send in
+  `auth_signup._action_reset_password` discards the mail row after SMTP
+  has taken the message. Harmless to core (the row is `auto_delete`), fatal
+  to a test reading the letter back; `docs/ENVIRONMENT-FACTS.md`. Our
+  override uses the context-manager form. `[verified]`
+- **`e2e/fixtures/api.ts` declares `twoLocations()` twice** (TS2393 at
+  lines 233 and 256). Pre-existing; the e2e tree has no `tsconfig`, so
+  nothing checks it. `[open]`, one-line.
+- **A re-sent invitation does not revoke the earlier link.** The token's
+  payload (`partner id, user ids, login_date, signup_type`) is unchanged by
+  a re-send, so both links work until their own expiry; a sign-in or a
+  deactivation kills both. Said in §12.6 rather than fixed: revoking would
+  need a nonce on the partner, a stored field. `[verified]`
+- **An invitation sent by an integration names the credential as sender**
+  (*"this one was sent by Smoke Test (API client)"*). Correct, and odd to
+  read; a credential inviting people is not a path NRS will use. `[verified]`
+

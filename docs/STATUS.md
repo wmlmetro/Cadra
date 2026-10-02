@@ -768,3 +768,159 @@ category). 11 of 11.
 **Measured ahead of 43.** Anonymous `GET /web/signup` → 404 on all four
 cluster hosts; `/web/login` and `/web/reset_password` → 200. The door is
 shut; why is 43's to say.
+
+## 43 — The person, and the door (2026-10-02)
+
+**Branch `fix/the-person-and-the-door` · `myservice_api` 19.0.3.17.1 · report `docs/handoffs/43-REPORT.md`, evidence `docs/handoffs/43-evidence/`.**
+
+The last of three on people. NRS can now onboard their own: an
+administrator creates a person with the roles they start with, the person
+receives a letter from their own organisation with a link, sets a password,
+and signs in holding exactly those roles; the first letter went to spam, so
+there is a second; somebody leaves, and their access is taken away without
+deleting anything.
+
+### §0 · The door — measured, explained, shut by code
+
+- Anonymous `GET /web/signup` → **404 on 4 of 4 cluster hosts**
+  (`staging.app`, `jaizbankplc`, `lasg`, `gtb.cadra.ng`) and **8 of 8 local
+  tenants**; `/web/login` and `/web/reset_password` → 200 on all. The login
+  page carries no "Don't have an account?" link anywhere.
+- **Why**, which report 42 owed: `auth_signup.invitation_scope = b2c` on 8
+  of 8 — and never read. The `website` module overrides
+  `res.users._get_signup_invitation_scope` with its own per-site field,
+  `website.auth_signup_uninvited`, default `b2b`
+  (`website/models/res_users.py:66-68`, `website.py:213-216`); the Settings
+  toggle edits THAT field. So one click in *Settings › Customer Account*
+  would have opened free sign-up on any tenant.
+- **What a self-made account would have held:** on 19 `_create_user_from_template`
+  copies `base.template_portal_user_id` — the `portaltemplate` user,
+  `base.group_portal`, `share = True`. A share user: invisible to
+  `/api/v1/users`, holding no scope, refused by handoff 42's guard on an
+  API create. (`base.default_user`, which report 41 named, does not exist
+  on 19.)
+- **Does one exist:** no partner holds an outstanding sign-up token on any
+  of the 8 tenants — 0 of 1,221 / 11,397 / 73 / 146 / 1,219 / 72 / 72 / 80
+  on `cadra19` / `nrs19` / `gtb19` / `test19` / `nrs` / `lasg` / `gtb` /
+  `jaizbankplc` (`test19`'s one is this handoff's fixture) — and 0 of
+  6 / 11 / 12 / 52 / 5 / 12 / 12 / 19 users are share users beyond `public`
+  and `portaltemplate`; and the
+  `website` row — the thing that shuts the door — was created the same day
+  as each database (`test19` 08-04, `nrs19` 08-06, `jaizbankplc`/`lasg`/`gtb`
+  08-18, all equal to the first `res_users.create_date`). The door was
+  never open on any of them.
+- **Ruling landed:** `_get_signup_invitation_scope` returns `b2b` as a
+  constant (`myservice_api/models/invitation.py`); the migration set the
+  parameter (1 row changed on each of the 8 tenants) and the website field
+  (0 rows on each; it already said `b2b`) so the Settings screen tells the
+  truth, and switched off Odoo's *unregistered users* reminder cron (it
+  mailed the inviter Odoo's letter five days after an unredeemed
+  invitation). A fresh install gets the same from a `post_init_hook`. In-registry
+  test: both rows forced to `b2c`, the method still answers `b2b`, the route
+  still 404s.
+
+### §1 · What was built
+
+- **`POST /api/v1/users`** — name, email (also the login), the direct roles
+  to start with, `send_invitation` (default true). A plain `res.users.create`
+  with `_default_groups()` ∪ the roles, judged by handoff 42's guard on the
+  model: `["asset_user", "system"]` → `403 forbidden` in the model's
+  sentence, **no account created, no letter sent, no access-record row**.
+  The create and the letter share one savepoint: a letter that cannot be
+  sent → `500 server_misconfigured` naming the cause, nothing written.
+  `409 conflict` on an address already held, naming the account and whether
+  it is active. Idempotent.
+- **`POST /users/<id>/invite`, `/deactivate`, `/reactivate`** — no body key
+  accepted. Refusals in words: a credential's user (400), a deactivated
+  person invited (409), somebody who has already signed in (409), your own
+  account (403), the last active system administrator who is a person (409
+  — the credentials' users hold the group too and do not count), already in
+  that state (409).
+- **`invitation` on every user row**: `never` / `outstanding` / `expired` /
+  `redeemed` / `cancelled`, `sent_at`, `sent_by`, `sends`, `expires_at` —
+  from three stored stamps on `res.users` written under EVERY path that
+  sends a letter (API, user form, a create with an email), and the partner's
+  live token.
+- **The letters are the tenant's** (`res.users._action_reset_password`
+  overridden, the one method the user form, `res.users.create`,
+  `/web/reset_password` and the API all end in): the brand from
+  `cadra.brand_*`, the organisation's name from `res.company`, one sentence
+  saying what it is, the link in full under the button, the validity, no
+  Odoo anywhere, no secret. The link is on the HOST THE REQUEST CAME IN ON
+  (`res.partner._get_signup_url_for_action` overridden; core used
+  `web.base.url`, which every administrator login rewrites and which lacked
+  its port on 8 of 8 local tenants). A tenant with a brand logo gets it as
+  an image URL (`GET /api/v1/brand/logo`, new, public); one without gets a
+  wordmark in the brand colour. The From falls back as core's reset does:
+  the company's address, the sender's, the recipient's own. An anonymous
+  `/web/reset_password` keeps core's base URL (a forged `X-Forwarded-Host`
+  cannot choose where a victim's link points); only an authenticated caller
+  gets the request's host.
+- **`require_jwt` refuses a deactivated account's live token** — until now
+  only `/auth/login` and `/auth/refresh` looked at `active`, so a person
+  deactivated at 09:00 kept the app until their token expired.
+- **An archived nominee is refused on `/move`, `/transfer-custody` and tag
+  replacement** (`_resolve_approver`): the picker hid them, the gate did not.
+- **The Users page**: *Create person* (dialog: name, email, one checkbox
+  per GRANTABLE role, "send the invitation now"), a *Sign-in* section on the
+  detail panel with the invitation in words, *Re-send invitation*,
+  *Deactivate* / *Reactivate* with a confirm dialog; every refusal verbatim
+  in a red panel (`04-self-deactivate-refused.png`: *forbidden: You cannot
+  deactivate your own account. Another administrator has to.*). A
+  credential's panel says sign-in is managed with the credential. No
+  password is typed anywhere; nothing is deleted.
+
+### §1b · The letter, received
+
+Proved on `test19` with a real SMTP catcher (Mailpit, `docs/ENVIRONMENT-FACTS.md`):
+
+- **NRS brand** — company named *Nigeria Revenue Service*, no logo
+  parameter → red band with the wordmark; From *Nigeria Revenue Service
+  <facilities@nrs.gov.ng>*; subject *Nigeria Revenue Service asset register
+  — your access*; link `http://test19.localhost:8069/web/signup?…token=…&redirect=%2Fapp%2F`;
+  0 `<img>`, 0 `data:` URIs, 0 occurrences of "odoo". HTML view and TEXT
+  view (what an HTML-stripping client shows) in `05-nrs-letter-inbox-*.png`;
+  the text part carries the sentence and the link on its own.
+- **Jaiz brand** — the same tenant's brand switched to `cadra_brand_jaiz`'s
+  parameters and the company renamed *Jaiz Bank Plc*: From *Jaiz Bank Plc
+  <customercare@jaizbankplc.com>*, blue `#004080` band, the Jaiz SVG as
+  `<img src="…/api/v1/brand/logo">`, 0 occurrences of "NRS" or "Nigeria
+  Revenue" (`06-jaiz-letter-inbox-html.png`). Brand restored afterwards.
+- The screenshots are of a second NRS letter, sent after the verification
+  pass to a mixed-case address: the sign-in name is printed as stored,
+  lower-cased, because Odoo's login match is exact (report 43 §F.6).
+- **Redeemed:** the link opened (Odoo's sign-up page, pre-filled), a
+  password set, `POST /api/v1/auth/login` with it → 200 with the scopes of
+  the two roles given (`assets:read … tagging:write`), `whoami` the new
+  person, the row `redeemed`.
+- **Not done here, by necessity:** a real inbox on the CLUSTER. Delivery
+  there is through the HTTPS relay, which the Builder cannot exercise from
+  this machine; it is the owner's step after the PR is merged and
+  `upgrade-19` has rolled (report 43, *Needs the owner*).
+
+### §2 · Measured, not built
+
+- **A pending request stranded on a deactivated approver.** `test19`,
+  request 1426: raised naming `h41_manager`, `h41_manager` deactivated; the
+  queue row publishes `approver: {id, name}` and nothing about `active`,
+  `/approvals/approvers?q=h41` → `[]`, the requester cannot decide it
+  (self-approval refused), and only another eligible person could — the
+  `admin` person rejected it. The request cannot be re-nominated: the model
+  refuses every write but a transition. Nominating the deactivated person
+  in the first place is now refused (`h41_leaver`: *"cannot be asked: their
+  account is deactivated"*). What the queue should say, and whether a
+  pending request may be re-nominated or deactivation refused while the
+  person is a nominee, is `docs/GO-LIVE.md` §20.2 for the Architect.
+- **Custody and deactivation.** Nothing first-party reacts to a user's
+  `active`; the *Identity (clearance)* screen is 20 hard-coded mock rows
+  with no route behind it; the real routine is SAP-status-driven and
+  back-office only. On the real register custody is not tied to accounts:
+  `nrs19` links 1 of 11,386 employees to a user; 87 of its 6,646 custodied
+  assets are held by one of 207 archived employees, 0 flagged. `test19`:
+  1 of 88 employees has a user. §20.2.
+
+### Verification
+
+See report 43 §E for the denominators of every suite run (HTTP suite,
+in-registry `myservice_api`, Playwright 41–43) and the fan-out.
+

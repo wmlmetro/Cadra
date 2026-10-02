@@ -2575,3 +2575,72 @@ export async function changeUserRoles(
   });
   return res.data;
 }
+
+// ─── ADMINISTRATION — the person, and the door (handoff 43) ──────────────────
+// Four writes, every one answering with the user row as `GET /users/<id>`
+// publishes it, so the panel can show the server's answer rather than its own
+// guess. Every refusal arrives as a `CadraApiError` and is shown verbatim by
+// the screen — nothing here pre-empts the server. A fresh idempotency key per
+// call, as every other write in this file, and the `_warnings` toast comes
+// for free through `apiPost`.
+
+export interface CreateUserInput {
+  name: string;
+  email: string;
+  /** The DIRECT roles to start with, among the GRANTABLE ones. Creating a
+   *  person with roles IS granting roles: the handoff-42 guard judges the
+   *  create, and a non-grantable key is refused with the account NOT made. */
+  roles: string[];
+  /** Default true on the server. `false` creates the account with no letter,
+   *  to be invited later with `inviteUser`. */
+  sendInvitation?: boolean;
+}
+
+/**
+ * `POST /api/v1/users` — create a person and (by default) send them the
+ * invitation. No password is typed anywhere: the letter carries a link the
+ * person redeems to set their own. The create and the letter share one
+ * savepoint on the server, so a letter that cannot be sent (`500
+ * server_misconfigured`) leaves no account behind; a 409 `conflict` names
+ * the account that already holds the address (`details.user_id`,
+ * `details.active`).
+ */
+export async function createUser(input: CreateUserInput): Promise<AdminUser> {
+  if (!apiConfigured) throw new Error("No active session");
+  const body: { name: string; email: string; roles: string[]; send_invitation?: boolean } = {
+    name: input.name,
+    email: input.email,
+    roles: input.roles,
+  };
+  // The server's default is `true`; the key is sent only when it is not, so
+  // the body stays the minimum the route documents.
+  if (input.sendInvitation === false) body.send_invitation = false;
+  const res = await apiPost<AdminUser>("/api/v1/users", body, {
+    idempotencyKey: newIdempotencyKey(),
+  });
+  return res.data;
+}
+
+/** The three action routes accept NO body key — "No body, or `{}`" — so `{}`
+ *  is sent, which is what the route documents and what `api.post` in the
+ *  browser suite sends too. */
+async function userAction(id: number | string, action: "invite" | "deactivate" | "reactivate"): Promise<AdminUser> {
+  if (!apiConfigured) throw new Error("No active session");
+  const res = await apiPost<AdminUser>(`/api/v1/users/${id}/${action}`, {}, {
+    idempotencyKey: newIdempotencyKey(),
+  });
+  return res.data;
+}
+
+/** `POST /users/<id>/invite` — send the letter again (the first one went to
+ *  spam). 409 for a deactivated account or one that has signed in already,
+ *  400 for a credential or an account with no email, 500 if mail failed —
+ *  and on that one "Nothing changed on the account." */
+export const inviteUser     = (id: number | string) => userAction(id, "invite");
+/** `POST /users/<id>/deactivate` — `active = False`. 403 on your own account,
+ *  400 for a credential's user, 409 if already inactive or the last active
+ *  system administrator. Roles and records stay; nothing is deleted. */
+export const deactivateUser = (id: number | string) => userAction(id, "deactivate");
+/** `POST /users/<id>/reactivate` — `active = True`. 409 if already active,
+ *  400 for a credential. A cancelled invitation is NOT re-sent. */
+export const reactivateUser = (id: number | string) => userAction(id, "reactivate");

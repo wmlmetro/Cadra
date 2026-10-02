@@ -1,0 +1,117 @@
+# Handoff 43 — drive transcripts (test19, 2026-10-02)
+
+## §0 · the door, anonymous, cluster and local (curl -s -o /dev/null -w '%{http_code}')
+staging.app.cadra.ng     /web/signup          404
+staging.app.cadra.ng     /web/login           200
+staging.app.cadra.ng     /web/reset_password  200
+jaizbankplc.cadra.ng     /web/signup          404
+jaizbankplc.cadra.ng     /web/login           200
+jaizbankplc.cadra.ng     /web/reset_password  200
+lasg.cadra.ng            /web/signup          404
+lasg.cadra.ng            /web/login           200
+lasg.cadra.ng            /web/reset_password  200
+gtb.cadra.ng             /web/signup          404
+gtb.cadra.ng             /web/login           200
+gtb.cadra.ng             /web/reset_password  200
+test19 / nrs19 / jaizbankplc (local)  /web/signup 404 · /web/reset_password 200
+login page HTML mentions: reset_password only (no "signup", no "Don't have an account")
+
+## §0 · why — per tenant: website module state, website.auth_signup_uninvited, ICP auth_signup.invitation_scope,
+##      partners with a signup token, users active/total, website row created vs first user created
+cadra19     installed b2b b2c  0/0 partners with signup_type   2/6 users
+nrs19       installed b2b b2c  0/0                              5/11      website 2026-08-06 = users 2026-08-06..
+gtb19       installed b2b b2c  0/0                              9/12
+test19      installed b2b b2c  0/0                              5/9       website 2026-08-04 = users 2026-08-04..
+nrs         installed b2b b2c  0/0                              2/5
+lasg        installed b2b b2c  0/0                              9/12      website 2026-08-18 = users 2026-08-18..
+gtb         installed b2b b2c  0/0                              9/12      website 2026-08-18 = users 2026-08-18..
+jaizbankplc installed b2b b2c  0/0                             10/19      website 2026-08-18 = users 2026-08-18..
+core: website/models/res_users.py:66-68 `_get_signup_invitation_scope` → `current_website.auth_signup_uninvited or super()`
+      website/models/website.py:213-216 `auth_signup_uninvited = Selection([...], default='b2b')`
+      auth_signup/controllers/main.py:43 `if not token and not signup_enabled: raise NotFound()`
+
+## §1 · create + invite, as the test credential (POST /api/v1/users)
+first attempt → 500 server_misconfigured: "The account was not created: the invitation could not be sent
+  (You must either provide a sender address explicitly or configure using the combination of `mail.catchall.domain`
+  and `mail.default.from` ICPs ...)" — test19's company had no email and the acting user is a credential.
+  → the model now refuses that case first, in words; test19's company given name + facilities@nrs.gov.ng.
+second attempt → 201, id 7882, login amina.bello.drive43@example.invalid, roles_direct [asset_user, tag_issuing_unit],
+  invitation {state outstanding, sent_at 2026-10-02T08:02:54, sent_by {6, "Smoke Test (API client)"}, sends 1, expires_at 2026-10-08T08:02:54}
+Mailpit: 1 message · From "Nigeria Revenue Service <facilities@nrs.gov.ng>" · Subject "Nigeria Revenue Service asset register — your access"
+  HTML 3242 bytes, Text 1471 bytes · links: http://test19.localhost:8069/app/ and
+  http://test19.localhost:8069/web/signup?db=test19&signup_email=...&token=...&redirect=%2Fapp%2F
+  odoo mentioned: False · data: URI: False · <img>: 0
+
+## §1 · the text part, as received
+Nigeria Revenue Service
+
+
+Dear Amina Bello (drive 43),
+You have been given access to the Nigeria Revenue Service asset register.
+To start, choose a password by opening the link below. Your sign-in name is your email address, *amina.bello.drive43@example.invalid*.
+
+
+Set my password [1]
+
+If the button does not work, copy this address into your browser:
+http://test19.localhost:8069/web/signup?db=test19&signup_email=amina.bello.drive43%40example.invalid&token=AS5Ox2oAAAAAQKtM1_rZsIOhxE2t8GUYcse2Z-RF71h-dAsVdlD5-UxbMzMwMjMsIFs3ODgyXSwgbnVsbCwgInNpZ251cCJd&redirect=%2Fapp%2F [2]
+The link is valid for 6 days. If it has expired, ask the administrator who set up your account to send it again — this one was sent by Smoke Test (API client).
+If you were not expecting this, you can ignore it. Nothing happens until the link is used.
+Regards,
+Nigeria Revenue Service
+
+
+
+Nigeria Revenue Service · asset register · http://test19.localhost:8069/app/ [3]
+
+
+
+
+[1] http://test19.localhost:8069/web/signup?db=test19&signup_email=amina.bello.drive43%40example.invalid&token=AS5Ox2oAAAAAQKtM1_rZsIOhxE2t8GUYcse2Z-RF71h-dAsVdlD5-UxbMzMwMjMsIFs3ODgyXSwgbnVsbCwgInNpZ251cCJd&redirect=%2Fapp%2F
+[2] http://test19.localhost:8069/web/signup?db=test19&signup_email=amina.bello.drive43%40example.invalid&token=AS5Ox2oAAAAAQKtM1_rZsIOhxE2t8GUYcse2Z-RF71h-dAsVdlD5-UxbMzMwMjMsIFs3ODgyXSwgbnVsbCwgInNpZ251cCJd&redirect=%2Fapp%2F
+[3] http://test19.localhost:8069/app/
+
+
+## §1 · redeemed (python requests, as the invited person)
+GET the link → 200, form pre-filled login=amina.bello.drive43@example.invalid name="Amina Bello (drive 43)"; page title "Sign up login | My Website" (Odoo's page — GO-LIVE §20.2)
+POST /web/signup (password, confirm, token, csrf) → 303 → /app/
+POST /api/v1/auth/login with the new password → 200
+whoami → {'id': 7882, 'login': 'amina.bello.drive43@example.invalid', 'name': 'Amina Bello (drive 43)',
+          'scopes': ['assets:read','dashboards:read','identity:read','locations:read','requests:read','requests:write','tagging:write']}
+GET /api/v1/users/7882 → last_login_at 2026-10-02T08:05:22, invitation.state redeemed
+
+## §1b · the second brand (same tenant, brand switched to cadra_brand_jaiz's parameters, company renamed, then restored)
+jaiz brand from module: {'short_name': 'Jaiz', 'primary': '#004080', 'primary_dark': '#00305F', 'logo': 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD...'}
+test19 branding before: {'name': 'Nigeria Revenue Service', 'short_name': 'NRS', 'primary': '#C8102E', 'primary_dark': '#A00D24', 'logo': ''}
+PATCH branding -> 200 
+brand now: {'name': 'Jaiz Bank Plc', 'short_name': 'Jaiz', 'primary': '#004080', 'primary_dark': '#00305F', 'logo': 'data:image/svg+xml;base64,PHN2', 'turnstile': 'False'}
+logo route: 200 image/svg+xml
+create -> 201 {"id": 7945, "login": "chidi.okafor.drive43@example.invalid", "invitation": {"state": "outstanding", "sent_at": "2026-10-02T08:12:59", "sent_by": {"id": 6, "name": "Smoke Test (API client)"}, "sends": 1, "expires_at": "2026-10-08T08:12:59"}}
+mailpit messages: 8
+  6txID5kGv73n9W1F607J0F | Jaiz Bank Plc asset register — your access | Jaiz Bank Plc <customercare@jaizbankplc.com>
+  10H4HKDflTctzVDIvcGnq9 | Nigeria Revenue Service asset register — your access | Nigeria Revenue Service <facilities@nrs.gov.ng>
+  2TuPwbbo9yakets6aZJy5H | Nigeria Revenue Service asset register — your access | Nigeria Revenue Service <facilities@nrs.gov.ng>
+jaiz letter: img tags 1 | logo url: ['http://test19.localhost:8069/api/v1/brand/logo'] | NRS mentioned: False | colour: True | odoo: False
+restore branding -> 200
+brand restored: {'name': 'Nigeria Revenue Service', 'short_name': 'NRS', 'primary': '#C8102E', 'primary_dark': '#A00D24', 'logo': '', 'turnstile': 'False'}
+
+## §2 · the approver measurements
+h41_leaver active=False roles_direct=['asset_user'] | h41_manager active=True roles_direct=['asset_manager']
+asset 9468 h15 flag probe state active location 66 -> target 65
+
+--- (a) nominate the INACTIVE h41_leaver on /move ---
+400 {"code": "invalid_request", "message": "H41 Leaver (probe) cannot be asked: their account is deactivated. Name somebody who can sign in.", "request_id": "8c368d7c546e4c4a8e82859c4a7fc248", "details": {"asset_id": 9468, "approver_id": 7428, "http_status": 400}}
+
+--- (b) raise naming the ACTIVE h41_manager, deactivate them, read the queue ---
+raise -> 200 {"id": 1426, "state": "pending", "approver": {"id": 7427, "name": "H41 Manager (probe)"}}
+deactivate h41_manager -> 200 False None
+queue row -> {"id": 1426, "state": "pending", "approver": {"id": 7427, "name": "H41 Manager (probe)"}, "can_decide": false, "requested_by": {"id": 6, "name": "Smoke Test (API client)"}, "change_type": "location"}
+in the pending list: True | keys mentioning active: []
+eligible approvers matching h41 while deactivated -> 200 []
+
+--- (c) who can decide it now? the suite's credential is an admin; approve ---
+approve by admin credential -> 403 "You raised this request and cannot approve it. The point of an approval is that a second person agrees."
+reactivate h41_manager -> 200 True None
+asset now at: 66 (was 66 )
+as admin PERSON (login admin): GET /approvals/1426 → can_decide True, approver {7427, "H41 Manager (probe)"}
+POST /approvals/1426/reject (reason given) → 200 state rejected

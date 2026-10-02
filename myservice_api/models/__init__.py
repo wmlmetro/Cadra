@@ -11,4 +11,7 @@ from . import access_recorder
 # the diff the recorder also sees, and the exception takes its rows back.
 from . import access_guard
 from . import audit_access
+# Handoff 43: the door (`b2b` as a constant), the letters, the host-correct
+# link and the invitation stamps on `res.users`.
+from . import invitation
 from . import audit_configuration

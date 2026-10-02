@@ -641,9 +641,11 @@ export interface DashboardStats {
 }
 
 // ─── ADMINISTRATION — who has what (handoff 41) ──────────────────────────────
-// Read-only shapes for `GET /api/v1/roles`, `GET /api/v1/users[/<id>]` and
-// `GET /api/v1/reports/access-changes`. Nothing here is written back: the
-// handoff adds no way to grant, remove, create or disable anything.
+// Shapes for `GET /api/v1/roles`, `GET /api/v1/users[/<id>]` and
+// `GET /api/v1/reports/access-changes`. Handoff 41 wrote nothing back;
+// handoff 42 added `POST /users/<id>/roles` (`RoleChange`) and handoff 43 the
+// person's lifecycle — `POST /users`, `/invite`, `/deactivate`, `/reactivate`
+// — every one of which answers with the same `AdminUser` row as a GET.
 
 /** One of the eight roles the API publishes, in the API's own display order. */
 export interface AdminRole {
@@ -674,6 +676,29 @@ export interface AdminUserCredential {
   is_test_credential: boolean;
 }
 
+/**
+ * The `invitation` block on every user row (handoff 43): one of five states,
+ * each a sentence somebody can act on. Derived on the model from the stamps
+ * `_action_reset_password` writes and the partner's live sign-up token:
+ *
+ *   never        no invitation has ever been sent
+ *   outstanding  sent, the link still valid, not yet used
+ *   expired      sent, the link past its validity, not used — send it again
+ *   redeemed     sent, and the person has since set a password and signed in
+ *   cancelled    sent, then voided without being used (a deactivation cancels
+ *                the token; reactivating does NOT re-send it)
+ *
+ * `sent_at` and `expires_at` are naive UTC `isoformat()` strings like
+ * `last_login_at`; `sends` counts every send, re-sends included.
+ */
+export interface AdminUserInvitation {
+  state: "never" | "outstanding" | "expired" | "redeemed" | "cancelled";
+  sent_at: string | null;
+  sent_by: { id: number; name: string } | null;
+  sends: number;
+  expires_at: string | null;
+}
+
 export interface AdminUser {
   id: number;
   name: string;
@@ -690,6 +715,9 @@ export interface AdminUser {
   scopes_source: "roles" | "credential";
   last_login_at: string | null;
   created_at: string;
+  /** Handoff 43. Always present; `state: "never"` for an account nobody has
+   *  invited, a credential's user included. */
+  invitation: AdminUserInvitation;
 }
 
 /** One row of `data.events` on the access-changes report. The first six

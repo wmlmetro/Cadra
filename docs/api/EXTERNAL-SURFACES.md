@@ -61,6 +61,22 @@ exception. 36 − 9 = **27**.
 
 ---
 
+## Two core routes Cadra changes the behaviour of — handoff 43
+
+Not first-party routes, so not in the inventory below, but a reader of
+this file would otherwise have to derive both.
+
+| Route | What Cadra does to it | Where |
+|---|---|---|
+| `GET/POST /web/signup` | **Always 404 without an invitation token**, on every tenant, whatever `auth_signup.invitation_scope` or `website.auth_signup_uninvited` say. `res.users._get_signup_invitation_scope` returns `b2b` as a constant — the owner's ruling that nobody signs themselves up to a government asset register. With a token (the letter's link) the page works as before | `myservice_api/models/invitation.py` |
+| `GET/POST /web/reset_password` | The route is untouched; the **email it sends is Cadra's** (tenant brand, organisation name, link on the request's host) instead of Odoo's QWeb letter, because the one method every reset and invitation ends in, `res.users._action_reset_password`, is overridden | same file; `myservice_api/data/mail_templates.xml` |
+
+Measured before the change, 2026-10-02: `/web/signup` already answered 404
+on all 4 cluster hosts and all 8 local tenants — not because of the
+parameter (`b2c` on 8 of 8) but because the `website` module's per-site
+field, `b2b` by default, overrides it. One click in *Settings › Customer
+Account* would have opened it. Now nothing does.
+
 ## Three things a reader must not have to derive
 
 ### `/myservice/workflow/callback` had optional authentication — FIXED in handoff 17

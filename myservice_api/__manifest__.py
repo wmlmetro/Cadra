@@ -1,6 +1,6 @@
 {
     'name': 'Cadra API (v1)',
-    'version': '19.0.3.16.0',
+    'version': '19.0.3.17.1',
     'summary': 'Cadra API-first layer (JWT, PRD envelope, idempotency, auto OpenAPI)',
     'author': 'WestMetro Limited',
     'website': 'https://westmetrong.com',
@@ -17,6 +17,11 @@
         # documents. Named explicitly.
         'mail',
         'hr',
+        # models/invitation.py overrides `res.users._action_reset_password`
+        # and `_get_signup_invitation_scope`, which auth_signup defines.
+        # Transitive through website → portal today; named so the graph
+        # cannot order the override before the method it overrides.
+        'auth_signup',
         # API wrappers touch these models via env lookups
         'myservice_dashboard',
         'myservice_security',
@@ -37,10 +42,14 @@
         'security/api_groups.xml',
         'security/ir.model.access.csv',
         'data/api_refresh_token_cron.xml',
+        # Handoff 43: the invitation and the password-reset letters, in the
+        # tenant's brand (models/invitation.py renders them).
+        'data/mail_templates.xml',
         'views/api_client_views.xml',
         'views/menu.xml',
     ],
     'demo': [],
+    'post_init_hook': 'post_init_hook',
     'installable': True,
     'auto_install': False,
     'application': False,
