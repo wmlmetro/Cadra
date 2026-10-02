@@ -1749,8 +1749,11 @@ found is here.
   no-op on every run, and that database's `auth_signup.invitation_scope`
   is still `b2c` with nothing — no website row, no Cadra constant — to
   override it, reachable by nobody today. The local `nrs` and `nrs19` are
-  not this database. For the owner: is the cluster `nrs` a tenant-to-be
-  (then it needs the bootstrap), or a leftover to drop? `[open]`
+  not this database. **`[ruled]` by the owner, 2026-10-02: a leftover.**
+  Removed from `upgrade-19`'s default `target_dbs` (now
+  `staging,gtb,jaizbankplc,lasg`); dropping the database itself is a
+  separate `drop-db` act for the owner, confirm-gated, one database at a
+  time.
 - **An invitation sent by an integration names the credential as sender**
   (*"this one was sent by Smoke Test (API client)"*). Correct, and odd to
   read; a credential inviting people is not a path NRS will use. `[verified]`

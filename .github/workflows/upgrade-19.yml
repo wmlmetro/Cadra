@@ -28,10 +28,10 @@ on:
   workflow_dispatch:
     inputs:
       target_dbs:
-        description: "Tenant DBs to upgrade, comma- or space-separated. LIST EVERY TENANT ON THIS CLUSTER — they share one Odoo registry, so tenants left un-upgraded break the moment the image rolls forward. e.g. staging,nrs,gtb,jaizbankplc,lasg"
+        description: "Tenant DBs to upgrade, comma- or space-separated. LIST EVERY TENANT ON THIS CLUSTER — they share one Odoo registry, so tenants left un-upgraded break the moment the image rolls forward. e.g. staging,gtb,jaizbankplc,lasg. The cluster's `nrs` database is a LEFTOVER with no Cadra module and no host (owner's ruling, 2026-10-02) — not a tenant, not in this list"
         type: string
         required: true
-        default: "staging,nrs,gtb,jaizbankplc,lasg"
+        default: "staging,gtb,jaizbankplc,lasg"
       upgrade_modules:
         description: "Comma-separated modules to UPGRADE (-u), e.g. myservice_nrs_base. Blank to skip."
         type: string
