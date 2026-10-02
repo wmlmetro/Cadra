@@ -33,6 +33,91 @@ live at was never the point.
 
 ---
 
+## 2026-10-02 — handoff 43: the person, and the door · `myservice_api` 19.0.3.17.1
+
+Four new WRITE routes, scope `admin`, one additive block on every user row,
+one public image route, and one **BEHAVIOUR CHANGE** on every authenticated
+request. Nothing on an existing response changed shape or lost a key.
+
+### New — `POST /api/v1/users` (201)
+
+Create a person and send them the invitation. Body `{"name", "email",
+"roles": [...], "send_invitation": true}` — `email` is also the sign-in
+name (lower-cased), `roles` is the vocabulary of `GET /roles` and is written
+exactly as `/users/{id}/roles` writes it (so a role the model refuses,
+`system` included, is `403 forbidden` in the model's sentence and **the
+account is not created**), and `send_invitation` defaults to true. Answers
+the user row as `GET /users/{id}` publishes it. Refusals: `400
+invalid_request` (a stray key → `details.rejected_fields` + `writable`; a
+bad value → `details.field`), `409 conflict` when the address is already
+held by an account, active or deactivated (`details.user_id`,
+`details.active`), and `500 server_misconfigured` when the letter could
+not be sent (no outgoing mail server, relay refused) — in which case
+**nothing is created** and the message names the cause and the way round
+it (`send_invitation: false`, then `/invite`). The letter's From falls back
+as core's reset does — the company's address, the sender's, the
+recipient's own — so a tenant without a company address still sends.
+Idempotent under `X-Idempotency-Key`.
+
+### New — `POST /api/v1/users/{user_id}/invite`, `/deactivate`, `/reactivate` (200)
+
+No body key is accepted on any of the three (a `reason` has nowhere to
+live, so it is refused rather than dropped). Each answers the user row.
+`/invite` re-sends the letter with a fresh link and is refused for a
+credential (400), a deactivated account (409), an account with no address
+(400) and a person who has already signed in (409 — a reset is theirs to
+ask for from the sign-in page). `/deactivate` is refused for the caller's
+own account (403), for the user behind an API credential (400 — revoke the
+credential), when already inactive (409) and when they are the last active
+system administrator on the tenant who is a person (409 — the users behind
+API credentials hold the group too and do not count). `/reactivate` is refused for a
+credential (400) and when already active (409). All idempotent.
+
+### Additive — `invitation` on every `User` row
+
+`{"state", "sent_at", "sent_by", "sends", "expires_at"}`; `state` is one of
+`never`, `outstanding`, `expired`, `redeemed`, `cancelled`. Always `never`
+for an API credential. `tests/test_users.py` holds the key list.
+
+### New — `GET /api/v1/brand/logo` (public)
+
+The tenant's `cadra.brand_logo` served as an image (`image/svg+xml`, `png`,
+`jpeg` or `webp`), 404 when the tenant has none. Exists because mail
+clients strip `data:` images and the invitation letter needs a URL.
+
+### BEHAVIOUR CHANGE — a deactivated account's token is refused now, not at `exp`
+
+`require_jwt` reads `res.users.active` on every request and answers `401
+unauthorized` "Account is disabled" for a deactivated account. Until now
+only `/auth/login` and `/auth/refresh` looked; an access token minted before
+deactivation kept working for up to 3600 s. A consumer that caches tokens
+across a deactivation now sees a 401 where it saw 200 — which is the point.
+
+### BEHAVIOUR CHANGE — a deactivated nominee is refused on `/move`, `/transfer-custody` and tag replacement
+
+`approver_id` naming an archived user answers `400 invalid_request` ("…
+cannot be asked: their account is deactivated"). Until now the picker
+(`/approvals/approvers`) hid archived users and the nomination check did
+not, so a request could be raised that waited on somebody who cannot sign
+in.
+
+### Outside `/api/v1` — the sign-up door, the letters, and a cron
+
+Odoo's *Users: Notify About Unregistered Users* cron is switched off on
+upgrade and on install: five days after an unredeemed invitation it mailed
+the inviter Odoo's own letter. An anonymous `/web/reset_password` builds
+its link on `web.base.url` exactly as before; only an authenticated caller
+(an API token or a back-office session) gets the link on the host they
+came in on, so a forged `X-Forwarded-Host` on a public request cannot
+choose where a victim's link points.
+
+`GET /web/signup` without a token answers 404 on every tenant **by code**:
+`res.users._get_signup_invitation_scope` returns `b2b` regardless of
+`auth_signup.invitation_scope` or the website's setting. The invitation and
+password-reset emails Odoo sends on every path (`/web/reset_password`, the
+user form, `res.users.create`) are now Cadra's templates in the tenant's
+brand, with the link on the host the request came in on.
+
 ## 2026-10-02 — handoff 42: the grant, and the refusal · `myservice_api` 19.0.3.16.0
 
 One new WRITE route, scope `admin`, and one additive key on `GET /roles`.

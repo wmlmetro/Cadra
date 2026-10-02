@@ -7,6 +7,34 @@ Handoff 41 §4B built the reads; handoff 42 §4 added the one write:
     GET  /api/v1/users/<int:user_id>          one account               admin
     POST /api/v1/users/<int:user_id>/roles    set an account's roles    admin
 
+Handoff 43 §1 added the person's lifecycle — create and invite, re-send,
+deactivate, reactivate — all `admin`, all gated by the same model guard:
+
+    POST /api/v1/users                          create a person, send the letter
+    POST /api/v1/users/<int:user_id>/invite     re-send the letter
+    POST /api/v1/users/<int:user_id>/deactivate  `active = False`
+    POST /api/v1/users/<int:user_id>/reactivate  `active = True`
+
+**Creating a person with roles IS granting roles**, and the guard of
+handoff 42 sees it: `res.users.create` is judged on the resulting
+membership, so a `system` key here is refused with the same sentence as on
+`/roles`, and a create that mentions no role lands the person in exactly
+what Odoo gives every new internal user. The letter is
+`res.users._action_reset_password` (`models/invitation.py`), the one method
+every path to an invitation ends in; this route calls it inside the same
+savepoint as the create, so a letter that cannot be sent leaves no account
+behind — the person is created again, with the letter, when mail works, or
+created now with `send_invitation: false` and invited later.
+
+**Deactivation is not membership and the guard does not judge it**; the
+three refusals it needs are in the route, in words: not your own account
+(core refuses this too, but against `env.uid`, which under `sudo()` is
+still the token's user — so core's sentence would be right, and ours is
+clearer), not the user behind an API credential (revoke the credential),
+and not the last active system administrator on the tenant. Since this
+handoff `require_jwt` also refuses a deactivated account's live token
+(`utils.py`), so deactivation takes effect now and not at `exp`.
+
 **The write is one `(6, 0, ids)` on `res.users.group_ids`, and it decides
 nothing.** What may be granted or removed over the API — only the four
 Cadra roles, never `base.group_system`, never to the caller's own account —
@@ -106,16 +134,20 @@ HTTP suite walks every key of every response against the same
 credential-name pattern the audit reports are held to.
 """
 
+import re
+
 from odoo import http
 from odoo.http import request
 
 from .v1 import cadra_route, PAGINATION_QUERY_PARAMS
 from .utils import (
     ok, err, get_params, parse_limit, paginate, refuse_unwritable,
-    ERR_INVALID_REQUEST, ERR_NOT_FOUND, SCOPE_ADMIN,
+    ERR_INVALID_REQUEST, ERR_NOT_FOUND, ERR_CONFLICT, ERR_FORBIDDEN,
+    ERR_MISCONFIGURED, SCOPE_ADMIN,
     GROUP_SCOPES, scopes_for_user,
 )
 from .query_params import BadFilter, parse_bool, parse_enum
+from odoo.addons.base.models.ir_mail_server import MailDeliveryException
 from ..models.audit_access import _STRUCTURAL_LOGINS
 # ONE constant, two readers: the model refuses on it, `/roles` publishes it.
 from ..models.access_guard import API_GRANTABLE_XMLIDS
@@ -389,6 +421,14 @@ def _user_row(user, resolved, client):
         "scopes_source": scopes_source,
         "last_login_at": _iso(user.login_date),
         "created_at": _iso(user.create_date),
+        # Handoff 43: never / outstanding / expired / redeemed / cancelled,
+        # with when and by whom. Derived on the model from the stamps
+        # `_action_reset_password` writes and the partner's live token.
+        "invitation": (user._cadra_invitation() if not client else {
+            # Forced, not merely true: a credential signs in with its secret
+            # and is never invited (`/invite` refuses it).
+            "state": "never", "sent_at": None, "sent_by": None,
+            "sends": 0, "expires_at": None}),
     }
 
 
@@ -444,6 +484,89 @@ _ROLE_CHANGE_REQUEST_SCHEMA = {
         },
     },
 }
+
+
+# ─── the person's lifecycle (handoff 43) ──────────────────────────────
+
+#: The body `POST /users` accepts, and nothing else. `name` and `email` are
+#: `res.users` fields (`email` is written as `login` as well — a person signs
+#: in with their address); `roles` is the vocabulary of `/roles`, resolved
+#: and written exactly as `/users/<id>/roles` does; `send_invitation` is an
+#: action. Anything else is `refuse_unwritable`'s 400.
+USER_CREATE_BODY_KEYS = ("name", "email", "roles", "send_invitation")
+
+#: The three action routes accept NO body key. A `reason` is not accepted
+#: because there is nowhere to put one (the same ruling as *Mark missing*,
+#: handoff 29): accepting a field the record cannot hold is the silent drop
+#: handoff 31 made a 400.
+NO_BODY_KEYS = ()
+
+_USER_CREATE_REQUEST_SCHEMA = {
+    "type": "object",
+    "required": ["name", "email"],
+    "additionalProperties": False,
+    "properties": {
+        "name": {"type": "string", "description": "The person's name as it will appear on records."},
+        "email": {
+            "type": "string", "format": "email",
+            "description": (
+                "Their email address, which is also their sign-in name. An "
+                "address already held by an account on this tenant, active "
+                "or not, is `409 conflict`."),
+        },
+        "roles": {
+            "type": "array", "default": [],
+            "items": {"type": "string", "enum": list(ROLE_KEYS)},
+            "description": (
+                "The DIRECT roles to start with, among the vocabulary of "
+                "`GET /roles`. Only the roles `/roles` marks `grantable` "
+                "(%s) can be given over the API; `system` or any other is "
+                "refused by the model with `403 forbidden` and the account "
+                "is NOT created." % ", ".join(GRANTABLE_ROLE_KEYS)),
+        },
+        "send_invitation": {
+            "type": "boolean", "default": True,
+            "description": (
+                "Send the letter now. If it cannot be sent the account is "
+                "not created (`500 server_misconfigured` names the cause); "
+                "`false` creates the account with no letter, to be invited "
+                "later with `POST /users/{id}/invite`."),
+        },
+    },
+}
+
+#: The one shape all three action routes share: a body with no keys.
+_EMPTY_REQUEST_SCHEMA = {
+    "type": "object", "additionalProperties": False, "properties": {},
+    "description": "No body, or `{}`. Any key is refused and nothing is written.",
+}
+
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def _escape_like(value):
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def _load_user_or_404(user_id):
+    user = _users_model().search(
+        [("id", "=", int(user_id))] + _users_base_domain(), limit=1)
+    if not user:
+        return None, err(ERR_NOT_FOUND, f"User {user_id} not found", status=404)
+    return user, None
+
+
+def _refuse_body_keys(body, allowed):
+    rejected = [k for k in body if k not in allowed]
+    if rejected:
+        return refuse_unwritable(rejected, allowed)
+    return None
+
+
+def _answer_row(user):
+    resolved = _resolved_roles(request.env)
+    clients = _clients_by_user([user.id])
+    return _user_row(user, resolved, clients.get(user.id))
 
 
 # ─── OpenAPI query parameters ────────────────────────────────────────
@@ -652,3 +775,285 @@ class CadraUsersV1(http.Controller):
             "revoked": [k for k in before_keys if k not in after_keys],
             "applied": not dry_run,
         })
+
+    # ─── handoff 43: the person's lifecycle ──────────────────────────
+
+    @cadra_route("/api/v1/users", method="POST",
+                 summary="Create a person and send them the invitation",
+                 scopes=[SCOPE_ADMIN],
+                 idempotent=True,
+                 request_schema=_USER_CREATE_REQUEST_SCHEMA,
+                 request_example={"name": "Amina Bello",
+                                  "email": "amina.bello@nrs.gov.ng",
+                                  "roles": ["asset_user", "tag_issuing_unit"]},
+                 response_schema={"$ref": "#/components/schemas/User"},
+                 error_statuses=(403, 409, 500))
+    def create_user(self, **kwargs):
+        """Validate everything, then create and send inside ONE savepoint.
+
+        The order matters twice. Every refusal below returns before anything
+        is written (`err()` does not roll back — CLAUDE.md). And the create
+        and the letter share a savepoint so that a letter which cannot be
+        delivered takes the account with it: a person who exists and was
+        never told would otherwise be the silent degrade rule 3 forbids.
+        """
+        body = get_params()
+        refused = _refuse_body_keys(body, USER_CREATE_BODY_KEYS)
+        if refused:
+            return refused
+
+        name = body.get("name")
+        if not isinstance(name, str) or not name.strip():
+            return err(ERR_INVALID_REQUEST, "`name` is required",
+                       details={"field": "name"})
+        name = name.strip()
+
+        email = body.get("email")
+        if not isinstance(email, str) or not _EMAIL_RE.match(email.strip()):
+            return err(ERR_INVALID_REQUEST,
+                       "`email` must be an email address; it is also the "
+                       "person's sign-in name",
+                       details={"field": "email"})
+        email = email.strip()
+        login = email.lower()
+
+        roles = body.get("roles", [])
+        if (not isinstance(roles, list)
+                or not all(isinstance(k, str) for k in roles)):
+            return err(ERR_INVALID_REQUEST,
+                       "`roles` must be a list of role keys: the direct "
+                       "roles the person starts with",
+                       details={"field": "roles",
+                                "allowed_values": list(ROLE_KEYS)})
+        unknown = [k for k in roles if k not in ROLE_KEYS]
+        if unknown:
+            return err(ERR_INVALID_REQUEST,
+                       "Unknown role key(s): %s"
+                       % ", ".join("`%s`" % k for k in unknown),
+                       details={"field": "roles",
+                                "rejected_values": unknown,
+                                "allowed_values": list(ROLE_KEYS)})
+        send = body.get("send_invitation", True)
+        if not isinstance(send, bool):
+            return err(ERR_INVALID_REQUEST,
+                       "`send_invitation` must be true or false",
+                       details={"field": "send_invitation",
+                                "allowed_values": [True, False]})
+
+        resolved = _resolved_roles(request.env)
+        groups_by_key = {key: group for key, _x, _s, group in resolved}
+        not_installed = [k for k in roles if not groups_by_key[k]]
+        if not_installed:
+            return err(ERR_INVALID_REQUEST,
+                       "This tenant does not have the group behind: %s"
+                       % ", ".join("`%s`" % k for k in not_installed),
+                       details={"field": "roles",
+                                "rejected_values": not_installed,
+                                "allowed_values": [
+                                    k for k, g in groups_by_key.items() if g]})
+
+        Users = _users_model()
+        # `=ilike` treats `_` and `%` as wildcards; an address can hold `_`.
+        taken = Users.search(["|", ("login", "=", login),
+                              ("email", "=ilike", _escape_like(email))], limit=1)
+        if taken:
+            return err(ERR_CONFLICT,
+                       "An account already holds %s: %s (%s). %s"
+                       % (email, taken.name, taken.login,
+                          "It is active." if taken.active
+                          else "It is deactivated — reactivate it rather "
+                               "than creating a second one."),
+                       status=409,
+                       details={"field": "email", "user_id": taken.id,
+                                "active": bool(taken.active)})
+
+        # What Odoo gives every new internal user, plus what was asked —
+        # the exact set the guard allows on create (report 42 §A). An
+        # explicit `group_ids` REPLACES the default, so the default is
+        # spelled out rather than assumed.
+        default_ids = set(Users._default_groups().ids)
+        desired_ids = {groups_by_key[k].id for k in roles}
+        vals = {
+            "name": name,
+            "login": login,
+            "email": email,
+            "group_ids": [(6, 0, sorted(default_ids | desired_ids))],
+        }
+        try:
+            with request.env.cr.savepoint():
+                # `no_reset_password`: core's `create` would send Odoo's
+                # letter by itself and SWALLOW a delivery failure
+                # (`auth_signup/models/res_users.py:272-279`). Ours is sent
+                # below, inside this savepoint, and a failure is answered.
+                # Spelled out (not `Users.create`) so `tests/test_source_guards.py`
+                # can resolve which model this create addresses.
+                user = request.env["res.users"].sudo() \
+                    .with_context(no_reset_password=True).create(vals)
+                if send:
+                    user.with_context(create_user=True) \
+                        ._action_reset_password(signup_type="signup")
+                row = _answer_row(user)
+        except MailDeliveryException as e:
+            return err(ERR_MISCONFIGURED,
+                       "The account was not created: the invitation could "
+                       "not be sent (%s). Fix outgoing mail on this tenant, "
+                       "or create the account with `send_invitation: false` "
+                       "and invite later." % _delivery_reason(e),
+                       status=500,
+                       details={"field": "send_invitation",
+                                "delivery_error": _delivery_reason(e)})
+        return ok(data=row)
+
+    @cadra_route("/api/v1/users/<int:user_id>/invite", method="POST",
+                 summary="Send the invitation again",
+                 scopes=[SCOPE_ADMIN],
+                 idempotent=True,
+                 request_schema=_EMPTY_REQUEST_SCHEMA,
+                 response_schema={"$ref": "#/components/schemas/User"},
+                 error_statuses=(404, 409, 500))
+    def invite_user(self, user_id, **kwargs):
+        """The first one went to spam. A fresh token, the same letter, the
+        row's `invitation` moved to `outstanding` with the new send time —
+        for a person who has not yet signed in. One who has is told so:
+        a reset is theirs to ask for from the sign-in page."""
+        body = get_params()
+        refused = _refuse_body_keys(body, NO_BODY_KEYS)
+        if refused:
+            return refused
+        user, missing = _load_user_or_404(user_id)
+        if missing:
+            return missing
+        clients = _clients_by_user([user.id])
+        if clients.get(user.id):
+            return err(ERR_INVALID_REQUEST,
+                       "%s is the account behind the API credential %s. A "
+                       "credential signs in with its client secret, not a "
+                       "password; there is nothing to invite it to."
+                       % (user.login, clients[user.id].client_id),
+                       details={"user_id": user.id, "kind": KIND_API_CREDENTIAL})
+        if not user.active:
+            return err(ERR_CONFLICT,
+                       "%s is deactivated. Reactivate the account before "
+                       "inviting them." % user.name,
+                       status=409, details={"user_id": user.id, "active": False})
+        if not user.email:
+            return err(ERR_INVALID_REQUEST,
+                       "%s has no email address, so there is nowhere to send "
+                       "an invitation." % user.name,
+                       details={"user_id": user.id, "field": "email"})
+        if user.login_date:
+            return err(ERR_CONFLICT,
+                       "%s has signed in already (last on %s). An invitation "
+                       "is for somebody who has not; a password reset is "
+                       "theirs to ask for from the sign-in page."
+                       % (user.name, user.login_date.date().isoformat()),
+                       status=409,
+                       details={"user_id": user.id,
+                                "last_login_at": _iso(user.login_date)})
+        try:
+            with request.env.cr.savepoint():
+                user.with_context(create_user=True) \
+                    ._action_reset_password(signup_type="signup")
+                row = _answer_row(user)
+        except MailDeliveryException as e:
+            return err(ERR_MISCONFIGURED,
+                       "The invitation could not be sent (%s). Nothing "
+                       "changed on the account." % _delivery_reason(e),
+                       status=500,
+                       details={"user_id": user.id,
+                                "delivery_error": _delivery_reason(e)})
+        return ok(data=row)
+
+    @cadra_route("/api/v1/users/<int:user_id>/deactivate", method="POST",
+                 summary="Take a person's access away",
+                 scopes=[SCOPE_ADMIN],
+                 idempotent=True,
+                 request_schema=_EMPTY_REQUEST_SCHEMA,
+                 response_schema={"$ref": "#/components/schemas/User"},
+                 error_statuses=(403, 404, 409))
+    def deactivate_user(self, user_id, **kwargs):
+        """`active = False`. From this write the person cannot sign in,
+        their live tokens are refused (`require_jwt`), their refresh family
+        is revoked on next use, and any outstanding invitation token is
+        cancelled (auth_signup's own `write`). Their roles, their records
+        and the assets in their custody are untouched — handoff 43 §2
+        measures what that means and does not decide it."""
+        body = get_params()
+        refused = _refuse_body_keys(body, NO_BODY_KEYS)
+        if refused:
+            return refused
+        user, missing = _load_user_or_404(user_id)
+        if missing:
+            return missing
+        if user.id == request.env.uid:
+            return err(ERR_FORBIDDEN,
+                       "You cannot deactivate your own account. Another "
+                       "administrator has to.",
+                       status=403, details={"user_id": user.id})
+        clients = _clients_by_user([user.id])
+        if clients.get(user.id):
+            return err(ERR_INVALID_REQUEST,
+                       "%s is the account behind the API credential %s. "
+                       "Deactivating it would break that integration "
+                       "silently; revoke or deactivate the credential "
+                       "instead." % (user.login, clients[user.id].client_id),
+                       details={"user_id": user.id, "kind": KIND_API_CREDENTIAL,
+                                "api_client_id": clients[user.id].id})
+        if not user.active:
+            return err(ERR_CONFLICT,
+                       "%s is already deactivated." % user.name,
+                       status=409, details={"user_id": user.id, "active": False})
+        # PEOPLE only: bootstrap makes every admin-scoped credential's user
+        # a system administrator too (report 42 §F.2), and a credential
+        # cannot open the back office — so on `test19` and `nrs19` the
+        # count was 2 with one human (verification pass, report 43 §F).
+        system = request.env.ref("base.group_system")
+        credential_users = set(_clients_by_user(system.user_ids.ids))
+        humans = system.user_ids.filtered(lambda u: u.id not in credential_users)
+        if user in humans and len(humans) <= 1:
+            return err(ERR_CONFLICT,
+                       "%s is the last active system administrator on this "
+                       "tenant who is a person. Deactivating them would leave "
+                       "nobody able to administer it." % user.name,
+                       status=409, details={"user_id": user.id,
+                                            "active_administrators": len(humans)})
+        user.write({"active": False})
+        return ok(data=_answer_row(user))
+
+    @cadra_route("/api/v1/users/<int:user_id>/reactivate", method="POST",
+                 summary="Give a deactivated person their access back",
+                 scopes=[SCOPE_ADMIN],
+                 idempotent=True,
+                 request_schema=_EMPTY_REQUEST_SCHEMA,
+                 response_schema={"$ref": "#/components/schemas/User"},
+                 error_statuses=(404, 409))
+    def reactivate_user(self, user_id, **kwargs):
+        """`active = True`. Their password, if they had one, still works;
+        an invitation cancelled by the deactivation is NOT re-sent — the
+        row says `cancelled` and `/invite` is one call away."""
+        body = get_params()
+        refused = _refuse_body_keys(body, NO_BODY_KEYS)
+        if refused:
+            return refused
+        user, missing = _load_user_or_404(user_id)
+        if missing:
+            return missing
+        clients = _clients_by_user([user.id])
+        if clients.get(user.id):
+            return err(ERR_INVALID_REQUEST,
+                       "%s is the account behind the API credential %s; it "
+                       "is managed with the credential."
+                       % (user.login, clients[user.id].client_id),
+                       details={"user_id": user.id, "kind": KIND_API_CREDENTIAL})
+        if user.active:
+            return err(ERR_CONFLICT,
+                       "%s is already active." % user.name,
+                       status=409, details={"user_id": user.id, "active": True})
+        user.write({"active": True})
+        return ok(data=_answer_row(user))
+
+
+def _delivery_reason(exc):
+    """The sentence inside a `MailDeliveryException`, for the response."""
+    text = " ".join(str(a) for a in exc.args if a) or str(exc)
+    return text.strip()[:300]

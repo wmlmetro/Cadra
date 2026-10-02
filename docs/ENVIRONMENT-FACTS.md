@@ -341,3 +341,72 @@ it is not slow — check for `image can't be pulled` before waiting it out.
 **The remedy that costs nothing:** leave `image` BLANK unless you need a
 specific build. Blank resolves to `dev-latest`, which is whatever `deploy-dev`
 last pushed — correct whenever you are deploying the merge you just made.
+
+### `docker compose up -d --force-recreate <service>` recreates its DEPENDENCIES too — and drops `ODOO_DBFILTER` unless it is exported
+
+Found in handoff 43. `… up -d --force-recreate proxy`, run without
+`ODOO_DBFILTER='^%d$'` in the environment, recreated the `odoo` container as
+well (the proxy depends on it and its config hash had changed) with the
+committed default `--db-filter=^odoo$`. Every tenant host then answered
+*"No database is selected"* for `/api/v1/*` and `/web/login` redirected to
+itself, while `exec … odoo -d test19 -u …` kept working because it names the
+database. `docker inspect myservicenrs-odoo-1 --format '{{.Config.Cmd}}'`
+shows the filter the container actually runs with. Any `up` or recreate of
+ANY service goes with the export, every time — the rule in `CLAUDE.md` is not
+only for bring-up.
+
+### The dev proxy passed `Host $host`, so every tenant's `web.base.url` lost its port
+
+`config/nginx.dev.conf` forwarded `proxy_set_header Host $host`, which drops
+the port; Odoo rewrites `web.base.url` from the request on every
+system-administrator login, so all 8 local tenants carried
+`http://<db>.localhost` — and any absolute link Odoo built from it (the
+sign-up link in an invitation, a reset link) pointed at port 80, where
+nothing listens. Fixed in handoff 43 to `$http_host` (and `X-Forwarded-Host` is now set
+explicitly, so a client cannot supply its own); the invitation path
+no longer reads `web.base.url` inside an authenticated request anyway
+(`myservice_api/models/invitation.py`), but anything else that does will
+still be wrong on a tenant whose last administrator login predates the fix.
+
+### Receiving mail locally: Mailpit on `host.docker.internal:1025`
+
+No local tenant has an outgoing mail server, so anything that sends can only
+be proved queued — unless you give it a catcher. Handoff 43 used Mailpit:
+
+```
+docker run -d --name cadra-mailpit -p 8025:8025 -p 1025:1025 axllent/mailpit
+```
+
+then an `ir.mail_server` row on the TEST tenant (`smtp_host =
+host.docker.internal`, `smtp_port = 1025`, `smtp_encryption = none`,
+`smtp_authentication = login` — `none` is not a valid value on 19 — no
+user). Inbox UI at `http://localhost:8025`, JSON at
+`/api/v1/messages` and `/api/v1/message/<id>` (HTML and Text parts
+separately). The sender ALSO needs a From: a tenant whose company has no
+email, sending as an API credential (no email either), fails with Odoo's
+*"You must either provide a sender address explicitly or configure using the
+combination of `mail.catchall.domain` and `mail.default.from` ICPs"* — the
+letters now fall back to the recipient's own address, as core's reset path
+always did. `test19`'s company was given `facilities@nrs.gov.ng` for the
+drive, and keeps it; the Mailpit `ir.mail_server` row stays too, so the
+"mail works" branches of the HTTP and browser suites depend on the
+container being up.
+
+### On Odoo 19 `Savepoint.close()` ROLLS BACK by default
+
+`odoo/sql_db.py:118`: `def close(self, *, rollback: bool = True)`. So
+`with contextlib.closing(cr.savepoint()):` — the pattern core's own
+`auth_signup._action_reset_password` uses around the send — undoes
+everything inside it on exit. Core gets away with it because the row it
+discards is an `auto_delete` mail that would have been deleted anyway, but
+in a test the `MockEmail` gateway then holds a `mail.mail` id that no
+longer exists (`MissingError` on the first read). Use the context manager
+form, `with cr.savepoint():`, which releases on success and rolls back on
+an exception.
+
+### In test mode a write route runs twice, and the mail mock sees both
+
+A corollary of *"A read/write route gets a READ-ONLY cursor in test mode"*
+above: the first attempt creates a `mail.mail` the rollback removes, the
+retry creates the one that stays, and `MockEmail._new_mails` holds both
+ids. Read it through `.exists()`.

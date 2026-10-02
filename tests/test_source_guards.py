@@ -4751,6 +4751,17 @@ ALREADY_LABELLED = {
         "what this entry rests on is that `nrs.asset.event` INHERITS it, "
         "which `test_the_three_records_inherit_the_label_they_are_listed_for` "
         "holds. tests/test_asset_events_api.py holds the label over HTTP.",
+    "res.users":
+        "Labelled through its partner. `res.users` `_inherits` `res.partner` "
+        "(`partner_id`), and `res.partner` carries "
+        "`cadra.test.fixture.mixin` (myservice_api/models/test_fixture.py), "
+        "so creating a user creates a partner whose `is_test_fixture` is "
+        "stamped from the acting credential and is readable as "
+        "`user.is_test_fixture`. Reachable since handoff 43: "
+        "`POST /api/v1/users` creates a person; until then the only writer "
+        "was `myservice.api.client._provision_client_user`, which has no "
+        "route. myservice_api/tests/test_user_lifecycle.py reads the label back "
+        "on the partner after a create under a test credential.",
 }
 
 #: Models a create-shaped call addresses that an API CREDENTIAL cannot cause
@@ -4771,9 +4782,6 @@ NOT_CREDENTIAL_REACHABLE = {
         "route creates or re-groups a user. It is itself an append-only "
         "audit record; labelling an audit record from the credential that "
         "triggered it would put a derived claim inside evidence.",
-    "res.users":
-        "Created only by myservice.api.client._provision_client_user, which "
-        "has no route. A credential cannot mint a user.",
     "mail.mail":
         "The outgoing-email queue row, not register data. It is a delivery "
         "attempt; the message it delivers IS labelled (mail.message).",

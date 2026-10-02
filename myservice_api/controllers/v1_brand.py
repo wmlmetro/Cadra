@@ -12,7 +12,10 @@ whether this tenant enforces Turnstile, so the same bundle shows the login
 challenge on the tenants that check it and nowhere else. Public + cached;
 contains no sensitive data.
 """
+import base64
+import binascii
 import json
+from urllib.parse import unquote_to_bytes
 
 from odoo import http
 from odoo.http import request
@@ -54,3 +57,62 @@ class CadraBrandController(http.Controller):
                 ("Access-Control-Allow-Origin", "*"),
             ],
         )
+
+    @http.route("/api/v1/brand/logo", type="http", auth="none",
+                methods=["GET"], csrf=False, save_session=False)
+    def brand_logo(self, **kw):
+        """The tenant's logo as an IMAGE, for the places a `data:` URI will
+        not do — the invitation and password-reset letters (handoff 43 §1b).
+
+        `cadra.brand_logo` is stored as a `data:image/...` URI because the
+        app inlines it; Gmail and Outlook strip inline-data images from
+        mail, so the letter references this URL instead. A tenant whose
+        brand module supplies no logo answers 404 and the letter prints a
+        wordmark — never a broken image. Same cache policy as `/brand`.
+        """
+        icp = request.env["ir.config_parameter"].sudo()
+        raw = icp.get_param("cadra.brand_logo", "") or ""
+        parsed = _parse_data_uri(raw)
+        if not parsed:
+            return request.make_response(
+                "No logo is set for this tenant.", status=404,
+                headers=[("Content-Type", "text/plain; charset=utf-8"),
+                         ("Cache-Control", "public, max-age=300")])
+        mime, payload = parsed
+        return request.make_response(
+            payload,
+            headers=[("Content-Type", mime),
+                     ("Content-Length", str(len(payload))),
+                     ("Cache-Control", "public, max-age=300"),
+                     # An administrator-set SVG served from the app origin:
+                     # it may carry no script and may not be sniffed.
+                     ("Content-Security-Policy",
+                      "default-src 'none'; style-src 'unsafe-inline'"),
+                     ("X-Content-Type-Options", "nosniff"),
+                     ("Access-Control-Allow-Origin", "*")])
+
+
+_LOGO_MIMES = ("image/svg+xml", "image/png", "image/jpeg", "image/webp")
+
+
+def _parse_data_uri(value):
+    """`(mime, bytes)` from a `data:image/...` URI, or None. Accepts the two
+    shapes the branding route stores (`v1_settings.py`): base64, and the
+    percent-encoded SVG some brand modules ship."""
+    if not value.startswith("data:"):
+        return None
+    head, sep, data = value[5:].partition(",")
+    if not sep:
+        return None
+    parts = head.split(";")
+    mime = parts[0].strip().lower()
+    if mime not in _LOGO_MIMES:
+        return None
+    try:
+        if "base64" in [p.strip().lower() for p in parts[1:]]:
+            payload = base64.b64decode(data, validate=False)
+        else:
+            payload = unquote_to_bytes(data)
+    except (ValueError, binascii.Error):
+        return None
+    return (mime, payload) if payload else None

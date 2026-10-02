@@ -242,6 +242,27 @@ _BODY_ROUTES = {
         (None, None, "action: `roles` (direct role keys, resolved to "
                      "groups and written as `group_ids`) and `dry_run`; "
                      "grantability is refused on the model"),
+    # Handoff 43. Creating a person: `name` and `email` ARE `res.users`
+    # fields (`email` is also written as `login`), `roles` is the same
+    # vocabulary as the route above and `send_invitation` is an action.
+    # Classified as an action rather than against the model because two of
+    # its four keys are not fields and the row it answers with is
+    # `_user_row`, which `tests/test_users.py` holds key by key; the body's
+    # gate is `v1_users.USER_CREATE_BODY_KEYS`.
+    ("POST", "/api/v1/users"):
+        (None, None, "action: `name`, `email` (written as `login` too), "
+                     "`roles` (as /users/<id>/roles) and `send_invitation`; "
+                     "the groups are refused on the model, the letter is "
+                     "`res.users._action_reset_password`"),
+    ("POST", "/api/v1/users/<int:user_id>/invite"):
+        (None, None, "action: no body key is accepted; re-sends the "
+                     "invitation letter"),
+    ("POST", "/api/v1/users/<int:user_id>/deactivate"):
+        (None, None, "action: no body key is accepted; writes "
+                     "`active = False`"),
+    ("POST", "/api/v1/users/<int:user_id>/reactivate"):
+        (None, None, "action: no body key is accepted; writes "
+                     "`active = True`"),
 }
 
 #: A published key whose model field has a different name. **The published

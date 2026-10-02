@@ -51,6 +51,8 @@ _USER_KEYS = frozenset({
     "id", "name", "login", "email", "active", "kind", "api_client",
     "roles_direct", "roles_effective", "scopes", "scopes_source",
     "last_login_at", "created_at",
+    # Handoff 43: whether a link to set a password is outstanding, and since when.
+    "invitation",
 })
 _ROLE_KEYS = frozenset({
     "key", "name", "xmlid", "scopes", "description", "installed", "implies",

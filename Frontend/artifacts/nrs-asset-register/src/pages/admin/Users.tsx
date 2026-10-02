@@ -1,11 +1,36 @@
 /**
- * Users — who has what (handoff 41), and the grant and the refusal (42).
+ * Users — who has what (handoff 41), the grant and the refusal (42), and the
+ * person and the door (43).
  *
  * Handoff 41 built this page READ ONLY, END TO END: no create, edit, remove,
  * deactivate, invite, grant, revoke or reset, and nothing greyed out standing
- * in for one. Handoff 42 adds exactly ONE thing that writes — the *Change
- * roles* section of the detail panel (`ChangeRolesSection`) — and nothing
- * else on the page changed. The rules it keeps:
+ * in for one. Handoff 42 added exactly ONE thing that writes — the *Change
+ * roles* section of the detail panel (`ChangeRolesSection`). Handoff 43 adds
+ * the person's lifecycle, by instruction, and nothing else on the page
+ * changed: a *Create person* button on the toolbar (`CreatePersonDialog`), a
+ * *Sign-in* section on a person's panel (`SignInSection`) with the invitation
+ * in words, *Send / Re-send invitation*, *Deactivate* and *Reactivate* (the
+ * last two through `ConfirmUserActionDialog`), and an "Invited" pill beside
+ * Active on a row whose invitation is outstanding or expired and who has
+ * never signed in. A credential's panel gets one sentence instead: its
+ * sign-in and status are managed with the credential. The rules it keeps:
+ *
+ *   - NO PASSWORD IS TYPED ANYWHERE — not on create, not on re-send. The
+ *     invitation is a letter from the person's own organisation with a link
+ *     they redeem to set their own, and the create dialog says so;
+ *   - NOTHING IS DELETED. Deactivating takes the sign-in away and leaves the
+ *     roles, the records and the custody as they are; reactivating gives it
+ *     back, and a cancelled invitation is NOT re-sent (the row says so);
+ *   - EVERY refusal is the server's own sentence, verbatim, in a red panel —
+ *     a taken email, a role the model will not grant on create, a letter
+ *     that could not be sent, "You cannot deactivate your own account", the
+ *     last administrator. Nothing is pre-empted on the screen, not even the
+ *     viewer's own row;
+ *   - what the server ANSWERED WITH is what the panel shows: every lifecycle
+ *     route returns the user row, and the panel takes that over the list's
+ *     copy until the list is re-read.
+ *
+ * Handoff 42's rules, kept as they were:
  *
  *   - a control only for a role the API says is GRANTABLE (`/roles`);
  *     `system` has no checkbox, so the sentence for a non-grantable role is
@@ -43,15 +68,17 @@ import { useLayoutCtx } from "@/components/layout/AppLayout";
 import { ApiErrorMessage } from "@/components/ApiErrorMessage";
 import { useScopes } from "@/hooks/use-scopes";
 import {
-  changeUserRoles, fetchRoles, fetchUser, fetchUsersPage, type UserFilters, type UsersPage,
+  changeUserRoles, fetchRoles, fetchUser, fetchUsersPage, inviteUser, type UserFilters, type UsersPage,
 } from "@/lib/dataProvider";
 import { apiConfigured, CadraApiError } from "@/lib/api";
 import { formatIsoDateTime } from "@/lib/utils";
 import type { AdminRole, AdminRoleRef, AdminUser, RoleChange } from "@/types";
 import {
   AlertCircle, CheckCircle2, ChevronDown, Clock, History, KeyRound, Search, ShieldCheck, User as UserIcon, X,
+  Send, UserMinus, UserPlus, UserRoundCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ConfirmUserActionDialog, CreatePersonDialog } from "@/components/admin/UserDialogs";
 
 // ─── SCOPES IN PLAIN WORDS ────────────────────────────────────────────────────
 /** The sixteen scopes `myservice_api/controllers/utils.py` knows, in words a
@@ -131,6 +158,32 @@ function ActivePill({ active }: { active: boolean }) {
     >
       <span className={cn("w-1.5 h-1.5 rounded-full mr-1", active ? "bg-green-500" : "bg-gray-400")} />
       {active ? "Active" : "Inactive"}
+    </span>
+  );
+}
+
+/**
+ * Handoff 43: beside Active, for a person who was invited and has never
+ * signed in — "Invited" while the link is live, "Invitation expired" after.
+ * Nothing for `never`, `redeemed` or `cancelled`: the first is the ordinary
+ * row, the second is a person who signs in, and the third is said on the
+ * panel, where the deactivation that caused it is. `last_login_at` null is
+ * part of the test on purpose — a person who has signed in is not "invited",
+ * whatever the token says.
+ */
+function InvitationPill({ u }: { u: AdminUser }) {
+  const state = u.invitation?.state;
+  if (u.last_login_at || (state !== "outstanding" && state !== "expired")) return null;
+  return (
+    <span
+      data-testid="invitation-pill"
+      data-state={state}
+      title={u.invitation.sent_at ? `Invitation sent ${formatIsoDateTime(u.invitation.sent_at)}` : undefined}
+      className={cn(pillBase, state === "outstanding"
+        ? "bg-amber-50 border-amber-200/70 text-amber-700 dark:bg-amber-950/30 dark:border-amber-800/30 dark:text-amber-400"
+        : "bg-muted border-border text-muted-foreground")}
+    >
+      {state === "outstanding" ? "Invited" : "Invitation expired"}
     </span>
   );
 }
@@ -415,6 +468,158 @@ function ChangeRolesSection({ user, roles, onApplied }: {
   );
 }
 
+// ─── SIGN-IN (handoff 43) ─────────────────────────────────────────────────────
+
+/** The invitation in words — one sentence per state, each something the
+ *  administrator can act on. `sent_by` is named when the server knows it. */
+function invitationWords(u: AdminUser): string {
+  const inv = u.invitation;
+  const by = inv.sent_by ? ` by ${inv.sent_by.name}` : "";
+  const sent = inv.sent_at ? formatIsoDateTime(inv.sent_at) : "";
+  switch (inv.state) {
+    case "never":
+      return "No invitation has been sent.";
+    case "outstanding":
+      return `Invitation sent ${sent}${by} · valid until ${inv.expires_at ? formatIsoDateTime(inv.expires_at) : "—"}`;
+    case "expired":
+      return `Invitation sent ${sent}${by} · expired ${inv.expires_at ? formatIsoDateTime(inv.expires_at) : ""} — send it again`;
+    case "redeemed":
+      return `Invitation redeemed; signed in ${u.last_login_at ? formatIsoDateTime(u.last_login_at) : ""}`;
+    case "cancelled":
+      return "Invitation cancelled (not used)";
+    default:
+      return `Invitation: ${String(inv.state)}`;
+  }
+}
+
+/**
+ * The person's door: the invitation line, *Send / Re-send invitation*, and
+ * *Deactivate* / *Reactivate*. A credential's user has none of it — its
+ * sign-in is its client secret and its status is the credential's — and says
+ * so in one sentence.
+ *
+ * *Re-send* is offered only when it can succeed: the account is active, has
+ * an email, and has not signed in (the route answers 409 for `redeemed` —
+ * "a password reset is theirs to ask for from the sign-in page"). The other
+ * refusals — a credential's user, the viewer's own account, the last
+ * administrator, a state that changed under us — are the server's to make
+ * and are shown here verbatim, not pre-empted.
+ */
+function SignInSection({ user, onApplied }: { user: AdminUser; onApplied: (u: AdminUser) => void }) {
+  const qc = useQueryClient();
+  const [confirm, setConfirm] = useState<"deactivate" | "reactivate" | null>(null);
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [err, setErr] = useState<CadraApiError | null>(null);
+
+  // Another row opened: its answers are not this row's.
+  useEffect(() => { setSentTo(null); setErr(null); setConfirm(null); }, [user.id]);
+
+  const inviteMut = useMutation<AdminUser, CadraApiError>({
+    mutationFn: () => inviteUser(user.id),
+    onMutate: () => { setErr(null); setSentTo(null); },
+    onSuccess: (row) => {
+      setSentTo(row.email ?? user.email);
+      onApplied(row);
+      qc.invalidateQueries({ queryKey: ["users"] });
+      qc.invalidateQueries({ queryKey: ["user"] });
+      qc.invalidateQueries({ queryKey: ["access-changes"] });
+    },
+    onError: (e) => {
+      setErr(e);
+      // The row behind the button is out of date — re-read it.
+      if (e.status === 409) {
+        qc.invalidateQueries({ queryKey: ["users"] });
+        qc.invalidateQueries({ queryKey: ["user"] });
+      }
+    },
+  });
+
+  if (user.kind === "api_credential") {
+    return (
+      <Section title="Sign-in" testId="user-section-signin">
+        <p className="text-[12px] text-muted-foreground" data-testid="lifecycle-follows-credential">
+          Sign-in and status are managed with the credential, not here.
+        </p>
+      </Section>
+    );
+  }
+
+  const inv = user.invitation;
+  // Not after a sign-in either: the server answers 409 for somebody who has
+  // signed in, whatever `invitation.state` says (a reset is theirs to ask for).
+  const canInvite = user.active && inv.state !== "redeemed" && !user.last_login_at && !!user.email;
+  const busy = inviteMut.isPending;
+
+  return (
+    <Section title="Sign-in" testId="user-section-signin">
+      <p className="text-[12px] text-foreground" data-testid="user-invitation" data-state={inv.state} data-sends={inv.sends}>
+        {invitationWords(user)}
+        {inv.sends > 1 && <span className="text-muted-foreground"> · Sent {inv.sends} times</span>}
+      </p>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {canInvite && (
+          <button
+            type="button"
+            data-testid="button-resend-invitation"
+            disabled={busy}
+            onClick={() => inviteMut.mutate()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border border-border hover:bg-muted/40 disabled:opacity-50"
+          >
+            <Send size={12} />
+            {busy ? "Sending…" : inv.state === "never" ? "Send invitation" : "Re-send invitation"}
+          </button>
+        )}
+        {user.active ? (
+          <button
+            type="button"
+            data-testid="button-deactivate-user"
+            disabled={busy}
+            onClick={() => setConfirm("deactivate")}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border border-red-200/70 dark:border-red-800/30 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50"
+          >
+            <UserMinus size={12} /> Deactivate
+          </button>
+        ) : (
+          <button
+            type="button"
+            data-testid="button-reactivate-user"
+            disabled={busy}
+            onClick={() => setConfirm("reactivate")}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-primary text-white hover:opacity-90 disabled:opacity-50"
+          >
+            <UserRoundCheck size={12} /> Reactivate
+          </button>
+        )}
+      </div>
+
+      {sentTo && (
+        <div className="mt-3 flex items-start gap-2 bg-green-50 dark:bg-green-950/30 border border-green-200/60 dark:border-green-800/30 rounded-xl p-3" data-testid="invitation-sent" role="status">
+          <CheckCircle2 size={14} className="text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+          <p className="text-[12px] text-green-700 dark:text-green-400">Invitation sent just now to <span className="font-semibold">{sentTo}</span></p>
+        </div>
+      )}
+
+      {err && (
+        <div className="mt-3 flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-xl p-3" data-testid="user-action-refusal" role="alert">
+          <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+          <ApiErrorMessage err={err} />
+        </div>
+      )}
+
+      {confirm && (
+        <ConfirmUserActionDialog
+          user={user}
+          action={confirm}
+          open
+          onOpenChange={(open) => { if (!open) setConfirm(null); }}
+          onApplied={(row) => { setSentTo(null); setErr(null); onApplied(row); }}
+        />
+      )}
+    </Section>
+  );
+}
+
 // ─── DETAIL PANEL ─────────────────────────────────────────────────────────────
 function Section({ title, testId, children }: { title: string; testId: string; children: React.ReactNode }) {
   return (
@@ -466,6 +671,8 @@ function DetailPanel({ user: fromList, roles, onClose }: { user: AdminUser; role
           )}
         </dl>
       </Section>
+
+      <SignInSection user={user} onApplied={setApplied} />
 
       <Section title="Roles held" testId="user-section-roles-direct">
         {direct.length === 0
@@ -549,6 +756,7 @@ export default function AdminUsers() {
   const [filterActive, setFilterActive] = useState("");
   const [filterKind, setFilterKind] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(deepLinkId);
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     setTitle("Users");
@@ -639,7 +847,26 @@ export default function AdminUsers() {
           <span className="font-bold text-foreground">{users.length.toLocaleString()}</span>
           {total != null && <> of <span className="font-bold text-foreground">{total.toLocaleString()}</span></>} accounts
         </p>
+        <button
+          type="button"
+          onClick={() => setCreating(true)}
+          data-testid="button-create-user"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-primary text-white hover:opacity-90"
+        >
+          <UserPlus size={12} /> Create person
+        </button>
       </div>
+
+      {/* Handoff 43. Rendered in a Radix portal, so its inputs are OUTSIDE
+          `admin-users-page` — the absence proof in `41-….spec.ts` counts on
+          that. On success the new row is selected, so the panel shows what
+          the server made and the invitation line beside it. */}
+      <CreatePersonDialog
+        open={creating}
+        onOpenChange={setCreating}
+        roles={rolesQuery.data ?? []}
+        onCreated={(u) => select(u.id)}
+      />
 
       {/* Body: table, with the panel beside it on a wide screen and under it on a phone */}
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
@@ -700,7 +927,12 @@ export default function AdminUsers() {
                             </div>
                           </td>
                           <td className="px-3 sm:px-4 py-2.5"><KindPill u={u} /></td>
-                          <td className="px-3 sm:px-4 py-2.5"><ActivePill active={u.active} /></td>
+                          <td className="px-3 sm:px-4 py-2.5">
+                            <span className="inline-flex items-center gap-1 flex-wrap">
+                              <ActivePill active={u.active} />
+                              <InvitationPill u={u} />
+                            </span>
+                          </td>
                           <td className="px-3 sm:px-4 py-2.5 hidden sm:table-cell"><span className="text-[11px] text-muted-foreground whitespace-nowrap">{u.last_login_at ? formatIsoDateTime(u.last_login_at) : "Never"}</span></td>
                         </tr>
                       );

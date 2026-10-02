@@ -2297,8 +2297,10 @@ class MyserviceApiV1(http.Controller):
                             "for staff; `api_client` is then its public "
                             "identity — never a secret. Structural logins "
                             "and portal/public users are not accounts here, "
-                            "on the list or by id. Nothing on this surface "
-                            "writes."),
+                            "on the list or by id. `invitation` says whether "
+                            "a link to set a password is outstanding, "
+                            "expired, redeemed, cancelled or was never sent, "
+                            "with when and by whom (handoff 43)."),
                         "properties": {
                             "id": {"type": "integer"},
                             "name": {"type": "string"},
@@ -2332,6 +2334,34 @@ class MyserviceApiV1(http.Controller):
                             "last_login_at": {"type": "string", "format": "date-time",
                                               "nullable": True},
                             "created_at": {"type": "string", "format": "date-time"},
+                            # ── handoff 43: the person, and the door ──
+                            "invitation": {
+                                "type": "object",
+                                "description": (
+                                    "The link-to-set-a-password this account "
+                                    "was sent, if any. `never`: none sent. "
+                                    "`outstanding`: sent, valid, unused. "
+                                    "`expired`: sent, past `expires_at`, "
+                                    "unused — re-send it. `redeemed`: used; "
+                                    "the person has signed in since. "
+                                    "`cancelled`: voided unused (deactivation "
+                                    "cancels the token). Always `never` for "
+                                    "an API credential."),
+                                "properties": {
+                                    "state": {"type": "string",
+                                              "enum": ["never", "outstanding", "expired",
+                                                       "redeemed", "cancelled"]},
+                                    "sent_at": {"type": "string", "format": "date-time",
+                                                "nullable": True},
+                                    "sent_by": {"type": "object", "nullable": True,
+                                                "properties": {"id": {"type": "integer"},
+                                                               "name": {"type": "string"}}},
+                                    "sends": {"type": "integer",
+                                              "description": "How many times, re-sends included"},
+                                    "expires_at": {"type": "string", "format": "date-time",
+                                                   "nullable": True},
+                                },
+                            },
                         },
                     },
                     # ── handoff 42: the grant, and the refusal ──────

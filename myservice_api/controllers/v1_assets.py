@@ -128,6 +128,17 @@ def _resolve_approver(body, asset):
             "You cannot ask yourself to approve your own change. Name "
             "somebody else.",
             details={"asset_id": asset.id})
+    if not approver.active:
+        # Handoff 43 §2, measured: `eligible_approvers` hides an archived
+        # user (the default `active` domain) but `browse().exists()` here
+        # did not, so the picker and the gate disagreed — a deactivated
+        # manager could be nominated by id and the request waited on
+        # somebody who cannot sign in.
+        return None, err(
+            ERR_INVALID_REQUEST,
+            "%s cannot be asked: their account is deactivated. Name "
+            "somebody who can sign in." % approver.display_name,
+            details={"asset_id": asset.id, "approver_id": approver.id})
     if not approver.has_group(CR.APPROVER_GROUP) \
             and not approver._is_admin():
         return None, err(

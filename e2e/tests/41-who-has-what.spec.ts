@@ -10,7 +10,11 @@ import { gotoApp, expectShell } from "../fixtures/helpers";
  * one assertion that matters more than the rest is the ABSENCE proof: on
  * both pages there is no control that would change anything — not disabled,
  * absent — and no input other than the search box, the two date fields and
- * the filter buttons.
+ * the filter buttons. Two later handoffs each added controls BY INSTRUCTION
+ * and the proof names them exactly: handoff 42's role section (checkboxes,
+ * Preview, Apply) and handoff 43's four lifecycle buttons (Create person,
+ * Send / Re-send invitation, Deactivate, Reactivate), the latter allowed by
+ * test id and nothing else. The access-changes half is unchanged.
  *
  * The global storage state is an admin session. The fixtures this suite
  * leans on (`h41_manager`, `h41_leaver`) are seeded on `test19` by handoff
@@ -138,7 +142,17 @@ test("the role filter is on EFFECTIVE membership: Asset User includes h41_manage
 
 // ── The absence proof ────────────────────────────────────────────────────────
 
-test("ABSENCE: nothing on either page changes anything — except handoff 42's one role control", async ({ page }) => {
+/** The controls handoff 43 added, by instruction, outside the role section —
+ *  identified by test id, not by their words, so a button that merely SAYS
+ *  "Deactivate" somewhere else on the page is still a failure. */
+const H43_CONTROLS = new Set([
+  "button-create-user",
+  "button-resend-invitation",
+  "button-deactivate-user",
+  "button-reactivate-user",
+]);
+
+test("ABSENCE: nothing on either page changes anything — except handoff 42's role control and handoff 43's four lifecycle buttons", async ({ page }) => {
   await openUsers(page);
   await expect(page.getByTestId("user-row").first()).toBeVisible({ timeout: 20_000 });
   await page.getByTestId("user-row").first().click();
@@ -146,21 +160,39 @@ test("ABSENCE: nothing on either page changes anything — except handoff 42's o
 
   // Handoff 41 built this page with no control that changes anything.
   // Handoff 42 added exactly one, by instruction: the "Change roles" section
-  // of the detail panel — its checkboxes and its Preview / Apply buttons —
-  // and nothing else. Everything outside that section is still held to 41's
-  // rule, and the section itself is held to its own spec (42-…). So the
-  // proof here is: outside `user-section-change-roles`, no button matches a
-  // change word and the only input is the search box; inside it, only
-  // checkboxes and the two named buttons exist.
+  // of the detail panel — its checkboxes and its Preview / Apply buttons.
+  // Handoff 43 added four more, by instruction, and they are the ONLY
+  // buttons outside that section allowed to match a change word: *Create
+  // person* on the toolbar, and *Send / Re-send invitation*, *Deactivate*
+  // and *Reactivate* in the panel's Sign-in section — each named here by its
+  // test id (`H43_CONTROLS`), so the allowance is for those four elements
+  // and not for the words. Everything else outside the section is still
+  // held to 41's rule, the role section to its own spec (42-…) and the four
+  // to theirs (43-…).
+  //
+  // The input rule is UNCHANGED: the only input inside `admin-users-page` is
+  // still the search box. Handoff 43's dialogs (create: name, email, role
+  // checkboxes, send-now; deactivate / reactivate: no input) render through
+  // Radix `Dialog`, whose `DialogContent` is wrapped in `DialogPrimitive.Portal`
+  // (`src/components/ui/dialog.tsx`), so they mount on `document.body`,
+  // OUTSIDE the page root — and they are not open here in any case. That is
+  // why the form / text / email count below can stay at zero.
   const root = page.getByTestId("admin-users-page");
   const section = root.getByTestId("user-section-change-roles");
   const outsideButtons = await root.locator("button").all();
+  const h43Seen: string[] = [];
   for (const b of outsideButtons) {
     const inSection = await b.evaluate((el) => !!el.closest('[data-testid="user-section-change-roles"]'));
     if (inSection) continue;
+    const testId = (await b.getAttribute("data-testid")) ?? "";
+    if (H43_CONTROLS.has(testId)) { h43Seen.push(testId); continue; }
     const text = ((await b.textContent()) ?? "") + " " + ((await b.getAttribute("aria-label")) ?? "") + " " + ((await b.getAttribute("title")) ?? "");
     expect(text.trim(), `users page button outside the role section: "${text.trim()}"`).not.toMatch(CHANGE_WORDS);
   }
+  // The toolbar's Create person is on every render; the panel's three depend
+  // on the row (a credential's panel has none). Record what was seen.
+  expect(h43Seen, "the Create person button is on the toolbar").toContain("button-create-user");
+  test.info().annotations.push({ type: "h43-controls-seen", description: h43Seen.join(",") });
   const outsideInputs = await root.locator("input, textarea, select").all();
   for (const i of outsideInputs) {
     const inSection = await i.evaluate((el) => !!el.closest('[data-testid="user-section-change-roles"]'));

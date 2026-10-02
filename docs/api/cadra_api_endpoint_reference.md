@@ -4201,7 +4201,7 @@ a deleted parameter's old value to twenty-four writing tests.
 | 56 | GET    | `/api/v1/settings/approvals` | `assets:read` |
 
 
-## 12 · People and roles (handoffs 41, 42)
+## 12 · People and roles (handoffs 41, 42, 43)
 
 Three admin-scoped reads (handoff 41) and one write (handoff 42, §12.4).
 Creating and deactivating people is handoff 43.
@@ -4374,3 +4374,95 @@ with `details.rejected_fields` and `details.writable` (`["dry_run",
 
 An unknown id, a structural account (`__system__`, `public`,
 `portaltemplate`) or a portal user — through the same domain as §12.3.
+
+## 12.5 POST `/api/v1/users` — create a person, send the invitation
+
+Scope `admin`. Idempotent (`X-Idempotency-Key`). Handoff 43.
+
+```json
+{"name": "Amina Bello", "email": "amina.bello@nrs.gov.ng",
+ "roles": ["asset_user", "tag_issuing_unit"], "send_invitation": true}
+```
+
+| Key | Required | Meaning |
+|---|---|---|
+| `name` | yes | As it will appear on records |
+| `email` | yes | Their address, and their sign-in name (stored lower-cased as `login`) |
+| `roles` | no, `[]` | DIRECT roles to start with, among `GET /roles`; written as `/users/{id}/roles` writes them |
+| `send_invitation` | no, `true` | Send the letter now; `false` creates the account silent, to be invited later |
+
+Answers **201** with the user row of §12.2, `invitation.state` `outstanding`
+(letter sent) or `never`. The create and the letter share one savepoint: a
+letter that cannot be delivered takes the account with it.
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_request` | a key outside the four (`details.rejected_fields`, `details.writable`); a missing or malformed `name`/`email`; a `roles` entry outside the vocabulary (`details.rejected_values`, `allowed_values`); a non-boolean `send_invitation` |
+| 403 | `forbidden` | a role the model does not let the API grant — `system` or any other `base.*` group — in the model's own sentence (`models/access_guard.py`). **Nothing is created** |
+| 409 | `conflict` | the address is already an account's `login` or `email`, active or not — `details.user_id`, `details.active`, and the message says which |
+| 500 | `server_misconfigured` | the letter could not be sent: no outgoing mail server, the relay refused — `details.delivery_error`. **Nothing is created.** (A missing sender address is not one of these: the From falls back, as core's reset does, to the company's address, then the sender's, then the recipient's own) |
+
+What the letter is: `myservice_api/data/mail_templates.xml`, rendered by
+`res.users._action_reset_password` with the tenant's brand
+(`cadra.brand_*`), the organisation's name (`res.company`), and a link on
+the host the request came in on. The same method serves the user form, a
+create with an email in the back office, and `/web/reset_password`.
+
+## 12.6 POST `/api/v1/users/<id>/invite` — send it again
+
+Scope `admin`, idempotent, **no body key accepted**. A new link, the same
+letter, `invitation.sends` + 1, `state` back to `outstanding`. The earlier
+link is NOT revoked by this — the token's payload is unchanged — so it stays
+valid until its own expiry; what kills every outstanding link is a sign-in or
+a deactivation.
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_request` | a body key (`rejected_fields`); the account behind an API credential; an account with no email |
+| 404 | `not_found` | not an account §12.2 lists |
+| 409 | `conflict` | deactivated ("Reactivate the account before inviting them"); has already signed in ("a password reset is theirs to ask for from the sign-in page") |
+| 500 | `server_misconfigured` | the letter could not be sent; nothing changed on the account |
+
+## 12.7 POST `/api/v1/users/<id>/deactivate` — take access away
+
+Scope `admin`, idempotent, no body key. Writes `active = False` and nothing
+else: roles, records and custody are untouched (handoff 43 §2 measures what
+that leaves). From the write: `/auth/login` refuses, every live token is
+refused on its next request (`require_jwt`), the refresh family is revoked
+on next use, an outstanding invitation token is cancelled.
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_request` | a body key; the account behind an API credential ("revoke or deactivate the credential instead") |
+| 403 | `forbidden` | your own account ("Another administrator has to") |
+| 404 | `not_found` | |
+| 409 | `conflict` | already deactivated; the last active system administrator on the tenant **who is a person** — the users behind API credentials hold the group too (bootstrap) and do not count |
+
+## 12.8 POST `/api/v1/users/<id>/reactivate` — give it back
+
+Scope `admin`, idempotent, no body key. `active = True`. Their password, if
+they had one, still works; a cancelled invitation is NOT re-sent — the row
+says `cancelled` and §12.6 is one call away.
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_request` | a body key; the account behind an API credential |
+| 404 | `not_found` | |
+| 409 | `conflict` | already active |
+
+## 12.9 The `invitation` block on every user row
+
+| Key | Meaning |
+|---|---|
+| `state` | `never` · `outstanding` (sent, valid, unused) · `expired` (past `expires_at`, unused) · `redeemed` (the person has signed in since the send — tested first, because one sign-in kills the token whatever else says) · `cancelled` (voided unused: a deactivation, or a password reset asked for from the login page, which replaces the token) |
+| `sent_at` | last send, naive UTC |
+| `sent_by` | `{id, name}` of the administrator, or `null` when the system sent it |
+| `sends` | how many times, re-sends included |
+| `expires_at` | `sent_at` + `auth_signup.signup.validity.hours` (144 by default); the token carries its own expiry, this is the arithmetic |
+
+Always `never` for an API credential.
+
+## 12.10 GET `/api/v1/brand/logo` — public
+
+The tenant's `cadra.brand_logo` decoded and served as an image, 404 when
+none is set. For the letters; mail clients strip `data:` images.

@@ -747,6 +747,16 @@ def require_jwt(scopes=()):
     if not uid:
         return None, err(ERR_UNAUTHORIZED, "Token missing subject", status=401), None
 
+    # Handoff 43: deactivation takes effect NOW, not at `exp`. Until this
+    # line a person deactivated at 09:00 kept using the app until their
+    # access token expired (3600 s on a login token); only `/auth/refresh`
+    # and `/auth/login` looked at `active`. One cached read per request, in
+    # the same sentence `/auth/login` uses — BEFORE the scope check, so a
+    # deactivated person reads 401 whatever route they call.
+    user = request.env["res.users"].sudo().browse(int(uid))
+    if not user.exists() or not user.active:
+        return None, err(ERR_UNAUTHORIZED, "Account is disabled", status=401), None
+
     token_scopes, missing = _missing_scopes(claims, scopes)
     if missing:
         return None, err(
