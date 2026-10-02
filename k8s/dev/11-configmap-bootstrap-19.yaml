@@ -8,7 +8,12 @@ data:
   # myservice_request_core (the in-house engine) is pulled in via
   # myservice_request_fields' dependency; web_responsive resolves from oca-19/.
   # Per-tenant brand modules are appended via EXTRA_MODULES by the deploy step.
-  CADRA_BOOTSTRAP_MODULES: "myservice_api,myservice_asset_register,myservice_barcode_station,myservice_dashboard,myservice_fleet_maintenance,myservice_fm_dashboard,myservice_identity,myservice_nrs_base,myservice_request_fields,myservice_security,myservice_staff_bus,myservice_theme,myservice_theme_v5,myservice_website_theme,myservice_workflow,web_responsive"
+  # myservice_email_relay was missing from this list until 2026-10-02 while
+  # .env.example's list had it, so no staging tenant ever had the HTTPS mail
+  # relay installed and every invitation went out over SMTP (Zoho 553). Tenants
+  # bootstrapped before that date need `upgrade-19` with
+  # install_modules=myservice_email_relay; see set-email-relay.yml.
+  CADRA_BOOTSTRAP_MODULES: "myservice_api,myservice_asset_register,myservice_barcode_station,myservice_dashboard,myservice_email_relay,myservice_fleet_maintenance,myservice_fm_dashboard,myservice_identity,myservice_nrs_base,myservice_request_fields,myservice_security,myservice_staff_bus,myservice_theme,myservice_theme_v5,myservice_website_theme,myservice_workflow,web_responsive"
 
   # Seed profiles are defined in scripts/bootstrap.py. Per-tenant profile is set
   # via SEED_PROFILE_OVERRIDE on the bootstrap Job (gtb / jaiz / lasg / full…).

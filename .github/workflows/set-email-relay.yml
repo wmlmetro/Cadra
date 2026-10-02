@@ -1,0 +1,135 @@
+name: set-email-relay
+# Point one or more tenant DBs at the HTTPS mail relay, or take them off it, by
+# writing the two ir.config_parameter rows myservice_email_relay reads:
+#   cadra.email_relay_url     ← GitHub VARIABLE  CADRA_EMAIL_RELAY_URL
+#   cadra.email_relay_secret  ← GitHub SECRET    CADRA_EMAIL_RELAY_SECRET
+#
+# Why this exists rather than a bootstrap run: bootstrap writes these two on a
+# tenant's FIRST deploy only, and every staging tenant was bootstrapped from a
+# module list that did not include myservice_email_relay (fixed 2026-10-02 in
+# k8s/dev/11-configmap-bootstrap-19.yaml). set-turnstile.yml is the model.
+#
+# Neither value is an input. They come from the same GitHub variable/secret that
+# deploy-dev syncs into the cadra-odoo K8s secret, so the two cannot drift.
+#
+# THREE things have to be true for a tenant to send through the relay, and this
+# workflow does only the second:
+#   1. myservice_email_relay is INSTALLED on the DB — this workflow checks and
+#      prints the module state per DB; if it is not `installed`, run upgrade-19
+#      with install_modules=myservice_email_relay (list EVERY tenant).
+#   2. both parameters are set (this workflow).
+#   3. odoo-19 is rolled afterwards — ir.config_parameter._get_param is
+#      ormcached per worker, so a value written from this shell is not seen by
+#      the running pod until it restarts.
+on:
+  workflow_dispatch:
+    inputs:
+      dbs:
+        description: "Comma-separated tenant DBs (e.g. staging,gtb,jaizbankplc,lasg)."
+        type: string
+        required: true
+      action:
+        description: "enable = write URL + secret; disable = clear both (native SMTP again)."
+        type: choice
+        options: [enable, disable]
+        default: enable
+
+env:
+  NAMESPACE: cadra-dev
+
+concurrency:
+  group: set-email-relay
+  cancel-in-progress: false
+
+jobs:
+  set:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: dev
+    steps:
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Save DOKS kubeconfig
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 1200 "${{ vars.DO_CLUSTER_NAME }}"
+
+      - name: Set the relay parameters
+        env:
+          DBS: ${{ inputs.dbs }}
+          ACTION: ${{ inputs.action }}
+          RELAY_URL: ${{ vars.CADRA_EMAIL_RELAY_URL }}
+          RELAY_SECRET: ${{ secrets.CADRA_EMAIL_RELAY_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ "$ACTION" = "enable" ]; then
+            : "${RELAY_URL:?GitHub variable CADRA_EMAIL_RELAY_URL is required to enable}"
+            : "${RELAY_SECRET:?GitHub secret CADRA_EMAIL_RELAY_SECRET is required to enable}"
+            # Both values are interpolated into Python literals below. Anything
+            # outside these character classes could break out of the quoting,
+            # so refuse it rather than generating code we did not intend.
+            if ! printf '%s' "$RELAY_URL" | grep -qE '^https://[A-Za-z0-9_./:-]+$'; then
+              echo "::error::CADRA_EMAIL_RELAY_URL must be https:// and contain only [A-Za-z0-9_./:-]; refusing to interpolate it."
+              exit 1
+            fi
+            if ! printf '%s' "$RELAY_SECRET" | grep -qE '^[A-Za-z0-9_.:-]+$'; then
+              echo "::error::CADRA_EMAIL_RELAY_SECRET contains characters outside [A-Za-z0-9_.:-]; refusing to interpolate it."
+              exit 1
+            fi
+            URL_VALUE="'${RELAY_URL}'"
+            SECRET_VALUE="'${RELAY_SECRET}'"
+          else
+            # set_param(key, False) deletes the row; "" would STORE an empty
+            # string (the module treats that as unset, but a reader counting
+            # rows would see two).
+            URL_VALUE="False"
+            SECRET_VALUE="False"
+          fi
+          failed=0
+          for db in ${DBS//,/ }; do
+            db="$(echo "$db" | tr -d '[:space:]')"
+            [ -n "$db" ] || continue
+            echo "─── ${ACTION} email relay on '${db}' ───"
+            # Piped over stdin, never argv, so the secret cannot surface in the
+            # pod's process list. The readback prints whether each value is
+            # present and how long it is — never the value itself — and the
+            # module's install state, because parameters nobody reads are inert.
+            # -c /tmp/odoo.conf: the pod's entrypoint writes the DB credentials
+            # there at startup; a bare `odoo shell` cannot reach Postgres.
+            out="$(printf '%s\n' \
+              "p = env['ir.config_parameter'].sudo()" \
+              "p.set_param('cadra.email_relay_url', ${URL_VALUE})" \
+              "p.set_param('cadra.email_relay_secret', ${SECRET_VALUE})" \
+              "env.cr.commit()" \
+              "u = p.get_param('cadra.email_relay_url', '') or ''" \
+              "s = p.get_param('cadra.email_relay_secret', '') or ''" \
+              "m = env['ir.module.module'].sudo().search([('name', '=', 'myservice_email_relay')], limit=1)" \
+              "print('RESULT ${db}: url_set=%s url_len=%d secret_set=%s secret_len=%d module=%s' % (bool(u), len(u), bool(s), len(s), m.state if m else 'absent'))" \
+            | kubectl -n "${NAMESPACE}" exec -i deployment/odoo-19 -- \
+                odoo shell -c /tmp/odoo.conf -d "$db" --no-http --log-level=warn 2>&1)" || true
+
+            if ! printf '%s' "$out" | grep -q '^RESULT'; then
+              echo "::error::no RESULT line for '${db}' — the odoo shell call failed"
+              printf '%s\n' "$out" | tail -40
+              exit 1
+            fi
+            line="$(printf '%s\n' "$out" | grep '^RESULT')"
+            echo "$line"
+            if [ "$ACTION" = "enable" ] && ! printf '%s' "$line" | grep -q 'module=installed'; then
+              echo "::warning title=relay not installed on ${db}::parameters are written but myservice_email_relay is not installed there, so mail still goes over SMTP. Run upgrade-19 with install_modules=myservice_email_relay (list EVERY tenant)."
+              failed=1
+            fi
+          done
+          [ "$failed" -eq 0 ] || echo "::notice::one or more tenants need the module installed — see warnings above"
+
+      - name: Next step
+        run: |
+          echo "Parameters written. They are NOT live yet — running workers cache ir.config_parameter."
+          echo "If any RESULT line above says module=uninstalled or module=absent, install first:"
+          echo "  gh workflow run upgrade-19.yml --ref dev -f target_dbs=<every tenant> -f install_modules=myservice_email_relay"
+          echo "Then roll odoo-19 to apply (upgrade-19 with scale_down=true already does):"
+          echo "  gh workflow run deploy-19.yml --ref dev -f run_bootstrap=false"
+          echo "Then send an invitation and read the mail.mail row's failure_reason if it fails —"
+          echo "a relay refusal names itself ('Email relay returned HTTP 401 / Invalid or missing secret')."
