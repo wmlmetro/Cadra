@@ -121,6 +121,24 @@ Cadra is one of three systems in the NRS integration programme, defined by *"End
 
 Odoo 19 removed it. `odoo/orm/model_classes.py:162` logs *"Model attribute '_sql_constraints' is no longer supported, please define models.Constraint on the model"* and **creates no constraint** — a uniqueness guarantee declared the old way silently stops existing. **8 declaration sites** were affected — 2 first-party plus 6 in `crnd-19/` — and all are now ported; `docs/constraint-audit.md` is the standing record. Use `models.Constraint("UNIQUE (a, b)", "message")` on 19, keeping the legacy list behind an `_ODOO_MAJOR` guard in our own modules only (the 15 stack still loads them). `dist/` is the Odoo 15 vendor tree and, since handoff 20 retired the 15 stack, is on **no** addons path at all — its `_sql_constraints` are unreached rather than correct, and leaving them alone is right because nothing loads a vendored tree we do not control (see the correction in `docs/constraint-audit.md`). `crnd-19/`/`oca-19/` are 19-only and need no guard. `tests/test_source_guards.py` fails on any unguarded reintroduction in our modules.
 
+### Odoo 19 gotcha: `ir.mail_server.connect()` is `_connect__`
+
+`mail.mail.send()` opens one SMTP session per batch through
+`ir.mail_server._connect__` (19) — it was `connect` on 15 — and hands it to
+`send_email()`. `myservice_email_relay`, the HTTPS bridge for clusters that
+block SMTP egress, overrides the opener to skip the socket; its 15-era
+override of `connect` was carried onto 19 with only its version changed and
+was dead code for the life of the 19 stack, so every outbound mail died at
+*Unable to connect to SMTP Server* before the relay was consulted
+(`docs/DECISIONS.md`, 2026-10-02). The override is on `_connect__` now and
+`myservice_email_relay/tests/test_relay.py` reads core's source to assert the
+name still matches. **A method you override is a name the framework owns;
+after an upgrade, grep core for it before trusting the override.** The relay
+is live on no tenant until `cadra.email_relay_url` AND
+`cadra.email_relay_secret` are set (the relay refuses a missing secret);
+`set_param(key, "")` on 19 stores an empty string rather than deleting the
+row.
+
 ### Odoo 19 gotcha: a group reaches the user form through `res.groups.privilege`, not `category_id`
 
 `res.groups` has no `category_id` on 19. The user form's widget renders one

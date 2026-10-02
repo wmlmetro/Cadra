@@ -1542,6 +1542,20 @@ is here; what it built is in `docs/STATUS.md`.
   to say. So handoff 43 cannot assume an invitation email will be delivered,
   and a design that sets a password has to find a way to hand it over that is
   not a document. `[open]`, decides 43's design.
+- **The HTTPS mail relay was dead on Odoo 19 and is not any more — but it
+  still has no secret.** `myservice_email_relay` overrode `ir.mail_server.
+  connect()`, which 19 renamed `_connect__`; the port changed only the
+  manifest version, so on every 19 tenant outbound mail died at *Unable to
+  connect to SMTP Server* before the relay was consulted. Fixed 2026-10-02
+  (`fix/the-mail-relay-on-19`): the override follows the 19 name, obeys
+  `_disable_send()`, posts once per recipient, and its test pins the hook to
+  what `mail.mail.send` calls. Proved from the running server on `test19`
+  with a wrong secret: the row reads `Email relay returned HTTP 401 /
+  Invalid or missing secret`. Installed on 1 of 8 local tenants (`test19`);
+  relay parameters set on 0 of 8; the cluster gets both from
+  `CADRA_EMAIL_RELAY_URL` / `_SECRET` via bootstrap. **The owner holds the
+  secret.** `[open]`, owner — the one thing between 43's invitation email
+  and a delivered one.
 - **`auth_signup` is installed on all 8 tenants** (`ir_module_module.state =
   installed`), with `auth_signup.invitation_scope = b2c` and
   `auth_signup.reset_password = True` everywhere. Its
