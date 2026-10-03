@@ -161,6 +161,12 @@ _BODY_ROUTES = {
     ("PATCH", "/api/v1/settings/depreciation"):
         (None, None,
          "writes `ir.config_parameter` rows, not fields of a record"),
+    # Handoff 48. `items` / `groups` are maps of switch keys, validated
+    # against `SIDEBAR_GROUPS` by the route itself.
+    ("PATCH", "/api/v1/settings/sidebar"):
+        (None, None,
+         "writes `ir.config_parameter` rows (`cadra.sidebar.*`), not fields "
+         "of a record; the keys are the catalog in `v1_sidebar.py`"),
     ("POST", "/api/v1/auth/token"):
         (None, None, "credentials"),
     ("POST", "/api/v1/auth/login"):

@@ -33,6 +33,32 @@ live at was never the point.
 
 ---
 
+## 2026-10-03 — handoff 48: what this tenant has · `myservice_api` 19.0.3.20.0
+
+All additive.
+
+- **New route `GET /api/v1/settings/sidebar`** — any valid token. Which
+  sidebar items and groups this tenant shows, each switch's own position
+  (`enabled`), what is drawn (`shown`, items: the item's switch AND its
+  group's), whether anybody ever set it (`configured`), `locked`, and who
+  last changed it (`changed_by`, `changed_at`). `hidden_items` lists the
+  item keys not drawn. **`is_a_permission: false` and `statement` say in
+  words that this is presentation**: no route reads these switches, and an
+  item switched off still opens by its address.
+- **New route `PATCH /api/v1/settings/sidebar`** — `admin`. Body
+  `{"items": {key: bool}, "groups": {key: bool}}`; only the switches named
+  change. Every refusal is `400 invalid_request` before anything is written:
+  an unknown body key (`rejected_fields`/`writable`), an empty body, an
+  unknown key (`unknown`, `allowed_values`), a non-boolean value
+  (`not_boolean`), and switching off `sidebar_settings` or its group
+  `settings` (`locked_items`, `locked_groups`) — the screen these are
+  changed from. Not idempotent-keyed (it is a set, so a replay is harmless).
+- **Keys are stable identifiers**, never renamed or reused: 10 groups and 28
+  items, listed in the endpoint reference §13. One `ir.config_parameter` row
+  per switch (`cadra.sidebar.item.<key>` / `cadra.sidebar.group.<key>`,
+  `on`/`off`), so each switch appears in `/reports/configuration-changes`
+  under its own key. Absent = on.
+
 ## 2026-10-03 — handoff 46: everyone sees their own job · `myservice_api` 19.0.3.19.0
 
 All additive.
