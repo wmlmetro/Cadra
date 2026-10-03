@@ -1006,3 +1006,43 @@ Report 44 §H carries every suite's denominator.
 
 Report 45 §H carries every suite's denominator and the screenshots of both
 tenants' journeys.
+
+## 46 — Everyone sees their own job (2026-10-03)
+
+### What was built
+
+- **Six demo personas** (`scripts/seed_demo_personas.py`, `list_…`,
+  `remove_…`, one wrapper `scripts/demo_personas.sh`) on the six classified
+  local tenants, seeded twice each (second run: 0 created, 0 changed), marked
+  by the `is_test_fixture` derivation, the `demo.example` domain and an
+  `__cadra_demo__` external id; passwords in gitignored
+  `docs/api/.personas.<db>`. Removal proved on `test19` (217 → 213 accounts;
+  4 deleted, 2 archived because a move request names them) and on a
+  throwaway copy of `nrs19` (18 → 11, the original's 11).
+- **An account that is a fixture labels what it does** (the derivation in
+  `myservice.api.client._is_test_credential_user`).
+- **`is_test_fixture` on every user row** of `/api/v1/users` (additive,
+  `myservice_api` 19.0.3.19.0) and a *Demo / test account* badge on the
+  Users screen.
+- **The sidebar's scopes, the landing rule and in-page write controls**
+  (`lib/navigation.ts`, `pages/NoAccess.tsx`, the sweep in report 46 §C).
+
+- **Tag numbering by arithmetic.** `_generate_tag` walked every issued
+  number past 999 under a prefix, one query each (a text sort put `999`
+  above `8305`): `POST /api/v1/assets` took ~11 s on `test19` and now
+  0.2–0.3 s; one `nrs19` and eight `jaizbankplc` prefixes were past 999.
+  `myservice_asset_register/tests/test_tag_number.py`, failing first on the
+  old code (410 queries for one asset).
+
+### Measured, not built
+
+- The roles against the people: report 46 §E and `docs/GO-LIVE.md` §23.2.
+- Persona names against every tenant's staff and contacts: 0 matches on 9
+  databases for the six chosen; the handoff's example name matched 4 real
+  `nrs19` employees.
+
+### Verification
+
+Report 46 §G carries every suite's denominator, the per-persona matrix
+(`46-evidence/matrix-*.json`) and the screenshots on `test19` and
+`jaizbankplc`.

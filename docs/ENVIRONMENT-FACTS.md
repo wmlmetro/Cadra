@@ -444,3 +444,25 @@ on wake and everything after fails `401`; pytest's own duration does not count
 the sleep, so the summary looks like a short run. The server log says
 `JWT rejected (Token expired)`; `pmset -g log | grep -E 'Sleep|Wake'` shows the
 gap. Run long suites under `caffeinate -i -t 7200`.
+
+### A fresh local browser is "signed in" before anybody types: `.env.local` (handoff 46)
+
+`Frontend/artifacts/nrs-asset-register/.env.local` (gitignored, dated July)
+sets `VITE_API_TOKEN`, and `lib/auth.ts` treats that as a session whenever
+nothing is stored and nobody has signed out. Every `BASE_PATH=/app/ npm run
+build` on this machine compiles it in. The token has expired, so the first
+request answers 401, the app signs out and the sign-in page appears — at
+whatever URL the app had reached by then. Handoff 46's first front-door
+redirect judged that phantom session (no scopes) and sent every visitor to
+`/no-access` before they signed in; the spec caught it by recording every
+URL the browser passed through. If a sign-in lands somewhere odd only on
+this machine, look here first. Removing the file is the owner's call.
+
+### The HTTP suite slows down as `test19` fills with tags (fixed in handoff 46)
+
+Until handoff 46 every `POST /api/v1/assets` walked every tag number already
+issued under its prefix past 999 — one `COUNT` each, ~11 s per asset on
+`test19` once it held 8,237 `NRS-GEN-*` labels — and the full suite crawled
+(17 % in an hour, against 37 minutes for the whole run in handoff 45). If the
+suite is suddenly slow, sample `pg_stat_activity` before blaming the load:
+`docker exec myservicenrs-db-1 psql -U odoo -d postgres -Atc "select left(query,200) from pg_stat_activity where state='active'"`.
