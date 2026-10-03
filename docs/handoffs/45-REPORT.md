@@ -181,4 +181,7 @@ Left, and why:
 
 ## Commits
 
-[filled in after push]
+- `5e88db6` feat: the first five minutes — the letter opens the app, the back office is for administrators, a stranded approval is re-pointed, a deactivation is on the record
+- `7ed48bd` docs: report 45
+- this commit: the commit list
+- PR: https://github.com/wmlmetro/Cadra/pull/103 (stacked on #102)
