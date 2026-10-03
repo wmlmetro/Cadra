@@ -1,6 +1,6 @@
 # Handoff 48 — Report: what this tenant has
 
-**Branch:** `fix/what-this-tenant-has` · **PR:** see *Commits*.
+**Branch:** `fix/what-this-tenant-has` · **PR:** https://github.com/wmlmetro/Cadra/pull/106
 **Evidence:** `docs/handoffs/48-evidence/`:
 
 - `shots/` — the Sidebar screen before and after, the sidebar as the Store Officer, and a hidden address typed, on `test19` and `boot44`.
@@ -236,4 +236,11 @@ Also already off the sidebar, though still served by address: FM Operations, Sec
 
 ## Commits
 
-__COMMITS__
+- `893a727` docs: handoff 48 — what this tenant has
+- `ff68745` feat(api): what this tenant's sidebar shows — GET/PATCH /settings/sidebar
+- `6d0ac4a` feat(app): Settings → Sidebar — drawn when the tenant shows it AND the role opens it
+- `3b5da3f` docs: handoff 48 — decisions, status, go-live register, CLAUDE.md
+- `83746d8` docs: report 48 — what this tenant has
+- the commit that adds this list
+
+**PR:** https://github.com/wmlmetro/Cadra/pull/106 (into `dev`).
