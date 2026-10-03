@@ -69,6 +69,11 @@ const ITEMS: { path: string; probes: Probe[] }[] = [
   // Handoff 48. `admin`-only; the probe body is refused 400 to a holder.
   { path: "/settings/sidebar", probes: [W("PATCH", "/settings/sidebar")] },
   { path: "/admin/access-changes", probes: [G("/reports/access-changes?from=2026-10-01&to=2026-10-03&limit=1")] },
+  // The auditor's own screens (handoff 49).
+  { path: "/admin/configuration-changes", probes: [G("/reports/configuration-changes?from=2026-10-01&to=2026-10-03&limit=1")] },
+  { path: "/reports/disposals", probes: [G("/reports/disposals?from=2026-01-01&to=2026-10-03&limit=1")] },
+  { path: "/reports/asset-register", probes: [G("/reports/asset-register?as_of=2026-10-01&limit=1")] },
+  { path: "/reports/export", probes: [G("/assets/export?limit=1")] },
   { path: "/admin/users", probes: [G("/users?limit=1")] },
   { path: "/tools/barcode", probes: [G("/barcode/kpis")] },
 ];

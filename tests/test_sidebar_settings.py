@@ -95,7 +95,10 @@ def test_the_payload_says_it_is_not_a_permission(client, capture):
     keys = [it["key"] for g in data["groups"] for it in g["items"]]
     # 26 since handoff 47: Staff Bus and Identity (clearance) left the
     # sidebar (§1b) — mock screens; their keys are retired, never reused.
-    assert len(keys) == len(set(keys)) == 26, keys
+    # 30 since handoff 49: the auditor's four screens joined the Audit group
+    # (configuration_changes, disposals_report, register_snapshot,
+    # register_export).
+    assert len(keys) == len(set(keys)) == 30, keys
     assert len(data["groups"]) == 10
     hidden = [it["key"] for g in data["groups"] for it in g["items"]
               if not it["shown"]]

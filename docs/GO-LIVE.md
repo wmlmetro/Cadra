@@ -2130,7 +2130,9 @@ found is here.
   changes, disposals, the register snapshot, the export all answer the
   auditor 200 over the API and the app draws no page for any of them
   (report 46 §E.6). Explicitly NOT ruled in handoff 47: it is the next
-  build, and the auditor's demo. `[open]`, Architect.
+  build, and the auditor's demo. `[landed]` — handoff 49 built all four
+  (§26 below); driven as the auditor on `test19` and `boot44`, the export
+  end to end on `nrs19`'s 11,951 assets.
 - **Existing credentials provisioned under the old scopes** need their rows
   touched where they relied on a split or moved scope: a non-admin
   credential holding `identity:read` to read `/reports/access-changes` now
@@ -2139,3 +2141,44 @@ found is here.
   to mint or replace labels now needs `tagging:write`. Per-tenant counts of
   who is actually affected are in report 47 §B. `[open]`, owner, before
   the next demo that uses a non-admin credential on those routes.
+
+## 26 · Handoff 49 — the auditor's own screens, 2026-10-03
+
+- **All four screens exist and were driven as the auditor** — Configuration
+  changes (`/admin/configuration-changes`, `settings:read`), Disposals
+  (`/reports/disposals`, `assets:read`), Register snapshot
+  (`/reports/asset-register`, `assets:read`) and Export (`/reports/export`,
+  `assets:read`), in the Audit sidebar group beside Access changes, each
+  with its tenant switch (keys `configuration_changes`, `disposals_report`,
+  `register_snapshot`, `register_export`). No route changed. Evidence:
+  `docs/handoffs/49-evidence/`. `[landed, keep it that way]`
+- **Three of the four are drawn for every Asset User**, because the server
+  gates them on `assets:read` and the sidebar declares the server's scope
+  (handoff 46's rule). A Store Officer is shown — and answered — the
+  disposals report, the register snapshot and the whole-register export.
+  Whether the audit reports should be the Auditor's alone (a `reports:read`
+  or wider `access:read`) is a role-model question, the same shape as the
+  §25 map finding. `[open]`, Architect.
+- **87 of 6,646 held assets, 59 departed holders — now on a screen.** The
+  register snapshot carries a card computed from
+  `GET /identity/employees?active=false` (no new endpoint): how many assets
+  still name a departed person as custodian, how many people, how many
+  flagged for retrieval, with the denominator of departed people on record.
+  Re-measured 2026-10-03 on `nrs19`: 87 assets (0 of them disposed), 59
+  people of 207 inactive, 0 flagged — exactly reports 43/45's figures; the
+  held-assets denominator alone moved, 6,646 → 6,644.
+  Shown only to holders of `identity:read` (the employees route's scope);
+  measured NOW, said on the card, because the employee record has no
+  history to roll back. `[landed]`
+- **A component crash white-screens the whole app.** Found by spec 49's
+  first run: a snapshot row whose `value.book_value` is `null` (an engine
+  that has not computed it) threw in render and React unmounted everything —
+  no error boundary anywhere in the tree, so a blank page with no words. The
+  row is fixed (a null prints as a dash); the missing boundary is the
+  finding. `[open]`, Architect — one boundary at the route level would turn
+  any future render bug from a blank page into a sentence.
+- **The export is uncapped only for frontend sessions.** An API credential
+  gets 100 rows plus `X-Cadra-Truncated`; the screen says so in amber if it
+  ever sees it. On `nrs19` the page's count (11,951), the file's rows
+  (11,951) and the register agreed, 1.2 MB in 1.2 s click-to-saved-file.
+  `[landed]`

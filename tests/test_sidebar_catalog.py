@@ -53,6 +53,9 @@ PUBLISHED_ITEMS = {
     "asset_categories", "branding", "depreciation_settings",
     "sidebar_settings",
     "access_changes", "users", "barcode_station",
+    # The auditor's own screens (handoff 49).
+    "configuration_changes", "disposals_report", "register_snapshot",
+    "register_export",
 }
 
 _KEY = re.compile(r"^[a-z][a-z0-9_]*$")

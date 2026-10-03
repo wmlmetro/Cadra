@@ -1,0 +1,42 @@
+Suite result lines, handoff 49 (2026-10-03). Each is the runner's own final
+line; denominators quoted per CLAUDE.md.
+
+pytest (HTTP suite), test19, before the key-count pin moved:
+  1 failed, 1289 passed, 9 skipped in 378.72s   [of 1299]
+  FAILED tests/test_sidebar_settings.py::test_the_payload_says_it_is_not_a_permission
+  (the published-key-count guard catching the four new keys: 26 -> 30)
+pytest tests/test_sidebar_settings.py after the pin moved: 21 passed
+pytest (HTTP suite), test19, FINAL whole-suite re-run after every change:
+  1290 passed, 9 skipped in 377.07s   [of 1299; 0 failed]
+
+Static guards (test_sidebar_catalog, test_nav_scopes, test_source_guards):
+  228 passed in 8.02s
+
+Playwright spec 49, test19:  4 passed (35.8s)
+  [49] test19 departed-holders: No assets name a departed person as custodian — of 0 departed people on record.
+  [49] test19 export: 10883 rows in 750ms — "Saved nrs_assets.csv — 10,883 rows, 1.1 MB, in 0.7s."
+Playwright spec 49, boot44:  4 passed (37.1s)
+  [49] boot44 departed-holders: No assets name a departed person as custodian — of 0 departed people on record.
+  [49] boot44 export: 231 rows in 415ms — "Saved nrs_assets.csv — 231 rows, 23 KB, in 0.4s."
+Playwright specs 46 + 48, test19: 11 passed (2.7m)
+Playwright specs 46 + 48, boot44: 11 passed (2.6m)
+
+Playwright WHOLE suite, test19:
+  2 failed, 12 skipped, 188 passed (12.3m)   [of 202]
+  failures (both red on dev before this branch — docs/GO-LIVE.md §13.5 item 13):
+    13-asset-depreciation.spec.ts: a computed asset charts its value over time
+    14-settings-depreciation.spec.ts: the straight-line switch persists across a reload
+  skips (12, all pre-existing data-dependent; none in specs 46/48/49):
+    06-asset-actions x5 (building locations), 08-requests x1 (no type_id),
+    35-approvals x3, 38-serial-lookup x2, 39-the-tagger-confirms x1
+
+nrs19 export, end to end (one-off read-only script, admin session):
+  [export-size] This register holds 11,951 assets right now.
+  [done] Saved nrs_assets.csv — 11,951 rows, 1.2 MB, in 1.2s.
+  [wall-clock] 1221ms click-to-done
+  [saved] 1242781 bytes on disk, 11951 data rows
+
+nrs19 departed custodians (SQL, read-only, 2026-10-03):
+  held assets (non-disposed): 6644
+  held by inactive employees: 87 assets, 59 people (all states AND non-disposed: identical)
+  inactive employees total: 207; retrieval flagged among those: 0

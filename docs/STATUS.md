@@ -1163,3 +1163,64 @@ Report 37 carries the equivalence drive (seven bodies, both doors, the
 sync-log rows read back), the census with its date and all eight
 denominators, the failing-then-passing assertion for §3 with the statement
 of which side was wrong, and every suite's denominator.
+
+## 49 — The auditor's own screens (2026-10-03)
+
+### What was built
+
+- **Four screens for four routes the server already answered** — all
+  front-end, no route changed:
+  - **Configuration changes** (`/admin/configuration-changes`,
+    `settings:read`): the last-write-only parameter record, statement and
+    fidelity notes above the table, redacted values shown as the server
+    sends them, writer-of-record per row, auto-walked like Access changes.
+  - **Disposals** (`/reports/disposals`, `assets:read`): whole-period
+    summary (clean count, findings breakdown, methods, proceeds, the INT-09
+    SAP statement), the UNPLACEABLE rows (no date from any source) in their
+    own section on every page, dated rows cursor-paged behind Load more.
+  - **Register snapshot** (`/reports/asset-register`, `assets:read`): the
+    register as of a day, per-row `_fidelity.unknown` rendered as *not
+    recorded then*, deliberately filterless (the route's filters select on today's
+    values), and the **departed-custodians card** — handoff 49 §4, computed
+    from `GET /identity/employees?active=false`, denominator always shown.
+  - **Export** (`/reports/export`, `assets:read`): downloads
+    `GET /assets/export.csv` with the bearer token via the new
+    `apiGetRaw`; size said before the click, preparing state during, file
+    name / rows / bytes / elapsed after, truncation in amber if ever seen.
+- **Both gates registered**: nav items with the server's scopes in
+  `lib/navigation.ts`, switch keys `configuration_changes`,
+  `disposals_report`, `register_snapshot`, `register_export` in
+  `SIDEBAR_GROUPS` and the published-keys table; `myservice_api`
+  19.0.3.23.0 (controller constant only — no model, view or data change, so
+  a restart suffices and no per-tenant upgrade was run).
+- **Suite updates in the same change**: `tests/test_sidebar_settings.py`
+  pins 30 published item keys (was 26); spec 46's `ITEMS` probes the four
+  new paths; new `e2e/tests/49-the-auditors-own-screens.spec.ts` (4 tests).
+
+### Measured
+
+- Export, end to end: `nrs19` 11,951 rows / 1.2 MB / 1.2 s click-to-file
+  (count on screen = rows in file = register); `test19` 10,883 rows / 0.7 s;
+  `boot44` 231 rows / 0.4 s. All uncapped (frontend session), no
+  truncation header.
+- Departed custodians on `nrs19` (SQL, 2026-10-03): 87 assets held by 59
+  archived employees of 207 archived, 0 flagged, 0 of the 87 disposed —
+  reports 43/45 confirmed; `test19`/`boot44`: 0 of 0, the card says so with
+  the denominator.
+
+### Verification
+
+- pytest on `test19`: **1 failed, 1289 passed, 9 skipped of 1299**, the
+  failure being the published-key count guard doing its job (26 → 30);
+  **1290 passed, 9 skipped** after the pin moved. The 9 skips are the
+  documented `test19` set.
+- Spec 49: **4 passed of 4** on `test19` AND on `boot44` — all four screens
+  as Zainab, empty states driven with a measured-empty period (1990, after
+  2020 turned out to hold backdated fixtures), refusals as the Tag-Issuing
+  Unit (all four, 403 + scope refusal) and the Store Officer
+  (configuration-changes only — the other three are theirs by the server's
+  own gate), the download event, and the tenant switches off/on with the
+  hidden URL still answering.
+- Specs 46 + 48 re-run on both tenants: **11 passed of 11** each.
+- Found by the spec's first run and fixed: a null `value.book_value`
+  white-screened the app (no error boundary — `docs/GO-LIVE.md` §26).

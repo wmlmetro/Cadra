@@ -194,6 +194,39 @@ export async function apiGet<T>(
 }
 
 /**
+ * An authenticated GET whose body is NOT the envelope — a file the caller
+ * will read as a blob (handoff 49: `GET /api/v1/assets/export.csv`). A plain
+ * `<a href>` cannot carry the bearer token, and `apiGet` would throw
+ * `non_json_response` at a CSV, so this is the third shape: the same token
+ * resolution and single 401-refresh-retry as `sendWithAuth`, but the raw
+ * `Response` handed back for the caller to read headers
+ * (`Content-Disposition`, `X-Cadra-Truncated`) and body itself. An error
+ * STATUS is still parsed as the envelope so a refusal reads in words.
+ */
+export async function apiGetRaw(
+  path: string,
+  params?: Record<string, unknown>,
+): Promise<Response> {
+  const make = async (token: string) => fetch(buildUrl(path, params), {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const token = await authToken();
+  let res = await make(token);
+  if (res.status === 401) {
+    const refreshed = await refreshSession();
+    if (refreshed) res = await make(refreshed);
+  }
+  if (!res.ok) {
+    // A refusal is JSON even on this route; let the envelope parser turn it
+    // into a CadraApiError (and log out on a 401 that survived the refresh).
+    await parseEnvelope<unknown>(res, path);
+    throw new CadraApiError("http_error", `HTTP ${res.status} from ${path}`, res.status);
+  }
+  return res;
+}
+
+/**
  * EVERY write goes through here — `apiMutate` and `apiUpload` both — and this
  * is where a success that carries a `_warnings` block is said out loud.
  *

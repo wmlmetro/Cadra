@@ -39,6 +39,9 @@ import {
   apiAssetHistoryToAssetHistory, type ApiAssetHistory,
 } from "./adapters";
 import type { ServiceRequest, AssetHistory } from "../types";
+import type {
+  ConfigurationChangeReport, DisposalReport, AssetRegisterSnapshot,
+} from "../types";
 
 // ─── ASSETS ───────────────────────────────────────────────────────────────────
 export interface AssetFilters {
@@ -2741,3 +2744,143 @@ export const deactivateUser = (id: number | string) => userAction(id, "deactivat
 /** `POST /users/<id>/reactivate` — `active = True`. 409 if already active,
  *  400 for a credential. A cancelled invitation is NOT re-sent. */
 export const reactivateUser = (id: number | string) => userAction(id, "reactivate");
+
+// ─── AUDIT — the auditor's own screens (handoff 49) ──────────────────────────
+//
+// Four reads the server has answered for weeks with no page asking:
+// configuration-changes, disposals, the register snapshot and the export.
+// All four return the whole-period `summary`/`fidelity` on EVERY page, so a
+// caller reads those off the first page and walks the cursor for rows only.
+// A frontend token is uncapped (`record_cap()` is None for `aud=frontend`),
+// so `_warnings.truncated` should never appear here — it is still passed
+// through and shown, because "should never" is a bet, not a fact.
+
+export interface ConfigurationChangesPage {
+  report: ConfigurationChangeReport;
+  nextCursor: string | null;
+  totalEstimate: number | null;
+  truncated: { cap: number; total: number; reason: string } | null;
+}
+
+/** One page of `GET /reports/configuration-changes`. `from`/`to` required,
+ *  `YYYY-MM-DD`, both inclusive. Pages walk ascending parameter id. */
+export async function fetchConfigurationChanges(
+  from: string,
+  to: string,
+  cursor?: string,
+): Promise<ConfigurationChangesPage> {
+  if (!apiConfigured) throw new Error("No active session");
+  const res = await apiGet<ConfigurationChangeReport>("/api/v1/reports/configuration-changes", {
+    from, to, limit: 200, cursor,
+  });
+  return {
+    report: res.data,
+    nextCursor: res.pagination?.next_cursor ?? null,
+    totalEstimate: res.pagination?.total_estimate ?? null,
+    truncated: res._warnings?.truncated ?? null,
+  };
+}
+
+export interface DisposalsReportPage {
+  report: DisposalReport;
+  nextCursor: string | null;
+  totalEstimate: number | null;
+  truncated: { cap: number; total: number; reason: string } | null;
+}
+
+/** One page of `GET /reports/disposals`. `from`/`to` required, both
+ *  inclusive. `summary` and `unplaceable` describe the whole period on every
+ *  page; `rows` pages by ascending asset id. */
+export async function fetchDisposalsReport(
+  from: string,
+  to: string,
+  cursor?: string,
+): Promise<DisposalsReportPage> {
+  if (!apiConfigured) throw new Error("No active session");
+  const res = await apiGet<DisposalReport>("/api/v1/reports/disposals", {
+    from, to, limit: 200, cursor,
+  });
+  return {
+    report: res.data,
+    nextCursor: res.pagination?.next_cursor ?? null,
+    totalEstimate: res.pagination?.total_estimate ?? null,
+    truncated: res._warnings?.truncated ?? null,
+  };
+}
+
+export interface RegisterSnapshotPage {
+  report: AssetRegisterSnapshot;
+  nextCursor: string | null;
+  totalEstimate: number | null;
+  truncated: { cap: number; total: number; reason: string } | null;
+}
+
+/** One page of `GET /reports/asset-register`. `as_of` required; a future
+ *  date is the server's 400, surfaced as thrown. The rows are rolled back to
+ *  `as_of`; any FILTER the route takes selects on current values (the
+ *  response's own `filters.note`), which is why this screen offers none. */
+export async function fetchRegisterSnapshot(
+  asOf: string,
+  cursor?: string,
+): Promise<RegisterSnapshotPage> {
+  if (!apiConfigured) throw new Error("No active session");
+  const res = await apiGet<AssetRegisterSnapshot>("/api/v1/reports/asset-register", {
+    as_of: asOf, limit: 200, cursor,
+  });
+  return {
+    report: res.data,
+    nextCursor: res.pagination?.next_cursor ?? null,
+    totalEstimate: res.pagination?.total_estimate ?? null,
+    truncated: res._warnings?.truncated ?? null,
+  };
+}
+
+/** What the register says about people who have LEFT and still hold assets
+ *  (handoff 49 §4; measured as 87 assets / 59 people on the NRS register by
+ *  reports 43 and 45, and nobody could see it outside a report). Derived
+ *  entirely from `GET /identity/employees?active=false` — no new endpoint:
+ *  each row already carries `assets.count` (assets still naming the person
+ *  as custodian, disposed ones included) and `assets.has_pending_retrieval`. */
+export interface DepartedHolders {
+  /** Archived employees still named as custodian by at least one asset. */
+  people: ApiEmployee[];
+  /** Sum of their `assets.count`. */
+  assetsHeld: number;
+  /** How many of them have at least one asset flagged for retrieval. */
+  withRetrievalFlagged: number;
+  /** ALL archived employees seen, holders or not — the denominator. */
+  departedSeen: number;
+}
+
+export async function fetchDepartedHolders(): Promise<DepartedHolders> {
+  if (!apiConfigured) throw new Error("No active session");
+  const people: ApiEmployee[] = [];
+  let cursor: string | undefined;
+  let seen = 0;
+  // Walk every page: the answer is a count, and a count off a half-walked
+  // list is the "zero without a denominator" shape CLAUDE.md warns about.
+  for (;;) {
+    const res = await apiGet<ApiEmployee[]>("/api/v1/identity/employees", {
+      active: "false", limit: 500, cursor,
+    });
+    seen += res.data.length;
+    people.push(...res.data.filter((e) => (e.assets?.count ?? 0) > 0));
+    const next = res.pagination?.next_cursor;
+    if (!next || res.data.length === 0) break;
+    cursor = next;
+  }
+  return {
+    people,
+    assetsHeld: people.reduce((n, e) => n + (e.assets?.count ?? 0), 0),
+    withRetrievalFlagged: people.filter((e) => e.assets?.has_pending_retrieval).length,
+    departedSeen: seen,
+  };
+}
+
+/** How many assets the register holds right now — the number the export
+ *  screen puts beside the button so "download everything" has a size. */
+export async function fetchRegisterTotal(): Promise<number | null> {
+  if (!apiConfigured) throw new Error("No active session");
+  const res = await apiGet<unknown[]>("/api/v1/assets", { limit: 1 });
+  return res.pagination?.total_estimate ?? null;
+}
