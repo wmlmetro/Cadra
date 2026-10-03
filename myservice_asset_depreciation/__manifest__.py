@@ -1,6 +1,6 @@
 {
     'name': 'NRS Asset Depreciation',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.1.0',
     'summary': 'Book value, accumulated depreciation and schedules for the asset register',
     'description': """
 Implements PRD §8.6 "Financial properties" for the Cadra asset register.
