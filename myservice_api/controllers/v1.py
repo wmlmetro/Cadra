@@ -60,7 +60,9 @@ from .utils import (
     SCOPE_ASSETS_READ,
     SCOPE_ASSETS_WRITE,
     SCOPE_DASHBOARDS_READ,
+    SCOPE_OPERATIONS_READ,
     SCOPE_INTEGRATIONS_WRITE,
+    SCOPE_TAGGING_WRITE,
     SCOPE_REQUESTS_READ,
     SCOPE_REQUESTS_WRITE,
     _http_response,
@@ -2759,45 +2761,50 @@ class MyserviceApiV1(http.Controller):
     def dashboard_map(self, **kwargs):
         return request.env["myservice.dashboard"].sudo().get_map_data()
 
+    # `operations:read`, not `dashboards:read`, since handoff 47 (BREAKING):
+    # the fleet, security and FM routes below are the operational half of
+    # what one coarse scope used to cover; `/dashboard/kpis` and
+    # `/dashboard/map` above stay on `dashboards:read` because they are the
+    # asset register dashboard's own backing.
     @cadra_route("/api/v1/dashboard/fleet-command", method="GET",
                  summary="Fleet command payload",
-                 scopes=[SCOPE_DASHBOARDS_READ])
+                 scopes=[SCOPE_OPERATIONS_READ])
     def dashboard_fleet_command(self, **kwargs):
         return request.env["myservice.dashboard"].sudo().get_fleet_command()
 
     @cadra_route("/api/v1/security/kpis", method="GET",
-                 summary="Security KPIs", scopes=[SCOPE_DASHBOARDS_READ])
+                 summary="Security KPIs", scopes=[SCOPE_OPERATIONS_READ])
     def security_kpis(self, **kwargs):
         from odoo.addons.myservice_security.controllers.main import SecurityDashboardController
         return SecurityDashboardController().get_kpis()
 
     @cadra_route("/api/v1/security/map-data", method="GET",
-                 summary="Security map data", scopes=[SCOPE_DASHBOARDS_READ])
+                 summary="Security map data", scopes=[SCOPE_OPERATIONS_READ])
     def security_map_data(self, **kwargs):
         from odoo.addons.myservice_security.controllers.main import SecurityDashboardController
         return SecurityDashboardController().get_map_data()
 
     @cadra_route("/api/v1/security/trend", method="GET",
-                 summary="Security incident trend", scopes=[SCOPE_DASHBOARDS_READ])
+                 summary="Security incident trend", scopes=[SCOPE_OPERATIONS_READ])
     def security_trend(self, **kwargs):
         from odoo.addons.myservice_security.controllers.main import SecurityDashboardController
         return SecurityDashboardController().get_trend()
 
     @cadra_route("/api/v1/security/recent", method="GET",
-                 summary="Recent security incidents", scopes=[SCOPE_DASHBOARDS_READ])
+                 summary="Recent security incidents", scopes=[SCOPE_OPERATIONS_READ])
     def security_recent(self, **kwargs):
         from odoo.addons.myservice_security.controllers.main import SecurityDashboardController
         return SecurityDashboardController().get_recent()
 
     @cadra_route("/api/v1/fleet/dashboard", method="GET",
-                 summary="Fleet dashboard data", scopes=[SCOPE_DASHBOARDS_READ])
+                 summary="Fleet dashboard data", scopes=[SCOPE_OPERATIONS_READ])
     def fleet_dashboard(self, **kwargs):
         from odoo.addons.myservice_fleet_maintenance.controllers.fleet_dashboard import FleetDashboardController
         return FleetDashboardController().fleet_dashboard_data(**(kwargs or {}))
 
     @cadra_route("/api/v1/fm/dashboard", method="GET",
                  summary="Facilities management dashboard data",
-                 scopes=[SCOPE_DASHBOARDS_READ])
+                 scopes=[SCOPE_OPERATIONS_READ])
     def fm_dashboard(self, **kwargs):
         from odoo.addons.myservice_fm_dashboard.controllers.dashboard import FMDashboardController
         return FMDashboardController().dashboard_data(**(kwargs or {}))
@@ -3034,9 +3041,15 @@ class MyserviceApiV1(http.Controller):
             limit=limit,
         )
 
+    # `tagging:write`, not `assets:write`, since handoff 47 (BREAKING):
+    # minting a label is the Tag-Issuing Unit's job, not asset-writing.
+    # Until then the unit could confirm a label was on and could not print
+    # one, while every Asset Manager could — the INT-04/05 separation run
+    # backwards. A registration still mints its tag server-side inside
+    # `POST /assets`, so an officer registering an asset is unaffected.
     @cadra_route("/api/v1/barcode/generate", method="POST",
                  summary="Generate barcode tags for the given assets",
-                 scopes=[SCOPE_ASSETS_WRITE],
+                 scopes=[SCOPE_TAGGING_WRITE],
                  idempotent=True,
                  success_status=200,  # action endpoint, not a resource create
                  request_schema={

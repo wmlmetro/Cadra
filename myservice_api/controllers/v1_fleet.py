@@ -13,7 +13,7 @@ from .query_params import BadFilter, parse_bool, parse_enum, parse_int
 from .utils import (
     ERR_INVALID_REQUEST,
     ERR_NOT_FOUND,
-    SCOPE_DASHBOARDS_READ,
+    SCOPE_OPERATIONS_READ,
     err,
     get_params,
     ok,
@@ -112,7 +112,7 @@ class CadraFleetV1(http.Controller):
 
     @cadra_route("/api/v1/fleet", method="GET",
                  summary="List fleet vehicles with search and cursor pagination",
-                 scopes=[SCOPE_DASHBOARDS_READ],
+                 scopes=[SCOPE_OPERATIONS_READ],
                  query_params=[
                      {"name": "q", "schema": {"type": "string"},
                       "description": "Free-text across plate, VIN, name, driver, "
@@ -151,7 +151,7 @@ class CadraFleetV1(http.Controller):
 
     @cadra_route("/api/v1/fleet/<int:id>", method="GET",
                  summary="Get a single fleet vehicle by id",
-                 scopes=[SCOPE_DASHBOARDS_READ])
+                 scopes=[SCOPE_OPERATIONS_READ])
     def get_fleet_vehicle(self, id, **kwargs):
         rec = request.env["fleet.vehicle"].sudo().browse(int(id))
         if not rec.exists():
