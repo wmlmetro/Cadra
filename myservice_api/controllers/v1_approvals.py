@@ -90,12 +90,55 @@ _DECIDER_CLAIM_FIELDS = frozenset({
 #: `details.rejected_fields` and `details.writable`.
 _REASON_ONLY = ("reason",)
 
+#: What `POST /approvals/<id>/renominate` accepts (handoff 45). WHO re-pointed
+#: it and WHEN are taken from the bearer token and the clock, never the body.
+_RENOMINATE_KEYS = ("approver_id", "reason")
+
 
 def _ref(rec, name_field="name"):
     """{id, name} or None. The same shape `v1_assets` publishes."""
     if not rec:
         return None
     return {"id": rec.id, "name": rec[name_field] or rec.display_name}
+
+
+def _approver_ref(user):
+    """`{id, name, active}` — the person a request is waiting on.
+
+    `active` is handoff 45 ruling G.1(a), and ADDITIVE: the two keys every
+    consumer already reads are unchanged. Handoff 43 measured a request
+    waiting on a deactivated account with nothing on the row saying so, and
+    an approver who cannot sign in is a request nobody will ever decide. The
+    queue screen reads this to say *"X cannot sign in"* beside *"waiting on
+    X"*, and to offer *Ask someone else*.
+    """
+    if not user:
+        return None
+    return {"id": user.id, "name": user.name or user.display_name,
+            "active": bool(user.active)}
+
+
+def _renomination_row(n):
+    """One re-pointing of a request: from whom, to whom, by whom, when, why.
+
+    The names are the row's own Char copies, taken when it was written, so a
+    renamed account does not rewrite who was asked. Not called
+    `serialize_*`: `myservice_api/tests/test_published_names_resolve.py`
+    requires every function so named to be classified against a model, and
+    this is a row of `nrs.asset.change.request.renomination` read through
+    the request's `renomination_ids`.
+    """
+    return {
+        "id": n.id,
+        "from": {"id": n.from_approver_id.id or None,
+                 "name": n.from_approver_name or None},
+        "to": {"id": n.to_approver_id.id or None,
+               "name": n.to_approver_name or None},
+        "by": {"id": n.renominated_by_id.id or None,
+               "name": n.renominated_by_name or None},
+        "at": _dt(n.renominated_at),
+        "reason": n.reason or None,
+    }
 
 
 def _dt(value):
@@ -140,7 +183,14 @@ def serialize_request(r):
         "requested_by": _ref(r.requested_by_id),
         "requested_by_name": r.requested_by_name or None,
         "requested_at": _dt(r.requested_at),
-        "approver": _ref(r.approver_id),
+        # `{id, name, active}` — `active` added by handoff 45 (G.1(a)), so a
+        # request waiting on somebody who can no longer sign in says so.
+        "approver": _approver_ref(r.approver_id),
+        # Every time the request was re-pointed at somebody else, OLDEST
+        # FIRST — `approver` is only who is asked NOW. Handoff 45 (G.1(b)).
+        "renominations": [_renomination_row(n)
+                          for n in r.renomination_ids.sorted(
+                              lambda n: (n.renominated_at, n.id))],
         # WHO CLICKED. A different key, always, for the reason in the module
         # docstring.
         "decided_by": _ref(r.approved_by_id),
@@ -167,6 +217,10 @@ def serialize_request(r):
         "can_decide": r._may_decide(request.env.user),
         "can_withdraw": (r.state == "pending"
                          and r.requested_by_id.id == request.env.uid),
+        # Whether the CALLER may re-point it at somebody else — the
+        # requester or an administrator, while pending. The model's own
+        # answer (`_may_renominate`), so the button and the 403 agree.
+        "can_renominate": r._may_renominate(request.env.user),
     }
 
 
@@ -607,6 +661,177 @@ class CadraApprovalsAPI(http.Controller):
             return err(ERR_CONFLICT, str(e), status=409,
                        details={"request_id": rec.id})
         return self._decided_payload(rec)
+
+    # ── Ask someone else: POST /api/v1/approvals/<id>/renominate ─────
+
+    @cadra_route("/api/v1/approvals/<int:id>/renominate", method="POST",
+                 summary="Re-point a pending request at a different approver",
+                 scopes=[SCOPE_ASSETS_WRITE],
+                 idempotent=True,
+                 error_statuses=(403, 404, 409),
+                 response_schema={
+                     "type": "object",
+                     "properties": {
+                         "request": {
+                             "$ref": "#/components/schemas/ApprovalRequest"},
+                         "renomination": {
+                             "type": "object",
+                             "description": (
+                                 "The append-only row this call wrote: "
+                                 "`from` (who it was waiting on), `to` (who "
+                                 "it waits on now), `by` (the caller, from "
+                                 "the bearer token), `at`, `reason`. It "
+                                 "cannot be edited or deleted afterwards, and "
+                                 "it appears again, oldest first, in the "
+                                 "request's `renominations`."),
+                             "properties": {
+                                 "id": {"type": "integer"},
+                                 "from": {"type": "object"},
+                                 "to": {"type": "object"},
+                                 "by": {"type": "object"},
+                                 "at": {"type": "string"},
+                                 "reason": {"type": "string"},
+                             },
+                         },
+                     },
+                 },
+                 request_schema={
+                     "type": "object",
+                     "required": ["approver_id", "reason"],
+                     "description": (
+                         "Handoff 45. A pending request names ONE person as "
+                         "the approver it is waiting on; when that person "
+                         "cannot act — their account deactivated, most "
+                         "often, which is never blocked — the request is "
+                         "re-pointed rather than left stranded. Allowed to "
+                         "the person who RAISED the request and to an "
+                         "administrator (403 otherwise; `can_renominate` on "
+                         "the request says which in advance). The new "
+                         "approver must be active, eligible to approve (the "
+                         "same rule as `approver_id` on `/move`), not the "
+                         "requester and not the person already asked — 400 "
+                         "otherwise, in words. WHO re-pointed it and WHEN "
+                         "come from the bearer token and the clock; any "
+                         "other body key is refused 400. Nothing about the "
+                         "asset changes."),
+                     "properties": {
+                         "approver_id": {
+                             "type": "integer",
+                             "description": "The `res.users` id to ask "
+                                            "instead. `GET /api/v1/approvals"
+                                            "/approvers` lists candidates."},
+                         "reason": {
+                             "type": "string",
+                             "description": "REQUIRED. Recorded on the "
+                                            "append-only row and read by "
+                                            "whoever audits the request."},
+                     },
+                 },
+                 request_example={
+                     "approver_id": 7,
+                     "reason": "Adaeze has left the service; her account is "
+                               "deactivated."})
+    def renominate(self, id, **kwargs):
+        """Ask somebody else. Handoff 45, ruling G.1(b).
+
+        Everything of substance is on the model —
+        `nrs.asset.change.request.action_renominate`, the ONE path by which a
+        pending request's `approver_id` changes; its `write` still refuses
+        every other way. What is here is the HTTP shape of the ways it says
+        no, each asked BEFORE anything is written:
+
+        * **400** — a body key other than `approver_id`/`reason`, no reason,
+          or an approver who cannot be asked (deactivated, not eligible, the
+          requester, or already the one asked). The model's sentence.
+        * **403** — the caller is neither the requester nor an
+          administrator. The model's sentence, verbatim.
+        * **404** — no such request, or no such user.
+        * **409** — the request is no longer pending.
+        """
+        rec, error = _browse_or_404(id)
+        if error:
+            return error
+        body = get_params() or {}
+        if not isinstance(body, dict):
+            return err(ERR_INVALID_REQUEST, "The body must be a JSON object")
+        rejected = sorted(k for k in body if k not in _RENOMINATE_KEYS)
+        if rejected:
+            return refuse_unwritable(
+                rejected, _RENOMINATE_KEYS,
+                hint="Who re-pointed the request and when are taken from "
+                     "the credential that made the call and the clock; "
+                     "only `approver_id` and `reason` are read.")
+        reason = body.get("reason")
+        if reason is not None and not isinstance(reason, str):
+            return err(ERR_INVALID_REQUEST, "`reason` must be a string")
+        if not (reason or "").strip():
+            return err(ERR_INVALID_REQUEST,
+                       "`reason` is required — say why you are asking "
+                       "somebody else. It is recorded and cannot be "
+                       "changed afterwards.")
+
+        if rec.state != "pending":
+            return err(
+                ERR_CONFLICT,
+                "This request was already %s%s, so there is nobody to "
+                "re-point it at." % (
+                    rec.state,
+                    " by %s" % rec.approved_by_name
+                    if rec.approved_by_name else ""),
+                status=409,
+                details={"request_id": rec.id, "state": rec.state})
+        refusal = rec._renomination_refusal(request.env.user)
+        if refusal:
+            return err(ERR_FORBIDDEN, refusal, status=403,
+                       details={"request_id": rec.id,
+                                "requested_by": _ref(rec.requested_by_id)})
+
+        raw = body.get("approver_id")
+        if raw in (None, "", 0, "0") or isinstance(raw, bool):
+            candidates = rec.eligible_approvers(
+                exclude_user=rec.requested_by_id, limit=10).filtered(
+                    lambda u: u.id != rec.approver_id.id)
+            return err(
+                ERR_INVALID_REQUEST,
+                "`approver_id` is required: name who you are asking instead. "
+                "GET /api/v1/approvals/approvers lists who may be asked.",
+                details={"request_id": rec.id,
+                         "approvers": [{"id": u.id, "name": u.display_name}
+                                       for u in candidates]})
+        try:
+            approver_id = int(raw)
+        except (TypeError, ValueError):
+            return err(ERR_INVALID_REQUEST,
+                       "`approver_id` must be an integer")
+        new = request.env["res.users"].sudo().browse(approver_id).exists()
+        if not new:
+            return err(ERR_NOT_FOUND, f"User {approver_id} not found",
+                       status=404)
+        problem = rec._renomination_target_problem(new)
+        if problem:
+            return err(ERR_INVALID_REQUEST, problem,
+                       details={"request_id": rec.id,
+                                "approver_id": new.id})
+
+        # SAVEPOINTED, for the reason `approve` is: `err()` does not roll
+        # back, and `action_renominate` writes the append-only row BEFORE it
+        # moves `approver_id`. A `UserError` from underneath would otherwise
+        # leave a row recording a re-pointing that did not happen — in a
+        # table nobody can delete from.
+        try:
+            with request.env.cr.savepoint():
+                row = rec.with_context(
+                    cadra_renomination_source="api_renominate",
+                ).action_renominate(new, reason)
+        except UserError as e:
+            rec.invalidate_recordset()
+            return err(ERR_CONFLICT, str(e), status=409,
+                       details={"request_id": rec.id})
+        rec.invalidate_recordset()
+        return {
+            "request": serialize_request(rec),
+            "renomination": _renomination_row(row),
+        }
 
     # ── shared ───────────────────────────────────────────────────────
 

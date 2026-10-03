@@ -26,6 +26,13 @@ that re-link existing rows on every module upgrade — those produce an empty
 diff and therefore no rows, which is what keeps the record free of upgrade
 noise.
 
+**Since handoff 45 the user-side `write` also records an account being
+deactivated or reactivated** — `active` diffed before and after, exactly like
+the groups, so every writer of the flag is covered from one place rather than
+from the two API routes. The reasoning and the three decisions (no row for a
+no-op, none for a user created inactive, none for a delete) are in
+`access_change.py`'s docstring.
+
 **Nothing here changes who may grant what.** This is a record, not a mechanism:
 no hook refuses a write, no hook alters one, and removing the whole file would
 leave every access decision in this system exactly as it is.
@@ -35,9 +42,11 @@ from odoo import models, api
 
 from .access_change import (
     ACCESS_CHANGE_SKIP_KEY,
+    ACCESS_EVENT_DEACTIVATED,
     ACCESS_EVENT_GRANTED,
     ACCESS_EVENT_IMPLIED_ADDED,
     ACCESS_EVENT_IMPLIED_REMOVED,
+    ACCESS_EVENT_REACTIVATED,
     ACCESS_EVENT_REMOVED,
 )
 
@@ -107,9 +116,48 @@ class ResUsersAccessRecorder(models.Model):
         if rows:
             self.env['myservice.api.access.change']._record_many(rows)
 
+    def _access_active_snapshot(self):
+        """{user_id: bool(active)} for this recordset, as the record stands.
+
+        `sudo()` for the same reason as the membership snapshot. Reading the
+        field on an explicit recordset does not filter on `active`, so an
+        archived account is in the snapshot like any other.
+        """
+        return {user.id: bool(user.active) for user in self.sudo()}
+
+    def _access_record_active_diff(self, before, after):
+        """`deactivated` / `reactivated` rows for the accounts whose `active`
+        actually moved. A user and no group; the actor is resolved by
+        `_record_many` from whoever is acting, like every other row."""
+        if self.env.context.get(ACCESS_CHANGE_SKIP_KEY):
+            return
+        rows = []
+        Users = self.env['res.users'].sudo()
+        for user_id, now_active in after.items():
+            was_active = before.get(user_id)
+            # `None` would be a user not in the before-snapshot, which a
+            # write cannot produce; skipped rather than guessed at.
+            if was_active is None or was_active == now_active:
+                continue
+            user = Users.browse(user_id).exists()
+            if not user:
+                continue
+            rows.append({
+                'event': (ACCESS_EVENT_REACTIVATED if now_active
+                          else ACCESS_EVENT_DEACTIVATED),
+                'user': user,
+                'source': 'user_active',
+            })
+        if rows:
+            self.env['myservice.api.access.change']._record_many(rows)
+
     @api.model_create_multi
     def create(self, vals_list):
         """Records the groups a new account lands in.
+
+        NOT a deactivation when the account is created with `active: False`:
+        nobody's access was taken away, and the creation is evidenced already
+        (`access_change.py`, handoff 45 §1).
 
         Read from the created records rather than from `vals`, because
         `_default_groups()` puts every new user in `base.group_user` (plus
@@ -126,19 +174,29 @@ class ResUsersAccessRecorder(models.Model):
         return users
 
     def write(self, vals):
-        """Records a membership change made on the user record.
+        """Records a membership change, and an account switched off or on,
+        made on the user record.
 
-        Guarded on the groups key being present: a write that cannot move
-        membership must not pay for two snapshots, and `res.users.write` is on
-        the path of every login (`login_date`) and every preference change.
+        Guarded on the groups key / `active` being present: a write that
+        cannot move either must not pay for snapshots, and `res.users.write`
+        is on the path of every login (`login_date`) and every preference
+        change. The `active` half is the ONE place a deactivation is recorded
+        — the API routes, the back office's Archive, core's portal
+        self-deletion and a shell all arrive here (handoff 45 §1).
         """
         field = self._access_groups_field_name()
         touches_groups = bool(field and field in vals)
+        touches_active = 'active' in vals
         before = self._access_membership_snapshot() if touches_groups else None
+        active_before = (self._access_active_snapshot()
+                         if touches_active else None)
         result = super().write(vals)
         if touches_groups:
             after = self._access_membership_snapshot()
             self._access_record_diff(before, after, 'user_write')
+        if touches_active:
+            self._access_record_active_diff(
+                active_before, self._access_active_snapshot())
         return result
 
     def unlink(self):

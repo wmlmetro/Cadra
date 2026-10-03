@@ -1,6 +1,6 @@
 {
     'name': 'Cadra Email Relay',
-    'version': '19.0.1.1.0',
+    'version': '19.0.1.2.0',
     'summary': 'Send outbound mail via an HTTPS relay (bypasses SMTP egress blocks).',
     'description': """
 Outbound mail bridge for environments where direct SMTP egress is blocked
@@ -28,7 +28,16 @@ Limitations vs. native SMTP:
 
   - One recipient per request: a message's To/Cc/Bcc become one POST each.
   - No attachments.
-  - HTML body only; the plain-text alternative is discarded.
+  - No From: the relay sends as its own account.
+  - The plain-text alternative is sent ONLY when
+    `cadra.email_relay_text_field` names the relay's field for it (e.g.
+    `body_text`); absent or empty, the payload is the five keys above and
+    the text part is discarded, as before 19.0.1.2.0. It is a parameter
+    rather than a guess because the relay is not in this repository and
+    may refuse a key it does not know — which would stop every mail. Set
+    it once whoever runs the relay has confirmed the name. A message with
+    no text part sends no such key; a name that collides with one of the
+    five is refused on every send.
 """,
     'author': 'WestMetro Limited',
     'website': 'https://westmetrong.com',

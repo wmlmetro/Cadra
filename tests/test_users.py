@@ -412,7 +412,7 @@ def test_active_filters_and_absent_means_both(client, admin_scope, everyone):
 def test_role_is_effective_and_role_direct_is_membership(
         client, admin_scope, everyone):
     rows, total, truncated = everyone
-    effective, _t, _tr = _all_rows(client, role="asset_user")
+    effective, _t, eff_truncated = _all_rows(client, role="asset_user")
     for row in effective:
         assert "asset_user" in _keys(row["roles_effective"]), (
             "`?role=asset_user` returned %s, which does not HOLD it: %s"
@@ -422,7 +422,15 @@ def test_role_is_effective_and_role_direct_is_membership(
         assert "asset_user" in _keys(row["roles_direct"]), (
             "`?role_direct=asset_user` returned %s, which is not a MEMBER: %s"
             % (row["login"], _keys(row["roles_direct"])))
-    assert {r["id"] for r in direct} <= {r["id"] for r in effective}, (
+    # Both lists are capped for an API credential (`_warnings.truncated`,
+    # `EXTERNAL_TOTAL_CAP`), each at its OWN first `cap` rows by id — and the
+    # effective list is the longer one, so on a tenant past the cap
+    # (`test19` since 2026-10-02: more than 100 accounts hold Asset User) the
+    # direct list reaches ids the effective one was cut before. Compared
+    # within the window both lists show.
+    window = max(r["id"] for r in effective) if (eff_truncated and effective) else None
+    shown_direct = {r["id"] for r in direct if window is None or r["id"] <= window}
+    assert shown_direct <= {r["id"] for r in effective}, (
         "a member of asset_user is not among those who hold it")
     by_implication = [r for r in effective
                       if "asset_user" not in _keys(r["roles_direct"])]

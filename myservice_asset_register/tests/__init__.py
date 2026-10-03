@@ -11,3 +11,4 @@ from . import test_append_only_mixin
 from . import test_warranty
 from . import test_change_request
 from . import test_tag_replacement
+from . import test_renomination

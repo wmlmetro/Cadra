@@ -230,7 +230,22 @@ class TestTheGuardIsWrittenOnce(AppendOnlyCase):
             name for name in self.env.registry
             if name != _MIXIN
             and issubclass(type(self.env[name]), guard))
-        self.assertEqual(adopters, sorted(_MODELS))
+        self.assertEqual(adopters, sorted(set(_MODELS) | set(_NOT_ASSET_KEYED)))
+
+
+#: Append-only records that adopt the mixin but are not keyed on an ASSET, so
+#: the asset-shaped loops above (`_one_row_of_each`, `_rows(model, asset)`)
+#: cannot write or find one. Each is held to the same four properties in its
+#: own file, named here, so this list is the whole list.
+#:
+#: Handoff 45: `nrs.asset.change.request.renomination` — one row per pending
+#: approval request re-pointed at a different approver. Keyed on the REQUEST.
+#: `test_renomination.TestTheRowIsAppendOnly` asserts its refusals in its own
+#: words, that another model's flag does not open it, and that its guard
+#: resolves to the mixin rather than to a copy.
+_NOT_ASSET_KEYED = {
+    "nrs.asset.change.request.renomination": "test_renomination.py",
+}
 
 
 @tagged("post_install", "-at_install")

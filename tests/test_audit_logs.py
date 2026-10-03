@@ -86,7 +86,10 @@ _COVERAGE = {"none", "partial", "recorded"}
 _FIDELITY_KEYS = ("groups_field", "groups_field_tracked",
                   "membership_audit_columns", "tracking_rows",
                   "logging_rows", "notes", "recoverable", "not_recoverable",
-                  "record_starts_at", "record_rows")
+                  "record_starts_at", "record_rows",
+                  # Handoff 45: the account-state half's own boundary.
+                  "account_state_record_starts_at",
+                  "account_state_record_rows")
 
 # The four facts the forward record makes answerable, and only from the instant
 # it begins. `access_change_fidelity` moves them between `recoverable` and
@@ -95,6 +98,12 @@ _FIDELITY_KEYS = ("groups_field", "groups_field_tracked",
 # tenant it last ran against.
 _RECORDED_FACTS = {"group_granted", "group_removed", "group_change_actor",
                    "group_change_timestamp"}
+
+# The same rule for an account switched off or on (handoff 45), against the
+# account-state record's OWN start — that half began later than the group half.
+_ACCOUNT_STATE_FACTS = {"account_deactivated", "account_reactivated",
+                        "account_state_change_actor",
+                        "account_state_change_timestamp"}
 
 # A key name that would mean a credential travelled in the roster. Matched on
 # the NAME, the same rule `audit_configuration._SECRET_KEY_RE` applies to
@@ -147,9 +156,16 @@ def history(client):
                 events=list(body["data"]["events"]),
                 roster=list(body["data"]["roster"]))
     cursor, pages = body["pagination"]["next_cursor"], 1
+    # An API credential sees at most the external record cap of accounts
+    # (`utils.EXTERNAL_TOTAL_CAP`), announced in the top-level `_warnings`.
+    # `test19` crossed 100 accounts on 2026-10-02; from then on the walk ends
+    # at the cap BY DESIGN and the tests below assert the announcement
+    # instead of a total this credential is not shown.
+    truncated = (body.get("_warnings") or {}).get("truncated")
     while cursor:
         page = assert_envelope_ok(client.get(ACCESS, params={
             "from": date_from, "to": date_to, "cursor": cursor}))
+        truncated = truncated or (page.get("_warnings") or {}).get("truncated")
         data["events"] += page["data"]["events"]
         data["roster"] += page["data"]["roster"]
         cursor = page["pagination"]["next_cursor"]
@@ -161,7 +177,8 @@ def history(client):
         "would be vacuous, so this fails loudly rather than passing having "
         "checked nothing.")
     assert data["roster"], "the tenant reports no accounts at all"
-    return {"from": date_from, "to": date_to, "body": body, "data": data}
+    return {"from": date_from, "to": date_to, "body": body, "data": data,
+            "truncated": truncated}
 
 
 def token_scopes(token):
@@ -298,9 +315,18 @@ def test_the_statement_is_present_and_its_coverage_is_one_we_publish(
         f"{sorted(_COVERAGE)}. This enum is published API surface and a "
         "consumer branches on it.")
     # The counts an auditor reads off the statement must be the counts in the
-    # payload beside it.
-    assert summary["events_in_period"] == len(history["data"]["events"])
-    assert summary["accounts"] == len(history["data"]["roster"])
+    # payload beside it — or, when the record cap bit, the payload must SAY
+    # how much of it this credential was shown.
+    truncated = history["truncated"]
+    if truncated:
+        assert truncated["total"] == summary["accounts"], (truncated, summary)
+        assert len(history["data"]["roster"]) == truncated["cap"], (
+            "the walk returned %d accounts under a cap of %d"
+            % (len(history["data"]["roster"]), truncated["cap"]))
+        assert summary["events_in_period"] >= len(history["data"]["events"])
+    else:
+        assert summary["events_in_period"] == len(history["data"]["events"])
+        assert summary["accounts"] == len(history["data"]["roster"])
 
 
 def test_no_unreachable_coverage_value_is_published(client):
@@ -501,6 +527,54 @@ def test_the_group_facts_move_with_the_record_not_with_the_code(
             "a boundary that omits the four facts the whole report is about "
             "is worse than no boundary.")
         assert not (_RECORDED_FACTS & recoverable)
+
+
+def test_the_account_state_half_has_its_own_count_and_boundary(
+        client, history):
+    """Deactivations and reactivations (handoff 45): present at zero, counted
+    apart from the group and implication counts, bounded by their own start,
+    and published as events that name no group.
+
+    Asserted as the rule, in whatever state the tenant is in: a tenant that
+    has never switched an account off since the recorder shipped has no
+    account-state start and must say `none` for it, however healthy its
+    group record is."""
+    summary = history["data"]["summary"]
+    fidelity = history["data"]["fidelity"]
+    for key in ("account_state_changes_in_period",
+                "account_state_changes_not_shown", "account_state_coverage"):
+        assert key in summary, f"`summary.{key}` is absent"
+    count = summary["account_state_changes_in_period"]
+    assert isinstance(count, int) and not isinstance(count, bool) and count >= 0
+    assert summary["account_state_coverage"] in _COVERAGE
+    assert "account_state" in fidelity["notes"]
+
+    recoverable = set(fidelity["recoverable"])
+    not_recoverable = set(fidelity["not_recoverable"])
+    assert (fidelity["account_state_record_starts_at"] is None) == \
+        (fidelity["account_state_record_rows"] == 0), fidelity
+    if fidelity["account_state_record_starts_at"] is None:
+        assert count == 0, (
+            f"{count} deactivations/reactivations counted on a tenant that "
+            "holds none")
+        assert summary["account_state_coverage"] == "none"
+        assert _ACCOUNT_STATE_FACTS <= not_recoverable
+        assert not (_ACCOUNT_STATE_FACTS & recoverable)
+    else:
+        # From 2000 to today straddles any start this code can have.
+        assert summary["account_state_coverage"] == "partial"
+        assert _ACCOUNT_STATE_FACTS <= recoverable
+        assert not (_ACCOUNT_STATE_FACTS & not_recoverable)
+
+    state_events = [e for e in history["data"]["events"]
+                    if e["event"] in ("deactivated", "reactivated")]
+    assert count >= len(state_events), (
+        f"the summary counts {count} account-state changes and "
+        f"{len(state_events)} are published as events")
+    for e in state_events:
+        assert e["group"] is None, e
+        assert e["precision"] == "exact", e
+        assert "attributable" in e, e
 
 
 def test_the_finding_itself_is_asserted_from_the_api(client, history):
@@ -879,9 +953,10 @@ def test_the_cursor_walks_the_whole_report_without_repeating(client, history):
     assert len(seen) == len(set(seen)), (
         "the walk returned the same account twice: %s"
         % sorted({u for u in seen if seen.count(u) > 1}))
-    assert len(seen) == total, (
-        "the walk returned %d accounts and `total_estimate` promised %d"
-        % (len(seen), total))
+    expected = (history["truncated"]["cap"] if history["truncated"] else total)
+    assert len(seen) == expected, (
+        "the walk returned %d accounts; `total_estimate` is %d and the record "
+        "cap, when it bit, is %r" % (len(seen), total, history["truncated"]))
 
 
 # ─── the configuration report · the scope that is not held ───────────

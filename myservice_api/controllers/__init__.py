@@ -16,3 +16,8 @@ from . import v1_tags
 # Handoff 41 — who has what: the accounts on a tenant and the roles they
 # hold, direct and effective. Read only.
 from . import v1_users
+# Handoff 45 — the first five minutes: an invitation or a reset redeemed in
+# the app, and the back office shut to everybody who is not a system
+# administrator.
+from . import v1_signup
+from . import backoffice

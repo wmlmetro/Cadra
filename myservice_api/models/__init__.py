@@ -15,3 +15,7 @@ from . import audit_access
 # link and the invitation stamps on `res.users`.
 from . import invitation
 from . import audit_configuration
+# Handoff 45 §2.2: no Odoo session for a non-administrator on any
+# `auth='user'` route — the half of the back-office door a controller cannot
+# shut (JSON-RPC sign-in, the portal, the ORM over RPC).
+from . import backoffice_session

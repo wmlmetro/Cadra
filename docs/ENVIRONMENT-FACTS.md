@@ -410,3 +410,37 @@ A corollary of *"A read/write route gets a READ-ONLY cursor in test mode"*
 above: the first attempt creates a `mail.mail` the rollback removes, the
 retry creates the one that stays, and `MockEmail._new_mails` holds both
 ids. Read it through `.exists()`.
+
+### A tenant's login page goes blank: an asset bundle's file is gone from the filestore (handoff 45)
+
+**Symptom.** `/web/login` renders the website frame with an empty body; the
+login form is in the HTML (`curl … | grep oe_login_form` finds it) but carries
+`d-none`, because Odoo 19 hides it until a script widget (`web.user_switch`)
+mounts — and the script bundle answers **500**:
+`FileNotFoundError: … /filestore/<db>/xx/<sha>` in `ir_attachment._to_http_stream`.
+Seen on `test19` on 2026-10-03 after several in-registry runs, each of which
+logs *"filestore gc N checked, N removed"*; 1 of 67 bundle files was missing.
+
+**Not:** the back-office door of handoff 45 (`/web/assets/*` is
+`auth='public'` and never reaches it), nor a code fault.
+
+**Repair** — bundles are generated, so drop the records and Odoo rebuilds them
+on the next request:
+
+```
+docker compose -f docker-compose.yml -f docker-compose.19.yml exec -T odoo \
+  odoo shell -c /etc/odoo/odoo.conf -d <db> --no-http --http-port=8099 --gevent-port=8098 <<'PY'
+env['ir.attachment'].sudo().search([('url', '=like', '/web/assets/%')]).unlink(); env.cr.commit()
+PY
+```
+
+A missing NON-generated file (a website logo) cannot be rebuilt this way.
+
+### A full HTTP run fails by the hundred with `401 Invalid token`: the Mac slept (handoff 45)
+
+The suite mints ONE bearer token per session (TTL 3600 s) and a full run on
+`test19` takes 30–37 minutes. If the laptop sleeps mid-run, the token is stale
+on wake and everything after fails `401`; pytest's own duration does not count
+the sleep, so the summary looks like a short run. The server log says
+`JWT rejected (Token expired)`; `pmset -g log | grep -E 'Sleep|Wake'` shows the
+gap. Run long suites under `caffeinate -i -t 7200`.

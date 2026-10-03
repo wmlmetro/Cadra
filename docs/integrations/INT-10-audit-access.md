@@ -377,7 +377,7 @@ Specification §7.6 requires *"every identity-related event in Cadra (login, rol
 
 - **`summary.statement`** — the sentence, above the table, saying that group grants and removals are not recorded anywhere in this system and that this report can speak for no period on that question. Branch on `summary.coverage` (`none` / `partial`), never on the wording. There is deliberately no `empty`: the record cannot hold a group change in any period, so a quiet quarter is not a different *kind* of answer here — unlike the disposal report, where an empty period genuinely is.
 - **`summary.group_changes_in_period`** — **a real count since handoff 24** (§2.10c), read from the append-only access record. It was a structural zero when this was written, and a zero still means one of two things — nothing happened, or the record does not reach the period. `summary.coverage` and `fidelity.record_starts_at` are what tell those apart.
-- **`events`** — the access events that *are* evidenced: an account **created** (`precision: exact`, with its real timestamp and creator) and an account **last modified** (`precision: last_write_only`). Each row names the `evidence` it rests on. An `account_modified` row does not say which field changed — a timezone edit and a group grant are indistinguishable in `res_users.write_date`.
+- **`events`** — the access events that *are* evidenced: an account **created** (`precision: exact`, with its real timestamp and creator) and an account **last modified** (`precision: last_write_only`). Each row names the `evidence` it rests on. An `account_modified` row does not say which field changed — a timezone edit and a group grant are indistinguishable in `res_users.write_date`. Since handoff 24 a recorded `granted` / `removed`, and since handoff 45 a recorded `deactivated` / `reactivated` (§2.10d), are events too, each `precision: exact` with its actor.
 - **`roster`** — the present-tense answer to the question an auditor asks next: who has access *now*, with each account's groups and, where it is an integration, its API scopes. Labelled as current state throughout, never presented as history.
 - **`fidelity`** — the table above, re-derived **on every request** rather than carried as a constant. It reads `information_schema` for the membership table's real columns and counts the tracking and logging rows live. The day somebody adds tracking or installs an audit module, `coverage` becomes `partial` and the report says the record has grown, instead of continuing to publish a limitation that has stopped being true.
 
@@ -457,6 +457,19 @@ The last of those is the one that most changes the picture. **On Odoo 19 group i
 **A change nobody can attribute says so.** A grant made by a module upgrade, a cron or the command line arrives as `uid 1` and is recorded with the actor `__system__` and `attributable: false`, never a person's name. Report 23 measured 100% of this estate's ACL stamps as `uid 1`; a record rendering those as "the administrator granted this" would invent somebody.
 
 **Still open, and still NRS's decision:** the reconstruction of grants made *before* the record began. The three options in the table above remain the options, and none of them is retroactive. What has changed is that the clock has started, so the unrecoverable period stops growing.
+
+### 2.10d An account switched off, and back on — handoff 45
+
+*"Who removed this person's access, and when?"* Deactivating an account is the most complete removal of access there is, and until 2 October 2026 the answer sat in `res_users.write_uid` / `write_date` — which the next write to the account overwrites — and not in this report. **The same append-only record now holds it.**
+
+| `data.events[].event` | Meaning |
+|---|---|
+| `deactivated` | The account's `active` flag went from true to false. The person can no longer sign in; any outstanding invitation was cancelled by the same write (Odoo's `auth_signup`), and there is no separate cancellation act or event. |
+| `reactivated` | The flag went from false to true — including on an account that was *created* inactive and switched on later. |
+
+Both are `precision: exact`, carry `actor` and `attributable` exactly as a grant does (`__system__` for a script, an upgrade or the command line), and carry `group: null` — they are about the account, not a group. They are written under **every** writer of the flag, not only the API's `POST /users/<id>/deactivate` and `/reactivate`: the back office's *Archive*, core's portal self-deletion and a script all pass the same hook on `res.users.write`. A write that does not move the flag records nothing, a user created inactive is not a deactivation, and deleting a user is recorded as the group removals it cascades, as before. Raw SQL against `res_users` is not seen — the same boundary as the rest of the record.
+
+**They are counted on their own, and bounded on their own.** `summary.account_state_changes_in_period` (with `account_state_changes_not_shown` for accounts no longer on the roster) never mixes with `group_changes_in_period` or `implication_changes_in_period`. This half of the record began later than the group half, so a period the group record covers completely can still hold a deactivation nobody wrote down: `fidelity.account_state_record_starts_at` is measured from the earliest such row (`null` until the first), and `summary.account_state_coverage` takes the same three values as `coverage` against that instant. **`coverage` speaks for group changes only.** Before the account-state start, a deactivation survives only as the roster's current `active: false` and, at best, an `account_modified` stamp.
 
 ### 2.11 "Give me the whole register." — and why every answer above is capped
 

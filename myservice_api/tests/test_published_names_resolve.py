@@ -155,7 +155,9 @@ _BODY_ROUTES = {
     ("PATCH", "/api/v1/settings/branding"):
         (None, None,
          "writes `ir.config_parameter` rows, not fields of a record; the "
-         "parameter names are in `CadraConfigV1._BRAND_PARAMS`"),
+         "parameter names are in `CadraConfigV1._BRAND_PARAMS`. `name` and "
+         "(handoff 45) `sender_email` write the main `res.company`'s "
+         "`name` and `email`"),
     ("PATCH", "/api/v1/settings/depreciation"):
         (None, None,
          "writes `ir.config_parameter` rows, not fields of a record"),
@@ -167,6 +169,14 @@ _BODY_ROUTES = {
         (None, None, "a refresh token"),
     ("POST", "/api/v1/auth/revoke"):
         (None, None, "a refresh token"),
+    # Handoff 45: a letter's token redeemed in the app. Each refuses any key
+    # it does not read (`v1_signup._*_KEYS`), and none names a field.
+    ("POST", "/api/v1/auth/password-token/inspect"):
+        (None, None, "a signup token"),
+    ("POST", "/api/v1/auth/password-token/redeem"):
+        (None, None, "a signup token and the password it sets"),
+    ("POST", "/api/v1/auth/password-reset"):
+        (None, None, "a login to send a reset letter to"),
     ("POST", "/api/v1/integrations/employees/import"):
         (None, None, "a multipart xlsx upload, not a JSON body"),
     ("POST", "/api/v1/barcode/generate"):
@@ -196,6 +206,12 @@ _BODY_ROUTES = {
         (None, None, "action: `reason`, REQUIRED and recorded"),
     ("POST", "/api/v1/approvals/<int:id>/withdraw"):
         (None, None, "action: `reason`, optional and recorded"),
+    # Handoff 45: re-pointing a pending request at somebody else.
+    ("POST", "/api/v1/approvals/<int:id>/renominate"):
+        (None, None,
+         "action: `approver_id` (a nomination checked by "
+         "`_renomination_target_problem`) and `reason`, passed to "
+         "`action_renominate`"),
     # Handoff 38. A tag replacement is the same two-person shape on
     # `nrs.asset.tag.label`: `reason` here is a SELECTION value (the model's
     # `replacement_reason`) rather than free text, `notes` is the free text,

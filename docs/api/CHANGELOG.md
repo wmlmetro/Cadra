@@ -33,6 +33,45 @@ live at was never the point.
 
 ---
 
+## 2026-10-02 — handoff 45: the first five minutes · `myservice_api` 19.0.3.18.0, `myservice_asset_register` 19.0.1.21.0
+
+All additive except where marked.
+
+- **New, anonymous:** `POST /api/v1/auth/password-token/inspect` `{token}` →
+  `{state, kind, expires_at, organisation, password_rules, name?, login?,
+  message?, next?}`; `state` ∈ `outstanding · expired · redeemed · cancelled ·
+  invalid`, `kind` ∈ `invitation · reset`. Always 200 for a well-formed body.
+- **New, anonymous:** `POST /api/v1/auth/password-token/redeem` `{token,
+  password, confirm_password}` → the same `data` block as `/auth/login`, plus
+  `signed_in` and `login`. `409 conflict` with `details.state` for a link that
+  cannot be used; `400 invalid_request` for a password refused, in words.
+- **New, anonymous:** `POST /api/v1/auth/password-reset` `{login,
+  turnstile_token?}` → one sentence, the same whether or not an account
+  matched.
+- **BEHAVIOUR CHANGE — the letter's link.** Invitation and reset letters link
+  to `/app/accept-invite?token=…` and `/app/reset-password?token=…` (only the
+  token). A GET of the old `/web/signup?…token=…` or
+  `/web/reset_password?…token=…` redirects there with the same token.
+- **BEHAVIOUR CHANGE — the back office.** `/web`, `/odoo` and every
+  `/odoo/<path>` redirect a non-administrator (signed out of Odoo first) and an
+  anonymous visitor to `/app/`. `/web/login`, `/web/health`, assets, images,
+  `/report/*` and `/websocket` are unchanged. A non-administrator who signs in
+  on `/web/login` is sent to `/app/` with no Odoo session.
+- **New:** `POST /api/v1/approvals/<id>/renominate` `{approver_id, reason}`
+  (scope `assets:write`) re-points a pending request; the approval row gains
+  `approver.active`, `can_renominate` and `renominations`.
+- **New events in `GET /reports/access-changes`:** `deactivated`,
+  `reactivated` (`group: null`), with `summary.account_state_changes_in_period`,
+  `account_state_changes_not_shown`, `account_state_coverage` and
+  `fidelity.account_state_record_starts_at` / `_rows`.
+- **BEHAVIOUR CHANGE — event order.** Within one second, an account's events
+  are ordered by the record's id (the order they happened) and no longer by
+  event name.
+- **New:** `GET/PATCH /settings/branding` carry `sender_email` (the main
+  company's email), validated before any write.
+- **Wording:** a refusal naming `base.group_system` says *System
+  Administrator* (handoff 44, released in the same build).
+
 ## 2026-10-02 — handoff 43: the person, and the door · `myservice_api` 19.0.3.17.1
 
 Four new WRITE routes, scope `admin`, one additive block on every user row,

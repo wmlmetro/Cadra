@@ -721,10 +721,13 @@ export interface AdminUser {
 }
 
 /** One row of `data.events` on the access-changes report. The first six
- *  keys are on every event; `group`/`attributable` only on the two
- *  membership events read from the forward record (`granted`/`removed`). */
+ *  keys are on every event; `group`/`attributable` only on the events read
+ *  from the forward record — the two membership events (`granted`/`removed`)
+ *  and, since handoff 45, an account switched off or on
+ *  (`deactivated`/`reactivated`), whose `group` is `null`. */
 export interface AccessChangeEvent {
-  event: "account_created" | "account_modified" | "granted" | "removed" | string;
+  event: "account_created" | "account_modified" | "granted" | "removed"
+    | "deactivated" | "reactivated" | string;
   precision: "exact" | "last_write_only" | string;
   at: string;
   actor: { id: number | null; name: string } | null;
@@ -732,7 +735,7 @@ export interface AccessChangeEvent {
   login: string;
   evidence: string;
   groups_now: string[];
-  group?: string;
+  group?: string | null;
   attributable?: boolean;
 }
 
@@ -757,6 +760,11 @@ export interface AccessChangeSummary {
   group_changes_in_period: number;
   implication_changes_in_period: number;
   group_changes_not_shown: number;
+  /** Handoff 45: deactivations and reactivations — their own count, never in
+   *  the group or implication counts, and their own boundary. */
+  account_state_changes_in_period: number;
+  account_state_changes_not_shown: number;
+  account_state_coverage: string;
   coverage: string;
   statement: string;
 }
@@ -771,6 +779,10 @@ export interface AccessChangeFidelity {
   logging_rows: number;
   record_starts_at: string | null;
   record_rows: number;
+  /** When deactivations/reactivations began to be recorded here (handoff
+   *  45) — the earliest such row, `null` until the first. */
+  account_state_record_starts_at: string | null;
+  account_state_record_rows: number;
   notes: Record<string, string>;
 }
 

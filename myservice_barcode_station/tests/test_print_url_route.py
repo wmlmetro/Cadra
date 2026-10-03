@@ -81,7 +81,12 @@ class TestPrintUrlRendersAndStamps(CadraHttpCase):
             'login': 'h10_print_operator',
             'password': self.password,
             groups_field: [(6, 0, [
+            # A SYSTEM ADMINISTRATOR since handoff 45: the back-office
+            # station's routes are `auth='user'`, and no session but an
+            # administrator's reaches one any more (`myservice_api/models/
+            # backoffice_session.py`). A tagger uses the app's station.
                 self.env.ref('base.group_user').id,
+                self.env.ref('base.group_system').id,
                 self.env.ref('myservice_asset_register.group_asset_user').id,
             ])],
         })

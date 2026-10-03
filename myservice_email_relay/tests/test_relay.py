@@ -71,9 +71,12 @@ class RelayCase(CadraTransactionCase):
         self.Mail = self.env["ir.mail_server"]
         self.ICP = self.env["ir.config_parameter"].sudo()
 
-    def configure(self, url=RELAY_URL, secret=RELAY_SECRET):
+    def configure(self, url=RELAY_URL, secret=RELAY_SECRET, text_field=None):
         self.ICP.set_param("cadra.email_relay_url", url or "")
         self.ICP.set_param("cadra.email_relay_secret", secret or "")
+        # `False` deletes the row (an absent parameter); "" would store an
+        # empty one. Both must mean "send no text field" — tested below.
+        self.ICP.set_param(relay.TEXT_FIELD_PARAM, text_field if text_field is not None else False)
 
 
 @tagged("post_install", "-at_install")
@@ -264,3 +267,109 @@ class TestRefusals(RelayCase):
         self.assertEqual(post.call_count, 2)
         self.assertIn("after 1 of 3 recipient(s) were delivered", caught.exception.args[1])
         self.assertIn("bad gateway", caught.exception.args[1])
+
+
+@tagged("post_install", "-at_install")
+class TestThePlainTextPart(RelayCase):
+    """Handoff 45 H.3. Odoo builds every HTML mail with a text/plain
+    alternative, and a reader with HTML switched off reads that part. The
+    relay's five keys carried the HTML only, so through the relay that
+    reader received nothing.
+
+    The relay is not ours and its plain-text field name is unconfirmed, so
+    the field is named by `cadra.email_relay_text_field` — and absent or
+    empty must post EXACTLY the five keys it always did, because a relay
+    that refuses an unknown key would otherwise refuse every mail."""
+
+    def setUp(self):
+        super().setUp()
+        self.configure()
+
+    def _post(self, msg):
+        with patch(POST, return_value=_response(200, {"success": True})) as post:
+            self.Mail._cadra_relay_deliver(msg)
+        post.assert_called_once()
+        return post.call_args.kwargs["json"]
+
+    def test_absent_parameter_posts_the_five_keys_and_nothing_else(self):
+        self.assertFalse(self.ICP.get_param(relay.TEXT_FIELD_PARAM))
+        self.assertEqual(set(self._post(_message())), set(relay.RELAY_KEYS))
+
+    def test_empty_parameter_is_the_same_as_absent(self):
+        # set_param(key, "") on 19 stores an empty string rather than
+        # deleting the row; it must not be read as a field named "".
+        self.configure(text_field="  ")
+        self.assertEqual(set(self._post(_message())), set(relay.RELAY_KEYS))
+
+    def test_named_field_carries_the_text_part(self):
+        self.configure(text_field="body_text")
+        payload = self._post(_message(html="<p>hello</p>", text="hello, in plain words"))
+        self.assertEqual(payload["body_text"], "hello, in plain words\n")
+        self.assertEqual(payload["body"], "<p>hello</p>\n", "the HTML body is unchanged")
+        self.assertEqual(set(payload), set(relay.RELAY_KEYS) | {"body_text"})
+
+    def test_every_recipient_gets_the_text_part(self):
+        self.configure(text_field="body_text")
+        msg = _message(to="a@example.com, b@example.com", text="plain")
+        with patch(POST, return_value=_response(200, {"success": True})) as post:
+            self.Mail._cadra_relay_deliver(msg)
+        self.assertEqual(
+            [c.kwargs["json"].get("body_text") for c in post.call_args_list],
+            ["plain\n", "plain\n"],
+        )
+
+    def test_html_only_message_sends_no_text_field(self):
+        # Nothing is derived from the HTML here: no text part, no key.
+        self.configure(text_field="body_text")
+        payload = self._post(_message(html="<p>only html</p>", text=None))
+        self.assertNotIn("body_text", payload)
+        self.assertEqual(payload["body"], "<p>only html</p>\n")
+
+    def test_text_only_message_keeps_its_pre_body_and_adds_the_text(self):
+        self.configure(text_field="body_text")
+        payload = self._post(_message(html=None, text="reset your password"))
+        self.assertEqual(payload["body"], "<pre>reset your password\n</pre>")
+        self.assertEqual(payload["body_text"], "reset your password\n")
+
+    def test_a_base64_text_part_is_decoded(self):
+        # Non-ASCII makes the stdlib choose base64 or quoted-printable for the
+        # part; the relay must receive the words, not the transfer encoding.
+        self.configure(text_field="body_text")
+        words = "Dear Adébáyọ̀, your account is ready. " * 6
+        msg = EmailMessage()
+        msg["To"] = "a@example.com"
+        msg["Subject"] = "Test"
+        msg.add_alternative(words, subtype="plain", charset="utf-8", cte="base64")
+        msg.add_alternative("<p>x</p>", subtype="html", charset="utf-8")
+        self.assertEqual(
+            next(p for p in msg.walk() if p.get_content_type() == "text/plain")
+            ["Content-Transfer-Encoding"], "base64")
+        self.assertEqual(self._post(msg)["body_text"], words + "\n")
+
+    def test_a_quoted_printable_text_part_is_decoded(self):
+        self.configure(text_field="body_text")
+        words = "Café = coffee; the link is https://example.com/?a=1&b=2"
+        msg = EmailMessage()
+        msg["To"] = "a@example.com"
+        msg["Subject"] = "Test"
+        msg.add_alternative(words, subtype="plain", charset="utf-8",
+                            cte="quoted-printable")
+        msg.add_alternative("<p>x</p>", subtype="html", charset="utf-8")
+        self.assertEqual(self._post(msg)["body_text"], words + "\n")
+
+    def test_an_attached_text_file_is_not_the_body(self):
+        self.configure(text_field="body_text")
+        msg = _message(html=None, text="the letter")
+        msg.add_attachment(b"not the letter", "text", "plain", filename="notes.txt")
+        payload = self._post(msg)
+        self.assertEqual(payload["body_text"], "the letter\n")
+        self.assertEqual(payload["body"], "<pre>the letter\n</pre>")
+
+    def test_a_name_colliding_with_a_relay_key_is_refused_before_any_post(self):
+        for name in relay.RELAY_KEYS:
+            self.configure(text_field=name)
+            with patch(POST) as post, \
+                    self.assertRaises(MailDeliveryException) as caught:
+                self.Mail._cadra_relay_deliver(_message())
+            post.assert_not_called()
+            self.assertIn(relay.TEXT_FIELD_PARAM, caught.exception.args[1])

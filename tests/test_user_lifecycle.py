@@ -194,17 +194,52 @@ def test_the_record_names_the_suite_user_as_the_actor(client, created, suite_use
     row = created(roles=["asset_user"])
     frm = (today - datetime.timedelta(days=1)).isoformat()
     to = (today + datetime.timedelta(days=1)).isoformat()
-    events, cursor = [], None
-    for _ in range(50):
-        params = {"from": frm, "to": to, "limit": 100}
-        if cursor:
-            params["cursor"] = cursor
-        body = assert_envelope_ok(client.get(ACCESS, params=params))
-        events += body["data"]["events"]
-        cursor = (body.get("pagination") or {}).get("next_cursor")
-        if not cursor:
-            break
-    mine = [e for e in events if e.get("login") == row["login"] and e["event"] == "granted"]
+
+    def walk():
+        events, roster, cursor, truncated = [], [], None, None
+        for _ in range(50):
+            params = {"from": frm, "to": to, "limit": 100}
+            if cursor:
+                params["cursor"] = cursor
+            body = assert_envelope_ok(client.get(ACCESS, params=params))
+            truncated = truncated or (body.get("_warnings") or {}).get("truncated")
+            events += body["data"]["events"]
+            roster += body["data"]["roster"]
+            cursor = (body.get("pagination") or {}).get("next_cursor")
+            if not cursor:
+                break
+        return events, roster, truncated
+
+    events, roster, truncated = walk()
+    subject = row
+    if truncated and row["id"] not in {r["user_id"] for r in roster}:
+        # The person just created has the highest id, and an API credential
+        # sees the first `cap` accounts of this report, announced in
+        # `_warnings` (handoff 45: `test19` crossed 100 accounts). The claim
+        # is the same on any account this credential CAN see: grant a role
+        # to the newest visible `pytest-` fixture, read the event, take it
+        # back. The create's own row is proved in-registry
+        # (`myservice_api/tests/test_user_lifecycle.py::test_v_the_record_names_the_person_who_clicked`).
+        assert truncated["total"] > truncated["cap"] == len(roster), truncated
+        visible = [r for r in sorted(roster, key=lambda r: -r["user_id"])
+                   if (r.get("login") or "").startswith("pytest-")
+                   and r["user_id"] != suite_user["id"]
+                   and not r.get("is_api_client")]
+        if not visible:
+            pytest.skip("0 of %d visible accounts are `pytest-` fixtures to "
+                        "grant a role to" % len(roster))
+        subject = visible[0]
+        before = assert_envelope_ok(client.get(USER.format(id=subject["user_id"])))["data"]
+        keys = [r["key"] for r in before["roles_direct"]]
+        if "auditor" in keys:
+            pytest.skip("the visible fixture already holds the role to grant")
+        try:
+            assert_envelope_ok(client.post("/api/v1/users/%d/roles" % subject["user_id"],
+                                           json={"roles": keys + ["auditor"]}))
+            events, roster, truncated = walk()
+        finally:
+            client.post("/api/v1/users/%d/roles" % subject["user_id"], json={"roles": keys})
+    mine = [e for e in events if e.get("login") == subject["login"] and e["event"] == "granted"]
     assert mine, "no `granted` event for the person this test created (of %d events)" % len(events)
     for e in mine:
         assert e["attributable"] is True

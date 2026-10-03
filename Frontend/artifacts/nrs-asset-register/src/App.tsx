@@ -10,8 +10,8 @@
  * sees their last-known data instantly while it refreshes in the
  * background — the "stale-while-revalidate" feel.
  */
-import { lazy, Suspense, useEffect, useState } from "react";
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { lazy, Suspense, useEffect, useState, type ReactElement } from "react";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
@@ -23,6 +23,10 @@ import { hasLiveSession, onLogout } from "@/lib/auth";
 import { Clock } from "lucide-react";
 
 const Login                      = lazy(() => import("@/pages/Login"));
+// Handoff 45: the pages a letter's link opens, and "Forgot password?" —
+// reachable signed in or not (PUBLIC_PATHS in AuthGate).
+const SetPassword                = lazy(() => import("@/pages/SetPassword"));
+const ForgotPassword             = lazy(() => import("@/pages/ForgotPassword"));
 const Dashboard                  = lazy(() => import("@/pages/Dashboard"));
 const GlobalSearch               = lazy(() => import("@/pages/GlobalSearch"));
 const FMOperationsDashboard      = lazy(() => import("@/pages/FMOperationsDashboard"));
@@ -175,8 +179,18 @@ function AppRoutes() {
 
 /** Listens for the logout event + auth-changed event and flips between the
  *  Login screen and the authenticated app shell. */
+/** Paths rendered whether or not anybody is signed in (handoff 45 §2.1):
+ *  the letter's link must work for a person who has never signed in, and a
+ *  reset link for one who cannot. */
+const PUBLIC_PATHS: Record<string, () => ReactElement> = {
+  "/accept-invite": () => <SetPassword mode="invite" />,
+  "/reset-password": () => <SetPassword mode="reset" />,
+  "/forgot-password": () => <ForgotPassword />,
+};
+
 function AuthGate() {
   const [signedIn, setSignedIn] = useState(hasLiveSession);
+  const [location] = useLocation();
 
   useEffect(() => {
     const refresh = () => setSignedIn(hasLiveSession());
@@ -195,6 +209,12 @@ function AuthGate() {
     queryClient.clear();
   }, [signedIn]);
 
+  const publicPage = PUBLIC_PATHS[location.replace(/\/$/, "")];
+  if (publicPage) return (
+    <Suspense fallback={<RouteFallback />}>
+      {publicPage()}
+    </Suspense>
+  );
   if (!signedIn) return (
     <Suspense fallback={<RouteFallback />}>
       <Login />

@@ -36,8 +36,9 @@ import { AlertCircle, Clock, History, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AdminScopeRefusal } from "./Users";
 
-/** The events the model emits (`audit_access.py` ~lines 490-560 and
- *  `access_change.py` lines 136-139), in words. Anything else prints as-is. */
+/** The events the model emits (`access_change_report` in `audit_access.py`
+ *  and the `event` selection in `access_change.py`), in words. Anything else
+ *  prints as-is. */
 const EVENT_WORDS: Record<string, string> = {
   account_created:  "Account created",
   account_modified: "Account modified",
@@ -45,6 +46,8 @@ const EVENT_WORDS: Record<string, string> = {
   removed:          "Role removed",
   implied_added:    "Implication added",
   implied_removed:  "Implication removed",
+  deactivated:      "Account deactivated",
+  reactivated:      "Account reactivated",
 };
 const eventWords = (e: string) => EVENT_WORDS[e] ?? e;
 
@@ -215,6 +218,18 @@ export default function AdminAccessChanges() {
                   <span>{first.summary.group_changes_in_period.toLocaleString()} role changes recorded
                     {first.summary.group_changes_not_shown > 0 && <> ({first.summary.group_changes_not_shown} for accounts no longer on the roster, not shown)</>}
                   </span>
+                  {first.summary.account_state_changes_in_period != null && (
+                    <>
+                      <span>·</span>
+                      <span data-testid="report-account-state">
+                        {first.summary.account_state_changes_in_period.toLocaleString()} deactivations / reactivations recorded
+                        {first.summary.account_state_changes_not_shown > 0 && <> ({first.summary.account_state_changes_not_shown} for accounts no longer on the roster, not shown)</>}
+                        {first.summary.account_state_coverage && first.summary.account_state_coverage !== first.summary.coverage && (
+                          <> (coverage: <span className={cn("font-semibold uppercase", first.summary.account_state_coverage === "none" ? "text-red-600 dark:text-red-400" : "text-foreground")} data-testid="report-account-state-coverage">{first.summary.account_state_coverage}</span>)</>
+                        )}
+                      </span>
+                    </>
+                  )}
                   {first.fidelity.record_starts_at
                     ? <><span>·</span><span>record begins {formatIsoDateTime(first.fidelity.record_starts_at)}</span></>
                     : <><span>·</span><span>the record has not begun on this tenant</span></>}
@@ -222,6 +237,9 @@ export default function AdminAccessChanges() {
                 <p className="text-[12px] text-foreground/90" data-testid="report-statement">{first.summary.statement}</p>
                 {first.fidelity.notes?.record_start && (
                   <p className="text-[11px] text-muted-foreground" data-testid="report-fidelity-note">{first.fidelity.notes.record_start}</p>
+                )}
+                {first.fidelity.notes?.account_state && (
+                  <p className="text-[11px] text-muted-foreground" data-testid="report-fidelity-account-state-note">{first.fidelity.notes.account_state}</p>
                 )}
               </div>
             )}
@@ -240,8 +258,8 @@ export default function AdminAccessChanges() {
                     <td className="px-3 sm:px-4 py-2.5 text-[11px] text-muted-foreground whitespace-nowrap">{formatIsoDateTime(e.at)}</td>
                     <td className="px-3 sm:px-4 py-2.5">
                       <span className={cn("text-[11px] font-semibold px-2 py-0.5 rounded-lg border",
-                        e.event === "granted" ? "bg-green-50 border-green-200/60 text-green-700 dark:bg-green-950/30 dark:border-green-800/30 dark:text-green-400"
-                        : e.event === "removed" ? "bg-red-50 border-red-200/60 text-red-700 dark:bg-red-950/30 dark:border-red-800/30 dark:text-red-400"
+                        e.event === "granted" || e.event === "reactivated" ? "bg-green-50 border-green-200/60 text-green-700 dark:bg-green-950/30 dark:border-green-800/30 dark:text-green-400"
+                        : e.event === "removed" || e.event === "deactivated" ? "bg-red-50 border-red-200/60 text-red-700 dark:bg-red-950/30 dark:border-red-800/30 dark:text-red-400"
                         : "bg-muted border-border text-muted-foreground")}>
                         {eventWords(e.event)}
                       </span>
@@ -249,7 +267,7 @@ export default function AdminAccessChanges() {
                     <td className="px-3 sm:px-4 py-2.5 text-[12px] font-mono text-foreground">
                       <Link href={`/admin/users/${e.user_id}`} className="hover:text-primary" data-testid="event-user-link">{e.login}</Link>
                     </td>
-                    <td className="px-3 sm:px-4 py-2.5 text-[12px] text-foreground" data-testid="event-group">{e.group ?? <span className="text-muted-foreground">—</span>}</td>
+                    <td className="px-3 sm:px-4 py-2.5 text-[12px] text-foreground" data-testid="event-group">{e.group ?? <span className="text-muted-foreground">{e.event === "deactivated" || e.event === "reactivated" ? "whole account" : "—"}</span>}</td>
                     <td className="px-3 sm:px-4 py-2.5 text-[12px] text-foreground" data-testid="event-actor">{actorWords(e)}</td>
                     <td className="px-3 sm:px-4 py-2.5 text-[11px] text-muted-foreground" title={e.evidence}>{sourceWords(e)}</td>
                   </tr>

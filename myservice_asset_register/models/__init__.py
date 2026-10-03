@@ -10,6 +10,9 @@ from . import asset_transfer
 # keys it imports, and after `asset_transfer`, which an approved location
 # request creates. Handoff 35.
 from . import asset_change_request
+# The append-only record of a pending request being re-pointed at somebody
+# else (handoff 45). Inherits the guard in `append_only`, imported first.
+from . import asset_change_request_renomination
 from . import asset_pm
 from . import asset_tag
 from . import asset_import

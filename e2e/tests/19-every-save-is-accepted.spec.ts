@@ -292,8 +292,9 @@ test("depreciation settings and branding — a save, and the save that puts it b
   }
   expect((await api.get("/api/v1/settings/depreciation"))?.proration).toBe(settings.proration);
 
-  // Branding saves the object the GET returned, edited — the five writable
-  // keys and, since handoff 31, never anything else the GET might grow.
+  // Branding saves the object the GET returned, edited — the six writable
+  // keys (`sender_email` since handoff 45) and, since handoff 31, never
+  // anything else the GET might grow.
   const brand = await api.get("/api/v1/settings/branding");
   await gotoApp(page, "/settings/branding");
   await expect(page.getByTestId("brand-short-name")).toHaveValue(brand.short_name, { timeout: 15_000 });
@@ -301,7 +302,7 @@ test("depreciation settings and branding — a save, and the save that puts it b
     await page.getByTestId("brand-short-name").fill(`${brand.short_name}x`);
     const saved = await savedBy(page, "PATCH", /\/api\/v1\/settings\/branding$/, () =>
       page.getByTestId("brand-save").click());
-    expect(Object.keys(saved.body).sort()).toEqual(["logo", "name", "primary", "primary_dark", "short_name"]);
+    expect(Object.keys(saved.body).sort()).toEqual(["logo", "name", "primary", "primary_dark", "sender_email", "short_name"]);
   } finally {
     await page.getByTestId("brand-short-name").fill(brand.short_name);
     await savedBy(page, "PATCH", /\/api\/v1\/settings\/branding$/, () => page.getByTestId("brand-save").click());

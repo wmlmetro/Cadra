@@ -4742,6 +4742,10 @@ ALREADY_LABELLED = {
         "rows written under the test credential say `test`, and the one "
         "written by a person logged in says `api_move`. "
         "tests/test_asset_history.py holds it over HTTP.",
+    "nrs.asset.change.request.renomination":
+        "`source = 'test'`, derived in myservice_api/models/append_only.py "
+        "from the same credential flag: the fourth append-only record "
+        "inherits `nrs.asset.append.only.mixin` (handoff 45).",
     "nrs.asset.event":
         "`source = 'test'`, derived in myservice_api/models/append_only.py "
         "from the same credential flag — on the abstract "
@@ -4914,6 +4918,8 @@ _APPEND_ONLY_MODEL_FILES = {
     "nrs.asset.custody": _REGISTER_MODELS / "asset_custody.py",
     "nrs.asset.movement": _REGISTER_MODELS / "asset_movement.py",
     "nrs.asset.event": _EVENT_MODEL_FILE,
+    "nrs.asset.change.request.renomination":
+        _REGISTER_MODELS / "asset_change_request_renomination.py",
 }
 _APPEND_ONLY_GUARD_FILE = _REGISTER_MODELS / "append_only.py"
 _EVENT_LABEL_FILE = REPO_ROOT / "myservice_api" / "models" / "append_only.py"

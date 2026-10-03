@@ -214,6 +214,22 @@ failure, so a half-provisioned tenant is never committed.
      survive.
    - Configures `ir.mail_server` from `SMTP_*` if `SMTP_HOST` is set, and the
      HTTPS email relay from `CADRA_EMAIL_RELAY_URL` / `_SECRET` if set.
+     The relay (`myservice_email_relay`) reads three `ir.config_parameter`
+     rows, and only the first two are written by bootstrap or by
+     `.github/workflows/set-email-relay.yml`:
+     - `cadra.email_relay_url` and `cadra.email_relay_secret` — BOTH set,
+       or the relay is off and core SMTP runs. The relay sends as its own
+       account; the letter's From is not carried.
+     - `cadra.email_relay_text_field` — the name of the relay's plain-text
+       field. **Absent or empty, the plain-text part of every letter is
+       dropped** and a reader with HTML switched off sees nothing. It is not
+       set anywhere by default because nobody here has confirmed the relay
+       accepts such a field, or under what name, and a relay that refuses
+       an unknown key would then refuse every mail. Once whoever runs the
+       relay confirms the name, set it per tenant (an `odoo shell`:
+       `env['ir.config_parameter'].sudo().set_param('cadra.email_relay_text_field', '<name>')`,
+       then commit) and roll odoo — `ir.config_parameter` reads are cached
+       per worker.
    - Runs the seeds for `CADRA_SEED_PROFILE`.
 6. Captures the sentinel-wrapped output and merges seven credential keys into
    `docs/api/.creds.<db>` (mode 600). It **merges** rather than overwrites,
