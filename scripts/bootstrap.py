@@ -487,27 +487,42 @@ def ensure_test_client():
             _say(f"re-homed {client_id!r} off Administrator onto "
                  f"{rec.user_id.login!r}", level="WARN")
 
-    # group_system, applied UNCONDITIONALLY and last.
+    # NO `base.group_system`. Until handoff 44 this block granted it here,
+    # unconditionally and last, to every run's smoke-test client user — on
+    # the stated reason that "the dashboard routes are the few that do NOT
+    # sudo()". They have sudo()'d since handoff 09 (`utils.SCOPE_GROUPS`
+    # says so), and handoff 44 stripped the group from this credential on
+    # `test19` and drove the whole HTTP suite as it: report 44 §A has the
+    # transcript, and the one thing the credential lost is withdrawing a
+    # change request somebody ELSE raised — an Odoo-administrator power
+    # (`_is_admin()`), not anything its scopes promise. That holds because
+    # this credential also holds `approvals:write`, which `SCOPE_GROUPS`
+    # turns into Asset Manager, the approver group; a credential holding
+    # `admin` ALONE maps to no group and, without the system group, can no
+    # longer decide or be asked to decide a change request — the token's
+    # wildcard passes the route, the model asks for an approver. The `admin` scope is
+    # a wildcard in the TOKEN, where `require_jwt` reads it; the user
+    # underneath is an ordinary internal user holding exactly what
+    # `utils.groups_for_scopes` gives it, like every other client.
     #
-    # This client holds `admin` — a wildcard in `require_jwt` — and the
-    # dashboard routes are the few that do NOT sudo(), so they read with this
-    # user's real ACLs. The group grants it nothing the token did not already
-    # carry; what changes is that the audit column reads "Smoke Test" instead
-    # of "Administrator".
+    # A system administrator can execute arbitrary server actions, so a
+    # credential holding the group makes the API guard of handoff 42
+    # advisory for it. What an API credential is entitled to, and why, is
+    # `docs/DECISIONS.md` 2026-10-02 *What an API credential is entitled to*.
     #
-    # It is applied outside both branches because `_provision_client_user`
-    # writes the group set with `(6, 0, ...)` — a full replace — and that runs
-    # on every scope change. Granting it only on create meant that the first
-    # time a scope was added to ALL_SCOPES (which happened in handoff 03 and
-    # again in 05, i.e. routinely) the next bootstrap would silently strip
-    # group_system back off, with nothing in the log. That is the same shape
-    # as the bug this handoff is about: a deliberate grant that quietly stops
-    # existing. Note the corollary — any group added to a client user BY HAND
-    # is destroyed by the next scope edit; the scope table is the only durable
-    # source of a client user's groups.
-    if rec.user_id.login.startswith(rec.CLIENT_USER_LOGIN_PREFIX):
-        rec.user_id.sudo().write({
-            _groups_field(env): [(4, env.ref("base.group_system").id)]})
+    # The `19.0.3.2.0` migration made the same grant to any client holding
+    # `admin` and is fixed in the same change;
+    # This test fails if either comes back:
+    # tests/test_source_guards.py::test_no_provisioning_path_grants_a_credential_system_administrator
+    #
+    # This does NOT take the group off a client user that already holds it:
+    # bootstrap is the production deploy path, and stripping it here would
+    # change every live tenant on the next deploy without anybody deciding
+    # to. `scripts/strip_credential_system_group.py` does that, dry-run by
+    # default, and the owner runs it. Note that `_provision_client_user`
+    # replaces the group set wholesale on any scope change, so the next
+    # change to ALL_SCOPES would also take it off — silently, which is why
+    # the procedure is a script with a log rather than that.
 
     # Rotate the secret if:
     #   - the env var supplied a specific value and it doesn't match

@@ -1,0 +1,15 @@
+    if self.pool.is_modifying_relations(field):
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 681, in is_modifying_relations
+    result = field in self._field_triggers and bool(
+  File "/usr/lib/python3.12/functools.py", line 995, in __get__
+    val = self.func(instance)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 662, in _field_triggers
+    dependencies = list(field.resolve_depends(self))
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields.py", line 832, in resolve_depends
+    warnings.warn(f"Field {self} should be declared with recursive=True", stacklevel=1)
+ 
+database: test19 · dry run
+1 API client(s) on this database
+  ~ test_client              cadra_client_test_client           scopes: admin approvals:write assets:read assets:write dashboards:read identity:read ingestion:write integrations:write locations:read locations:write requests:read requests:write tagging:write webhooks:admin
+1 of 1 client users hold base.group_system directly; 1 would be removed, 0 refused.
+Re-run with CADRA_APPLY=1 to remove it.

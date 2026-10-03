@@ -924,3 +924,44 @@ Proved on `test19` with a real SMTP catcher (Mailpit, `docs/ENVIRONMENT-FACTS.md
 See report 43 §E for the denominators of every suite run (HTTP suite,
 in-registry `myservice_api`, Playwright 41–43) and the fan-out.
 
+
+## 44 — The credential that is already root (2026-10-02)
+
+### What was established
+
+- **An API credential needs no Odoo administrator role, and never did.**
+  `base.group_system` taken off `test19`'s `admin` credential, then driven:
+  the 37 calls the drive makes as that credential answer the same status
+  with and without it (0 flagged either way; Vendra's and the Tag-Issuing
+  Unit's legs were driven on the fresh tenant, `test19` has neither); the employee xlsx import completes (its
+  worker runs as the superuser); the HTTP suite as the stripped credential
+  is 1,181 passed, 0 failed, 10 skipped of 1,191. The two skips that vanish
+  are refusals that could not be proved while the credential was root —
+  somebody else's request cannot be withdrawn, and `system` cannot be
+  granted to the credential's own user — and both pass. The one power lost
+  is withdrawing somebody else's request, an Odoo-administrator power
+  (`_is_admin()`), not anything a scope promises.
+- **Two grant sites, both removed.** `scripts/bootstrap.py::ensure_test_client`
+  (named by report 42) and the `19.0.3.2.0` migration (found by search),
+  which granted the group to any client holding `admin` on 2026-09-07 — the
+  three local holders are exactly those. A source guard fails on either.
+- **A tenant built from nothing (`boot44`)**: 0 of 3 credentials hold the
+  group; Vendra creates and replays (INT-03), the Tag-Issuing Unit confirms
+  (INT-05), the record names each; HTTP suite 1,168 passed, 0 failed, 23
+  skipped of 1,191 (every skip is data a new database lacks).
+- **One name per role**: `models/role_names.py`, read by `/users`, `/roles`,
+  the guard's refusals, the access record and the roster.
+
+### Measured, not changed
+
+- 3 of 12 local credentials held the group (`test_client` on `cadra19`,
+  `nrs19`, `test19`); `test19`'s removed. Vendra's, the Tag-Issuing Unit's
+  and both approver credentials held it nowhere. The cluster was not
+  measured (the Builder's permission layer refuses those reads).
+  `scripts/strip_credential_system_group.py` is the owner's procedure.
+- The routes of 41–43 are live on 4 of 4 cluster hosts (JSON 401 on the new
+  routes, HTML 404 on a route that does not exist).
+
+### Verification
+
+Report 44 §H carries every suite's denominator.

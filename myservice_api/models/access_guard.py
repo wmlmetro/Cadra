@@ -102,6 +102,7 @@ from odoo.exceptions import AccessError
 from odoo.http import request
 
 from .access_recorder import _field_name, _USER_GROUPS_FIELDS, _GROUP_USERS_FIELDS
+from .role_names import role_alias
 
 #: The ONLY groups an authenticated API caller may grant or remove — ruling
 #: 1, generalised. `GET /roles` reads this to publish `grantable`, so there is
@@ -150,15 +151,26 @@ def _grantable_groups(env):
 # the functions because Odoo's PO extractor scans literal arguments — the
 # same convention as `access_change.py`.
 
+def _role_name(group, full=False):
+    """The name a refusal says: the published alias where there is one
+    (`role_names.py`), else what this sentence always said — `full_name` for
+    the offending group, `name` elsewhere. Report 42 §F.5: the offending group
+    was *Role / Administrator* where `/users` said *System Administrator*.
+    Only the alias changes; every other group reads as it did (verification
+    pass, report 44 §G)."""
+    group = group.sudo()
+    return role_alias(group) or (full and group.full_name) or group.name
+
+
 def _not_grantable_message(env, group):
-    names = ", ".join(_grantable_groups(env).mapped('name'))
+    names = ", ".join(_role_name(g) for g in _grantable_groups(env))
     return _(
         "Over the API only these roles can be granted or removed: %(roles)s. "
         "'%(group)s' is not one of them. Making somebody a system "
         "administrator, or changing any other Odoo group, is done in the "
         "Odoo back office, signed in as a person.",
         roles=names,
-        group=group.sudo().full_name or group.sudo().name,
+        group=_role_name(group, full=True),
     )
 
 
@@ -168,7 +180,7 @@ def _self_grant_message(user, group):
         "to their own account; another administrator has to do that. "
         "Removing your own roles is allowed.",
         login=user.sudo().login,
-        role=group.sudo().name,
+        role=_role_name(group),
     )
 
 
@@ -184,7 +196,7 @@ def _no_group_create_or_unlink_message():
 def _no_implication_change_message(groups):
     return _(
         "What a group means cannot be changed over the API (%(group)s).",
-        group=", ".join(groups.sudo().mapped('name')) or "?",
+        group=", ".join(_role_name(g) for g in groups) or "?",
     )
 
 

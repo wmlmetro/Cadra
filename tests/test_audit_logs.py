@@ -137,7 +137,24 @@ def history(client):
     date_from, date_to = "2000-01-01", _iso(_today())
     r = client.get(ACCESS, params={"from": date_from, "to": date_to})
     body = assert_envelope_ok(r)
-    data = body["data"]
+    # The WHOLE report, every page: `roster` and `events` page together by
+    # account (default 50), and `summary` counts the whole period. Until
+    # handoff 44 this read one page, which was the whole report only while
+    # the tenant held fewer than 51 accounts — `test19` crossed that with
+    # handoff 43's fixtures (61), and the count test below failed 198 vs 170
+    # on a report that was right. `body` stays the first page.
+    data = dict(body["data"],
+                events=list(body["data"]["events"]),
+                roster=list(body["data"]["roster"]))
+    cursor, pages = body["pagination"]["next_cursor"], 1
+    while cursor:
+        page = assert_envelope_ok(client.get(ACCESS, params={
+            "from": date_from, "to": date_to, "cursor": cursor}))
+        data["events"] += page["data"]["events"]
+        data["roster"] += page["data"]["roster"]
+        cursor = page["pagination"]["next_cursor"]
+        pages += 1
+        assert pages <= 1000, "the access report did not stop paging"
     assert data["events"], (
         "the whole-history period returned no access events at all. Every "
         "assertion in this suite about events, coverage and the statement "
@@ -836,7 +853,12 @@ def test_the_cursor_walks_the_whole_report_without_repeating(client, history):
     """
     seen, cursor, pages = [], None, 0
     total = None
-    while pages < 60:
+    # The budget is the report's own promise plus slack, not a constant: a
+    # fixed 60 was the size of `test19` in handoff 25, and it had 61 accounts
+    # by handoff 44. A walk that needs more pages than `total_estimate` is
+    # still caught — that is the repeat this test exists for.
+    budget = len(history["data"]["roster"]) + 5
+    while pages < budget:
         params = {"from": history["from"], "to": history["to"], "limit": 1}
         if cursor:
             params["cursor"] = cursor
@@ -847,7 +869,9 @@ def test_the_cursor_walks_the_whole_report_without_repeating(client, history):
         pages += 1
         if not cursor:
             break
-    assert cursor is None, "the walk did not terminate in 60 pages"
+    assert cursor is None, (
+        "the walk did not terminate in %d pages for %d accounts"
+        % (budget, len(history["data"]["roster"])))
     assert pages > 1, (
         "the whole report fitted on one page, so this proved nothing about "
         "the cursor")

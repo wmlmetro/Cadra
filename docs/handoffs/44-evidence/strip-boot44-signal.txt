@@ -1,0 +1,10 @@
+before strip (default_seq|groups_seq|held): 32|1|t
+2026-10-02 21:33:14,561 479 INFO boot44 odoo.registry: Caches invalidated, signaling through the database: ['default', 'stable'] 
+database: boot44 · APPLY
+3 API client(s) on this database
+  -  tag_issuing_unit         cadra_client_tag_issuing_unit      does not hold it
+  -  vendra                   cadra_client_vendra                does not hold it
+  ✓ test_client              cadra_client_test_client           scopes: admin approvals:write assets:read assets:write dashboards:read identity:read ingestion:write integrations:write locations:read locations:write reque
+1 of 3 client users hold base.group_system directly; 1 removed, 0 refused.
+signalled the running server: caches invalidated
+after strip  (default_seq|groups_seq|held): 33|1|f

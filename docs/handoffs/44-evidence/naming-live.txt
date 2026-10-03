@@ -1,0 +1,11 @@
+POST /api/v1/users/6/roles {roles:[system]} -> 403
+{
+ "code": "forbidden",
+ "message": "Over the API only these roles can be granted or removed: Asset User, Asset Manager, Tag-Issuing Unit, Auditor. 'System Administrator' is not one of them. Making somebody a system administrator, or changing any other Odoo group, is done in the Odoo back office, signed in as a person.",
+ "request_id": "537c47d6607747ceba1a52a1e92338d0",
+ "details": {
+  "http_status": 403
+ }
+}
+GET /api/v1/roles system -> ['System Administrator']
+openapi.json: se.group_system` is published as 'System Administrator' \u2014 Odoo 19's own name for it is 'Role / Administrator', which does not say it is the omnipotent role. The same name is said by every refusal that names the group and by the access-change record from 2026-10-02.", "proper

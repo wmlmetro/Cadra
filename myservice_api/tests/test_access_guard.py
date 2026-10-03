@@ -204,11 +204,36 @@ class TestAccessGuard(CadraHttpCase):
         self.assertNotIn(self.g_system.id, before)
         r = self._set_roles(self._cred_token(), self.cred_user, ["system"])
         self._assert_refused(r, ONLY_THESE, self.cred_user, before, count)
-        # Named by `full_name` — "Administration / Settings" on Odoo 19,
-        # which is the group's own name and not our published alias.
-        self.assertIn(self.g_system.sudo().full_name or self.g_system.name,
-                      r.json()["error"]["message"],
-                      "the sentence does not name the offending group")
+        # Named by the PUBLISHED alias, the one `/roles` says (handoff 44
+        # §3). Until 44 this asserted the group's `full_name` — on 19 *Role
+        # / Administrator* — so the suite pinned the two names it should
+        # have been catching.
+        message = r.json()["error"]["message"]
+        self.assertIn("'System Administrator' is not one of them", message)
+        own = self.g_system.sudo().full_name or self.g_system.sudo().name
+        self.assertNotEqual(own, "System Administrator",
+                            "Odoo now calls it what we do; this test no "
+                            "longer distinguishes the two names")
+        self.assertNotIn(own, message,
+                         "the refusal says Odoo's name for the group")
+
+    def test_i_the_record_names_the_group_as_the_api_does(self):
+        """The access-change snapshot and the access report's roster use the
+        same alias, so the record an auditor reads, the refusal and `/users`
+        say one name. Driven through the recorder by a back-office grant
+        (no request, so the guard is silent and the row is written)."""
+        Change = self._record()
+        mark = self._watermark()
+        self.third.sudo().write({"group_ids": [(4, self.g_system.id)]})
+        self.env.flush_all()
+        rows = Change.search([("id", ">", mark),
+                              ("user_id", "=", self.third.id)])
+        self.assertEqual(rows.mapped("group_name"), ["System Administrator"],
+                         "1 back-office grant, %d rows" % len(rows))
+        # Every other group keeps the name the record already used.
+        g_user = self.env.ref("base.group_user")
+        self.assertEqual(Change._group_label(g_user),
+                         g_user.sudo().full_name or g_user.sudo().name)
 
     def test_ii_the_credential_cannot_make_anybody_else_one_either(self):
         before, count = self._groups(self.other), self._count()

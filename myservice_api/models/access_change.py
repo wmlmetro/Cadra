@@ -109,6 +109,8 @@ from odoo import models, fields, api, _
 from odoo import SUPERUSER_ID
 from odoo.exceptions import UserError
 
+from .role_names import role_alias
+
 # The flag `_record` sets on itself. `create` refuses without it, so the single
 # entry point is enforced by the model and not by the access rules — the same
 # shape as `nrs.asset.custody` and `workflow.dispatch.log`, and for the same
@@ -375,4 +377,7 @@ class MyserviceApiAccessChange(models.Model):
         # problem rather than an exception. Narrow by design — handoff 15
         # classified fifty broad handlers in this tree and 24 were hiding a
         # live fault, so this one does not catch anything.
-        return group.full_name or group.name
+        # The published alias first (handoff 44 §3), so the record names
+        # `base.group_system` as the refusal and `/users` do. Rows written
+        # before 2026-10-02 keep the name they were written with.
+        return role_alias(group) or group.full_name or group.name
