@@ -182,7 +182,8 @@ class MyserviceApiClient(models.Model):
     @api.model
     @tools.ormcache('user_id')
     def _is_test_credential_user(self, user_id):
-        """Is this the Odoo user behind a credential flagged as a test one?
+        """Is this the Odoo user behind a credential flagged as a test one —
+        or an account that is itself a test fixture (handoff 46)?
 
         The canonical reader, and it sits on the model that OWNS the column
         rather than on one of its consumers. It used to live on
@@ -209,10 +210,29 @@ class MyserviceApiClient(models.Model):
         """
         if not user_id:
             return False
-        return bool(self.sudo().with_context(active_test=False).search_count([
+        if self.sudo().with_context(active_test=False).search_count([
             ('user_id', '=', user_id),
             ('is_test_credential', '=', True),
-        ]))
+        ]):
+            return True
+        # Handoff 46: an ACCOUNT that is itself a fixture is a test actor
+        # too. The demo personas are created under an inert test credential
+        # (`scripts/seed_demo_personas.py`), so each persona's partner is
+        # stamped `is_test_fixture` by the mixin like anything else that
+        # credential creates. Without this branch the persona would be
+        # labelled and everything the persona then DID would not: a demo on
+        # a client's tenant would leave a verification, a custody change
+        # or an approval signed by an invented officer and indistinguishable
+        # from history — the label on the person, none on the act. The same
+        # holds for the officers the suites create through `POST /users`
+        # under the test credential and then sign in as.
+        #
+        # Safe under the ormcache: the partner's flag is stamped at creation
+        # and `write()` refuses to move it, so the answer for a user id
+        # never changes after the user exists.
+        user = self.env['res.users'].sudo().with_context(
+            active_test=False).browse(user_id).exists()
+        return bool(user and user.partner_id.is_test_fixture)
 
     @api.model
     def _provision_client_user(self, client_id, name=None, scopes=None):

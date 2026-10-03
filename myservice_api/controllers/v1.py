@@ -2399,6 +2399,13 @@ class MyserviceApiV1(http.Controller):
                             "last_login_at": {"type": "string", "format": "date-time",
                                               "nullable": True},
                             "created_at": {"type": "string", "format": "date-time"},
+                            "is_test_fixture": {
+                                "type": "boolean",
+                                "description": (
+                                    "Created by a test credential — a suite's "
+                                    "officer or a demo persona — and not a "
+                                    "real person. Derived, read-only "
+                                    "(handoff 46).")},
                             # ── handoff 43: the person, and the door ──
                             "invitation": {
                                 "type": "object",

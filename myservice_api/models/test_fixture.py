@@ -80,7 +80,8 @@ class CadraTestFixtureMixin(models.AbstractModel):
         copy=False,
         index=True,
         help="TRUE when this record was created through an API credential "
-             "flagged as a test credential. Derived from the acting user at "
+             "flagged as a test credential, or by an account that is itself "
+             "a test or demo fixture. Derived from the acting user at "
              "creation and never from anything the caller sends; it cannot "
              "be set, cleared or corrected afterwards. FALSE on every record "
              "created before this field existed, which is not the same as "

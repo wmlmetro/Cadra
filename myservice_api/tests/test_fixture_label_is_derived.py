@@ -174,3 +174,43 @@ class TestFixtureLabelIsDerived(CadraTransactionCase):
             asset.is_test_fixture,
             "archiving the credential made its output stop self-labelling — "
             "the lookup is filtering on `active` somewhere")
+
+    # ── handoff 46: an account that is a fixture is a test actor ──────
+
+    def _account_as(self, creator, login):
+        return self.env["res.users"].with_context(
+            no_reset_password=True).with_user(creator).sudo().create({
+                "name": "probe %s" % login.split("@")[0],
+                "login": login,
+            })
+
+    def test_an_account_that_is_a_fixture_labels_what_it_does(self):
+        """The demo personas' case, and the suites' invited officers'.
+
+        A persona is created under the inert seeding credential, so its
+        partner is stamped like anything else that credential creates. What
+        this proves is the NEXT step: the persona signs in and acts, and the
+        act is labelled too — otherwise the label sits on the person and a
+        verification they performed on a client's register reads as history.
+        """
+        persona = self._account_as(
+            self.flagged.user_id, "h46-persona-probe@demo.example")
+        self.assertTrue(
+            persona.partner_id.is_test_fixture,
+            "an account created under a test credential is not labelled")
+        asset = self._asset_as(persona, "probe by a fixture account")
+        self.assertTrue(
+            asset.is_test_fixture,
+            "an asset created BY an account that is itself a fixture carries "
+            "no label — the persona is marked and what it does is not")
+
+    def test_an_account_made_by_a_real_credential_is_a_real_actor(self):
+        """The absent case for the new branch, asserted rather than assumed."""
+        person = self._account_as(
+            self.unflagged.user_id, "h46-real-probe@example.org")
+        self.assertFalse(person.partner_id.is_test_fixture)
+        asset = self._asset_as(person, "probe by a real account")
+        self.assertFalse(
+            asset.is_test_fixture,
+            "an asset created by an account a REAL credential made is "
+            "labelled a fixture — the new branch says yes about everybody")

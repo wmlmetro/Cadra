@@ -33,6 +33,24 @@ live at was never the point.
 
 ---
 
+## 2026-10-03 — handoff 46: everyone sees their own job · `myservice_api` 19.0.3.19.0
+
+All additive.
+
+- **New key on every user row** (`GET /api/v1/users`, `/users/<id>`, and the
+  rows the user writes return): `is_test_fixture` (boolean, read-only, in no
+  allow-list). `true` for an account created by a test credential — the
+  suites' invited officers and the demo personas
+  (`scripts/seed_demo_personas.py`) — so a screen can tell an invented
+  officer from a real one. Derived from the partner, never settable.
+- **BEHAVIOUR CHANGE, labelling only:** a record created by an account that
+  is itself a fixture is now labelled `is_test_fixture: true` (and an
+  append-only row it causes carries `source: "test"`), where before only a
+  record created through a flagged CREDENTIAL was. Nothing a real
+  credential or a real person creates changes. A consumer that filters
+  fixtures out will now also filter out what a demo persona did — which is
+  the intent: an invented officer's verification is not history.
+
 ## 2026-10-02 — handoff 45: the first five minutes · `myservice_api` 19.0.3.18.0, `myservice_asset_register` 19.0.1.21.0
 
 All additive except where marked.
