@@ -68,6 +68,8 @@ const ITEMS: { path: string; probes: Probe[] }[] = [
   { path: "/settings/categories", probes: [W("POST", "/asset-categories")] },
   { path: "/settings/branding", probes: [W("PATCH", "/settings/branding")] },
   { path: "/settings/depreciation", probes: [W("PATCH", "/settings/depreciation")] },
+  // Handoff 48. `admin`-only; the probe body is refused 400 to a holder.
+  { path: "/settings/sidebar", probes: [W("PATCH", "/settings/sidebar")] },
   { path: "/admin/access-changes", probes: [G("/reports/access-changes?from=2026-10-01&to=2026-10-03&limit=1")] },
   { path: "/admin/users", probes: [G("/users?limit=1")] },
   { path: "/tools/barcode", probes: [G("/barcode/kpis")] },

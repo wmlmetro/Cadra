@@ -20,6 +20,7 @@ import {
 } from "@/lib/auth";
 import { currentScopes } from "@/hooks/use-scopes";
 import { landingPath } from "@/lib/navigation";
+import { tenantHiddenWith } from "@/hooks/use-tenant-sidebar";
 import { AuthError, AuthNotice, AuthShell, authButton, authInput, authLabel, authLink } from "@/components/auth/AuthShell";
 
 function tokenFromUrl(): string {
@@ -67,10 +68,13 @@ export default function SetPassword({ mode }: { mode: "invite" | "reset" }) {
       // A browser still signed in as somebody else signs out first, so the
       // person this link belongs to never sees that session's cached data.
       if (hasLiveSession()) clearToken();
-      const result = await redeemPasswordToken(token, password, confirm);
+      let hidden: Set<string> = new Set();
+      const result = await redeemPasswordToken(token, password, confirm,
+        async (t) => { hidden = await tenantHiddenWith(t); });
       // Signed in: the same landing rule as the login form (handoff 46),
-      // judged from the scopes the redeem has just stored.
-      if (result.signedIn) nav(landingPath(currentScopes()));
+      // judged from the scopes the redeem has just stored, and preferring a
+      // page this tenant shows (handoff 48).
+      if (result.signedIn) nav(landingPath(currentScopes(), hidden));
       else setDoneWithoutSignIn(result.login ?? "");
     } catch (e) {
       if (e instanceof AuthPageError && e.code === "conflict" && typeof e.details.state === "string") {

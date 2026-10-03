@@ -7,6 +7,7 @@ import { brandLogoSrc, getBrand } from "@/lib/brand";
 import { useTurnstile } from "@/lib/useTurnstile";
 import { currentScopes } from "@/hooks/use-scopes";
 import { landingPath } from "@/lib/navigation";
+import { tenantHiddenWith } from "@/hooks/use-tenant-sidebar";
 
 export default function Login() {
   const [, nav] = useLocation();
@@ -23,12 +24,20 @@ export default function Login() {
     setError(null);
     setPending(true);
     try {
-      await login(username.trim(), password, challenge.token || undefined);
+      // Which pages this tenant shows is read with the new token BEFORE it
+      // is stored (handoff 48): storing it swaps this page for the app, and
+      // a navigation that waited on a request after that rendered `/` first
+      // — the command centre and its four reads, or for a tagger alone a
+      // second /no-access (caught by the handoff 46 spec).
+      let hidden: Set<string> = new Set();
+      await login(username.trim(), password, challenge.token || undefined,
+        async (t) => { hidden = await tenantHiddenWith(t); });
       // App.tsx auth-gate listens for the auth-changed event and re-renders
       // into the authenticated shell. Where to: the best page this person can
       // open, from the scopes login() has just stored (handoff 46) — not `/`,
       // which a tagger alone would open on a refusal.
-      nav(landingPath(currentScopes()));
+      // And preferably one this tenant shows (handoff 48).
+      nav(landingPath(currentScopes(), hidden));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Login failed");
       challenge.reset();

@@ -10,11 +10,20 @@ import {
   LayoutDashboard, MapPin, Bus, Car, BookOpen,
   Fingerprint, Users, ScanBarcode, Upload, RefreshCw,
   Wrench, Tag, Monitor, TrendingDown, SlidersHorizontal, Layers, Palette,
-  Hourglass, ShieldCheck, History,
+  Hourglass, ShieldCheck, History, PanelLeft,
   type LucideIcon,
 } from "lucide-react";
 
 export interface NavItem {
+  /** What this item IS, for the per-tenant switch (handoff 48): the key
+   *  `PATCH /api/v1/settings/sidebar` names and a tenant's stored row is
+   *  filed under. Declared here and in `SIDEBAR_GROUPS`
+   *  (`myservice_api/controllers/v1_sidebar.py`), never derived — the label
+   *  is reworded, the path re-routed and the scope re-ruled (handoff 47),
+   *  and a key that followed any of them would switch an item a tenant had
+   *  turned off back on the day it changed. Change it only by retiring the
+   *  old one; `tests/test_sidebar_catalog.py` holds the two tables to it. */
+  key: string;
   name: string;
   path: string;
   icon: LucideIcon;
@@ -31,7 +40,12 @@ export interface NavItem {
   scope: string | string[];
 }
 
-export interface NavGroup { label: string; items: NavItem[] }
+export interface NavGroup {
+  /** The group's switch, on the same terms as `NavItem.key`. */
+  key: string;
+  label: string;
+  items: NavItem[];
+}
 
 /** What `canOpen` needs: `useScopes()` and `currentScopes()` both fit. */
 export interface ScopeCheck { has(scope: string): boolean }
@@ -47,76 +61,80 @@ export interface ScopeCheck { has(scope: string): boolean }
 // recorded in docs/handoffs/46-REPORT.md — not something to fix here by
 // inventing a scope the server does not have.
 export const ALL_NAV_GROUPS: NavGroup[] = [
-  { label: "Dashboards", items: [
+  { key: "dashboards", label: "Dashboards", items: [
     // Four scopes because it reads four things: assets, locations, employees
     // and the dashboard aggregates (`fetchTotals` + `/dashboard/kpis`).
-    { name: "Facility Command Center", path: "/",                     icon: LayoutDashboard, scope: ["assets:read", "locations:read", "identity:read", "dashboards:read"] },
+    { key: "facility_command_center", name: "Facility Command Center", path: "/",                     icon: LayoutDashboard, scope: ["assets:read", "locations:read", "identity:read", "dashboards:read"] },
     // Hidden for now (routes still work via direct URL). Would need
     // "dashboards:read", which every Asset User and Auditor holds:
     // { name: "FM Operations",           path: "/dashboards/fm",        icon: Activity,        scope: "dashboards:read" },
-    { name: "Fleet Command",           path: "/dashboards/fleet",     icon: Car,             scope: "dashboards:read" },
-    { name: "IT Assets Command",       path: "/dashboards/it",        icon: Monitor,         scope: ["assets:read", "dashboards:read"] },
+    { key: "fleet_command",           name: "Fleet Command",           path: "/dashboards/fleet",     icon: Car,             scope: "dashboards:read" },
+    { key: "it_assets_command",       name: "IT Assets Command",       path: "/dashboards/it",        icon: Monitor,         scope: ["assets:read", "dashboards:read"] },
     // Hidden for now; would need "dashboards:read", as FM Operations would:
     // { name: "Security Operations",     path: "/dashboards/security",  icon: ShieldAlert,     scope: "dashboards:read" },
   ]},
   // Service Desk group hidden in its entirety for now. Routes (/service-desk,
   // /service-desk/triage, /service-desk/new, /service-desk/:id) still resolve
   // via direct URL — only the sidebar entries are gone.
-  { label: "Asset Register", items: [
-    { name: "Dashboard",               path: "/assets",               icon: LayoutDashboard, scope: ["assets:read", "dashboards:read"] },
-    { name: "All Assets",              path: "/assets/list",          icon: BookOpen,        scope: "assets:read" },
+  { key: "asset_register", label: "Asset Register", items: [
+    { key: "asset_dashboard",         name: "Dashboard",               path: "/assets",               icon: LayoutDashboard, scope: ["assets:read", "dashboards:read"] },
+    { key: "all_assets",              name: "All Assets",              path: "/assets/list",          icon: BookOpen,        scope: "assets:read" },
     // Under the register rather than in a group of its own: an approval here
     // is always about an asset, and a person who has just been asked to agree
     // to a move looks where the assets are. The badge is what makes it a
     // queue rather than a page — an approval nobody notices is a move that
     // never happens (handoff 35).
-    { name: "Approvals",               path: "/approvals",            icon: Hourglass, badge: "approvals", scope: "assets:read" },
-    { name: "+ New Asset",             path: "/assets/new",           icon: BookOpen,        scope: "assets:write" },
+    { key: "approvals",               name: "Approvals",               path: "/approvals",            icon: Hourglass, badge: "approvals", scope: "assets:read" },
+    { key: "new_asset",               name: "+ New Asset",             path: "/assets/new",           icon: BookOpen,        scope: "assets:write" },
   ]},
-  { label: "Operations", items: [
-    { name: "Locations",               path: "/locations",            icon: MapPin,          scope: "locations:read" },
-    { name: "+ New Location",          path: "/locations/new",        icon: MapPin,          scope: "locations:write" },
+  { key: "operations", label: "Operations", items: [
+    { key: "locations",               name: "Locations",               path: "/locations",            icon: MapPin,          scope: "locations:read" },
+    { key: "new_location",            name: "+ New Location",          path: "/locations/new",        icon: MapPin,          scope: "locations:write" },
   ]},
-  { label: "HR & Staff", items: [
-    { name: "Employees",               path: "/hr/employees",         icon: Users,           scope: "identity:read" },
-    { name: "SAP Sync",                path: "/hr/sap-sync",          icon: RefreshCw,       scope: "identity:read" },
-    { name: "Bulk Import",             path: "/hr/import",            icon: Upload,          scope: "integrations:write" },
-    { name: "Identity (clearance)",    path: "/hr/identity",          icon: Fingerprint,     scope: "identity:read" },
+  { key: "hr_staff", label: "HR & Staff", items: [
+    { key: "employees",               name: "Employees",               path: "/hr/employees",         icon: Users,           scope: "identity:read" },
+    { key: "sap_sync",                name: "SAP Sync",                path: "/hr/sap-sync",          icon: RefreshCw,       scope: "identity:read" },
+    { key: "bulk_import",             name: "Bulk Import",             path: "/hr/import",            icon: Upload,          scope: "integrations:write" },
+    { key: "identity_clearance",      name: "Identity (clearance)",    path: "/hr/identity",          icon: Fingerprint,     scope: "identity:read" },
   ]},
-  { label: "Fleet & Transport", items: [
-    { name: "Fleet",                   path: "/fleet",                icon: Car,             scope: "dashboards:read" },
-    { name: "Staff Bus",               path: "/fleet/staff-bus",      icon: Bus,             scope: "dashboards:read" },
+  { key: "fleet_transport", label: "Fleet & Transport", items: [
+    { key: "fleet",                   name: "Fleet",                   path: "/fleet",                icon: Car,             scope: "dashboards:read" },
+    { key: "staff_bus",               name: "Staff Bus",               path: "/fleet/staff-bus",      icon: Bus,             scope: "dashboards:read" },
   ]},
-  { label: "Reports", items: [
-    { name: "Fleet Roster",            path: "/reports/fleet-roster",          icon: Car,          scope: "dashboards:read" },
-    { name: "Asset Inventory",         path: "/reports/asset-inventory",       icon: BookOpen,     scope: "dashboards:read" },
-    { name: "Maintenance Readiness",   path: "/reports/maintenance-readiness", icon: Wrench,       scope: "dashboards:read" },
-    { name: "Location Coverage",       path: "/reports/location-coverage",     icon: MapPin,       scope: ["dashboards:read", "locations:read"] },
-    { name: "Tag Adoption",            path: "/reports/tag-adoption",          icon: Tag,          scope: "assets:read" },
-    { name: "Depreciation",            path: "/reports/depreciation",          icon: TrendingDown, scope: "dashboards:read" },
+  { key: "reports", label: "Reports", items: [
+    { key: "fleet_roster",            name: "Fleet Roster",            path: "/reports/fleet-roster",          icon: Car,          scope: "dashboards:read" },
+    { key: "asset_inventory",         name: "Asset Inventory",         path: "/reports/asset-inventory",       icon: BookOpen,     scope: "dashboards:read" },
+    { key: "maintenance_readiness",   name: "Maintenance Readiness",   path: "/reports/maintenance-readiness", icon: Wrench,       scope: "dashboards:read" },
+    { key: "location_coverage",       name: "Location Coverage",       path: "/reports/location-coverage",     icon: MapPin,       scope: ["dashboards:read", "locations:read"] },
+    { key: "tag_adoption",            name: "Tag Adoption",            path: "/reports/tag-adoption",          icon: Tag,          scope: "assets:read" },
+    { key: "depreciation_report",     name: "Depreciation",            path: "/reports/depreciation",          icon: TrendingDown, scope: "dashboards:read" },
   ]},
   // `settings:write`, not a read scope: these screens exist to CHANGE the
   // configuration. Their reads are served under `assets:read` because other
   // screens need the categories and the brand, so what is withheld from a
   // person without the write is the change, and the page is the change.
-  { label: "Settings", items: [
-    { name: "Asset Categories",        path: "/settings/categories",   icon: Layers,            scope: "settings:write" },
-    { name: "Branding",                path: "/settings/branding",     icon: Palette,           scope: "settings:write" },
-    { name: "Depreciation",            path: "/settings/depreciation", icon: SlidersHorizontal, scope: "settings:write" },
+  { key: "settings", label: "Settings", items: [
+    { key: "asset_categories",        name: "Asset Categories",        path: "/settings/categories",   icon: Layers,            scope: "settings:write" },
+    { key: "branding",                name: "Branding",                path: "/settings/branding",     icon: Palette,           scope: "settings:write" },
+    { key: "depreciation_settings",   name: "Depreciation",            path: "/settings/depreciation", icon: SlidersHorizontal, scope: "settings:write" },
+    // Which of these items this tenant shows (handoff 48). `admin`, as the
+    // server's PATCH is. The one item that cannot be switched off, with its
+    // group: it is where they are switched back on.
+    { key: "sidebar_settings",        name: "Sidebar",                 path: "/settings/sidebar",      icon: PanelLeft,         scope: "admin" },
   ]},
   // Its own group since handoff 46, out from under Administration: the
   // report is served under `identity:read`, and reading it is the Auditor's
   // job, who is not a system administrator. The path is unchanged so
   // existing links (the Users page's filter chip) keep working.
-  { label: "Audit", items: [
-    { name: "Access changes",          path: "/admin/access-changes",  icon: History,     scope: "identity:read" },
+  { key: "audit", label: "Audit", items: [
+    { key: "access_changes",          name: "Access changes",          path: "/admin/access-changes",  icon: History,     scope: "identity:read" },
   ]},
   // Who holds which role, and changing it (handoffs 41–43): administrators.
-  { label: "Administration", items: [
-    { name: "Users",                   path: "/admin/users",           icon: ShieldCheck, scope: "admin" },
+  { key: "administration", label: "Administration", items: [
+    { key: "users",                   name: "Users",                   path: "/admin/users",           icon: ShieldCheck, scope: "admin" },
   ]},
-  { label: "Tools", items: [
-    { name: "Barcode Station",         path: "/tools/barcode",        icon: ScanBarcode, scope: "assets:read" },
+  { key: "tools", label: "Tools", items: [
+    { key: "barcode_station",         name: "Barcode Station",         path: "/tools/barcode",        icon: ScanBarcode, scope: "assets:read" },
   ]},
 ];
 
@@ -138,6 +156,35 @@ export function requiredScopesFor(path: string): string | string[] | null {
   return null;
 }
 
+/** Whether THIS TENANT draws an item — the second axis (handoff 48), the
+ *  first being `canOpen`. `hidden` is the server's `hidden_items`; an empty
+ *  set (not yet read, or unreadable) hides nothing, because this is
+ *  presentation and the safe side of it is to show. Never a permission:
+ *  nothing calls this to decide whether a page may render. */
+export function tenantShows(hidden: ReadonlySet<string>, key: string): boolean {
+  return !hidden.has(key);
+}
+
+/** The items a person is drawn on this tenant: their role opens it AND the
+ *  tenant shows it. Groups left empty are dropped. One function, so the
+ *  sidebar and anything that counts what it draws cannot disagree. */
+export function drawnGroups(scopes: ScopeCheck, hidden: ReadonlySet<string>): NavGroup[] {
+  return ALL_NAV_GROUPS
+    .map(g => ({ ...g, items: g.items.filter(it =>
+      canOpen(scopes, it.scope) && tenantShows(hidden, it.key)) }))
+    .filter(g => g.items.length > 0);
+}
+
+/** The table's item for exactly this path, or null. */
+function itemFor(path: string): NavItem | null {
+  for (const g of ALL_NAV_GROUPS) {
+    for (const it of g.items) {
+      if (it.path === path) return it;
+    }
+  }
+  return null;
+}
+
 /** Where a person goes after signing in, best first. */
 const LANDING_ORDER = ["/assets", "/assets/list", "/locations", "/hr/employees", "/dashboards/fleet"];
 
@@ -154,10 +201,20 @@ export const NO_ACCESS_PATH = "/no-access";
  * signing in is a refusal. Judged from the same table as the sidebar, so
  * there is no second copy of which scope opens which page.
  */
-export function landingPath(scopes: ScopeCheck): string {
-  for (const path of LANDING_ORDER) {
-    const required = requiredScopesFor(path);
-    if (required != null && canOpen(scopes, required)) return path;
+export function landingPath(
+  scopes: ScopeCheck, hidden: ReadonlySet<string> = new Set(),
+): string {
+  // First a page the role opens AND the tenant shows. Failing that, a page
+  // the role opens that the tenant has switched off — landing on a page the
+  // sidebar does not draw is odd, but `/no-access` would tell somebody their
+  // role opens nothing, which is false, and the tenant's switch is not a
+  // permission (handoff 48).
+  for (const respectTenant of [true, false]) {
+    for (const path of LANDING_ORDER) {
+      const item = itemFor(path);
+      if (item && canOpen(scopes, item.scope)
+          && (!respectTenant || tenantShows(hidden, item.key))) return path;
+    }
   }
   return NO_ACCESS_PATH;
 }

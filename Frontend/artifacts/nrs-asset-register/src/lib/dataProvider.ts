@@ -2233,6 +2233,46 @@ export const updateBranding = async (body: Partial<TenantBranding>) =>
   (await apiPatch<TenantBranding>("/api/v1/settings/branding",
     pickSet(body, BRANDING_KEYS))).data;
 
+// ── Settings: what this tenant's sidebar shows (handoff 48) ───────────────
+//
+// Presentation, not permission — `statement` says so and the Sidebar screen
+// prints it. Keyed on the `key` each item carries in `lib/navigation.ts`.
+
+export interface SidebarSwitch {
+  key: string;
+  /** This switch's own position. A locked switch is always true. */
+  enabled: boolean;
+  /** A row exists — somebody once set it. False = the default (on). */
+  configured: boolean;
+  locked: boolean;
+  changed_by: { id: number; name: string } | null;
+  changed_at: string | null;
+}
+
+export interface SidebarItemSwitch extends SidebarSwitch {
+  /** Drawn on this tenant: its own switch AND its group's are on. */
+  shown: boolean;
+}
+
+export interface SidebarSettings {
+  statement: string;
+  is_a_permission: false;
+  default_when_unset: boolean;
+  rule: string;
+  locked_reason: string;
+  parameter_prefix: string;
+  groups: (SidebarSwitch & { items: SidebarItemSwitch[] })[];
+  hidden_items: string[];
+}
+
+export const fetchSidebarSettings = async () =>
+  (await apiGet<SidebarSettings>("/api/v1/settings/sidebar")).data;
+
+/** Only the switches that change: `{items: {key: shown}, groups: {...}}`. */
+export const updateSidebarSettings = async (body: {
+  items?: Record<string, boolean>; groups?: Record<string, boolean>;
+}) => (await apiPatch<SidebarSettings>("/api/v1/settings/sidebar", body)).data;
+
 // ── Approvals: nobody moves an asset alone (handoff 35) ───────────────────
 //
 // One queue over `nrs.asset.change.request`. A move or a custody change on a
