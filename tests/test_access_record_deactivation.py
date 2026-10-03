@@ -19,6 +19,8 @@ left DEACTIVATED in a `finally`.
 import datetime
 import uuid
 
+import pytest
+
 from .conftest import assert_envelope_ok
 
 USERS = "/api/v1/users"
@@ -41,13 +43,14 @@ def _whole_report(client, roster=False):
     """Every page for the period: events page by ACCOUNT, so a person can sit
     on any page. Returns (summary, fidelity, events)."""
     frm, to = _period()
-    events, cursor, first, accounts = [], None, None, []
+    events, cursor, first, accounts, truncated = [], None, None, [], None
     for _ in range(200):
         params = {"from": frm, "to": to, "limit": 100}
         if cursor:
             params["cursor"] = cursor
         body = assert_envelope_ok(client.get(ACCESS, params=params))
         first = first or body["data"]
+        truncated = truncated or (body.get("_warnings") or {}).get("truncated")
         events += body["data"]["events"]
         accounts += body["data"]["roster"]
         cursor = (body.get("pagination") or {}).get("next_cursor")
@@ -56,7 +59,7 @@ def _whole_report(client, roster=False):
     else:
         raise AssertionError("the access report did not stop paging")
     if roster:
-        return first["summary"], first["fidelity"], events, accounts
+        return first["summary"], first["fidelity"], events, accounts, truncated
     return first["summary"], first["fidelity"], events
 
 
@@ -75,14 +78,26 @@ def _visible_inactive_fixture(client, suite_user):
     OLDER fixture inside the window, reactivating then deactivating it,
     which leaves it exactly as it was found.
     """
-    _summary, _fidelity, events, roster = _whole_report(client, roster=True)
+    _summary, _fidelity, events, roster, truncated = _whole_report(client, roster=True)
     for row in sorted(roster, key=lambda r: -r["user_id"]):
         login = row.get("login") or ""
         if (login.startswith("pytest-") and row.get("active") is False
                 and row["user_id"] != suite_user["id"]):
             return row
-    pytest.skip("0 of %d accounts this credential can see are inactive "
-                "`pytest-` fixtures to act on" % len(roster))
+    if truncated:
+        pytest.skip("0 of %d accounts this credential can see are inactive "
+                    "`pytest-` fixtures, and a new one would be past the "
+                    "record cap (%r)" % (len(roster), truncated))
+    # A fresh database (CI) has no older fixture — and no cap in the way, so
+    # a person made now is visible. Made, then switched off, so the test
+    # starts from the same shape it finds on a long-lived tenant (CI run
+    # 37106496918 crashed here: the skip above had no `import pytest`).
+    marker = "pytest-deactivation-%s" % uuid.uuid4().hex[:10]
+    made = assert_envelope_ok(client.post(USERS, json={
+        "name": marker, "email": "%s@example.invalid" % marker,
+        "roles": ["asset_user"], "send_invitation": False}), 201)["data"]
+    assert_envelope_ok(client.post(DEACTIVATE.format(id=made["id"])))
+    return {"user_id": made["id"], "login": made["login"], "active": False}
 
 
 def test_a_deactivation_and_a_reactivation_are_in_the_report(
