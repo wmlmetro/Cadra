@@ -33,7 +33,50 @@ live at was never the point.
 
 ---
 
-## 2026-10-03 — handoff 47: a role is a job · `myservice_api` 19.0.3.21.0, `myservice_asset_register` 19.0.1.22.0
+## 2026-10-03 — handoff 37: the doors, and the red tests · `myservice_api` 19.0.3.22.0, `myservice_website_theme` 19.0.1.1.0, `myservice_identity` 19.0.1.1.0, `myservice_asset_depreciation` 19.0.1.1.0
+
+(Numbered 37 and landing after 48: it was written on 30 September, held while
+the demo handoffs ran, and re-checked by the Architect on 3 October.)
+
+- **BREAKING: `POST /api/v1/home/quick-submit` enforces the two fields its
+  schema has always declared `required`.** A body missing `type_id`, or
+  missing a non-blank `description`, is now `400 invalid_request` with
+  `details.missing_fields` (plus `details.required` and `details.writable`),
+  and nothing is written. Until now an absent type fell back to whichever
+  request type happened to be first and active, and an absent description
+  created a request titled *"Quick facilities request"* — an empty record
+  under a 201. The public twin `/api/myservice/quick-submit` refuses the
+  same bodies in a visitor's sentence with the same `missing_fields` list
+  beside it; the homepage form has always enforced both fields in
+  JavaScript, so no live caller sent what is now refused.
+  `details.missing_fields` is the third refusal key of this route, beside
+  `rejected_fields` (the key is not accepted) and `unusable_fields` (the
+  value names no record): three refusals, three different repairs.
+- **BEHAVIOUR CHANGE on the legacy identity door `POST /api/sap/employee-sync`
+  (outside `/api/v1`; inventoried in `docs/api/EXTERNAL-SURFACES.md`): a row
+  carrying a key the feed does not read is refused whole.** The rule now
+  lives on the model (`nrs.sap.sync.log.process_sap_payload`), underneath
+  all six callers — this door, its `/test` twin, the v1 route, the xlsx
+  import job, the CSV import wizard and `scripts/load_employees_xlsx.py` —
+  so a CSV column the wizard does not recognise, or a webhook key the feed
+  never read, is an `error` row naming the keys and the accepted set
+  instead of a silent drop. The v1 route's whole-batch 400 (handoff 32) is
+  unchanged and still fires first for its callers. Measured before
+  changing: the webhook secret is set on 0 of 8 tenants and nothing in the
+  repo provisions it, so no caller can reach the changed behaviour today.
+- **The v1 route `POST /api/v1/integrations/sap/employee-sync` is the
+  employee-sync door an integration should use.** Ruled in handoff 37 §A:
+  the legacy identity door will be retired once SAP is pointed at the v1
+  route; it is NOT removed in this change and its secret gate, shapes and
+  response envelope are untouched. Driven side by side on 2026-10-03, the
+  v1 route answers every body the legacy door can actually accept, against
+  the same register, with the same per-row `results[]` schema — and the
+  legacy door cannot do its own job on Odoo 19: every employee create and
+  update it attempts fails (`hr_version.last_modified_uid` is NOT NULL and
+  an `auth='none'` environment has no user to stamp), reported per-row as
+  `status: "error"` under a top-level `"success": true`, and the list shape
+  its own documentation promises is refused by Odoo 19's JSON-RPC
+  dispatcher (`Invalid JSON-RPC data`) before the route runs.
 
 Three scope moves, each **BREAKING** for a credential provisioned under the
 old scope. No route, field, enum or status code changed — only which scope a

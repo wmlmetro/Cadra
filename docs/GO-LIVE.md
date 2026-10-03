@@ -1446,26 +1446,38 @@ written, because how a thing stood is part of the record.
    with names attached. Renaming a published key is breaking; nothing was
    renamed. **Needs a ruling: publish the missing four (additive, safe), or
    accept the read/write asymmetry and say so once.**
-2. **The THIRTEENTH door, and it is unauthenticated.**
-   `myservice_identity/controllers/sap_webhook.py` — `POST
-   /api/sap/employee-sync`, `auth='none'` — hands the same unvalidated dict
-   to `process_sap_payload`, as do `/api/sap/employee-sync/test`, the xlsx
-   import job and the SAP import wizard. The accepted-key set now lives on
-   the model, so each is a two-line change. **Measured before deciding**:
-   `nrs.sap.sync.log.sync_type` records which door each sync came through,
-   and across all eight local databases `webhook` is **0 rows**, on every
-   one; `api` is 163, all of them on databases this repository's own suites
-   write to. So nothing here is evidence of a real SAP feed either way. Left
-   alone because it is an unauthenticated external surface and a refusal on
-   the door a live upstream may be pointed at is a decision about an outage.
-   **Needs a ruling before anything else goes near `myservice_identity`.**
-3. **`POST /home/quick-submit` enforces neither of the two keys its schema
-   declares required.** An empty body answers 201 and creates a request
-   titled *"Quick facilities request"* against the first active type —
-   measured, three ways. On the PUBLIC twin that is an unauthenticated way
-   to create an empty request; the homepage form enforces both in
-   JavaScript and nothing behind it does. Same genre as everything else
-   here; belongs in the same ruling as §16.3 item 11.
+2. **The THIRTEENTH door** — `[landed in handoff 37, keep it that way]`,
+   and the premise aged twice before it was acted on. It was never
+   unauthenticated (handoff 17's `X-SAP-Webhook-Secret`, which report 36
+   corrected), and the 163 above had become 179 by handoff 33 and **286 by
+   the re-take of 2026-10-03** — still **0 `webhook` rows of 287 total** on
+   all eight databases, the secret set on **0 of 8** and provisioned by
+   nothing in the repo, so no caller can reach the door at all. Ruled
+   (handoff 37 §A): **SAP gets pointed at `POST
+   /api/v1/integrations/sap/employee-sync`; the identity door retires after
+   that conversation and is untouched until then.** The unvalidated dict is
+   closed ON THE MODEL for all six callers at once (the webhook, its
+   `/test` twin, the v1 route, the xlsx job, the CSV wizard,
+   `scripts/load_employees_xlsx.py` — report 36 found the script 33's list
+   lacked): an unknown key is an `error` log row naming the keys and the
+   accepted set, nothing written
+   (`myservice_identity/tests/test_payload_validation.py`). Found by the
+   equivalence drive: **the old door cannot create or update an employee on
+   Odoo 19 at all** — `hr_version.last_modified_uid` NOT NULL against an
+   `auth='none'` environment with no user — so it has been inert as a
+   writer for the life of the 19 stack, answering `success: true` over
+   per-row errors. Whether SAP's middleware is pointed at it in production
+   is the owner's question (handoff 37 §5).
+3. **`POST /home/quick-submit`'s required pair** — `[landed in handoff 37,
+   keep it that way]`. Both doors now refuse a body missing `type_id` or a
+   non-blank `description` before anything is written: the v1 route with
+   `details.missing_fields` (the third refusal key, beside
+   `rejected_fields` and `unusable_fields`), the public twin in a
+   visitor's sentence. The first-active-type fallback and the *"Quick
+   facilities request"* placeholder title are deleted. BREAKING, announced
+   in `CHANGELOG.md`; the homepage form always enforced both in
+   JavaScript, so no live caller sent what is now refused. §16.3 item 11
+   (the ACTION routes) remains not ruled and is NOT covered by this.
 4. **The guard that forbids field names in user-facing text reaches one
    file.** It is `myservice_api/tests/test_asset_history.py::
    test_the_statements_are_words_not_field_names`, over the asset-history
