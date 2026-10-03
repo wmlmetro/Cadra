@@ -1,0 +1,144 @@
+=== test19 seed run 1 ===
+database   : test19
+class      : test
+seeder     : cadra_demo_personas present, inert
+created    : 4 storekeeper tag_unit tagger auditor
+updated    : 2 asset_manager (active); administrator (active)
+unchanged  : 0 
+passwords  : 4 written to docs/api/.personas.test19 (mode 600)
+exit=0
+=== test19 seed run 2 ===
+database   : test19
+class      : test
+seeder     : cadra_demo_personas present, inert
+created    : 0 
+updated    : 0 
+unchanged  : 6 storekeeper asset_manager tag_unit tagger auditor administrator
+passwords  : none new — docs/api/.personas.test19 unchanged
+exit=0
+=== boot44 seed run 1 ===
+database   : boot44
+class      : test
+seeder     : created cadra_demo_personas (archived, no secret, no scopes)
+created    : 6 storekeeper asset_manager tag_unit tagger auditor administrator
+updated    : 0 
+unchanged  : 0 
+passwords  : 6 written to docs/api/.personas.boot44 (mode 600)
+exit=0
+=== boot44 seed run 2 ===
+database   : boot44
+class      : test
+seeder     : cadra_demo_personas present, inert
+created    : 0 
+updated    : 0 
+unchanged  : 6 storekeeper asset_manager tag_unit tagger auditor administrator
+passwords  : none new — docs/api/.personas.boot44 unchanged
+exit=0
+=== nrs seed run 1 ===
+database   : nrs
+class      : client
+seeder     : created cadra_demo_personas (archived, no secret, no scopes)
+created    : 6 storekeeper asset_manager tag_unit tagger auditor administrator
+updated    : 0 
+unchanged  : 0 
+passwords  : 6 written to docs/api/.personas.nrs (mode 600)
+exit=0
+=== nrs seed run 2 ===
+database   : nrs
+class      : client
+seeder     : cadra_demo_personas present, inert
+created    : 0 
+updated    : 0 
+unchanged  : 6 storekeeper asset_manager tag_unit tagger auditor administrator
+passwords  : none new — docs/api/.personas.nrs unchanged
+exit=0
+=== lasg seed run 1 ===
+database   : lasg
+class      : client
+seeder     : created cadra_demo_personas (archived, no secret, no scopes)
+created    : 6 storekeeper asset_manager tag_unit tagger auditor administrator
+updated    : 0 
+unchanged  : 0 
+passwords  : 6 written to docs/api/.personas.lasg (mode 600)
+exit=0
+=== lasg seed run 2 ===
+database   : lasg
+class      : client
+seeder     : cadra_demo_personas present, inert
+created    : 0 
+updated    : 0 
+unchanged  : 6 storekeeper asset_manager tag_unit tagger auditor administrator
+passwords  : none new — docs/api/.personas.lasg unchanged
+exit=0
+=== gtb seed run 1 ===
+database   : gtb
+class      : client
+seeder     : created cadra_demo_personas (archived, no secret, no scopes)
+created    : 6 storekeeper asset_manager tag_unit tagger auditor administrator
+updated    : 0 
+unchanged  : 0 
+passwords  : 6 written to docs/api/.personas.gtb (mode 600)
+exit=0
+=== gtb seed run 2 ===
+database   : gtb
+class      : client
+seeder     : cadra_demo_personas present, inert
+created    : 0 
+updated    : 0 
+unchanged  : 6 storekeeper asset_manager tag_unit tagger auditor administrator
+passwords  : none new — docs/api/.personas.gtb unchanged
+exit=0
+=== jaizbankplc seed run 1 ===
+database   : jaizbankplc
+class      : client
+seeder     : created cadra_demo_personas (archived, no secret, no scopes)
+created    : 6 storekeeper asset_manager tag_unit tagger auditor administrator
+updated    : 0 
+unchanged  : 0 
+passwords  : 6 written to docs/api/.personas.jaizbankplc (mode 600)
+exit=0
+=== jaizbankplc seed run 2 ===
+database   : jaizbankplc
+class      : client
+seeder     : cadra_demo_personas present, inert
+created    : 0 
+updated    : 0 
+unchanged  : 6 storekeeper asset_manager tag_unit tagger auditor administrator
+passwords  : none new — docs/api/.personas.jaizbankplc unchanged
+exit=0
+=== cadra19 seed run 1 ===
+database   : cadra19
+class      : (not set)
+REFUSED: this database's class is not set. Demo personas go on a database classified `test` or `client` and nowhere else — absent and `production` included. Nothing was read or changed.
+passwords  : none new — docs/api/.personas.cadra19 unchanged
+exit=1
+=== cadra19 seed run 2 ===
+database   : cadra19
+class      : (not set)
+REFUSED: this database's class is not set. Demo personas go on a database classified `test` or `client` and nowhere else — absent and `production` included. Nothing was read or changed.
+passwords  : none new — docs/api/.personas.cadra19 unchanged
+exit=1
+=== nrs19 seed run 1 ===
+database   : nrs19
+class      : (not set)
+REFUSED: this database's class is not set. Demo personas go on a database classified `test` or `client` and nowhere else — absent and `production` included. Nothing was read or changed.
+passwords  : none new — docs/api/.personas.nrs19 unchanged
+exit=1
+=== nrs19 seed run 2 ===
+database   : nrs19
+class      : (not set)
+REFUSED: this database's class is not set. Demo personas go on a database classified `test` or `client` and nowhere else — absent and `production` included. Nothing was read or changed.
+passwords  : none new — docs/api/.personas.nrs19 unchanged
+exit=1
+=== gtb19 seed run 1 ===
+database   : gtb19
+class      : (not set)
+REFUSED: this database's class is not set. Demo personas go on a database classified `test` or `client` and nowhere else — absent and `production` included. Nothing was read or changed.
+passwords  : none new — docs/api/.personas.gtb19 unchanged
+exit=1
+=== gtb19 seed run 2 ===
+database   : gtb19
+class      : (not set)
+REFUSED: this database's class is not set. Demo personas go on a database classified `test` or `client` and nowhere else — absent and `production` included. Nothing was read or changed.
+passwords  : none new — docs/api/.personas.gtb19 unchanged
+exit=1

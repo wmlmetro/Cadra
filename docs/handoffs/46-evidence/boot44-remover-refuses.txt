@@ -1,0 +1,40 @@
+# boot44, with two planted defects: an account on @demo.example the seed never created (by the superuser, so unlabelled), and persona tag_unit's login moved off the domain.
+database   : boot44
+class      : test
+mode       : DRY RUN — nothing will change
+accounts   : 44, of which on @demo.example: 6
+  delete   oluwaseun.ajayi@demo.example         Oluwaseun Ajayi
+  delete   chukwudi.anyanwu@demo.example        Chukwudi Anyanwu
+  delete   zainab.garba@demo.example            Zainab Garba
+  delete   halima.danjuma@demo.example          Halima Danjuma
+  delete   babatunde.olaniyan@demo.example      Babatunde Olaniyan
+  REFUSED  persona_tag_unit: user 41 (nkechi.obiora@example.org) no longer carries every mark (fixture=True) — left alone
+  untouched: stranger@demo.example (id 45) is on @demo.example but was not created by the seed
+  keep     seeding credential cadra_demo_personas and its user
+
+DRY RUN — would delete 5, archive 0, refuse 1. Nothing changed. Re-run with --apply.
+
+# the listing, same state:
+DEMO ACCOUNTS (all three marks: __cadra_demo__.persona_*, @demo.example, is_test_fixture)
+  persona         login                                name                 active roles                      last sign-in
+  tagger          babatunde.olaniyan@demo.example      Babatunde Olaniyan   yes    asset_user + tag_issuing_unit never
+  asset_manager   chukwudi.anyanwu@demo.example        Chukwudi Anyanwu     yes    asset_user + asset_manager never
+  storekeeper     halima.danjuma@demo.example          Halima Danjuma       yes    asset_user                 never
+  tag_unit        nkechi.obiora@example.org            Nkechi Obiora        yes    tag_issuing_unit           never   <-- MARKS DISAGREE
+  administrator   oluwaseun.ajayi@demo.example         Oluwaseun Ajayi      yes    asset_user + asset_manager + system never
+  auditor         zainab.garba@demo.example            Zainab Garba         yes    auditor                    never
+
+ON THE DEMO DOMAIN OR CLAIMED, BUT NOT ALL THREE MARKS: 2
+  id 45     stranger@demo.example                fixture=False claimed=no
+  id 41     nkechi.obiora@example.org            fixture=True claimed=persona_tag_unit
+
+seeding credential        : cadra_demo_personas (archived, inert)
+# and the seed, asked to run over the tampered persona:
+database   : boot44
+class      : test
+seeder     : cadra_demo_personas present, inert
+created    : 0 
+updated    : 0 
+unchanged  : 5 storekeeper asset_manager tagger auditor administrator
+REFUSED    : tag_unit: user 41 carries this script's id but not its marks (fixture=True, login=nkechi.obiora@example.org) — left alone
+passwords  : none new — docs/api/.personas.boot44 unchanged

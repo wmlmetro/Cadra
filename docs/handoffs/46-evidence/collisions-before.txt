@@ -1,0 +1,11 @@
+Measured 2026-10-03T09:13:01Z before seeding. Names compared case-insensitively as substrings (the seed's own rule); partners of the personas themselves excluded.
+tenant       class    users  employees with_ir   on_demo   name_matches_emp/partner
+test19       test     213    110       107       2         0/0
+boot44       test     36     6         5         0         0/0
+nrs          client   5      1         0         0         0/0
+lasg         client   12     60        60        0         0/0
+gtb          client   12     60        0         0         0/0
+jaizbankplc  client   19     61        61        0         0/0
+cadra19      absent   6      2         1         0         0/0
+nrs19        absent   11     11386     0         0         0/0
+gtb19        absent   12     61        1         0         0/0
