@@ -60,6 +60,10 @@ const StaffBus                   = lazy(() => import("@/pages/StaffBus"));
 const Identity                   = lazy(() => import("@/pages/Identity"));
 const AdminUsers                 = lazy(() => import("@/pages/admin/Users"));
 const AdminAccessChanges         = lazy(() => import("@/pages/admin/AccessChanges"));
+const AdminConfigurationChanges  = lazy(() => import("@/pages/admin/ConfigurationChanges"));
+const DisposalsReport            = lazy(() => import("@/pages/reports/DisposalsReport"));
+const RegisterSnapshot           = lazy(() => import("@/pages/reports/RegisterSnapshot"));
+const ExportRegister             = lazy(() => import("@/pages/reports/ExportRegister"));
 const NotFound                   = lazy(() => import("@/pages/not-found"));
 const NoAccess                   = lazy(() => import("@/pages/NoAccess"));
 
@@ -186,6 +190,10 @@ function AppRoutes() {
           <Route path="/reports/maintenance-readiness"  component={MaintenanceReadinessReport}  />
           <Route path="/reports/location-coverage"      component={LocationCoverageReport}      />
           <Route path="/reports/tag-adoption"           component={TagAdoptionReport}           />
+          {/* The auditor's own screens (handoff 49) */}
+          <Route path="/reports/disposals"              component={DisposalsReport}             />
+          <Route path="/reports/asset-register"         component={RegisterSnapshot}            />
+          <Route path="/reports/export"                 component={ExportRegister}              />
           <Route path="/hr/sap-sync"            component={SAPSyncStatus}        />
           <Route path="/hr/import"              component={EmployeeBulkImport}    />
           <Route path="/hr/employees"           component={Employees}             />
@@ -198,6 +206,7 @@ function AppRoutes() {
           <Route path="/admin/users"            component={AdminUsers}            />
           <Route path="/admin/users/:id"        component={AdminUsers}            />
           <Route path="/admin/access-changes"   component={AdminAccessChanges}    />
+          <Route path="/admin/configuration-changes" component={AdminConfigurationChanges} />
           {/* specific fleet routes must precede the dynamic :id catch-all */}
           <Route path="/fleet/staff-bus"     component={StaffBus}       />
           <Route path="/fleet"               component={Fleet}          />
@@ -303,7 +312,15 @@ function App() {
               && q.queryKey[0] !== "users"
               && q.queryKey[0] !== "user"
               && q.queryKey[0] !== "roles"
-              && q.queryKey[0] !== "access-changes",
+              && q.queryKey[0] !== "access-changes"
+              // The auditor's screens (handoff 49), for the same reason as
+              // `access-changes`: a report an auditor reads is a question
+              // about the record NOW, and a restored copy would show it as
+              // it stood on another day without saying so.
+              && q.queryKey[0] !== "configuration-changes"
+              && q.queryKey[0] !== "disposals-report"
+              && q.queryKey[0] !== "register-snapshot"
+              && q.queryKey[0] !== "departed-holders",
           },
           // BUMP THIS whenever an adapter changes what a cached object MEANS.
           // The persisted cache holds objects AFTER `lib/adapters.ts` has run,

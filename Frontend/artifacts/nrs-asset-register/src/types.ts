@@ -817,3 +817,145 @@ export interface RoleChange {
   revoked: string[];
   applied: boolean;
 }
+
+// ─── AUDIT — the auditor's own screens (handoff 49) ──────────────────────────
+
+/** One parameter row of the configuration-changes report. The report is
+ *  last-write-only by its own admission: `ir.config_parameter` keeps no
+ *  history, so a key changed five times is one row showing the fifth.
+ *  `current_value` is `[redacted] sha256:…` when the KEY names a credential. */
+export interface ConfigurationChangeRow {
+  id: number;
+  key: string;
+  current_value: string;
+  value_is_redacted: boolean;
+  changed_after_create: boolean;
+  created_at: string | null;
+  created_by: { id: number; name: string } | null;
+  last_written_at: string | null;
+  last_written_by: { id: number; name: string } | null;
+  evidence: string;
+  precision: "last_write_only" | string;
+}
+
+export interface ConfigurationChangeSummary {
+  parameters_in_period: number;
+  modified_after_create: number;
+  modified_by_a_named_user: number;
+  modified_by_system: number;
+  redacted_values: number;
+  coverage: string;
+  statement: string;
+}
+
+export interface ConfigurationChangeReport {
+  period: { date_from: string; date_to: string; inclusive: string };
+  summary: ConfigurationChangeSummary;
+  fidelity: {
+    recoverable: string[];
+    not_recoverable: string[];
+    tracked: boolean;
+    tracking_rows: number;
+    transient_settings_rows: number;
+    notes: Record<string, string>;
+  };
+  parameters: ConfigurationChangeRow[];
+}
+
+/** One disposal on the disposals report. `findings` names what the record
+ *  LACKS (`no_approver`, `no_disposal_method`, …) — an empty list is a clean
+ *  record. A row whose `disposal_date` the register never held is in
+ *  `unplaceable`, not `rows`, and `date_source` says where a date came from. */
+export interface DisposalReportRow {
+  asset_id: number;
+  name: string | null;
+  asset_code: string | null;
+  sap_asset_number: string | null;
+  disposal_date: string | null;
+  date_source: "recorded" | "reconstructed" | "state_transition" | "none" | string;
+  disposal_method: string | null;
+  sap_disposal_type: string | null;
+  disposal_reference: string | null;
+  approved_by_id: number | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  proceeds: number;
+  currency: string | null;
+  disposal_reason: string | null;
+  condition_at_disposal: string | null;
+  findings: string[];
+}
+
+export interface DisposalReportSummary {
+  total: number;
+  unplaceable: number;
+  clean: number;
+  findings: Record<string, number>;
+  sap_coverage: {
+    total: number;
+    with_sap_asset_number: number;
+    without_sap_asset_number: number;
+    coverage: string;
+    statement: string;
+  };
+  by_method: Record<string, number>;
+  proceeds_by_currency: Record<string, number>;
+}
+
+export interface DisposalReport {
+  period: { date_from: string; date_to: string; inclusive: string };
+  summary: DisposalReportSummary;
+  /** Disposed assets with NO disposal date from any source — they belong to
+   *  every period and to none, so they ride on every page, never cut by the
+   *  cursor. */
+  unplaceable: DisposalReportRow[];
+  rows: DisposalReportRow[];
+}
+
+/** One asset on the register snapshot. The server rolls 35 fields back to
+ *  `as_of` and says per-row (`_fidelity`) which of them it could not place;
+ *  the full field list is long and this screen shows a column selection, so
+ *  the row type names what the screen reads and leaves the rest indexed. */
+export interface AssetSnapshotRow {
+  id: number;
+  name: string | null;
+  asset_code: string | null;
+  active_tag_number: string | null;
+  category_id: { id: number; name: string } | null;
+  location_id: { id: number; name: string } | null;
+  custodian_id: { id: number; name: string } | null;
+  department: string | null;
+  serial_number: string | null;
+  state: string | null;
+  condition: string | null;
+  retrieval_flag: boolean;
+  last_verified_date: string | null;
+  sap_asset_number: string | null;
+  /** Nulls are values the depreciation engine has not computed — not zeros. */
+  value: { accumulated_depreciation: number | null; book_value: number | null; state: string } | null;
+  /** Which of this row's fields the snapshot could NOT place on `as_of`
+   *  (`unknown`) or could only give today's value for. Absent when clean. */
+  _fidelity?: Record<string, string[]>;
+  _changed_since?: string[];
+  [key: string]: unknown;
+}
+
+export interface AssetRegisterSnapshot {
+  as_of: string;
+  cutoff: string;
+  cutoff_timezone: string;
+  fidelity: {
+    rolled_back: string[];
+    as_of_today: string[];
+    not_recoverable: string[];
+    tracked_from: { fields: string[]; since: string | null };
+    notes: Record<string, string>;
+  };
+  filters: {
+    query_parameters_supplied: string[];
+    evaluated_as_of: string;
+    note: string;
+  };
+  omitted_asset_ids: number[];
+  assets: AssetSnapshotRow[];
+}

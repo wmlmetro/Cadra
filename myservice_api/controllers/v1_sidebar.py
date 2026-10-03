@@ -85,7 +85,8 @@ SIDEBAR_GROUPS = (
                  "location_coverage", "tag_adoption", "depreciation_report")),
     ("settings", ("asset_categories", "branding", "depreciation_settings",
                   "sidebar_settings")),
-    ("audit", ("access_changes",)),
+    ("audit", ("access_changes", "configuration_changes", "disposals_report",
+               "register_snapshot", "register_export")),
     ("administration", ("users",)),
     ("tools", ("barcode_station",)),
 )

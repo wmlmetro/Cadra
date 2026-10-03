@@ -89,6 +89,10 @@ export const SCOPE = {
   taggingWrite: "tagging:write",
   /** Categories, branding and the depreciation settings. */
   settingsWrite: "settings:write",
+  /** Reading the configuration — the configuration-changes report (handoff
+   *  49). Held by the Auditor and the Asset Manager; `settings:write` does
+   *  not imply it on the token, the two are granted side by side. */
+  settingsRead: "settings:read",
   /** The employee import and the SAP employee sync. */
   integrationsWrite: "integrations:write",
   /** The wildcard. Pages under Administration require it (handoff 41). */
