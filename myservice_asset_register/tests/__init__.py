@@ -12,3 +12,4 @@ from . import test_warranty
 from . import test_change_request
 from . import test_tag_replacement
 from . import test_renomination
+from . import test_tag_number
