@@ -355,12 +355,11 @@ export default function Dashboard() {
           <h1 className="text-xl font-bold text-foreground">{firstName ? `${greeting}, ${firstName}` : greeting}</h1>
           <p className="text-xs text-muted-foreground mt-0.5">{dateStr} — Asset Register overview</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 rounded-xl">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-[11px] font-semibold text-green-700 dark:text-green-400">All systems operational</span>
-          </div>
-        </div>
+        {/* The "All systems operational" pill that sat here was deleted in
+            handoff 47 §1b: it was hardcoded — a badge on the front door
+            reporting a thing it did not check. If a health pill returns it
+            has to measure something (the report for handoff 47 records what
+            that would take). */}
       </div>
 
       {firstError && (

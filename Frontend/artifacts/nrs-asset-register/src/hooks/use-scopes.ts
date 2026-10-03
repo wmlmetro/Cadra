@@ -75,8 +75,15 @@ export const SCOPE = {
   requestsRead: "requests:read",
   requestsWrite: "requests:write",
   approvalsWrite: "approvals:write",
+  /** The asset register's own figures (KPIs, map, depreciation report). */
   dashboardsRead: "dashboards:read",
+  /** The operational dashboards outside the register: fleet, staff bus,
+   *  facilities, security. Split out of `dashboards:read` by handoff 47. */
+  operationsRead: "operations:read",
   identityRead: "identity:read",
+  /** The access-changes report — who granted whom which role. Split out of
+   *  `identity:read` by handoff 47: the Auditor's, not every Asset User's. */
+  accessRead: "access:read",
   /** `POST /assets/<id>/tag-affixed` — the Tag-Issuing Unit's one write. */
   taggingWrite: "tagging:write",
   /** Categories, branding and the depreciation settings. */

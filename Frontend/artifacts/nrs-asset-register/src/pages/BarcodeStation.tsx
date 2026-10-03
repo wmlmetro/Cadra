@@ -39,16 +39,19 @@ type Notice = { kind: "error" | "warn" | "ok"; text: string } | null;
 export default function BarcodeStation() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const [, nav] = useLocation();
-  // Handoff 46: the station is three jobs held by different people, and each
-  // control is drawn only for the scope its route requires. Minting a barcode
-  // and asking for a replacement are `assets:write`; confirming a label on
-  // the asset is `tagging:write`, the Tag-Issuing Unit's ONE write — so a
-  // tagger without `assets:write` still sees *Confirm affixed*; deciding a
-  // replacement is `approvals:write`. Looking up, reading and printing are
-  // reads, and stay for everybody who reaches the page.
+  // Handoffs 46/47: the station is three jobs held by different people, and
+  // each control is drawn only for the scope its route requires. Minting a
+  // barcode, asking for a replacement and confirming a label on the asset
+  // are all `tagging:write` since handoff 47 — issuing and replacing a tag
+  // is tagging, not asset-writing, so the Tag-Issuing Unit's own scope now
+  // covers the unit's own job (until then the unit could confirm a label
+  // and not print one, while every Asset Manager could). Deciding a
+  // replacement stays `approvals:write` — the second person. Looking up,
+  // reading and printing are reads, and stay for everybody who reaches the
+  // page.
   const scopes = useScopes();
-  const canGenerate = scopes.has(SCOPE.assetsWrite);
-  const canRequestReplacement = scopes.has(SCOPE.assetsWrite);
+  const canGenerate = scopes.has(SCOPE.taggingWrite);
+  const canRequestReplacement = scopes.has(SCOPE.taggingWrite);
   const canDecideReplacement = scopes.has(SCOPE.approvalsWrite);
   const canTag = scopes.has(SCOPE.taggingWrite);
 
@@ -726,9 +729,9 @@ export default function BarcodeStation() {
               {pickedRows.length > 0 && ` · ${pickedRows.length} picked`}
             </p>
           </div>
-          {/* Without `assets:write` the list stays — which assets have no
+          {/* Without `tagging:write` the list stays — which assets have no
               barcode is a read — and the two buttons and the pick boxes
-              that only feed them are not drawn (handoff 46). */}
+              that only feed them are not drawn (handoffs 46/47). */}
           {canGenerate && (
           <div className="flex flex-wrap items-center gap-2">
             <SizePicker value={size} onChange={setSize} />
