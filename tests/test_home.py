@@ -47,7 +47,12 @@ def test_quick_submit(client, capture):
     refusals have a file of their own:
     `tests/test_the_twelfth_door.py`.
     """
+    # `type_id` is here because handoff 37 made the schema's `required` pair
+    # real: a body without one is now a designed 400, and this test exists to
+    # capture the SUBMIT path, not the refusal — the refusals have their own
+    # file (`tests/test_the_twelfth_door.py`).
     r = client.post("/api/v1/home/quick-submit", json={
+        "type_id": 1,
         "reporter_name": "pytest homepage",
         "reporter_contact": "pytest@example.com",
         "description": "Created by the pytest suite — please ignore.",

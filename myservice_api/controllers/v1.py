@@ -3260,7 +3260,15 @@ class MyserviceApiV1(http.Controller):
                          "a 400 when they cannot be resolved — a value that "
                          "is not a number, or a number naming no record — "
                          "under `details.unusable_fields`. Both used to be "
-                         "dropped in silence."),
+                         "dropped in silence.\n\n"
+                         "**Since handoff 37 the two `required` keys below "
+                         "are enforced**: a body missing `type_id` or "
+                         "missing a non-blank `description` is a 400 naming "
+                         "them in `details.missing_fields`, and nothing is "
+                         "written. This schema had declared them required "
+                         "all along; the route used to fall back to the "
+                         "first active request type and the placeholder "
+                         "title \"Quick facilities request\" instead."),
                      "properties": {
                          "type_id": {"type": "integer", "description": "request.type id"},
                          "service_id": {"type": "integer", "nullable": True},
@@ -3328,6 +3336,22 @@ class MyserviceApiV1(http.Controller):
             if result.get("rejected_fields"):
                 return refuse_unwritable(result["rejected_fields"],
                                          QUICK_SUBMIT_FIELDS)
+            if result.get("missing_fields"):
+                missing = result["missing_fields"]
+                # The schema has declared both keys `required` since the
+                # route was annotated; the delegate now enforces it (handoff
+                # 37, closing 33 §C). Named after `rejected_fields` and
+                # `unusable_fields`: same 400, third reason — the key is
+                # accepted and its value would be usable, but it is not
+                # there at all.
+                return err(
+                    ERR_INVALID_REQUEST,
+                    "These required fields are missing: %s. "
+                    "Nothing was written."
+                    % ", ".join("`%s`" % k for k in missing),
+                    details={"missing_fields": missing,
+                             "required": ["type_id", "description"],
+                             "writable": sorted(QUICK_SUBMIT_FIELDS)})
             if result.get("unusable_fields"):
                 unusable = result["unusable_fields"]
                 # Not `refuse_unwritable`: these keys ARE accepted. What is

@@ -219,6 +219,83 @@ def test_an_accepted_body_still_creates_and_still_saves_the_location(
         test_location["id"]
 
 
+# ─── quick-submit: the two fields the schema always called required ──
+
+
+def test_quick_submit_refuses_a_body_without_a_type(client):
+    """The schema has declared `type_id` required since the route was
+    annotated; the route now does too (handoff 37, closing 33 §C). Until
+    now an absent type fell back to whichever request type happened to be
+    first and active."""
+    marker = _uniq("pytest-h37-no-type")
+    r = _submit(client, description=marker)
+    body = assert_envelope_err(r, 400, "invalid_request")
+    assert body["error"]["details"]["missing_fields"] == ["type_id"]
+    assert ids_matching(client, "/api/v1/requests", marker) == [], (
+        "the refusal created the request anyway")
+
+
+def test_quick_submit_refuses_a_body_without_a_description(client):
+    """An absent description used to create a record titled "Quick
+    facilities request" — a request that says nothing, counted like one
+    that says something."""
+    r = _submit(client, type_id=1)
+    body = assert_envelope_err(r, 400, "invalid_request")
+    assert body["error"]["details"]["missing_fields"] == ["description"]
+
+
+def test_a_blank_description_is_a_missing_one(client):
+    """Whitespace satisfies `required` in name only."""
+    r = _submit(client, type_id=1, description="   ")
+    body = assert_envelope_err(r, 400, "invalid_request")
+    assert body["error"]["details"]["missing_fields"] == ["description"]
+
+
+def test_an_empty_body_is_refused_and_writes_nothing(client):
+    """Handoff 33 §C's opening sentence, closed: an empty body no longer
+    creates anything."""
+    r = _submit(client)
+    body = assert_envelope_err(r, 400, "invalid_request")
+    assert body["error"]["details"]["missing_fields"] == [
+        "type_id", "description"]
+    assert body["error"]["details"]["required"] == ["type_id", "description"]
+
+
+def test_a_missing_field_is_neither_rejected_nor_unusable(client):
+    """Three refusals, three repairs: a rejected key is dropped, an unusable
+    value is fixed, a missing field is supplied. A caller told the wrong one
+    repairs the wrong thing."""
+    r = _submit(client, type_id=1)
+    details = assert_envelope_err(r, 400, "invalid_request")["error"]["details"]
+    assert "rejected_fields" not in details
+    assert "unusable_fields" not in details
+    assert "description" in details["writable"]
+
+
+def test_the_public_form_is_told_what_is_missing_in_words(unauthed_client):
+    """The live form enforces both fields in JavaScript, so the only person
+    who can read this arrived through a stale tab or a modified page — and
+    they read words, not field names."""
+    result = _public_quick_submit(unauthed_client)
+    assert result["success"] is False
+    assert result["missing_fields"] == ["type_id", "description"]
+    message = result["error"]
+    assert "`" not in message
+    for key in ["type_id", "description", "_id", "missing_fields"]:
+        assert key not in message, (
+            f"the public form's refusal names `{key}`: {message!r}")
+    assert message == (
+        "Please choose a request type from the list on the form and "
+        "describe what you need, then send your request again.")
+
+
+def test_the_public_forms_one_missing_field_is_one_clause(unauthed_client):
+    result = _public_quick_submit(unauthed_client, type_id=1)
+    assert result["success"] is False
+    assert result["error"] == (
+        "Please describe what you need, then send your request again.")
+
+
 def test_an_absent_optional_id_is_not_an_unusable_one(client):
     """The live homepage form sends `service_id: null` when nothing is picked.
 
