@@ -77,11 +77,12 @@ TOKEN=$(curl -sX POST https://staging.app.cadra.ng/api/v1/auth/token \
   -d '{"client_id":"test_client","client_secret":"…"}' | jq -r .data.access_token)
 ```
 
-**Scopes (14 total):**
+**Scopes (18 total):**
 `assets:read`, `assets:write`, `locations:read`, `locations:write`,
 `requests:read`, `requests:write`, `approvals:write`, `dashboards:read`,
-`integrations:write`, `ingestion:write`, `webhooks:admin`, `identity:read`,
-`tagging:write`, `admin`.
+`operations:read`, `integrations:write`, `ingestion:write`,
+`webhooks:admin`, `identity:read`, `access:read`, `tagging:write`,
+`settings:write`, `settings:read`, `admin`.
 
 ---
 
@@ -243,7 +244,8 @@ Filters on `GET /requests`: `q`, `type_id`, `category_id`, `stage_id`,
 
 ---
 
-## §5 — Dashboards (8 endpoints, all GET, scope `dashboards:read`)
+## §5 — Dashboards (8 endpoints, all GET; `dashboards:read` for the
+register's figures, `operations:read` for fleet/FM/security — handoff 47)
 
 Pre-aggregated payloads consumed by the Odoo webclient AND any external
 BI tool. Each is a thin pass-through to the model that already feeds the

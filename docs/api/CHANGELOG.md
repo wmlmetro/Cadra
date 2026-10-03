@@ -33,6 +33,44 @@ live at was never the point.
 
 ---
 
+## 2026-10-03 — handoff 47: a role is a job · `myservice_api` 19.0.3.21.0, `myservice_asset_register` 19.0.1.22.0
+
+Three scope moves, each **BREAKING** for a credential provisioned under the
+old scope. No route, field, enum or status code changed — only which scope a
+token must carry. The `admin` wildcard covers all of them, so admin-scoped
+credentials are unaffected.
+
+- **BREAKING: `GET /reports/access-changes` takes `access:read`** (new
+  scope), not `identity:read`. The scope was two data sets under one name:
+  the employee roster a custodian picker needs, and the record of who
+  granted whom which role. Every route under `/identity/*` keeps
+  `identity:read`. The Auditor group now grants `access:read`; a non-admin
+  credential that reads this report needs `access:read` added to its row.
+- **BREAKING: the fleet, staff-bus, FM and security routes take
+  `operations:read`** (new scope), not `dashboards:read`:
+  `/dashboard/fleet-command`, `/fleet`, `/fleet/<id>`, `/fleet/dashboard`,
+  `/fm/dashboard`, `/security/kpis`, `/security/map-data`,
+  `/security/trend`, `/security/recent`. The asset register's own figures —
+  `/dashboard/kpis`, `/dashboard/map`, `/reports/depreciation` — keep
+  `dashboards:read`. The Security Officer and Bus User groups now grant
+  `operations:read` (and no longer `dashboards:read`).
+- **BREAKING: `POST /barcode/generate` and `POST /tags/<id>/request-replacement`
+  take `tagging:write`**, not `assets:write`. Minting and replacing a label
+  is the Tag-Issuing Unit's job; until now the unit could confirm a label
+  and not print one, while every `assets:write` holder could. Deciding a
+  replacement (`/tags/<id>/approve-replacement`, `/reject-replacement`)
+  stays `approvals:write`. `POST /assets` still mints a tag server-side,
+  so registration is unaffected.
+- **New role in `/roles`: `asset_officer`** (grantable) — Asset User's
+  reads plus `assets:write`; Asset Manager now implies it. A session token
+  for a user holding the group carries the union as always. The Manager's
+  own `GROUP_SCOPES` row lists only its delta now; no manager's effective
+  scopes changed.
+- `/auth/login` tokens: users in the Security Officer or Bus User groups
+  now carry `operations:read` instead of `dashboards:read`; Auditors
+  additionally carry `access:read`. Asset User, Officer, Manager and
+  Tag-Issuing Unit tokens are otherwise unchanged.
+
 ## 2026-10-03 — handoff 48: what this tenant has · `myservice_api` 19.0.3.20.0
 
 All additive.
