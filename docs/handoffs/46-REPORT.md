@@ -363,4 +363,14 @@ None of these is fixed here. Each is a decision about the role model, and the ha
 
 ## Commits
 
-{{COMMITS}}
+- `6ada631` docs: handoff 46 — everyone sees their own job
+- `50f4708` feat(api): an account that is a fixture is a test actor; is_test_fixture on every user row
+- `0906c1f` fix(assets): the next tag number by arithmetic, not by walking every issued number
+- `23b4338` feat(scripts): demo personas — seeded, listed and removed, marked three ways
+- `2b8d802` feat(app): each role sees its own job
+- `5642ad4` docs: handoff 46 — decisions, status, go-live register, environment facts
+- `ffc16c4` test: the user row's key set carries is_test_fixture; the label is a boolean and true on every demo persona
+- `825b212` docs: report 46 — everyone sees their own job
+- the commit that adds this list
+
+**PR:** https://github.com/wmlmetro/Cadra/pull/104 (into `dev`).
