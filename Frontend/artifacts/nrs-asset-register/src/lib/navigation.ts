@@ -7,8 +7,8 @@
  * the page a person lands on can never be one the sidebar does not offer them.
  */
 import {
-  LayoutDashboard, MapPin, Bus, Car, BookOpen,
-  Fingerprint, Users, ScanBarcode, Upload, RefreshCw,
+  LayoutDashboard, MapPin, Car, BookOpen,
+  Users, ScanBarcode, Upload, RefreshCw,
   Wrench, Tag, Monitor, TrendingDown, SlidersHorizontal, Layers, Palette,
   Hourglass, ShieldCheck, History, PanelLeft,
   type LucideIcon,
@@ -54,24 +54,25 @@ export interface ScopeCheck { has(scope: string): boolean }
 // for. Hiding is a courtesy; the server's refusal is the permission (handoff
 // 46), and a hidden page typed into the address bar must still be refused.
 //
-// Where a scope admits a page that is not the role's job, that is left as it
-// is: `dashboards:read` admits Fleet, Staff Bus (and Security / FM, were they
-// drawn) to every Asset User and Auditor, and `identity:read` admits Access
-// changes to every Asset User. That is a finding about the role model,
-// recorded in docs/handoffs/46-REPORT.md — not something to fix here by
-// inventing a scope the server does not have.
+// Where a scope admits a page that is not the role's job, that is a finding
+// for the Architect, not something to fix here by inventing a scope the
+// server does not have. Handoff 46 recorded two such findings and handoff 47
+// ruled on both: the fleet screens now take `operations:read` (split out of
+// `dashboards:read`, so an Asset User reading the register's figures is not
+// also shown the fleet) and Access changes takes `access:read` (split out of
+// `identity:read`, so the employee picker does not open the access record).
 export const ALL_NAV_GROUPS: NavGroup[] = [
   { key: "dashboards", label: "Dashboards", items: [
     // Four scopes because it reads four things: assets, locations, employees
     // and the dashboard aggregates (`fetchTotals` + `/dashboard/kpis`).
     { key: "facility_command_center", name: "Facility Command Center", path: "/",                     icon: LayoutDashboard, scope: ["assets:read", "locations:read", "identity:read", "dashboards:read"] },
-    // Hidden for now (routes still work via direct URL). Would need
-    // "dashboards:read", which every Asset User and Auditor holds:
-    // { name: "FM Operations",           path: "/dashboards/fm",        icon: Activity,        scope: "dashboards:read" },
-    { key: "fleet_command",           name: "Fleet Command",           path: "/dashboards/fleet",     icon: Car,             scope: "dashboards:read" },
+    // Hidden for now (routes still work via direct URL). Would take
+    // "operations:read", the fleet/FM/security scope (handoff 47):
+    // { name: "FM Operations",           path: "/dashboards/fm",        icon: Activity,        scope: "operations:read" },
+    { key: "fleet_command",           name: "Fleet Command",           path: "/dashboards/fleet",     icon: Car,             scope: "operations:read" },
     { key: "it_assets_command",       name: "IT Assets Command",       path: "/dashboards/it",        icon: Monitor,         scope: ["assets:read", "dashboards:read"] },
-    // Hidden for now; would need "dashboards:read", as FM Operations would:
-    // { name: "Security Operations",     path: "/dashboards/security",  icon: ShieldAlert,     scope: "dashboards:read" },
+    // Hidden for now; would take "operations:read", as FM Operations would:
+    // { name: "Security Operations",     path: "/dashboards/security",  icon: ShieldAlert,     scope: "operations:read" },
   ]},
   // Service Desk group hidden in its entirety for now. Routes (/service-desk,
   // /service-desk/triage, /service-desk/new, /service-desk/:id) still resolve
@@ -95,16 +96,23 @@ export const ALL_NAV_GROUPS: NavGroup[] = [
     { key: "employees",               name: "Employees",               path: "/hr/employees",         icon: Users,           scope: "identity:read" },
     { key: "sap_sync",                name: "SAP Sync",                path: "/hr/sap-sync",          icon: RefreshCw,       scope: "identity:read" },
     { key: "bulk_import",             name: "Bulk Import",             path: "/hr/import",            icon: Upload,          scope: "integrations:write" },
-    { key: "identity_clearance",      name: "Identity (clearance)",    path: "/hr/identity",          icon: Fingerprint,     scope: "identity:read" },
+    // Identity (clearance) left the menu in handoff 47 (§1b): the page
+    // renders sample data built into the app and asks the server nothing,
+    // so every new client was shown invented clearance records. The route
+    // (/hr/identity) still serves, the key is retired in SIDEBAR_RETIRED,
+    // and NRS is owed a real clearance screen (docs/GO-LIVE.md §25) — the
+    // back office already has the mechanism (report 43 §G.2).
   ]},
   { key: "fleet_transport", label: "Fleet & Transport", items: [
-    { key: "fleet",                   name: "Fleet",                   path: "/fleet",                icon: Car,             scope: "dashboards:read" },
-    { key: "staff_bus",               name: "Staff Bus",               path: "/fleet/staff-bus",      icon: Bus,             scope: "dashboards:read" },
+    { key: "fleet",                   name: "Fleet",                   path: "/fleet",                icon: Car,             scope: "operations:read" },
+    // Staff Bus left the menu in handoff 47 (§1b): it renders built-in
+    // sample data and asks the server nothing. Route still serves; key
+    // retired in SIDEBAR_RETIRED.
   ]},
   { key: "reports", label: "Reports", items: [
-    { key: "fleet_roster",            name: "Fleet Roster",            path: "/reports/fleet-roster",          icon: Car,          scope: "dashboards:read" },
+    { key: "fleet_roster",            name: "Fleet Roster",            path: "/reports/fleet-roster",          icon: Car,          scope: "operations:read" },
     { key: "asset_inventory",         name: "Asset Inventory",         path: "/reports/asset-inventory",       icon: BookOpen,     scope: "dashboards:read" },
-    { key: "maintenance_readiness",   name: "Maintenance Readiness",   path: "/reports/maintenance-readiness", icon: Wrench,       scope: "dashboards:read" },
+    { key: "maintenance_readiness",   name: "Maintenance Readiness",   path: "/reports/maintenance-readiness", icon: Wrench,       scope: "operations:read" },
     { key: "location_coverage",       name: "Location Coverage",       path: "/reports/location-coverage",     icon: MapPin,       scope: ["dashboards:read", "locations:read"] },
     { key: "tag_adoption",            name: "Tag Adoption",            path: "/reports/tag-adoption",          icon: Tag,          scope: "assets:read" },
     { key: "depreciation_report",     name: "Depreciation",            path: "/reports/depreciation",          icon: TrendingDown, scope: "dashboards:read" },
@@ -122,12 +130,14 @@ export const ALL_NAV_GROUPS: NavGroup[] = [
     // group: it is where they are switched back on.
     { key: "sidebar_settings",        name: "Sidebar",                 path: "/settings/sidebar",      icon: PanelLeft,         scope: "admin" },
   ]},
-  // Its own group since handoff 46, out from under Administration: the
-  // report is served under `identity:read`, and reading it is the Auditor's
-  // job, who is not a system administrator. The path is unchanged so
-  // existing links (the Users page's filter chip) keep working.
+  // Its own group since handoff 46, out from under Administration: reading
+  // the access record is the Auditor's job, who is not a system
+  // administrator. `access:read` since handoff 47 — under `identity:read`
+  // every Asset User was drawn the record of who granted whom which role.
+  // The path is unchanged so existing links (the Users page's filter chip)
+  // keep working.
   { key: "audit", label: "Audit", items: [
-    { key: "access_changes",          name: "Access changes",          path: "/admin/access-changes",  icon: History,     scope: "identity:read" },
+    { key: "access_changes",          name: "Access changes",          path: "/admin/access-changes",  icon: History,     scope: "access:read" },
   ]},
   // Who holds which role, and changing it (handoffs 41–43): administrators.
   { key: "administration", label: "Administration", items: [

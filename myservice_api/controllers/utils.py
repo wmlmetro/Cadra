@@ -207,8 +207,33 @@ SCOPE_APPROVALS_WRITE    = "approvals:write"
 SCOPE_INGESTION_WRITE    = "ingestion:write"
 SCOPE_INTEGRATIONS_WRITE = "integrations:write"
 SCOPE_WEBHOOKS_ADMIN     = "webhooks:admin"
+# The asset register's own figures: `/dashboard/kpis`, `/dashboard/map`,
+# `/reports/depreciation`. kpis and the depreciation report are aggregates;
+# the MAP is not entirely — its payload carries one row per geocoded
+# vehicle (plate, driver) beside the locations, because it backs the
+# register dashboard's map. That fleet half riding the register's scope is
+# a recorded Architect finding (report 47), not a license to widen this
+# side of the split.
+# Until handoff 47 this one name also opened every fleet, staff-bus, FM and
+# security screen; that half is `operations:read` below. One name was
+# carrying two meanings, which is the defect this API keeps finding in
+# other people's work (handoff 47, ruling 1).
 SCOPE_DASHBOARDS_READ    = "dashboards:read"
+# The operational dashboards OUTSIDE the asset register: fleet, staff bus,
+# facilities (FM) and security. Split out of `dashboards:read` by handoff 47
+# so an Asset User or an Auditor reading the register's figures is not also
+# handed every fleet and security screen. NOT named `fleet:read` because the
+# security and FM dashboards take it too; distinct from the SIDEBAR group
+# key `operations` (which holds the Locations screens) — that is a published
+# switch key, not a scope, and the two must not be read as one thing.
+SCOPE_OPERATIONS_READ    = "operations:read"
 SCOPE_IDENTITY_READ      = "identity:read"
+# The record of who granted whom which role, who was deactivated and by whom
+# (`/reports/access-changes`). Carved out of `identity:read` by handoff 47,
+# ruling 1: the employee picker a custodian needs and the access record an
+# auditor reads are different questions, and under one name every Asset User
+# could read the access record while the Auditor could not find it.
+SCOPE_ACCESS_READ        = "access:read"
 # Held by the Tag-Issuing Unit, which is deliberately NOT the team that
 # creates asset records (INT-04/05). Its own scope is what keeps "affixed"
 # evidence of an independent act rather than a field someone can set.
@@ -235,7 +260,9 @@ ALL_SCOPES = frozenset({
     SCOPE_INTEGRATIONS_WRITE,
     SCOPE_WEBHOOKS_ADMIN,
     SCOPE_DASHBOARDS_READ,
+    SCOPE_OPERATIONS_READ,
     SCOPE_IDENTITY_READ,
+    SCOPE_ACCESS_READ,
     SCOPE_TAGGING_WRITE,
     SCOPE_SETTINGS_WRITE,
     SCOPE_SETTINGS_READ,
@@ -282,8 +309,22 @@ GROUP_SCOPES = (
         # RAISE REQUESTS", and raising one is a write.
         SCOPE_REQUESTS_WRITE,
     )),
-    ("myservice_asset_register.group_asset_manager", (
+    # The role between reading the register and running it (handoff 47,
+    # ruling 3). Registers assets, requests moves and custody changes,
+    # records verifications — the storekeeper's actual job — composed of
+    # scopes that already existed: Asset User's reads plus `assets:write`.
+    # Deliberately NOT `approvals:write` (the second person on every move is
+    # the point of handoff 35), NOT `settings:write` or `integrations:write`
+    # (running the register is the Asset Manager's job), and NOT
+    # `tagging:write` (one grant, below). Implies Asset User in
+    # asset_security.xml, so only the delta is listed here.
+    ("myservice_asset_register.group_asset_officer", (
         SCOPE_ASSETS_WRITE,
+    )),
+    ("myservice_asset_register.group_asset_manager", (
+        # `assets:write` arrives through the implied Asset Officer since
+        # handoff 47 — this row is the delta over that role: approving,
+        # configuring, importing.
         SCOPE_LOCATIONS_WRITE,
         SCOPE_APPROVALS_WRITE,
         SCOPE_INGESTION_WRITE,
@@ -325,6 +366,11 @@ GROUP_SCOPES = (
         SCOPE_IDENTITY_READ,
         SCOPE_DASHBOARDS_READ,
         SCOPE_SETTINGS_READ,
+        # The record of who granted whom which role. The Auditor's job by
+        # definition, and until handoff 47 the one §13.4 report the Auditor
+        # could NOT find while every Asset User could read it — both halves
+        # of the same defect, fixed by the `identity:read` split (ruling 1).
+        SCOPE_ACCESS_READ,
     )),
 
     # The employee roster and the SAP/spreadsheet imports that feed it.
@@ -339,11 +385,16 @@ GROUP_SCOPES = (
         SCOPE_ASSETS_READ,
     )),
 
-    # Read-only dashboard consumers. `dashboards:read` is coarse — it covers
-    # the security, fleet and FM dashboards as one — which is why these two
-    # groups look identical here.
-    ("myservice_security.group_security_officer", (SCOPE_DASHBOARDS_READ,)),
-    ("myservice_staff_bus.group_bus_user", (SCOPE_DASHBOARDS_READ,)),
+    # Read-only consumers of the operational dashboards. Until handoff 47
+    # they held `dashboards:read`, which was coarse — one name covering the
+    # asset register's figures AND the security, fleet and FM dashboards.
+    # Their job is the second half, so that is what they hold now: a
+    # Security Officer no longer reads the asset dashboard's figures, and an
+    # Asset User no longer reads the security map. `operations:read` still
+    # covers fleet, staff bus, FM and security as one, which is why these
+    # two groups continue to look identical here.
+    ("myservice_security.group_security_officer", (SCOPE_OPERATIONS_READ,)),
+    ("myservice_staff_bus.group_bus_user", (SCOPE_OPERATIONS_READ,)),
 )
 
 
@@ -373,7 +424,14 @@ GROUP_SCOPES = (
 # is legible provenance where "Administrator" was not.
 SCOPE_GROUPS = {
     SCOPE_ASSETS_READ:        ("myservice_asset_register.group_asset_user",),
-    SCOPE_ASSETS_WRITE:       ("myservice_asset_register.group_asset_manager",),
+    # The Asset Officer, not the Manager, since handoff 47: a client that
+    # registers assets (Vendra's INT-03 credential is the live case) is doing
+    # an officer's job, and reading "Asset Manager" off its user form implied
+    # it could also approve and configure, which its scopes never allowed.
+    # `approvals:write` below still maps to the Manager, which is
+    # `APPROVER_GROUP` — a credential that decides requests keeps the group
+    # the model's `_may_decide` asks for.
+    SCOPE_ASSETS_WRITE:       ("myservice_asset_register.group_asset_officer",),
     SCOPE_LOCATIONS_READ:     ("myservice_asset_register.group_asset_user",),
     SCOPE_LOCATIONS_WRITE:    ("myservice_asset_register.group_asset_manager",),
     SCOPE_REQUESTS_READ:      ("myservice_asset_register.group_asset_user",),
@@ -398,7 +456,16 @@ SCOPE_GROUPS = {
     SCOPE_DASHBOARDS_READ:    ("myservice_security.group_security_officer",
                                "fleet.fleet_group_user",
                                "generic_location.group_generic_location_user_implicit"),
+    # Same belt-to-braces reasoning as `dashboards:read` above: the fleet
+    # and security routes sudo(), so these are documentary, kept so a future
+    # dashboard read that forgets to sudo() degrades to working.
+    SCOPE_OPERATIONS_READ:    ("myservice_security.group_security_officer",
+                               "fleet.fleet_group_user"),
     SCOPE_IDENTITY_READ:      ("myservice_identity.group_identity_manager",),
+    # The Auditor is the one non-wildcard group that grants `access:read`
+    # (GROUP_SCOPES above), so it is what the group is FOR — same shape as
+    # `settings:read` above it.
+    SCOPE_ACCESS_READ:        ("myservice_api.group_auditor",),
     SCOPE_INTEGRATIONS_WRITE: ("myservice_identity.group_identity_manager",),
     SCOPE_TAGGING_WRITE:      ("myservice_asset_register.group_tag_issuing_unit",),
     # SCOPE_WEBHOOKS_ADMIN and SCOPE_ADMIN map to nothing on purpose — see the

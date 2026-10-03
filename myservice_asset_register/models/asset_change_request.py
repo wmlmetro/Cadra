@@ -442,9 +442,15 @@ class NRSAssetChangeRequest(models.Model):
 
     # ── Who may decide ───────────────────────────────────────────────
 
-    #: The group that grants `assets:write` — the one group on this system
-    #: whose members *could have made the change themselves*, which is the
-    #: whole of the owner's ruling on who may approve.
+    #: The Asset Manager. For a MOVE or a custody change the original
+    #: rationale still holds — a Manager implies the Asset Officer (handoff
+    #: 47), so an approver *could have made the change themselves*. For a
+    #: TAG replacement it deliberately no longer does: since handoff 47
+    #: minting and replacing is `tagging:write`, which the Manager does not
+    #: hold, so there the requester (the unit) and the decider (management)
+    #: are DISJOINT pools — a stronger separation, not a weaker one. The
+    #: tag flow's refusals say "hold the Asset Manager role" rather than
+    #: the could-have-done-it sentence for exactly that reason.
     APPROVER_GROUP = 'myservice_asset_register.group_asset_manager'
 
     @api.model

@@ -110,6 +110,11 @@ from .role_names import role_alias
 #: it (handoff 42 §2), not a convenience.
 API_GRANTABLE_XMLIDS = (
     'myservice_asset_register.group_asset_user',
+    # The fifth entry, with the name on it: handoff 47 ruling 3 created the
+    # Asset Officer — the role between reading the register and running it —
+    # and a role administrators cannot grant from the Users screen is a role
+    # that does not exist.
+    'myservice_asset_register.group_asset_officer',
     'myservice_asset_register.group_asset_manager',
     'myservice_asset_register.group_tag_issuing_unit',
     'myservice_api.group_auditor',
@@ -209,7 +214,7 @@ def _assert_api_change_is_allowed(env, user, added, removed, *,
     which Odoo puts every new internal user in whether the caller named them
     or not.
 
-    Ruling 1 first: a group outside the grantable four refuses whichever way
+    Ruling 1 first: a group outside the grantable set refuses whichever way
     it moved, so the credential asking for `base.group_system` on its own
     account gets THIS sentence and not the self-grant one. Ruling 2 second:
     an addition to the caller's own account refuses; a removal does not.
@@ -234,7 +239,7 @@ class ResUsersAccessGuard(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        """A new account may land only in the grantable four and in what
+        """A new account may land only in the grantable set and in what
         `_default_groups()` puts every internal user in anyway.
 
         Judged on the created records, not on `vals`, for the reasons in the

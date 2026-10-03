@@ -61,7 +61,7 @@ from .utils import (
     ERR_NOT_FOUND,
     SCOPE_APPROVALS_WRITE,
     SCOPE_ASSETS_READ,
-    SCOPE_ASSETS_WRITE,
+    SCOPE_TAGGING_WRITE,
     err,
     get_params,
     ok,
@@ -300,8 +300,8 @@ def _may_not_decide(tag, *, verb):
             "You asked for this replacement. Ask an approver to reject it, "
             "or let it stand."
             if own else
-            "Only somebody who could have made the change themselves can "
-            "decide on it.")
+            "Only an approver — somebody holding the Asset Manager "
+            "role — can decide on it.")
     return err(ERR_FORBIDDEN, message, status=403,
                details={"tag_id": tag.id, "is_own_request": own,
                         "requested_by": _ref(tag.requested_by)})
@@ -356,7 +356,12 @@ class CadraTagsAPI(http.Controller):
     @cadra_route("/api/v1/tags/<int:id>/request-replacement", method="POST",
                  summary="Ask a second person to agree that this label be "
                          "replaced",
-                 scopes=[SCOPE_ASSETS_WRITE],
+                 # `tagging:write` since handoff 47 (BREAKING; it was
+                 # `assets:write`): replacing a faded label is the
+                 # Tag-Issuing Unit's job, the same act as minting one.
+                 # Deciding the replacement stays `approvals:write` below —
+                 # the second person, from `APPROVER_GROUP`, as on a move.
+                 scopes=[SCOPE_TAGGING_WRITE],
                  idempotent=True,
                  error_statuses=(403, 404, 409),
                  response_schema={

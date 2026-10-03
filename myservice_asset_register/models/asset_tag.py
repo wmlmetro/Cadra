@@ -180,7 +180,7 @@ class NRSAssetTag(models.Model):
         if not self._may_decide(user):
             raise UserError(_(
                 '%(user)s cannot decide a tag replacement. An approver must '
-                'be somebody who could have made the change themselves.'
+                'hold the Asset Manager role.'
             ) % {'user': user.display_name})
 
     def _reason_label(self, value):
@@ -228,7 +228,7 @@ class NRSAssetTag(models.Model):
                     and not who._is_admin():
                 raise UserError(_(
                     '%s cannot approve a tag replacement. An approver must '
-                    'be somebody who could have made the change themselves.'
+                    'hold the Asset Manager role.'
                 ) % who.display_name)
             r._replacement_ctx().write({
                 'state': 'pending',

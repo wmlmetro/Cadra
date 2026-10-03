@@ -1,0 +1,9 @@
+
+Running 4 tests using 1 worker
+
+  ✓  1 [chromium] › tests/48-what-this-tenant-has.spec.ts:190:7 › 48 — what this tenant has › 0 · baseline: nothing hidden, and untouched means default on (2.1s)
+  ✓  2 [chromium] › tests/48-what-this-tenant-has.spec.ts:211:7 › 48 — what this tenant has › 1 · the administrator switches it, in one session (7.8s)
+  ✓  3 [chromium] › tests/48-what-this-tenant-has.spec.ts:306:7 › 48 — what this tenant has › 2 · the Store Officer: both axes, and the address still opens (5.9s)
+  ✓  4 [chromium] › tests/48-what-this-tenant-has.spec.ts:348:7 › 48 — what this tenant has › 3 · the Auditor reads who changed it (1.3s)
+
+  4 passed (23.8s)

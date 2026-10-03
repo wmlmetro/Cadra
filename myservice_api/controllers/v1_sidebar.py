@@ -79,9 +79,8 @@ SIDEBAR_GROUPS = (
     ("asset_register", ("asset_dashboard", "all_assets", "approvals",
                         "new_asset")),
     ("operations", ("locations", "new_location")),
-    ("hr_staff", ("employees", "sap_sync", "bulk_import",
-                  "identity_clearance")),
-    ("fleet_transport", ("fleet", "staff_bus")),
+    ("hr_staff", ("employees", "sap_sync", "bulk_import")),
+    ("fleet_transport", ("fleet",)),
     ("reports", ("fleet_roster", "asset_inventory", "maintenance_readiness",
                  "location_coverage", "tag_adoption", "depreciation_report")),
     ("settings", ("asset_categories", "branding", "depreciation_settings",
@@ -94,7 +93,14 @@ SIDEBAR_GROUPS = (
 #: Keys that were published and have since left the table. A retired key is
 #: never reused: a tenant that switched the old item off still has the row,
 #: and a new item taking the name would inherit it.
-SIDEBAR_RETIRED = frozenset()
+#:
+#: `staff_bus` and `identity_clearance` left the sidebar in handoff 47 §1b:
+#: both rendered sample data built into the app and asked the server
+#: nothing, so with everything defaulting to on, every new client was shown
+#: two screens of invented content about their own organisation. The routes
+#: still serve by address; the clearance screen is owed to NRS for real
+#: (docs/GO-LIVE.md) rather than dropped.
+SIDEBAR_RETIRED = frozenset({"staff_bus", "identity_clearance"})
 
 #: The screen this is changed from. Its group is locked with it.
 LOCKED_ITEMS = frozenset({"sidebar_settings"})

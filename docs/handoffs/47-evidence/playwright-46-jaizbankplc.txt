@@ -1,0 +1,12 @@
+
+Running 7 tests using 1 worker
+
+  ✓  1 [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:121:7 › 46 — everyone sees their own job › the personas file exists for this tenant (201ms)
+  ✓  2 [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:127:9 › 46 — everyone sees their own job › administrator: lands, sees, and is refused what it does not see (10.0s)
+  ✓  3 [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:127:9 › 46 — everyone sees their own job › asset_manager: lands, sees, and is refused what it does not see (17.3s)
+  ✓  4 [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:127:9 › 46 — everyone sees their own job › auditor: lands, sees, and is refused what it does not see (21.5s)
+  ✓  5 [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:127:9 › 46 — everyone sees their own job › storekeeper: lands, sees, and is refused what it does not see (21.3s)
+  ✓  6 [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:127:9 › 46 — everyone sees their own job › tag_unit: lands, sees, and is refused what it does not see (33.1s)
+  ✓  7 [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:127:9 › 46 — everyone sees their own job › tagger: lands, sees, and is refused what it does not see (21.6s)
+
+  7 passed (2.2m)

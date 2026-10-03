@@ -92,6 +92,10 @@ EXPECTED_AUDITOR_SCOPES = frozenset({
     "identity:read",
     "dashboards:read",
     "settings:read",
+    # Handoff 47, ruling 1: the record of who granted whom which role is the
+    # Auditor's job by definition, split out of `identity:read` so holding
+    # the employee picker no longer opens it. docs/DECISIONS.md, 2026-10-03.
+    "access:read",
 })
 
 AUDITOR_GROUP_XMLID = "myservice_api.group_auditor"

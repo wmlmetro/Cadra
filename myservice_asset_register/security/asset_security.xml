@@ -23,9 +23,10 @@
             So the category above was empty for the whole life of the module,
             and the fix is two privileges, not one:
 
-            * "Asset Register" holds Asset User and Asset Manager. They are
-              one choice — Manager implies User — so a selection is the
-              right control, and the widget orders them by implication.
+            * "Asset Register" holds Asset User, Asset Officer and Asset
+              Manager. They are one choice — Manager implies Officer implies
+              User — so a selection is the right control, and the widget
+              orders them by implication.
             * "Tag Issuing" holds the Tag-Issuing Unit ALONE. If it sat in
               the same privilege as the other two, the form could not give
               one person Asset User AND Tag-Issuing Unit, because a privilege
@@ -57,12 +58,41 @@
             <field name="comment">Can view assets, log verifications, raise requests.</field>
         </record>
 
+        <!--
+            The role between reading the register and running it (handoff
+            47, ruling 3). Handoff 46's persona matrix measured the gap: a
+            store officer could look at the register but not register an
+            asset, request a move or record a verification — and the only
+            role that could do those things could also approve other
+            people's moves and change the branding, the depreciation rules
+            and the SAP integration. This group is the storekeeper's actual
+            job, composed of scopes that already existed (`assets:write` on
+            top of Asset User's reads — see GROUP_SCOPES in
+            myservice_api/controllers/utils.py). It deliberately does NOT
+            carry `approvals:write` (the second person on every move is the
+            point of handoff 35), `settings:write`, `integrations:write`,
+            `locations:write` or `ingestion:write`.
+
+            Both implications below are spelled out explicitly — Manager
+            lists Officer AND User even though Officer already implies User —
+            so a reader of this file (and tests/test_login_scopes.py, which
+            resolves one level) sees the whole ladder without computing a
+            closure.
+        -->
+        <record id="group_asset_officer" model="res.groups">
+            <field name="name">Asset Officer</field>
+            <field name="privilege_id" ref="privilege_asset_register"/>
+            <field name="sequence">15</field>
+            <field name="implied_ids" eval="[(4, ref('group_asset_user'))]"/>
+            <field name="comment">Registers assets, requests moves and custody changes, records verifications. Does not approve other people's requests, configure the tenant or run imports.</field>
+        </record>
+
         <record id="group_asset_manager" model="res.groups">
             <field name="name">Asset Manager</field>
             <field name="privilege_id" ref="privilege_asset_register"/>
             <field name="sequence">20</field>
-            <field name="implied_ids" eval="[(4, ref('group_asset_user'))]"/>
-            <field name="comment">Full access — create, edit, transfer, dispose, manage PM schedules.</field>
+            <field name="implied_ids" eval="[(4, ref('group_asset_user')), (4, ref('group_asset_officer'))]"/>
+            <field name="comment">Full access — create, edit, transfer, dispose, approve, manage PM schedules and configuration.</field>
         </record>
 
         <!--

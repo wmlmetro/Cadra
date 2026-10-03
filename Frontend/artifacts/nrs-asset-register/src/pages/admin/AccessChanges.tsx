@@ -24,10 +24,12 @@
  *
  * WHO MAY OPEN IT
  * ---------------
- * Since handoff 46, whoever holds `identity:read` — what the server route
- * requires — not `admin`. Reading the access record is the Auditor's job, and
- * the Auditor is not a system administrator: the screen refused the one role
- * it is for while the API answered that role 200. Two things on the page are
+ * Whoever holds `access:read` — what the server route requires. Handoff 46
+ * opened it past `admin` (reading the access record is the Auditor's job,
+ * and the Auditor is not a system administrator); handoff 47 split the scope
+ * off `identity:read`, under which every Asset User could read the record of
+ * who granted whom which role while the one role it is for could not find
+ * it. Two things on the page are
  * still administrators' only, because their routes are `admin`: the name in
  * the user filter chip (`GET /users/<id>`) and the link from a row to the
  * Users page. Without `admin` the chip shows the id and the row the login.
@@ -125,7 +127,7 @@ export default function AdminAccessChanges() {
     queryFn: ({ pageParam }) => fetchAccessChanges(from, to, pageParam as string | undefined),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
-    enabled: scopes.has("identity:read") && validPeriod,
+    enabled: scopes.has("access:read") && validPeriod,
     staleTime: 30_000,
   });
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = report;
@@ -153,8 +155,8 @@ export default function AdminAccessChanges() {
     return [...rows].sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
   }, [allEvents, userId]);
 
-  if (!scopes.has("identity:read")) return (
-    <ScopeRefusal scope="identity:read" detail="The access record is read by the roles that read the staff roster — the Auditor among them." />
+  if (!scopes.has("access:read")) return (
+    <ScopeRefusal scope="access:read" detail="The record of who granted whom which role is read by the Auditor and by system administrators." />
   );
 
   const walking = hasNextPage || isFetchingNextPage;

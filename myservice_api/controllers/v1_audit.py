@@ -11,8 +11,12 @@ that is a statement about what they are: these two do not report the
 register. One reports who holds access to the system, the other reports how
 the system is configured. The scope ruling in `v1_assets.py` — *the same data
 takes the same scope, whatever the route is called* — is what puts them here
-and what gives them `identity:read` and `settings:read` instead of
-`assets:read`.
+and what gives them `access:read` and `settings:read` instead of
+`assets:read`. (The access report took `identity:read` until handoff 47,
+which split that name: the employee picker a custodian needs and the record
+of who granted whom which role are different questions, and under one scope
+every Asset User could read this report while the Auditor could not find
+it. BREAKING for any credential that held `identity:read` to read it.)
 
 **Both publish their boundary on their own face, and the boundary is
 MEASURED at request time.** The access report's honest answer today is that
@@ -35,7 +39,7 @@ from ..models.audit_access import record_order
 
 from .utils import (
     ERR_INVALID_REQUEST,
-    SCOPE_IDENTITY_READ,
+    SCOPE_ACCESS_READ,
     SCOPE_SETTINGS_READ,
     decode_cursor,
     encode_cursor,
@@ -166,7 +170,7 @@ class CadraAuditReportsV1(http.Controller):
                  summary="Access events in a period — role grants and "
                          "removals, and accounts deactivated or reactivated "
                          "— and how much of the period the record covers",
-                 scopes=[SCOPE_IDENTITY_READ],
+                 scopes=[SCOPE_ACCESS_READ],
                  response_schema={
                      "$ref": "#/components/schemas/AccessChangeReport"},
                  query_params=[*_PERIOD_QUERY_PARAMS,

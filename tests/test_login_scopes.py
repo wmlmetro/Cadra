@@ -398,3 +398,100 @@ def test_asset_manager_still_has_no_wildcard():
         "`admin` satisfies every scope check in require_jwt, `tagging:write` "
         "included. Use `settings:write` for the Settings screens."
     )
+
+
+# ─── handoff 47: a role is a job ─────────────────────────────────────
+
+ASSET_USER = "myservice_asset_register.group_asset_user"
+ASSET_OFFICER = "myservice_asset_register.group_asset_officer"
+AUDITOR = "myservice_api.group_auditor"
+
+
+def test_asset_officer_is_the_job_between_reading_and_running():
+    """Ruling 3: registering, requesting a move, recording a verification —
+    and none of running the register.
+
+    The gap handoff 46 measured: Asset User could not register an asset, and
+    the only role that could also approved other people's moves and changed
+    the branding, the depreciation rules and the SAP integration. The Asset
+    Officer closes it by composing scopes that already existed. The pin here
+    is both directions: what the role grants, and what it must never pick
+    up — `approvals:write` back on this group is handoff 35's two-person
+    rule collapsing into one desk.
+    """
+    granted = _scopes_for_group(ASSET_OFFICER)
+    assert granted == _scopes_for_group(ASSET_USER) | {"assets:write"}, (
+        f"the Asset Officer's effective scopes are {sorted(granted)}; the "
+        "role is Asset User's reads plus `assets:write` and nothing else — "
+        "a wider grant is a decision for the Architect, not an edit"
+    )
+    forbidden = {"approvals:write", "settings:write", "settings:read",
+                 "integrations:write", "locations:write", "ingestion:write",
+                 "tagging:write", "webhooks:admin", "admin", "*"}
+    assert not granted & forbidden, (
+        f"the Asset Officer picked up {sorted(granted & forbidden)} — the "
+        "role exists precisely so that registering stock does not come with "
+        "approving, configuring or importing"
+    )
+
+
+def test_the_register_ladder_is_user_officer_manager():
+    """Manager implies Officer implies User, spelled out in the XML.
+
+    Both of Manager's implications are explicit (Officer AND User) so that a
+    reader — and `_scopes_for_group`, which resolves one level — sees the
+    whole ladder without computing a closure.
+    """
+    assert ASSET_USER in _implied_by("group_asset_officer"), (
+        "the Asset Officer no longer implies Asset User — an officer who "
+        "cannot read the register cannot register anything into it"
+    )
+    manager_implies = _implied_by("group_asset_manager")
+    assert ASSET_OFFICER in manager_implies and ASSET_USER in manager_implies, (
+        f"Asset Manager implies {manager_implies}; it must imply both the "
+        "Officer and the User explicitly (see asset_security.xml)"
+    )
+
+
+def test_access_read_is_granted_by_exactly_the_auditor():
+    """Ruling 1, first split: the access record is the Auditor's (and the
+    administrator's, via the wildcard) — not every Asset User's.
+
+    `access:read` reaching a second group quietly reopens what the split
+    closed: under `identity:read`, every holder of the employee picker could
+    read the record of who granted whom which role.
+    """
+    granting = [xmlid for xmlid, scopes in _group_scopes()
+                if "access:read" in scopes]
+    assert granting == [AUDITOR], (
+        f"`access:read` is granted by {granting or 'nothing'}; it must be "
+        f"granted by exactly one group, `{AUDITOR}`"
+    )
+    assert "access:read" not in _scopes_for_group(ASSET_USER), (
+        "Asset User holds `access:read` — the identity:read split is undone"
+    )
+
+
+def test_dashboards_and_operations_are_two_scopes_held_by_different_jobs():
+    """Ruling 1, second split: the asset dashboard's figures and the fleet
+    are different questions.
+
+    Asset User (and the Auditor) read the register's figures and not the
+    fleet; a Security Officer and a Bus User read the operational dashboards
+    and not the register's figures. One group holding both halves again is
+    the coarse scope coming back under two names.
+    """
+    for xmlid in (ASSET_USER, AUDITOR):
+        granted = _scopes_for_group(xmlid)
+        assert "dashboards:read" in granted and "operations:read" not in granted, (
+            f"{xmlid} holds {sorted(granted)} — it reads the register's "
+            "figures, not the fleet/security/FM dashboards"
+        )
+    table = dict(_group_scopes())
+    for xmlid in ("myservice_security.group_security_officer",
+                  "myservice_staff_bus.group_bus_user"):
+        scopes = set(table.get(xmlid, ()))
+        assert "operations:read" in scopes and "dashboards:read" not in scopes, (
+            f"{xmlid} grants {sorted(scopes)} — its job is the operational "
+            "dashboards, not the asset register's figures"
+        )

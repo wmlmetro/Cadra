@@ -2545,7 +2545,14 @@ acurl -X POST $API/api/v1/requests/2/comment \
 
 ---
 
-# §6 — Dashboards (8 endpoints, all GET, scope `dashboards:read`)
+# §6 — Dashboards (8 endpoints, all GET; two scopes since handoff 47)
+
+`dashboards:read` is the asset register's own figures (`/dashboard/kpis`,
+`/dashboard/map`, and §10's `/reports/depreciation`). Everything operational
+— fleet command, the fleet maintenance dashboard, FM and all four security
+endpoints — takes `operations:read`. One scope used to cover both;
+splitting it is handoff 47's ruling 1, and it is BREAKING for a credential
+that held `dashboards:read` for the operational half.
 
 Pre-aggregated payloads consumed by the Odoo webclient AND any external
 BI tool — the API just exposes the same compute function the UI calls.
@@ -3004,8 +3011,10 @@ acurl "$API/api/v1/barcode/untagged?q=desk&limit=50"
 
 ## 7.6 POST `/api/v1/barcode/generate` — mint barcodes for assets
 
-Scope: `assets:write`. Success: **200**. Idempotent (accepts
-`X-Idempotency-Key`).
+Scope: `tagging:write` (since handoff 47 — BREAKING; it was `assets:write`.
+Minting a label is the Tag-Issuing Unit's job, and `POST /assets` still
+mints its own tag server-side, so registration needs nothing extra).
+Success: **200**. Idempotent (accepts `X-Idempotency-Key`).
 
 Generates a tag for each asset id that does not already have one. The tag
 number is built from the asset's building/floor/room zone codes plus its
@@ -3576,12 +3585,23 @@ A token without `dashboards:read` calling `/api/v1/dashboard/kpis` gets:
 This is the difference between **401 unauthorized** (token absent or
 invalid) and **403 forbidden** (token valid but missing a required scope).
 
-## All 15 scopes
+## All 18 scopes
 
 `assets:read`, `assets:write`, `locations:read`, `locations:write`,
 `requests:read`, `requests:write`, `approvals:write`, `dashboards:read`,
-`integrations:write`, `ingestion:write`, `webhooks:admin`, `identity:read`,
-`tagging:write`, `settings:write`, `admin`.
+`operations:read`, `integrations:write`, `ingestion:write`,
+`webhooks:admin`, `identity:read`, `access:read`, `tagging:write`,
+`settings:write`, `settings:read`, `admin`.
+
+Two were split out of wider names by handoff 47 (both BREAKING for
+credentials provisioned under the old name):
+
+- **`operations:read`** — the fleet, staff-bus, FM and security dashboards,
+  carved out of `dashboards:read`, which now means only the asset
+  register's own figures.
+- **`access:read`** — `GET /reports/access-changes`, the record of who
+  granted whom which role, carved out of `identity:read`, which now means
+  only the employee roster and its routes. Granted by the Auditor role.
 
 `settings:write` (added 2026-09-06) covers tenant configuration — the
 category taxonomy and the branding and depreciation settings. It was carved
@@ -4173,19 +4193,19 @@ a deleted parameter's old value to twenty-four writing tests.
 | 28 | POST   | `/api/v1/requests/<id>/comment` | `requests:write` |
 | 29 | GET    | `/api/v1/dashboard/kpis` | `dashboards:read` |
 | 30 | GET    | `/api/v1/dashboard/map` | `dashboards:read` |
-| 31 | GET    | `/api/v1/dashboard/fleet-command` | `dashboards:read` |
-| 32 | GET    | `/api/v1/security/kpis` | `dashboards:read` |
-| 33 | GET    | `/api/v1/security/map-data` | `dashboards:read` |
-| 34 | GET    | `/api/v1/security/trend` | `dashboards:read` |
-| 35 | GET    | `/api/v1/security/recent` | `dashboards:read` |
-| 36 | GET    | `/api/v1/fleet/dashboard` | `dashboards:read` |
-| 37 | GET    | `/api/v1/fm/dashboard` | `dashboards:read` |
+| 31 | GET    | `/api/v1/dashboard/fleet-command` | `operations:read` |
+| 32 | GET    | `/api/v1/security/kpis` | `operations:read` |
+| 33 | GET    | `/api/v1/security/map-data` | `operations:read` |
+| 34 | GET    | `/api/v1/security/trend` | `operations:read` |
+| 35 | GET    | `/api/v1/security/recent` | `operations:read` |
+| 36 | GET    | `/api/v1/fleet/dashboard` | `operations:read` |
+| 37 | GET    | `/api/v1/fm/dashboard` | `operations:read` |
 | 38 | GET    | `/api/v1/barcode/lookup` | `assets:read` |
 | 39 | GET    | `/api/v1/barcode/kpis` | `assets:read` |
 | 40 | GET    | `/api/v1/barcode/recent-tags` | `assets:read` |
 | 41 | GET    | `/api/v1/barcode/print-url` | `assets:read` |
 | 42 | GET    | `/api/v1/barcode/untagged` | `assets:read` |
-| 43 | POST   | `/api/v1/barcode/generate` | `assets:write` |
+| 43 | POST   | `/api/v1/barcode/generate` | `tagging:write` |
 | 44 | GET    | `/api/v1/tags/lookup` | `assets:read` |
 | 45 | GET    | `/api/v1/home/form-data` | `requests:read` |
 | 46 | POST   | `/api/v1/home/quick-submit` | `requests:write` |

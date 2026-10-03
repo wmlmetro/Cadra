@@ -3,7 +3,7 @@
 Handoff 42 §2, §3 and §6. `models/access_guard.py` makes two promises that
 are only worth what their evidence is worth:
 
-1. **`base.group_system` — and every group that is not one of the four
+1. **`base.group_system` — and every group that is not in the grantable set
    Cadra roles — cannot be granted or removed over the API**, by anybody:
    not by an `admin`-scoped credential on its own user (the exposure report
    41 §G named), not on somebody else's.
@@ -198,7 +198,7 @@ class TestAccessGuard(CadraHttpCase):
 
     def test_i_the_credential_cannot_make_its_own_user_an_administrator(self):
         """Report 41 §G's exposure, refused — and refused with ruling 1's
-        sentence, not ruling 2's, because a group outside the four is judged
+        sentence, not ruling 2's, because a group outside the grantable set is judged
         before whose account it is."""
         before, count = self._groups(self.cred_user), self._count()
         self.assertNotIn(self.g_system.id, before)
@@ -310,12 +310,15 @@ class TestAccessGuard(CadraHttpCase):
         self.assertEqual(data["granted"], ["asset_manager"])
         self.assertEqual(self._keys(data["after"]["roles_direct"]),
                          ["asset_manager"])
-        # Implication, computed by Odoo and not by the route.
+        # Implication, computed by Odoo and not by the route. Three since
+        # handoff 47: the Manager implies the Asset Officer too.
         self.assertEqual(self._keys(data["after"]["roles_effective"]),
-                         ["asset_user", "asset_manager"])
+                         ["asset_user", "asset_officer", "asset_manager"])
+        # `via` lists only the account's DIRECT groups that imply the role,
+        # so both implied roles point at Asset Manager, the one direct group.
         self.assertEqual(
             [x["via"] for x in data["after"]["roles_effective"]],
-            [["Asset Manager"], []])
+            [["Asset Manager"], ["Asset Manager"], []])
         self.assertEqual(self._groups(self.third), before,
                          "a dry run moved the membership")
         self.assertEqual(self._count(), count,
@@ -447,7 +450,7 @@ class TestAccessGuard(CadraHttpCase):
 
     def test_viii_a_create_over_the_api_may_land_only_in_the_four(self):
         """Handoff 43 will create people over the API; the guard is ready
-        for it: the default groups and the four pass, `base.group_system`
+        for it: the default groups and the grantable set pass, `base.group_system`
         does not, and a refused create leaves no account behind."""
         Users = self.env["res.users"].sudo().with_context(no_reset_password=True)
         count = self._count()
@@ -473,9 +476,11 @@ class TestAccessGuard(CadraHttpCase):
             _request_stack.pop()
         self.assertIn(self.g_tagger.id, self._groups(created))
 
-    # ── the vocabulary says which four ───────────────────────────────
+    # ── the vocabulary says which five ───────────────────────────────
 
-    def test_roles_marks_exactly_the_grantable_four(self):
+    def test_roles_marks_exactly_the_grantable_five(self):
+        # Four until handoff 47; the fifth is the Asset Officer, the named
+        # decision ruling 3 is (see API_GRANTABLE_XMLIDS).
         r = self.url_open("/api/v1/roles",
                           headers={"Authorization": "Bearer %s" % self._cred_token()})
         self.assertEqual(r.status_code, 200, r.text)
@@ -484,4 +489,4 @@ class TestAccessGuard(CadraHttpCase):
         self.assertEqual(grantable, set(API_GRANTABLE_XMLIDS))
         by_key = {x["key"]: x for x in roles}
         self.assertIs(by_key["system"]["grantable"], False)
-        self.assertEqual(len(grantable), 4)
+        self.assertEqual(len(grantable), 5)

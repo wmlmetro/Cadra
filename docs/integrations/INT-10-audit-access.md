@@ -357,7 +357,7 @@ Four things worth knowing before reading one:
 **Partly, and the endpoint tells you which part before it tells you anything else.**
 
 ```
-GET /api/v1/reports/access-changes?from=2026-01-01&to=2026-03-31    # identity:read
+GET /api/v1/reports/access-changes?from=2026-01-01&to=2026-03-31    # access:read (identity:read until handoff 47)
 ```
 
 Specification §7.6 requires *"every identity-related event in Cadra (login, role change, account creation, deactivation) recorded in Cadra's audit log with reference to the upstream IdP event"*, and §13.4 requires *"access changes for any user (per period)"*. **Cadra records no role changes, and no query against these databases can produce them.** That is not a reporting gap that better SQL would close; it is a property of the schema.
@@ -562,17 +562,17 @@ Audit is a read role that must see everything and change nothing, across tenants
 
 ### 4.1 The scopes that exist
 
-Fifteen, of which **five are read scopes**: `assets:read`, `locations:read`, `requests:read`, `dashboards:read`, `identity:read`. The others are `assets:write`, `locations:write`, `requests:write`, `approvals:write`, `ingestion:write`, `integrations:write`, `tagging:write`, `settings:write`, `webhooks:admin` and `admin`.
+Eighteen since handoff 47, of which **eight are read scopes**: `assets:read`, `locations:read`, `requests:read`, `dashboards:read`, `operations:read`, `identity:read`, `access:read`, `settings:read`. The others are `assets:write`, `locations:write`, `requests:write`, `approvals:write`, `ingestion:write`, `integrations:write`, `tagging:write`, `settings:write`, `webhooks:admin` and `admin`. Handoff 47 split two names that each carried two meanings: `access:read` (the access-changes report) out of `identity:read`, and `operations:read` (the fleet/FM/security dashboards) out of `dashboards:read`.
 
 **`admin` is a wildcard.** In `require_jwt`, `admin` (or the literal `"*"`) satisfies every route including `tagging:write` — an accepted, documented posture, "absolute below system-administrator". **An audit credential must never hold it**, and this is the one thing most likely to be got wrong when someone provisions the credential in a hurry.
 
 ### 4.2 What an auditor's credential should be
 
 ```
-assets:read  locations:read  identity:read  dashboards:read  requests:read
+assets:read  locations:read  identity:read  access:read  dashboards:read  requests:read  settings:read
 ```
 
-Five scopes, no writes. As an **API client** this works today and is genuinely read-only: scope enforcement is declarative and per-route, `assets:read` is not in the required list of any POST, PATCH or DELETE, and unknown scopes are rejected on save so a typo cannot mint a token that 403s indistinguishably from a real permission decision.
+Seven scopes, no writes (the last two added by handoffs 23 and 47; without `access:read` the credential cannot open the access-changes report). As an **API client** this works today and is genuinely read-only: scope enforcement is declarative and per-route, `assets:read` is not in the required list of any POST, PATCH or DELETE, and unknown scopes are rejected on save so a typo cannot mint a token that 403s indistinguishably from a real permission decision.
 
 As a **human session** it does not work. Session scopes derive from Odoo groups, and the group that grants the five read scopes — `group_asset_user` — **also grants `requests:write`**, because the group's own description is "view assets, log verifications, raise requests" and raising one is a write. So an auditor logging in through the SPA cannot currently be given read-only.
 
@@ -603,13 +603,13 @@ Two things this ruling does not cover, flagged rather than closed:
 
 **The `audit:read` scope this section used to propose was NOT built, and the reasoning changed.** A single scope meaning "the audit reports" would have been a scope that no existing client holds and no group granted on the day it shipped — which is the argument `v1_assets.py` already used to keep the register snapshot and the disposal report on `assets:read`. The five §13.4 reports are views of three different things: the register, the identity roster and the configuration. They take those things' scopes.
 
-So `group_auditor` grants six READ scopes and nothing else:
+So `group_auditor` grants seven READ scopes and nothing else (six until handoff 47 added `access:read`, the access-changes report's own scope — split out of `identity:read` so the employee picker no longer opens the access record, and the Auditor no longer depends on a scope whose point is the roster):
 
 ```
-assets:read  locations:read  requests:read  identity:read  dashboards:read  settings:read
+assets:read  locations:read  requests:read  identity:read  access:read  dashboards:read  settings:read
 ```
 
-Five of the six already existed. **`settings:read` is new**, and it is a read scope rather than a reuse of `settings:write` for a reason worth stating: an auditor whose only way to read what the settings are is to hold the right to change them is an auditor the control has been handed to.
+Five of the first six already existed. **`settings:read` is new**, and it is a read scope rather than a reuse of `settings:write` for a reason worth stating: an auditor whose only way to read what the settings are is to hold the right to change them is an auditor the control has been handed to.
 
 The group is **implied by nothing and implies nothing**, deliberately — an auditor who is also an Asset Manager is not independent of what they are auditing, and hanging it under an existing group would make that the default rather than a decision. It carries the same "do not tidy this into the hierarchy" instruction as the Tag-Issuing Unit.
 

@@ -2062,9 +2062,10 @@ found is here.
     assets of 11,951 on `nrs19`, 13 of 1,335 on `cadra19`, 1 of 4,164 on
     `jaizbankplc`, 0 on the other five. A saved filter on *All Assets*, not
     a product line.
-  - **The Facility Command Center** (the `/` front door) is cross-domain and
-    still carries a hardcoded *All systems operational* pill — an instrument
-    reporting something it does not measure. Fix it or drop the pill.
+  - **The Facility Command Center** (the `/` front door) is cross-domain;
+    its hardcoded *All systems operational* pill — an instrument reporting
+    something it does not measure — was DELETED by handoff 47 §1b. What a
+    real one would take is in report 47.
   - **SAP Sync** is real but empty where it matters: `nrs19` has 11,386 of
     11,386 employees at `never`. It earns its place when the SAP employee
     feed is live, not before.
@@ -2083,3 +2084,46 @@ found is here.
   loaded (the `cadra-upgrade` Job). `[open]`, owner, at the next cluster
   upgrade.
 
+
+
+## 25 · Handoff 47 — a role is a job, 2026-10-03
+
+- **The role model now fits the people** — the two coarse scopes split
+  (`access:read` out of `identity:read`, `operations:read` out of
+  `dashboards:read`), tag issuance and replacement on `tagging:write`, and
+  the **Asset Officer** between Asset User and Asset Manager. Rulings and
+  consequences in `docs/DECISIONS.md` (2026-10-03, handoff 47); breaking
+  changes announced in `docs/api/CHANGELOG.md`. `[landed, keep it that way]`
+- **NRS is owed a real clearance screen.** Handoff 47 §1b removed *Identity
+  (clearance)* from the sidebar because it rendered sample data built into
+  the app — but NRS asked for the screen by name: their offboarding
+  question (*"whatever process you want to determine how those assets are
+  retrieved"*) is what it pretended to answer. The mechanism already exists
+  in the back office (report 43 §G.2: a leaver's clearance list, disposed
+  assets excluded since handoff 31). Owed, not dropped. `[open]`, Architect
+  — a build, after the Auditor's screens.
+- **Staff Bus left the sidebar with it** (same ruling, same reason: mock
+  data, default-on). Both keys are retired in `SIDEBAR_RETIRED` and never
+  come back under the same name; both routes still serve by address.
+  `[landed, keep it that way]`
+- **`GET /dashboard/map` hands the identified fleet roster to
+  `dashboards:read`.** Found by the verification pass: the map route stays
+  on the register's scope because it backs the register dashboard, but its
+  payload carries one row per geocoded vehicle — plate and driver — beside
+  the locations. So an Asset User refused `/fleet` still reads the fleet
+  through the map. Splitting the payload is a BREAKING serializer change
+  and a question about what the register dashboard's map is FOR; not
+  decided here. `[open]`, Architect.
+- **The Auditor's four reports still have no screen** — configuration
+  changes, disposals, the register snapshot, the export all answer the
+  auditor 200 over the API and the app draws no page for any of them
+  (report 46 §E.6). Explicitly NOT ruled in handoff 47: it is the next
+  build, and the auditor's demo. `[open]`, Architect.
+- **Existing credentials provisioned under the old scopes** need their rows
+  touched where they relied on a split or moved scope: a non-admin
+  credential holding `identity:read` to read `/reports/access-changes` now
+  needs `access:read`; one holding `dashboards:read` for the fleet/FM/
+  security endpoints now needs `operations:read`; one holding `assets:write`
+  to mint or replace labels now needs `tagging:write`. Per-tenant counts of
+  who is actually affected are in report 47 §B. `[open]`, owner, before
+  the next demo that uses a non-admin credential on those routes.

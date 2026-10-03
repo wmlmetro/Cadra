@@ -1075,3 +1075,37 @@ Report 46 §G carries every suite's denominator, the per-persona matrix
 Report 48 carries every suite's denominator, the browser spec's matrix on
 `test19` and `boot44` (different items off on each) and the screenshots.
 
+
+## 47 — A role is a job (2026-10-03)
+
+### What was built
+
+- **Two scopes split** (`myservice_api` 19.0.3.21.0, BREAKING, announced in
+  `docs/api/CHANGELOG.md`): `access:read` (the access-changes report) out
+  of `identity:read`; `operations:read` (fleet, staff bus, FM, security —
+  nine routes) out of `dashboards:read`, which keeps the register's own
+  figures. The Auditor grants `access:read`; Security Officer and Bus User
+  grant `operations:read`.
+- **Tag issuance and replacement on `tagging:write`** (BREAKING):
+  `POST /barcode/generate` and `POST /tags/<id>/request-replacement` moved
+  off `assets:write`; deciding stays `approvals:write`. The station's
+  Generate / Replace buttons follow. An Asset Manager no longer mints
+  labels; the Tag-Issuing Unit's own scope now covers its own job.
+- **The Asset Officer** (`myservice_asset_register` 19.0.1.22.0):
+  `group_asset_officer`, Asset User's reads + `assets:write`, implied by
+  Manager, implying User, grantable over the API (fifth entry in
+  `API_GRANTABLE_XMLIDS`), published in `/roles` as `asset_officer`.
+  `SCOPE_GROUPS[assets:write]` → Officer, so an asset-writing credential's
+  user form reads Officer, not Manager.
+- **Out of the sidebar** (§1b): Staff Bus and Identity (clearance) — mock
+  screens; keys retired in `SIDEBAR_RETIRED`, routes still serve. The
+  hardcoded *All systems operational* pill deleted. The clearance screen
+  recorded as OWED to NRS (`docs/GO-LIVE.md` §25).
+
+### Verification
+
+Report 47 carries the persona matrix re-run (before/after against 46's),
+the per-tenant counts of who each split affects, the in-registry driving of
+each ruling (`myservice_api/tests/test_asset_officer_role.py`), the contract
+pins (`tests/test_role_is_a_job.py`, `tests/test_login_scopes.py` §47), and
+every suite's denominator.

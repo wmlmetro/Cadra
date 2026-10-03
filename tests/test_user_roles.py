@@ -41,11 +41,13 @@ MANAGER_LOGIN = "h41_manager"
 ONLY_THESE = "Over the API only these roles can be granted or removed"
 NOBODY_THEMSELVES = "Nobody grants themselves a role"
 
-#: The four, by key. Pinned here rather than read off `/roles`, for the
-#: reason `EXPECTED_AUDITOR_SCOPES` is pinned: a fifth grantable role is a
-#: decision with a name on it (handoff 42 §2) and must FAIL a test.
-GRANTABLE = frozenset({"asset_user", "asset_manager", "tag_issuing_unit",
-                       "auditor"})
+#: The five, by key. Pinned here rather than read off `/roles`, for the
+#: reason `EXPECTED_AUDITOR_SCOPES` is pinned: a new grantable role is a
+#: decision with a name on it (handoff 42 §2) and must FAIL a test. The
+#: fifth is exactly such a decision: handoff 47 ruling 3 created the Asset
+#: Officer — the role between reading the register and running it.
+GRANTABLE = frozenset({"asset_user", "asset_officer", "asset_manager",
+                       "tag_issuing_unit", "auditor"})
 
 
 # ─── helpers ─────────────────────────────────────────────────────────
@@ -214,7 +216,7 @@ def test_a_dry_run_of_a_refused_change_is_refused(client, manager):
 
 
 def test_the_caller_cannot_grant_themselves_a_role(client, me):
-    """Ruling 2, through the credential's own account: the four are
+    """Ruling 2, through the credential's own account: the grantable roles are
     grantable, and still not to yourself."""
     direct = _keys(me["roles_direct"])
     if "auditor" in direct:

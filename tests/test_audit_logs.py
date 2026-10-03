@@ -1,6 +1,6 @@
 """The last two of §13.4's five audit reports, and the approval route.
 
-`GET /api/v1/reports/access-changes?from=&to=`      — `identity:read`
+`GET /api/v1/reports/access-changes?from=&to=`      — `access:read`
 `GET /api/v1/reports/configuration-changes?from=&to=` — `settings:read`
 `POST /api/v1/assets/<id>/approve-disposal`         — `approvals:write`
 
@@ -8,7 +8,9 @@ Four things this suite is built around, and only the first is obvious from
 the routes:
 
 **One of these three is reachable with the suite's own credential and two
-are not.** `docs/api/.creds.<tenant>` holds `identity:read` and does NOT
+are not.** `docs/api/.creds.<tenant>` holds `access:read` (via the `admin`
+wildcard where the credential is admin-scoped; `identity:read` opened this
+report until handoff 47 split the scope) and does NOT
 hold `settings:read` or `approvals:write`. That is not a gap to be papered
 over with an openapi-only assertion: a scope the token lacks is a scope the
 suite can prove is ENFORCED, which is the stronger test. So the access
@@ -791,20 +793,23 @@ def test_the_access_report_refuses_a_caller_with_no_token(unauthed_client):
         401, "unauthorized")
 
 
-def test_the_access_report_is_gated_on_identity_read(client):
-    """`identity:read`, not `assets:read`.
+def test_the_access_report_is_gated_on_access_read(client):
+    """`access:read` — its own scope since handoff 47, not `identity:read`.
 
-    The same-data-same-scope ruling: no row in this report touches an asset,
-    and every row names a login, a group or an API scope. Asserted from the
-    published contract because the suite holds one credential and cannot
-    narrow it.
+    The same-data-same-scope ruling put it on `identity:read` first; what
+    that missed is that the scope was TWO data sets under one name — the
+    employee picker a custodian needs, and the record of who granted whom
+    which role. Every Asset User could read the access record, and the
+    Auditor (whose job it is) could not find it. Asserted from the published
+    contract because the suite holds one credential and cannot narrow it.
     """
     spec = client.get("/api/v1/openapi.json").json()
     assert ACCESS in spec["paths"], f"{ACCESS} is not published"
     op = spec["paths"][ACCESS]["get"]
-    assert op["x-cadra-scopes"] == ["identity:read"], (
-        f"{ACCESS} declares {op['x-cadra-scopes']}; this is the identity "
-        "register and it takes the identity register's scope")
+    assert op["x-cadra-scopes"] == ["access:read"], (
+        f"{ACCESS} declares {op['x-cadra-scopes']}; the access record takes "
+        "its own scope (handoff 47), granted to the Auditor and covered by "
+        "the admin wildcard")
     assert op["security"], "the report publishes no security requirement"
     assert "AccessChangeReport" in \
         spec["components"]["schemas"], "the component schema is not published"
