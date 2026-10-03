@@ -1,0 +1,242 @@
+{
+  "tenant": "test19",
+  "baseline": {
+    "sidebar_rows": 5,
+    "of_parameters": 32,
+    "switches": 38,
+    "configured": 5,
+    "hidden_items": [],
+    "is_a_permission": false
+  },
+  "admin_drawn_before": [
+    "facility_command_center",
+    "fleet_command",
+    "it_assets_command",
+    "asset_dashboard",
+    "all_assets",
+    "approvals",
+    "new_asset",
+    "locations",
+    "new_location",
+    "employees",
+    "sap_sync",
+    "bulk_import",
+    "identity_clearance",
+    "fleet",
+    "staff_bus",
+    "fleet_roster",
+    "asset_inventory",
+    "maintenance_readiness",
+    "location_coverage",
+    "tag_adoption",
+    "depreciation_report",
+    "asset_categories",
+    "branding",
+    "depreciation_settings",
+    "sidebar_settings",
+    "access_changes",
+    "users",
+    "barcode_station"
+  ],
+  "patch": {
+    "status": 200,
+    "body": {
+      "items": {
+        "employees": false
+      },
+      "groups": {
+        "fleet_transport": false
+      }
+    }
+  },
+  "admin_drawn_after": [
+    "facility_command_center",
+    "fleet_command",
+    "it_assets_command",
+    "asset_dashboard",
+    "all_assets",
+    "approvals",
+    "new_asset",
+    "locations",
+    "new_location",
+    "sap_sync",
+    "bulk_import",
+    "identity_clearance",
+    "fleet_roster",
+    "asset_inventory",
+    "maintenance_readiness",
+    "location_coverage",
+    "tag_adoption",
+    "depreciation_report",
+    "asset_categories",
+    "branding",
+    "depreciation_settings",
+    "sidebar_settings",
+    "access_changes",
+    "users",
+    "barcode_station"
+  ],
+  "admin_typed": [
+    "GET /api/v1/brand → 200",
+    "GET /api/v1/approvals → 200",
+    "GET /api/v1/auth/whoami → 200",
+    "GET /api/v1/settings/sidebar → 200",
+    "GET /api/v1/identity/employees → 200 · rows 122 of ?"
+  ],
+  "lockout": {
+    "{\"groups\":{\"settings\":false}}": {
+      "status": 400,
+      "message": "The group `settings` cannot be switched off. The Sidebar screen is where these switches are changed. With it, or the group it sits in, switched off, nothing could be switched back on from the app. Nothing was written."
+    },
+    "{\"items\":{\"sidebar_settings\":false}}": {
+      "status": 400,
+      "message": "The item `sidebar_settings` cannot be switched off. The Sidebar screen is where these switches are changed. With it, or the group it sits in, switched off, nothing could be switched back on from the app. Nothing was written."
+    },
+    "{\"items\":{\"sidebar_settings\":false,\"barcode_station\":false}}": {
+      "status": 400,
+      "message": "The item `sidebar_settings` cannot be switched off. The Sidebar screen is where these switches are changed. With it, or the group it sits in, switched off, nothing could be switched back on from the app. Nothing was written."
+    }
+  },
+  "rows": [
+    "cadra.sidebar.group.fleet_transport|off|oluwaseun.ajayi@demo.example",
+    "cadra.sidebar.item.all_assets|on|cadra_client_test_client",
+    "cadra.sidebar.item.employees|off|oluwaseun.ajayi@demo.example",
+    "cadra.sidebar.item.fleet_command|on|oluwaseun.ajayi@demo.example",
+    "cadra.sidebar.item.staff_bus|on|cadra_client_test_client"
+  ],
+  "storekeeper_drawn": [
+    "facility_command_center",
+    "fleet_command",
+    "it_assets_command",
+    "asset_dashboard",
+    "all_assets",
+    "approvals",
+    "locations",
+    "sap_sync",
+    "identity_clearance",
+    "fleet_roster",
+    "asset_inventory",
+    "maintenance_readiness",
+    "location_coverage",
+    "tag_adoption",
+    "depreciation_report",
+    "access_changes",
+    "barcode_station"
+  ],
+  "storekeeper_typed": [
+    "GET /api/v1/brand → 200",
+    "GET /api/v1/approvals → 200",
+    "GET /api/v1/auth/whoami → 200",
+    "GET /api/v1/settings/sidebar → 200",
+    "GET /api/v1/identity/employees → 200 · rows 122 of ?"
+  ],
+  "storekeeper_patch": 403,
+  "configuration_report": [
+    {
+      "id": 2074,
+      "key": "cadra.sidebar.item.fleet_command",
+      "current_value": "on",
+      "value_is_redacted": false,
+      "changed_after_create": true,
+      "created_at": "2026-10-03 12:18:16.661209",
+      "created_by": {
+        "id": 10371,
+        "name": "Oluwaseun Ajayi"
+      },
+      "last_written_at": "2026-10-03 12:18:29.633223",
+      "last_written_by": {
+        "id": 10371,
+        "name": "Oluwaseun Ajayi"
+      },
+      "evidence": "ir_config_parameter.write_date / write_uid",
+      "precision": "last_write_only"
+    },
+    {
+      "id": 2075,
+      "key": "cadra.sidebar.group.fleet_transport",
+      "current_value": "off",
+      "value_is_redacted": false,
+      "changed_after_create": true,
+      "created_at": "2026-10-03 12:18:16.661209",
+      "created_by": {
+        "id": 10371,
+        "name": "Oluwaseun Ajayi"
+      },
+      "last_written_at": "2026-10-03 12:54:16.596247",
+      "last_written_by": {
+        "id": 10371,
+        "name": "Oluwaseun Ajayi"
+      },
+      "evidence": "ir_config_parameter.write_date / write_uid",
+      "precision": "last_write_only"
+    },
+    {
+      "id": 2076,
+      "key": "cadra.sidebar.item.staff_bus",
+      "current_value": "on",
+      "value_is_redacted": false,
+      "changed_after_create": true,
+      "created_at": "2026-10-03 12:21:51.309766",
+      "created_by": {
+        "id": 6,
+        "name": "Smoke Test (API client)"
+      },
+      "last_written_at": "2026-10-03 12:35:54.826971",
+      "last_written_by": {
+        "id": 6,
+        "name": "Smoke Test (API client)"
+      },
+      "evidence": "ir_config_parameter.write_date / write_uid",
+      "precision": "last_write_only"
+    },
+    {
+      "id": 2077,
+      "key": "cadra.sidebar.item.all_assets",
+      "current_value": "on",
+      "value_is_redacted": false,
+      "changed_after_create": true,
+      "created_at": "2026-10-03 12:21:52.216820",
+      "created_by": {
+        "id": 6,
+        "name": "Smoke Test (API client)"
+      },
+      "last_written_at": "2026-10-03 12:35:55.472042",
+      "last_written_by": {
+        "id": 6,
+        "name": "Smoke Test (API client)"
+      },
+      "evidence": "ir_config_parameter.write_date / write_uid",
+      "precision": "last_write_only"
+    },
+    {
+      "id": 2198,
+      "key": "cadra.sidebar.item.employees",
+      "current_value": "off",
+      "value_is_redacted": false,
+      "changed_after_create": true,
+      "created_at": "2026-10-03 12:47:43.180107",
+      "created_by": {
+        "id": 10371,
+        "name": "Oluwaseun Ajayi"
+      },
+      "last_written_at": "2026-10-03 12:54:16.596247",
+      "last_written_by": {
+        "id": 10371,
+        "name": "Oluwaseun Ajayi"
+      },
+      "evidence": "ir_config_parameter.write_date / write_uid",
+      "precision": "last_write_only"
+    }
+  ],
+  "restored": {
+    "status": 200,
+    "hidden_items": []
+  },
+  "rows_after_restore": [
+    "cadra.sidebar.group.fleet_transport|on|oluwaseun.ajayi@demo.example",
+    "cadra.sidebar.item.all_assets|on|cadra_client_test_client",
+    "cadra.sidebar.item.employees|on|oluwaseun.ajayi@demo.example",
+    "cadra.sidebar.item.fleet_command|on|oluwaseun.ajayi@demo.example",
+    "cadra.sidebar.item.staff_bus|on|cadra_client_test_client"
+  ]
+}

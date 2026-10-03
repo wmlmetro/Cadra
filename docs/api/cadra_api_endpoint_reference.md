@@ -3523,7 +3523,7 @@ harmless but has no effect, so do not rely on it outside this list. The
 generated spec is authoritative: an endpoint honours idempotency exactly when
 its OpenAPI entry declares an `X-Idempotency-Key` header parameter.
 
-| Honoured (16) | Accepted and ignored (9) |
+| Honoured (16) | Accepted and ignored (10) |
 |---|---|
 | `POST /assets` · `PATCH /assets/<id>` | `PATCH /asset-categories/<id>` |
 | `POST /assets/<id>/move` | `DELETE /asset-categories/<id>` |
@@ -3534,7 +3534,7 @@ its OpenAPI entry declares an `X-Idempotency-Key` header parameter.
 | `POST /requests/<id>/assign` | `PATCH /settings/branding` |
 | `POST /requests/<id>/comment` | `PATCH /settings/depreciation` |
 | `POST /requests/<id>/transition` | `POST /settings/depreciation/recompute` |
-| `POST /home/quick-submit` | |
+| `POST /home/quick-submit` | `PATCH /settings/sidebar` |
 | `POST /barcode/generate` | |
 | `POST /integrations/sap/employee-sync` | |
 | `POST /integrations/workflow/callback` | |
@@ -4466,3 +4466,94 @@ Always `never` for an API credential.
 
 The tenant's `cadra.brand_logo` decoded and served as an image, 404 when
 none is set. For the letters; mail clients strip `data:` images.
+
+# 13 · What this tenant's sidebar shows (handoff 48)
+
+**Presentation, not permission.** These switches decide which items the app
+draws in the sidebar on this tenant. No route reads them: an item switched
+off still opens by its address, and every API answers exactly as it did.
+What a person may do is their role's scopes; whether a tenant has a module at
+all is installation. The payload carries the sentence (`statement`) and
+`is_a_permission: false` so no consumer has to infer it.
+
+An item is DRAWN when the tenant shows it (here) **and** the person's scopes
+open it (the app's nav table, handoff 46). Neither axis consults the other.
+
+## 13.1 GET `/api/v1/settings/sidebar` — any signed-in caller
+
+Any valid token, whatever its scopes — the app asks on every screen.
+
+```json
+{
+  "statement": "This decides what the sidebar shows on this tenant. It is not a permission: …",
+  "is_a_permission": false,
+  "default_when_unset": true,
+  "rule": "An item is shown when its own switch and its group's switch are both on. …",
+  "locked_reason": "The Sidebar screen is where these switches are changed. …",
+  "parameter_prefix": "cadra.sidebar.",
+  "hidden_items": ["fleet", "staff_bus"],
+  "groups": [
+    {"key": "fleet_transport", "enabled": false, "configured": true, "locked": false,
+     "changed_by": {"id": 10371, "name": "Oluwaseun Ajayi"}, "changed_at": "2026-10-03 12:18:16.661209",
+     "items": [
+       {"key": "fleet", "enabled": true, "shown": false, "configured": false, "locked": false,
+        "changed_by": null, "changed_at": null}
+     ]}
+  ]
+}
+```
+
+- `enabled` is the switch's own position; `shown` (items only) is what is
+  drawn: the item's switch AND its group's. A group switched off hides its
+  items and leaves their own switches as they are, so switching it back on
+  restores exactly what was there.
+- `configured: false` means nobody ever set it and the default (on) applies.
+- `locked`: the Sidebar screen (`sidebar_settings`) and its group
+  (`settings`) are always on — see the refusal below.
+- `changed_by` / `changed_at`: the LAST write only, as
+  `/reports/configuration-changes` reports it. `changed_at` is UTC in the
+  API's usual `YYYY-MM-DD HH:MM:SS.ffffff` form (no zone suffix), like every
+  other timestamp this API serialises.
+
+**The keys are stable identifiers**, not labels, paths or scopes. A key is
+never renamed or reused; one that leaves the table is retired. 10 groups, 28
+items: `dashboards` (`facility_command_center`, `fleet_command`,
+`it_assets_command`), `asset_register` (`asset_dashboard`, `all_assets`,
+`approvals`, `new_asset`), `operations` (`locations`, `new_location`),
+`hr_staff` (`employees`, `sap_sync`, `bulk_import`, `identity_clearance`),
+`fleet_transport` (`fleet`, `staff_bus`), `reports` (`fleet_roster`,
+`asset_inventory`, `maintenance_readiness`, `location_coverage`,
+`tag_adoption`, `depreciation_report`), `settings` (`asset_categories`,
+`branding`, `depreciation_settings`, `sidebar_settings`), `audit`
+(`access_changes`), `administration` (`users`), `tools`
+(`barcode_station`).
+
+## 13.2 PATCH `/api/v1/settings/sidebar` — `admin`
+
+```json
+{"groups": {"fleet_transport": false}, "items": {"fleet_command": false}}
+```
+
+Only the switches named change. `true` = shown, `false` = hidden. Answers
+the GET's payload. Every refusal is a `400 invalid_request` that says
+*Nothing was written* — the other switches in the same body included:
+
+| refused | `details` |
+|---|---|
+| a body key other than `items` / `groups` | `rejected_fields`, `writable` |
+| neither names anything | `writable` |
+| an unknown item or group key | `unknown`, `allowed_values` |
+| a value that is not a JSON boolean | `not_boolean` |
+| `items` / `groups` present and not an object — `false`, `[]` and `""` included | the value |
+| `sidebar_settings` or `settings` to `false` | `locked_items`, `locked_groups` |
+
+The last is the lockout: with the screen these switches are changed from
+hidden, nothing could be switched back on from the app.
+
+**Storage, and the audit trail.** One `ir.config_parameter` row per switch —
+`cadra.sidebar.item.<key>` / `cadra.sidebar.group.<key>`, value `on` or `off`
+— so each appears in `/reports/configuration-changes` under its own key with
+the person who last wrote it. Switching on what nobody switched off writes
+no row; switching back on writes `on` and never deletes, because a deleted
+parameter leaves no tombstone in that report.
+

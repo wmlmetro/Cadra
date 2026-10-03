@@ -20,4 +20,7 @@ from . import v1_users
 # the app, and the back office shut to everybody who is not a system
 # administrator.
 from . import v1_signup
+# Handoff 48 — which sidebar items this tenant shows. Presentation, not
+# permission.
+from . import v1_sidebar
 from . import backoffice

@@ -187,7 +187,16 @@ interface TokenResponse {
  * POST /api/v1/auth/token with client_id/secret; we never call that from
  * the React frontend.
  */
-export async function login(loginName: string, password: string, turnstileToken?: string): Promise<StoredToken> {
+/** Runs with the new access token BEFORE the session is stored — i.e.
+ *  before `cadra:auth-changed` swaps the sign-in page for the app. Whatever
+ *  the caller needs to decide where to send the person (handoff 48: which
+ *  pages this tenant shows) is read here, so the navigation that follows the
+ *  store happens in the same tick and the app never renders at `/` first. */
+export type BeforeStore = (accessToken: string) => Promise<void>;
+
+export async function login(
+  loginName: string, password: string, turnstileToken?: string, beforeStore?: BeforeStore,
+): Promise<StoredToken> {
   const base = (import.meta.env.VITE_API_BASE ?? "").replace(/\/$/, "");
   const res = await fetch(`${base}/api/v1/auth/login`, {
     method: "POST",
@@ -204,6 +213,7 @@ export async function login(loginName: string, password: string, turnstileToken?
   }
   const tr = body as TokenResponse;
   if (!tr.data?.access_token) throw new Error("auth_malformed: response missing access_token");
+  if (beforeStore) await beforeStore(tr.data.access_token);
   return storeToken({
     token: tr.data.access_token,
     expiresIn: tr.data.expires_in ?? 3600,
@@ -284,13 +294,14 @@ export function inspectPasswordToken(token: string): Promise<PasswordTokenStatus
 /** Sets the password and, when the server signs the person in, stores the
  *  session exactly as login() does. Returns whether they are signed in. */
 export async function redeemPasswordToken(
-  token: string, password: string, confirmPassword: string,
+  token: string, password: string, confirmPassword: string, beforeStore?: BeforeStore,
 ): Promise<{ signedIn: boolean; login?: string }> {
   const data = await postAnonymous<TokenResponse["data"] & { signed_in?: boolean; login?: string }>(
     "/api/v1/auth/password-token/redeem",
     { token, password, confirm_password: confirmPassword },
   );
   if (data.signed_in && data.access_token) {
+    if (beforeStore) await beforeStore(data.access_token);
     storeToken({
       token: data.access_token,
       expiresIn: data.expires_in ?? 3600,

@@ -9,7 +9,8 @@ import { brandLogoSrc, getBrand } from "@/lib/brand";
 import { fetchApprovalsWaitingCount, fetchWhoAmI } from "@/lib/dataProvider";
 // The table moved to lib/navigation.ts in handoff 46, so the landing rule
 // reads the same scopes the sidebar filters by.
-import { ALL_NAV_GROUPS, canOpen } from "@/lib/navigation";
+import { drawnGroups } from "@/lib/navigation";
+import { useTenantHidden } from "@/hooks/use-tenant-sidebar";
 
 // localStorage key for per-group collapse state. Survives reloads so users
 // don't have to re-collapse every time.
@@ -71,12 +72,13 @@ export default function Sidebar() {
   const [location, navigate] = useLocation();
   const scopes = useScopes();
   const waiting = useApprovalsWaiting(scopes.has("assets:read"));
+  const tenantHidden = useTenantHidden();
 
-  // Items the session cannot open are not drawn; a group left with no items
-  // is not drawn either. Every item declares its scope (handoff 46).
-  const navGroups = ALL_NAV_GROUPS
-    .map(g => ({ ...g, items: g.items.filter(it => canOpen(scopes, it.scope)) }))
-    .filter(g => g.items.length > 0);
+  // Two axes, both required (handoff 48): the person's role opens the item
+  // (its scope, handoff 46) AND this tenant shows it (Settings → Sidebar).
+  // The second is presentation only — a hidden item still opens by its
+  // address. A group left with no items is not drawn.
+  const navGroups = drawnGroups(scopes, tenantHidden);
 
   // Pick the single best-matching nav item rather than highlighting every
   // ancestor. "Best" = the longest path that is a prefix of the current URL.
@@ -171,6 +173,7 @@ export default function Sidebar() {
                         // "Depreciation" items) — what handoff 46's spec
                         // reads to know exactly which items were drawn.
                         data-nav-path={item.path}
+                        data-nav-key={item.key}
                         aria-current={active ? "page" : undefined}
                         className="nav-item-hover w-full flex items-center gap-2.5 px-2.5 py-[7px] mb-px rounded-xl text-[13px] font-medium transition-colors duration-100 text-left"
                         style={

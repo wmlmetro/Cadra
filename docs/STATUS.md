@@ -1046,3 +1046,32 @@ tenants' journeys.
 Report 46 §G carries every suite's denominator, the per-persona matrix
 (`46-evidence/matrix-*.json`) and the screenshots on `test19` and
 `jaizbankplc`.
+
+## 48 — What this tenant has (2026-10-03)
+
+### What was built
+
+- **Settings → Sidebar** (`/settings/sidebar`, `admin`): per-tenant
+  switches for the sidebar's 28 items and 10 groups, a group being a master
+  switch. `GET /api/v1/settings/sidebar` (any token) and `PATCH` (`admin`),
+  `myservice_api` 19.0.3.20.0 on 9 of 9 local databases
+  (`48-evidence/upgrade-fanout.txt`).
+- **Two axes in the sidebar**: drawn = the tenant shows it AND the person's
+  scopes open it (`lib/navigation.ts` `drawnGroups`). Presentation only —
+  `tests/test_sidebar_catalog.py` fails if anything else reads a switch.
+- **Stable keys** on every item and group, held equal between the app and
+  the server, published keys never dropped or reused.
+- **The lockout refused**: the Sidebar screen and the Settings group.
+- **One configuration parameter per switch**, so each is a row in
+  `/reports/configuration-changes` naming who last changed it.
+
+### Measured, not built
+
+- What the sidebar's screens hold, per tenant — the answer to the handoff's
+  §3: `docs/GO-LIVE.md` §24.2.
+
+### Verification
+
+Report 48 carries every suite's denominator, the browser spec's matrix on
+`test19` and `boot44` (different items off on each) and the screenshots.
+

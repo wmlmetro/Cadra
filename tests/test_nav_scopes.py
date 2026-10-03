@@ -29,7 +29,10 @@ NAV = SPA / "lib" / "navigation.ts"
 APP = SPA / "App.tsx"
 UTILS = REPO_ROOT / "myservice_api" / "controllers" / "utils.py"
 
-_ITEM = re.compile(r"^\s*\{\s*name:\s*\"(?P<name>[^\"]+)\",\s*path:\s*\"(?P<path>[^\"]+)\"(?P<rest>.*)\},?\s*$")
+# `key:` leads every item since handoff 48 (the per-tenant switch's
+# identifier); optional here so this parse does not depend on it —
+# `test_sidebar_catalog.py` is the guard that requires it.
+_ITEM = re.compile(r"^\s*\{\s*(?:key:\s*\"(?P<key>[^\"]+)\",\s*)?name:\s*\"(?P<name>[^\"]+)\",\s*path:\s*\"(?P<path>[^\"]+)\"(?P<rest>.*)\},?\s*$")
 
 
 def _server_scopes():

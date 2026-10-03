@@ -1,0 +1,102 @@
+
+[preflight] http://test19.localhost:8069/app/ is up · tenant brand = "Nigeria Revenue Service"
+[auth] logged in as "admin" — storageState saved to .auth/jaiz.json
+
+
+Running 7 tests using 1 worker
+
+[1/7] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:123:7 › 46 — everyone sees their own job › the personas file exists for this tenant
+[2/7] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:129:9 › 46 — everyone sees their own job › administrator: lands, sees, and is refused what it does not see
+[3/7] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:129:9 › 46 — everyone sees their own job › asset_manager: lands, sees, and is refused what it does not see
+[4/7] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:129:9 › 46 — everyone sees their own job › auditor: lands, sees, and is refused what it does not see
+[5/7] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:129:9 › 46 — everyone sees their own job › storekeeper: lands, sees, and is refused what it does not see
+[6/7] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:129:9 › 46 — everyone sees their own job › tag_unit: lands, sees, and is refused what it does not see
+[7/7] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:129:9 › 46 — everyone sees their own job › tagger: lands, sees, and is refused what it does not see
+[8/7] (retries) [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:123:7 › 46 — everyone sees their own job › the personas file exists for this tenant (retry #1)
+[9/7] (retries) [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:129:9 › 46 — everyone sees their own job › administrator: lands, sees, and is refused what it does not see (retry #1)
+[10/7] (retries) [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:129:9 › 46 — everyone sees their own job › asset_manager: lands, sees, and is refused what it does not see (retry #1)
+[11/7] (retries) [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:129:9 › 46 — everyone sees their own job › auditor: lands, sees, and is refused what it does not see (retry #1)
+[12/7] (retries) [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:129:9 › 46 — everyone sees their own job › storekeeper: lands, sees, and is refused what it does not see (retry #1)
+[13/7] (retries) [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:129:9 › 46 — everyone sees their own job › tag_unit: lands, sees, and is refused what it does not see (retry #1)
+  1) [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:129:9 › 46 — everyone sees their own job › tag_unit: lands, sees, and is refused what it does not see 
+
+    Error: tag_unit passed through /no-access on the way to /no-access: /app/ → /app/no-access → /app/no-access
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 2
+
+      143 |       expect(stops.filter((s) => s.endsWith("/no-access")).length,
+      144 |         `${persona.key} passed through /no-access on the way to ${landed}: ${stops.join(" → ")}`)
+    > 145 |         .toBe(landed === "/no-access" ? 1 : 0);
+          |          ^
+      146 |       await shot(page, `46-${persona.key}-landing`);
+      147 |       expect(landed, `${persona.key} landed on ${landed}`).toBe(LANDING[persona.key]);
+      148 |
+        at /Users/macbookprom1/Desktop/WML/myservicenrs/e2e/tests/46-everyone-sees-their-own-job.spec.ts:145:10
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/46-everyone-sees-their-own-13376-efused-what-it-does-not-see-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/46-everyone-sees-their-own-13376-efused-what-it-does-not-see-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/46-everyone-sees-their-own-13376-efused-what-it-does-not-see-chromium/error-context.md
+
+    Error Context: test-results/46-everyone-sees-their-own-13376-efused-what-it-does-not-see-chromium/error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/46-everyone-sees-their-own-13376-efused-what-it-does-not-see-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/46-everyone-sees-their-own-13376-efused-what-it-does-not-see-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: tag_unit passed through /no-access on the way to /no-access: /app/ → /app/no-access → /app/no-access
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 2
+
+      143 |       expect(stops.filter((s) => s.endsWith("/no-access")).length,
+      144 |         `${persona.key} passed through /no-access on the way to ${landed}: ${stops.join(" → ")}`)
+    > 145 |         .toBe(landed === "/no-access" ? 1 : 0);
+          |          ^
+      146 |       await shot(page, `46-${persona.key}-landing`);
+      147 |       expect(landed, `${persona.key} landed on ${landed}`).toBe(LANDING[persona.key]);
+      148 |
+        at /Users/macbookprom1/Desktop/WML/myservicenrs/e2e/tests/46-everyone-sees-their-own-job.spec.ts:145:10
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/46-everyone-sees-their-own-13376-efused-what-it-does-not-see-chromium-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/46-everyone-sees-their-own-13376-efused-what-it-does-not-see-chromium-retry1/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/46-everyone-sees-their-own-13376-efused-what-it-does-not-see-chromium-retry1/error-context.md
+
+    Error Context: test-results/46-everyone-sees-their-own-13376-efused-what-it-does-not-see-chromium-retry1/error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/46-everyone-sees-their-own-13376-efused-what-it-does-not-see-chromium-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/46-everyone-sees-their-own-13376-efused-what-it-does-not-see-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[14/7] (retries) [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:129:9 › 46 — everyone sees their own job › tagger: lands, sees, and is refused what it does not see (retry #1)
+  1 failed
+    [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:129:9 › 46 — everyone sees their own job › tag_unit: lands, sees, and is refused what it does not see 
+  1 did not run
+  5 passed (2.3m)
