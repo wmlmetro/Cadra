@@ -1962,13 +1962,17 @@ found is here.
   an unclassified database like every writing script. After the owner runs
   §7's three commands, `scripts/demo_personas.sh <db> seed` on each.
   `[open]`, owner.
-- **The cluster has no personas.** Nothing here reaches it. The wrapper is
-  local-only (it calls `docker compose`); on the cluster the three scripts
-  are piped into `odoo shell` in the Odoo pod the same way
-  (`kubectl exec -i … -- odoo shell -c /etc/odoo/odoo.conf -d <db> --no-http
-  < scripts/seed_demo_personas.py`), and the seed's password block — the
-  lines between `CADRA_PERSONAS_BEGIN` and `CADRA_PERSONAS_END` — has to be
-  lifted out of that output by hand. `[open]`, owner.
+- **The cluster's personas go on through a workflow** — the local wrapper
+  calls `docker compose` and cannot reach it. Once the owner has run it:
+  ```
+  gh workflow run demo-personas.yml --ref dev \
+    -f dbs=staging,gtb,jaizbankplc,lasg -f action=seed -f classify_absent_as=client
+  scripts/demo_personas_fetch.sh <run-id>     # on the owner's machine
+  ```
+  The passwords arrive encrypted and are readable only where
+  `docs/api/.personas.key.pem` lives; they land in
+  `docs/api/.personas.cluster.<db>`. At go-live: `-f action=remove`, read
+  the dry run, then again with `-f apply=true`. `[open]`, owner, to run.
 - **Do not create a real person from a persona's session.** A persona is a
   test actor, so an account it creates is labelled `is_test_fixture` for
   good, and everything that person then does is labelled too. The listing

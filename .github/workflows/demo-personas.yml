@@ -1,0 +1,138 @@
+name: demo-personas
+# Handoff 46's demo personas on the CLUSTER — seed, list or remove them on one
+# or more tenants. The same three scripts as `scripts/demo_personas.sh`, which
+# is local-only (it calls `docker compose`); here they are piped into
+# `odoo shell` in the running odoo-19 pod, the way set-email-relay.yml does.
+#
+# PASSWORDS NEVER REACH THE LOG IN CLEAR. `scripts/demo_personas_ci.sh` masks
+# each one, prints everything else, and encrypts the block to
+# `scripts/demo_personas_recipient.pem`; the private key exists only on the
+# owner's machine. The run uploads `<db>.personas.enc` as an artifact, and
+#     scripts/demo_personas_fetch.sh <run-id>
+# decrypts it there into docs/api/.personas.cluster.<db>.
+#
+# CLASS. The seed refuses a database that is not classified `test` or
+# `client` — absent included — like every script that writes. The owner
+# ruled the four cluster tenants `client` (2026-10-03: the cluster is the
+# demo estate, CLAUDE.md). `classify_absent_as=client` writes that, and ONLY
+# where no class is recorded: an existing class is printed and never changed,
+# so this cannot downgrade a database somebody marked `production`.
+#
+# Writes to every tenant named, including live client sites. A second seed
+# changes nothing; `remove` is a dry run unless `apply` is ticked.
+on:
+  workflow_dispatch:
+    inputs:
+      dbs:
+        description: "Comma-separated tenant DBs (e.g. staging,gtb,jaizbankplc,lasg)."
+        type: string
+        required: true
+      action:
+        description: "list = read only; seed = create/repair; remove = take them off (dry run unless apply)."
+        type: choice
+        options: [list, seed, remove]
+        default: list
+      apply:
+        description: "remove only: actually delete/archive (otherwise a dry run)."
+        type: boolean
+        default: false
+      classify_absent_as:
+        description: "Record this class on a DB that has NONE (never changes an existing one)."
+        type: choice
+        options: [none, client]
+        default: none
+      reset_passwords:
+        description: "seed only: issue new passwords for existing personas."
+        type: boolean
+        default: false
+
+env:
+  NAMESPACE: cadra-dev
+
+concurrency:
+  group: demo-personas
+  cancel-in-progress: false
+
+jobs:
+  personas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Save DOKS kubeconfig
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 1800 "${{ vars.DO_CLUSTER_NAME }}"
+
+      - name: Run on each tenant
+        env:
+          DBS: ${{ inputs.dbs }}
+          ACTION: ${{ inputs.action }}
+          APPLY: ${{ inputs.apply }}
+          CLASSIFY: ${{ inputs.classify_absent_as }}
+          RESET: ${{ inputs.reset_passwords }}
+        run: |
+          set -euo pipefail
+          # -c /tmp/odoo.conf: the pod's entrypoint writes the DB credentials
+          # there at startup (set-email-relay.yml); a bare odoo shell cannot
+          # reach Postgres.
+          shell() { kubectl -n "$NAMESPACE" exec -i deployment/odoo-19 -- \
+            env "$@" odoo shell -c /tmp/odoo.conf -d "$db" --no-http --log-level=error; }
+          case "$ACTION" in
+            list)   script=scripts/list_demo_personas.py;   envs=(X=0) ;;
+            seed)   script=scripts/seed_demo_personas.py
+                    envs=(CADRA_DEMO_RESET_PASSWORDS=$([ "$RESET" = true ] && echo 1 || echo 0)) ;;
+            remove) script=scripts/remove_demo_personas.py
+                    envs=(CADRA_APPLY=$([ "$APPLY" = true ] && echo 1 || echo 0)) ;;
+          esac
+          failed=0
+          for db in ${DBS//,/ }; do
+            db="$(echo "$db" | tr -d '[:space:]')"
+            [ -n "$db" ] || continue
+            if ! printf '%s' "$db" | grep -qE '^[A-Za-z0-9_]+$'; then
+              echo "::error::'$db' is not a database name"; exit 1
+            fi
+            echo "─── ${ACTION} on '${db}' ───"
+            if [ "$CLASSIFY" = client ]; then
+              printf '%s\n' \
+                "env.cr.execute(\"SELECT value FROM ir_config_parameter WHERE key = 'cadra.database_class'\")" \
+                "row = env.cr.fetchone()" \
+                "if row is None:" \
+                "    env['ir.config_parameter'].sudo().set_param('cadra.database_class', 'client'); env.cr.commit(); print('CLASS ${db}: none recorded -> set to client')" \
+                "else:" \
+                "    print('CLASS ${db}: already %r - left exactly as it was' % (row[0],))" \
+              | shell X=0 2>&1 | grep '^CLASS' || { echo "::error::classification step failed on ${db}"; exit 1; }
+            fi
+            raw="$(mktemp)"
+            status=0
+            shell "${envs[@]}" < "$script" > "$raw" 2>&1 || status=$?
+            bash scripts/demo_personas_ci.sh "$raw" "$db" out scripts/demo_personas_recipient.pem
+            rm -f "$raw"
+            if [ "$status" -ne 0 ]; then
+              echo "::warning title=${ACTION} on ${db} exited ${status}::read the lines above (1 = refused by class, 2 = a persona refused)"
+              failed=1
+            fi
+          done
+          [ "$failed" -eq 0 ] || exit 1
+
+      - name: Upload encrypted passwords
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-personas-${{ github.run_id }}
+          path: out/*.personas.enc
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Next step
+        if: always()
+        run: |
+          echo "If passwords were issued, on the owner's machine:"
+          echo "  scripts/demo_personas_fetch.sh ${{ github.run_id }}"
+          echo "which writes docs/api/.personas.cluster.<db> (gitignored, mode 600)."
