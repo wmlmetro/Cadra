@@ -100,7 +100,7 @@ export const SCOPE_WORDS: Record<string, string> = {
   "operations:read":    "View the fleet, staff bus, facilities and security dashboards",
   "identity:read":      "Read the staff roster",
   "access:read":        "Read the access record — who granted whom which role",
-  "tagging:write":      "Confirm a label is affixed",
+  "tagging:write":      "Issue, replace and confirm asset labels",
   "settings:write":     "Change settings",
   "settings:read":      "Read the configuration log",
   "admin":              "Everything — system administrator",

@@ -300,8 +300,8 @@ def _may_not_decide(tag, *, verb):
             "You asked for this replacement. Ask an approver to reject it, "
             "or let it stand."
             if own else
-            "Only somebody who could have made the change themselves can "
-            "decide on it.")
+            "Only an approver — somebody holding the Asset Manager "
+            "role — can decide on it.")
     return err(ERR_FORBIDDEN, message, status=403,
                details={"tag_id": tag.id, "is_own_request": own,
                         "requested_by": _ref(tag.requested_by)})

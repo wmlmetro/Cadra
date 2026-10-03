@@ -208,7 +208,12 @@ SCOPE_INGESTION_WRITE    = "ingestion:write"
 SCOPE_INTEGRATIONS_WRITE = "integrations:write"
 SCOPE_WEBHOOKS_ADMIN     = "webhooks:admin"
 # The asset register's own figures: `/dashboard/kpis`, `/dashboard/map`,
-# `/reports/depreciation` — aggregates, nothing that identifies an asset.
+# `/reports/depreciation`. kpis and the depreciation report are aggregates;
+# the MAP is not entirely — its payload carries one row per geocoded
+# vehicle (plate, driver) beside the locations, because it backs the
+# register dashboard's map. That fleet half riding the register's scope is
+# a recorded Architect finding (report 47), not a license to widen this
+# side of the split.
 # Until handoff 47 this one name also opened every fleet, staff-bus, FM and
 # security screen; that half is `operations:read` below. One name was
 # carrying two meanings, which is the defect this API keeps finding in

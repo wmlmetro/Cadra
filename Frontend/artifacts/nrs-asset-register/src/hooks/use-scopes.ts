@@ -84,7 +84,8 @@ export const SCOPE = {
   /** The access-changes report — who granted whom which role. Split out of
    *  `identity:read` by handoff 47: the Auditor's, not every Asset User's. */
   accessRead: "access:read",
-  /** `POST /assets/<id>/tag-affixed` — the Tag-Issuing Unit's one write. */
+  /** The Tag-Issuing Unit's job: mint a label, request its replacement,
+   *  confirm it affixed (three routes since handoff 47). */
   taggingWrite: "tagging:write",
   /** Categories, branding and the depreciation settings. */
   settingsWrite: "settings:write",

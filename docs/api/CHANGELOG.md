@@ -46,7 +46,7 @@ credentials are unaffected.
   granted whom which role. Every route under `/identity/*` keeps
   `identity:read`. The Auditor group now grants `access:read`; a non-admin
   credential that reads this report needs `access:read` added to its row.
-- **BREAKING: the fleet, staff-bus, FM and security routes take
+- **BREAKING: the fleet, FM and security routes take
   `operations:read`** (new scope), not `dashboards:read`:
   `/dashboard/fleet-command`, `/fleet`, `/fleet/<id>`, `/fleet/dashboard`,
   `/fm/dashboard`, `/security/kpis`, `/security/map-data`,

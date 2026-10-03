@@ -2106,6 +2106,14 @@ found is here.
   data, default-on). Both keys are retired in `SIDEBAR_RETIRED` and never
   come back under the same name; both routes still serve by address.
   `[landed, keep it that way]`
+- **`GET /dashboard/map` hands the identified fleet roster to
+  `dashboards:read`.** Found by the verification pass: the map route stays
+  on the register's scope because it backs the register dashboard, but its
+  payload carries one row per geocoded vehicle — plate and driver — beside
+  the locations. So an Asset User refused `/fleet` still reads the fleet
+  through the map. Splitting the payload is a BREAKING serializer change
+  and a question about what the register dashboard's map is FOR; not
+  decided here. `[open]`, Architect.
 - **The Auditor's four reports still have no screen** — configuration
   changes, disposals, the register snapshot, the export all answer the
   auditor 200 over the API and the app draws no page for any of them
@@ -2117,5 +2125,5 @@ found is here.
   needs `access:read`; one holding `dashboards:read` for the fleet/FM/
   security endpoints now needs `operations:read`; one holding `assets:write`
   to mint or replace labels now needs `tagging:write`. Per-tenant counts of
-  who is actually affected are in report 47 §counts. `[open]`, owner, before
+  who is actually affected are in report 47 §B. `[open]`, owner, before
   the next demo that uses a non-admin credential on those routes.
