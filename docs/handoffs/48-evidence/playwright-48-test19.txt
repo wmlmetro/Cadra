@@ -1,0 +1,12 @@
+
+[preflight] http://test19.localhost:8069/app/ is up · tenant brand = "Nigeria Revenue Service"
+[auth] logged in as "admin" — storageState saved to .auth/jaiz.json
+
+
+Running 4 tests using 1 worker
+
+[1/4] [chromium] › tests/48-what-this-tenant-has.spec.ts:188:7 › 48 — what this tenant has › 0 · baseline: nothing hidden, and untouched means default on
+[2/4] [chromium] › tests/48-what-this-tenant-has.spec.ts:209:7 › 48 — what this tenant has › 1 · the administrator switches it, in one session
+[3/4] [chromium] › tests/48-what-this-tenant-has.spec.ts:304:7 › 48 — what this tenant has › 2 · the Store Officer: both axes, and the address still opens
+[4/4] [chromium] › tests/48-what-this-tenant-has.spec.ts:346:7 › 48 — what this tenant has › 3 · the Auditor reads who changed it
+  4 passed (23.1s)

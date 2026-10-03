@@ -1,0 +1,25 @@
+tests/test_sidebar_catalog.py — each guard mutated to fail, then restored (2026-10-03)
+
+== item key removed (staff_bus loses `key:` in navigation.ts)
+FAILED test_every_key_is_well_formed_and_unique
+FAILED test_the_app_and_the_server_carry_the_same_table
+FAILED test_the_locked_key_is_the_screen_the_switches_live_on
+== item key renamed in the app only (staff_bus -> staff_bus_service)
+FAILED test_the_app_and_the_server_carry_the_same_table          1 failed, 5 passed
+== key dropped from the server's table (app keeps it)
+FAILED test_the_app_and_the_server_carry_the_same_table
+FAILED test_no_published_key_disappears_and_none_is_reused       2 failed, 4 passed
+== LOCKED_ITEMS pointed at `branding`
+FAILED test_the_locked_key_is_the_screen_the_switches_live_on     1 failed, 5 passed
+== v1_assets.py mentions get_param("cadra.sidebar.item.fleet")
+FAILED test_nothing_on_the_server_reads_the_switches_but_their_own_route   1 failed, 5 passed
+== App.tsx imports useTenantHidden
+FAILED test_the_app_never_routes_on_the_tenants_switches          1 failed, 5 passed
+== restored
+6 passed
+
+After the verification pass (R4) — a key added to both tables but not to PUBLISHED_ITEMS:
+== `label_printer` added to SIDEBAR_GROUPS and navigation.ts, not listed
+FAILED test_no_published_key_disappears_and_none_is_reused       1 failed, 5 passed
+== restored
+6 passed
